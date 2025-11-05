@@ -169,7 +169,10 @@ export default function Chatbot() {
 
     const userMessage: Message = { id: Date.now(), text: textToSend, sender: 'user' };
     setMessages((prev) => [...prev, userMessage]);
-    setIsCarouselOpen(false); // Collapse carousel
+    
+    if (isCarouselOpen) {
+      setIsCarouselOpen(false); // Collapse carousel only on the first message
+    }
 
     if (!message) {
       setInputValue('');
@@ -188,7 +191,7 @@ export default function Chatbot() {
       if (foundCategory) {
         botResponseText = `Here are some ${foundCategory.toLowerCase()} you might like:`;
         productSuggestions = products.filter(p => p.category === foundCategory);
-      } else if (lowerCaseInput.includes('all') || lowerCaseInput.includes('everything') || lowerCase-input.includes('products')) {
+      } else if (lowerCaseInput.includes('all') || lowerCaseInput.includes('everything') || lowerCaseInput.includes('products')) {
          botResponseText = "Here are all our products:";
          productSuggestions = products;
       }
