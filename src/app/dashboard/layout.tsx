@@ -31,11 +31,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { auth, user, isUserLoading } = useFirebase();
 
-  React.useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
-  }, [isUserLoading, user, router]);
+  // React.useEffect(() => {
+  //   if (!isUserLoading && !user) {
+  //     router.push('/login');
+  //   }
+  // }, [isUserLoading, user, router]);
 
   const handleSignOut = async () => {
     if (auth) {
@@ -50,18 +50,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
 
-  if (isUserLoading || !user) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+  // if (isUserLoading || !user) {
+  //   return (
+  //     <div className="flex min-h-screen w-full items-center justify-center bg-background">
+  //       <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  //     </div>
+  //   );
+  // }
+  
   const getInitials = (email?: string | null) => {
     if (!email) return 'U';
     return email.substring(0, 2).toUpperCase();
   }
+
+  const currentUser = user || { email: 'dev@bakedbot.ai' };
+
 
   return (
     <SidebarProvider>
@@ -96,9 +99,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <DropdownMenuTrigger asChild>
                         <SidebarMenuButton tooltip="Profile" className="w-full">
                            <Avatar className="h-7 w-7">
-                              <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                              <AvatarFallback>{getInitials(currentUser.email)}</AvatarFallback>
                            </Avatar>
-                           <span className="truncate">{user.email ?? 'Your Profile'}</span>
+                           <span className="truncate">{currentUser.email ?? 'Your Profile'}</span>
                         </SidebarMenuButton>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="w-56 mb-2" side="top" align="start">
@@ -121,7 +124,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                        <AvatarFallback>{getInitials(currentUser.email)}</AvatarFallback>
                      </Avatar>
                      <span className="sr-only">User Profile</span>
                   </Button>
