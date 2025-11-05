@@ -29,13 +29,13 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
     <Card className="flex flex-col @container">
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
-            <CardTitle>{productDescription?.productName ?? 'Generated Description'}</CardTitle>
+            <CardTitle>{productDescription?.productName ?? 'Generated Content'}</CardTitle>
             <CardDescription>Review the AI-generated content below.</CardDescription>
         </div>
         {productDescription && (
           <div className="flex items-center gap-2">
             {productDescription.msrp && <div className="text-lg font-bold text-primary">${productDescription.msrp}</div>}
-            <Button variant="outline" size="icon" onClick={handleCopy} aria-label="Copy content">
+            <Button variant="outline" size="icon" onClick={handleCopy} aria-label="Copy content" disabled={!productDescription.description}>
                 <Clipboard className="h-4 w-4" />
             </Button>
           </div>
@@ -48,21 +48,26 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
                  <Image
                    src={productDescription.imageUrl}
-                   alt={productDescription.productName}
+                   alt={productDescription.productName || 'Generated Image'}
                    fill
                    className="object-cover"
-                   data-ai-hint="product package"
+                   data-ai-hint="social media post"
                  />
                </div>
             )}
             {productDescription.description && (
               <p className="text-sm leading-relaxed whitespace-pre-line">{productDescription.description}</p>
             )}
+            {!productDescription.imageUrl && !productDescription.description && (
+                <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/50 p-8 text-center text-muted-foreground">
+                    <p>Content generation in progress...</p>
+                </div>
+            )}
           </>
         ) : (
           <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/50 p-8 text-center text-muted-foreground">
             <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
-            <p className="mt-4">Your generated product description will appear here. <br/> Fill out the form and click "Generate Description" to start.</p>
+            <p className="mt-4">Your generated content will appear here. <br/> Fill out the form and click a "Generate" button to start.</p>
           </div>
         )}
       </CardContent>

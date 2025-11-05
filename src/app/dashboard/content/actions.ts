@@ -1,6 +1,15 @@
 'use server';
 
-import { generateProductDescription, type GenerateProductDescriptionInput, type GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
+import {
+  generateProductDescription,
+  type GenerateProductDescriptionInput,
+  type GenerateProductDescriptionOutput
+} from '@/ai/flows/generate-product-description';
+import {
+  generateSocialMediaImage,
+  type GenerateSocialMediaImageInput,
+  type GenerateSocialMediaImageOutput
+} from '@/ai/flows/generate-social-image';
 import { z } from 'zod';
 
 const FormSchema = z.object({
@@ -11,7 +20,7 @@ const FormSchema = z.object({
   msrp: z.string().optional(),
 });
 
-export type FormState = {
+export type DescriptionFormState = {
   message: string;
   data: GenerateProductDescriptionOutput | null;
   error: boolean;
@@ -20,10 +29,16 @@ export type FormState = {
   };
 };
 
+export type ImageFormState = {
+  message: string;
+  imageUrl: string | null;
+  error: boolean;
+};
+
 export async function createProductDescription(
-  prevState: FormState,
+  prevState: DescriptionFormState,
   formData: FormData
-): Promise<FormState> {
+): Promise<DescriptionFormState> {
   const validatedFields = FormSchema.safeParse({
     productName: formData.get('productName'),
     features: formData.get('features'),
@@ -41,15 +56,13 @@ export async function createProductDescription(
     };
   }
 
-  // NOTE: Image handling logic will go here.
-  // For now, we'll pass a placeholder URL.
-  const imageUrl = 'https://picsum.photos/seed/packaging/400/400';
-
+  // Use the image URL from the form if it exists
+  const existingImageUrl = formData.get('imageUrl') as string | null;
 
   try {
     const result = await generateProductDescription({
       ...validatedFields.data,
-      imageUrl,
+      imageUrl: existingImageUrl ?? undefined, // Pass existing URL or undefined
     } as GenerateProductDescriptionInput);
     return {
       message: 'Product description generated successfully.',
@@ -61,6 +74,54 @@ export async function createProductDescription(
     return {
       message: `Failed to generate product description: ${errorMessage}`,
       data: null,
+      error: true,
+    };
+  }
+}
+
+export async function createSocialMediaImage(
+  prevState: ImageFormState,
+  formData: FormData
+): Promise<ImageFormState> {
+  const validatedFields = FormSchema.pick({ productName: true, features: true, brandVoice: true }).safeParse({
+    productName: formData.get('productName'),
+    features: formData.get('features'),
+    brandVoice: formData.get('brandVoice'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      message: 'Product name, features, and brand voice are required to generate an image.',
+      imageUrl: null,
+      error: true,
+    };
+  }
+
+  const logoDataUri = formData.get('logoDataUri') as string;
+  if (!logoDataUri) {
+    return {
+      message: 'A brand logo is required to generate a watermarked image. Please upload one in Settings.',
+      imageUrl: null,
+      error: true,
+    };
+  }
+
+  try {
+    const result = await generateSocialMediaImage({
+      ...validatedFields.data,
+      logoDataUri,
+    } as GenerateSocialMediaImageInput);
+    
+    return {
+      message: 'Image generated successfully!',
+      imageUrl: result.imageUrl,
+      error: false,
+    };
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+    return {
+      message: `Failed to generate image: ${errorMessage}`,
+      imageUrl: null,
       error: true,
     };
   }
