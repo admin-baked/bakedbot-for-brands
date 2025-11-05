@@ -1,7 +1,9 @@
 
+
 import BrandSettings from "./components/brand-settings";
 import CannMenusSettings from "./components/cannmenus-settings";
 import ChatbotSettings from "./components/chatbot-settings";
+import ProductImportSettings from "./components/product-import-settings";
 import ThemeSettings from "./components/theme-settings";
 
 export default function SettingsPage() {
@@ -18,6 +20,7 @@ export default function SettingsPage() {
         <BrandSettings />
       </div>
       <ChatbotSettings />
+      <ProductImportSettings />
       <CannMenusSettings />
     </div>
   );
