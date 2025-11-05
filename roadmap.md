@@ -2,16 +2,20 @@
 
 This document outlines the planned features and improvements for the Smokey AI application.
 
-## Version 1.1 - Current Stable Version
+## Version 1.3 - Current Stable Version
 
 ### Core Features:
 - AI Product Description Generator with image upload and MSRP support.
 - Customizable AI Chatbot Widget ("Smokey") for product discovery.
-- Brand customization including theme colors and custom widget icons.
+- Advanced brand customization:
+  - Theme color selection.
+  - Set brand color via HEX code or website URL crawling.
+  - Upload a custom icon for the chatbot widget.
+- Selectable chat experiences ("Default" with product carousel or "Classic" conversation view).
 - Horizontally scrollable product carousel within the chatbot.
 - "Ask Smokey" functionality for conversational product inquiries.
 
-## Future Enhancements (Post-v1.1)
+## Future Enhancements (Post-v1.3)
 
 ### Chatbot & AI Agent
 - **AI-Powered Branding Agent**: Implement the backend logic for the AI agent to crawl a user's website and automatically match brand colors and style.
