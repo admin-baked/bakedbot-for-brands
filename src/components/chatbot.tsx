@@ -72,7 +72,7 @@ export default function Chatbot() {
         <>
           <div className="fixed bottom-6 right-6 z-50">
             <Button size="icon" className="h-16 w-16 rounded-full shadow-lg" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
-              {isOpen ? <X className="h-8 w-8" /> : <MessageSquare className="h-8 w-8" />}
+              {isOpen ? <X className="h-8 w-8" /> : <Bot className="h-8 w-8" />}
             </Button>
           </div>
     

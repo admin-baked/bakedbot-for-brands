@@ -28,8 +28,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const menuItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/dashboard/menu', label: 'Menu', icon: MenuIcon },
-    { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
     { href: '/dashboard/content', label: 'Product Descriptions', icon: PenSquare },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
