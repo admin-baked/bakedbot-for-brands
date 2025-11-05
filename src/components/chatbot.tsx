@@ -41,7 +41,7 @@ const ProductCarousel = ({ onAskSmokey, isCompact }: { onAskSmokey: (product: Pr
         >
           <CarouselContent className="-ml-2">
             {products.map((p, index) => (
-              <CarouselItem key={index} className="pl-2 basis-1/3">
+              <CarouselItem key={index} className={cn("pl-2", isCompact ? "basis-1/3" : "basis-1/2")}>
                 <div className="group relative w-full h-full rounded-lg overflow-hidden border">
                     <Image src={p.imageUrl} alt={p.name} width={200} height={200} data-ai-hint={p.imageHint} className="object-cover w-full h-full aspect-square" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
