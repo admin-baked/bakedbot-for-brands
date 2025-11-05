@@ -30,7 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/dashboard/menu', label: 'Menu', icon: MenuIcon },
     { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
-    { href: '/dashboard/content', label: 'Content Creator', icon: PenSquare },
+    { href: '/dashboard/content', label: 'Product Descriptions', icon: PenSquare },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
 
@@ -45,18 +45,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <SidebarContent>
               <SidebarMenu>
                 {menuItems.map((item) => (
-                  <SidebarMenuItem key={item.label}>
-                    <Link href={item.href} passHref>
-                      <SidebarMenuButton
-                        as="a"
-                        isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
-                        tooltip={item.label}
-                      >
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </Link>
-                  </SidebarMenuItem>
+                   <SidebarMenuItem key={item.label}>
+                   <Link href={item.href} passHref>
+                       <SidebarMenuButton
+                       as="a"
+                       isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
+                       tooltip={item.label}
+                       >
+                       <item.icon />
+                       <span>{item.label}</span>
+                       </SidebarMenuButton>
+                   </Link>
+                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
             </SidebarContent>

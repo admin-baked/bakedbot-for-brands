@@ -1,24 +1,24 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { type GenerateBlogPostOutput } from '@/ai/flows/generate-blog-posts';
+import { type GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { Button } from '@/components/ui/button';
 import { Clipboard, ThumbsUp, ThumbsDown, RotateCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface BlogPostDisplayProps {
-  blogPost: GenerateBlogPostOutput | null;
+interface ProductDescriptionDisplayProps {
+  productDescription: GenerateProductDescriptionOutput | null;
 }
 
-export default function BlogPostDisplay({ blogPost }: BlogPostDisplayProps) {
+export default function ProductDescriptionDisplay({ productDescription }: ProductDescriptionDisplayProps) {
   const { toast } = useToast();
 
   const handleCopy = () => {
-    if (blogPost?.content) {
-      navigator.clipboard.writeText(blogPost.content);
+    if (productDescription?.description) {
+      navigator.clipboard.writeText(productDescription.description);
       toast({
         title: 'Copied!',
-        description: 'Blog post content copied to clipboard.',
+        description: 'Product description copied to clipboard.',
       });
     }
   };
@@ -27,25 +27,25 @@ export default function BlogPostDisplay({ blogPost }: BlogPostDisplayProps) {
     <Card className="flex flex-col @container">
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
-            <CardTitle>{blogPost?.title ?? 'Generated Blog Post'}</CardTitle>
+            <CardTitle>{productDescription?.productName ?? 'Generated Description'}</CardTitle>
             <CardDescription>Review the AI-generated content below.</CardDescription>
         </div>
-        {blogPost && (
+        {productDescription && (
           <Button variant="outline" size="icon" onClick={handleCopy} aria-label="Copy content">
             <Clipboard className="h-4 w-4" />
           </Button>
         )}
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto">
-        {blogPost ? (
-          <div className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: blogPost.content.replace(/\n/g, '<br />') }} />
+        {productDescription ? (
+          <div className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: productDescription.description.replace(/\n/g, '<br />') }} />
         ) : (
           <div className="flex h-full min-h-[300px] items-center justify-center rounded-lg border border-dashed bg-muted/50 p-8 text-center text-muted-foreground">
-            <p>Your generated blog post will appear here. <br/> Fill out the form and click "Generate Post" to start.</p>
+            <p>Your generated product description will appear here. <br/> Fill out the form and click "Generate Description" to start.</p>
           </div>
         )}
       </CardContent>
-        {blogPost && (
+        {productDescription && (
          <CardContent className="border-t pt-4">
              <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">Content feedback:</p>

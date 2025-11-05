@@ -1,35 +1,33 @@
 'use server';
 
-import { generateBlogPost, type GenerateBlogPostInput, type GenerateBlogPostOutput } from '@/ai/flows/generate-blog-posts';
+import { generateProductDescription, type GenerateProductDescriptionInput, type GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { z } from 'zod';
 
 const FormSchema = z.object({
-  topic: z.string().min(3, 'Topic must be at least 3 characters.'),
-  productType: z.string().min(3, 'Product type must be at least 3 characters.'),
+  productName: z.string().min(3, 'Product name must be at least 3 characters.'),
+  features: z.string().min(3, 'Features must be at least 3 characters.'),
   keywords: z.string().min(3, 'Keywords must be at least 3 characters.'),
-  tone: z.string().min(1, 'Please select a tone.'),
-  length: z.string().min(1, 'Please select a length.'),
+  brandVoice: z.string().min(1, 'Please select a brand voice.'),
 });
 
 export type FormState = {
   message: string;
-  data: GenerateBlogPostOutput | null;
+  data: GenerateProductDescriptionOutput | null;
   error: boolean;
   fieldErrors?: {
     [key: string]: string[] | undefined;
   };
 };
 
-export async function createBlogPost(
+export async function createProductDescription(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
   const validatedFields = FormSchema.safeParse({
-    topic: formData.get('topic'),
-    productType: formData.get('productType'),
+    productName: formData.get('productName'),
+    features: formData.get('features'),
     keywords: formData.get('keywords'),
-    tone: formData.get('tone'),
-    length: formData.get('length'),
+    brandVoice: formData.get('brandVoice'),
   });
 
   if (!validatedFields.success) {
@@ -42,16 +40,16 @@ export async function createBlogPost(
   }
 
   try {
-    const result = await generateBlogPost(validatedFields.data as GenerateBlogPostInput);
+    const result = await generateProductDescription(validatedFields.data as GenerateProductDescriptionInput);
     return {
-      message: 'Blog post generated successfully.',
+      message: 'Product description generated successfully.',
       data: result,
       error: false,
     };
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
     return {
-      message: `Failed to generate blog post: ${errorMessage}`,
+      message: `Failed to generate product description: ${errorMessage}`,
       data: null,
       error: true,
     };

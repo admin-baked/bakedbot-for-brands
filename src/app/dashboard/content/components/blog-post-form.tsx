@@ -1,16 +1,17 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import { createBlogPost } from '../actions';
+import { createProductDescription } from '../actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEffect, useRef, useState } from 'react';
-import BlogPostDisplay from './blog-post-display';
+import ProductDescriptionDisplay from './blog-post-display';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 const initialState = {
   message: '',
@@ -24,13 +25,13 @@ function SubmitButton() {
   return (
     <Button type="submit" disabled={pending} className="w-full sm:w-auto">
       {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Generate Post
+      Generate Description
     </Button>
   );
 }
 
-export default function BlogPostForm() {
-  const [state, formAction] = useFormState(createBlogPost, initialState);
+export default function ProductDescriptionForm() {
+  const [state, formAction] = useFormState(createProductDescription, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -57,55 +58,39 @@ export default function BlogPostForm() {
       <form action={formAction} ref={formRef}>
         <Card>
           <CardHeader>
-            <CardTitle>Blog Post Details</CardTitle>
-            <CardDescription>Fill in the details below to generate a new blog post.</CardDescription>
+            <CardTitle>Product Details</CardTitle>
+            <CardDescription>Fill in the details below to generate a new product description.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="topic">Topic</Label>
-              <Input id="topic" name="topic" placeholder="e.g., Benefits of CBD for anxiety" />
-              {state.fieldErrors?.topic && <p className="text-sm text-destructive">{state.fieldErrors.topic[0]}</p>}
+              <Label htmlFor="productName">Product Name</Label>
+              <Input id="productName" name="productName" placeholder="e.g., Cosmic Caramels" />
+              {state.fieldErrors?.productName && <p className="text-sm text-destructive">{state.fieldErrors.productName[0]}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="productType">Related Product Type</Label>
-               <Input id="productType" name="productType" placeholder="e.g., Edibles, Tinctures" />
-               {state.fieldErrors?.productType && <p className="text-sm text-destructive">{state.fieldErrors.productType[0]}</p>}
+              <Label htmlFor="features">Key Features</Label>
+               <Textarea id="features" name="features" placeholder="e.g., Chewy, Full-spectrum, 10mg THC per piece" />
+               {state.fieldErrors?.features && <p className="text-sm text-destructive">{state.fieldErrors.features[0]}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="keywords">Keywords</Label>
-              <Input id="keywords" name="keywords" placeholder="e.g., CBD, anxiety, wellness, natural" />
+              <Input id="keywords" name="keywords" placeholder="e.g., caramel, edible, relaxing, indica" />
               {state.fieldErrors?.keywords && <p className="text-sm text-destructive">{state.fieldErrors.keywords[0]}</p>}
             </div>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div className="space-y-2">
-                <Label htmlFor="tone">Tone</Label>
-                <Select name="tone">
-                    <SelectTrigger id="tone">
-                    <SelectValue placeholder="Select a tone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="Informative">Informative</SelectItem>
-                    <SelectItem value="Humorous">Humorous</SelectItem>
-                    <SelectItem value="Persuasive">Persuasive</SelectItem>
-                    <SelectItem value="Friendly">Friendly</SelectItem>
-                    </SelectContent>
-                </Select>
-                {state.fieldErrors?.tone && <p className="text-sm text-destructive">{state.fieldErrors.tone[0]}</p>}
-                </div>
-                <div className="space-y-2">
-                <Label htmlFor="length">Length</Label>
-                <Select name="length">
-                    <SelectTrigger id="length">
-                    <SelectValue placeholder="Select a length" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="Short">Short (~300 words)</SelectItem>
-                    <SelectItem value="Medium">Medium (~700 words)</SelectItem>
-                    <SelectItem value="Long">Long (~1200 words)</SelectItem>
-                    </SelectContent>
-                </Select>
-                {state.fieldErrors?.length && <p className="text-sm text-destructive">{state.fieldErrors.length[0]}</p>}
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="brandVoice">Brand Voice</Label>
+              <Select name="brandVoice">
+                  <SelectTrigger id="brandVoice">
+                  <SelectValue placeholder="Select a brand voice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                  <SelectItem value="Playful">Playful</SelectItem>
+                  <SelectItem value="Professional">Professional</SelectItem>
+                  <SelectItem value="Luxurious">Luxurious</SelectItem>
+                  <SelectItem value="Adventurous">Adventurous</SelectItem>
+                  </SelectContent>
+              </Select>
+              {state.fieldErrors?.brandVoice && <p className="text-sm text-destructive">{state.fieldErrors.brandVoice[0]}</p>}
             </div>
           </CardContent>
           <CardFooter>
@@ -113,7 +98,7 @@ export default function BlogPostForm() {
           </CardFooter>
         </Card>
       </form>
-      <BlogPostDisplay blogPost={generatedPost} />
+      <ProductDescriptionDisplay productDescription={generatedPost} />
     </div>
   );
 }

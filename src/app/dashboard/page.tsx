@@ -47,7 +47,7 @@ export default function DashboardPage() {
         </Card>
          <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Content Generated</CardTitle>
+            <CardTitle className="text-sm font-medium">Descriptions Generated</CardTitle>
             <PenSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -61,7 +61,7 @@ export default function DashboardPage() {
         <CardHeader>
           <CardTitle>Unleash your content with AI</CardTitle>
           <CardDescription className="text-primary-foreground/80">
-            Effortlessly create engaging blog posts and marketing materials with our powerful AI content generator.
+            Effortlessly create engaging product descriptions and marketing materials with our powerful AI content generator.
           </CardDescription>
         </CardHeader>
         <CardContent>
