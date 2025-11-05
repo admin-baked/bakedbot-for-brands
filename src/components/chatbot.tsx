@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, type FormEvent } from 'react';
 import Image from 'next/image';
-import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown, ChevronDown } from 'lucide-react';
+import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown, ChevronDown, Wand2, Sparkles, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,12 +17,23 @@ import { useStore } from '@/hooks/use-store';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { recommendProducts, type RecommendProductsOutput } from '@/ai/ai-powered-product-recommendations';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { createSocialMediaImage } from '@/app/dashboard/content/actions';
+import type { ImageFormState } from '@/app/dashboard/content/actions';
+
 
 type Message = {
   id: number;
   text: string;
   sender: 'user' | 'bot';
   productSuggestions?: Product[];
+  imageUrl?: string;
+};
+
+const initialImageState: ImageFormState = {
+    message: '',
+    imageUrl: null,
+    error: false,
 };
 
 const ProductCarousel = ({ onAskSmokey, isCompact }: { onAskSmokey: (product: Product) => void, isCompact: boolean }) => (
@@ -90,6 +101,11 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Mes
                 {message.text && (
                   <p className="text-sm whitespace-pre-line">{message.text}</p>
                 )}
+                {message.imageUrl && (
+                    <div className="relative mt-2 aspect-square w-full max-w-xs overflow-hidden rounded-lg border">
+                        <Image src={message.imageUrl} alt="Generated brand image" fill className="object-cover" data-ai-hint="brand social media" />
+                    </div>
+                )}
                 {message.productSuggestions && (
                     <div className="mt-2 flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
                     {message.productSuggestions.slice(0, 3).map(p => (
@@ -149,6 +165,8 @@ const ChatWindow = ({
   handleSendMessage,
   inputValue,
   setInputValue,
+  onMagicImageClick,
+  chatMode,
 }: {
   chatExperience: 'default' | 'classic';
   onAskSmokey: (product: Product) => void;
@@ -159,6 +177,8 @@ const ChatWindow = ({
   handleSendMessage: (e: FormEvent) => void;
   inputValue: string;
   setInputValue: (value: string) => void;
+  onMagicImageClick: () => void;
+  chatMode: 'chat' | 'image';
 }) => {
   return (
     <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-card border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
@@ -176,16 +196,29 @@ const ChatWindow = ({
       
       <CardFooter className="p-4 border-t">
         <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button type="button" variant="ghost" size="icon" onClick={onMagicImageClick} disabled={isBotTyping}>
+                            <Wand2 className={cn("h-5 w-5", chatMode === 'image' ? "text-primary" : "")} />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                        <p>Generate a brand image</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type a message..."
+            placeholder={chatMode === 'image' ? 'Describe an image you\'d like...' : 'Type a message...'}
             className="flex-1"
             autoComplete="off"
             disabled={isBotTyping}
           />
           <Button type="submit" size="icon" disabled={isBotTyping || inputValue.trim() === ''}>
-            <Send className="h-4 w-4" />
+            {chatMode === 'image' ? <Sparkles className="h-4 w-4" /> : <Send className="h-4 w-4" />}
           </Button>
         </form>
       </CardFooter>
@@ -198,7 +231,8 @@ const ChatWindow = ({
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
-  const { chatbotIcon, chatExperience, welcomeMessage } = useStore();
+  const { chatbotIcon, chatExperience, welcomeMessage, brandImageGenerations, lastBrandImageGeneration, recordBrandImageGeneration } = useStore();
+  const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
 
   const [messages, setMessages] = useState<Message[]>([
      { id: 1, text: welcomeMessage, sender: 'bot' },
@@ -215,14 +249,32 @@ export default function Chatbot() {
     scrollToBottom();
   }, [messages, isBotTyping]);
   
-  // Update initial message if welcomeMessage changes and chat hasn't started
   useEffect(() => {
     if (!hasStartedChat) {
       setMessages([{ id: 1, text: welcomeMessage, sender: 'bot' }]);
     }
   }, [welcomeMessage, hasStartedChat]);
+  
+  useEffect(() => {
+    if (chatMode === 'image') {
+        const botMessage: Message = { 
+            id: Date.now(), 
+            text: `Let's create some magic! ✨ What kind of image should I generate for the brand?`, 
+            sender: 'bot' 
+          };
+        setMessages(prev => [...prev, botMessage]);
+    } else {
+        // You might want to add a message when switching back to chat mode
+    }
+  }, [chatMode]);
+
+
+  const handleMagicImageClick = () => {
+    setChatMode(prev => prev === 'image' ? 'chat' : 'image');
+  }
 
   const handleAskSmokey = (product: Product) => {
+    setChatMode('chat');
     const userMessage: Message = { id: Date.now(), text: `Tell me about the ${product.name}`, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
     
@@ -253,14 +305,56 @@ export default function Chatbot() {
       setHasStartedChat(true);
     }
   
+    const currentInput = inputValue;
     setInputValue('');
     setIsBotTyping(true);
+
+    if (chatMode === 'image') {
+        if (!chatbotIcon) {
+            const errorMessage: Message = {
+                id: Date.now() + 1,
+                text: "I can't generate a watermarked image without a brand logo. Please upload one in the Settings page on the dashboard.",
+                sender: 'bot',
+              };
+              setMessages((prev) => [...prev, errorMessage]);
+              setIsBotTyping(false);
+              return;
+        }
+
+        const formData = new FormData();
+        formData.append('productName', 'Brand Image');
+        formData.append('features', currentInput); 
+        formData.append('brandVoice', 'Creative');
+        formData.append('logoDataUri', chatbotIcon);
+        
+        const result = await createSocialMediaImage(initialImageState, formData);
+
+        if (result.error || !result.imageUrl) {
+            const errorMessage: Message = {
+                id: Date.now() + 1,
+                text: `I had trouble creating that image. ${result.message}`,
+                sender: 'bot',
+              };
+              setMessages((prev) => [...prev, errorMessage]);
+        } else {
+            const imageMessage: Message = {
+                id: Date.now() + 1,
+                text: "Here's the magic I came up with! ✨",
+                sender: 'bot',
+                imageUrl: result.imageUrl
+            }
+            setMessages((prev) => [...prev, imageMessage]);
+        }
+        setIsBotTyping(false);
+        setChatMode('chat'); // Reset to chat mode after generation
+        return;
+    }
   
     try {
       const availableProducts = JSON.stringify(products.map(p => ({ id: p.id, name: p.name, description: p.description, category: p.category, price: p.price })));
       
       const result: RecommendProductsOutput = await recommendProducts({
-        query: inputValue,
+        query: currentInput,
         availableProducts: availableProducts,
       });
   
@@ -325,6 +419,8 @@ export default function Chatbot() {
               handleSendMessage={handleSendMessage}
               inputValue={inputValue}
               setInputValue={setInputValue}
+              onMagicImageClick={handleMagicImageClick}
+              chatMode={chatMode}
             />
           )}
         </>
