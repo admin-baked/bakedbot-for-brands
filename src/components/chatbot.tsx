@@ -218,7 +218,7 @@ export default function Chatbot() {
                           key={category}
                           variant={activeCategory === category ? 'default' : 'outline'}
                           size="sm"
-                          className="rounded-full px-4"
+                          className="rounded-full px-4 h-8"
                           onClick={() => setActiveCategory(category)}
                         >
                           {category}
@@ -239,25 +239,25 @@ export default function Chatbot() {
                       const originalPrice = p.price * 1.3; // Simulate a discount
                       const discount = 27; // Simulate a discount
                       return (
-                         <CarouselItem key={p.id} className="basis-[36%] md:basis-1/3 pl-2">
+                         <CarouselItem key={p.id} className="basis-[33%] pl-2">
                             <Card className="overflow-hidden group h-full flex flex-col">
                                 <CardHeader className="p-0 relative">
-                                    <div className="relative h-28 w-full">
+                                    <div className="relative h-24 w-full">
                                         <Image src={p.imageUrl} alt={p.name} fill className="object-cover" data-ai-hint={p.imageHint} sizes="33vw" />
                                     </div>
-                                    <div className="absolute top-2 left-2 bg-background/80 text-foreground text-xs font-semibold p-1 rounded-md flex items-center gap-1">
-                                        <Tag className="h-3 w-3"/> {discount}% OFF
+                                    <div className="absolute top-1 left-1 bg-background/80 text-foreground text-[10px] font-semibold p-0.5 rounded-sm flex items-center gap-0.5">
+                                        <Tag className="h-2.5 w-2.5"/> {discount}% OFF
                                     </div>
                                 </CardHeader>
-                                <CardContent className="p-3 flex-1 flex flex-col justify-between">
+                                <CardContent className="p-2 flex-1 flex flex-col justify-between">
                                     <div>
-                                        <h4 className="font-semibold text-sm truncate group-hover:text-primary">{p.name}</h4>
+                                        <h4 className="font-semibold text-xs truncate group-hover:text-primary">{p.name}</h4>
                                         <p className="text-xs text-muted-foreground">{p.category}</p>
                                     </div>
-                                    <div className="mt-2">
-                                        <p className="text-base font-bold">${p.price.toFixed(2)} <span className="text-xs font-normal text-muted-foreground line-through ml-1">${originalPrice.toFixed(2)}</span></p>
-                                        <Button className="w-full mt-2 h-8 text-xs" onClick={() => addToCart(p)}>
-                                            GRAB DEAL
+                                    <div className="mt-1">
+                                        <p className="text-sm font-bold">${p.price.toFixed(2)} <span className="text-[10px] font-normal text-muted-foreground line-through ml-1">${originalPrice.toFixed(2)}</span></p>
+                                        <Button className="w-full mt-1.5 h-7 text-xs" onClick={() => addToCart(p)}>
+                                            Ask Smokey
                                         </Button>
                                     </div>
                                 </CardContent>
