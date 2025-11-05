@@ -186,42 +186,6 @@
         "productId",
         "quantity"
       ]
-    },
-    "Review": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Review",
-      "type": "object",
-      "description": "Represents a user review for a product.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Review entity."
-        },
-        "productId": {
-          "type": "string",
-          "description": "Reference to the Product being reviewed."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who wrote the review."
-        },
-        "rating": {
-          "type": "number",
-          "description": "A rating from 1 to 5.",
-          "minimum": 1,
-          "maximum": 5
-        },
-        "comment": {
-          "type": "string",
-          "description": "The text content of the review."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The date and time the review was created."
-        }
-      },
-      "required": ["id", "productId", "userId", "rating", "createdAt"]
     }
   },
   "auth": {
@@ -323,28 +287,8 @@
             }
           ]
         }
-      },
-       {
-        "path": "/products/{productId}/reviews/{reviewId}",
-        "definition": {
-          "entityName": "Review",
-          "schema": {
-            "$ref": "#/backend/entities/Review"
-          },
-          "description": "Stores product reviews.",
-          "params": [
-            {
-              "name": "productId",
-              "description": "The unique identifier for the product."
-            },
-            {
-              "name": "reviewId",
-              "description": "The unique identifier for the review."
-            }
-          ]
-        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the BakedBot AI Assistant plugin, prioritizing security, scalability, and debuggability as per the core design principles. User data is stored under `/users/{userId}` for private data, ensuring path-based ownership. Categories and Products are stored as top-level collections, as they are not directly owned by users, with the product's category relationship expressed via the `categoryId` field. Orders and OrderItems follow a hierarchical path under users for ownership and data locality. Reviews are nested under products to allow for easy retrieval of all reviews for a given product. This design eliminates the need for `get()` calls in security rules, enabling atomic operations. The structure facilitates secure list operations by segregating data based on ownership (user-owned data under `/users/{userId}`) and type (categories, products, reviews)."
+    "reasoning": "The Firestore structure is designed to support the BakedBot AI Assistant plugin, prioritizing security, scalability, and debuggability as per the core design principles. User data is stored under `/users/{userId}` for private data, ensuring path-based ownership. Categories and Products are stored as top-level collections, as they are not directly owned by users, with the product's category relationship expressed via the `categoryId` field. Orders and OrderItems follow a hierarchical path under users for ownership and data locality. This design eliminates the need for `get()` calls in security rules, enabling atomic operations. The structure facilitates secure list operations by segregating data based on ownership (user-owned data under `/users/{userId}`) and type (categories, products)."
   }
 }

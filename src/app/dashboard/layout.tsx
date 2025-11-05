@@ -35,14 +35,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   React.useEffect(() => {
     // If loading is finished and there's no user, redirect to login.
     if (!isUserLoading && !user) {
-      router.push('/brand-login');
+      router.push('/login');
     }
   }, [isUserLoading, user, router]);
 
   const handleSignOut = async () => {
     if (auth) {
       await signOut(auth);
-      router.push('/brand-login');
+      router.push('/login');
     }
   };
 

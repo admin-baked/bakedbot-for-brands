@@ -1,26 +1,4 @@
-/**
- * @fileoverview Firestore Security Rules for BakedBot AI Assistant Plugin.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for personal data and allows public read access for product catalogs.
- * Write access is always restricted to authenticated users and, where applicable, the data owner.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profiles, secured with owner-only access.
- * - /categories/{categoryId}: Stores product categories, publicly readable.
- * - /products/{productId}: Stores product information, publicly readable.
- * - /users/{userId}/orders/{orderId}: Stores user order history, secured with owner-only access.
- * - /users/{userId}/orders/{orderId}/orderItems/{orderItemId}: Stores individual order items, secured with owner-only access.
- * - /products/{productId}/reviews/{reviewId}: Stores product reviews. Writable by authenticated users, readable by all.
- *
- * Key Security Decisions:
- * - Users can only access their own data. Listing all users is disallowed.
- * - Categories and Products are publicly readable, but write access is not defined in this prototype.
- * - All write operations require authentication.
- *
- * Denormalization for Authorization:
- * - User ownership is enforced using path-based rules (e.g., /users/{userId}), eliminating the need for `get()` calls to verify ownership.
- */
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -61,12 +39,6 @@ service cloud.firestore {
       allow get, list: if isOwner(userId);
       allow create: if isOwner(userId);
       allow update, delete: if isOwner(userId);
-    }
-    
-    match /products/{productId}/reviews/{reviewId} {
-      allow get, list: if true;
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
   }
 }

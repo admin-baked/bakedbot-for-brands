@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,16 +10,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { sendMagicLink, signInWithGoogle } from './actions';
-import { getAuth } from 'firebase/auth';
+import { useSearchParams } from 'next/navigation';
 import { useFirebase } from '@/firebase';
-
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
         <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
         <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z" />
         <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
-f        <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.011 36.686 44 32.68 44 28c0-2.782-.488-5.4-1.35-7.892l-1.039-3.025z" />
+        <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.011 36.686 44 32.68 44 28c0-2.782-.488-5.4-1.35-7.892l-1.039-3.025z" />
     </svg>
 );
 
@@ -29,18 +28,30 @@ export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [magicLinkSent, setMagicLinkSent] = useState(false);
     const { toast } = useToast();
+    const searchParams = useSearchParams();
     const { auth } = useFirebase();
+
+    useEffect(() => {
+        const error = searchParams.get('error');
+        if (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Authentication Error',
+                description: decodeURIComponent(error),
+            });
+        }
+    }, [searchParams, toast]);
 
     const handleGoogleSignIn = async () => {
         if (!auth) return;
         setIsLoading(true);
         await signInWithGoogle(auth);
-        // The page will redirect via Firebase, so no need to setIsLoading(false)
     };
 
-    const handleMagicLinkSignIn = async (e: React.FormEvent) => {
+    const handleMagicLinkSignIn = async (e: React.FormEvent, targetEmail?: string) => {
         e.preventDefault();
-        if (!email) {
+        const finalEmail = targetEmail || email;
+        if (!finalEmail) {
             toast({
                 variant: 'destructive',
                 title: 'Email is required',
@@ -51,15 +62,15 @@ export default function LoginPage() {
 
         setIsLoading(true);
         try {
-            window.localStorage.setItem('emailForSignIn', email);
-            const result = await sendMagicLink(email);
+            window.localStorage.setItem('emailForSignIn', finalEmail);
+            const result = await sendMagicLink(finalEmail);
             if (result?.error) {
                 throw new Error(result.error);
             }
             setMagicLinkSent(true);
             toast({
                 title: 'Magic Link Sent!',
-                description: `A sign-in link has been sent to ${email}. Check your inbox!`,
+                description: `A sign-in link has been sent to ${finalEmail}. Check your inbox!`,
             });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
@@ -81,7 +92,7 @@ export default function LoginPage() {
                         <Sparkles className="mx-auto h-12 w-12 text-primary" />
                         <CardTitle className="mt-4 text-2xl">Check Your Inbox!</CardTitle>
                         <CardDescription>
-                            A magic sign-in link has been sent to <strong>{email}</strong>. Click the link in the email to log in.
+                            A magic sign-in link has been sent to <strong>{email || 'martez@bakedbot.ai'}</strong>. Click the link in the email to log in.
                         </CardDescription>
                     </CardHeader>
                     <CardFooter>
@@ -98,8 +109,8 @@ export default function LoginPage() {
                 <CardHeader className="items-center space-y-4 text-center">
                     <Logo />
                     <div className="space-y-1">
-                        <CardTitle className="text-2xl">Welcome!</CardTitle>
-                        <CardDescription>Sign in to save your favorites and reviews.</CardDescription>
+                        <CardTitle className="text-2xl">Welcome Back</CardTitle>
+                        <CardDescription>Sign in to manage your BakedBot AI</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -116,10 +127,10 @@ export default function LoginPage() {
                             <span className="w-full border-t" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">Or with a magic link</span>
+                            <span className="bg-background px-2 text-muted-foreground">Or with magic link</span>
                         </div>
                     </div>
-                    <form onSubmit={handleMagicLinkSignIn} className="space-y-4">
+                    <form onSubmit={(e) => handleMagicLinkSignIn(e, email)} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Email Address</Label>
                             <Input
@@ -137,8 +148,13 @@ export default function LoginPage() {
                         </Button>
                     </form>
                 </CardContent>
+                <CardFooter className="flex flex-col gap-2">
+                    <p className="text-xs text-muted-foreground">For testing purposes:</p>
+                    <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')}>
+                         <Sparkles className="mr-2 h-4 w-4 text-amber-500" /> Dev Magic Button (martez@bakedbot.ai)
+                    </Button>
+                </CardFooter>
             </Card>
         </div>
     );
 }
-
