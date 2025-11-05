@@ -193,7 +193,7 @@ export default function Chatbot() {
                     <h2 className="text-lg font-semibold">Chat</h2>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="h-9">
+                    <Button variant="outline" size="sm" className="h-9 border-primary text-primary hover:bg-primary/10">
                         Checkout Now
                         <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                           {totalItems}
@@ -218,7 +218,7 @@ export default function Chatbot() {
                           key={category}
                           variant={activeCategory === category ? 'default' : 'outline'}
                           size="sm"
-                          className="rounded-full"
+                          className="rounded-full px-4"
                           onClick={() => setActiveCategory(category)}
                         >
                           {category}
@@ -230,7 +230,6 @@ export default function Chatbot() {
                 <Carousel
                   opts={{
                     align: "start",
-                    loop: true,
                   }}
                   className="w-full"
                 >
@@ -240,11 +239,11 @@ export default function Chatbot() {
                       const originalPrice = p.price * 1.3; // Simulate a discount
                       const discount = 27; // Simulate a discount
                       return (
-                         <CarouselItem key={p.id} className="basis-1/2 md:basis-1/2 lg:basis-1/3 pl-2">
+                         <CarouselItem key={p.id} className="basis-[36%] md:basis-1/3 pl-2">
                             <Card className="overflow-hidden group h-full flex flex-col">
                                 <CardHeader className="p-0 relative">
-                                    <div className="relative h-40 w-full">
-                                        <Image src={p.imageUrl} alt={p.name} fill className="object-cover" data-ai-hint={p.imageHint} />
+                                    <div className="relative h-28 w-full">
+                                        <Image src={p.imageUrl} alt={p.name} fill className="object-cover" data-ai-hint={p.imageHint} sizes="33vw" />
                                     </div>
                                     <div className="absolute top-2 left-2 bg-background/80 text-foreground text-xs font-semibold p-1 rounded-md flex items-center gap-1">
                                         <Tag className="h-3 w-3"/> {discount}% OFF
@@ -256,8 +255,8 @@ export default function Chatbot() {
                                         <p className="text-xs text-muted-foreground">{p.category}</p>
                                     </div>
                                     <div className="mt-2">
-                                        <p className="text-lg font-bold">${p.price.toFixed(2)} <span className="text-sm font-normal text-muted-foreground line-through ml-1">${originalPrice.toFixed(2)}</span></p>
-                                        <Button className="w-full mt-2 h-9" onClick={() => addToCart(p)}>
+                                        <p className="text-base font-bold">${p.price.toFixed(2)} <span className="text-xs font-normal text-muted-foreground line-through ml-1">${originalPrice.toFixed(2)}</span></p>
+                                        <Button className="w-full mt-2 h-8 text-xs" onClick={() => addToCart(p)}>
                                             GRAB DEAL
                                         </Button>
                                     </div>
@@ -311,13 +310,13 @@ export default function Chatbot() {
               </CardContent>
             </ScrollArea>
             
-            <CardFooter className="p-4 border-t bg-background">
-              <form onSubmit={handleSendMessage} className="flex w-full items-center gap-3">
+            <CardFooter className="p-2 border-t bg-background">
+              <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
                 <Input
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder="Ask me anything..."
-                  className="flex-1 bg-white"
+                  className="flex-1 bg-white rounded-full px-4"
                   autoComplete="off"
                   disabled={isBotTyping}
                 />
