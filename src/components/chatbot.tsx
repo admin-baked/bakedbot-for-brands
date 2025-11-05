@@ -87,7 +87,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Mes
                 )}
                 <div className={cn("max-w-[85%] rounded-lg px-3 py-2", message.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
                 {message.text && (
-                  <p className="text-sm" dangerouslySetInnerHTML={{ __html: message.text.split('\n').join('<br />') }} />
+                  <p className="text-sm whitespace-pre-line">{message.text}</p>
                 )}
                 {message.productSuggestions && (
                     <div className="mt-2 flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">

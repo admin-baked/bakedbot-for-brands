@@ -56,7 +56,7 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
                </div>
             )}
             {productDescription.description && (
-              <div className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: productDescription.description.split('\n').join('<br />') }} />
+              <p className="text-sm leading-relaxed whitespace-pre-line">{productDescription.description}</p>
             )}
           </>
         ) : (
