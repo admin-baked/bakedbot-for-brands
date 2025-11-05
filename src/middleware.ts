@@ -28,18 +28,18 @@ async function getAuthenticatedUser(request: NextRequest): Promise<User | null> 
 }
 
 export async function middleware(request: NextRequest) {
-  const user = await getAuthenticatedUser(request);
-  const { pathname } = request.nextUrl;
+  // const user = await getAuthenticatedUser(request);
+  // const { pathname } = request.nextUrl;
 
-  // If user is trying to access login page but is already authenticated, redirect to dashboard
-  if (user && pathname.startsWith('/login')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
+  // // If user is trying to access login page but is already authenticated, redirect to dashboard
+  // if (user && pathname.startsWith('/login')) {
+  //   return NextResponse.redirect(new URL('/dashboard', request.url));
+  // }
 
-  // If user is trying to access a protected dashboard route and is not authenticated, redirect to login
-  if (!user && pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
+  // // If user is trying to access a protected dashboard route and is not authenticated, redirect to login
+  // if (!user && pathname.startsWith('/dashboard')) {
+  //   return NextResponse.redirect(new URL('/login', request.url));
+  // }
 
   // Allow the request to proceed
   return NextResponse.next();
