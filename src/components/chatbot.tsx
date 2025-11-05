@@ -139,13 +139,14 @@ export default function Chatbot() {
   }, [messages, isBotTyping]);
   
   const handleAskSmokey = (product: Product) => {
-    setMessages(prev => [...prev, { id: Date.now(), text: `Tell me about the ${product.name}`, sender: 'user' }]);
+    const userMessage: Message = { id: Date.now(), text: `Tell me about the ${product.name}`, sender: 'user' };
+    setMessages(prev => [...prev, userMessage]);
     
     setIsBotTyping(true);
     setTimeout(() => {
       const botMessage: Message = { 
         id: Date.now() + 1, 
-        text: `Of course! The ${product.name} is a fantastic choice. ${product.description} Does this sound like a good fit, or would you like to know more?`, 
+        text: `Of course! The ${product.name} is a fantastic choice. ${product.description} This is great for anyone looking for a relaxing and euphoric experience. Does this sound like a good fit, or would you like to know more?`, 
         sender: 'bot' 
       };
       setMessages(prev => [...prev, botMessage]);
