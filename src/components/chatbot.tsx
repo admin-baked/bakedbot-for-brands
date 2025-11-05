@@ -179,18 +179,18 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Mes
             ))}
             {isBotTyping && (
                 <div className="flex items-end gap-3">
-                <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                    <Bot />
-                    </AvatarFallback>
-                </Avatar>
-                <div className="max-w-[80%] rounded-lg bg-muted px-3 py-2 rounded-bl-none">
-                    <div className="flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/50 [animation-delay:-0.3s]"></span>
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/50 [animation-delay:-0.15s]"></span>
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/50"></span>
+                    <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                            <Bot />
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="max-w-[80%] rounded-lg bg-muted px-3 py-2 rounded-bl-none">
+                        <div className="flex items-center justify-center gap-1.5 h-5">
+                            <Sparkles className="h-4 w-4 animate-pulse text-primary/50 [animation-delay:-0.3s]" />
+                            <Sparkles className="h-4 w-4 animate-pulse text-primary/50 [animation-delay:-0.15s]" />
+                            <Sparkles className="h-4 w-4 animate-pulse text-primary/50" />
+                        </div>
                     </div>
-                </div>
                 </div>
             )}
             <div ref={messagesEndRef} />

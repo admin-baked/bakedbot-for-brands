@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates social media images for products.
