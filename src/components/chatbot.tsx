@@ -196,7 +196,7 @@ export default function Chatbot() {
 
     setTimeout(() => {
       let botResponseText = "I'm sorry, I didn't quite understand. Can you rephrase? You can ask me for product recommendations like 'show me some edibles'.";
-      let productSuggestions;
+      let productSuggestions: Product[] | undefined;
 
       const lowerCaseInput = textToSend.toLowerCase();
       
@@ -204,7 +204,7 @@ export default function Chatbot() {
       const foundCategory = categories.find(cat => cat !== 'All' && lowerCaseInput.includes(cat.toLowerCase()));
 
       if (foundCategory) {
-        botResponseText = `Here are some ${foundCategory.toLowerCase()} you might like:`;
+        botResponseText = `You might like these ${foundCategory.toLowerCase()}:`;
         productSuggestions = products.filter(p => p.category === foundCategory);
       } else if (lowerCaseInput.includes('all') || lowerCaseInput.includes('everything') || lowerCaseInput.includes('products')) {
          botResponseText = "Here are all our products:";
