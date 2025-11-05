@@ -66,10 +66,11 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
         {productDescription && (
          <CardContent className="border-t pt-4">
              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">Content feedback:</p>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" aria-label="Good"><ThumbsUp className="h-4 w-4"/></Button>
-                    <Button variant="outline" size="icon" aria-label="Bad"><ThumbsDown className="h-4 w-4"/></Button>
+                    <Button variant="outline" size="icon" aria-label="Like"><ThumbsUp className="h-4 w-4 text-green-500"/></Button>
+                    <Button variant="outline" size="icon" aria-label="Dislike"><ThumbsDown className="h-4 w-4 text-red-500"/></Button>
+                </div>
+                <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" aria-label="Regenerate"><RotateCw className="h-4 w-4"/></Button>
                 </div>
              </div>

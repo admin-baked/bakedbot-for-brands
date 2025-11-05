@@ -67,6 +67,14 @@
         "categoryId": {
           "type": "string",
           "description": "Reference to Category. (Relationship: Category 1:N Product)"
+        },
+        "likes": {
+          "type": "number",
+          "description": "The number of likes a product has received."
+        },
+        "dislikes": {
+          "type": "number",
+          "description": "The number of dislikes a product has received."
         }
       },
       "required": [
@@ -178,6 +186,42 @@
         "productId",
         "quantity"
       ]
+    },
+    "Review": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Review",
+      "type": "object",
+      "description": "Represents a user review for a product.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Review entity."
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to the Product being reviewed."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who wrote the review."
+        },
+        "rating": {
+          "type": "number",
+          "description": "A rating from 1 to 5.",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "comment": {
+          "type": "string",
+          "description": "The text content of the review."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the review was created."
+        }
+      },
+      "required": ["id", "productId", "userId", "rating", "createdAt"]
     }
   },
   "auth": {
