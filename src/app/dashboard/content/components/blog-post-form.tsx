@@ -1,13 +1,14 @@
+
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect, useRef, useState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { createProductDescription } from '../actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useEffect, useRef, useState } from 'react';
 import ProductDescriptionDisplay from './blog-post-display';
 import { useToast } from '@/hooks/use-toast';
 import { DollarSign, Loader2, Upload } from 'lucide-react';
@@ -31,7 +32,7 @@ function SubmitButton() {
 }
 
 export default function ProductDescriptionForm() {
-  const [state, formAction] = useFormState(createProductDescription, initialState);
+  const [state, formAction] = useActionState(createProductDescription, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 

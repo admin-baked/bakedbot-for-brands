@@ -1,14 +1,14 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { KeyRound, Loader2 } from "lucide-react";
 import { saveCannMenusApiKey } from '../actions';
-import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 const initialState = {
@@ -28,7 +28,7 @@ function SubmitButton() {
 }
 
 export default function CannMenusSettings() {
-    const [state, formAction] = useFormState(saveCannMenusApiKey, initialState);
+    const [state, formAction] = useActionState(saveCannMenusApiKey, initialState);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -67,5 +67,3 @@ export default function CannMenusSettings() {
         </Card>
     );
 }
-
-    
