@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, KeyRound } from 'lucide-react';
+import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { sendMagicLink, signInWithGoogle } from './actions';
 
@@ -25,6 +25,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [isLoadingMagic, setIsLoadingMagic] = useState(false);
+  const [isLoadingDev, setIsLoadingDev] = useState(false);
+
+  const devEmail = 'martez@bakedbot.ai';
 
   const handleGoogleSignIn = async () => {
     setIsLoadingGoogle(true);
@@ -66,6 +69,24 @@ export default function LoginPage() {
     }
     setIsLoadingMagic(false);
   };
+  
+  const handleDevSignIn = async () => {
+    setIsLoadingDev(true);
+    const result = await sendMagicLink(devEmail);
+    if (result?.error) {
+      toast({
+        variant: 'destructive',
+        title: 'Authentication Error',
+        description: result.error,
+      });
+    } else {
+      toast({
+        title: 'Check Your Email',
+        description: `A magic link has been sent to ${devEmail}.`,
+      });
+    }
+    setIsLoadingDev(false);
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -87,10 +108,10 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoadingMagic || isLoadingGoogle}
+                disabled={isLoadingMagic || isLoadingGoogle || isLoadingDev}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoadingMagic || isLoadingGoogle}>
+            <Button type="submit" className="w-full" disabled={isLoadingMagic || isLoadingGoogle || isLoadingDev}>
               {isLoadingMagic ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -107,13 +128,21 @@ export default function LoginPage() {
               <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
             </div>
           </div>
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingMagic || isLoadingGoogle}>
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingMagic || isLoadingGoogle || isLoadingDev}>
             {isLoadingGoogle ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
                 <GoogleIcon />
             )}
             Sign in with Google
+          </Button>
+          <Button variant="secondary" className="w-full" onClick={handleDevSignIn} disabled={isLoadingMagic || isLoadingGoogle || isLoadingDev}>
+            {isLoadingDev ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="mr-2 h-4 w-4" />
+            )}
+            Dev Login (martez@bakedbot.ai)
           </Button>
         </CardContent>
         <CardFooter className="text-center text-xs text-muted-foreground">
@@ -123,3 +152,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
