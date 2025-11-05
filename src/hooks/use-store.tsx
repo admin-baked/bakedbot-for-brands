@@ -1,6 +1,7 @@
 
 'use client';
 
+import * as React from 'react';
 import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -9,8 +10,8 @@ import { createContext, useContext, useRef, type ReactNode } from 'react';
 interface StoreState {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  chatbotMode: 'simple' | 'checkout';
-  setChatbotMode: (mode: 'simple' | 'checkout') => void;
+  chatbotIcon: string | null;
+  setChatbotIcon: (icon: string | null) => void;
 }
 
 const createStore = () => create<StoreState>()(
@@ -18,8 +19,8 @@ const createStore = () => create<StoreState>()(
     (set, get) => ({
       theme: 'default',
       setTheme: (theme: Theme) => set({ theme }),
-      chatbotMode: 'checkout',
-      setChatbotMode: (mode: 'simple' | 'checkout') => set({ chatbotMode: mode }),
+      chatbotIcon: null,
+      setChatbotIcon: (icon: string | null) => set({ chatbotIcon: icon }),
     }),
     {
       name: 'smokey-store',
@@ -48,5 +49,20 @@ export function useStore() {
   if (!store) {
     throw new Error('useStore must be used within a StoreProvider.');
   }
-  return store();
+  const state = store();
+
+  // Zustand's persist middleware with client-side storage can cause hydration issues.
+  // We need to ensure that we only return the state once the component has mounted on the client.
+  // See: https://docs.pmnd.rs/zustand/integrations/persisting-middleware#getstorage-and-hydration-caveats
+  const [hydrated, setHydrated] = React.useState(false);
+  React.useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  return hydrated ? state : {
+    theme: 'default',
+    setTheme: () => {},
+    chatbotIcon: null,
+    setChatbotIcon: () => {},
+  };
 }

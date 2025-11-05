@@ -1,4 +1,6 @@
 
+
+import BrandSettings from "./components/brand-settings";
 import ChatbotSettings from "./components/chatbot-settings";
 import ThemeSettings from "./components/theme-settings";
 
@@ -13,8 +15,9 @@ export default function SettingsPage() {
       </div>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <ThemeSettings />
-        <ChatbotSettings />
+        <BrandSettings />
       </div>
+      <ChatbotSettings />
     </div>
   );
 }
