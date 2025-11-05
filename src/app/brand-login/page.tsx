@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,10 +8,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/logo';
-import { sendMagicLink, signInWithGoogle } from '../login/actions';
+import { sendMagicLink, signInWithGoogle } from './actions';
 import { useSearchParams } from 'next/navigation';
 import { useFirebase } from '@/firebase';
-import { Auth } from 'firebase/auth';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -63,8 +61,9 @@ export default function BrandLoginPage() {
 
         setIsLoading(true);
         try {
+            if (!auth) throw new Error('Auth service not available');
             window.localStorage.setItem('emailForSignIn', finalEmail);
-            const result = await sendMagicLink(finalEmail);
+            const result = await sendMagicLink(auth, finalEmail);
             if (result?.error) {
                 throw new Error(result.error);
             }
