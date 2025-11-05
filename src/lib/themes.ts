@@ -71,17 +71,17 @@ export const themes: ThemeConfig[] = [
     name: "green",
     cssVars: {
       light: {
-        background: "142 60% 96%",
-        foreground: "142 80% 10%",
+        background: "0 0% 100%",
+        foreground: "142 80% 5%",
         primary: "142.1 76.2% 36.3%",
-        "primary-foreground": "142.1 76.2% 96.3%",
+        "primary-foreground": "0 0% 100%",
         accent: "142.1 70.2% 46.3%",
       },
       dark: {
         background: "142 80% 4%",
-        foreground: "142 20% 90%",
+        foreground: "0 0% 98%",
         primary: "142.1 76.2% 36.3%",
-        "primary-foreground": "142.1 76.2% 96.3%",
+        "primary-foreground": "0 0% 100%",
         accent: "142.1 70.2% 46.3%",
       },
     },
