@@ -56,6 +56,7 @@ export default function ProductDescriptionForm() {
   
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
+  const imageFormRef = useRef<HTMLFormElement>(null);
 
   const [generatedContent, setGeneratedContent] = useState<GenerateProductDescriptionOutput | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -91,18 +92,22 @@ export default function ProductDescriptionForm() {
     }
   }, [imageState, toast]);
 
-  const handleImageGeneration = () => {
-    const formData = new FormData(formRef.current!);
+  const handleImageGeneration = (formData: FormData) => {
     if (chatbotIcon) {
         formData.append('logoDataUri', chatbotIcon);
     }
+    // Copy fields from the main form to the image form
+    const mainFormData = new FormData(formRef.current!);
+    formData.set('productName', mainFormData.get('productName') || '');
+    formData.set('features', mainFormData.get('features') || '');
+    formData.set('brandVoice', mainFormData.get('brandVoice') || '');
+    
     startTransition(() => {
         imageFormAction(formData);
     });
   }
 
-  const handleDescriptionGeneration = () => {
-    const formData = new FormData(formRef.current!);
+  const handleDescriptionGeneration = (formData: FormData) => {
     if (generatedContent?.imageUrl) {
         formData.append('imageUrl', generatedContent.imageUrl);
     }
@@ -118,7 +123,7 @@ export default function ProductDescriptionForm() {
           <form action={handleDescriptionGeneration} ref={formRef}>
             <CardHeader>
               <CardTitle>Product Details</CardTitle>
-              <CardDescription>Fill in the details below to generate content.</CardDescription>
+              <CardDescription>Fill in the details below to generate content. The same details will be used for both image and text generation.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
@@ -161,35 +166,27 @@ export default function ProductDescriptionForm() {
                 <Input id="keywords" name="keywords" placeholder="e.g., caramel, edible, relaxing, indica" />
                 {descriptionState.fieldErrors?.keywords && <p className="text-sm text-destructive">{descriptionState.fieldErrors.keywords[0]}</p>}
               </div>
-            </CardContent>
-             <CardFooter className="flex-col sm:flex-row gap-2">
-                <GenerateDescriptionButton />
-             </CardFooter>
-          </form>
-        </Card>
-
-        <Card>
-            <form action={handleImageGeneration}>
-                <CardHeader>
-                    <CardTitle>Product Image</CardTitle>
-                    <CardDescription>Upload product packaging or generate a new social media image with AI.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+               <div className="space-y-2">
+                    <Label>Product Packaging</Label>
                     <div className="flex items-center justify-center w-full">
                         <Label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted">
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                 <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
                                 <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                <p className="text-xs text-muted-foreground">SVG, PNG, JPG (This is a placeholder UI)</p>
+                                <p className="text-xs text-muted-foreground">SVG, PNG, JPG (Optional, to guide image generation)</p>
                             </div>
                             <Input id="dropzone-file" type="file" className="hidden" />
                         </Label>
                     </div>
-                </CardContent>
-                <CardFooter className="flex-col sm:flex-row gap-2">
+                </div>
+            </CardContent>
+             <CardFooter className="flex-col sm:flex-row gap-2">
+                <GenerateDescriptionButton />
+                <form action={handleImageGeneration} ref={imageFormRef} className="w-full sm:w-auto">
                     <GenerateImageButton />
-                </CardFooter>
-            </form>
+                </form>
+             </CardFooter>
+          </form>
         </Card>
       </div>
       <div className="flex flex-col gap-8">

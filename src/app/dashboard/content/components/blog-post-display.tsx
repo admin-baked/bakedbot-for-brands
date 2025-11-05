@@ -4,7 +4,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { type GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { Button } from '@/components/ui/button';
-import { Clipboard, ThumbsUp, ThumbsDown, RotateCw, Image as ImageIcon } from 'lucide-react';
+import { Clipboard, ThumbsUp, ThumbsDown, RotateCw, Image as ImageIcon, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 
@@ -25,6 +25,46 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
     }
   };
 
+  const handleShare = async () => {
+    if (!productDescription?.imageUrl) return;
+
+    try {
+        const response = await fetch(productDescription.imageUrl);
+        const blob = await response.blob();
+        const file = new File([blob], `${productDescription.productName || 'social-image'}.png`, { type: blob.type });
+
+        const shareData: ShareData = {
+            title: `Check out ${productDescription.productName || 'this product'}!`,
+            text: productDescription.description || `AI-generated social media post for ${productDescription.productName}.`,
+            files: [file],
+        };
+
+        if (navigator.canShare && navigator.canShare(shareData)) {
+            await navigator.share(shareData);
+            toast({
+                title: 'Shared!',
+                description: 'Content shared successfully.',
+            });
+        } else {
+             // Fallback for browsers that don't support sharing files
+             await navigator.clipboard.writeText(productDescription.imageUrl);
+             toast({
+                title: 'Image URL Copied!',
+                description: 'Sharing is not supported on this browser, so the image URL was copied to your clipboard.',
+             });
+        }
+    } catch (error) {
+        console.error('Share error:', error);
+        // Fallback for any other error
+        await navigator.clipboard.writeText(productDescription.imageUrl);
+        toast({
+            variant: 'destructive',
+            title: 'Sharing Failed',
+            description: 'Could not share the image. Its URL has been copied to your clipboard instead.',
+        });
+    }
+  };
+
   return (
     <Card className="flex flex-col @container">
       <CardHeader className="flex flex-row items-start justify-between">
@@ -35,6 +75,11 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
         {productDescription && (
           <div className="flex items-center gap-2">
             {productDescription.msrp && <div className="text-lg font-bold text-primary">${productDescription.msrp}</div>}
+            {productDescription.imageUrl && (
+                <Button variant="outline" size="icon" onClick={handleShare} aria-label="Share content">
+                    <Share2 className="h-4 w-4" />
+                </Button>
+            )}
             <Button variant="outline" size="icon" onClick={handleCopy} aria-label="Copy content" disabled={!productDescription.description}>
                 <Clipboard className="h-4 w-4" />
             </Button>
