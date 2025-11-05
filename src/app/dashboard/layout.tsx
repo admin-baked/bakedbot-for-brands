@@ -45,15 +45,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <SidebarMenu>
                 {menuItems.map((item) => (
                   <SidebarMenuItem key={item.label}>
-                    <Link href={item.href} passHref legacyBehavior>
-                      <SidebarMenuButton
-                        isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
-                        tooltip={item.label}
-                      >
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
+                      tooltip={item.label}
+                    >
+                      <Link href={item.href}>
                         <item.icon />
                         <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </Link>
+                      </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
