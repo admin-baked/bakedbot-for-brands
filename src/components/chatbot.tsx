@@ -85,22 +85,22 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Mes
                     </AvatarFallback>
                 </Avatar>
                 )}
-                <div className={cn("max-w-[80%] rounded-lg px-3 py-2", message.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
+                <div className={cn("max-w-[85%] rounded-lg px-3 py-2", message.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
                 <p className="text-sm" dangerouslySetInnerHTML={{ __html: message.text.replace(/\n/g, '<br />') }} />
                 {message.productSuggestions && (
-                    <div className="mt-2 grid grid-cols-1 gap-2">
+                    <div className="mt-2 flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
                     {message.productSuggestions.slice(0, 3).map(p => (
-                        <div key={p.id} className="flex items-center gap-2 rounded-md border bg-background p-2 text-foreground">
+                        <div key={p.id} className="flex-shrink-0 w-48 flex items-center gap-2 rounded-md border bg-background p-2 text-foreground">
                             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
                                 <Image src={p.imageUrl} alt={p.name} data-ai-hint={p.imageHint} fill className="object-cover"/>
                             </div>
-                            <div className="w-full">
-                                <p className="text-xs font-semibold">{p.name}</p>
+                            <div className="flex-1 overflow-hidden">
+                                <p className="text-xs font-semibold truncate">{p.name}</p>
                                 <p className="text-xs text-muted-foreground">${p.price.toFixed(2)}</p>
                             </div>
                             <div className="flex gap-1">
-                                <Button variant="outline" size="icon" className="h-7 w-7"><ThumbsUp className="h-4 w-4 text-green-500" /></Button>
-                                <Button variant="outline" size="icon" className="h-7 w-7"><ThumbsDown className="h-4 w-4 text-red-500" /></Button>
+                                <Button variant="outline" size="icon" className="h-7 w-7 shrink-0"><ThumbsUp className="h-4 w-4 text-green-500" /></Button>
+                                <Button variant="outline" size="icon" className="h-7 w-7 shrink-0"><ThumbsDown className="h-4 w-4 text-red-500" /></Button>
                             </div>
                         </div>
                     ))}
@@ -162,7 +162,7 @@ const ChatWindow = ({
       <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
           {chatExperience === 'default' && <ProductCarousel onAskSmokey={onAskSmokey} isCompact={hasStartedChat} />}
 
-          {chatExperience === 'classic' && (
+          {chatExperience === 'classic' && !hasStartedChat && (
           <CardHeader>
               <CardTitle>Smokey AI</CardTitle>
               <CardDescription>Ask me anything about our products.</CardDescription>
@@ -299,5 +299,7 @@ export default function Chatbot() {
         </>
       );
 }
+
+    
 
     
