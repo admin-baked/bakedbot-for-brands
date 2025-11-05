@@ -11,8 +11,8 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateSocialMediaImageInputSchema = z.object({
-  productName: z.string().describe('The name of the product.'),
-  features: z.string().describe('The key features of the product.'),
+  productName: z.string().describe('The name of the product or a title for the image.'),
+  features: z.string().describe('The key features of the product or a text prompt describing the desired image.'),
   brandVoice: z.string().describe('The brand voice (e.g., Playful, Professional).'),
   logoDataUri: z.string().describe("The brand's logo, as a data URI."),
 });
@@ -33,15 +33,14 @@ const prompt = ai.definePrompt({
   name: 'generateSocialMediaImagePrompt',
   input: {schema: GenerateSocialMediaImageInputSchema},
   output: {schema: GenerateSocialMediaImageOutputSchema},
-  prompt: `You are a creative director for a social media marketing agency specializing in cannabis products.
-  Your task is to generate a compelling, eye-catching image for a social media post.
+  prompt: `You are a creative director for a cutting-edge social media marketing agency.
+  Your task is to generate a compelling, eye-catching image that has viral potential for a social media post.
+  The image should be vibrant, modern, share-worthy, and suitable for platforms like Instagram and Twitter.
 
-  The image should be vibrant, modern, and suitable for platforms like Instagram and Twitter.
-  Incorporate the provided brand logo as a prominent watermark on the generated image. The watermark should be tastefully placed, perhaps in a corner or subtly integrated, but it must be clearly visible.
+  Incorporate the provided brand logo as a prominent watermark on the generated image. The watermark must be tastefully placed but clearly visible.
 
-  Product Details:
-  - Name: {{{productName}}}
-  - Features: {{{features}}}
+  Image Prompt:
+  - Concept: {{{features}}}
   - Brand Voice: {{{brandVoice}}}
 
   Logo to use as watermark:

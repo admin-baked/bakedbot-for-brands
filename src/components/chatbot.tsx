@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, type FormEvent } from 'react';
 import Image from 'next/image';
-import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown, ChevronDown, Wand2, Sparkles, Loader2, Download } from 'lucide-react';
+import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown, ChevronDown, Wand2, Sparkles, Loader2, Download, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import { recommendProducts, type RecommendProductsOutput } from '@/ai/ai-powered
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { createSocialMediaImage } from '@/app/dashboard/content/actions';
 import type { ImageFormState } from '@/app/dashboard/content/actions';
+import { useToast } from '@/hooks/use-toast';
 
 
 type Message = {
@@ -84,7 +85,44 @@ const ProductCarousel = ({ onAskSmokey, isCompact }: { onAskSmokey: (product: Pr
     </>
 );
 
-const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>}) => (
+const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>}) => {
+    const { toast } = useToast();
+
+    const handleShare = async (message: Message) => {
+        if (!message.imageUrl) return;
+    
+        try {
+            const response = await fetch(message.imageUrl);
+            const blob = await response.blob();
+            const file = new File([blob], `brand-image.png`, { type: blob.type });
+    
+            const shareData: ShareData = {
+                title: `Check out this AI-generated brand image!`,
+                text: message.text || `Created with BakedBot AI`,
+                files: [file],
+            };
+    
+            if (navigator.canShare && navigator.canShare(shareData)) {
+                await navigator.share(shareData);
+            } else {
+                 await navigator.clipboard.writeText(message.imageUrl);
+                 toast({
+                    title: 'Image URL Copied!',
+                    description: 'Sharing is not supported, so the image URL was copied to your clipboard.',
+                 });
+            }
+        } catch (error) {
+            await navigator.clipboard.writeText(message.imageUrl);
+            toast({
+                variant: 'destructive',
+                title: 'Sharing Failed',
+                description: 'Could not share the image. Its URL has been copied to your clipboard instead.',
+            });
+        }
+    };
+
+
+    return (
     <ScrollArea className="flex-1 border-t">
         <CardContent className="p-4">
         <div className="space-y-4">
@@ -102,8 +140,14 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Mes
                   <p className="text-sm whitespace-pre-line">{message.text}</p>
                 )}
                 {message.imageUrl && (
-                    <div className="relative mt-2 aspect-square w-full max-w-xs overflow-hidden rounded-lg border">
-                        <Image src={message.imageUrl} alt="Generated brand image" fill className="object-cover" data-ai-hint="brand social media" />
+                    <div className="mt-2 space-y-2">
+                        <div className="relative aspect-square w-full max-w-xs overflow-hidden rounded-lg border">
+                            <Image src={message.imageUrl} alt="Generated brand image" fill className="object-cover" data-ai-hint="brand social media" />
+                        </div>
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => handleShare(message)}>
+                            <Share2 className="mr-2 h-4 w-4" />
+                            Share Image
+                        </Button>
                     </div>
                 )}
                 {message.productSuggestions && (
@@ -153,7 +197,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Mes
         </div>
         </CardContent>
     </ScrollArea>
-);
+)};
 
 const ChatWindow = ({
   chatExperience,
@@ -212,7 +256,7 @@ const ChatWindow = ({
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder={chatMode === 'image' ? 'Describe an image you\'d like...' : 'Type a message...'}
+            placeholder={chatMode === 'image' ? "What do you love about the brand?" : 'Type a message...'}
             className="flex-1"
             autoComplete="off"
             disabled={isBotTyping}
@@ -255,25 +299,22 @@ export default function Chatbot() {
     }
   }, [welcomeMessage, hasStartedChat]);
   
-  useEffect(() => {
-    if (chatMode === 'image') {
-        const botMessage: Message = { 
-            id: Date.now(), 
-            text: `Let's create some magic! ✨ What kind of image should I generate for the brand?`, 
-            sender: 'bot' 
-          };
-        setMessages(prev => [...prev, botMessage]);
-    } else {
-        // You might want to add a message when switching back to chat mode
-    }
-  }, [chatMode]);
-
-
   const handleMagicImageClick = () => {
+    const newChatMode = chatMode === 'image' ? 'chat' : 'image';
+    setChatMode(newChatMode);
+
     if (!hasStartedChat) {
         setHasStartedChat(true);
     }
-    setChatMode(prev => prev === 'image' ? 'chat' : 'image');
+    
+    if (newChatMode === 'image') {
+        const botMessage: Message = { 
+            id: Date.now(), 
+            text: `Let's create some magic! ✨ What do you love about the brand?`, 
+            sender: 'bot' 
+          };
+        setMessages(prev => [...prev, botMessage]);
+    }
   }
 
   const handleAskSmokey = (product: Product) => {
@@ -342,7 +383,7 @@ export default function Chatbot() {
         } else {
             const imageMessage: Message = {
                 id: Date.now() + 1,
-                text: "Here's the magic I came up with! ✨",
+                text: "Here's the magic I came up with! ✨ What do you think?",
                 sender: 'bot',
                 imageUrl: result.imageUrl
             }
