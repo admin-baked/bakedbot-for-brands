@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -45,16 +46,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <SidebarMenu>
                 {menuItems.map((item) => (
                   <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
-                      tooltip={item.label}
-                    >
-                      <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
+                    <Link href={item.href} passHref legacyBehavior>
+                        <SidebarMenuButton
+                        as="a"
+                        isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
+                        tooltip={item.label}
+                        >
+                            <item.icon />
+                            <span>{item.label}</span>
+                        </SidebarMenuButton>
+                    </Link>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
