@@ -198,13 +198,14 @@ const ChatWindow = ({
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
+  const { chatbotIcon, chatExperience, welcomeMessage } = useStore();
+
   const [messages, setMessages] = useState<Message[]>([
-     { id: 1, text: "Hello! I'm Smokey, your AI budtender. Browse our products above and ask me anything about them!", sender: 'bot' },
+     { id: 1, text: welcomeMessage, sender: 'bot' },
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { chatbotIcon, chatExperience } = useStore();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -214,6 +215,13 @@ export default function Chatbot() {
     scrollToBottom();
   }, [messages, isBotTyping]);
   
+  // Update initial message if welcomeMessage changes and chat hasn't started
+  useEffect(() => {
+    if (!hasStartedChat) {
+      setMessages([{ id: 1, text: welcomeMessage, sender: 'bot' }]);
+    }
+  }, [welcomeMessage, hasStartedChat]);
+
   const handleAskSmokey = (product: Product) => {
     const userMessage: Message = { id: Date.now(), text: `Tell me about the ${product.name}`, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
@@ -322,5 +330,3 @@ export default function Chatbot() {
         </>
       );
 }
-
-    
