@@ -14,12 +14,17 @@ interface StoreState {
   setChatbotIcon: (icon: string | null) => void;
   chatExperience: 'default' | 'classic';
   setChatExperience: (experience: 'default' | 'classic') => void;
+  brandImageGenerations: number;
+  lastBrandImageGeneration: number | null;
+  recordBrandImageGeneration: () => void;
 }
 
 const defaultState = {
   theme: 'green' as Theme,
   chatbotIcon: null,
   chatExperience: 'default' as 'default' | 'classic',
+  brandImageGenerations: 0,
+  lastBrandImageGeneration: null,
 };
 
 const createStore = () => create<StoreState>()(
@@ -29,6 +34,19 @@ const createStore = () => create<StoreState>()(
       setTheme: (theme: Theme) => set({ theme }),
       setChatbotIcon: (icon: string | null) => set({ chatbotIcon: icon }),
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
+      recordBrandImageGeneration: () => {
+        const { lastBrandImageGeneration, brandImageGenerations } = get();
+        const now = Date.now();
+        const today = new Date(now).toDateString();
+        const lastDate = lastBrandImageGeneration ? new Date(lastBrandImageGeneration).toDateString() : null;
+
+        if (today === lastDate) {
+          set({ brandImageGenerations: brandImageGenerations + 1, lastBrandImageGeneration: now });
+        } else {
+          // It's a new day, reset the count
+          set({ brandImageGenerations: 1, lastBrandImageGeneration: now });
+        }
+      },
     }),
     {
       name: 'smokey-store',
@@ -58,9 +76,6 @@ export function useStore() {
     throw new Error('useStore must be used within a StoreProvider.');
   }
   
-  // Zustand's persist middleware with client-side storage can cause hydration issues.
-  // We need to ensure that we only return the state once the component has mounted on the client.
-  // See: https://docs.pmnd.rs/zustand/integrations/persisting-middleware#getstorage-and-hydration-caveats
   const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => {
     setHydrated(true);
@@ -72,7 +87,17 @@ export function useStore() {
     setTheme: state.setTheme,
     setChatbotIcon: state.setChatbotIcon,
     setChatExperience: state.setChatExperience,
+    recordBrandImageGeneration: state.recordBrandImageGeneration,
   };
 
-  return hydrated ? { ...state } : { ...defaultState, ...setters };
+  const fullState = { ...state, ...setters };
+
+  const defaultSetters = {
+    setTheme: (theme: Theme) => {},
+    setChatbotIcon: (icon: string | null) => {},
+    setChatExperience: (experience: 'default' | 'classic') => {},
+    recordBrandImageGeneration: () => {},
+  }
+
+  return hydrated ? fullState : { ...defaultState, ...defaultSetters };
 }

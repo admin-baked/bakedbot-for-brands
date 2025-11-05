@@ -117,12 +117,12 @@ export default function ProductDescriptionForm() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-8 @container lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-8 @container">
       <div className="flex flex-col gap-8">
         <Card>
           <form action={handleDescriptionGeneration} ref={formRef}>
             <CardHeader>
-              <CardTitle>Product Details</CardTitle>
+              <CardTitle>Product Content Generator</CardTitle>
               <CardDescription>Fill in the details below to generate content. The same details will be used for both image and text generation.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -188,8 +188,6 @@ export default function ProductDescriptionForm() {
              </CardFooter>
           </form>
         </Card>
-      </div>
-      <div className="flex flex-col gap-8">
         <ProductDescriptionDisplay productDescription={generatedContent} />
       </div>
     </div>
