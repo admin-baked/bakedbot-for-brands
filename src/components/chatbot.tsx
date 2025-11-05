@@ -24,13 +24,15 @@ type Message = {
   productSuggestions?: Product[];
 };
 
-const ProductCarousel = ({ onAskSmokey }: { onAskSmokey: (product: Product) => void }) => (
+const ProductCarousel = ({ onAskSmokey, isCompact }: { onAskSmokey: (product: Product) => void, isCompact: boolean }) => (
     <>
-      <CardHeader>
-          <CardTitle>Discover Products</CardTitle>
-          <CardDescription>Browse our products and ask me anything.</CardDescription>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
+      {!isCompact && (
+        <CardHeader>
+            <CardTitle>Discover Products</CardTitle>
+            <CardDescription>Browse our products and ask me anything.</CardDescription>
+        </CardHeader>
+      )}
+      <CardContent className={cn("p-4", isCompact ? "py-2" : "pt-0")}>
         <Carousel opts={{
             align: "start",
             dragFree: true,
@@ -127,7 +129,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Mes
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isCarouselOpen, setIsCarouselOpen] = useState(true);
+  const [hasStartedChat, setHasStartedChat] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
      { id: 1, text: "Hello! I'm Smokey, your AI budtender. Browse our products above and ask me anything about them!", sender: 'bot' },
   ]);
@@ -148,8 +150,8 @@ export default function Chatbot() {
     const userMessage: Message = { id: Date.now(), text: `Tell me about the ${product.name}`, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
     
-    if (isCarouselOpen) {
-      setIsCarouselOpen(false); // Collapse carousel
+    if (!hasStartedChat) {
+      setHasStartedChat(true);
     }
 
     setIsBotTyping(true);
@@ -172,8 +174,8 @@ export default function Chatbot() {
     const userMessage: Message = { id: Date.now(), text: textToSend, sender: 'user' };
     setMessages((prev) => [...prev, userMessage]);
     
-    if (isCarouselOpen) {
-      setIsCarouselOpen(false); // Collapse carousel only on the first message
+    if (!hasStartedChat) {
+      setHasStartedChat(true);
     }
 
     if (!message) {
@@ -208,28 +210,14 @@ export default function Chatbot() {
     return (
       <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-card border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
         <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
-          <Collapsible open={isCarouselOpen} onOpenChange={setIsCarouselOpen}>
-            <CollapsibleContent>
-              {chatExperience === 'default' ? (
-                <ProductCarousel onAskSmokey={handleAskSmokey} />
-              ) : (
-                <CardHeader>
-                  <CardTitle>Smokey AI</CardTitle>
-                  <CardDescription>Ask me anything about our products.</CardDescription>
-                </CardHeader>
-              )}
-            </CollapsibleContent>
-             {chatExperience === 'default' && (
-                <div className="border-t p-2">
-                    <CollapsibleTrigger asChild>
-                        <Button variant="ghost" className="w-full h-8">
-                            Browse Products
-                            <ChevronDown className={cn("ml-2 h-4 w-4 transition-transform", isCarouselOpen && "rotate-180")} />
-                        </Button>
-                    </CollapsibleTrigger>
-                </div>
+            {chatExperience === 'default' && <ProductCarousel onAskSmokey={handleAskSmokey} isCompact={hasStartedChat} />}
+
+            {chatExperience === 'classic' && (
+            <CardHeader>
+                <CardTitle>Smokey AI</CardTitle>
+                <CardDescription>Ask me anything about our products.</CardDescription>
+            </CardHeader>
             )}
-          </Collapsible>
           
           <ChatMessages messages={messages} isBotTyping={isBotTyping} messagesEndRef={messagesEndRef} />
         
