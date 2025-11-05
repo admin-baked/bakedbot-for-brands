@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, type FormEvent } from 'react';
 import Image from 'next/image';
-import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -148,7 +148,9 @@ export default function Chatbot() {
     const userMessage: Message = { id: Date.now(), text: `Tell me about the ${product.name}`, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
     
-    setIsCarouselOpen(false); // Collapse carousel
+    if (isCarouselOpen) {
+      setIsCarouselOpen(false); // Collapse carousel
+    }
 
     setIsBotTyping(true);
     setTimeout(() => {
@@ -217,6 +219,16 @@ export default function Chatbot() {
                 </CardHeader>
               )}
             </CollapsibleContent>
+             {chatExperience === 'default' && (
+                <div className="border-t p-2">
+                    <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="w-full h-8">
+                            Browse Products
+                            <ChevronDown className={cn("ml-2 h-4 w-4 transition-transform", isCarouselOpen && "rotate-180")} />
+                        </Button>
+                    </CollapsibleTrigger>
+                </div>
+            )}
           </Collapsible>
           
           <ChatMessages messages={messages} isBotTyping={isBotTyping} messagesEndRef={messagesEndRef} />
@@ -259,3 +271,5 @@ export default function Chatbot() {
         </>
       );
 }
+
+    
