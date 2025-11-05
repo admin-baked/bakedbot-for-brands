@@ -30,6 +30,16 @@ export default function Chatbot() {
   const [isBotTyping, setIsBotTyping] = useState(false);
   const { chatbotMode, cart, addToCart, removeFromCart, updateQuantity } = useStore();
   const [activeCategory, setActiveCategory] = useState('All');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isBotTyping]);
+
 
   const handleSendMessage = (e: FormEvent) => {
     e.preventDefault();
@@ -61,6 +71,22 @@ export default function Chatbot() {
 
       const botMessage: Message = { id: Date.now() + 1, text: botResponseText, sender: 'bot', productSuggestions: productSuggestions ? [] : undefined };
       setMessages((prev) => [...prev, botMessage]);
+      setIsBotTyping(false);
+    }, 1200);
+  };
+
+  const handleAskSmokey = (product: Product) => {
+    const userMessage: Message = { id: Date.now(), text: `Tell me about ${product.name}`, sender: 'user' };
+    setMessages(prev => [...prev, userMessage]);
+    
+    setIsBotTyping(true);
+    setTimeout(() => {
+      const botMessage: Message = {
+        id: Date.now() + 1,
+        text: `${product.description} Is there anything else you would like to know about ${product.name}?`,
+        sender: 'bot'
+      };
+      setMessages(prev => [...prev, botMessage]);
       setIsBotTyping(false);
     }, 1200);
   };
@@ -146,6 +172,7 @@ export default function Chatbot() {
                             </div>
                          </div>
                       )}
+                       <div ref={messagesEndRef} />
                     </div>
                   </CardContent>
                 </ScrollArea>
@@ -211,8 +238,7 @@ export default function Chatbot() {
                   <div className="mt-1 h-px w-16 bg-primary mx-auto"></div>
                 </div>
                 <div className="mb-4">
-                  <ScrollArea className="w-full whitespace-nowrap">
-                    <div className="flex justify-center space-x-2 pb-2">
+                  <div className="flex justify-center space-x-2 pb-2">
                       {categories.map((category) => (
                         <Button
                           key={category}
@@ -225,7 +251,6 @@ export default function Chatbot() {
                         </Button>
                       ))}
                     </div>
-                  </ScrollArea>
                 </div>
                 <Carousel
                   opts={{
@@ -256,7 +281,7 @@ export default function Chatbot() {
                                     </div>
                                     <div className="mt-1">
                                         <p className="text-sm font-bold">${p.price.toFixed(2)} <span className="text-[10px] font-normal text-muted-foreground line-through ml-1">${originalPrice.toFixed(2)}</span></p>
-                                        <Button className="w-full mt-1.5 h-7 text-xs" onClick={() => addToCart(p)}>
+                                        <Button className="w-full mt-1.5 h-7 text-xs" onClick={() => handleAskSmokey(p)}>
                                             Ask Smokey
                                         </Button>
                                     </div>
@@ -306,6 +331,7 @@ export default function Chatbot() {
                         </div>
                      </div>
                   )}
+                  <div ref={messagesEndRef} />
                 </div>
               </CardContent>
             </ScrollArea>

@@ -5,6 +5,7 @@ export type Product = {
   price: number;
   imageUrl: string;
   imageHint: string;
+  description: string;
 };
 
 export type Order = {
