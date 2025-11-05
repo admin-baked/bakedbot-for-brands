@@ -21,29 +21,16 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Chatbot from '@/components/chatbot';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { useFirebase, useUser } from '@/firebase';
-import { signOut } from 'firebase/auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { auth } = useFirebase();
-  const { user, isUserLoading } = useUser();
-
-  React.useEffect(() => {
-    // If loading is finished and there's no user, redirect to login.
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
-  }, [isUserLoading, user, router]);
 
   const handleSignOut = async () => {
-    if (auth) {
-      await signOut(auth);
-      router.push('/login');
-    }
+    // This will be implemented later
+    router.push('/login');
   };
 
   const menuItems = [
@@ -51,19 +38,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/content', label: 'Product Descriptions', icon: PenSquare },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
-
-  if (isUserLoading || !user) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
   
   const getInitials = (email?: string | null) => {
     if (!email) return 'U';
     return email.substring(0, 2).toUpperCase();
   }
+
+  const user = { email: 'test@example.com' }; // Placeholder
 
   return (
     <SidebarProvider>
