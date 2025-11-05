@@ -54,7 +54,7 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
                  />
                </div>
             )}
-            <div className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: productDescription.description.replace(/\n/g, '<br />') }} />
+            <div className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: productDescription.description.split('\n').join('<br />') }} />
           </>
         ) : (
           <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/50 p-8 text-center text-muted-foreground">
