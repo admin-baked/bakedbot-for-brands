@@ -19,7 +19,7 @@ interface StoreState {
 const createStore = () => create<StoreState>()(
   persist(
     (set, get) => ({
-      theme: 'default',
+      theme: 'green',
       setTheme: (theme: Theme) => set({ theme }),
       chatbotIcon: null,
       setChatbotIcon: (icon: string | null) => set({ chatbotIcon: icon }),
@@ -64,7 +64,7 @@ export function useStore() {
   }, []);
 
   return hydrated ? state : {
-    theme: 'default',
+    theme: 'green',
     setTheme: () => {},
     chatbotIcon: null,
     setChatbotIcon: () => {},
