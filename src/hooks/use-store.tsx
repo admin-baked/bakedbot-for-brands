@@ -16,14 +16,18 @@ interface StoreState {
   setChatExperience: (experience: 'default' | 'classic') => void;
 }
 
+const defaultState = {
+  theme: 'green' as Theme,
+  chatbotIcon: null,
+  chatExperience: 'default' as 'default' | 'classic',
+};
+
 const createStore = () => create<StoreState>()(
   persist(
     (set, get) => ({
-      theme: 'green',
+      ...defaultState,
       setTheme: (theme: Theme) => set({ theme }),
-      chatbotIcon: null,
       setChatbotIcon: (icon: string | null) => set({ chatbotIcon: icon }),
-      chatExperience: 'default',
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
     }),
     {
@@ -64,12 +68,11 @@ export function useStore() {
 
   const state = store();
 
-  return hydrated ? state : {
-    theme: 'green',
+  const setters = {
     setTheme: state.setTheme,
-    chatbotIcon: null,
     setChatbotIcon: state.setChatbotIcon,
-    chatExperience: 'default',
     setChatExperience: state.setChatExperience,
   };
+
+  return hydrated ? { ...state } : { ...defaultState, ...setters };
 }
