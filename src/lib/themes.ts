@@ -1,5 +1,5 @@
 
-export type Theme = "default" | "stone" | "orange" | "green" | "blue" | "yellow";
+export type Theme = "purple" | "stone" | "orange" | "green" | "blue" | "yellow";
 
 type ThemeConfig = {
   name: Theme;
@@ -11,7 +11,7 @@ type ThemeConfig = {
 
 export const themes: ThemeConfig[] = [
   {
-    name: "default",
+    name: "purple",
     cssVars: {
       light: {
         background: "200 17% 94%",

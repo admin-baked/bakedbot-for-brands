@@ -53,8 +53,7 @@ export function useStore() {
   if (!store) {
     throw new Error('useStore must be used within a StoreProvider.');
   }
-  const state = store();
-
+  
   // Zustand's persist middleware with client-side storage can cause hydration issues.
   // We need to ensure that we only return the state once the component has mounted on the client.
   // See: https://docs.pmnd.rs/zustand/integrations/persisting-middleware#getstorage-and-hydration-caveats
@@ -63,12 +62,14 @@ export function useStore() {
     setHydrated(true);
   }, []);
 
+  const state = store();
+
   return hydrated ? state : {
     theme: 'green',
-    setTheme: () => {},
+    setTheme: state.setTheme,
     chatbotIcon: null,
-    setChatbotIcon: () => {},
+    setChatbotIcon: state.setChatbotIcon,
     chatExperience: 'default',
-    setChatExperience: () => {},
+    setChatExperience: state.setChatExperience,
   };
 }
