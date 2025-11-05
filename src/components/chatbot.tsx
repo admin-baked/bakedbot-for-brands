@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, type FormEvent } from 'react';
 import Image from 'next/image';
-import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus } from 'lucide-react';
+import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { Badge } from './ui/badge';
 import type { CartItem } from '@/lib/types';
 import { useStore } from '@/hooks/use-store';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 
 type Message = {
   id: number;
@@ -78,13 +79,17 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Mes
                     <div className="mt-2 grid grid-cols-1 gap-2">
                     {message.productSuggestions.slice(0, 3).map(p => (
                         <div key={p.id} className="flex items-center gap-2 rounded-md border bg-background p-2 text-foreground">
-                        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
-                            <Image src={p.imageUrl} alt={p.name} data-ai-hint={p.imageHint} fill className="object-cover"/>
-                        </div>
-                        <div className="w-full">
-                            <p className="text-xs font-semibold">{p.name}</p>
-                            <p className="text-xs text-muted-foreground">${p.price.toFixed(2)}</p>
-                        </div>
+                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
+                                <Image src={p.imageUrl} alt={p.name} data-ai-hint={p.imageHint} fill className="object-cover"/>
+                            </div>
+                            <div className="w-full">
+                                <p className="text-xs font-semibold">{p.name}</p>
+                                <p className="text-xs text-muted-foreground">${p.price.toFixed(2)}</p>
+                            </div>
+                            <div className="flex gap-1">
+                                <Button variant="outline" size="icon" className="h-7 w-7"><ThumbsUp className="h-4 w-4 text-green-500" /></Button>
+                                <Button variant="outline" size="icon" className="h-7 w-7"><ThumbsDown className="h-4 w-4 text-red-500" /></Button>
+                            </div>
                         </div>
                     ))}
                     </div>
@@ -122,6 +127,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Mes
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isCarouselOpen, setIsCarouselOpen] = useState(true);
   const [messages, setMessages] = useState<Message[]>([
      { id: 1, text: "Hello! I'm Smokey, your AI budtender. Browse our products above and ask me anything about them!", sender: 'bot' },
   ]);
@@ -142,6 +148,8 @@ export default function Chatbot() {
     const userMessage: Message = { id: Date.now(), text: `Tell me about the ${product.name}`, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
     
+    setIsCarouselOpen(false); // Collapse carousel
+
     setIsBotTyping(true);
     setTimeout(() => {
       const botMessage: Message = { 
@@ -161,6 +169,8 @@ export default function Chatbot() {
 
     const userMessage: Message = { id: Date.now(), text: textToSend, sender: 'user' };
     setMessages((prev) => [...prev, userMessage]);
+    setIsCarouselOpen(false); // Collapse carousel
+
     if (!message) {
       setInputValue('');
     }
@@ -178,7 +188,7 @@ export default function Chatbot() {
       if (foundCategory) {
         botResponseText = `Here are some ${foundCategory.toLowerCase()} you might like:`;
         productSuggestions = products.filter(p => p.category === foundCategory);
-      } else if (lowerCaseInput.includes('all') || lowerCaseInput.includes('everything') || lowerCaseInput.includes('products')) {
+      } else if (lowerCaseInput.includes('all') || lowerCaseInput.includes('everything') || lowerCase-input.includes('products')) {
          botResponseText = "Here are all our products:";
          productSuggestions = products;
       }
@@ -193,15 +203,19 @@ export default function Chatbot() {
     return (
       <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-card border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
         <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
-          {chatExperience === 'default' ? (
-             <ProductCarousel onAskSmokey={handleAskSmokey} />
-          ) : (
-             <CardHeader>
-                <CardTitle>Smokey AI</CardTitle>
-                <CardDescription>Ask me anything about our products.</CardDescription>
-            </CardHeader>
-          )}
-
+          <Collapsible open={isCarouselOpen} onOpenChange={setIsCarouselOpen}>
+            <CollapsibleContent>
+              {chatExperience === 'default' ? (
+                <ProductCarousel onAskSmokey={handleAskSmokey} />
+              ) : (
+                <CardHeader>
+                  <CardTitle>Smokey AI</CardTitle>
+                  <CardDescription>Ask me anything about our products.</CardDescription>
+                </CardHeader>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+          
           <ChatMessages messages={messages} isBotTyping={isBotTyping} messagesEndRef={messagesEndRef} />
         
         <CardFooter className="p-4 border-t">
