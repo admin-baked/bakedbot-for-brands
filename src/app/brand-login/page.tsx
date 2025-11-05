@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,13 +42,13 @@ export default function BrandLoginPage() {
         }
     }, [searchParams, toast]);
 
-    const handleGoogleSignIn = async () => {
+    const handleGoogleSignIn = useCallback(async () => {
         if (!auth) return;
         setIsLoading(true);
         await signInWithGoogle(auth);
-    };
+    }, [auth]);
 
-    const handleMagicLinkSignIn = async (e: React.FormEvent, targetEmail?: string) => {
+    const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
         e.preventDefault();
         const finalEmail = targetEmail || email;
         if (!finalEmail) {
@@ -58,16 +59,24 @@ export default function BrandLoginPage() {
             });
             return;
         }
+        if (!auth) {
+            toast({
+                variant: 'destructive',
+                title: 'Authentication service not ready',
+                description: 'Please wait a moment and try again.',
+            });
+            return;
+        }
 
         setIsLoading(true);
         try {
-            if (!auth) throw new Error('Auth service not available');
             window.localStorage.setItem('emailForSignIn', finalEmail);
             const result = await sendMagicLink(auth, finalEmail);
             if (result?.error) {
                 throw new Error(result.error);
             }
             setMagicLinkSent(true);
+            setEmail(finalEmail);
             toast({
                 title: 'Magic Link Sent!',
                 description: `A sign-in link has been sent to ${finalEmail}. Check your inbox!`,
@@ -82,7 +91,7 @@ export default function BrandLoginPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [auth, email, toast]);
     
     if (magicLinkSent) {
         return (
@@ -92,7 +101,7 @@ export default function BrandLoginPage() {
                         <Sparkles className="mx-auto h-12 w-12 text-primary" />
                         <CardTitle className="mt-4 text-2xl">Check Your Inbox!</CardTitle>
                         <CardDescription>
-                            A magic sign-in link has been sent to <strong>{email || 'martez@bakedbot.ai'}</strong>. Click the link in the email to log in.
+                            A magic sign-in link has been sent to <strong>{email}</strong>. Click the link in the email to log in.
                         </CardDescription>
                     </CardHeader>
                     <CardFooter>
@@ -143,14 +152,14 @@ export default function BrandLoginPage() {
                                 required
                             />
                         </div>
-                        <Button type="submit" className="w-full" disabled={isLoading || !email}>
+                        <Button type="submit" className="w-full" disabled={isLoading || !email || !auth}>
                             {isLoading ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2" /> Send Magic Link</>}
                         </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-2">
                     <p className="text-xs text-muted-foreground">For testing purposes:</p>
-                    <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')}>
+                    <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')} disabled={isLoading || !auth}>
                          <Sparkles className="mr-2 h-4 w-4 text-amber-500" /> Dev Magic Button (martez@bakedbot.ai)
                     </Button>
                 </CardFooter>
@@ -158,3 +167,5 @@ export default function BrandLoginPage() {
         </div>
     );
 }
+
+    
