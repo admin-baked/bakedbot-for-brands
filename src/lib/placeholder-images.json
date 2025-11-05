@@ -1,3 +1,58 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "product1",
+      "description": "A cannabis edible product",
+      "imageUrl": "https://images.unsplash.com/photo-1732070813992-77cd65f53a38?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjYW5uYWJpcyUyMGVkaWJsZXxlbnwwfHx8fDE3NjIzNzEyNjN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cannabis edible"
+    },
+    {
+      "id": "product2",
+      "description": "A cannabis gummy product",
+      "imageUrl": "https://images.unsplash.com/photo-1579803988215-7a9ac7d5b988?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW5uYWJpcyUyMGd1bW15fGVufDB8fHx8MTc2MjM3MTI2M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cannabis gummy"
+    },
+    {
+      "id": "product3",
+      "description": "A cannabis sucker product",
+      "imageUrl": "https://images.unsplash.com/photo-1602863811548-71b620fa96d2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjYW5uYWJpcyUyMGNhbmR5fGVufDB8fHx8MTc2MjM3MTI2M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cannabis candy"
+    },
+    {
+      "id": "product4",
+      "description": "A cannabis flower product",
+      "imageUrl": "https://images.unsplash.com/photo-1600753231295-90b5d5b87a5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYW5uYWJpcyUyMGZsb3dlcnxlbnwwfHx8fDE3NjIzNzEyNjN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cannabis flower"
+    },
+    {
+      "id": "product5",
+      "description": "A premium cannabis nug",
+      "imageUrl": "https://images.unsplash.com/photo-1549578724-1a00345b02f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjYW5uYWJpcyUyMG51Z3xlbnwwfHx8fDE3NjIzNzEyNjN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cannabis nug"
+    },
+    {
+      "id": "product6",
+      "description": "A cannabis flower strain",
+      "imageUrl": "https://images.unsplash.com/photo-1714076260884-e683fd8373c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjYW5uYWJpcyUyMHN0cmFpbnxlbnwwfHx8fDE3NjIzNzEyNjN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cannabis strain"
+    },
+    {
+      "id": "product7",
+      "description": "A cannabis vape product",
+      "imageUrl": "https://images.unsplash.com/photo-1599177749654-b8f5fe0b016a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW5uYWJpcyUyMHZhcGV8ZW58MHx8fHwxNzYyMzcxMjYzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cannabis vape"
+    },
+    {
+      "id": "product8",
+      "description": "A cannabis vape stick",
+      "imageUrl": "https://images.unsplash.com/photo-1629398781765-d6d0c14445b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx2YXBlJTIwcGVufGVufDB8fHx8MTc2MjM3MTI2M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vape pen"
+    },
+    {
+      "id": "product9",
+      "description": "A cannabis vape cartridge",
+      "imageUrl": "https://images.unsplash.com/photo-1606753232098-2ba37249a32e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx2YXBlJTIwY2FydHJpZGdlfGVufDB8fHx8MTc2MjM3MTI2M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vape cartridge"
+    }
+  ]
 }
