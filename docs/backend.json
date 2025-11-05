@@ -37,6 +37,18 @@
         "id"
       ]
     },
+    "UserPrivate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserPrivate",
+      "type": "object",
+      "description": "Represents private user data, such as API keys.",
+      "properties": {
+        "cannMenusApiKey": {
+          "type": "string",
+          "description": "The user's API key for the CannMenus service."
+        }
+      }
+    },
     "Product": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
@@ -213,6 +225,22 @@
         }
       },
       {
+        "path": "/user-private/{userId}",
+        "definition": {
+          "entityName": "UserPrivate",
+          "schema": {
+            "$ref": "#/backend/entities/UserPrivate"
+          },
+          "description": "Stores private user data, like API keys. Strictly owned by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
         "path": "/categories/{categoryId}",
         "definition": {
           "entityName": "Category",
@@ -289,6 +317,8 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the BakedBot AI Assistant plugin, prioritizing security, scalability, and debuggability as per the core design principles. User data is stored under `/users/{userId}` for private data, ensuring path-based ownership. Categories and Products are stored as top-level collections, as they are not directly owned by users, with the product's category relationship expressed via the `categoryId` field. Orders and OrderItems follow a hierarchical path under users for ownership and data locality. This design eliminates the need for `get()` calls in security rules, enabling atomic operations. The structure facilitates secure list operations by segregating data based on ownership (user-owned data under `/users/{userId}`) and type (categories, products)."
+    "reasoning": "The Firestore structure is designed to support the BakedBot AI Assistant plugin, prioritizing security, scalability, and debuggability as per the core design principles. User data is stored under `/users/{userId}` for private data, ensuring path-based ownership. A separate `/user-private/{userId}` collection is added for sensitive data like API keys, with strict ownership rules. Categories and Products are stored as top-level collections, as they are not directly owned by users, with the product's category relationship expressed via the `categoryId` field. Orders and OrderItems follow a hierarchical path under users for ownership and data locality. This design eliminates the need for `get()` calls in security rules, enabling atomic operations. The structure facilitates secure list operations by segregating data based on ownership (user-owned data under `/users/{userId}`) and type (categories, products)."
   }
 }
+
+    

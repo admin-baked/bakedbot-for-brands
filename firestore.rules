@@ -18,6 +18,11 @@ service cloud.firestore {
       allow list: if false;
     }
 
+    match /user-private/{userId} {
+      allow read, write: if isOwner(userId);
+      allow list: if false;
+    }
+
     match /categories/{categoryId} {
       allow get, list: if true;
       allow write: if false;
@@ -42,3 +47,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
