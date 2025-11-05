@@ -61,7 +61,7 @@ const generateSocialMediaImageFlow = ai.defineFlow(
   async (input) => {
     const {output} = await prompt(input);
     if (!output?.imageUrl) {
-        throw new Error('Image generation failed to return a URL.');
+        throw new Error('Image generation failed to return a URL. This may be due to content safety policies or a temporary model issue.');
     }
     return output;
   }
