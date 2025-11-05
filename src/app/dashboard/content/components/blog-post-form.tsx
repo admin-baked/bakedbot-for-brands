@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useFormStatus } from 'react-dom';
+import { useFormState, useFormStatus } from 'react-dom';
 import { createProductDescription } from '../actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -31,7 +31,7 @@ function SubmitButton() {
 }
 
 export default function ProductDescriptionForm() {
-  const [state, formAction] = useActionState(createProductDescription, initialState);
+  const [state, formAction] = useFormState(createProductDescription, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 
