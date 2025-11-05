@@ -1,7 +1,7 @@
 
 'use client';
 
-import { type Theme, themes } from '@/lib/themes';
+import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createContext, useContext, useRef, type ReactNode } from 'react';
@@ -9,6 +9,8 @@ import { createContext, useContext, useRef, type ReactNode } from 'react';
 interface StoreState {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  chatbotMode: 'simple' | 'checkout';
+  setChatbotMode: (mode: 'simple' | 'checkout') => void;
 }
 
 const createStore = () => create<StoreState>()(
@@ -16,6 +18,8 @@ const createStore = () => create<StoreState>()(
     (set, get) => ({
       theme: 'default',
       setTheme: (theme: Theme) => set({ theme }),
+      chatbotMode: 'checkout',
+      setChatbotMode: (mode: 'simple' | 'checkout') => set({ chatbotMode: mode }),
     }),
     {
       name: 'smokey-store',
