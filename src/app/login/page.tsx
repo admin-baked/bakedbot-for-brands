@@ -136,7 +136,7 @@ export default function LoginPage() {
             )}
             Sign in with Google
           </Button>
-          <Button variant="secondary" className="w-full" onClick={handleDevSignIn} disabled={isLoadingMagic || isLoadingGoogle || isLoadingDev}>
+           <Button variant="secondary" className="w-full" onClick={handleDevSignIn} disabled={isLoadingMagic || isLoadingGoogle || isLoadingDev}>
             {isLoadingDev ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -152,4 +152,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

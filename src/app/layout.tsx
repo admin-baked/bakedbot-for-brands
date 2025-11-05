@@ -45,7 +45,7 @@ function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>Smokey AI Assistant</title>
+        <title>BakedBot AI Assistant</title>
         <meta name="description" content="AI Assistant for Dispensaries" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
