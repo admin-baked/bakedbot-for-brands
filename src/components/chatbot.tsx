@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent } from 'react';
@@ -22,6 +23,103 @@ type Message = {
   productSuggestions?: Product[];
 };
 
+const ProductCarousel = ({ onAskSmokey }: { onAskSmokey: (product: Product) => void }) => (
+    <>
+      <CardHeader>
+          <CardTitle>Discover Products</CardTitle>
+          <CardDescription>Browse our products and ask me anything.</CardDescription>
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        <Carousel opts={{
+            align: "start",
+            dragFree: true,
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-2">
+            {products.map((p, index) => (
+              <CarouselItem key={index} className="pl-2 basis-1/2">
+                <div className="group relative w-full h-full rounded-lg overflow-hidden border">
+                    <Image src={p.imageUrl} alt={p.name} width={200} height={200} data-ai-hint={p.imageHint} className="object-cover w-full h-full" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-2">
+                        <p className="text-xs font-bold text-white truncate">{p.name}</p>
+                        <Button size="sm" variant="secondary" className="w-full h-7 mt-1 text-xs" onClick={() => onAskSmokey(p)}>
+                            Ask Smokey
+                        </Button>
+                    </div>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="left-2" />
+          <CarouselNext className="right-2" />
+        </Carousel>
+      </CardContent>
+    </>
+);
+
+const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>}) => (
+    <ScrollArea className="flex-1 border-t">
+        <CardContent className="p-4">
+        <div className="space-y-4">
+            {messages.map((message) => (
+            <div key={message.id} className={cn("flex items-end gap-3", message.sender === 'user' && 'justify-end')}>
+                {message.sender === 'bot' && (
+                <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                    <Bot />
+                    </AvatarFallback>
+                </Avatar>
+                )}
+                <div className={cn("max-w-[80%] rounded-lg px-3 py-2", message.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
+                <p className="text-sm" dangerouslySetInnerHTML={{ __html: message.text.replace(/\n/g, '<br />') }} />
+                {message.productSuggestions && (
+                    <div className="mt-2 grid grid-cols-1 gap-2">
+                    {message.productSuggestions.slice(0, 3).map(p => (
+                        <div key={p.id} className="flex items-center gap-2 rounded-md border bg-background p-2 text-foreground">
+                        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
+                            <Image src={p.imageUrl} alt={p.name} data-ai-hint={p.imageHint} fill className="object-cover"/>
+                        </div>
+                        <div className="w-full">
+                            <p className="text-xs font-semibold">{p.name}</p>
+                            <p className="text-xs text-muted-foreground">${p.price.toFixed(2)}</p>
+                        </div>
+                        </div>
+                    ))}
+                    </div>
+                )}
+                </div>
+                {message.sender === 'user' && (
+                <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback>U</AvatarFallback>
+                </Avatar>
+                )}
+            </div>
+            ))}
+            {isBotTyping && (
+                <div className="flex items-end gap-3">
+                <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                    <Bot />
+                    </AvatarFallback>
+                </Avatar>
+                <div className="max-w-[80%] rounded-lg bg-muted px-3 py-2 rounded-bl-none">
+                    <div className="flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/50 [animation-delay:-0.3s]"></span>
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/50 [animation-delay:-0.15s]"></span>
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/50"></span>
+                    </div>
+                </div>
+                </div>
+            )}
+            <div ref={messagesEndRef} />
+        </div>
+        </CardContent>
+    </ScrollArea>
+);
+
+
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -30,7 +128,7 @@ export default function Chatbot() {
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { chatbotIcon } = useStore();
+  const { chatbotIcon, chatExperience } = useStore();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -90,99 +188,21 @@ export default function Chatbot() {
     }, 1200);
   };
 
-    const ProductDiscoveryAssistant = () => {
+    const ChatWindow = () => {
     return (
       <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-card border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
         <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
-          <CardHeader>
-              <CardTitle>Discover Products</CardTitle>
-              <CardDescription>Browse our products and ask me anything.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <Carousel opts={{
-                align: "start",
-                dragFree: true,
-              }}
-              className="w-full"
-            >
-              <CarouselContent className="-ml-2">
-                {products.map((p, index) => (
-                  <CarouselItem key={index} className="pl-2 basis-1/2">
-                    <div className="group relative w-full h-full rounded-lg overflow-hidden border">
-                        <Image src={p.imageUrl} alt={p.name} width={200} height={200} data-ai-hint={p.imageHint} className="object-cover w-full h-full" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-2">
-                            <p className="text-xs font-bold text-white truncate">{p.name}</p>
-                            <Button size="sm" variant="secondary" className="w-full h-7 mt-1 text-xs" onClick={() => handleAskSmokey(p)}>
-                                Ask Smokey
-                            </Button>
-                        </div>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-2" />
-              <CarouselNext className="right-2" />
-            </Carousel>
-          </CardContent>
+          {chatExperience === 'default' ? (
+             <ProductCarousel onAskSmokey={handleAskSmokey} />
+          ) : (
+             <CardHeader>
+                <CardTitle>Smokey AI</CardTitle>
+                <CardDescription>Ask me anything about our products.</CardDescription>
+            </CardHeader>
+          )}
 
-          <ScrollArea className="flex-1 border-t">
-          <CardContent className="p-4">
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div key={message.id} className={cn("flex items-end gap-3", message.sender === 'user' && 'justify-end')}>
-                  {message.sender === 'bot' && (
-                    <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        <Bot />
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                  <div className={cn("max-w-[80%] rounded-lg px-3 py-2", message.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
-                    <p className="text-sm" dangerouslySetInnerHTML={{ __html: message.text.replace(/\n/g, '<br />') }} />
-                    {message.productSuggestions && (
-                      <div className="mt-2 grid grid-cols-1 gap-2">
-                        {message.productSuggestions.slice(0, 3).map(p => (
-                          <div key={p.id} className="flex items-center gap-2 rounded-md border bg-background p-2 text-foreground">
-                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
-                              <Image src={p.imageUrl} alt={p.name} data-ai-hint={p.imageHint} fill className="object-cover"/>
-                            </div>
-                            <div className="w-full">
-                                <p className="text-xs font-semibold">{p.name}</p>
-                                <p className="text-xs text-muted-foreground">${p.price.toFixed(2)}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {message.sender === 'user' && (
-                    <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarFallback>U</AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
-              ))}
-              {isBotTyping && (
-                 <div className="flex items-end gap-3">
-                    <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        <Bot />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="max-w-[80%] rounded-lg bg-muted px-3 py-2 rounded-bl-none">
-                        <div className="flex items-center gap-1">
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/50 [animation-delay:-0.3s]"></span>
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/50 [animation-delay:-0.15s]"></span>
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/50"></span>
-                        </div>
-                    </div>
-                 </div>
-              )}
-               <div ref={messagesEndRef} />
-            </div>
-          </CardContent>
-        </ScrollArea>
+          <ChatMessages messages={messages} isBotTyping={isBotTyping} messagesEndRef={messagesEndRef} />
+        
         <CardFooter className="p-4 border-t">
           <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
             <Input
@@ -217,7 +237,7 @@ export default function Chatbot() {
             </Button>
           </div>
     
-          {isOpen && <ProductDiscoveryAssistant />}
+          {isOpen && <ChatWindow />}
         </>
       );
 }

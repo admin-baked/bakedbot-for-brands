@@ -12,6 +12,8 @@ interface StoreState {
   setTheme: (theme: Theme) => void;
   chatbotIcon: string | null;
   setChatbotIcon: (icon: string | null) => void;
+  chatExperience: 'default' | 'classic';
+  setChatExperience: (experience: 'default' | 'classic') => void;
 }
 
 const createStore = () => create<StoreState>()(
@@ -21,6 +23,8 @@ const createStore = () => create<StoreState>()(
       setTheme: (theme: Theme) => set({ theme }),
       chatbotIcon: null,
       setChatbotIcon: (icon: string | null) => set({ chatbotIcon: icon }),
+      chatExperience: 'default',
+      setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
     }),
     {
       name: 'smokey-store',
@@ -64,5 +68,7 @@ export function useStore() {
     setTheme: () => {},
     chatbotIcon: null,
     setChatbotIcon: () => {},
+    chatExperience: 'default',
+    setChatExperience: () => {},
   };
 }
