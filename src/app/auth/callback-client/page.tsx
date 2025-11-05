@@ -6,65 +6,69 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useFirebase } from '@/firebase';
 import { isSignInWithEmailLink, signInWithEmailLink, getRedirectResult } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function AuthCallbackClientPage() {
   const router = useRouter();
   const { auth } = useFirebase();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(true);
 
   useEffect(() => {
-    if (!auth) return;
+    if (!auth) {
+        // Firebase auth instance might not be ready on first render.
+        return;
+    }
 
     const fullUrl = window.location.href;
 
-    // Handle Magic Link
-    if (isSignInWithEmailLink(auth, fullUrl)) {
-      let email = window.localStorage.getItem('emailForSignIn');
-      if (!email) {
-        // If email is not in storage, prompt user for it
-        email = window.prompt('Please provide your email for confirmation');
-      }
+    // This function will be called for both Google redirect and magic link.
+    const processAuth = async () => {
+        try {
+            // First, check for magic link sign-in.
+            if (isSignInWithEmailLink(auth, fullUrl)) {
+                let email = window.localStorage.getItem('emailForSignIn');
+                if (!email) {
+                    email = window.prompt('Please provide your email for confirmation');
+                }
 
-      if (email) {
-        signInWithEmailLink(auth, email, fullUrl)
-          .then(() => {
-            window.localStorage.removeItem('emailForSignIn');
-            router.push('/dashboard');
-          })
-          .catch((err) => {
-            console.error(err);
-            setError('Failed to sign in with magic link. The link may have expired or been used already.');
-          });
-      } else {
-        setError('Email address not found. Please try signing in again.');
-      }
-    } else {
-        // Handle Google Redirect
-        getRedirectResult(auth)
-            .then((result) => {
-                if (result && result.user) {
+                if (email) {
+                    await signInWithEmailLink(auth, email, fullUrl);
+                    window.localStorage.removeItem('emailForSignIn');
                     router.push('/dashboard');
                 } else {
-                    // This can happen if the page is visited directly without a pending redirect.
-                    // Or if there was an error during the redirect sign-in.
-                    const errorCode = searchParams.get('error_code'); // Check for Firebase error params
-                    if (errorCode) {
-                        const errorMessage = searchParams.get('error_message') || 'An unknown error occurred during sign-in.';
-                        setError(decodeURIComponent(errorMessage));
-                    } else {
-                        // No user from redirect, and not a magic link. Just go to dashboard, middleware will protect it.
-                        router.push('/dashboard');
-                    }
+                    throw new Error('Email address not found. Please try signing in again.');
                 }
-            })
-            .catch((err) => {
-                console.error('getRedirectResult error:', err);
-                setError(err.message || 'An error occurred during sign-in.');
-            });
-    }
+                return; // Stop processing
+            }
 
-  }, [auth, router, searchParams]);
+            // If not a magic link, check for a redirect result from Google.
+            const result = await getRedirectResult(auth);
+            if (result && result.user) {
+                // User successfully signed in via redirect.
+                router.push('/dashboard');
+                return; // Stop processing
+            }
+            
+            // If we reach here, it means this page was likely loaded without a pending
+            // auth action (e.g., user bookmarked it or navigated directly).
+            // We can just redirect them to the dashboard where the middleware will
+            // handle auth state.
+            router.push('/dashboard');
+
+        } catch (err: any) {
+            console.error('Authentication callback error:', err);
+            const friendlyMessage = err.message || 'An unknown error occurred during sign-in. The link may have expired or been used already.';
+            setError(friendlyMessage);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    processAuth();
+
+  }, [auth, router]);
 
   if (error) {
     return (
