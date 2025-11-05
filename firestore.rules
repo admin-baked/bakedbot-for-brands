@@ -1,0 +1,131 @@
+/**
+ * @fileoverview Firestore Security Rules for BakedBot AI Assistant Plugin.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for personal data and allows public read access for product catalogs.
+ * Write access is always restricted to authenticated users and, where applicable, the data owner.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles, secured with owner-only access.
+ * - /categories/{categoryId}: Stores product categories, publicly readable.
+ * - /products/{productId}: Stores product information, publicly readable.
+ * - /users/{userId}/orders/{orderId}: Stores user order history, secured with owner-only access.
+ * - /users/{userId}/orders/{orderId}/orderItems/{orderItemId}: Stores individual order items, secured with owner-only access.
+ *
+ * Key Security Decisions:
+ * - Users can only access their own data. Listing all users is disallowed.
+ * - Categories and Products are publicly readable, but write access is not defined in this prototype.
+ * - All write operations require authentication.
+ *
+ * Denormalization for Authorization:
+ * - User ownership is enforced using path-based rules (e.g., /users/{userId}), eliminating the need for `get()` calls to verify ownership.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Secures user profiles, allowing only the owner to read and write their own data.
+     * @path /users/{userId}
+     * @allow (create) User with ID matching auth UID can create their profile.
+     * @allow (get, update, delete) Authenticated user with ID matching the document ID.
+     * @deny (create) User attempts to create a profile with an ID that doesn't match their auth UID.
+     * @deny (get, list, create, update, delete) Unauthenticated user attempts to access user profiles.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows public read access to product categories.
+     * @path /categories/{categoryId}
+     * @allow (get, list) Any user can read category information.
+     * @deny (create, update, delete) No write permissions defined in this prototype.
+     * @principle Allows public read access while restricting write access.
+     */
+    match /categories/{categoryId} {
+      allow get: if true;
+      allow list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Allows public read access to product information.
+     * @path /products/{productId}
+     * @allow (get, list) Any user can read product information.
+     * @deny (create, update, delete) No write permissions defined in this prototype.
+     * @principle Allows public read access while restricting write access.
+     */
+    match /products/{productId} {
+      allow get: if true;
+      allow list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Secures user order history, allowing only the owner to read and write their own order data.
+     * @path /users/{userId}/orders/{orderId}
+     * @allow (create) User with ID matching auth UID can create orders.
+     * @allow (get, update, delete) Authenticated user with ID matching the parent user ID.
+     * @deny (create) User attempts to create an order for a user that doesn't match their auth UID.
+     * @deny (get, list, update, delete) Unauthenticated user attempts to access order data.
+     * @principle Enforces document ownership and restricts access to a user's own data.
+     */
+    match /users/{userId}/orders/{orderId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Secures individual order items, allowing only the owner to read and write their own order item data.
+     * @path /users/{userId}/orders/{orderId}/orderItems/{orderItemId}
+     * @allow (create) User with ID matching auth UID can create order items under their orders.
+     * @allow (get, update, delete) Authenticated user with ID matching the top-level user ID.
+     * @deny (create) User attempts to create an order item for a user that doesn't match their auth UID.
+     * @deny (get, list, update, delete) Unauthenticated user attempts to access order item data.
+     * @principle Enforces document ownership and restricts access to a user's own data.
+     */
+    match /users/{userId}/orders/{orderId}/orderItems/{orderItemId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) && request.resource.data.orderId in(/databases/$(database)/documents/users/$(userId)/orders);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
