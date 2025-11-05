@@ -8,6 +8,7 @@ const FormSchema = z.object({
   features: z.string().min(3, 'Features must be at least 3 characters.'),
   keywords: z.string().min(3, 'Keywords must be at least 3 characters.'),
   brandVoice: z.string().min(1, 'Please select a brand voice.'),
+  msrp: z.string().optional(),
 });
 
 export type FormState = {
@@ -28,6 +29,7 @@ export async function createProductDescription(
     features: formData.get('features'),
     keywords: formData.get('keywords'),
     brandVoice: formData.get('brandVoice'),
+    msrp: formData.get('msrp'),
   });
 
   if (!validatedFields.success) {
@@ -39,8 +41,16 @@ export async function createProductDescription(
     };
   }
 
+  // NOTE: Image handling logic will go here.
+  // For now, we'll pass a placeholder URL.
+  const imageUrl = 'https://picsum.photos/seed/packaging/400/400';
+
+
   try {
-    const result = await generateProductDescription(validatedFields.data as GenerateProductDescriptionInput);
+    const result = await generateProductDescription({
+      ...validatedFields.data,
+      imageUrl,
+    } as GenerateProductDescriptionInput);
     return {
       message: 'Product description generated successfully.',
       data: result,

@@ -3,8 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { type GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { Button } from '@/components/ui/button';
-import { Clipboard, ThumbsUp, ThumbsDown, RotateCw } from 'lucide-react';
+import { Clipboard, ThumbsUp, ThumbsDown, RotateCw, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 interface ProductDescriptionDisplayProps {
   productDescription: GenerateProductDescriptionOutput | null;
@@ -31,17 +32,34 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
             <CardDescription>Review the AI-generated content below.</CardDescription>
         </div>
         {productDescription && (
-          <Button variant="outline" size="icon" onClick={handleCopy} aria-label="Copy content">
-            <Clipboard className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {productDescription.msrp && <div className="text-lg font-bold text-primary">${productDescription.msrp}</div>}
+            <Button variant="outline" size="icon" onClick={handleCopy} aria-label="Copy content">
+                <Clipboard className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto">
+      <CardContent className="flex-1 overflow-y-auto space-y-4">
         {productDescription ? (
-          <div className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: productDescription.description.replace(/\n/g, '<br />') }} />
+          <>
+            {productDescription.imageUrl && (
+                 <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
+                 <Image
+                   src={productDescription.imageUrl}
+                   alt={productDescription.productName}
+                   fill
+                   className="object-cover"
+                   data-ai-hint="product package"
+                 />
+               </div>
+            )}
+            <div className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: productDescription.description.replace(/\n/g, '<br />') }} />
+          </>
         ) : (
-          <div className="flex h-full min-h-[300px] items-center justify-center rounded-lg border border-dashed bg-muted/50 p-8 text-center text-muted-foreground">
-            <p>Your generated product description will appear here. <br/> Fill out the form and click "Generate Description" to start.</p>
+          <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/50 p-8 text-center text-muted-foreground">
+            <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+            <p className="mt-4">Your generated product description will appear here. <br/> Fill out the form and click "Generate Description" to start.</p>
           </div>
         )}
       </CardContent>

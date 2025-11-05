@@ -16,6 +16,8 @@ const GenerateProductDescriptionInputSchema = z.object({
   features: z.string().describe('The key features of the product.'),
   keywords: z.string().describe('Keywords to include in the description.'),
   brandVoice: z.string().describe('The brand voice for the description (e.g., Playful, Professional).'),
+  msrp: z.string().optional().describe("The manufacturer's suggested retail price."),
+  imageUrl: z.string().optional().describe('A URL to an image of the product packaging.'),
 });
 
 export type GenerateProductDescriptionInput = z.infer<typeof GenerateProductDescriptionInputSchema>;
@@ -23,6 +25,8 @@ export type GenerateProductDescriptionInput = z.infer<typeof GenerateProductDesc
 const GenerateProductDescriptionOutputSchema = z.object({
   productName: z.string().describe('The name of the product.'),
   description: z.string().describe('The generated product description.'),
+  imageUrl: z.string().optional().describe('URL of the generated or provided image.'),
+  msrp: z.string().optional().describe("The manufacturer's suggested retail price."),
 });
 
 export type GenerateProductDescriptionOutput = z.infer<typeof GenerateProductDescriptionOutputSchema>;
@@ -42,12 +46,16 @@ const prompt = ai.definePrompt({
   Key Features: {{{features}}}
   Keywords: {{{keywords}}}
   Brand Voice: {{{brandVoice}}}
+  MSRP: {{{msrp}}}
+  {{#if imageUrl}}
+  Image URL: {{{imageUrl}}}
+  {{/if}}
 
   The description should be engaging, informative, and persuasive, providing value to the customer.
   Include relevant keywords to improve search engine optimization.
   The output should be just the product description, not the title.
   Ensure the content is accurate.
-  Your output should include the original product name.
+  Your output should include the original product name, MSRP, and image URL.
 `,
 });
 
