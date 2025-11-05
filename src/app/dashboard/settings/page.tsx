@@ -1,4 +1,3 @@
-import ChatbotSettings from "./components/chatbot-settings";
 
 export default function SettingsPage() {
   return (
@@ -6,11 +5,9 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">
-          Manage your AI assistant and other application settings.
+          Manage your application settings.
         </p>
       </div>
-
-      <ChatbotSettings />
     </div>
   );
 }
