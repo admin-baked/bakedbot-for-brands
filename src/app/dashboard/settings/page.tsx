@@ -1,5 +1,4 @@
 
-
 import BrandSettings from "./components/brand-settings";
 import ChatbotSettings from "./components/chatbot-settings";
 import ThemeSettings from "./components/theme-settings";
