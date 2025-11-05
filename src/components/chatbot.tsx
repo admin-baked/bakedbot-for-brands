@@ -270,6 +270,9 @@ export default function Chatbot() {
 
 
   const handleMagicImageClick = () => {
+    if (!hasStartedChat) {
+        setHasStartedChat(true);
+    }
     setChatMode(prev => prev === 'image' ? 'chat' : 'image');
   }
 
