@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent } from 'react';
@@ -137,6 +136,61 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Mes
     </ScrollArea>
 );
 
+const ChatWindow = ({
+  chatExperience,
+  onAskSmokey,
+  hasStartedChat,
+  messages,
+  isBotTyping,
+  messagesEndRef,
+  handleSendMessage,
+  inputValue,
+  setInputValue,
+}: {
+  chatExperience: 'default' | 'classic';
+  onAskSmokey: (product: Product) => void;
+  hasStartedChat: boolean;
+  messages: Message[];
+  isBotTyping: boolean;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
+  handleSendMessage: (e: FormEvent) => void;
+  inputValue: string;
+  setInputValue: (value: string) => void;
+}) => {
+  return (
+    <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-card border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
+      <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
+          {chatExperience === 'default' && <ProductCarousel onAskSmokey={onAskSmokey} isCompact={hasStartedChat} />}
+
+          {chatExperience === 'classic' && (
+          <CardHeader>
+              <CardTitle>Smokey AI</CardTitle>
+              <CardDescription>Ask me anything about our products.</CardDescription>
+          </CardHeader>
+          )}
+        
+        <ChatMessages messages={messages} isBotTyping={isBotTyping} messagesEndRef={messagesEndRef} />
+      
+      <CardFooter className="p-4 border-t">
+        <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
+          <Input
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Type a message..."
+            className="flex-1"
+            autoComplete="off"
+            disabled={isBotTyping}
+          />
+          <Button type="submit" size="icon" disabled={isBotTyping || inputValue.trim() === ''}>
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
+      </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -177,28 +231,25 @@ export default function Chatbot() {
     }, 1200);
   };
 
-  const handleSendMessage = (e: FormEvent, message?: string) => {
-    if (e) e.preventDefault();
-    const textToSend = message || inputValue;
-    if (textToSend.trim() === '' || isBotTyping) return;
+  const handleSendMessage = (e: FormEvent) => {
+    e.preventDefault();
+    if (inputValue.trim() === '' || isBotTyping) return;
 
-    const userMessage: Message = { id: Date.now(), text: textToSend, sender: 'user' };
+    const userMessage: Message = { id: Date.now(), text: inputValue, sender: 'user' };
     setMessages((prev) => [...prev, userMessage]);
     
     if (!hasStartedChat) {
       setHasStartedChat(true);
     }
 
-    if (!message) {
-      setInputValue('');
-    }
+    setInputValue('');
     setIsBotTyping(true);
 
     setTimeout(() => {
       let botResponseText = "I'm sorry, I didn't quite understand. Can you rephrase? You can ask me for product recommendations like 'show me some edibles'.";
       let productSuggestions: Product[] | undefined;
 
-      const lowerCaseInput = textToSend.toLowerCase();
+      const lowerCaseInput = inputValue.toLowerCase();
       
       const categories = ['All', ...new Set(products.map(p => p.category))];
       const foundCategory = categories.find(cat => cat !== 'All' && lowerCaseInput.includes(cat.toLowerCase()));
@@ -217,40 +268,6 @@ export default function Chatbot() {
     }, 1200);
   };
 
-    const ChatWindow = () => {
-    return (
-      <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-card border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
-        <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
-            {chatExperience === 'default' && <ProductCarousel onAskSmokey={handleAskSmokey} isCompact={hasStartedChat} />}
-
-            {chatExperience === 'classic' && (
-            <CardHeader>
-                <CardTitle>Smokey AI</CardTitle>
-                <CardDescription>Ask me anything about our products.</CardDescription>
-            </CardHeader>
-            )}
-          
-          <ChatMessages messages={messages} isBotTyping={isBotTyping} messagesEndRef={messagesEndRef} />
-        
-        <CardFooter className="p-4 border-t">
-          <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
-            <Input
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1"
-              autoComplete="off"
-              disabled={isBotTyping}
-            />
-            <Button type="submit" size="icon" disabled={isBotTyping || inputValue.trim() === ''}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
-        </CardFooter>
-        </Card>
-      </div>
-    );
-  }
   
     return (
         <>
@@ -266,7 +283,21 @@ export default function Chatbot() {
             </Button>
           </div>
     
-          {isOpen && <ChatWindow />}
+          {isOpen && (
+            <ChatWindow 
+              chatExperience={chatExperience}
+              onAskSmokey={handleAskSmokey}
+              hasStartedChat={hasStartedChat}
+              messages={messages}
+              isBotTyping={isBotTyping}
+              messagesEndRef={messagesEndRef}
+              handleSendMessage={handleSendMessage}
+              inputValue={inputValue}
+              setInputValue={setInputValue}
+            />
+          )}
         </>
       );
 }
+
+    
