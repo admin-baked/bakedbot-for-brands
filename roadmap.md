@@ -2,6 +2,11 @@
 
 This document outlines the planned features and improvements for the BakedBot AI application.
 
+## Version 1.8.1 - CannMenus Stable
+
+### Core Features:
+- **CannMenus Integration**: Added the UI and secure backend functionality for users to save their CannMenus API key in their private profile. This is the first step towards pulling product data.
+
 ## Version 1.5 - Authentication Added
 
 ### Core Features:
