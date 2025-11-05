@@ -1,10 +1,11 @@
-# Smokey AI - Product Roadmap
+# BakedBot AI - Product Roadmap
 
-This document outlines the planned features and improvements for the Smokey AI application.
+This document outlines the planned features and improvements for the BakedBot AI application.
 
-## Version 1.3 - Current Stable Version
+## Version 1.5 - Authentication Added
 
 ### Core Features:
+- **User Authentication**: Secure user authentication system allowing brands to sign up and sign in with Google or a passwordless "Magic Link".
 - AI Product Description Generator with image upload and MSRP support.
 - Customizable AI Chatbot Widget ("Smokey") for product discovery.
 - Advanced brand customization:
@@ -15,7 +16,7 @@ This document outlines the planned features and improvements for the Smokey AI a
 - Horizontally scrollable product carousel within the chatbot.
 - "Ask Smokey" functionality for conversational product inquiries.
 
-## Future Enhancements (Post-v1.3)
+## Future Enhancements
 
 ### Chatbot & AI Agent
 - **AI-Powered Branding Agent**: Implement the backend logic for the AI agent to crawl a user's website and automatically match brand colors and style.
@@ -24,7 +25,6 @@ This document outlines the planned features and improvements for the Smokey AI a
 - **Personalized Recommendations**: Store user interaction history to provide personalized product recommendations in future sessions.
 
 ### Application & Dashboard
-- **User Authentication**: Implement a full user authentication system to allow brands to sign up, save their settings, and manage their generated content securely.
 - **Content Management**: Add functionality to save, edit, and manage all generated product descriptions.
 - **Analytics Dashboard**: Create a new dashboard page to provide insights on chatbot usage, such as most frequently asked questions, most viewed products, and overall user engagement.
 - **Real Inventory Integration**: Develop a system to connect to a brand's actual inventory via API to provide real-time product availability.
