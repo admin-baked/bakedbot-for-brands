@@ -151,7 +151,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Mes
                     </div>
                 )}
                 {message.productSuggestions && (
-                    <div className="mt-2 flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
+                    <div className="mt-2 flex gap-2 overflow-x-auto pb-2">
                     {message.productSuggestions.slice(0, 3).map(p => (
                         <div key={p.id} className="flex-shrink-0 w-48 flex items-center gap-2 rounded-md border bg-background p-2 text-foreground">
                             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
