@@ -1,21 +1,50 @@
+
+'use client';
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { StoreProvider } from '@/hooks/use-store';
+import { StoreProvider, useStore } from '@/hooks/use-store';
+import { useEffect } from 'react';
+import { themes } from '@/lib/themes';
 
-export const metadata: Metadata = {
-  title: 'Smokey AI Assistant',
-  description: 'AI Assistant for Dispensaries',
-};
-
-export default function RootLayout({
+export default function RootLayoutWrapper({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
+    <StoreProvider>
+      <RootLayout>{children}</RootLayout>
+    </StoreProvider>
+  );
+}
+
+function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const { theme } = useStore();
+
+  useEffect(() => {
+    const selectedTheme = themes.find((t) => t.name === theme);
+    if (selectedTheme) {
+      const root = document.documentElement;
+      Object.entries(selectedTheme.cssVars.light).forEach(([key, value]) => {
+        root.style.setProperty(`--${key}`, value);
+      });
+      root.classList.remove('dark');
+      // You can add dark mode logic here if needed
+    }
+  }, [theme]);
+
+
+  return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <title>Smokey AI Assistant</title>
+        <meta name="description" content="AI Assistant for Dispensaries" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -24,10 +53,8 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <StoreProvider>
-          {children}
-          <Toaster />
-        </StoreProvider>
+        {children}
+        <Toaster />
       </body>
     </html>
   );

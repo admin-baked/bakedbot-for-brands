@@ -1,17 +1,21 @@
+
 'use client';
 
+import { type Theme, themes } from '@/lib/themes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createContext, useContext, useRef, type ReactNode } from 'react';
 
 interface StoreState {
-  // In the future, you can add state here
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
 }
 
 const createStore = () => create<StoreState>()(
   persist(
     (set, get) => ({
-      // In the future, you can add state and actions here
+      theme: 'default',
+      setTheme: (theme: Theme) => set({ theme }),
     }),
     {
       name: 'smokey-store',
