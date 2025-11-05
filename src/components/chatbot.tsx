@@ -16,6 +16,7 @@ import type { CartItem } from '@/lib/types';
 import { useStore } from '@/hooks/use-store';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
+import { recommendProducts, type RecommendProductsOutput } from '@/ai/ai-powered-product-recommendations';
 
 type Message = {
   id: number;
@@ -233,44 +234,64 @@ export default function Chatbot() {
     }, 1200);
   };
 
-  const handleSendMessage = (e: FormEvent) => {
+  const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
     if (inputValue.trim() === '' || isBotTyping) return;
-
+  
     const userMessage: Message = { id: Date.now(), text: inputValue, sender: 'user' };
     setMessages((prev) => [...prev, userMessage]);
-    
+  
     if (!hasStartedChat) {
       setHasStartedChat(true);
     }
-
+  
     setInputValue('');
     setIsBotTyping(true);
-
-    setTimeout(() => {
-      let botResponseText = "I'm sorry, I didn't quite understand. Can you rephrase? You can ask me for product recommendations like 'show me some edibles'.";
-      let productSuggestions: Product[] | undefined;
-
-      const lowerCaseInput = inputValue.toLowerCase();
-      
-      const categories = ['All', ...new Set(products.map(p => p.category))];
-      const foundCategory = categories.find(cat => cat !== 'All' && lowerCaseInput.includes(cat.toLowerCase()));
-
-      if (foundCategory) {
-        botResponseText = `You might like these ${foundCategory.toLowerCase()}:`;
-        productSuggestions = products.filter(p => p.category === foundCategory);
-      } else if (lowerCaseInput.includes('all') || lowerCaseInput.includes('everything') || lowerCaseInput.includes('products')) {
-         botResponseText = "Here are all our products:";
-         productSuggestions = products;
-      }
-
-      const botMessage: Message = { id: Date.now() + 1, text: botResponseText, sender: 'bot', productSuggestions };
-      setMessages((prev) => [...prev, botMessage]);
-      setIsBotTyping(false);
-    }, 1200);
-  };
-
   
+    try {
+      const availableProducts = JSON.stringify(products.map(p => ({ id: p.id, name: p.name, description: p.description, category: p.category, price: p.price })));
+      
+      const result: RecommendProductsOutput = await recommendProducts({
+        query: inputValue,
+        availableProducts: availableProducts,
+      });
+  
+      let botResponseText = result.overallReasoning || "Here are some recommendations based on your query:";
+      
+      const recommendedProductDetails = result.products.map(recommendedProd => {
+        const fullProduct = products.find(p => p.id === recommendedProd.productId);
+        return fullProduct ? { ...fullProduct, reasoning: recommendedProd.reasoning } : null;
+      }).filter((p): p is Product & { reasoning: string } => p !== null);
+
+
+      // Add reasoning to the main message if there's only one product
+      if (recommendedProductDetails.length === 1 && recommendedProductDetails[0].reasoning) {
+        botResponseText += `\n\n**${recommendedProductDetails[0].name}**: ${recommendedProductDetails[0].reasoning}`;
+      }
+  
+      const botMessage: Message = {
+        id: Date.now() + 1,
+        text: botResponseText,
+        sender: 'bot',
+        productSuggestions: recommendedProductDetails.length > 0 ? recommendedProductDetails : undefined,
+      };
+  
+      setMessages((prev) => [...prev, botMessage]);
+  
+    } catch (error) {
+      console.error("Failed to get recommendations:", error);
+      const errorMessage: Message = {
+        id: Date.now() + 1,
+        text: "I'm sorry, I'm having a little trouble thinking right now. Please try again in a moment.",
+        sender: 'bot',
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsBotTyping(false);
+    }
+  };
+  
+
     return (
         <>
           <div className="fixed bottom-6 right-6 z-50">
@@ -301,3 +322,5 @@ export default function Chatbot() {
         </>
       );
 }
+
+    
