@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -11,7 +10,7 @@ import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { sendMagicLink, signInWithGoogle } from './actions';
 import { useSearchParams } from 'next/navigation';
-import { useFirebase } from '@/firebase';
+import { useAuth } from '@/firebase';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -29,7 +28,7 @@ export default function BrandLoginPage() {
     const [magicLinkSent, setMagicLinkSent] = useState(false);
     const { toast } = useToast();
     const searchParams = useSearchParams();
-    const { auth } = useFirebase();
+    const auth = useAuth();
 
     useEffect(() => {
         const error = searchParams.get('error');
@@ -43,9 +42,9 @@ export default function BrandLoginPage() {
     }, [searchParams, toast]);
 
     const handleGoogleSignIn = useCallback(async () => {
-        if (!auth) return;
         setIsLoading(true);
         await signInWithGoogle(auth);
+        // No need to set isLoading(false) here, as signInWithRedirect navigates away.
     }, [auth]);
 
     const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
@@ -56,14 +55,6 @@ export default function BrandLoginPage() {
                 variant: 'destructive',
                 title: 'Email is required',
                 description: 'Please enter your email address to receive a magic link.',
-            });
-            return;
-        }
-        if (!auth) {
-            toast({
-                variant: 'destructive',
-                title: 'Authentication service not ready',
-                description: 'Please wait a moment and try again.',
             });
             return;
         }
@@ -127,7 +118,7 @@ export default function BrandLoginPage() {
                         variant="outline"
                         className="w-full"
                         onClick={handleGoogleSignIn}
-                        disabled={isLoading || !auth}
+                        disabled={isLoading}
                     >
                         {isLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon /> Continue with Google</>}
                     </Button>
@@ -152,14 +143,14 @@ export default function BrandLoginPage() {
                                 required
                             />
                         </div>
-                        <Button type="submit" className="w-full" disabled={isLoading || !email || !auth}>
+                        <Button type="submit" className="w-full" disabled={isLoading || !email}>
                             {isLoading ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2" /> Send Magic Link</>}
                         </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-2">
                     <p className="text-xs text-muted-foreground">For testing purposes:</p>
-                    <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')} disabled={isLoading || !auth}>
+                    <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')} disabled={isLoading}>
                          <Sparkles className="mr-2 h-4 w-4 text-amber-500" /> Dev Magic Button (martez@bakedbot.ai)
                     </Button>
                 </CardFooter>
@@ -167,5 +158,3 @@ export default function BrandLoginPage() {
         </div>
     );
 }
-
-    

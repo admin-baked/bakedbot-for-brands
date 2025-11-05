@@ -6,6 +6,8 @@ import {
   sendSignInLinkToEmail, 
   signInWithRedirect
 } from 'firebase/auth';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const createActionCodeSettings = () => ({
     handleCodeInApp: true,
@@ -15,13 +17,19 @@ const createActionCodeSettings = () => ({
 export async function signInWithGoogle(auth: Auth) {
   const provider = new GoogleAuthProvider();
   try {
+    // signInWithRedirect doesn't return a promise that resolves on success in the same context,
+    // it navigates the user away. Errors are typically caught on the redirect page.
     await signInWithRedirect(auth, provider);
-  } catch (error) {
-    console.error('Error during Google sign-in redirect:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-    const encodedError = encodeURIComponent(errorMessage);
-    // As signInWithRedirect can't return, we may need to handle redirect to an error page on the client if possible
-    // For now, this might not effectively redirect user with an error.
+  } catch (error: any) {
+    // This catch block might only run for configuration errors, not post-redirect errors.
+    const permissionError = new FirestorePermissionError({
+        path: 'google_auth',
+        operation: 'write', 
+        requestResourceData: { error: error.message }
+    });
+    errorEmitter.emit('permission-error', permissionError);
+    // Re-throwing or handling redirect on client-side might be needed depending on flow
+    // For now, we just log it via our system.
   }
 }
 
@@ -29,8 +37,13 @@ export async function sendMagicLink(auth: Auth, email: string) {
   try {
     await sendSignInLinkToEmail(auth, email, createActionCodeSettings());
     return { success: true };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-    return { error: errorMessage };
+  } catch (error: any) {
+    const permissionError = new FirestorePermissionError({
+        path: 'magic_link_auth',
+        operation: 'write',
+        requestResourceData: { email: email, error: error.message }
+    });
+    errorEmitter.emit('permission-error', permissionError);
+    return { error: error.message || 'An unknown error occurred.' };
   }
 }

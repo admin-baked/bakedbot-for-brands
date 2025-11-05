@@ -23,14 +23,25 @@ import Chatbot from '@/components/chatbot';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useAuth, useUser } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
 
   const handleSignOut = async () => {
-    // This will be implemented later
-    router.push('/login');
+    try {
+      await signOut(auth);
+      // The onAuthStateChanged listener in FirebaseProvider will handle user state changes.
+      // Redirecting might happen automatically if you have protected routes,
+      // or you can explicitly redirect here.
+      router.push('/brand-login');
+    } catch (error) {
+      console.error('Sign out error', error);
+    }
   };
 
   const menuItems = [
@@ -44,7 +55,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return email.substring(0, 2).toUpperCase();
   }
 
-  const user = { email: 'test@example.com' }; // Placeholder
+  if (isUserLoading) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -79,9 +96,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <DropdownMenuTrigger asChild>
                         <SidebarMenuButton tooltip="Profile" className="w-full">
                            <Avatar className="h-7 w-7">
-                              <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                              <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
                            </Avatar>
-                           <span className="truncate">{user.email ?? 'Your Profile'}</span>
+                           <span className="truncate">{user?.email ?? 'Your Profile'}</span>
                         </SidebarMenuButton>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="w-56 mb-2" side="top" align="start">
@@ -104,7 +121,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                        <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
                      </Avatar>
                      <span className="sr-only">User Profile</span>
                   </Button>
