@@ -17,6 +17,10 @@ interface StoreState {
   brandImageGenerations: number;
   lastBrandImageGeneration: number | null;
   recordBrandImageGeneration: () => void;
+  brandColor: string;
+  setBrandColor: (color: string) => void;
+  brandUrl: string;
+  setBrandUrl: (url: string) => void;
 }
 
 const defaultState = {
@@ -25,6 +29,8 @@ const defaultState = {
   chatExperience: 'default' as 'default' | 'classic',
   brandImageGenerations: 0,
   lastBrandImageGeneration: null,
+  brandColor: '',
+  brandUrl: '',
 };
 
 const createStore = () => create<StoreState>()(
@@ -34,6 +40,8 @@ const createStore = () => create<StoreState>()(
       setTheme: (theme: Theme) => set({ theme }),
       setChatbotIcon: (icon: string | null) => set({ chatbotIcon: icon }),
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
+      setBrandColor: (color: string) => set({ brandColor: color }),
+      setBrandUrl: (url: string) => set({ brandUrl: url }),
       recordBrandImageGeneration: () => {
         const { lastBrandImageGeneration, brandImageGenerations } = get();
         const now = Date.now();
@@ -88,6 +96,8 @@ export function useStore() {
     setChatbotIcon: state.setChatbotIcon,
     setChatExperience: state.setChatExperience,
     recordBrandImageGeneration: state.recordBrandImageGeneration,
+    setBrandColor: state.setBrandColor,
+    setBrandUrl: state.setBrandUrl,
   };
 
   const fullState = { ...state, ...setters };
@@ -97,6 +107,8 @@ export function useStore() {
     setChatbotIcon: (icon: string | null) => {},
     setChatExperience: (experience: 'default' | 'classic') => {},
     recordBrandImageGeneration: () => {},
+    setBrandColor: (color: string) => {},
+    setBrandUrl: (url: string) => {},
   }
 
   return hydrated ? fullState : { ...defaultState, ...defaultSetters };
