@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Menu as MenuIcon, ShoppingCart, PenSquare, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Menu as MenuIcon, ShoppingCart, PenSquare, UserCircle, Settings } from 'lucide-react';
 
 import {
   SidebarProvider,
@@ -30,6 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/menu', label: 'Menu', icon: MenuIcon },
     { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
     { href: '/dashboard/content', label: 'Content Creator', icon: PenSquare },
+    { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
 
   return (

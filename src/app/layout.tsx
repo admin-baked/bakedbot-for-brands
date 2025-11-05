@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { StoreProvider } from '@/hooks/use-store';
 
 export const metadata: Metadata = {
-  title: 'BakedBot AI Assistant',
-  description: 'AI Assistant for Wordpress',
+  title: 'Smokey AI Assistant',
+  description: 'AI Assistant for Dispensaries',
 };
 
 export default function RootLayout({
@@ -23,8 +24,10 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        {children}
-        <Toaster />
+        <StoreProvider>
+          {children}
+          <Toaster />
+        </StoreProvider>
       </body>
     </html>
   );

@@ -14,3 +14,5 @@ export type Order = {
   status: 'Pending' | 'Shipped' | 'Delivered' | 'Cancelled';
   total: number;
 };
+
+export type CartItem = Product & { quantity: number };
