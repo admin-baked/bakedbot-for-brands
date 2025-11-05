@@ -3,13 +3,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { createServerClient } from '@/firebase/server-client';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-
-const { firestore } = initializeFirebase();
 
 const FormSchema = z.object({
   apiKey: z.string().min(1, 'API Key is required.'),
@@ -17,7 +14,7 @@ const FormSchema = z.object({
 
 export async function saveCannMenusApiKey(prevState: any, formData: FormData) {
   try {
-    const { auth } = await createServerClient();
+    const { auth, firestore } = await createServerClient();
     const user = auth.currentUser;
 
     if (!user) {
@@ -66,5 +63,3 @@ export async function saveCannMenusApiKey(prevState: any, formData: FormData) {
     };
   }
 }
-
-    
