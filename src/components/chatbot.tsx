@@ -41,9 +41,9 @@ const ProductCarousel = ({ onAskSmokey, isCompact }: { onAskSmokey: (product: Pr
         >
           <CarouselContent className="-ml-2">
             {products.map((p, index) => (
-              <CarouselItem key={index} className="pl-2 basis-1/2">
+              <CarouselItem key={index} className="pl-2 basis-1/3">
                 <div className="group relative w-full h-full rounded-lg overflow-hidden border">
-                    <Image src={p.imageUrl} alt={p.name} width={200} height={200} data-ai-hint={p.imageHint} className="object-cover w-full h-full" />
+                    <Image src={p.imageUrl} alt={p.name} width={200} height={200} data-ai-hint={p.imageHint} className="object-cover w-full h-full aspect-square" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-2">
                         <p className="text-xs font-bold text-white truncate">{p.name}</p>
@@ -259,5 +259,7 @@ export default function Chatbot() {
         </>
       );
 }
+
+    
 
     
