@@ -270,8 +270,3 @@ export default function Chatbot() {
         </>
       );
 }
-
-    
-
-    
-
