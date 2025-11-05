@@ -13,35 +13,42 @@ import {z} from 'genkit';
 const RecommendProductsInputSchema = z.object({
   query: z.string().describe('The user query or description of what they are looking for.'),
   customerHistory: z.string().optional().describe('A summary of the customer purchase history and preferences.'),
-  availableProducts: z.string().describe('A list of available products with descriptions.'),
+  availableProducts: z.string().describe('A list of available products with descriptions, provided in JSON format.'),
 });
 export type RecommendProductsInput = z.infer<typeof RecommendProductsInputSchema>;
 
+const RecommendedProductSchema = z.object({
+  productId: z.string().describe('The unique ID of the recommended product.'),
+  productName: z.string().describe('The name of the recommended product.'),
+  reasoning: z.string().describe('A brief, user-facing reason why this specific product was recommended.'),
+});
+
 const RecommendProductsOutputSchema = z.object({
-  products: z.array(z.string()).describe('A list of product names that are recommended for the user.'),
-  reasoning: z.string().describe('The AI reasoning behind the product recommendations.'),
+  products: z.array(RecommendedProductSchema).describe('A list of products recommended for the user.'),
+  overallReasoning: z.string().describe('The overall reasoning behind the set of product recommendations.'),
 });
 export type RecommendProductsOutput = z.infer<typeof RecommendProductsOutputSchema>;
 
-
-const getProductRecommendations = ai.defineTool({
-  name: 'getProductRecommendations',
-  description: 'Recommends products to the user based on their query, preferences, and past interactions.',
-  inputSchema: RecommendProductsInputSchema,
-  outputSchema: RecommendProductsOutputSchema,
-}, async (input) => {
-  // This can call any typescript function.
-  // Return the recommended products.
-  return {
-    products: ['Product 1', 'Product 2'],
-    reasoning: 'These products are recommended based on your query and past interactions.',
-  };
-});
-
 const recommendProductsPrompt = ai.definePrompt({
   name: 'recommendProductsPrompt',
-  tools: [getProductRecommendations],
-  prompt: `Based on the user's query and customer history, recommend products from the available products list.\n\nUser Query: {{{query}}}\nCustomer History: {{{customerHistory}}}\nAvailable Products: {{{availableProducts}}}\n\nUse the getProductRecommendations tool to get the product recommendations.`,
+  input: {schema: RecommendProductsInputSchema},
+  output: {schema: RecommendProductsOutputSchema},
+  prompt: `You are an expert AI budtender. Your goal is to recommend the best products to a user based on their request and history.
+
+Analyze the user's query and their customer history to understand their needs and preferences.
+Based on this analysis, select the most suitable products from the list of available products.
+
+User Query: {{{query}}}
+{{#if customerHistory}}
+Customer History: {{{customerHistory}}}
+{{/if}}
+Available Products (JSON):
+{{{availableProducts}}}
+
+Provide a list of recommended products and a compelling reason for each recommendation. Keep the reasoning for each product concise and user-friendly.
+Also provide an overall reasoning for why this collection of products was chosen.
+Limit your recommendations to a maximum of 3 products.
+`,
 });
 
 const recommendProductsFlow = ai.defineFlow(
@@ -52,7 +59,6 @@ const recommendProductsFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await recommendProductsPrompt(input);
-    // @ts-expect-error - output should not be nullable, but the type system doesn't know that
     return output!;
   }
 );
