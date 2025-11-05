@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Chatbot from '@/components/chatbot';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -29,18 +29,20 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { auth, user, isUserLoading } = useFirebase();
+  const { auth } = useFirebase();
+  const { user, isUserLoading } = useUser();
 
-  // React.useEffect(() => {
-  //   if (!isUserLoading && !user) {
-  //     router.push('/login');
-  //   }
-  // }, [isUserLoading, user, router]);
+  React.useEffect(() => {
+    // If loading is finished and there's no user, redirect to login.
+    if (!isUserLoading && !user) {
+      router.push('/brand-login');
+    }
+  }, [isUserLoading, user, router]);
 
   const handleSignOut = async () => {
     if (auth) {
       await signOut(auth);
-      router.push('/login');
+      router.push('/brand-login');
     }
   };
 
@@ -50,21 +52,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
 
-  // if (isUserLoading || !user) {
-  //   return (
-  //     <div className="flex min-h-screen w-full items-center justify-center bg-background">
-  //       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-  //     </div>
-  //   );
-  // }
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   
   const getInitials = (email?: string | null) => {
     if (!email) return 'U';
     return email.substring(0, 2).toUpperCase();
   }
-
-  const currentUser = user || { email: 'dev@bakedbot.ai' };
-
 
   return (
     <SidebarProvider>
@@ -99,9 +98,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <DropdownMenuTrigger asChild>
                         <SidebarMenuButton tooltip="Profile" className="w-full">
                            <Avatar className="h-7 w-7">
-                              <AvatarFallback>{getInitials(currentUser.email)}</AvatarFallback>
+                              <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
                            </Avatar>
-                           <span className="truncate">{currentUser.email ?? 'Your Profile'}</span>
+                           <span className="truncate">{user.email ?? 'Your Profile'}</span>
                         </SidebarMenuButton>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="w-56 mb-2" side="top" align="start">
@@ -124,7 +123,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{getInitials(currentUser.email)}</AvatarFallback>
+                        <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
                      </Avatar>
                      <span className="sr-only">User Profile</span>
                   </Button>

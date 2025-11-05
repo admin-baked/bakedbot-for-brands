@@ -4,48 +4,55 @@ import { type NextRequest, NextResponse } from 'next/server';
 import type { User } from 'firebase/auth';
 
 async function getAuthenticatedUser(request: NextRequest): Promise<User | null> {
-  const { auth } = await createServerClient();
   try {
-    // This will throw if the token is invalid or expired, which is handled below
-    const { token } = await auth.verifyIdToken(
-      request.cookies.get('firebaseIdToken')?.value || '',
-      true // checkRevoked
-    );
-    // Re-create the user from the decoded token
+    const { auth } = await createServerClient();
+    const idToken = request.cookies.get('firebaseIdToken')?.value;
+    if (!idToken) {
+      return null;
+    }
+    const decodedToken = await auth.verifyIdToken(idToken);
+    
     return {
-      uid: token.uid,
-      email: token.email,
-      emailVerified: token.email_verified,
-      displayName: token.name,
-      photoURL: token.picture,
-      // Add other properties as needed from the token, but keep it minimal
-      // The full User object is not available on the server
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      emailVerified: decodedToken.email_verified,
+      displayName: decodedToken.name,
+      photoURL: decodedToken.picture,
     } as User;
   } catch (error) {
-    // Token is invalid, expired, or not present. User is not authenticated.
+    console.error('Middleware auth error:', error);
     return null;
   }
 }
 
 export async function middleware(request: NextRequest) {
-  // const user = await getAuthenticatedUser(request);
-  // const { pathname } = request.nextUrl;
+  const user = await getAuthenticatedUser(request);
+  const { pathname } = request.nextUrl;
 
-  // // If user is trying to access login page but is already authenticated, redirect to dashboard
-  // if (user && pathname.startsWith('/login')) {
-  //   return NextResponse.redirect(new URL('/dashboard', request.url));
-  // }
+  const isBrandLogin = pathname.startsWith('/brand-login');
+  const isCustomerLogin = pathname.startsWith('/login');
+  const isDashboard = pathname.startsWith('/dashboard');
 
-  // // If user is trying to access a protected dashboard route and is not authenticated, redirect to login
-  // if (!user && pathname.startsWith('/dashboard')) {
-  //   return NextResponse.redirect(new URL('/login', request.url));
-  // }
+  // If a logged-in user tries to access any login page, redirect them to the dashboard
+  if (user && (isBrandLogin || isCustomerLogin)) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
 
-  // Allow the request to proceed
+  // If a non-logged-in user tries to access the brand dashboard, redirect them to the brand login
+  if (!user && isDashboard) {
+      return NextResponse.redirect(new URL('/brand-login', request.url));
+  }
+  
+  // Allow customer login page to be accessed without auth
+  if (isCustomerLogin && !user) {
+    return NextResponse.next();
+  }
+
+  // Allow the request to proceed for all other cases
   return NextResponse.next();
 }
 
-// See "Matching Paths" below to learn more
+// Update matcher to include the new brand login and exclude the public login
 export const config = {
-  matcher: ['/dashboard/:path*', '/login'],
+  matcher: ['/dashboard/:path*', '/login', '/brand-login'],
 };

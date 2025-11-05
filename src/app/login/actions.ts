@@ -1,49 +1,43 @@
 
 'use server';
 
-import { createServerClient } from '@/firebase/server-client';
-import { GoogleAuthProvider, sendSignInLinkToEmail, signInWithRedirect } from 'firebase/auth';
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { Auth, GoogleAuthProvider, sendSignInLinkToEmail, signInWithRedirect } from 'firebase/auth';
 
 const actionCodeSettings = {
-  // URL you want to redirect back to. The domain (www.example.com) for this
-  // URL must be in the authorized domains list in the Firebase Console.
-  // This now points directly to the client-side handler.
-  url: 'http://localhost:9002/auth/callback-client',
-  // This must be true.
+  url: process.env.NODE_ENV === 'production' 
+    ? 'https://[YOUR_PRODUCTION_URL]/auth/callback-client' 
+    : 'http://localhost:9002/auth/callback-client',
   handleCodeInApp: true,
 };
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(auth: Auth) {
   try {
-    const { auth } = await createServerClient();
     const provider = new GoogleAuthProvider();
-    // signInWithRedirect should be called on the client side to work correctly with Next.js App Router
-    // This will be handled on the client page. For now, this action is not used from the fixed login page.
-    // To be fully correct, the button on the login page should trigger a client-side function.
+    // This function should be called on the client-side, so we pass the auth instance.
+    // The actual redirection happens in the browser.
     await signInWithRedirect(auth, provider);
   } catch (e) {
     if (e instanceof Error) {
         return { error: e.message };
     }
-    return { error: 'An unknown error occurred.' };
+    return { error: 'An unknown error occurred during Google sign-in.' };
   }
-  // The redirect will happen by Firebase, no need for Next.js redirect
 }
 
 export async function sendMagicLink(email: string) {
   try {
+    // This action can be called from a server component/action context initially,
+    // but the `sendSignInLinkToEmail` function itself can be used on both server and client.
+    // For this flow, we will call it from a client component that gets the auth instance from a hook.
+    // We create a server client here only as a fallback for server-side invocations.
+    const { createServerClient } = await import('@/firebase/server-client');
     const { auth } = await createServerClient();
     await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-    // The link was successfully sent. Inform the user.
-    // Save the email locally so you don't need to ask the user for it again
-    // if they open the link on the same device.
-    // This is handled on the client side.
+    return { error: null };
   } catch (e) {
      if (e instanceof Error) {
         return { error: e.message };
     }
-    return { error: 'An unknown error occurred.' };
+    return { error: 'An unknown error occurred while sending the magic link.' };
   }
 }
