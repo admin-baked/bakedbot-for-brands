@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { StoreProvider, useStore } from '@/hooks/use-store';
 import { useEffect } from 'react';
 import { themes } from '@/lib/themes';
+import { FirebaseClientProvider } from '@/firebase';
 
 export default function RootLayoutWrapper({
   children,
@@ -15,7 +16,9 @@ export default function RootLayoutWrapper({
 }>) {
   return (
     <StoreProvider>
-      <RootLayout>{children}</RootLayout>
+      <FirebaseClientProvider>
+        <RootLayout>{children}</RootLayout>
+      </FirebaseClientProvider>
     </StoreProvider>
   );
 }
@@ -35,7 +38,6 @@ function RootLayout({
         root.style.setProperty(`--${key}`, value);
       });
       root.classList.remove('dark');
-      // You can add dark mode logic here if needed
     }
   }, [theme]);
 
