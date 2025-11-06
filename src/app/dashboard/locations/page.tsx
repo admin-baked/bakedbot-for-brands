@@ -174,7 +174,7 @@ export default function LocationsPage() {
                                   </div>
                               </div>
                               <div className="flex items-center gap-1">
-                                {isCeoMode && !isDemoMode && (
+                                {isCeoMode && (
                                 <Button variant="ghost" size="icon" onClick={() => openEditDialog(loc)}>
                                     <Pencil className="h-4 w-4" />
                                 </Button>
