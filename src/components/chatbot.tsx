@@ -166,7 +166,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey }: { 
         <CardContent className="p-4">
         <div className="space-y-4 pt-4">
             {messages.map((message) => (
-            <div key={message.id} className={cn("flex items-start gap-3", message.sender === 'user' ? 'justify-end' : 'items-end')}>
+            <div key={message.id} className={cn("flex items-end gap-3", message.sender === 'user' ? 'justify-end' : '')}>
                 {message.sender === 'bot' && (
                 <Avatar className="h-8 w-8 shrink-0">
                     <AvatarFallback className="bg-primary text-primary-foreground">
@@ -174,7 +174,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey }: { 
                     </AvatarFallback>
                 </Avatar>
                 )}
-                <div className={cn("max-w-[85%] rounded-lg px-3 py-2 flex-1", message.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
+                <div className={cn("max-w-[85%] rounded-lg px-3 py-2", message.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
                 {message.text && (
                   <p className="text-sm whitespace-pre-line">{message.text}</p>
                 )}
