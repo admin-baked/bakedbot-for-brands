@@ -2,94 +2,32 @@
 
 This document outlines the planned features and improvements for the BakedBot AI application.
 
-## Version 1.9.4 - AI-Powered Image Generation
+## Future Enhancements (Roadmap to Production)
 
-### Core Features:
-- **Image Generation Flow**: Added a new Genkit flow (`generate-social-image`) that uses `gemini-2.5-flash-image-preview` to create social media images with a watermark.
-- **Image Generation Action**: Created a new server action (`createSocialMediaImage`) to handle image generation requests from the client.
-- **Content Form Integration**: The "Generate Image" button on the content generator page is now fully functional and will display the generated image.
-- **Magic Brand Image**: Added a new, standalone "Magic Brand Image" generator to the content page for creating quick, brand-focused visuals.
-- **Chatbot Image Generation**: Users can now generate brand images directly from within the chatbot by clicking the "magic wand" icon.
+### 1. Headless Menu & Checkout Flow
+- **Checkout UI**: Build the complete checkout interface, including a form for customer name and contact information.
+- **Location-Based Pickup**: Implement logic to find and display the 3 closest dispensaries based on user's location.
+- **Order Notification**: Integrate a system (e.g., email service) to send the completed order details to the selected dispensary for fulfillment. This will complete the "headless" checkout experience without direct payment processing.
 
-## Version 1.9.3 - Reviews Management Dashboard
+### 2. Production Firebase & Security
+- **Provisioning**: Ensure production instances of Firebase Authentication and Firestore are set up.
+- **Security Rules**: Write and deploy comprehensive Firestore security rules to protect all data collections.
+- **App Check**: Implement Firebase App Check to ensure requests to your backend services come from your authentic app.
 
-### Core Features:
-- **Reviews Dashboard Page**: Created a new page at `/dashboard/reviews` to display customer-submitted reviews.
-- **Reviews Table**: Implemented a sortable and filterable table to view all reviews, showing the product, rating, user, and review text.
-- **Sidebar Navigation**: Added a "Reviews" link to the main dashboard sidebar for easy access.
+### 3. AI Feature Enhancements
+- **AI Review Summaries**: Create a Genkit flow that uses an AI model to read all reviews for a product and generate a concise summary of pros and cons.
+- **AI Social Media Images**: Implement a feature to generate watermarked, brand-aligned social media images based on product details.
+- **Conversational Product Recommendations**: Enhance the chatbot to provide intelligent product recommendations based on user queries, using available product data and reviews.
 
-## Version 1.9.2 - AI Content Feedback Integration
+### 4. Testing, Optimization, & SEO
+- **Unit & E2E Testing**: Implement a testing strategy with unit tests for critical components and end-to-end (E2E) tests for key user flows (e.g., login, checkout).
+- **Performance Optimization**: Analyze and optimize the application's bundle size, and implement lazy loading for components and images to ensure fast load times.
+- **SEO**: Add dynamic metadata (titles, descriptions) to product and menu pages to improve search engine visibility and ranking.
 
-### Core Features:
-- **Product ID Association**: Associated generated content with a specific product ID to enable targeted feedback.
-- **Feedback Action Hook**: Connected the thumbs up/down buttons on the content generator page to the `updateProductFeedback` server action.
+## Completed Features
 
-## Version 1.9.1 - Review Submission Logic
-
-### Core Features:
-- **Review Server Action**: Created a server action (`submitReview`) to validate and save review data to Firestore.
-- **Form Integration**: Connected the `/leave-a-review` page form to the server action using `useActionState` to handle submission, validation, and user feedback.
-- **Security Rules Update**: Updated Firestore rules to allow authenticated users to create their own reviews.
-
-## Version 1.9.0 - Verified Reviews Foundation
-
-### Core Features:
-- **Review Data Model**: Added `Review` entity to the backend schema, including fields for rating, text, and a verification image URL.
-- **Review Submission UI**: Created a new, customer-facing page at `/leave-a-review` with a form for submitting product reviews. The form includes product selection, a star rating system, a text area, and a file uploader for verification (receipt or COA).
-- **Security Rule Placeholder**: Added a Firestore rule for the `/products/{productId}/reviews/{reviewId}` collection to allow reads by anyone but restrict writes, pending implementation of write logic.
-
-## Version 1.8.9 - Feedback System Backend
-
-### Core Features:
-- **Feedback Server Action**: Created a server action (`updateProductFeedback`) to atomically increment `likes` or `dislikes` in Firestore.
-- **Security Rules Update**: Updated Firestore security rules to securely allow authenticated users to update only the `likes` and `dislikes` fields on products.
-- **Client-Side Integration**: Connected the "thumbs up/down" buttons in the chatbot to the new server action, making feedback functional.
-
-## Version 1.8.8 - Feedback System Foundation
-
-### Core Features:
-- **Feedback Data Model**: Updated the `Product` data model to include `likes` and `dislikes` fields to store feedback.
-- **Enabled Feedback UI**: Activated the "thumbs up/down" buttons on product cards within the chatbot and on the AI-generated content display. This provides the user interface for collecting feedback.
-- **Dashboard Feedback Metrics**: Added new cards to the main dashboard to display aggregate "Total Likes" and "Total Dislikes" counts, giving brands a high-level view of customer sentiment.
-
-## Version 1.8.1 - CannMenus Stable
-
-### Core Features:
-- **CannMenus Integration**: Added the UI and secure backend functionality for users to save their CannMenus API key in their private profile. This is the first step towards pulling product data.
-
-## Version 1.5 - Authentication Added
-
-### Core Features:
-- **User Authentication**: Secure user authentication system allowing brands to sign up and sign in with Google or a passwordless "Magic Link".
-- AI Product Description Generator with image upload and MSRP support.
-- Customizable AI Chatbot Widget ("Smokey") for product discovery.
-- Advanced brand customization:
-  - Theme color selection.
-  - Set brand color via HEX code or website URL crawling.
-  - Upload a custom icon for the chatbot widget.
-- Selectable chat experiences ("Default" with product carousel or "Classic" conversation view).
-- Horizontally scrollable product carousel within the chatbot.
-- "Ask Smokey" functionality for conversational product inquiries.
-
-## Future Enhancements
-
-### Reviews & Feedback System
-- **In-App Product Reviews**: Allow end-users to leave star ratings and written reviews for products directly within the application or chatbot.
-- **Display Average Ratings**: Show the average star rating on product cards in the chatbot and product listings.
-- **AI Content Feedback**: Implement the logic for the "thumbs up/down" buttons on AI-generated content to collect feedback for future model fine-tuning.
-- **Reviews Management**: Create a new dashboard page for brands to view, manage, and respond to customer reviews.
-
-### Chatbot & AI Agent
-- **AI-Powered Branding Agent**: Implement the backend logic for the AI agent to crawl a user's website and automatically match brand colors and style.
-- **AI-Powered Image Generation**: Wire up the "Generate Image" button to an AI image generation model (like DALL-E or Imagen) to create product packaging concepts.
-- **Advanced Conversational AI**: Integrate a more powerful language model to provide more in-depth product knowledge, remember conversation context, and handle more complex user queries.
-- **Personalized Recommendations**: Store user interaction history to provide personalized product recommendations in future sessions.
-
-### Application & Dashboard
-- **Content Management**: Add functionality to save, edit, and manage all generated product descriptions.
-- **Analytics Dashboard**: Create a new dashboard page to provide insights on chatbot usage, such as most frequently asked questions, most viewed products, and overall user engagement.
-- **Real Inventory Integration**: Develop a system to connect to a brand's actual inventory via API to provide real-time product availability.
-
-### Settings & Configuration
-- **Fine-grained Chatbot Control**: Add more settings to control the chatbot's personality, tone of voice, and default opening messages.
-- **Brand Document Analysis**: Implement the logic to process uploaded brand guideline documents to extract brand voice and style.
+### Version 1.5 - Authentication & Initial Setup
+- **User Authentication**: Secure user authentication system allowing brands to sign up and sign in.
+- **AI Product Description Generator**: Initial version of the AI content generator.
+- **Customizable AI Chatbot**: "Smokey" chatbot widget with basic brand customization (theme, icon).
+- **Dashboard Foundation**: Basic dashboard layout with sidebar navigation.
