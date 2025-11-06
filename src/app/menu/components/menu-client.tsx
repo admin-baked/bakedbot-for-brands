@@ -15,6 +15,7 @@ import DispensaryLocator from './dispensary-locator';
 import { useProducts } from '@/firebase/firestore/use-products';
 import { type Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import Chatbot from '@/components/chatbot';
 
 const Header = () => {
     const { toggleCart, getItemCount } = useCart();
@@ -259,6 +260,7 @@ export default function MenuClient() {
             </footer>
             <CartSidebar />
             <FloatingCartPill />
+            <Chatbot />
         </div>
     );
 }
