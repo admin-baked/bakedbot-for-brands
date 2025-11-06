@@ -4,7 +4,7 @@ export function Logo() {
   return (
     <div className="flex items-center gap-2" aria-label="BakedBot AI Home">
       <Image
-        src="https://bakedbot.ai/wp-content/uploads/2024/10/Bakedbot_2024_vertical_logo-PNG-transparent.webp"
+        src="https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-vertical-logo-PNG-transparent.png"
         alt="BakedBot AI Logo"
         width={140}
         height={40}
