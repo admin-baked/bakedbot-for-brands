@@ -455,7 +455,7 @@ export default function Chatbot() {
 
       // Add reasoning to the main message if there's only one product
       if (recommendedProductDetails.length === 1 && recommendedProductDetails[0].reasoning) {
-        botResponseText += `\n\n**${recommendedProductDetails[0].name}**: ${recommendedProdDetails[0].reasoning}`;
+        botResponseText += `\n\n**${recommendedProductDetails[0].name}**: ${recommendedProductDetails[0].reasoning}`;
       }
   
       const botMessage: Message = {
