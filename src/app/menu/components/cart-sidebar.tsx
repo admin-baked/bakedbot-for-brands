@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { Minus, Plus, Trash2, PartyPopper } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import CheckoutForm from '@/app/dashboard/menu/checkout/page';
+import CheckoutForm from './checkout-form';
 
 export default function CartSidebar() {
   const {
