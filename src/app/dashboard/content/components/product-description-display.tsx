@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { type GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { Button } from '@/components/ui/button';
-import { Clipboard, ThumbsUp, ThumbsDown, RotateCw, Image as ImageIcon, Share2, Loader2 } from 'lucide-react';
+import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { useTransition } from 'react';
@@ -11,12 +11,11 @@ import { updateProductFeedback } from '@/lib/actions';
 
 interface ProductDescriptionDisplayProps {
   productDescription: (GenerateProductDescriptionOutput & { productId?: string }) | null;
-  onRegenerate?: (type: 'description' | 'image') => void;
   isImagePending?: boolean;
   isDescriptionPending?: boolean;
 }
 
-export default function ProductDescriptionDisplay({ productDescription, onRegenerate, isImagePending, isDescriptionPending }: ProductDescriptionDisplayProps) {
+export default function ProductDescriptionDisplay({ productDescription, isImagePending, isDescriptionPending }: ProductDescriptionDisplayProps) {
   const { toast } = useToast();
   const [isFeedbackPending, startFeedbackTransition] = useTransition();
 
@@ -75,7 +74,7 @@ export default function ProductDescriptionDisplay({ productDescription, onRegene
       toast({
         variant: 'destructive',
         title: 'Cannot Submit Feedback',
-        description: 'Please generate content for a specific product first.',
+        description: 'Please associate this content with a product to leave feedback.',
       });
       return;
     }
@@ -97,6 +96,7 @@ export default function ProductDescriptionDisplay({ productDescription, onRegene
   };
   
   const isGenerating = isDescriptionPending || isImagePending;
+  const hasContent = productDescription && (productDescription.description || productDescription.imageUrl);
 
   return (
     <Card className="flex flex-col @container">
@@ -125,7 +125,7 @@ export default function ProductDescriptionDisplay({ productDescription, onRegene
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 <p className="mt-4">Content generation in progress...</p>
             </div>
-        ) : productDescription ? (
+        ) : hasContent ? (
           <>
             {productDescription.imageUrl && (
                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
@@ -141,12 +141,6 @@ export default function ProductDescriptionDisplay({ productDescription, onRegene
             {productDescription.description && (
               <p className="text-sm leading-relaxed whitespace-pre-line">{productDescription.description}</p>
             )}
-            {!productDescription.imageUrl && !productDescription.description && (
-                <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/50 p-8 text-center text-muted-foreground">
-                    <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
-                    <p className="mt-4">Your generated content will appear here. <br/> Fill out the form and click a "Generate" button to start.</p>
-                </div>
-            )}
           </>
         ) : (
           <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/50 p-8 text-center text-muted-foreground">
@@ -155,23 +149,15 @@ export default function ProductDescriptionDisplay({ productDescription, onRegene
           </div>
         )}
       </CardContent>
-        {productDescription && onRegenerate && (
+        {hasContent && (
          <CardContent className="border-t pt-4">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending || isGenerating}>
+                    <Button variant="outline" size="icon" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending || isGenerating || !productDescription?.productId}>
                         <ThumbsUp className="h-4 w-4 text-green-500"/>
                     </Button>
-                    <Button variant="outline" size="icon" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending || isGenerating}>
+                    <Button variant="outline" size="icon" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending || isGenerating || !productDescription?.productId}>
                         <ThumbsDown className="h-4 w-4 text-red-500"/>
-                    </Button>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" aria-label="Regenerate Image" onClick={() => onRegenerate('image')} disabled={isGenerating}>
-                        <ImageIcon className="h-4 w-4"/>
-                    </Button>
-                    <Button variant="outline" size="icon" aria-label="Regenerate Description" onClick={() => onRegenerate('description')} disabled={isGenerating}>
-                        <RotateCw className="h-4 w-4"/>
                     </Button>
                 </div>
              </div>

@@ -1,16 +1,16 @@
 
 'use client';
 
-import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
 import { useStore } from '@/hooks/use-store';
 import { products as demoProducts } from '@/lib/data';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 
 /**
  * Hook to fetch products, supporting both live Firestore data and local demo data.
- * It now correctly handles the client-side hydration of the store.
+ * It correctly handles the client-side hydration of the store.
  *
  * @returns { useCollectionResult<Product> } An object containing the products data, loading state, and error.
  */
@@ -18,17 +18,15 @@ export function useProducts() {
   const { firestore } = useFirebase();
   const isDemoMode = useStore((state) => state.isDemoMode);
   const isHydrated = useStore((state) => state._hasHydrated);
-  
-  const productsQuery = useMemoFirebase(() => {
-    // Only return a query if we are in live mode and firestore is available.
-    if (isHydrated && !isDemoMode && firestore) {
-      return query(collection(firestore, 'products'));
-    }
-    return null; // Return null if in demo mode, not hydrated, or firestore is not ready.
-  }, [firestore, isDemoMode, isHydrated]);
+
+  // Memoize the query to prevent re-renders. The query is stable.
+  const productsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'products'));
+  }, [firestore]);
 
   const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useCollection<Product>(productsQuery);
-  
+
   // If the store is not hydrated yet, we are in a loading state.
   if (!isHydrated) {
     return { data: null, isLoading: true, error: null };

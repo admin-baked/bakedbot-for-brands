@@ -15,8 +15,11 @@ export default function ProductDescriptionGeneratorPage() {
   }
   
   const handleImageGenerated = (imageUrl: string | null) => {
-    setGeneratedContent(prev => ({
+    // When a brand image is generated, it doesn't have product context, so we create a new content object.
+     setGeneratedContent(prev => ({
         ...(prev ?? { productName: 'Brand Image', description: '' }),
+        productName: 'Brand Image',
+        description: prev?.description || '', // Keep description if it exists
         imageUrl: imageUrl,
     } as GenerateProductDescriptionOutput & { productId?: string }));
   }
@@ -29,13 +32,15 @@ export default function ProductDescriptionGeneratorPage() {
           Generate compelling product descriptions, social media images, and more with the power of AI.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-8 @container lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 @container lg:grid-cols-2 xl:grid-cols-3">
         <ProductDescriptionForm onContentGenerated={handleContentGenerated} />
-        <div className="flex flex-col gap-8">
-            <ProductDescriptionDisplay 
-                productDescription={generatedContent}
-            />
-            <BrandImageGenerator onImageGenerated={handleImageGenerated} />
+        <div className="flex flex-col gap-8 xl:col-span-2">
+            <div className="grid grid-cols-1 @lg:grid-cols-2 gap-8">
+              <ProductDescriptionDisplay 
+                  productDescription={generatedContent}
+              />
+              <BrandImageGenerator onImageGenerated={handleImageGenerated} />
+            </div>
             <ReviewSummarizer />
         </div>
       </div>

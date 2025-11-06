@@ -14,9 +14,7 @@ import { DollarSign, Loader2, Upload, Wand2, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { useStore } from '@/hooks/use-store';
-import ProductDescriptionDisplay from './product-description-display';
 import { useProducts } from '@/firebase/firestore/use-products';
-
 
 const initialDescriptionState: DescriptionFormState = {
   message: '',
@@ -53,12 +51,14 @@ export default function ProductDescriptionForm({ onContentGenerated }: ProductDe
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   
-  const [localGeneratedContent, setLocalGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   
   const { chatbotIcon, isDemoMode } = useStore();
   const { data: products, isLoading: areProductsLoading } = useProducts();
   const logoToUse = isDemoMode ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-horizontal-logo-PNG-transparent.png" : chatbotIcon;
+
+  // Store the generated content locally to pass to parent
+  const [localGeneratedContent, setLocalGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
 
   useEffect(() => {
     if (descriptionState.message && !isDescriptionPending) {
@@ -67,11 +67,17 @@ export default function ProductDescriptionForm({ onContentGenerated }: ProductDe
       }
     }
     if (!descriptionState.error && descriptionState.data) {
-        const newContent = { ...(localGeneratedContent ?? {}), ...descriptionState.data, productId: selectedProductId } as GenerateProductDescriptionOutput & { productId?: string };
+        // We need to merge the new data with any existing data (like an image URL)
+        const newContent = { 
+            ...(localGeneratedContent ?? {}), 
+            ...descriptionState.data, 
+            productId: selectedProductId 
+        } as GenerateProductDescriptionOutput & { productId?: string };
         setLocalGeneratedContent(newContent);
         onContentGenerated(newContent);
     }
-  }, [descriptionState, isDescriptionPending, toast, selectedProductId, localGeneratedContent, onContentGenerated]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [descriptionState, isDescriptionPending]);
 
   useEffect(() => {
     if (imageState.message && !isImagePending) {
@@ -82,35 +88,19 @@ export default function ProductDescriptionForm({ onContentGenerated }: ProductDe
       });
     }
     if (!imageState.error && imageState.imageUrl) {
+        const productName = formRef.current?.productName.value || localGeneratedContent?.productName || 'Generated Image';
         const newContent = {
             ...(localGeneratedContent ?? { productName: '', description: '' }),
-            productName: localGeneratedContent?.productName || formRef.current?.productName.value || 'Generated Image',
+            productName: productName,
             imageUrl: imageState.imageUrl,
             productId: selectedProductId
         } as GenerateProductDescriptionOutput & { productId?: string };
         setLocalGeneratedContent(newContent);
         onContentGenerated(newContent);
     }
-  }, [imageState, isImagePending, toast, selectedProductId, localGeneratedContent, onContentGenerated]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageState, isImagePending]);
   
-  const handleRegenerate = (type: 'description' | 'image') => {
-    if (!formRef.current) return;
-    const formData = new FormData(formRef.current);
-    
-    if (logoToUse) {
-        formData.append('logoDataUri', logoToUse);
-    }
-     if (localGeneratedContent?.imageUrl) {
-        formData.append('imageUrl', localGeneratedContent.imageUrl);
-    }
-    formData.append('productId', selectedProductId);
-
-    if (type === 'image') {
-        imageFormAction(formData);
-    } else {
-        descriptionFormAction(formData);
-    }
-  };
 
   return (
     <Card>
@@ -136,7 +126,7 @@ export default function ProductDescriptionForm({ onContentGenerated }: ProductDe
                     ))}
                 </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Associating a product enables the like/dislike feedback buttons.</p>
+            <p className="text-xs text-muted-foreground">Associating a product enables the like/dislike feedback buttons on the display card.</p>
           </div>
 
           <div className="space-y-2">
@@ -198,12 +188,6 @@ export default function ProductDescriptionForm({ onContentGenerated }: ProductDe
             <SubmitButton action={imageFormAction} type="image" />
          </CardFooter>
       </form>
-       <ProductDescriptionDisplay 
-            productDescription={localGeneratedContent}
-            onRegenerate={handleRegenerate}
-            isImagePending={isImagePending}
-            isDescriptionPending={isDescriptionPending}
-        />
     </Card>
   );
 }
