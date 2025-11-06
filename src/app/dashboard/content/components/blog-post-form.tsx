@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useActionState, useEffect, useRef, useState } from 'react';
@@ -31,24 +30,17 @@ const initialImageState: ImageFormState = {
   error: false,
 };
 
-function GenerateDescriptionButton() {
+function SubmitButton({ action }: { action: (formData: FormData) => void }) {
   const { pending } = useFormStatus();
+  const formRef = useRef<HTMLFormElement>(null);
+  const isDescription = action === createProductDescription;
+
   return (
-    <Button type="submit" disabled={pending} className="w-full sm:w-auto">
-      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2" />}
-      Generate Description
+    <Button type="submit" formAction={action} disabled={pending} className="w-full sm:w-auto" variant={isDescription ? 'default' : 'outline'}>
+      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isDescription ? <FileText className="mr-2" /> : <Wand2 className="mr-2" />)}
+      {isDescription ? 'Generate Description' : 'Generate Image'}
     </Button>
   );
-}
-
-function GenerateImageButton() {
-    const { pending } = useFormStatus();
-    return (
-      <Button type="submit" disabled={pending} variant="outline" className="w-full sm:w-auto">
-        {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2" />}
-        Generate Image
-      </Button>
-    );
 }
 
 export default function ProductDescriptionForm() {
@@ -116,7 +108,7 @@ export default function ProductDescriptionForm() {
     <div className="grid grid-cols-1 gap-8 @container">
       <div className="flex flex-col gap-8">
         <Card>
-          <form ref={formRef}>
+          <form ref={formRef} action={descriptionFormAction}>
             <CardHeader>
               <CardTitle>Product Content Generator</CardTitle>
               <CardDescription>Fill in the details below to generate content. The same details will be used for both image and text generation.</CardDescription>
@@ -197,8 +189,8 @@ export default function ProductDescriptionForm() {
                 </div>
             </CardContent>
              <CardFooter className="flex-col sm:flex-row gap-2">
-                <GenerateDescriptionButton />
-                <GenerateImageButton />
+                <SubmitButton action={descriptionFormAction} />
+                <SubmitButton action={imageFormAction} />
              </CardFooter>
           </form>
         </Card>
