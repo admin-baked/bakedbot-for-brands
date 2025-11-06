@@ -60,7 +60,7 @@ const CheckoutForm = ({ onOrderSuccess }: { onOrderSuccess: () => void }) => {
             setSortedLocations(locations);
             setIsLocating(false);
         }
-    }, [hasMounted, isDemoMode, storeLocations]);
+    }, [hasMounted, isDemoMode, storeLocations, locations]);
 
     React.useEffect(() => {
         if (!isLocating) {
