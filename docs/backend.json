@@ -260,7 +260,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles. This path ensures path-based ownership for user data.",
+          "description": "Stores user profiles. This path is readable by any authenticated user to allow displaying user information (like emails for reviews) but is only writable by the owner.",
           "params": [
             {
               "name": "userId",
@@ -382,8 +382,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the BakedBot AI Assistant plugin, prioritizing security, scalability, and debuggability as per the core design principles. User data is stored under `/users/{userId}` for private data, ensuring path-based ownership. A separate `/user-private/{userId}` collection is added for sensitive data like API keys, with strict ownership rules. Categories and Products are stored as top-level collections, as they are not directly owned by users, with the product's category relationship expressed via the `categoryId` field. Orders and OrderItems follow a hierarchical path under users for ownership and data locality. Reviews are stored as a subcollection under each product to keep them organized and directly associated with the item they describe. This design eliminates the need for `get()` calls in security rules, enabling atomic operations. The structure facilitates secure list operations by segregating data based on ownership (user-owned data under `/users/{userId}`) and type (categories, products, reviews)."
+    "reasoning": "The Firestore structure is designed to support the BakedBot AI Assistant plugin, prioritizing security, scalability, and debuggability. User data is stored under `/users/{userId}` for public profile information, which is readable by any authenticated user to facilitate features like displaying reviewer emails. A separate `/user-private/{userId}` collection is added for sensitive data like API keys, with strict ownership rules. Categories and Products are stored as top-level collections, as they are not directly owned by users, with the product's category relationship expressed via the `categoryId` field. Orders and OrderItems follow a hierarchical path under users for ownership and data locality. Reviews are stored as a subcollection under each product to keep them organized and directly associated with the item they describe. This design enables atomic operations and facilitates secure list operations by segregating data based on ownership and type."
   }
 }
-
-    
