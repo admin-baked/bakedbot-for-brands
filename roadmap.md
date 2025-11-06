@@ -2,6 +2,13 @@
 
 This document outlines the planned features and improvements for the BakedBot AI application.
 
+## Version 1.8.8 - Feedback System Foundation
+
+### Core Features:
+- **Feedback Data Model**: Updated the `Product` data model to include `likes` and `dislikes` fields to store feedback.
+- **Enabled Feedback UI**: Activated the "thumbs up/down" buttons on product cards within the chatbot and on the AI-generated content display. This provides the user interface for collecting feedback.
+- **Dashboard Feedback Metrics**: Added new cards to the main dashboard to display aggregate "Total Likes" and "Total Dislikes" counts, giving brands a high-level view of customer sentiment.
+
 ## Version 1.8.1 - CannMenus Stable
 
 ### Core Features:
