@@ -15,6 +15,8 @@ import DispensaryLocator from './components/dispensary-locator';
 import { useProducts } from '@/firebase/firestore/use-products';
 import { type Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useStore } from '@/hooks/use-store';
+import { products as demoProducts } from '@/lib/data';
 
 
 const Header = () => {
@@ -29,10 +31,10 @@ const Header = () => {
         </Link>
         <nav className="hidden md:flex items-center gap-6 font-semibold text-sm">
             <Link href="/menu" className="text-foreground hover:text-foreground">Home</Link>
-            <Link href="#" className="text-muted-foreground hover:text-foreground">About Us</Link>
+            <Link href="/menu" className="text-muted-foreground hover:text-foreground">About Us</Link>
             <Link href="/product-locator" className="text-muted-foreground hover:text-foreground">Product Locator</Link>
-            <Link href="#" className="text-muted-foreground hover:text-foreground">Our Partners</Link>
-            <Link href="#" className="text-muted-foreground hover:text-foreground">Careers</Link>
+            <Link href="/menu" className="text-muted-foreground hover:text-foreground">Our Partners</Link>
+            <Link href="/menu" className="text-muted-foreground hover:text-foreground">Careers</Link>
         </nav>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon">
@@ -154,7 +156,13 @@ const groupProductsByCategory = (products: Product[]) => {
 }
 
 export default function MenuPage() {
-    const { data: products, isLoading } = useProducts();
+    const isDemoMode = useStore((state) => state.isDemoMode);
+    const hasHydrated = useStore((state) => state._hasHydrated);
+
+    const { data: firestoreProducts, isLoading: isFirestoreLoading } = useProducts();
+    
+    const isLoading = !hasHydrated || isFirestoreLoading;
+    const products = isDemoMode ? demoProducts : firestoreProducts;
 
     const groupedProducts = useMemo(() => {
         return products ? groupProductsByCategory(products) : {};
@@ -233,24 +241,24 @@ export default function MenuPage() {
                     <div>
                         <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">SHOP</h3>
                         <ul className="space-y-2 text-sm">
-                            <li><Link href="#" className="text-muted-foreground hover:text-primary">Edibles</Link></li>
-                            <li><Link href="#" className="text-muted-foreground hover:text-primary">Flower</Link></li>
-                            <li><Link href="#" className="text-muted-foreground hover:text-primary">Vapes</Link></li>
+                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Edibles</Link></li>
+                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Flower</Link></li>
+                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Vapes</Link></li>
                         </ul>
                     </div>
                     <div>
                         <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">ABOUT</h3>
                         <ul className="space-y-2 text-sm">
-                            <li><Link href="#" className="text-muted-foreground hover:text-primary">Our Story</Link></li>
-                            <li><Link href="#" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
+                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Our Story</Link></li>
+                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
                             <li><Link href="/brand-login" className="text-muted-foreground hover:text-primary">Brand Login</Link></li>
                         </ul>
                     </div>
                     <div>
                         <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">CONTACT</h3>
                         <ul className="space-y-2 text-sm">
-                            <li><Link href="#" className="text-muted-foreground hover:text-primary">Contact Us</Link></li>
-                            <li><Link href="#" className="text-muted-foreground hover:text-primary">Careers</Link></li>
+                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Contact Us</Link></li>
+                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Careers</Link></li>
                         </ul>
                     </div>
                 </div>
