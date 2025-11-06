@@ -27,7 +27,7 @@ const initialImageState: ImageFormState = {
   error: false,
 };
 
-export default function BrandImageGenerator() {
+export default function BrandImageGenerator({ onImageGenerated }: { onImageGenerated: (imageUrl: string | null) => void; }) {
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -79,6 +79,8 @@ export default function BrandImageGenerator() {
     }
 
     setGeneratedImage(null);
+    onImageGenerated(null);
+
 
     const formData = new FormData();
     formData.append('productName', 'Brand Image');
@@ -95,8 +97,10 @@ export default function BrandImageGenerator() {
           title: 'Image Generation Failed',
           description: result.message,
         });
+        onImageGenerated(null);
       } else if (result.imageUrl) {
         setGeneratedImage(result.imageUrl);
+        onImageGenerated(result.imageUrl);
         recordBrandImageGeneration();
         toast({
           title: 'Image Generated!',
