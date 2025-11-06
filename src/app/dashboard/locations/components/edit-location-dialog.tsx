@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -62,7 +63,7 @@ export default function EditLocationDialog({ isOpen, setIsOpen, location }: Edit
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Edit Location</DialogTitle>
           <DialogDescription>
@@ -92,9 +93,15 @@ export default function EditLocationDialog({ isOpen, setIsOpen, location }: Edit
               <Input id="edit-loc-zip" name="zip" value={formState.zip || ''} onChange={handleChange} required />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-loc-phone">Phone Number</Label>
-            <Input id="edit-loc-phone" name="phone" type="tel" value={formState.phone || ''} onChange={handleChange} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-loc-phone">Phone Number</Label>
+              <Input id="edit-loc-phone" name="phone" type="tel" value={formState.phone || ''} onChange={handleChange} />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="edit-loc-email">Fulfillment Email</Label>
+                <Input id="edit-loc-email" name="email" type="email" value={formState.email || ''} onChange={handleChange} />
+            </div>
           </div>
         </div>
         <DialogFooter>

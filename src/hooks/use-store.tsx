@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -25,6 +26,7 @@ export type Location = {
     state: string;
     zip: string;
     phone?: string;
+    email?: string;
     lat?: number;
     lon?: number;
 };

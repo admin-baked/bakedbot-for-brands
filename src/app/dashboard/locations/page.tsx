@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, PlusCircle, MapPin, Trash2, Pencil } from 'lucide-react';
+import { Upload, Download, PlusCircle, MapPin, Trash2, Pencil, Mail } from 'lucide-react';
 import { useStore, type Location } from '@/hooks/use-store';
 import Link from 'next/link';
 import DeleteLocationDialog from './components/delete-location-dialog';
@@ -13,9 +14,9 @@ import EditLocationDialog from './components/edit-location-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 const demoLocations: Location[] = [
-  { id: 'demo1', name: 'Green Leaf Central', address: '123 Main St', city: 'Metropolis', state: 'IL', zip: '12345', phone: '(555) 123-4567', lat: 40.7128, lon: -74.0060 },
-  { id: 'demo2', name: 'Herbal Haven Downtown', address: '456 Oak Ave', city: 'Metropolis', state: 'IL', zip: '12346', phone: '(555) 987-6543', lat: 40.7580, lon: -73.9855 },
-  { id: 'demo3', name: 'Bloom Apothecary North', address: '789 Pine Ln', city: 'Springfield', state: 'IL', zip: '67890', phone: '(555) 234-5678', lat: 39.7817, lon: -89.6501 },
+  { id: 'demo1', name: 'Green Leaf Central', address: '123 Main St', city: 'Metropolis', state: 'IL', zip: '12345', phone: '(555) 123-4567', email: 'central@greenleaf.demo', lat: 40.7128, lon: -74.0060 },
+  { id: 'demo2', name: 'Herbal Haven Downtown', address: '456 Oak Ave', city: 'Metropolis', state: 'IL', zip: '12346', phone: '(555) 987-6543', email: 'downtown@herbalhaven.demo', lat: 40.7580, lon: -73.9855 },
+  { id: 'demo3', name: 'Bloom Apothecary North', address: '789 Pine Ln', city: 'Springfield', state: 'IL', zip: '67890', phone: '(555) 234-5678', email: 'north@bloom.demo', lat: 39.7817, lon: -89.6501 },
 ];
 
 export default function LocationsPage() {
@@ -43,6 +44,7 @@ export default function LocationsPage() {
       state: formData.get('state') as string,
       zip: formData.get('zip') as string,
       phone: formData.get('phone') as string,
+      email: formData.get('email') as string,
     };
     
     if (newLocation.name && newLocation.address && newLocation.city && newLocation.state && newLocation.zip) {
@@ -111,10 +113,16 @@ export default function LocationsPage() {
                     <Input id="loc-zip" name="zip" placeholder="12345" required />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="loc-phone">Phone Number</Label>
-                  <Input id="loc-phone" name="phone" type="tel" placeholder="(555) 123-4567" />
-                </div>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="loc-phone">Phone Number</Label>
+                        <Input id="loc-phone" name="phone" type="tel" placeholder="(555) 123-4567" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="loc-email">Fulfillment Email</Label>
+                        <Input id="loc-email" name="email" type="email" placeholder="orders@example.com" />
+                    </div>
+                 </div>
               </CardContent>
               <CardFooter>
                 <Button type="submit">
@@ -168,9 +176,14 @@ export default function LocationsPage() {
                           <div key={loc.id} className="flex items-center justify-between p-4">
                               <div className="flex items-center gap-4">
                                   <MapPin className="h-5 w-5 text-muted-foreground" />
-                                  <div>
+                                  <div className="flex-1">
                                       <p className="font-medium">{loc.name}</p>
                                       <p className="text-sm text-muted-foreground">{loc.address}, {loc.city}, {loc.state} {loc.zip}</p>
+                                      {loc.email && (
+                                        <p className="text-sm text-muted-foreground flex items-center gap-1.5 pt-1">
+                                            <Mail className="h-3 w-3"/> {loc.email}
+                                        </p>
+                                      )}
                                   </div>
                               </div>
                               <div className="flex items-center gap-1">
