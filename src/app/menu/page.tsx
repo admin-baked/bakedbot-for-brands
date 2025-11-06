@@ -1,7 +1,6 @@
 
 'use client';
 
-import { products } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +11,9 @@ import { useCart } from '@/hooks/use-cart';
 import CartSidebar from './components/cart-sidebar';
 import { AnimatePresence, motion } from 'framer-motion';
 import DispensaryLocator from './components/dispensary-locator';
+import { useProducts } from '@/firebase/firestore/use-products';
+import { type Product } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Header = () => {
     const { toggleCart, getItemCount } = useCart();
@@ -56,7 +58,7 @@ const Header = () => {
   );
 };
 
-const ProductCard = ({ product }: { product: typeof products[0] }) => {
+const ProductCard = ({ product }: { product: Product }) => {
     const { addToCart } = useCart();
 
     return (
@@ -91,6 +93,21 @@ const ProductCard = ({ product }: { product: typeof products[0] }) => {
     )
 }
 
+const ProductSkeleton = () => (
+    <Card className="overflow-hidden shadow-md flex flex-col">
+        <Skeleton className="aspect-square w-full" />
+        <CardContent className="p-4 flex-1 space-y-2">
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+        </CardContent>
+        <CardFooter className="p-4 pt-0 flex justify-between items-center">
+            <Skeleton className="h-7 w-1/4" />
+            <Skeleton className="h-10 w-10 rounded-md" />
+        </CardFooter>
+    </Card>
+)
+
 const FloatingCartPill = () => {
     const { getItemCount, getCartTotal, toggleCart } = useCart();
     const itemCount = getItemCount();
@@ -123,7 +140,7 @@ const FloatingCartPill = () => {
     );
 };
 
-const groupProductsByCategory = (products: typeof products) => {
+const groupProductsByCategory = (products: Product[]) => {
     return products.reduce((acc, product) => {
         const { category } = product;
         if (!acc[category]) {
@@ -131,11 +148,12 @@ const groupProductsByCategory = (products: typeof products) => {
         }
         acc[category].push(product);
         return acc;
-    }, {} as Record<string, typeof products>);
+    }, {} as Record<string, Product[]>);
 }
 
 export default function MenuPage() {
-    const groupedProducts = groupProductsByCategory(products);
+    const { data: products, isLoading } = useProducts();
+    const groupedProducts = products ? groupProductsByCategory(products) : {};
     const categories = Object.keys(groupedProducts);
 
   return (
@@ -173,16 +191,31 @@ export default function MenuPage() {
             </Button>
         </div>
 
-        {categories.map(category => (
-             <section key={category} className="mb-12">
-                <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">{category}</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-                   {groupedProducts[category].map(product => (
-                       <ProductCard key={product.id} product={product} />
-                   ))}
-                </div>
-            </section>
-        ))}
+        {isLoading ? (
+            // Show skeleton loaders while products are loading
+            Array.from({ length: 3 }).map((_, i) => (
+                <section key={i} className="mb-12">
+                     <Skeleton className="h-8 w-1/4 mb-6" />
+                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                        {Array.from({ length: 5 }).map((_, j) => (
+                           <ProductSkeleton key={j} />
+                        ))}
+                    </div>
+                </section>
+            ))
+        ) : (
+            // Render products once loaded
+            categories.map(category => (
+                <section key={category} className="mb-12">
+                    <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">{category}</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                    {groupedProducts[category].map(product => (
+                        <ProductCard key={product.id} product={product} />
+                    ))}
+                    </div>
+                </section>
+            ))
+        )}
 
       </main>
       <footer className="dark-theme py-12 text-background bg-foreground">
@@ -224,6 +257,4 @@ export default function MenuPage() {
     </div>
   );
 }
-    
-
     

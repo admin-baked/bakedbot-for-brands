@@ -1,17 +1,17 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { products } from '@/lib/data';
 import { summarizeProductReviews } from '../actions';
 import type { ReviewSummaryFormState } from '../actions';
 import { useToast } from '@/hooks/use-toast';
-import { Wand2, Loader2, Sparkles, ThumbsUp, ThumbsDown, CheckCircle, XCircle, MessageSquare } from 'lucide-react';
+import { Wand2, Loader2, ThumbsUp, ThumbsDown, CheckCircle, XCircle, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useProducts } from '@/firebase/firestore/use-products';
 
 const initialState: ReviewSummaryFormState = {
     message: '',
@@ -33,7 +33,8 @@ export default function ReviewSummarizer() {
     const [state, formAction, isPending] = useActionState(summarizeProductReviews, initialState);
     const { toast } = useToast();
     const formRef = useRef<HTMLFormElement>(null);
-    const [selectedProductName, setSelectedProductName] = React.useState('');
+    const [selectedProductName, setSelectedProductName] = useState('');
+    const { data: products, isLoading: areProductsLoading } = useProducts();
 
     useEffect(() => {
         if (state.message && !isPending) {
@@ -44,7 +45,7 @@ export default function ReviewSummarizer() {
     }, [state, isPending, toast]);
 
     const handleSelectChange = (value: string) => {
-        const product = products.find(p => p.id === value);
+        const product = products?.find(p => p.id === value);
         setSelectedProductName(product?.name || '');
     };
 
@@ -57,12 +58,12 @@ export default function ReviewSummarizer() {
                     <CardDescription>Get instant insights by summarizing all reviews for a specific product.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Select name="productId" onValueChange={handleSelectChange}>
+                    <Select name="productId" onValueChange={handleSelectChange} disabled={areProductsLoading}>
                         <SelectTrigger>
-                            <SelectValue placeholder="Select a product" />
+                            <SelectValue placeholder={areProductsLoading ? "Loading products..." : "Select a product"} />
                         </SelectTrigger>
                         <SelectContent>
-                            {products.map(product => (
+                            {products?.map(product => (
                                 <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
                             ))}
                         </SelectContent>

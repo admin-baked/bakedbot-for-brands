@@ -14,8 +14,8 @@ import { DollarSign, Loader2, Upload, Wand2, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { useStore } from '@/hooks/use-store';
-import { products } from '@/lib/data';
 import ProductDescriptionDisplay from './product-description-display';
+import { useProducts } from '@/firebase/firestore/use-products';
 
 
 const initialDescriptionState: DescriptionFormState = {
@@ -57,6 +57,7 @@ export default function ProductDescriptionForm({ onContentGenerated }: ProductDe
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   
   const { chatbotIcon, isDemoMode } = useStore();
+  const { data: products, isLoading: areProductsLoading } = useProducts();
   const logoToUse = isDemoMode ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-horizontal-logo-PNG-transparent.png" : chatbotIcon;
 
   useEffect(() => {
@@ -124,13 +125,13 @@ export default function ProductDescriptionForm({ onContentGenerated }: ProductDe
            
           <div className="space-y-2">
             <Label htmlFor="product-select">Select a Product (Optional)</Label>
-            <Select name="productId" value={selectedProductId || "none"} onValueChange={(value) => setSelectedProductId(value === 'none' ? '' : value)}>
+            <Select name="productId" value={selectedProductId || "none"} onValueChange={(value) => setSelectedProductId(value === 'none' ? '' : value)} disabled={areProductsLoading}>
                 <SelectTrigger id="product-select">
-                    <SelectValue placeholder="Select a product to associate feedback" />
+                    <SelectValue placeholder={areProductsLoading ? "Loading products..." : "Select a product to associate feedback"} />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {products.map(product => (
+                    {products?.map(product => (
                         <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
                     ))}
                 </SelectContent>

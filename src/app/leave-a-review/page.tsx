@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { products } from '@/lib/data';
 import { Star, Upload, Send, Loader2, PartyPopper } from 'lucide-react';
 import Link from 'next/link';
 import { submitReview } from './actions';
@@ -16,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFormStatus } from 'react-dom';
 import { useUser } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useProducts } from '@/firebase/firestore/use-products';
 
 // This is the fix. By exporting this variable, we tell Next.js to always
 // render this page on the client and not to pre-render it during the build.
@@ -55,6 +55,7 @@ function SubmitButton() {
 
 export default function LeaveReviewPage() {
   const { user, isUserLoading } = useUser();
+  const { data: products, isLoading: areProductsLoading } = useProducts();
   const [rating, setRating] = useState(0);
   const [fileName, setFileName] = useState<string | null>(null);
   const { toast } = useToast();
@@ -135,7 +136,7 @@ export default function LeaveReviewPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
        <div className="absolute top-4 left-4">
             <Button variant="outline" asChild>
-                <Link href="/dashboard/products">
+                <Link href="/menu">
                     &larr; Back to Menu
                 </Link>
             </Button>
@@ -159,12 +160,12 @@ export default function LeaveReviewPage() {
           <form ref={formRef} action={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="productId">Which product are you reviewing?</Label>
-              <Select name="productId" disabled={!user}>
+              <Select name="productId" disabled={!user || areProductsLoading}>
                 <SelectTrigger id="productId">
-                  <SelectValue placeholder="Select a product" />
+                  <SelectValue placeholder={areProductsLoading ? "Loading products..." : "Select a product"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {products.map((product) => (
+                  {products?.map((product) => (
                     <SelectItem key={product.id} value={product.id}>
                       {product.name}
                     </SelectItem>
