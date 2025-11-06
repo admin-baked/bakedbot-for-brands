@@ -139,7 +139,7 @@ export default function ProductsPage() {
                 <ul className="space-y-2 text-sm">
                     <li><Link href="#" className="text-muted-foreground hover:text-primary">Our Story</Link></li>
                     <li><Link href="#" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
-                    <li><Link href="/dashboard" className="text-muted-foreground hover:text-primary">Brand Login</Link></li>
+                    <li><Link href="/brand-login" className="text-muted-foreground hover:text-primary">Brand Login</Link></li>
                 </ul>
             </div>
              <div>
