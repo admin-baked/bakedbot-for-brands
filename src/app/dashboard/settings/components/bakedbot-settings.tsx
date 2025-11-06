@@ -69,7 +69,7 @@ export default function BakedBotSettings() {
                     <div className="space-y-2">
                         <Label htmlFor="bakedbot-api-url">BakedBot API URL</Label>
                         <div className="relative">
-                            <Input id="bakedbot-api-url" name="bakedbot-api-url" type="text" defaultValue="https://beta.bakedbot.ai" disabled />
+                            <Input id="bakedbot-api-url" name="bakedbot-api-url" type="text" defaultValue="https://api.bakedbot.ai/v1" disabled />
                         </div>
                         <p className="text-sm text-muted-foreground">The URL for the BakedBot API (usually no need to change).</p>
                     </div>
