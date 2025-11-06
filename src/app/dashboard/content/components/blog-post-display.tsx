@@ -12,11 +12,14 @@ import { updateProductFeedback } from '@/lib/actions';
 
 interface ProductDescriptionDisplayProps {
   productDescription: (GenerateProductDescriptionOutput & { productId?: string }) | null;
+  onRegenerate: (type: 'description' | 'image') => void;
+  isImagePending: boolean;
+  isDescriptionPending: boolean;
 }
 
-export default function ProductDescriptionDisplay({ productDescription }: ProductDescriptionDisplayProps) {
+export default function ProductDescriptionDisplay({ productDescription, onRegenerate, isImagePending, isDescriptionPending }: ProductDescriptionDisplayProps) {
   const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
+  const [isFeedbackPending, startFeedbackTransition] = useTransition();
 
   const handleCopy = () => {
     if (productDescription?.description) {
@@ -77,7 +80,7 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
       });
       return;
     }
-    startTransition(async () => {
+    startFeedbackTransition(async () => {
       const result = await updateProductFeedback(productDescription.productId!, feedback);
       if (result.success) {
         toast({
@@ -149,11 +152,11 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
          <CardContent className="border-t pt-4">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isPending}><ThumbsUp className="h-4 w-4 text-green-500"/></Button>
-                    <Button variant="outline" size="icon" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isPending}><ThumbsDown className="h-4 w-4 text-red-500"/></Button>
+                    <Button variant="outline" size="icon" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending}><ThumbsUp className="h-4 w-4 text-green-500"/></Button>
+                    <Button variant="outline" size="icon" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending}><ThumbsDown className="h-4 w-4 text-red-500"/></Button>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" aria-label="Regenerate"><RotateCw className="h-4 w-4"/></Button>
+                    <Button variant="outline" size="icon" aria-label="Regenerate Description" onClick={() => onRegenerate('description')} disabled={isDescriptionPending || isImagePending}><RotateCw className="h-4 w-4"/></Button>
                 </div>
              </div>
         </CardContent>

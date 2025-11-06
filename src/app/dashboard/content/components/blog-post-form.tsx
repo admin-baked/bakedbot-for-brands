@@ -31,42 +31,38 @@ const initialImageState: ImageFormState = {
   error: false,
 };
 
-function GenerateDescriptionButton() {
+function SubmitButton({ type }: { type: 'description' | 'image' }) {
   const { pending } = useFormStatus();
+  if (type === 'description') {
+    return (
+      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+        {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2" />}
+        Generate Description
+      </Button>
+    );
+  }
   return (
-    <Button type="submit" disabled={pending} className="w-full sm:w-auto">
-      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2" />}
-      Generate Description
+    <Button type="submit" disabled={pending} variant="outline" className="w-full sm:w-auto">
+      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2" />}
+      Generate Image
     </Button>
   );
 }
 
-function GenerateImageButton() {
-    const { pending } = useFormStatus();
-    return (
-      <Button type="submit" disabled={pending} variant="outline" className="w-full sm:w-auto">
-        {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2" />}
-        Generate Image
-      </Button>
-    );
-}
-
 export default function ProductDescriptionForm() {
-  const [descriptionState, descriptionFormAction] = useActionState(createProductDescription, initialDescriptionState);
+  const [descriptionState, descriptionFormAction, isDescriptionPending] = useActionState(createProductDescription, initialDescriptionState);
   const [imageState, imageFormAction, isImagePending] = useActionState(createSocialMediaImage, initialImageState);
   
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const imageFormRef = useRef<HTMLFormElement>(null);
-
-  const [generatedContent, setGeneratedContent] = useState<GenerateProductDescriptionOutput & { productId?: string } | null>(null);
+  
+  const [generatedContent, setGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
-
-
+  
   const { chatbotIcon } = useStore();
 
   useEffect(() => {
-    if (descriptionState.message) {
+    if (descriptionState.message && !isDescriptionPending) {
       if (descriptionState.error && !descriptionState.fieldErrors) {
         toast({ variant: 'destructive', title: 'Error', description: descriptionState.message });
       }
@@ -74,7 +70,7 @@ export default function ProductDescriptionForm() {
     if (!descriptionState.error && descriptionState.data) {
         setGeneratedContent(prev => ({...(prev ?? {}), ...descriptionState.data, productId: selectedProductId } as GenerateProductDescriptionOutput & { productId?: string }));
     }
-  }, [descriptionState, toast, selectedProductId]);
+  }, [descriptionState, isDescriptionPending, toast, selectedProductId]);
 
   useEffect(() => {
     if (imageState.message && !isImagePending) {
@@ -93,27 +89,22 @@ export default function ProductDescriptionForm() {
         } as GenerateProductDescriptionOutput & { productId?: string }));
     }
   }, [imageState, isImagePending, toast, selectedProductId]);
-
-  const handleImageGeneration = (formData: FormData) => {
-    if (chatbotIcon) {
-        formData.append('logoDataUri', chatbotIcon);
+  
+  const handleGeneration = (type: 'description' | 'image') => {
+    const formData = new FormData(formRef.current!);
+    if (type === 'image') {
+        if (chatbotIcon) {
+            formData.append('logoDataUri', chatbotIcon);
+        }
+        imageFormAction(formData);
+    } else {
+        if (generatedContent?.imageUrl) {
+            formData.append('imageUrl', generatedContent.imageUrl);
+        }
+        formData.append('productId', selectedProductId);
+        descriptionFormAction(formData);
     }
-    // Copy fields from the main form to the image form
-    const mainFormData = new FormData(formRef.current!);
-    formData.set('productName', mainFormData.get('productName') || '');
-    formData.set('features', mainFormData.get('features') || '');
-    formData.set('brandVoice', mainFormData.get('brandVoice') || '');
-    
-    imageFormAction(formData);
-  }
-
-  const handleDescriptionGeneration = (formData: FormData) => {
-    if (generatedContent?.imageUrl) {
-        formData.append('imageUrl', generatedContent.imageUrl);
-    }
-    formData.append('productId', selectedProductId);
-    descriptionFormAction(formData);
-  }
+  };
 
   return (
     <div className="grid grid-cols-1 gap-8 @container">
@@ -196,14 +187,21 @@ export default function ProductDescriptionForm() {
                 </div>
             </CardContent>
              <CardFooter className="flex-col sm:flex-row gap-2">
-                <GenerateDescriptionButton />
-                <form action={handleImageGeneration} ref={imageFormRef} className="w-full sm:w-auto">
-                    <GenerateImageButton />
+                <form action={() => handleGeneration('description')} className="w-full sm:w-auto">
+                    <SubmitButton type="description" />
+                </form>
+                <form action={() => handleGeneration('image')} className="w-full sm:w-auto">
+                    <SubmitButton type="image" />
                 </form>
              </CardFooter>
           </form>
         </Card>
-        <ProductDescriptionDisplay productDescription={generatedContent} />
+        <ProductDescriptionDisplay 
+            productDescription={generatedContent}
+            onRegenerate={handleGeneration}
+            isImagePending={isImagePending}
+            isDescriptionPending={isDescriptionPending}
+        />
       </div>
     </div>
   );
