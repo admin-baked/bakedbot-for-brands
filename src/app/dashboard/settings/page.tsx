@@ -1,3 +1,4 @@
+'use client';
 
 import BrandSettings from "./components/brand-settings";
 import BakedBotSettings from "./components/bakedbot-settings";
@@ -5,8 +6,11 @@ import ChatbotSettings from "./components/chatbot-settings";
 import ProductImportSettings from "./components/product-import-settings";
 import ThemeSettings from "./components/theme-settings";
 import BrandVoiceSettings from "./components/brand-voice-settings";
+import { useStore } from "@/hooks/use-store";
 
 export default function SettingsPage() {
+  const { isCeoMode } = useStore();
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -24,7 +28,7 @@ export default function SettingsPage() {
         <ProductImportSettings />
         <BrandVoiceSettings />
       </div>
-      <BakedBotSettings />
+      {isCeoMode && <BakedBotSettings />}
     </div>
   );
 }
