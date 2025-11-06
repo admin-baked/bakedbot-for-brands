@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
@@ -15,23 +14,19 @@ import { products as demoProducts } from '@/lib/data';
  */
 export function useProducts() {
   const { firestore } = useFirebase();
-  const { isDemoMode } = useStore();
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
+  const isDemoMode = useStore((state) => state.isDemoMode);
+  const hasHydrated = useStore((state) => state._hasHydrated);
 
   const productsQuery = useMemoFirebase(() => {
-    // Don't create a query if in demo mode or if firestore isn't ready
-    if (!firestore || isDemoMode) return null;
+    // Don't create a query if we haven't hydrated yet, are in demo mode, or firestore isn't ready
+    if (!hasHydrated || isDemoMode || !firestore) return null;
     return query(collection(firestore, 'products'));
-  }, [firestore, isDemoMode]);
+  }, [firestore, isDemoMode, hasHydrated]);
 
   const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useCollection<Product>(productsQuery);
 
-  if (!hasMounted) {
-    // On the server or before client-side hydration is complete, return a loading state.
+  if (!hasHydrated) {
+    // While the store is rehydrating, we are in a loading state.
     return { data: null, isLoading: true, error: null };
   }
 
