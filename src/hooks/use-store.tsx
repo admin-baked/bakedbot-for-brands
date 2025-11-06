@@ -231,5 +231,3 @@ export function useStore(): FullStoreState {
 
   return hydrated ? combinedState : { ...defaultState, ...defaultSetters, isCeoMode: state.isCeoMode, toggleCeoMode: state.toggleCeoMode, isDemoMode: state.isDemoMode, toggleDemoMode: state.toggleDemoMode };
 }
-
-    
