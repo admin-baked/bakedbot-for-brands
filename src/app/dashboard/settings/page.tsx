@@ -3,9 +3,7 @@
 import BrandSettings from "./components/brand-settings";
 import BakedBotSettings from "./components/bakedbot-settings";
 import ChatbotSettings from "./components/chatbot-settings";
-import ProductImportSettings from "./components/product-import-settings";
 import ThemeSettings from "./components/theme-settings";
-import BrandVoiceSettings from "./components/brand-voice-settings";
 import { useStore } from "@/hooks/use-store";
 
 export default function SettingsPage() {
@@ -24,10 +22,6 @@ export default function SettingsPage() {
         <BrandSettings />
       </div>
       <ChatbotSettings />
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <ProductImportSettings />
-        <BrandVoiceSettings />
-      </div>
       {isCeoMode && <BakedBotSettings />}
     </div>
   );
