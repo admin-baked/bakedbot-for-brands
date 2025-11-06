@@ -1,108 +1,160 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { useStore } from '@/hooks/use-store';
 import { products } from '@/lib/data';
-import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { useTransition } from 'react';
-import { updateProductFeedback } from '@/lib/actions';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Heart, Plus, Search, ShoppingBag, User } from 'lucide-react';
+import { useCart } from '@/hooks/use-cart';
+import CartSidebar from '../menu/components/cart-sidebar';
 
-const ProductCard = ({ product }: { product: typeof products[0] }) => {
-    const [isFeedbackPending, startFeedbackTransition] = useTransition();
-    const { toast } = useToast();
-
-    const handleFeedback = (feedback: 'like' | 'dislike') => {
-        startFeedbackTransition(async () => {
-            const result = await updateProductFeedback(product.id, feedback);
-            if (result.success) {
-                toast({
-                    title: 'Feedback Submitted!',
-                    description: `Thank you for your feedback on ${product.name}.`,
-                });
-            } else {
-                toast({
-                    variant: 'destructive',
-                    title: 'Error',
-                    description: result.message,
-                });
-            }
-        });
-    };
+const Header = () => {
+    const { toggleCart, getItemCount } = useCart();
+    const itemCount = getItemCount();
 
     return (
-    <Card>
-      <CardHeader className="p-4">
-        <div className="aspect-square relative w-full overflow-hidden rounded-md">
-           <Image
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            className="object-cover"
-            data-ai-hint={product.imageHint}
-          />
-        </div>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <CardTitle className="text-lg truncate">{product.name}</CardTitle>
-        <CardDescription>
-            <Badge variant="secondary" className="mt-1">{product.category}</Badge>
-        </CardDescription>
-        <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-      </CardContent>
-      <CardFooter className="flex justify-between p-4 pt-0">
-        <p className="text-lg font-bold">${product.price.toFixed(2)}</p>
-        <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleFeedback('like')} disabled={isFeedbackPending}>
-                <ThumbsUp className="h-4 w-4 text-green-500" />
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
+      <div className="container flex h-16 items-center justify-between">
+        <Link href="#" className="text-2xl font-bold font-teko tracking-wider">
+          BAKEDBOT
+        </Link>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon">
+            <Search className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon">
+            <Heart className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon">
+            <User className="h-5 w-5" />
+          </Button>
+          <div className="relative">
+             <Button variant="ghost" size="icon" onClick={toggleCart}>
+              <ShoppingBag className="h-5 w-5" />
             </Button>
-             <span className="text-sm font-medium min-w-[12px] text-center">{product.likes || 0}</span>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending}>
-                <ThumbsDown className="h-4 w-4 text-red-500" />
-            </Button>
-            <span className="text-sm font-medium min-w-[12px] text-center">{product.dislikes || 0}</span>
+            {itemCount > 0 && (
+                <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 h-5 w-5 justify-center rounded-full p-0"
+                >
+                    {itemCount}
+                </Badge>
+            )}
+          </div>
         </div>
-      </CardFooter>
-    </Card>
-    )
+      </div>
+    </header>
+  );
 };
 
+const ProductCard = ({ product }: { product: typeof products[0] }) => {
+    const { addToCart } = useCart();
+    
+    return (
+        <Card className="overflow-hidden">
+            <CardHeader className="p-0">
+                <div className="relative aspect-square w-full">
+                    <Image src={product.imageUrl} alt={product.name} layout="fill" objectFit="cover" data-ai-hint={product.imageHint} />
+                </div>
+            </CardHeader>
+            <CardContent className="p-4">
+                <Badge variant="secondary">{product.category}</Badge>
+                <CardTitle className="mt-2 text-lg truncate">{product.name}</CardTitle>
+            </CardContent>
+            <CardFooter className="flex justify-between items-center p-4 pt-0">
+                <span className="text-xl font-bold">${product.price.toFixed(2)}</span>
+                <Button size="icon" onClick={() => addToCart({ ...product, quantity: 1 })}>
+                    <Plus className="h-4 w-4"/>
+                </Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
+const groupProductsByCategory = (products: typeof products) => {
+    return products.reduce((acc, product) => {
+        const { category } = product;
+        if (!acc[category]) {
+            acc[category] = [];
+        }
+        acc[category].push(product);
+        return acc;
+    }, {} as Record<string, typeof products>);
+}
+
 export default function ProductsPage() {
-  const { isDemoMode } = useStore();
+    const groupedProducts = groupProductsByCategory(products);
+    const categories = Object.keys(groupedProducts);
 
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-        <p className="text-muted-foreground">
-          {isDemoMode
-            ? 'Showing demo products. Turn off Demo Mode to manage your own catalog.'
-            : 'Manage your product catalog, view inventory, and edit details.'}
-        </p>
-      </div>
-
-      {isDemoMode ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map(product => (
-                <ProductCard key={product.id} product={product} />
-            ))}
+    <div className="min-h-screen bg-background -m-8">
+      <Header />
+      <main className="container mx-auto px-4 py-8">
+        <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12">
+            <Image 
+                src="https://picsum.photos/seed/menu-hero/1200/400" 
+                alt="Let's Fill Some Bowls"
+                layout="fill"
+                objectFit="cover"
+                data-ai-hint="cannabis lifestyle"
+                className="brightness-75"
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+                <h1 className="text-5xl md:text-7xl text-white font-teko tracking-widest text-center uppercase">
+                    Let's Fill Some Bowls
+                </h1>
+            </div>
         </div>
-      ) : (
-        <Card className="flex h-96 flex-col items-center justify-center border-dashed">
-            <CardHeader className="text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                    <Package className="h-8 w-8 text-muted-foreground" />
+
+        {categories.map(category => (
+             <section key={category} className="mb-12">
+                <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">{category}</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                   {groupedProducts[category].map(product => (
+                       <ProductCard key={product.id} product={product} />
+                   ))}
                 </div>
-                <CardTitle>No Products Found</CardTitle>
-                <CardDescription>
-                    Enable Demo Mode from the Admin Controls page to see sample products, or import your own in Settings.
-                </CardDescription>
-            </CardHeader>
-        </Card>
-      )}
+            </section>
+        ))}
+
+      </main>
+      <footer className="dark-theme py-12 text-background bg-foreground">
+        <div className="container mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div>
+                <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">BAKEDBOT</h3>
+                <p className="text-sm text-muted-foreground">Your AI-powered cannabis co-pilot.</p>
+            </div>
+             <div>
+                <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">SHOP</h3>
+                <ul className="space-y-2 text-sm">
+                    <li><Link href="#" className="text-muted-foreground hover:text-primary">Edibles</Link></li>
+                    <li><Link href="#" className="text-muted-foreground hover:text-primary">Flower</Link></li>
+                    <li><Link href="#" className="text-muted-foreground hover:text-primary">Vapes</Link></li>
+                </ul>
+            </div>
+            <div>
+                <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">ABOUT</h3>
+                <ul className="space-y-2 text-sm">
+                    <li><Link href="#" className="text-muted-foreground hover:text-primary">Our Story</Link></li>
+                    <li><Link href="#" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
+                    <li><Link href="/dashboard" className="text-muted-foreground hover:text-primary">Brand Login</Link></li>
+                </ul>
+            </div>
+             <div>
+                <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">CONTACT</h3>
+                <ul className="space-y-2 text-sm">
+                    <li><Link href="#" className="text-muted-foreground hover:text-primary">Contact Us</Link></li>
+                    <li><Link href="#" className="text-muted-foreground hover:text-primary">Careers</Link></li>
+                </ul>
+            </div>
+        </div>
+        <div className="container mx-auto mt-8 pt-8 border-t border-muted-foreground/20 text-center text-muted-foreground text-sm">
+            <p>&copy; 2024 BakedBot. All rights reserved.</p>
+        </div>
+      </footer>
+      <CartSidebar />
     </div>
   );
 }
