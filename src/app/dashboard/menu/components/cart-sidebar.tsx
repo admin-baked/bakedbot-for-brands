@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 
 export default function CartSidebar() {
   const {
@@ -35,7 +36,7 @@ export default function CartSidebar() {
                       <Image
                         src={item.imageUrl}
                         alt={item.name}
-                        layout="fill"
+                        fill
                         objectFit="cover"
                       />
                     </div>
@@ -80,7 +81,9 @@ export default function CartSidebar() {
                   <span>Subtotal</span>
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
-                <Button className="w-full">Proceed to Checkout</Button>
+                <Button className="w-full" asChild onClick={toggleCart}>
+                    <Link href="/dashboard/menu/checkout">Proceed to Checkout</Link>
+                </Button>
               </div>
             </SheetFooter>
           </>

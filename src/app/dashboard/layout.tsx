@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2 } from 'lucide-react';
+import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import {
   SidebarProvider,
@@ -24,7 +24,7 @@ import Chatbot from '@/components/chatbot';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useAuth, useUser } from '@/firebase';
+import { FirebaseContext } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useStore, type NavLink } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
@@ -37,8 +37,13 @@ import { Label } from '@/components/ui/label';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const auth = useAuth();
-  const { user, isUserLoading } = useUser();
+  
+  // Safely get Firebase context. It might be undefined on the server.
+  const firebaseContext = React.useContext(FirebaseContext);
+  const auth = firebaseContext?.auth;
+  const user = firebaseContext?.user;
+  const isUserLoading = firebaseContext?.isUserLoading ?? true; // Default to loading on server
+
   const { isCeoMode, navLinks, toggleNavLinkVisibility, isDemoMode, toggleDemoMode } = useStore();
 
   const [isEditOpen, setIsEditOpen] = React.useState(false);
@@ -47,6 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
 
   React.useEffect(() => {
+    // This effect runs only on the client side.
     // If loading is finished, there's no user, AND we are not in CEO mode, redirect to login.
     if (!isUserLoading && !user && !isCeoMode) {
       router.replace('/brand-login');
@@ -88,6 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return email.substring(0, 2).toUpperCase();
   };
 
+  // Show a loading spinner while auth state is being determined, unless in CEO mode.
   if (isUserLoading && !isCeoMode) {
     return (
         <div className="flex h-screen items-center justify-center">
