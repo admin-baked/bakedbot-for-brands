@@ -104,17 +104,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                    const Icon = (LucideIcons as any)[item.icon] || LucideIcons.PanelRight;
                    return (
                   <SidebarMenuItem key={item.href} className={cn(isCeoMode && item.hidden && "opacity-50 hover:opacity-100")}>
-                    <Link href={item.href} passHref legacyBehavior>
-                      <SidebarMenuButton
-                        as="a"
-                        isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
-                        tooltip={item.label}
-                        className={cn(isCeoMode && "pr-12")}
-                      >
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
+                      tooltip={item.label}
+                      className={cn(isCeoMode && "pr-12")}
+                    >
+                      <Link href={item.href}>
                         <Icon />
                         <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </Link>
+                      </Link>
+                    </SidebarMenuButton>
                      {isCeoMode && (
                         <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
                             <SidebarMenuAction tooltip="Edit" size="icon" className="h-6 w-6" onClick={() => handleEditClick(item)}>
@@ -217,5 +217,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
-    
