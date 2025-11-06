@@ -12,12 +12,11 @@ const FormSchema = z.object({
   apiKey: z.string().min(1, 'API Key is required.'),
 });
 
-export async function saveCannMenusApiKey(prevState: any, formData: FormData) {
+export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
   const { auth, firestore } = await createServerClient();
   const user = auth.currentUser;
 
   if (!user) {
-    // This is an application-level error, not a rules error. Return it directly.
     return {
       message: 'You must be logged in to save an API key.',
       error: true,
@@ -25,7 +24,7 @@ export async function saveCannMenusApiKey(prevState: any, formData: FormData) {
   }
 
   const validatedFields = FormSchema.safeParse({
-    apiKey: formData.get('cannmenus-api-key'),
+    apiKey: formData.get('bakedbot-api-key'),
   });
 
   if (!validatedFields.success) {
@@ -39,13 +38,12 @@ export async function saveCannMenusApiKey(prevState: any, formData: FormData) {
   const { apiKey } = validatedFields.data;
   const userPrivateRef = doc(firestore, 'user-private', user.uid);
   
-  // Using non-blocking setDoc with contextual error handling
-  setDoc(userPrivateRef, { cannMenusApiKey: apiKey }, { merge: true })
+  setDoc(userPrivateRef, { bakedBotApiKey: apiKey }, { merge: true })
       .catch(async (serverError) => {
           const permissionError = new FirestorePermissionError({
               path: userPrivateRef.path,
-              operation: 'update', // Using 'update' as merge:true behaves like an upsert
-              requestResourceData: { cannMenusApiKey: 'REDACTED' } // Redact sensitive data
+              operation: 'update',
+              requestResourceData: { bakedBotApiKey: 'REDACTED' }
           });
           errorEmitter.emit('permission-error', permissionError);
       });

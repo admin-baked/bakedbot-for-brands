@@ -1,6 +1,6 @@
 
 import BrandSettings from "./components/brand-settings";
-import CannMenusSettings from "./components/cannmenus-settings";
+import BakedBotSettings from "./components/bakedbot-settings";
 import ChatbotSettings from "./components/chatbot-settings";
 import ProductImportSettings from "./components/product-import-settings";
 import ThemeSettings from "./components/theme-settings";
@@ -24,7 +24,7 @@ export default function SettingsPage() {
         <ProductImportSettings />
         <BrandVoiceSettings />
       </div>
-      <CannMenusSettings />
+      <BakedBotSettings />
     </div>
   );
 }

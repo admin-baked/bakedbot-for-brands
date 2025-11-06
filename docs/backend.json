@@ -43,9 +43,9 @@
       "type": "object",
       "description": "Represents private user data, such as API keys.",
       "properties": {
-        "cannMenusApiKey": {
+        "bakedBotApiKey": {
           "type": "string",
-          "description": "The user's API key for the CannMenus service."
+          "description": "The user's API key for the BakedBot service."
         }
       }
     },

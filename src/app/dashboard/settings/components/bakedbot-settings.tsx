@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { KeyRound, Loader2 } from "lucide-react";
-import { saveCannMenusApiKey } from '../actions';
+import { saveBakedBotApiKey } from '../actions';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const initialState = {
   message: '',
@@ -22,13 +23,13 @@ function SubmitButton() {
   return (
     <Button type="submit" disabled={pending}>
       {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Save API Key
+      Save Settings
     </Button>
   );
 }
 
-export default function CannMenusSettings() {
-    const [state, formAction] = useActionState(saveCannMenusApiKey, initialState);
+export default function BakedBotSettings() {
+    const [state, formAction] = useActionState(saveBakedBotApiKey, initialState);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -45,19 +46,32 @@ export default function CannMenusSettings() {
         <Card>
             <form action={formAction}>
                 <CardHeader>
-                    <CardTitle>CannMenus Integration</CardTitle>
+                    <CardTitle>API Credentials</CardTitle>
                     <CardDescription>
-                        Enter your CannMenus API key to automatically sync your products.
+                        Your API key connects your app to the BakedBot service. Keep this secure and never share it publicly.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                    <Alert>
+                        <KeyRound className="h-4 w-4" />
+                        <AlertDescription>
+                            API key configured successfully.
+                        </AlertDescription>
+                    </Alert>
                     <div className="space-y-2">
-                        <Label htmlFor="cannmenus-api-key">API Key</Label>
+                        <Label htmlFor="bakedbot-api-key">API Key</Label>
                         <div className="relative">
-                            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input id="cannmenus-api-key" name="cannmenus-api-key" type="password" placeholder="••••••••••••••••••••••••••••••••" className="pl-8" />
+                            <Input id="bakedbot-api-key" name="bakedbot-api-key" type="password" placeholder="pk_••••••••••••••••••••••••••••••" />
                         </div>
+                        <p className="text-sm text-muted-foreground">Your BakedBot API key from your dashboard.</p>
                         {state?.fieldErrors?.apiKey && <p className="text-sm text-destructive">{state.fieldErrors.apiKey[0]}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="bakedbot-api-url">BakedBot API URL</Label>
+                        <div className="relative">
+                            <Input id="bakedbot-api-url" name="bakedbot-api-url" type="text" defaultValue="https://beta.bakedbot.ai" disabled />
+                        </div>
+                        <p className="text-sm text-muted-foreground">The URL for the BakedBot API (usually no need to change).</p>
                     </div>
                 </CardContent>
                 <CardFooter>
