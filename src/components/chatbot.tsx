@@ -688,9 +688,3 @@ export default function Chatbot() {
         </>
       );
 }
-
-    
-
-    
-
-    
