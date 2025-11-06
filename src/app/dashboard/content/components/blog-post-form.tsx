@@ -12,10 +12,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProductDescriptionDisplay from './blog-post-display';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, Loader2, Upload, Wand2, FileText } from 'lucide-react';
+import { DollarSign, Loader2, Upload, Wand2, FileText, Package } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { useStore } from '@/hooks/use-store';
+import { products } from '@/lib/data';
 
 const initialDescriptionState: DescriptionFormState = {
   message: '',
@@ -124,7 +125,22 @@ export default function ProductDescriptionForm() {
               <CardDescription>Fill in the details below to generate content. The same details will be used for both image and text generation.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <input type="hidden" name="productId" value={selectedProductId} />
+              <div className="space-y-2">
+                <Label htmlFor="product-select">Select a Product (Optional)</Label>
+                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                    <SelectTrigger id="product-select">
+                        <SelectValue placeholder="Select a product to associate feedback" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {products.map(product => (
+                            <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Associating a product enables the like/dislike feedback buttons.</p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="productName">Product Name</Label>
                 <Input id="productName" name="productName" placeholder="e.g., Cosmic Caramels" />
