@@ -162,7 +162,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
 
 
     return (
-        <ScrollArea className={cn("h-full", className)}>
+        <ScrollArea className={className}>
             <div className="space-y-4 p-4">
                 {messages.map((message) => (
                 <div key={message.id} className={cn("flex items-start gap-3", message.sender === 'user' ? 'justify-end' : '')}>
@@ -278,6 +278,7 @@ const ChatWindow = ({
             isBotTyping={isBotTyping}
             messagesEndRef={messagesEndRef}
             onAskSmokey={onAskSmokey}
+            className="h-full"
           />
         </div>
       
