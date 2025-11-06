@@ -2,6 +2,13 @@
 
 This document outlines the planned features and improvements for the BakedBot AI application.
 
+## Version 1.9.3 - Reviews Management Dashboard
+
+### Core Features:
+- **Reviews Dashboard Page**: Created a new page at `/dashboard/reviews` to display customer-submitted reviews.
+- **Reviews Table**: Implemented a sortable and filterable table to view all reviews, showing the product, rating, user, and review text.
+- **Sidebar Navigation**: Added a "Reviews" link to the main dashboard sidebar for easy access.
+
 ## Version 1.9.2 - AI Content Feedback Integration
 
 ### Core Features:

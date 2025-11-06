@@ -4,7 +4,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PenSquare, Settings, LogOut, Loader2 } from 'lucide-react';
+import { LayoutDashboard, PenSquare, Settings, LogOut, Star } from 'lucide-react';
 import {
   SidebarProvider,
   Sidebar,
@@ -35,9 +35,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      // The onAuthStateChanged listener in FirebaseProvider will handle user state changes.
-      // Redirecting might happen automatically if you have protected routes,
-      // or you can explicitly redirect here.
       router.push('/brand-login');
     } catch (error) {
       console.error('Sign out error', error);
@@ -46,7 +43,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const menuItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/dashboard/content', label: 'Product Descriptions', icon: PenSquare },
+    { href: '/dashboard/content', label: 'Content Generator', icon: PenSquare },
+    { href: '/dashboard/reviews', label: 'Reviews', icon: Star },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
   
@@ -58,7 +56,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (isUserLoading) {
     return (
         <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
     );
   }
