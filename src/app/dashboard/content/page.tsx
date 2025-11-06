@@ -1,5 +1,5 @@
 import BrandImageGenerator from './components/brand-image-generator';
-import ProductDescriptionForm from './components/blog-post-form';
+import ProductDescriptionForm from './components/product-description-form';
 import ReviewSummarizer from './components/review-summarizer';
 
 
