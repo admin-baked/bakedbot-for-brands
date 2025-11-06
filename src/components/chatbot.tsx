@@ -39,6 +39,72 @@ const initialImageState: ImageFormState = {
     error: false,
 };
 
+type OnboardingStep = 'mood' | 'experience' | 'social' | 'completed';
+type OnboardingAnswers = {
+    mood: string | null;
+    experience: string | null;
+    social: string | null;
+};
+
+const moods = [ "Relax / Chill", "Sleep / Calm", "Creative Flow", "Social / Talkative", "Pain Relief", "Focus / Productivity", "Energy / Motivation", ];
+
+const OnboardingFlow = ({ onComplete }: { onComplete: (answers: OnboardingAnswers) => void }) => {
+    const [step, setStep] = useState<OnboardingStep>('mood');
+    const [answers, setAnswers] = useState<OnboardingAnswers>({ mood: null, experience: null, social: null });
+
+    const selectAnswer = (type: keyof OnboardingAnswers, value: string) => {
+        const newAnswers = { ...answers, [type]: value };
+        setAnswers(newAnswers);
+
+        if (type === 'mood') {
+            setStep('experience');
+        } else if (type === 'experience') {
+            setStep('social');
+        } else if (type === 'social') {
+            setStep('completed');
+            onComplete(newAnswers);
+        }
+    };
+
+    return (
+        <div className="p-4 text-center h-full flex flex-col justify-center">
+            {step === 'mood' && (
+                <>
+                    <h2 className="text-lg font-semibold">Welcome to your virtual budtender 🌿</h2>
+                    <p className="text-muted-foreground text-sm mt-1 mb-4">How would you like to feel today?</p>
+                    <div className="grid grid-cols-2 gap-2">
+                        {moods.map(mood => (
+                            <Button key={mood} variant="outline" onClick={() => selectAnswer('mood', mood)}>{mood}</Button>
+                        ))}
+                    </div>
+                </>
+            )}
+            {step === 'experience' && (
+                 <>
+                    <h2 className="text-lg font-semibold">Nice choice! 🌈</h2>
+                    <p className="text-muted-foreground text-sm mt-1 mb-4">How experienced are you with cannabis?</p>
+                    <div className="grid grid-cols-1 gap-2">
+                        <Button variant="outline" onClick={() => selectAnswer('experience', 'Beginner')}>Beginner</Button>
+                        <Button variant="outline" onClick={() => selectAnswer('experience', 'Occasional')}>Occasional</Button>
+                        <Button variant="outline" onClick={() => selectAnswer('experience', 'Regular')}>Regular</Button>
+                    </div>
+                </>
+            )}
+             {step === 'social' && (
+                 <>
+                    <h2 className="text-lg font-semibold">One last thing! 👯‍♂️</h2>
+                    <p className="text-muted-foreground text-sm mt-1 mb-4">Are you planning to enjoy this solo or with others?</p>
+                    <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" onClick={() => selectAnswer('social', 'Solo')}>Solo</Button>
+                        <Button variant="outline" onClick={() => selectAnswer('social', 'With Friends')}>With Friends</Button>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
+
+
 const ProductCarousel = ({ onAskSmokey, isCompact, onFeedback }: { onAskSmokey: (product: Product) => void, isCompact: boolean, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => (
     <>
       {!isCompact && (
@@ -256,6 +322,7 @@ const ChatWindow = ({
   onMagicImageClick,
   chatMode,
   onFeedback,
+  onOnboardingComplete
 }: {
   chatExperience: 'default' | 'classic';
   onAskSmokey: (product: Product) => void;
@@ -269,58 +336,60 @@ const ChatWindow = ({
   onMagicImageClick: () => void;
   chatMode: 'chat' | 'image';
   onFeedback: (productId: string, type: 'like' | 'dislike') => void;
+  onOnboardingComplete: (answers: OnboardingAnswers) => void;
 }) => {
   return (
     <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-card border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
       <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
-        {chatExperience === 'default' && <ProductCarousel onAskSmokey={onAskSmokey} isCompact={hasStartedChat} onFeedback={onFeedback} />}
-
-        {chatExperience === 'classic' && !hasStartedChat && (
-        <CardHeader>
-            <CardTitle>Smokey AI</CardTitle>
-            <CardDescription>Ask me anything about our products.</CardDescription>
-        </CardHeader>
-        )}
         
-        <div className="flex-1 min-h-0 border-t">
-          <ChatMessages
-            messages={messages}
-            isBotTyping={isBotTyping}
-            messagesEndRef={messagesEndRef}
-            onAskSmokey={onAskSmokey}
-            className="h-full"
-            onFeedback={onFeedback}
-          />
-        </div>
+        {hasStartedChat ? (
+             <>
+                {chatExperience === 'default' && <ProductCarousel onAskSmokey={onAskSmokey} isCompact={true} onFeedback={onFeedback} />}
+                <div className="flex-1 min-h-0 border-t">
+                    <ChatMessages
+                        messages={messages}
+                        isBotTyping={isBotTyping}
+                        messagesEndRef={messagesEndRef}
+                        onAskSmokey={onAskSmokey}
+                        className="h-full"
+                        onFeedback={onFeedback}
+                    />
+                </div>
+             </>
+        ) : (
+            <OnboardingFlow onComplete={onOnboardingComplete} />
+        )}
       
-      <CardFooter className="p-4 border-t">
-        <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon" onClick={onMagicImageClick} disabled={isBotTyping}>
-                            <Wand2 className={cn("h-5 w-5", chatMode === 'image' ? "text-primary" : "")} />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                        <p>Generate a brand image</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+      {hasStartedChat && (
+        <CardFooter className="p-4 border-t">
+            <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button type="button" variant="ghost" size="icon" onClick={onMagicImageClick} disabled={isBotTyping}>
+                                <Wand2 className={cn("h-5 w-5", chatMode === 'image' ? "text-primary" : "")} />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                            <p>Generate a brand image</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
 
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder={chatMode === 'image' ? "What do you love about the brand?" : 'Type a message...'}
-            className="flex-1"
-            autoComplete="off"
-            disabled={isBotTyping}
-          />
-          <Button type="submit" size="icon" disabled={isBotTyping || inputValue.trim() === ''}>
-            {chatMode === 'image' ? <Sparkles className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-          </Button>
-        </form>
-      </CardFooter>
+            <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder={chatMode === 'image' ? "What do you love about the brand?" : 'Type a message...'}
+                className="flex-1"
+                autoComplete="off"
+                disabled={isBotTyping}
+            />
+            <Button type="submit" size="icon" disabled={isBotTyping || inputValue.trim() === ''}>
+                {chatMode === 'image' ? <Sparkles className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+            </Button>
+            </form>
+        </CardFooter>
+      )}
       </Card>
     </div>
   );
@@ -336,9 +405,7 @@ export default function Chatbot() {
 
   const { toast } = useToast();
 
-  const [messages, setMessages] = useState<Message[]>([
-     { id: 1, text: welcomeMessage, sender: 'bot' },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -354,10 +421,12 @@ export default function Chatbot() {
   }, [messages, isBotTyping]);
   
   useEffect(() => {
-    if (!hasStartedChat) {
-      setMessages([{ id: 1, text: welcomeMessage, sender: 'bot' }]);
+    // Reset hasStartedChat state when the chatbot is closed
+    if (!isOpen) {
+        setHasStartedChat(false);
+        setMessages([]); // Clear messages when closing
     }
-  }, [welcomeMessage, hasStartedChat]);
+  }, [isOpen]);
   
   const handleMagicImageClick = () => {
     const newChatMode = chatMode === 'image' ? 'chat' : 'image';
@@ -420,6 +489,46 @@ export default function Chatbot() {
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsBotTyping(false);
+    }
+  };
+
+  const handleOnboardingComplete = async (answers: OnboardingAnswers) => {
+    setHasStartedChat(true);
+    setIsBotTyping(true);
+    setMessages([]); // Clear onboarding UI
+
+    const query = `I want to feel ${answers.mood}. I'm a ${answers.experience} user and I'll be ${answers.social === 'Solo' ? 'by myself' : 'with friends'}.`;
+    
+    // Create a pseudo user message to show in the history
+    const userMessage: Message = { id: Date.now(), text: "I've answered the questions!", sender: 'user' };
+    setMessages([userMessage]);
+
+    const availableProducts = JSON.stringify(products.map(p => ({ id: p.id, name: p.name, description: p.description, category: p.category, price: p.price })));
+    
+    try {
+        const result: RecommendProductsOutput = await recommendProducts({
+            query: query,
+            availableProducts: availableProducts,
+        });
+
+        const botMessage: Message = {
+            id: Date.now() + 1,
+            text: result.overallReasoning || "Here are some recommendations based on your preferences:",
+            sender: 'bot',
+            productSuggestions: result.products.map(p => products.find(prod => prod.id === p.productId)).filter(Boolean) as Product[],
+        };
+        setMessages(prev => [...prev, botMessage]);
+
+    } catch (error) {
+        console.error("Failed to get recommendations after onboarding:", error);
+        const errorMessage: Message = {
+            id: Date.now() + 1,
+            text: "I'm sorry, I'm having a little trouble finding recommendations right now. Feel free to ask me about a specific product!",
+            sender: 'bot',
+        };
+        setMessages(prev => [...prev, errorMessage]);
+    } finally {
+        setIsBotTyping(false);
     }
   };
 
@@ -569,6 +678,7 @@ export default function Chatbot() {
               onMagicImageClick={handleMagicImageClick}
               chatMode={chatMode}
               onFeedback={handleFeedback}
+              onOnboardingComplete={handleOnboardingComplete}
             />
           )}
         </>
