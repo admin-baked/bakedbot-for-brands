@@ -258,136 +258,47 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profiles. This path is readable by any authenticated user to allow displaying user information (like emails for reviews) but is only writable by the owner.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
       },
-      {
-        "path": "/user-private/{userId}",
-        "definition": {
-          "entityName": "UserPrivate",
-          "schema": {
-            "$ref": "#/backend/entities/UserPrivate"
-          },
-          "description": "Stores private user data, like API keys. Strictly owned by the user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
+      "description": "Stores user profiles. This path is readable by any authenticated user to allow displaying user information (like emails for reviews) but is only writable by the owner."
+    },
+    "/user-private/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserPrivate"
       },
-      {
-        "path": "/categories/{categoryId}",
-        "definition": {
-          "entityName": "Category",
-          "schema": {
-            "$ref": "#/backend/entities/Category"
-          },
-          "description": "Stores product categories.",
-          "params": [
-            {
-              "name": "categoryId",
-              "description": "The unique identifier for the category."
-            }
-          ]
-        }
+      "description": "Stores private user data, like API keys. Strictly owned by the user."
+    },
+    "/categories/{categoryId}": {
+      "schema": {
+        "$ref": "#/entities/Category"
       },
-      {
-        "path": "/products/{productId}",
-        "definition": {
-          "entityName": "Product",
-          "schema": {
-            "$ref": "#/backend/entities/Product"
-          },
-          "description": "Stores product information.",
-          "params": [
-            {
-              "name": "productId",
-              "description": "The unique identifier for the product."
-            }
-          ]
-        }
+      "description": "Stores product categories."
+    },
+    "/products/{productId}": {
+      "schema": {
+        "$ref": "#/entities/Product"
       },
-      {
-        "path": "/products/{productId}/reviews/{reviewId}",
-        "definition": {
-          "entityName": "Review",
-          "schema": {
-            "$ref": "#/backend/entities/Review"
-          },
-          "description": "Stores customer reviews for a specific product. The collection is queryable by authenticated users.",
-          "params": [
-            {
-              "name": "productId",
-              "description": "The unique identifier for the product."
-            },
-            {
-              "name": "reviewId",
-              "description": "The unique identifier for the review."
-            }
-          ]
-        }
+      "description": "Stores product information."
+    },
+    "/products/{productId}/reviews/{reviewId}": {
+      "schema": {
+        "$ref": "#/entities/Review"
       },
-      {
-        "path": "/users/{userId}/orders/{orderId}",
-        "definition": {
-          "entityName": "Order",
-          "schema": {
-            "$ref": "#/backend/entities/Order"
-          },
-          "description": "Stores user order history. This path ensures path-based ownership.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "orderId",
-              "description": "The unique identifier for the order."
-            }
-          ]
-        }
+      "description": "Stores customer reviews for a specific product. The collection is queryable by authenticated users."
+    },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": {
+        "$ref": "#/entities/Order"
       },
-      {
-        "path": "/users/{userId}/orders/{orderId}/orderItems/{orderItemId}",
-        "definition": {
-          "entityName": "OrderItem",
-          "schema": {
-            "$ref": "#/backend/entities/OrderItem"
-          },
-          "description": "Stores individual order items for an order. This path ensures path-based ownership.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "orderId",
-              "description": "The unique identifier for the order."
-            },
-            {
-              "name": "orderItemId",
-              "description": "The unique identifier for the order item."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure is designed to support the BakedBot AI Assistant plugin, prioritizing security, scalability, and debuggability. User data is stored under `/users/{userId}` for public profile information, which is readable by any authenticated user to facilitate features like displaying reviewer emails. A separate `/user-private/{userId}` collection is added for sensitive data like API keys, with strict ownership rules. Categories and Products are stored as top-level collections, as they are not directly owned by users, with the product's category relationship expressed via the `categoryId` field. Orders and OrderItems follow a hierarchical path under users for ownership and data locality. Reviews are stored as a subcollection under each product to keep them organized and directly associated with the item they describe. This design enables atomic operations and facilitates secure list operations by segregating data based on ownership and type."
+      "description": "Stores user order history. This path ensures path-based ownership."
+    },
+    "/users/{userId}/orders/{orderId}/orderItems/{orderItemId}": {
+      "schema": {
+        "$ref": "#/entities/OrderItem"
+      },
+      "description": "Stores individual order items for an order. This path ensures path-based ownership."
+    }
   }
 }
