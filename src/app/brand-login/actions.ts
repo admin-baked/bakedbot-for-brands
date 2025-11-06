@@ -9,14 +9,20 @@ import { createServerClient } from '@/firebase/server-client';
 export async function sendMagicLink(email: string) {
   try {
     const { auth } = await createServerClient();
-    // Action code settings are configured here, inside the server action
-    await sendSignInLinkToEmail(auth, email, {
+    
+    // The URL must point to the page that will handle the sign-in.
+    // It must also be whitelisted in the Firebase console.
+    const actionCodeSettings = {
         handleCodeInApp: true,
         url: `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback-client`,
-    });
+    };
+
+    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+
     return { success: true };
   } catch (error: any) {
     console.error("Magic Link sending error:", error);
-    return { error: error.message || 'An unknown error occurred.' };
+    // Return a generic error message to avoid leaking implementation details.
+    return { error: error.message || 'Could not send magic link. Please try again.' };
   }
 }
