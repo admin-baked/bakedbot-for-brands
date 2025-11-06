@@ -162,11 +162,10 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey }: { 
 
 
     return (
-    <ScrollArea className="flex-1 border-t">
-        <CardContent className="p-4">
-        <div className="space-y-4 pt-4">
+    <ScrollArea className="flex-1">
+        <div className="space-y-4 p-4">
             {messages.map((message) => (
-            <div key={message.id} className={cn("flex items-end gap-3", message.sender === 'user' ? 'justify-end' : '')}>
+            <div key={message.id} className={cn("flex items-start gap-3", message.sender === 'user' ? 'justify-end' : '')}>
                 {message.sender === 'bot' && (
                 <Avatar className="h-8 w-8 shrink-0">
                     <AvatarFallback className="bg-primary text-primary-foreground">
@@ -174,7 +173,12 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey }: { 
                     </AvatarFallback>
                 </Avatar>
                 )}
-                <div className={cn("max-w-[85%] rounded-lg px-3 py-2", message.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none')}>
+                <div className={cn(
+                    "max-w-[85%] rounded-lg px-3 py-2", 
+                    message.sender === 'user' 
+                        ? 'bg-primary text-primary-foreground rounded-br-none' 
+                        : 'bg-muted rounded-bl-none'
+                )}>
                 {message.text && (
                   <p className="text-sm whitespace-pre-line">{message.text}</p>
                 )}
@@ -228,7 +232,6 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey }: { 
             )}
             <div ref={messagesEndRef} />
         </div>
-        </CardContent>
     </ScrollArea>
 )};
 
@@ -269,7 +272,9 @@ const ChatWindow = ({
           </CardHeader>
           )}
         
-        <ChatMessages messages={messages} isBotTyping={isBotTyping} messagesEndRef={messagesEndRef} onAskSmokey={onAskSmokey} />
+        <div className="flex-1 flex flex-col min-h-0 border-t">
+          <ChatMessages messages={messages} isBotTyping={isBotTyping} messagesEndRef={messagesEndRef} onAskSmokey={onAskSmokey} />
+        </div>
       
       <CardFooter className="p-4 border-t">
         <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
@@ -503,3 +508,5 @@ export default function Chatbot() {
         </>
       );
 }
+
+    
