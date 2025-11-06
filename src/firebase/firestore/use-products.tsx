@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
@@ -18,20 +17,22 @@ export function useProducts() {
   const hasHydrated = useStore((state) => state._hasHydrated);
 
   const productsQuery = useMemoFirebase(() => {
-    // Don't create a query if we haven't hydrated yet, are in demo mode, or firestore isn't ready
+    // If the store isn't hydrated yet, we can't know the mode, so we must wait.
+    // If in demo mode, or if firestore isn't ready, we also don't query.
     if (!hasHydrated || isDemoMode || !firestore) return null;
     return query(collection(firestore, 'products'));
   }, [firestore, isDemoMode, hasHydrated]);
 
+  // Pass the memoized query to useCollection.
   const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useCollection<Product>(productsQuery);
 
+  // If the store is not hydrated, we are definitely in a loading state.
   if (!hasHydrated) {
-    // While the store is rehydrating, we are in a loading state.
     return { data: null, isLoading: true, error: null };
   }
 
+  // If in demo mode, return the static demo products.
   if (isDemoMode) {
-    // If in demo mode, return the static demo products.
     return { data: demoProducts, isLoading: false, error: null };
   }
 

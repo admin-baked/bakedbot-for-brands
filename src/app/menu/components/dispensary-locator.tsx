@@ -34,20 +34,21 @@ export default function DispensaryLocator() {
     const [nearbyLocations, setNearbyLocations] = useState<LocationWithDistance[]>([]);
     const [isLocating, setIsLocating] = useState(true);
     
+    // Get state from the zustand store.
     const isDemoMode = useStore((state) => state.isDemoMode);
     const storeLocations = useStore((state) => state.locations);
     const hasHydrated = useStore((state) => state._hasHydrated);
 
     useEffect(() => {
+        // Wait until the store has been rehydrated from localStorage.
         if (!hasHydrated) {
-            // Wait for the store to rehydrate from localStorage
             return;
         }
         
         const locations = isDemoMode ? demoLocations : storeLocations;
         
-        // --- DEMO MODE LOGIC ---
         if (isDemoMode) {
+            // In demo mode, immediately show Chicago locations without using the browser's geolocation.
             const userCoords = { lat: 41.8781, lon: -87.6298 }; // Central Chicago coordinates
             const demoLocationsWithDistance = demoLocations.map(loc => {
                  const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
@@ -56,10 +57,10 @@ export default function DispensaryLocator() {
             
             setNearbyLocations(demoLocationsWithDistance.slice(0, 3));
             setIsLocating(false);
-            return; // End the effect here for demo mode
+            return;
         }
 
-        // --- LIVE MODE LOGIC ---
+        // In live mode, use the browser's geolocation API.
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -68,14 +69,12 @@ export default function DispensaryLocator() {
                         lon: position.coords.longitude
                     };
                     const locationsWithDistance = locations
+                        .filter(loc => loc.lat && loc.lon) // Only include locations with coordinates
                         .map(loc => {
-                            if (loc.lat && loc.lon) {
-                                const distance = haversineDistance(userCoords, { lat: loc.lat, lon: loc.lon });
-                                return { ...loc, distance };
-                            }
-                            return loc;
+                            const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
+                            return { ...loc, distance };
                         })
-                        .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+                        .sort((a, b) => a.distance - b.distance);
 
                     setNearbyLocations(locationsWithDistance.slice(0, 3));
                     setIsLocating(false);
@@ -115,7 +114,7 @@ export default function DispensaryLocator() {
     }
     
     if (nearbyLocations.length === 0) {
-        return null; // Don't render anything if there are no locations to show
+        return null;
     }
 
     return (
