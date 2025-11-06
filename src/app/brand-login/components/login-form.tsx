@@ -11,8 +11,8 @@ import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { sendMagicLink } from '../actions';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/firebase';
-import { GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { useAuth, useUser } from '@/firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -25,7 +25,7 @@ const GoogleIcon = () => (
 
 
 export default function LoginForm() {
-    const [isLoading, setIsLoading] = useState(true); // Start loading true to handle redirect
+    const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
     const [email, setEmail] = useState('');
@@ -33,6 +33,7 @@ export default function LoginForm() {
     const { toast } = useToast();
     const searchParams = useSearchParams();
     const auth = useAuth();
+    const { user } = useUser();
     const router = useRouter();
 
     useEffect(() => {
@@ -44,32 +45,15 @@ export default function LoginForm() {
                 description: decodeURIComponent(error),
             });
         }
-        
-        if (auth) {
-            getRedirectResult(auth)
-              .then((result) => {
-                if (result) {
-                  // User signed in. The onAuthStateChanged listener will handle the redirect to /dashboard.
-                  // No need to do anything here.
-                }
-              })
-              .catch((error) => {
-                console.error("Google Redirect Result error:", error);
-                toast({
-                  variant: 'destructive',
-                  title: 'Google Sign-In Failed',
-                  description: error.message || 'Could not complete Google Sign-In.',
-                });
-              })
-              .finally(() => {
-                setIsLoading(false); // Finished checking for redirect result
-                setIsGoogleLoading(false);
-              });
-        } else {
-            setIsLoading(false); // Auth not ready, stop loading
-        }
+    }, [searchParams, toast]);
 
-    }, [auth, searchParams, toast, router]);
+    // Redirect if user is already logged in
+    useEffect(() => {
+        if (user) {
+            router.replace('/dashboard');
+        }
+    }, [user, router]);
+
 
     const handleGoogleSignIn = async () => {
         setIsGoogleLoading(true);
@@ -85,9 +69,21 @@ export default function LoginForm() {
             return;
         }
         const provider = new GoogleAuthProvider();
-        // We call signInWithRedirect which is non-blocking.
-        // The result is handled by getRedirectResult in the useEffect hook.
-        signInWithRedirect(auth, provider);
+        try {
+            await signInWithPopup(auth, provider);
+            // The onAuthStateChanged listener in FirebaseProvider will handle the redirect
+            router.push('/dashboard');
+        } catch (error: any) {
+            console.error("Google Sign-In error:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Google Sign-In Failed',
+                description: error.message || 'Could not complete Google Sign-In.',
+            });
+        } finally {
+            setIsLoading(false);
+            setIsGoogleLoading(false);
+        }
     };
 
     const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
@@ -202,5 +198,3 @@ export default function LoginForm() {
         </div>
     );
 }
-
-    
