@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -45,11 +46,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
 
   React.useEffect(() => {
-    // If loading is finished and there's no user, redirect to login.
-    if (!isUserLoading && !user) {
+    // If loading is finished, there's no user, AND we are not in CEO mode, redirect to login.
+    if (!isUserLoading && !user && !isCeoMode) {
       router.replace('/brand-login');
     }
-  }, [isUserLoading, user, router]);
+  }, [isUserLoading, user, router, isCeoMode]);
 
   const handleSignOut = async () => {
     try {
@@ -82,7 +83,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return email.substring(0, 2).toUpperCase();
   };
 
-  if (isUserLoading || !user) {
+  if (isUserLoading && !isCeoMode) {
     return (
         <div className="flex h-screen items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
