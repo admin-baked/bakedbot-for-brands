@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -64,6 +63,23 @@ export default function AuthCallbackClientPage() {
   }, [auth, router]);
 
   // Display a loading state while the sign-in process is in progress.
+  if (!auth) {
+    // Render a loading state if auth is not available yet (e.g., during initial render)
+    return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+           <Card className="w-full max-w-md text-center">
+                <CardHeader>
+                    <CardTitle>Authenticating...</CardTitle>
+                    <CardDescription>Finalizing your secure sign-in.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
        <Card className="w-full max-w-md text-center">
