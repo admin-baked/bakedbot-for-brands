@@ -9,6 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { getProductReviews } from '@/ai/tools/get-product-reviews';
 
 const RecommendProductsInputSchema = z.object({
   query: z.string().describe('The user query or description of what they are looking for.'),
@@ -33,10 +34,12 @@ const recommendProductsPrompt = ai.definePrompt({
   name: 'recommendProductsPrompt',
   input: {schema: RecommendProductsInputSchema},
   output: {schema: RecommendProductsOutputSchema},
+  tools: [getProductReviews],
   prompt: `You are an expert AI budtender. Your goal is to recommend the best products to a user based on their request and history.
 
 Analyze the user's query and their customer history to understand their needs and preferences.
 Based on this analysis, select the most suitable products from the list of available products.
+You can use the getProductReviews tool to see what other customers are saying.
 
 User Query: {{{query}}}
 {{#if customerHistory}}
