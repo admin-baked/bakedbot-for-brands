@@ -8,9 +8,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/logo';
-import { sendMagicLink, signInWithGoogle } from './actions';
+import { sendMagicLink } from './actions';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/firebase';
+import { GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -43,9 +44,20 @@ export default function BrandLoginPage() {
 
     const handleGoogleSignIn = useCallback(async () => {
         setIsLoading(true);
-        await signInWithGoogle(auth);
-        // No need to set isLoading(false) here, as signInWithRedirect navigates away.
-    }, [auth]);
+        const provider = new GoogleAuthProvider();
+        try {
+            await signInWithRedirect(auth, provider);
+            // No need to set isLoading(false) here, as signInWithRedirect navigates away.
+        } catch (error) {
+            console.error("Google Sign-In error:", error);
+            setIsLoading(false);
+            toast({
+                variant: 'destructive',
+                title: 'Google Sign-In Failed',
+                description: 'Could not initiate Google Sign-In. Please try again.',
+            });
+        }
+    }, [auth, toast]);
 
     const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
         e.preventDefault();
