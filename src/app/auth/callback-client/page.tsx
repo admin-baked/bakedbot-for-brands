@@ -8,6 +8,10 @@ import { useFirebase } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
+// This is the fix. By exporting this variable, we tell Next.js to always
+// render this page on the client and not to pre-render it during the build.
+export const dynamic = 'force-dynamic';
+
 export default function AuthCallbackClientPage() {
   const { auth } = useFirebase();
   const router = useRouter();
