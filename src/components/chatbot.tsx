@@ -162,8 +162,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
 
 
     return (
-    <div className={cn("h-full", className)}>
-        <ScrollArea className="h-full">
+        <ScrollArea className={cn("h-full", className)}>
             <div className="space-y-4 p-4">
                 {messages.map((message) => (
                 <div key={message.id} className={cn("flex items-start gap-3", message.sender === 'user' ? 'justify-end' : '')}>
@@ -234,7 +233,6 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
                 <div ref={messagesEndRef} />
             </div>
         </ScrollArea>
-    </div>
 )};
 
 const ChatWindow = ({
@@ -457,7 +455,7 @@ export default function Chatbot() {
 
       // Add reasoning to the main message if there's only one product
       if (recommendedProductDetails.length === 1 && recommendedProductDetails[0].reasoning) {
-        botResponseText += `\n\n**${recommendedProductDetails[0].name}**: ${recommendedProductDetails[0].reasoning}`;
+        botResponseText += `\n\n**${recommendedProductDetails[0].name}**: ${recommendedProdDetails[0].reasoning}`;
       }
   
       const botMessage: Message = {
