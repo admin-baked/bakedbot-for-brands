@@ -37,11 +37,11 @@ export default function DispensaryLocator() {
     // Get state from the zustand store.
     const isDemoMode = useStore((state) => state.isDemoMode);
     const storeLocations = useStore((state) => state.locations);
-    const hasHydrated = useStore((state) => state._hasHydrated);
+    const isHydrated = useStore((state) => !!state.isCeoMode || state._hasHydrated);
 
     useEffect(() => {
         // Wait until the store has been rehydrated from localStorage.
-        if (!hasHydrated) {
+        if (!isHydrated) {
             return;
         }
         
@@ -99,10 +99,10 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false);
         }
-    }, [hasHydrated, isDemoMode, storeLocations, toast]);
+    }, [isHydrated, isDemoMode, storeLocations, toast]);
 
 
-    if (!hasHydrated || isLocating) {
+    if (isLocating) {
          return (
              <div className="mb-12">
                 <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
