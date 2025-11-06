@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -44,6 +45,15 @@ export default function BrandLoginPage() {
 
     const handleGoogleSignIn = useCallback(async () => {
         setIsLoading(true);
+        if (!auth) {
+            toast({
+                variant: 'destructive',
+                title: 'Initialization Error',
+                description: 'Firebase is not ready. Please try again in a moment.',
+            });
+            setIsLoading(false);
+            return;
+        }
         const provider = new GoogleAuthProvider();
         try {
             await signInWithRedirect(auth, provider);
@@ -73,8 +83,11 @@ export default function BrandLoginPage() {
 
         setIsLoading(true);
         try {
+            // This is now a client-side only operation to remember the email
             window.localStorage.setItem('emailForSignIn', finalEmail);
-            const result = await sendMagicLink(auth, finalEmail);
+            
+            const result = await sendMagicLink(finalEmail);
+            
             if (result?.error) {
                 throw new Error(result.error);
             }
@@ -94,7 +107,7 @@ export default function BrandLoginPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [auth, email, toast]);
+    }, [email, toast]);
     
     if (magicLinkSent) {
         return (
@@ -170,3 +183,5 @@ export default function BrandLoginPage() {
         </div>
     );
 }
+
+    
