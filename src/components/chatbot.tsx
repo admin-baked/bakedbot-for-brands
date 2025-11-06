@@ -162,77 +162,79 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
 
 
     return (
-    <ScrollArea className={className}>
-        <div className="space-y-4 p-4">
-            {messages.map((message) => (
-            <div key={message.id} className={cn("flex items-start gap-3", message.sender === 'user' ? 'justify-end' : '')}>
-                {message.sender === 'bot' && (
-                <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                    <Bot />
-                    </AvatarFallback>
-                </Avatar>
-                )}
-                <div className={cn(
-                    "max-w-[85%] rounded-lg px-3 py-2", 
-                    message.sender === 'user' 
-                        ? 'bg-primary text-primary-foreground rounded-br-none' 
-                        : 'bg-muted rounded-bl-none'
-                )}>
-                {message.text && (
-                  <p className="text-sm whitespace-pre-line">{message.text}</p>
-                )}
-                {message.imageUrl && (
-                    <div className="mt-2 space-y-2">
-                        <div className="relative aspect-square w-full max-w-xs overflow-hidden rounded-lg border">
-                            <Image src={message.imageUrl} alt="Generated brand image" fill className="object-cover" data-ai-hint="brand social media" />
-                        </div>
-                        <Button size="sm" variant="outline" className="w-full" onClick={() => handleShare(message)}>
-                            <Share2 className="mr-2 h-4 w-4" />
-                            Share Image
-                        </Button>
-                    </div>
-                )}
-                {message.productSuggestions && (
-                    <div className="mt-2 flex gap-2 overflow-x-auto pb-2">
-                        {message.productSuggestions.slice(0, 3).map(p => (
-                            <ExpandableProductCard 
-                                key={p.id}
-                                product={p}
-                                onAskSmokey={onAskSmokey}
-                                isExpanded={expandedProduct?.id === p.id}
-                                onExpand={setExpandedProduct}
-                            />
-                        ))}
-                    </div>
-                )}
-                </div>
-                {message.sender === 'user' && (
-                <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-                )}
-            </div>
-            ))}
-            {isBotTyping && (
-                <div className="flex items-end gap-3">
+    <div className={cn("h-full", className)}>
+        <ScrollArea className="h-full">
+            <div className="space-y-4 p-4">
+                {messages.map((message) => (
+                <div key={message.id} className={cn("flex items-start gap-3", message.sender === 'user' ? 'justify-end' : '')}>
+                    {message.sender === 'bot' && (
                     <Avatar className="h-8 w-8 shrink-0">
                         <AvatarFallback className="bg-primary text-primary-foreground">
-                            <Bot />
+                        <Bot />
                         </AvatarFallback>
                     </Avatar>
-                    <div className="max-w-[80%] rounded-lg bg-muted px-3 py-2 rounded-bl-none">
-                        <div className="flex items-center justify-center gap-1.5 h-5">
-                            <Sparkles className="h-4 w-4 animate-wiggle text-primary [animation-delay:-0.4s]" />
-                            <Sparkles className="h-4 w-4 animate-wiggle text-foreground [animation-delay:-0.2s]" />
-                            <Sparkles className="h-4 w-4 animate-wiggle text-muted-foreground" />
+                    )}
+                    <div className={cn(
+                        "max-w-[85%] rounded-lg px-3 py-2", 
+                        message.sender === 'user' 
+                            ? 'bg-primary text-primary-foreground rounded-br-none' 
+                            : 'bg-muted rounded-bl-none'
+                    )}>
+                    {message.text && (
+                      <p className="text-sm whitespace-pre-line">{message.text}</p>
+                    )}
+                    {message.imageUrl && (
+                        <div className="mt-2 space-y-2">
+                            <div className="relative aspect-square w-full max-w-xs overflow-hidden rounded-lg border">
+                                <Image src={message.imageUrl} alt="Generated brand image" fill className="object-cover" data-ai-hint="brand social media" />
+                            </div>
+                            <Button size="sm" variant="outline" className="w-full" onClick={() => handleShare(message)}>
+                                <Share2 className="mr-2 h-4 w-4" />
+                                Share Image
+                            </Button>
+                        </div>
+                    )}
+                    {message.productSuggestions && (
+                        <div className="mt-2 flex gap-2 overflow-x-auto pb-2">
+                            {message.productSuggestions.slice(0, 3).map(p => (
+                                <ExpandableProductCard 
+                                    key={p.id}
+                                    product={p}
+                                    onAskSmokey={onAskSmokey}
+                                    isExpanded={expandedProduct?.id === p.id}
+                                    onExpand={setExpandedProduct}
+                                />
+                            ))}
+                        </div>
+                    )}
+                    </div>
+                    {message.sender === 'user' && (
+                    <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarFallback>U</AvatarFallback>
+                    </Avatar>
+                    )}
+                </div>
+                ))}
+                {isBotTyping && (
+                    <div className="flex items-end gap-3">
+                        <Avatar className="h-8 w-8 shrink-0">
+                            <AvatarFallback className="bg-primary text-primary-foreground">
+                                <Bot />
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="max-w-[80%] rounded-lg bg-muted px-3 py-2 rounded-bl-none">
+                            <div className="flex items-center justify-center gap-1.5 h-5">
+                                <Sparkles className="h-4 w-4 animate-wiggle text-primary [animation-delay:-0.4s]" />
+                                <Sparkles className="h-4 w-4 animate-wiggle text-foreground [animation-delay:-0.2s]" />
+                                <Sparkles className="h-4 w-4 animate-wiggle text-muted-foreground" />
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-            <div ref={messagesEndRef} />
-        </div>
-    </ScrollArea>
+                )}
+                <div ref={messagesEndRef} />
+            </div>
+        </ScrollArea>
+    </div>
 )};
 
 const ChatWindow = ({
@@ -272,13 +274,14 @@ const ChatWindow = ({
         </CardHeader>
         )}
         
-        <ChatMessages 
-          messages={messages} 
-          isBotTyping={isBotTyping} 
-          messagesEndRef={messagesEndRef} 
-          onAskSmokey={onAskSmokey}
-          className="flex-1 min-h-0 border-t"
-        />
+        <div className="flex-1 min-h-0 border-t">
+            <ChatMessages 
+              messages={messages} 
+              isBotTyping={isBotTyping} 
+              messagesEndRef={messagesEndRef} 
+              onAskSmokey={onAskSmokey}
+            />
+        </div>
       
       <CardFooter className="p-4 border-t">
         <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
