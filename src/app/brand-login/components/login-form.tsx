@@ -12,7 +12,7 @@ import { Logo } from '@/components/logo';
 import { sendMagicLink } from '../actions';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -25,7 +25,9 @@ const GoogleIcon = () => (
 
 
 export default function LoginForm() {
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true); // Start loading true to handle redirect
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+    const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [magicLinkSent, setMagicLinkSent] = useState(false);
     const { toast } = useToast();
@@ -42,9 +44,35 @@ export default function LoginForm() {
                 description: decodeURIComponent(error),
             });
         }
-    }, [searchParams, toast]);
+        
+        if (auth) {
+            getRedirectResult(auth)
+              .then((result) => {
+                if (result) {
+                  // User signed in. The onAuthStateChanged listener will handle the redirect to /dashboard.
+                  // No need to do anything here.
+                }
+              })
+              .catch((error) => {
+                console.error("Google Redirect Result error:", error);
+                toast({
+                  variant: 'destructive',
+                  title: 'Google Sign-In Failed',
+                  description: error.message || 'Could not complete Google Sign-In.',
+                });
+              })
+              .finally(() => {
+                setIsLoading(false); // Finished checking for redirect result
+                setIsGoogleLoading(false);
+              });
+        } else {
+            setIsLoading(false); // Auth not ready, stop loading
+        }
+
+    }, [auth, searchParams, toast, router]);
 
     const handleGoogleSignIn = async () => {
+        setIsGoogleLoading(true);
         setIsLoading(true);
         if (!auth) {
             toast({
@@ -53,27 +81,13 @@ export default function LoginForm() {
                 description: 'Firebase is not ready. Please try again in a moment.',
             });
             setIsLoading(false);
+            setIsGoogleLoading(false);
             return;
         }
         const provider = new GoogleAuthProvider();
-        try {
-            await signInWithPopup(auth, provider);
-            // The onAuthStateChanged listener in FirebaseProvider will also run,
-            // but explicitly navigating wins the race condition.
-            router.replace('/dashboard');
-        } catch (error: any) {
-            // Handle errors here, such as user closing the popup.
-            console.error("Google Sign-In error:", error);
-            if (error.code !== 'auth/popup-closed-by-user') {
-                 toast({
-                    variant: 'destructive',
-                    title: 'Google Sign-In Failed',
-                    description: error.message || 'Could not complete Google Sign-In. Please try again.',
-                });
-            }
-        } finally {
-            setIsLoading(false);
-        }
+        // We call signInWithRedirect which is non-blocking.
+        // The result is handled by getRedirectResult in the useEffect hook.
+        signInWithRedirect(auth, provider);
     };
 
     const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
@@ -88,11 +102,9 @@ export default function LoginForm() {
             return;
         }
 
-        setIsLoading(true);
+        setIsMagicLinkLoading(true);
         try {
-            // Save email to local storage for the callback page to use
             window.localStorage.setItem('emailForSignIn', finalEmail);
-            
             const result = await sendMagicLink(finalEmail);
             
             if (result?.error) {
@@ -112,7 +124,7 @@ export default function LoginForm() {
                 description: errorMessage,
             });
         } finally {
-            setIsLoading(false);
+            setIsMagicLinkLoading(false);
         }
     }, [email, toast]);
     
@@ -150,9 +162,9 @@ export default function LoginForm() {
                         variant="outline"
                         className="w-full"
                         onClick={handleGoogleSignIn}
-                        disabled={isLoading}
+                        disabled={isLoading || isGoogleLoading || isMagicLinkLoading}
                     >
-                        {isLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon /> Continue with Google</>}
+                        {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon /> Continue with Google</>}
                     </Button>
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
@@ -171,18 +183,18 @@ export default function LoginForm() {
                                 placeholder="name@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                disabled={isLoading}
+                                disabled={isLoading || isGoogleLoading || isMagicLinkLoading}
                                 required
                             />
                         </div>
-                        <Button type="submit" className="w-full" disabled={isLoading || !email}>
-                            {isLoading ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2" /> Send Magic Link</>}
+                        <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading || isMagicLinkLoading || !email}>
+                            {isMagicLinkLoading ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2" /> Send Magic Link</>}
                         </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-2">
                     <p className="text-xs text-muted-foreground">For testing purposes:</p>
-                    <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')} disabled={isLoading}>
+                    <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')} disabled={isLoading || isGoogleLoading || isMagicLinkLoading}>
                          <Sparkles className="mr-2 h-4 w-4 text-amber-500" /> Dev Magic Button (martez@bakedbot.ai)
                     </Button>
                 </CardFooter>
@@ -190,3 +202,5 @@ export default function LoginForm() {
         </div>
     );
 }
+
+    
