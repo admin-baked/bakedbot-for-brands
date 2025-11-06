@@ -4,7 +4,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Settings, LogOut, Star, Pencil, Trash2, Plus } from 'lucide-react';
+import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import {
   SidebarProvider,
@@ -30,7 +30,6 @@ import { signOut } from 'firebase/auth';
 import { useStore, type NavLink } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
 import EditLinkDialog from './components/edit-link-dialog';
-import DeleteLinkDialog from './components/delete-link-dialog';
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -38,10 +37,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
-  const { isCeoMode, navLinks } = useStore();
+  const { isCeoMode, navLinks, toggleNavLinkVisibility } = useStore();
 
   const [isEditOpen, setIsEditOpen] = React.useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [isAddOpen, setIsAddOpen] = React.useState(false);
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
 
@@ -68,9 +66,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setIsEditOpen(true);
   };
   
-  const handleDeleteClick = (link: NavLink) => {
-    setSelectedLink(link);
-    setIsDeleteOpen(true);
+  const handleToggleVisibilityClick = (href: string) => {
+    toggleNavLinkVisibility(href);
   };
   
   const handleAddClick = () => {
@@ -91,6 +88,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
+  const visibleLinks = isCeoMode ? navLinks : navLinks.filter(link => !link.hidden);
+
   return (
     <SidebarProvider>
       <TooltipProvider>
@@ -101,10 +100,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </SidebarHeader>
             <SidebarContent>
               <SidebarMenu>
-                {navLinks.map((item) => {
+                {visibleLinks.map((item) => {
                    const Icon = (LucideIcons as any)[item.icon] || LucideIcons.PanelRight;
                    return (
-                  <SidebarMenuItem key={item.href}>
+                  <SidebarMenuItem key={item.href} className={cn(isCeoMode && item.hidden && "opacity-50 hover:opacity-100")}>
                     <Link href={item.href} passHref legacyBehavior>
                       <SidebarMenuButton
                         as="a"
@@ -121,8 +120,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <SidebarMenuAction tooltip="Edit" size="icon" className="h-6 w-6" onClick={() => handleEditClick(item)}>
                                 <Pencil/>
                             </SidebarMenuAction>
-                             <SidebarMenuAction tooltip="Delete" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteClick(item)}>
-                                <Trash2/>
+                            <SidebarMenuAction
+                              tooltip={item.hidden ? 'Show' : 'Hide'}
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground"
+                              onClick={() => handleToggleVisibilityClick(item.href)}
+                            >
+                                {item.hidden ? <Eye /> : <EyeOff />}
                             </SidebarMenuAction>
                         </div>
                     )}
@@ -205,11 +209,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setIsOpen={setIsEditOpen}
         link={selectedLink}
       />
-      <DeleteLinkDialog 
-        isOpen={isDeleteOpen}
-        setIsOpen={setIsDeleteOpen}
-        link={selectedLink}
-      />
       <EditLinkDialog
         isOpen={isAddOpen}
         setIsOpen={setIsAddOpen}
@@ -218,3 +217,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
+
+    

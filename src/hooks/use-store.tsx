@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -13,6 +14,7 @@ export type NavLink = {
   href: string;
   label: string;
   icon: keyof typeof import('lucide-react'); // Store icon name as a string
+  hidden?: boolean;
 };
 
 interface StoreState {
@@ -38,19 +40,19 @@ interface StoreState {
   navLinks: NavLink[];
   addNavLink: (link: NavLink) => void;
   updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
-  removeNavLink: (href: string) => void;
+  toggleNavLinkVisibility: (href: string) => void;
 }
 
 const defaultNavLinks: NavLink[] = [
-    { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
-    { href: '/dashboard/products', label: 'Products', icon: 'Package' },
-    { href: '/dashboard/content', label: 'Content Generator', icon: 'PenSquare' },
-    { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star' },
-    { href: '/dashboard/settings', label: 'Settings', icon: 'Settings' },
+    { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard', hidden: false },
+    { href: '/dashboard/products', label: 'Products', icon: 'Package', hidden: false },
+    { href: '/dashboard/content', label: 'Content Generator', icon: 'PenSquare', hidden: false },
+    { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star', hidden: false },
+    { href: '/dashboard/settings', label: 'Settings', icon: 'Settings', hidden: false },
 ];
 
 
-const defaultState: Omit<StoreState, 'setTheme' | 'setChatbotIcon' | 'setChatExperience' | 'recordBrandImageGeneration' | 'setBrandColor' | 'setBrandUrl' | 'setBasePrompt' | 'setWelcomeMessage' | 'toggleCeoMode' | 'addNavLink' | 'updateNavLink' | 'removeNavLink'> = {
+const defaultState: Omit<StoreState, 'setTheme' | 'setChatbotIcon' | 'setChatExperience' | 'recordBrandImageGeneration' | 'setBrandColor' | 'setBrandUrl' | 'setBasePrompt' | 'setWelcomeMessage' | 'toggleCeoMode' | 'addNavLink' | 'updateNavLink' | 'toggleNavLinkVisibility'> = {
   theme: 'green' as Theme,
   chatbotIcon: null,
   chatExperience: 'default' as 'default' | 'classic',
@@ -90,12 +92,12 @@ const createStore = () => create<StoreState>()(
           set({ brandImageGenerations: 1, lastBrandImageGeneration: now });
         }
       },
-      addNavLink: (link: NavLink) => set((state) => ({ navLinks: [...state.navLinks, link] })),
+      addNavLink: (link: NavLink) => set((state) => ({ navLinks: [...state.navLinks, { ...link, hidden: false }] })),
       updateNavLink: (href: string, newLink: Partial<NavLink>) => set((state) => ({
           navLinks: state.navLinks.map((link) => link.href === href ? { ...link, ...newLink } : link)
       })),
-      removeNavLink: (href: string) => set((state) => ({
-          navLinks: state.navLinks.filter((link) => link.href !== href)
+      toggleNavLinkVisibility: (href: string) => set((state) => ({
+          navLinks: state.navLinks.map((link) => link.href === href ? { ...link, hidden: !link.hidden } : link)
       })),
     }),
     {
@@ -147,7 +149,7 @@ type FullStoreState = StoreState & {
     toggleCeoMode: () => void;
     addNavLink: (link: NavLink) => void;
     updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
-    removeNavLink: (href: string) => void;
+    toggleNavLinkVisibility: (href: string) => void;
 };
 
 
@@ -181,7 +183,7 @@ export function useStore(): FullStoreState {
     toggleCeoMode: () => {},
     addNavLink: (link: NavLink) => {},
     updateNavLink: (href: string, newLink: Partial<NavLink>) => {},
-    removeNavLink: (href: string) => {},
+    toggleNavLinkVisibility: (href: string) => {},
   }
 
   const combinedState: FullStoreState = {
@@ -191,3 +193,5 @@ export function useStore(): FullStoreState {
 
   return hydrated ? combinedState : { ...defaultState, ...defaultSetters, isCeoMode: state.isCeoMode, toggleCeoMode: state.toggleCeoMode };
 }
+
+    
