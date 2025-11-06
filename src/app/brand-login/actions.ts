@@ -18,38 +18,24 @@ const createActionCodeSettings = () => ({
 export async function signInWithGoogle(auth: Auth) {
   const provider = new GoogleAuthProvider();
   try {
-    // signInWithRedirect doesn't return a promise that resolves on success in the same context,
-    // it navigates the user away. Errors are typically caught on the redirect page.
     await signInWithRedirect(auth, provider);
   } catch (error: any) {
-    // This catch block might only run for configuration errors, not post-redirect errors.
-    const permissionError = new FirestorePermissionError({
-        path: 'google_auth',
-        operation: 'write', 
-        requestResourceData: { error: error.message }
-    });
-    errorEmitter.emit('permission-error', permissionError);
-    // Re-throwing or handling redirect on client-side might be needed depending on flow
-    // For now, we just log it via our system.
+    // This catch block might only run for configuration errors, not post-redirect auth failures.
+    // It's kept here for robustness, but most auth errors are caught on the redirect callback page.
+    console.error("Google Sign-In configuration error:", error);
   }
 }
 
 export async function sendMagicLink(auth: Auth, email: string) {
   try {
     await sendSignInLinkToEmail(auth, email, createActionCodeSettings());
-    // This side-effect is for the client to know where to find the email
-    // after the redirect. It's not directly related to the auth call itself.
+    // Side-effect for client-side to remember the email for the sign-in flow.
     if (typeof window !== 'undefined') {
         window.localStorage.setItem('emailForSignIn', email);
     }
     return { success: true };
   } catch (error: any) {
-    const permissionError = new FirestorePermissionError({
-        path: 'magic_link_auth',
-        operation: 'write',
-        requestResourceData: { email: email, error: error.message }
-    });
-    errorEmitter.emit('permission-error', permissionError);
+    console.error("Magic Link sending error:", error);
     return { error: error.message || 'An unknown error occurred.' };
   }
 }
