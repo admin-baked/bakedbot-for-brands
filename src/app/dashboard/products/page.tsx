@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { products } from '@/lib/data';
@@ -223,101 +224,18 @@ export default function ProductsPage() {
     }, [isDemoMode]); // Re-run if demo mode changes
 
   return (
-    <div className="min-h-screen bg-background -m-8">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
-        <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12">
-            <Image
-                src="https://picsum.photos/seed/menu-hero/1200/400"
-                alt="Let's Fill Some Bowls"
-                layout="fill"
-                objectFit="cover"
-                data-ai-hint="cannabis lifestyle"
-                className="brightness-75"
-            />
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <h1 className="text-5xl md:text-7xl text-white font-teko tracking-widest uppercase">
-                    Find Your Bliss
-                </h1>
-                <p className="text-white/80 mt-2 max-w-2xl">
-                    Browse our curated selection of premium cannabis products. Use the filters to find exactly what you're looking for.
-                </p>
-            </div>
-        </div>
-
-        <div className="mb-12">
-            <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
-            {isLocating ? (
-                <div className="flex justify-center items-center h-24">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-            ) : (
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {nearbyLocations.map(loc => (
-                        <DispensaryCard key={loc.id} location={loc} />
-                    ))}
-                </div>
-            )}
-        </div>
-
-
-        <div className="text-center mb-12">
-            <Button variant="outline" asChild>
-                <Link href="/leave-a-review">
-                    <PenSquare className="mr-2 h-4 w-4" />
-                    Have Feedback? Leave a Review
-                </Link>
-            </Button>
-        </div>
-
-        {categories.map(category => (
-             <section key={category} className="mb-12">
-                <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">{category}</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-                   {groupedProducts[category].map(product => (
-                       <ProductCard key={product.id} product={product} />
-                   ))}
-                </div>
-            </section>
-        ))}
-
-      </main>
-      <footer className="dark-theme py-12 text-background bg-foreground">
-        <div className="container mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div>
-                <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">BAKEDBOT</h3>
-                <p className="text-sm text-muted-foreground">Your AI-powered cannabis co-pilot.</p>
-            </div>
-             <div>
-                <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">SHOP</h3>
-                <ul className="space-y-2 text-sm">
-                    <li><Link href="#" className="text-muted-foreground hover:text-primary">Edibles</Link></li>
-                    <li><Link href="#" className="text-muted-foreground hover:text-primary">Flower</Link></li>
-                    <li><Link href="#" className="text-muted-foreground hover:text-primary">Vapes</Link></li>
-                </ul>
-            </div>
-            <div>
-                <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">ABOUT</h3>
-                <ul className="space-y-2 text-sm">
-                    <li><Link href="#" className="text-muted-foreground hover:text-primary">Our Story</Link></li>
-                    <li><Link href="#" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
-                    <li><Link href="/brand-login" className="text-muted-foreground hover:text-primary">Brand Login</Link></li>
-                </ul>
-            </div>
-             <div>
-                <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">CONTACT</h3>
-                <ul className="space-y-2 text-sm">
-                    <li><Link href="#" className="text-muted-foreground hover:text-primary">Contact Us</Link></li>
-                    <li><Link href="#" className="text-muted-foreground hover:text-primary">Careers</Link></li>
-                </ul>
-            </div>
-        </div>
-        <div className="container mx-auto mt-8 pt-8 border-t border-muted-foreground/20 text-center text-muted-foreground text-sm">
-            <p>&copy; 2024 BakedBot. All rights reserved.</p>
-        </div>
-      </footer>
-      <CartSidebar />
-      <FloatingCartPill />
+    <div className="flex flex-col gap-6">
+       <div className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight">Product Management</h1>
+        <p className="text-muted-foreground">
+          View, edit, and manage your product catalog.
+        </p>
+      </div>
+      <Button variant="outline" asChild>
+        <Link href="/menu" target="_blank">
+          View Public Menu
+        </Link>
+      </Button>
     </div>
   );
 }
