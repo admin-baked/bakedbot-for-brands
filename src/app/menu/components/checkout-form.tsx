@@ -48,13 +48,35 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     const locations = isDemoMode ? demoLocations : storeLocations;
 
     useEffect(() => {
+        if (isDemoMode) {
+            // In demo mode, bypass geolocation and use predefined demo locations
+            const demoCoords = { lat: 41.8781, lon: -87.6298 }; // Central Chicago
+            const demoLocationsWithDistance = demoLocations.map(loc => {
+                const distance = haversineDistance(demoCoords, { lat: loc.lat!, lon: loc.lon! });
+                return { ...loc, distance };
+            }).sort((a, b) => a.distance - b.distance);
+            setSortedLocations(demoLocationsWithDistance);
+            setIsLocating(false);
+            return;
+        }
+
+        // Live mode logic
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    setUserCoords({
+                    const coords = {
                         lat: position.coords.latitude,
                         lon: position.coords.longitude
-                    });
+                    };
+                    setUserCoords(coords);
+                    const locationsWithDistance = locations.map(loc => {
+                        if (loc.lat && loc.lon) {
+                            const distance = haversineDistance(coords, { lat: loc.lat, lon: loc.lon });
+                            return { ...loc, distance };
+                        }
+                        return loc;
+                    }).sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+                    setSortedLocations(locationsWithDistance);
                     setIsLocating(false);
                 },
                 (error) => {
@@ -67,22 +89,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
             setSortedLocations(locations);
             setIsLocating(false);
         }
-    }, [isDemoMode, storeLocations]);
-
-    useEffect(() => {
-        if (!isLocating) {
-            const locationsWithDistance = locations
-                .map(loc => {
-                    if (loc.lat && loc.lon && userCoords) {
-                        const distance = haversineDistance(userCoords, { lat: loc.lat, lon: loc.lon });
-                        return { ...loc, distance };
-                    }
-                    return loc;
-                })
-                .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-            setSortedLocations(locationsWithDistance);
-        }
-    }, [isLocating, userCoords, locations]);
+    }, [isDemoMode, storeLocations, locations]);
 
 
     useEffect(() => {
