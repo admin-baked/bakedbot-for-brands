@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useActionState, useEffect, useRef, useState } from 'react';
@@ -31,15 +30,13 @@ const initialImageState: ImageFormState = {
   error: false,
 };
 
-function SubmitButton({ action }: { action: (formData: FormData) => void }) {
+function SubmitButton({ action, type }: { action: (formData: FormData) => void, type: 'description' | 'image' }) {
   const { pending } = useFormStatus();
-  const formRef = useRef<HTMLFormElement>(null);
-  const isDescription = action === createProductDescription;
 
   return (
-    <Button type="submit" formAction={action} disabled={pending} className="w-full sm:w-auto" variant={isDescription ? 'default' : 'outline'}>
-      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isDescription ? <FileText className="mr-2" /> : <Wand2 className="mr-2" />)}
-      {isDescription ? 'Generate Description' : 'Generate Image'}
+    <Button type="submit" formAction={action} disabled={pending} className="w-full sm:w-auto" variant={type === 'description' ? 'default' : 'outline'}>
+      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (type === 'description' ? <FileText className="mr-2 h-4 w-4" /> : <Wand2 className="mr-2 h-4 w-4" />)}
+      {type === 'description' ? 'Generate Description' : 'Generate Image'}
     </Button>
   );
 }
@@ -106,6 +103,18 @@ export default function ProductDescriptionForm() {
         descriptionFormAction(formData);
     }
   };
+  
+  const handleFormAction = (e: React.MouseEvent<HTMLButtonElement>, type: 'description' | 'image') => {
+      e.preventDefault();
+      if (formRef.current) {
+        const formData = new FormData(formRef.current);
+        if (type === 'description') {
+            descriptionFormAction(formData);
+        } else {
+            imageFormAction(formData);
+        }
+      }
+  }
 
   return (
     <div className="grid grid-cols-1 gap-8 @container">
@@ -192,14 +201,8 @@ export default function ProductDescriptionForm() {
                 </div>
             </CardContent>
              <CardFooter className="flex-col sm:flex-row gap-2">
-                <Button onClick={() => descriptionFormAction(new FormData(formRef.current!))} disabled={isDescriptionPending || isImagePending} className="w-full sm:w-auto">
-                    {isDescriptionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2" />}
-                    Generate Description
-                </Button>
-                 <Button onClick={() => imageFormAction(new FormData(formRef.current!))} disabled={isDescriptionPending || isImagePending} className="w-full sm:w-auto" variant="outline">
-                    {isImagePending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2" />}
-                    Generate Image
-                </Button>
+                <SubmitButton action={descriptionFormAction} type="description" />
+                <SubmitButton action={imageFormAction} type="image" />
              </CardFooter>
           </form>
         </Card>
