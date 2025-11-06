@@ -10,9 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { sendMagicLink } from './actions';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
-import { GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -31,6 +31,7 @@ export default function BrandLoginPage() {
     const { toast } = useToast();
     const searchParams = useSearchParams();
     const auth = useAuth();
+    const router = useRouter();
 
     useEffect(() => {
         const error = searchParams.get('error');
@@ -43,7 +44,7 @@ export default function BrandLoginPage() {
         }
     }, [searchParams, toast]);
 
-    const handleGoogleSignIn = () => {
+    const handleGoogleSignIn = async () => {
         setIsLoading(true);
         if (!auth) {
             toast({
@@ -55,17 +56,23 @@ export default function BrandLoginPage() {
             return;
         }
         const provider = new GoogleAuthProvider();
-        // This is a client-side redirect, it should not be async/awaited.
-        // Firebase handles the redirect and the auth state observer will pick up the result.
-        signInWithRedirect(auth, provider).catch((error) => {
+        try {
+            await signInWithPopup(auth, provider);
+            // The onAuthStateChanged listener in FirebaseProvider will handle the redirect to /dashboard
+            router.push('/dashboard');
+        } catch (error: any) {
+            // Handle errors here, such as user closing the popup.
             console.error("Google Sign-In error:", error);
+            if (error.code !== 'auth/popup-closed-by-user') {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Google Sign-In Failed',
+                    description: error.message || 'Could not complete Google Sign-In. Please try again.',
+                });
+            }
+        } finally {
             setIsLoading(false);
-            toast({
-                variant: 'destructive',
-                title: 'Google Sign-In Failed',
-                description: 'Could not initiate Google Sign-In. Please try again.',
-            });
-        });
+        }
     };
 
     const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
