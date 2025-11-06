@@ -190,6 +190,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           <Shield className="mr-2 h-4 w-4" />
                           <span>Admin Controls</span>
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push('/dashboard/products')}>
+                          <MenuSquare className="mr-2 h-4 w-4" />
+                          <span>Menu</span>
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => router.push('/dashboard/locations')}>
                           <MapPin className="mr-2 h-4 w-4" />
                           <span>Locations</span>
@@ -227,6 +231,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <DropdownMenuItem onClick={() => router.push('/ceo')}>
                     <Shield className="mr-2 h-4 w-4" />
                     <span>Admin Controls</span>
+                  </DropdownMenuItem>
+                   <DropdownMenuItem onClick={() => router.push('/dashboard/products')}>
+                    <MenuSquare className="mr-2 h-4 w-4" />
+                    <span>Menu</span>
                   </DropdownMenuItem>
                    <DropdownMenuItem onClick={() => router.push('/dashboard/locations')}>
                     <MapPin className="mr-2 h-4 w-4" />
