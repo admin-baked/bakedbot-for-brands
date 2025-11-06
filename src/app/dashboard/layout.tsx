@@ -1,9 +1,10 @@
+
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare } from 'lucide-react';
+import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare, Shield } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import {
   SidebarProvider,
@@ -185,6 +186,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <DropdownMenuContent className="w-56 mb-2" side="top" align="start">
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                         <DropdownMenuSeparator />
+                         <DropdownMenuItem onClick={() => router.push('/ceo')}>
+                          <Shield className="mr-2 h-4 w-4" />
+                          <span>Admin Controls</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+                          <Settings className="mr-2 h-4 w-4" />
+                          <span>Settings</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleSignOut}>
                           <LogOut className="mr-2 h-4 w-4" />
                           <span>Log out</span>
@@ -210,6 +220,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => router.push('/ceo')}>
+                    <Shield className="mr-2 h-4 w-4" />
+                    <span>Admin Controls</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
