@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https',
+        protocol: 'https,
         hostname: 'bakedbot.ai',
         port: '',
         pathname: '/**',
@@ -38,7 +38,7 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    allowedDevOrigins: ['*.cloudworkstations.dev'],
+    
   },
 };
 
