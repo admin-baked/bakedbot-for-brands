@@ -30,6 +30,11 @@ const CheckoutForm = ({ onOrderSuccess }: { onOrderSuccess: () => void }) => {
     const [userCoords, setUserCoords] = React.useState<{ lat: number, lon: number } | null>(null);
     const [isLocating, setIsLocating] = React.useState(true);
     const [sortedLocations, setSortedLocations] = React.useState<LocationWithDistance[]>([]);
+    const [hasMounted, setHasMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setHasMounted(true);
+    }, []);
 
     const locations = isDemoMode
         ? [
@@ -40,7 +45,7 @@ const CheckoutForm = ({ onOrderSuccess }: { onOrderSuccess: () => void }) => {
         : storeLocations;
 
     React.useEffect(() => {
-        if ("geolocation" in navigator) {
+        if (hasMounted && "geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     setUserCoords({ lat: position.coords.latitude, lon: position.coords.longitude });
@@ -51,17 +56,17 @@ const CheckoutForm = ({ onOrderSuccess }: { onOrderSuccess: () => void }) => {
                     setIsLocating(false);
                 }
             );
-        } else {
+        } else if (hasMounted) {
             setSortedLocations(locations);
             setIsLocating(false);
         }
-    }, []);
+    }, [hasMounted, isDemoMode, storeLocations]);
 
     React.useEffect(() => {
-        if (userCoords) {
+        if (!isLocating) {
             const locationsWithDistance = locations
                 .map(loc => {
-                    if (loc.lat && loc.lon) {
+                    if (loc.lat && loc.lon && userCoords) {
                         const distance = haversineDistance(userCoords, { lat: loc.lat, lon: loc.lon });
                         return { ...loc, distance };
                     }
@@ -69,10 +74,8 @@ const CheckoutForm = ({ onOrderSuccess }: { onOrderSuccess: () => void }) => {
                 })
                 .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
             setSortedLocations(locationsWithDistance);
-        } else {
-            setSortedLocations(locations);
         }
-    }, [userCoords, locations]);
+    }, [isLocating, userCoords, locations]);
 
     const subtotal = getCartTotal();
     const taxes = subtotal * 0.15;

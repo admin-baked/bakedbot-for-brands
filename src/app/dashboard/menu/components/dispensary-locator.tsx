@@ -35,8 +35,7 @@ export default function DispensaryLocator() {
     
     // We must use the store hook conditionally to avoid hydration errors.
     const store = useStore();
-    const isDemoMode = store.isDemoMode;
-    const storeLocations = store.locations;
+
 
     useEffect(() => {
       setHasMounted(true);
@@ -45,6 +44,10 @@ export default function DispensaryLocator() {
     useEffect(() => {
         // This entire effect runs only on the client-side, avoiding hydration errors.
         if (!hasMounted) return;
+        
+        // Now it's safe to access the store
+        const isDemoMode = store.isDemoMode;
+        const storeLocations = store.locations;
 
         const demoLocations = [
             { id: 'demo1', name: 'Green Leaf Central', address: '123 Main St', city: 'Metropolis', state: 'IL', zip: '12345', phone: '(555) 123-4567', lat: 40.7128, lon: -74.0060 },
@@ -95,7 +98,7 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false);
         }
-    }, [isDemoMode, storeLocations, toast, hasMounted]);
+    }, [hasMounted, store.isDemoMode, store.locations, toast]);
 
 
     if (!hasMounted || isLocating) {
@@ -107,6 +110,10 @@ export default function DispensaryLocator() {
                 </div>
             </div>
          )
+    }
+    
+    if (nearbyLocations.length === 0) {
+        return null; // Don't render anything if there are no locations to show
     }
 
     return (
