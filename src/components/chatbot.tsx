@@ -551,7 +551,8 @@ export default function Chatbot() {
     setIsBotTyping(true);
 
     if (chatMode === 'image') {
-        if (!chatbotIcon) {
+        const logo = isDemoMode ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-vertical-logo-PNG-transparent.png" : customIcon;
+        if (!logo) {
             const errorMessage: Message = {
                 id: Date.now() + 1,
                 text: "I can't generate a watermarked image without a brand logo. Please upload one in the Settings page on the dashboard.",
@@ -566,7 +567,7 @@ export default function Chatbot() {
         formData.append('productName', 'Brand Image');
         formData.append('features', currentInput); 
         formData.append('brandVoice', 'Creative');
-        formData.append('logoDataUri', chatbotIcon);
+        formData.append('logoDataUri', logo);
         
         const result = await createSocialMediaImage(initialImageState, formData);
 
@@ -692,3 +693,4 @@ export default function Chatbot() {
 
     
 
+    

@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 
 export function Logo() {
@@ -14,3 +15,5 @@ export function Logo() {
     </div>
   );
 }
+
+    
