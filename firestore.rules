@@ -22,7 +22,7 @@ service cloud.firestore {
       allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
       allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isOwner(userId);
-      allow list: if false;
+      allow list: if isAuthenticated();
     }
 
     match /user-private/{userId} {
