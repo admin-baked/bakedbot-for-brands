@@ -1,16 +1,52 @@
 
 'use client';
 
+import { useActionState, useEffect, useRef, useState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Upload, Download } from "lucide-react";
+import { Upload, Download, Loader2 } from "lucide-react";
 import Link from "next/link";
-import * as React from "react";
+import { importProductsFromCsv } from '../actions';
+import { useToast } from '@/hooks/use-toast';
+
+
+const initialState = {
+  message: '',
+  error: false,
+};
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={pending}>
+      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      Import Products
+    </Button>
+  );
+}
 
 export default function ProductImportSettings() {
-    const [fileName, setFileName] = React.useState<string | null>(null);
+    const [state, formAction] = useActionState(importProductsFromCsv, initialState);
+    const { toast } = useToast();
+    const [fileName, setFileName] = useState<string | null>(null);
+    const formRef = useRef<HTMLFormElement>(null);
+
+    useEffect(() => {
+        if (state.message) {
+            toast({
+                title: state.error ? 'Import Failed' : 'Success',
+                description: state.message,
+                variant: state.error ? 'destructive' : 'default',
+            });
+            if (!state.error) {
+              formRef.current?.reset();
+              setFileName(null);
+            }
+        }
+    }, [state, toast]);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -23,7 +59,7 @@ export default function ProductImportSettings() {
 
     return (
         <Card>
-            <form>
+            <form action={formAction} ref={formRef}>
                 <CardHeader>
                     <CardTitle>Product Catalog</CardTitle>
                     <CardDescription>
@@ -46,7 +82,7 @@ export default function ProductImportSettings() {
                                         </>
                                     )}
                                 </div>
-                                <Input id="product-csv-upload" type="file" className="hidden" accept=".csv" onChange={handleFileChange} />
+                                <Input id="product-csv-upload" name="product-csv-upload" type="file" className="hidden" accept=".csv" onChange={handleFileChange} />
                             </Label>
                         </div>
                     </div>
@@ -62,7 +98,7 @@ export default function ProductImportSettings() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button type="submit">Import Products</Button>
+                    <SubmitButton />
                 </CardFooter>
             </form>
         </Card>

@@ -1,15 +1,25 @@
-
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { doc, setDoc } from 'firebase/firestore';
+import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/firebase/server-client';
+import { doc, setDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-const FormSchema = z.object({
+// Schema for API Key
+const ApiKeySchema = z.object({
   apiKey: z.string().min(1, 'API Key is required.'),
+});
+
+// Schema for Product Import
+const ProductImportSchema = z.object({
+    productsFile: z.instanceof(File).refine(file => file.size > 0, 'Please upload a CSV file.').refine(file => file.type === 'text/csv', 'File must be a CSV.'),
+});
+
+// Schema for Brand Voice
+const BrandVoiceSchema = z.object({
+    brandDoc: z.instanceof(File).refine(file => file.size > 0, 'Please upload a document.'),
 });
 
 export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
@@ -23,7 +33,7 @@ export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
     };
   }
 
-  const validatedFields = FormSchema.safeParse({
+  const validatedFields = ApiKeySchema.safeParse({
     apiKey: formData.get('bakedbot-api-key'),
   });
 
@@ -54,4 +64,84 @@ export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
     message: 'API Key saved successfully!',
     error: false,
   };
+}
+
+
+export async function importProductsFromCsv(prevState: any, formData: FormData) {
+    const validatedFields = ProductImportSchema.safeParse({
+        productsFile: formData.get('product-csv-upload'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            message: validatedFields.error.flatten().fieldErrors.productsFile?.[0] || 'Invalid file.',
+            error: true,
+        };
+    }
+    
+    const { productsFile } = validatedFields.data;
+
+    try {
+        const fileContent = await productsFile.text();
+        // In a real app, you would parse the CSV and update the database.
+        // For now, we'll just log it to show it works.
+        console.log('--- Simulating Product Import ---');
+        console.log(`File: ${productsFile.name}, Size: ${productsFile.size} bytes`);
+        console.log('CSV Content:', fileContent.substring(0, 200) + '...');
+        console.log('---------------------------------');
+
+        revalidatePath('/dashboard/settings');
+
+        return {
+            message: `Successfully imported products from ${productsFile.name}.`,
+            error: false,
+        };
+
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+        console.error("Product import error:", errorMessage);
+        return {
+            message: `Failed to import products: ${errorMessage}`,
+            error: true,
+        };
+    }
+}
+
+export async function trainOnBrandDocuments(prevState: any, formData: FormData) {
+     const validatedFields = BrandVoiceSchema.safeParse({
+        brandDoc: formData.get('brand-doc-upload'),
+    });
+
+     if (!validatedFields.success) {
+        return {
+            message: validatedFields.error.flatten().fieldErrors.brandDoc?.[0] || 'Invalid file.',
+            error: true,
+        };
+    }
+
+    const { brandDoc } = validatedFields.data;
+
+    try {
+        // In a real app, you would process this file and use it to fine-tune an LLM.
+        // For now, we'll log it to show the mechanism works.
+        console.log('--- Simulating Brand Voice Training ---');
+        console.log(`File: ${brandDoc.name}, Type: ${brandDoc.type}, Size: ${brandDoc.size} bytes`);
+        console.log('This file would now be sent to a training pipeline.');
+        console.log('-------------------------------------');
+
+        revalidatePath('/dashboard/settings');
+
+        return {
+            message: `Successfully uploaded ${brandDoc.name} for training.`,
+            error: false,
+        };
+
+    } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+        console.error("Brand voice training error:", errorMessage);
+        return {
+            message: `Failed to upload document: ${errorMessage}`,
+            error: true,
+        };
+    }
 }

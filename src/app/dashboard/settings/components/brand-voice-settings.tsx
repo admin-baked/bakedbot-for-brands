@@ -1,15 +1,50 @@
 
 'use client';
 
+import { useActionState, useEffect, useRef, useState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
-import * as React from "react";
+import { Upload, Loader2 } from "lucide-react";
+import { trainOnBrandDocuments } from '../actions';
+import { useToast } from '@/hooks/use-toast';
+
+const initialState = {
+  message: '',
+  error: false,
+};
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={pending}>
+      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      Upload & Train
+    </Button>
+  );
+}
 
 export default function BrandVoiceSettings() {
-    const [fileName, setFileName] = React.useState<string | null>(null);
+    const [state, formAction] = useActionState(trainOnBrandDocuments, initialState);
+    const { toast } = useToast();
+    const [fileName, setFileName] = useState<string | null>(null);
+    const formRef = useRef<HTMLFormElement>(null);
+
+    useEffect(() => {
+        if (state.message) {
+            toast({
+                title: state.error ? 'Upload Failed' : 'Success',
+                description: state.message,
+                variant: state.error ? 'destructive' : 'default',
+            });
+            if (!state.error) {
+              formRef.current?.reset();
+              setFileName(null);
+            }
+        }
+    }, [state, toast]);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -22,7 +57,7 @@ export default function BrandVoiceSettings() {
 
     return (
         <Card>
-            <form>
+            <form action={formAction} ref={formRef}>
                 <CardHeader>
                     <CardTitle>Brand Voice Training</CardTitle>
                     <CardDescription>
@@ -45,13 +80,13 @@ export default function BrandVoiceSettings() {
                                         </>
                                     )}
                                 </div>
-                                <Input id="brand-doc-upload" type="file" className="hidden" accept=".pdf,.doc,.docx,.txt" onChange={handleFileChange} />
+                                <Input id="brand-doc-upload" name="brand-doc-upload" type="file" className="hidden" accept=".pdf,.doc,.docx,.txt" onChange={handleFileChange} />
                             </Label>
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button type="submit">Upload & Train</Button>
+                    <SubmitButton />
                 </CardFooter>
             </form>
         </Card>
