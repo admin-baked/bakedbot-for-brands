@@ -92,7 +92,7 @@ const ProductCard = ({ product }: { product: typeof products[0] }) => {
 }
 
 const FloatingCartPill = () => {
-    const { getItemCount, getCartTotal } = useCart();
+    const { getItemCount, getCartTotal, toggleCart } = useCart();
     const itemCount = getItemCount();
     const subtotal = getCartTotal();
 
@@ -104,17 +104,15 @@ const FloatingCartPill = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 100 }}
                     transition={{ ease: "easeInOut", duration: 0.3 }}
-                    className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+                    className="fixed bottom-6 left-6 z-50"
                 >
                     <Card className="shadow-2xl">
                         <CardContent className="p-0">
                             <div className="flex items-center gap-4 p-3">
                                 <Badge>{itemCount}</Badge>
                                 <span className="font-semibold text-lg">${subtotal.toFixed(2)}</span>
-                                <Button asChild>
-                                    <Link href="/dashboard/menu/checkout">
-                                        <CreditCard className="mr-2 h-4 w-4" /> Checkout
-                                    </Link>
+                                <Button onClick={toggleCart}>
+                                    <CreditCard className="mr-2 h-4 w-4" /> View Cart
                                 </Button>
                             </div>
                         </CardContent>
