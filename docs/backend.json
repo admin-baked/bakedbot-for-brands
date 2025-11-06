@@ -324,7 +324,7 @@
           "schema": {
             "$ref": "#/backend/entities/Review"
           },
-          "description": "Stores customer reviews for a specific product.",
+          "description": "Stores customer reviews for a specific product. The collection is queryable by authenticated users.",
           "params": [
             {
               "name": "productId",
