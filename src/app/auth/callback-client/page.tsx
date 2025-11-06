@@ -4,17 +4,18 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
-import { useAuth } from '@/firebase';
+import { useFirebase } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function AuthCallbackClientPage() {
-  const auth = useAuth();
+  const { auth } = useFirebase();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // This effect should only run once on component mount.
+    // Ensure auth is initialized on the client before proceeding.
     if (!auth || typeof window === 'undefined') {
       return;
     }
