@@ -82,7 +82,7 @@ export default function EditLinkDialog({ isOpen, setIsOpen, link }: EditLinkDial
         <DialogHeader>
           <DialogTitle>{isAddMode ? 'Add New Link' : 'Edit Link'}</DialogTitle>
           <DialogDescription>
-            {isAddMode ? 'Create a new navigation link for the sidebar.' : `Make changes to the "${link?.label}" link. Click save when you're done.`}
+            {isAddMode ? 'Create a new navigation link for the sidebar.' : `Make changes to the "${link?.label}" link. Click save when you\'re done.`}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
