@@ -8,6 +8,7 @@ import { StoreProvider, useStore } from '@/hooks/use-store';
 import { useEffect } from 'react';
 import { themes } from '@/lib/themes';
 import { FirebaseClientProvider } from '@/firebase';
+import { CartProvider } from '@/hooks/use-cart';
 
 export default function RootLayoutWrapper({
   children,
@@ -17,7 +18,9 @@ export default function RootLayoutWrapper({
   return (
     <StoreProvider>
       <FirebaseClientProvider>
-        <RootLayout>{children}</RootLayout>
+        <CartProvider>
+            <RootLayout>{children}</RootLayout>
+        </CartProvider>
       </FirebaseClientProvider>
     </StoreProvider>
   );
@@ -61,6 +64,10 @@ function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+         <link
+          href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>
