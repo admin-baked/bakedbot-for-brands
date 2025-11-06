@@ -4,7 +4,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus } from 'lucide-react';
+import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import {
   SidebarProvider,
@@ -30,6 +30,8 @@ import { signOut } from 'firebase/auth';
 import { useStore, type NavLink } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
 import EditLinkDialog from './components/edit-link-dialog';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -37,7 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
-  const { isCeoMode, navLinks, toggleNavLinkVisibility } = useStore();
+  const { isCeoMode, navLinks, toggleNavLinkVisibility, isDemoMode, toggleDemoMode } = useStore();
 
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [isAddOpen, setIsAddOpen] = React.useState(false);
@@ -138,6 +140,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <SidebarFooter>
                  {isCeoMode && (
                   <SidebarMenu>
+                     <SidebarMenuItem className="p-2">
+                        <div className='flex items-center space-x-2 rounded-lg'>
+                            <FlaskConical className='h-5 w-5' />
+                            <Label htmlFor="demo-mode-switch" className="flex-1 text-sm">Demo Mode</Label>
+                            <Switch id="demo-mode-switch" checked={isDemoMode} onCheckedChange={toggleDemoMode} />
+                        </div>
+                    </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton tooltip="Add Link" onClick={handleAddClick}>
                             <Plus />

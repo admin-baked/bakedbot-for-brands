@@ -4,13 +4,13 @@
 import { useStore } from '@/hooks/use-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, ShieldCheck, TestTube2, FlaskConical } from 'lucide-react';
+import { Shield, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
 export default function CeoPage() {
-  const { isCeoMode, toggleCeoMode, isDemoMode, toggleDemoMode } = useStore();
+  const { isCeoMode, toggleCeoMode } = useStore();
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
@@ -40,16 +40,6 @@ export default function CeoPage() {
                 </p>
             </div>
              <Switch id="ceo-mode-switch" checked={isCeoMode} onCheckedChange={toggleCeoMode} />
-          </div>
-          <div className='flex items-center space-x-2 rounded-lg border p-4'>
-            <FlaskConical className='h-6 w-6' />
-            <div className="flex-1 space-y-1">
-                <Label htmlFor="demo-mode-switch">Demo Mode</Label>
-                <p className='text-xs text-muted-foreground'>
-                    Populate the app with sample data for demonstration.
-                </p>
-            </div>
-             <Switch id="demo-mode-switch" checked={isDemoMode} onCheckedChange={toggleDemoMode} />
           </div>
         </CardContent>
         <CardContent className="text-center">
