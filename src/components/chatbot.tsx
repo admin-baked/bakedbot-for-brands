@@ -85,8 +85,47 @@ const ProductCarousel = ({ onAskSmokey, isCompact }: { onAskSmokey: (product: Pr
     </>
 );
 
-const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>}) => {
+const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand }: { product: Product, onAskSmokey: (p: Product) => void, isExpanded: boolean, onExpand: (p: Product) => void }) => {
+    if (isExpanded) {
+        return (
+            <div className="flex-shrink-0 w-48 flex flex-col gap-2 rounded-md border bg-background p-2 text-foreground cursor-pointer" onClick={() => onExpand(product)}>
+                <div className="relative h-24 w-full shrink-0 overflow-hidden rounded-md">
+                    <Image src={product.imageUrl} alt={product.name} data-ai-hint={product.imageHint} fill className="object-cover"/>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                    <p className="font-semibold truncate">{product.name}</p>
+                    <p className="text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
+                </div>
+                <div className="flex gap-1">
+                    <Button variant="outline" size="icon" className="h-7 w-7 flex-1"><ThumbsUp className="h-4 w-4 text-green-500" /></Button>
+                    <Button variant="outline" size="icon" className="h-7 w-7 flex-1"><ThumbsDown className="h-4 w-4 text-red-500" /></Button>
+                </div>
+                 <Button size="sm" className="w-full h-8" onClick={(e) => { e.stopPropagation(); onAskSmokey(product); }}>Ask Smokey</Button>
+            </div>
+        )
+    }
+
+    return (
+        <div className="flex-shrink-0 w-48 flex items-center gap-2 rounded-md border bg-background p-2 text-foreground cursor-pointer hover:bg-muted" onClick={() => onExpand(product)}>
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
+                <Image src={product.imageUrl} alt={product.name} data-ai-hint={product.imageHint} fill className="object-cover"/>
+            </div>
+            <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-semibold truncate">{product.name}</p>
+                <p className="text-xs text-muted-foreground">${product.price.toFixed(2)}</p>
+            </div>
+            <div className="flex flex-col gap-1">
+                <Button variant="outline" size="icon" className="h-5 w-5 shrink-0"><ThumbsUp className="h-3 w-3 text-green-500" /></Button>
+                <Button variant="outline" size="icon" className="h-5 w-5 shrink-0"><ThumbsDown className="h-3 w-3 text-red-500" /></Button>
+            </div>
+        </div>
+    )
+};
+
+
+const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>, onAskSmokey: (p: Product) => void}) => {
     const { toast } = useToast();
+    const [expandedProduct, setExpandedProduct] = useState<Product | null>(null);
 
     const handleShare = async (message: Message) => {
         if (!message.imageUrl) return;
@@ -152,21 +191,15 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef }: { messages: Mes
                 )}
                 {message.productSuggestions && (
                     <div className="mt-2 flex gap-2 overflow-x-auto pb-2">
-                    {message.productSuggestions.slice(0, 3).map(p => (
-                        <div key={p.id} className="flex-shrink-0 w-48 flex items-center gap-2 rounded-md border bg-background p-2 text-foreground">
-                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
-                                <Image src={p.imageUrl} alt={p.name} data-ai-hint={p.imageHint} fill className="object-cover"/>
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                                <p className="text-xs font-semibold truncate">{p.name}</p>
-                                <p className="text-xs text-muted-foreground">${p.price.toFixed(2)}</p>
-                            </div>
-                            <div className="flex gap-1">
-                                <Button variant="outline" size="icon" className="h-7 w-7 shrink-0"><ThumbsUp className="h-4 w-4 text-green-500" /></Button>
-                                <Button variant="outline" size="icon" className="h-7 w-7 shrink-0"><ThumbsDown className="h-4 w-4 text-red-500" /></Button>
-                            </div>
-                        </div>
-                    ))}
+                        {message.productSuggestions.slice(0, 3).map(p => (
+                            <ExpandableProductCard 
+                                key={p.id}
+                                product={p}
+                                onAskSmokey={onAskSmokey}
+                                isExpanded={expandedProduct?.id === p.id}
+                                onExpand={setExpandedProduct}
+                            />
+                        ))}
                     </div>
                 )}
                 </div>
@@ -236,7 +269,7 @@ const ChatWindow = ({
           </CardHeader>
           )}
         
-        <ChatMessages messages={messages} isBotTyping={isBotTyping} messagesEndRef={messagesEndRef} />
+        <ChatMessages messages={messages} isBotTyping={isBotTyping} messagesEndRef={messagesEndRef} onAskSmokey={onAskSmokey} />
       
       <CardFooter className="p-4 border-t">
         <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
