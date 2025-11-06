@@ -6,7 +6,7 @@ import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createContext, useContext, useRef, type ReactNode } from 'react';
-import { LayoutDashboard, PenSquare, Settings, Star, Package, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, PenSquare, Settings, Star, Package, type LucideIcon, MapPin } from 'lucide-react';
 import { ComponentType } from 'react';
 
 // Define the type for a navigation link
@@ -15,6 +15,17 @@ export type NavLink = {
   label: string;
   icon: keyof typeof import('lucide-react'); // Store icon name as a string
   hidden?: boolean;
+};
+
+// Define the type for a location
+export type Location = {
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    phone?: string;
 };
 
 interface StoreState {
@@ -43,6 +54,8 @@ interface StoreState {
   addNavLink: (link: NavLink) => void;
   updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
   toggleNavLinkVisibility: (href: string) => void;
+  locations: Location[];
+  addLocation: (location: Location) => void;
 }
 
 const defaultNavLinks: NavLink[] = [
@@ -50,11 +63,12 @@ const defaultNavLinks: NavLink[] = [
     { href: '/dashboard/products', label: 'Products', icon: 'Package', hidden: false },
     { href: '/dashboard/content', label: 'Content Generator', icon: 'PenSquare', hidden: false },
     { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star', hidden: false },
+    { href: '/dashboard/locations', label: 'Locations', icon: 'MapPin', hidden: false },
     { href: '/dashboard/settings', label: 'Settings', icon: 'Settings', hidden: false },
 ];
 
 
-const defaultState: Omit<StoreState, 'setTheme' | 'setChatbotIcon' | 'setChatExperience' | 'recordBrandImageGeneration' | 'setBrandColor' | 'setBrandUrl' | 'setBasePrompt' | 'setWelcomeMessage' | 'toggleCeoMode' | 'toggleDemoMode' | 'addNavLink' | 'updateNavLink' | 'toggleNavLinkVisibility'> = {
+const defaultState: Omit<StoreState, 'setTheme' | 'setChatbotIcon' | 'setChatExperience' | 'recordBrandImageGeneration' | 'setBrandColor' | 'setBrandUrl' | 'setBasePrompt' | 'setWelcomeMessage' | 'toggleCeoMode' | 'toggleDemoMode' | 'addNavLink' | 'updateNavLink' | 'toggleNavLinkVisibility' | 'addLocation'> = {
   theme: 'green' as Theme,
   chatbotIcon: null,
   chatExperience: 'default' as 'default' | 'classic',
@@ -67,6 +81,7 @@ const defaultState: Omit<StoreState, 'setTheme' | 'setChatbotIcon' | 'setChatExp
   isCeoMode: false,
   isDemoMode: false,
   navLinks: defaultNavLinks,
+  locations: [],
 };
 
 
@@ -103,6 +118,7 @@ const createStore = () => create<StoreState>()(
       toggleNavLinkVisibility: (href: string) => set((state) => ({
           navLinks: state.navLinks.map((link) => link.href === href ? { ...link, hidden: !link.hidden } : link)
       })),
+      addLocation: (location: Location) => set((state) => ({ locations: [...state.locations, location] })),
     }),
     {
       name: 'smokey-store',
@@ -155,6 +171,7 @@ type FullStoreState = StoreState & {
     addNavLink: (link: NavLink) => void;
     updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
     toggleNavLinkVisibility: (href: string) => void;
+    addLocation: (location: Location) => void;
 };
 
 
@@ -190,6 +207,7 @@ export function useStore(): FullStoreState {
     addNavLink: (link: NavLink) => {},
     updateNavLink: (href: string, newLink: Partial<NavLink>) => {},
     toggleNavLinkVisibility: (href: string) => {},
+    addLocation: (location: Location) => {},
   }
 
   const combinedState: FullStoreState = {
