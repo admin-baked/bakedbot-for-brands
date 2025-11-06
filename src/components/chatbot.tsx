@@ -411,7 +411,7 @@ export default function Chatbot() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const chatbotIcon = isDemoMode
-    ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-vertical-logo-PNG-transparent.png"
+    ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-horizontal-logo-PNG-transparent.png"
     : customIcon;
 
 
@@ -551,7 +551,7 @@ export default function Chatbot() {
     setIsBotTyping(true);
 
     if (chatMode === 'image') {
-        const logo = isDemoMode ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-vertical-logo-PNG-transparent.png" : customIcon;
+        const logo = isDemoMode ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-horizontal-logo-PNG-transparent.png" : customIcon;
         if (!logo) {
             const errorMessage: Message = {
                 id: Date.now() + 1,

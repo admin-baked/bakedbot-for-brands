@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useActionState, useEffect, useRef, useState } from 'react';
@@ -54,7 +55,7 @@ export default function ProductDescriptionForm() {
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   
   const { chatbotIcon, isDemoMode } = useStore();
-  const logoToUse = isDemoMode ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-vertical-logo-PNG-transparent.png" : chatbotIcon;
+  const logoToUse = isDemoMode ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-horizontal-logo-PNG-transparent.png" : chatbotIcon;
 
 
   useEffect(() => {
