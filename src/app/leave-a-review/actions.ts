@@ -55,22 +55,32 @@ export async function submitReview(prevState: any, formData: FormData) {
       createdAt: serverTimestamp(),
   };
 
-  // Use non-blocking addDoc and chain a .catch for error handling
-  addDoc(reviewCollectionRef, dataToSave)
-    .catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-          path: reviewCollectionRef.path,
-          operation: 'create',
-          requestResourceData: { ...dataToSave, createdAt: 'SERVER_TIMESTAMP' } // Use string placeholder for server value
-      } satisfies SecurityRuleContext);
-      errorEmitter.emit('permission-error', permissionError);
-    });
+  try {
+    // Use non-blocking addDoc and chain a .catch for error handling
+    await addDoc(reviewCollectionRef, dataToSave);
 
-  revalidatePath('/products'); // Revalidate product pages if they show reviews
-  revalidatePath('/dashboard/reviews'); // also revalidate the reviews dashboard
+    revalidatePath('/products'); // Revalidate product pages if they show reviews
+    revalidatePath('/dashboard/reviews'); // also revalidate the reviews dashboard
 
-  return {
-    message: 'Thank you! Your review has been submitted successfully.',
-    error: false,
-  };
+    return {
+      message: 'Thank you! Your review has been submitted successfully.',
+      error: false,
+    };
+
+  } catch (serverError: any) {
+    const permissionError = new FirestorePermissionError({
+        path: reviewCollectionRef.path,
+        operation: 'create',
+        requestResourceData: { ...dataToSave, createdAt: 'SERVER_TIMESTAMP' } // Use string placeholder for server value
+    } satisfies SecurityRuleContext);
+    
+    errorEmitter.emit('permission-error', permissionError);
+
+    // We can't actually throw here because it's a server action,
+    // but we can return the specific error message to the client.
+    return {
+      message: `Submission failed: ${serverError.message}`,
+      error: true,
+    }
+  }
 }

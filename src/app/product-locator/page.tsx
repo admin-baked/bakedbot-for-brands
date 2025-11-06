@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -78,7 +79,7 @@ export default function ProductLocatorPage() {
                     <div className="container mx-auto text-center">
                         <h2 className="text-3xl font-bold">Have Feedback?</h2>
                         <p className="mt-2 text-primary-foreground/80">Loved a product? Let us know what you think!</p>
-                        <Button asChild className="mt-4">
+                        <Button asChild className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90">
                             <Link href="/leave-a-review">
                                 <PenSquare className="mr-2 h-4 w-4" />
                                 Leave a Review

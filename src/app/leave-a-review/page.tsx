@@ -60,16 +60,17 @@ export default function LeaveReviewPage() {
 
   useEffect(() => {
     if (state.message) {
-      toast({
-        variant: state.error ? 'destructive' : 'default',
-        title: state.error ? 'Submission Failed' : 'Success!',
-        description: state.message,
-      });
       if (!state.error) {
         setShowSuccess(true);
         formRef.current?.reset();
         setRating(0);
         setFileName(null);
+      } else {
+        toast({
+            variant: 'destructive',
+            title: 'Submission Failed',
+            description: state.message,
+        });
       }
     }
   }, [state, toast]);
@@ -110,13 +111,15 @@ export default function LeaveReviewPage() {
                     <CardTitle className="text-3xl font-bold mt-4">Thank You!</CardTitle>
                     <CardDescription>Your review has been submitted successfully. We appreciate your feedback!</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     <Button onClick={() => setShowSuccess(false)}>Leave Another Review</Button>
-                    <Button variant="link" asChild className="mt-4">
-                        <Link href="/product-locator">
-                            &larr; Back to Product Locator
-                        </Link>
-                    </Button>
+                    <div>
+                        <Button variant="link" asChild>
+                            <Link href="/dashboard/products">
+                                &larr; Back to Menu
+                            </Link>
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
         </div>
@@ -128,8 +131,8 @@ export default function LeaveReviewPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
        <div className="absolute top-4 left-4">
             <Button variant="outline" asChild>
-                <Link href="/product-locator">
-                    &larr; Back to Product Locator
+                <Link href="/dashboard/products">
+                    &larr; Back to Menu
                 </Link>
             </Button>
         </div>
