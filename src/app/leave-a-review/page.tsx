@@ -17,6 +17,10 @@ import { useFormStatus } from 'react-dom';
 import { useUser } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+// This is the fix. By exporting this variable, we tell Next.js to always
+// render this page on the client and not to pre-render it during the build.
+export const dynamic = 'force-dynamic';
+
 const initialState = {
   message: '',
   error: false,
