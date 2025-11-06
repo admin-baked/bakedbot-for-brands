@@ -50,19 +50,22 @@ async function getReviews(firestore: Firestore): Promise<ReviewData[]> {
     const productName = products.find(p => p.id === review.productId)?.name ?? "Unknown Product";
     let userEmail = "Anonymous";
 
-    const userDocRef = doc(firestore, 'users', review.userId);
-    const userDoc = await getDoc(userDocRef).catch(serverError => {
-        const permissionError = new FirestorePermissionError({
+    // Only attempt to fetch user if userId is present
+    if (review.userId) {
+      const userDocRef = doc(firestore, 'users', review.userId);
+      try {
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+            userEmail = userDoc.data()?.email ?? "Anonymous";
+        }
+      } catch (e) {
+         const permissionError = new FirestorePermissionError({
             path: userDocRef.path,
             operation: 'get',
         });
         errorEmitter.emit('permission-error', permissionError);
-        // Return null to handle the failure gracefully
-        return null;
-    });
-    
-    if (userDoc && userDoc.exists()) {
-        userEmail = userDoc.data()?.email ?? "Anonymous";
+        // Fail gracefully, user email will remain "Anonymous"
+      }
     }
 
     return {
@@ -83,27 +86,30 @@ async function getReviews(firestore: Firestore): Promise<ReviewData[]> {
 
 export default function ReviewsPage() {
   const { firestore } = useFirebase();
-  const { isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   const [reviews, setReviews] = useState<ReviewData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingData, setIsFetchingData] = useState(false);
 
   useEffect(() => {
-    // Only fetch data if firestore is available and the initial user auth check is complete.
-    if (!isUserLoading && firestore) {
-      setIsLoading(true);
+    // This effect now strictly waits for the user to be loaded AND present.
+    if (!isUserLoading && user && firestore) {
+      setIsFetchingData(true);
       getReviews(firestore).then(data => {
         setReviews(data);
-        setIsLoading(false);
+        setIsFetchingData(false);
       }).catch(err => {
         // This catch is for unexpected errors in the getReviews function itself
         console.error("Failed to fetch reviews:", err);
-        setIsLoading(false);
+        setIsFetchingData(false);
       });
+    } else if (!isUserLoading && !user) {
+        // If the user is definitively logged out, we stop loading.
+        setIsFetchingData(false);
     }
-  }, [firestore, isUserLoading]); // Re-run when firestore or user loading status changes.
+  }, [firestore, user, isUserLoading]);
 
 
-  if (isLoading || isUserLoading) {
+  if (isUserLoading || isFetchingData) {
     return (
       <div className="flex flex-col gap-8">
         <div>
