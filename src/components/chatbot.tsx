@@ -275,12 +275,12 @@ const ChatWindow = ({
         )}
         
         <div className="flex-1 min-h-0 border-t">
-            <ChatMessages 
-              messages={messages} 
-              isBotTyping={isBotTyping} 
-              messagesEndRef={messagesEndRef} 
-              onAskSmokey={onAskSmokey}
-            />
+          <ChatMessages
+            messages={messages}
+            isBotTyping={isBotTyping}
+            messagesEndRef={messagesEndRef}
+            onAskSmokey={onAskSmokey}
+          />
         </div>
       
       <CardFooter className="p-4 border-t">
