@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -63,7 +62,7 @@ interface StoreState {
 
 const defaultNavLinks: NavLink[] = [
     { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard', hidden: false },
-    { href: '/menu', label: 'Menu', icon: 'MenuSquare', hidden: false },
+    { href: '/dashboard/menu', label: 'Menu', icon: 'MenuSquare', hidden: false },
     { href: '/dashboard/products', label: 'Products', icon: 'Package', hidden: false },
     { href: '/dashboard/content', label: 'Content Generator', icon: 'PenSquare', hidden: false },
     { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star', hidden: false },
