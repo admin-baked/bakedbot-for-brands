@@ -330,7 +330,7 @@ const ChatWindow = ({
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
-  const { chatbotIcon, chatExperience, welcomeMessage, brandImageGenerations, lastBrandImageGeneration, recordBrandImageGeneration } = useStore();
+  const { chatbotIcon: customIcon, isDemoMode, chatExperience, welcomeMessage, brandImageGenerations, lastBrandImageGeneration, recordBrandImageGeneration } = useStore();
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
   const [isPending, startTransition] = useTransition();
 
@@ -342,6 +342,8 @@ export default function Chatbot() {
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const chatbotIcon = isDemoMode ? null : customIcon;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -572,7 +574,3 @@ export default function Chatbot() {
         </>
       );
 }
-
-    
-
-    
