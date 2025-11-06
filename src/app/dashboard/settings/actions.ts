@@ -39,11 +39,11 @@ export async function saveCannMenusApiKey(prevState: any, formData: FormData) {
     
     // Using non-blocking setDoc
     setDoc(userPrivateRef, { cannMenusApiKey: apiKey }, { merge: true })
-        .catch(error => {
+        .catch(async (serverError) => {
             const permissionError = new FirestorePermissionError({
                 path: userPrivateRef.path,
                 operation: 'write',
-                requestResourceData: { cannMenusApiKey: 'REDACTED' }
+                requestResourceData: { cannMenusApiKey: 'REDACTED' } // Redact sensitive data
             });
             errorEmitter.emit('permission-error', permissionError);
         });
@@ -57,6 +57,7 @@ export async function saveCannMenusApiKey(prevState: any, formData: FormData) {
     };
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+    // This will now primarily catch setup errors (like no user), not Firestore rule errors.
     return {
       message: `Failed to save API Key: ${errorMessage}`,
       error: true,

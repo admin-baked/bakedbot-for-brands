@@ -6,7 +6,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 // Define the schema for review form validation
 const ReviewSchema = z.object({
@@ -48,22 +48,26 @@ export async function submitReview(prevState: any, formData: FormData) {
         : '';
     
     const reviewCollectionRef = collection(firestore, 'products', productId, 'reviews');
-
-    // Use non-blocking addDoc
-    addDoc(reviewCollectionRef, {
+    
+    const dataToSave = {
         ...reviewData,
         verificationImageUrl,
         createdAt: serverTimestamp(),
-    }).catch(error => {
+    };
+
+    // Use non-blocking addDoc and chain a .catch for error handling
+    addDoc(reviewCollectionRef, dataToSave)
+      .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
             path: reviewCollectionRef.path,
             operation: 'create',
-            requestResourceData: { ...reviewData, verificationImageUrl, createdAt: 'SERVER_TIMESTAMP' }
-        });
+            requestResourceData: { ...dataToSave, createdAt: 'SERVER_TIMESTAMP' } // Use string placeholder for server value
+        } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
     });
 
     revalidatePath('/products'); // Revalidate product pages if they show reviews
+    revalidatePath('/dashboard/reviews'); // also revalidate the reviews dashboard
 
     return {
       message: 'Thank you! Your review has been submitted successfully.',

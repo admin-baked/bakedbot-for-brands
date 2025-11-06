@@ -37,6 +37,11 @@ export async function signInWithGoogle(auth: Auth) {
 export async function sendMagicLink(auth: Auth, email: string) {
   try {
     await sendSignInLinkToEmail(auth, email, createActionCodeSettings());
+    // This side-effect is for the client to know where to find the email
+    // after the redirect. It's not directly related to the auth call itself.
+    if (typeof window !== 'undefined') {
+        window.localStorage.setItem('emailForSignIn', email);
+    }
     return { success: true };
   } catch (error: any) {
     const permissionError = new FirestorePermissionError({
