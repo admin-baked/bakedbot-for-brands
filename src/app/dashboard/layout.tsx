@@ -109,7 +109,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <SidebarProvider>
       <TooltipProvider>
         <div className="flex min-h-screen bg-background">
-          <Sidebar>
+          <Sidebar collapsible="icon">
             <SidebarHeader>
               <Logo />
             </SidebarHeader>
