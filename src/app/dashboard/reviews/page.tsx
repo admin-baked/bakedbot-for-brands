@@ -1,10 +1,15 @@
 
+'use client';
+
+import { useState, useEffect } from "react";
 import { createServerClient } from "@/firebase/server-client";
-import { collectionGroup, getDocs, Timestamp, doc, getDoc } from "firebase/firestore";
+import { collectionGroup, getDocs, Timestamp, doc, getDoc, Firestore } from "firebase/firestore";
 import { products } from "@/lib/data";
 import { ReviewsTable } from "./components/reviews-table";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { useFirebase } from "@/firebase";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Define the shape of a review document from Firestore
 type ReviewDoc = {
@@ -27,9 +32,7 @@ export type ReviewData = {
   date: string;
 };
 
-async function getReviews(): Promise<ReviewData[]> {
-  const { firestore } = await createServerClient();
-
+async function getReviews(firestore: Firestore): Promise<ReviewData[]> {
   const reviewsQuery = collectionGroup(firestore, "reviews");
   const querySnapshot = await getDocs(reviewsQuery).catch(serverError => {
     const permissionError = new FirestorePermissionError({
@@ -79,8 +82,46 @@ async function getReviews(): Promise<ReviewData[]> {
   return reviews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-export default async function ReviewsPage() {
-  const reviews = await getReviews();
+export default function ReviewsPage() {
+  const { firestore } = useFirebase();
+  const [reviews, setReviews] = useState<ReviewData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (firestore) {
+      getReviews(firestore).then(data => {
+        setReviews(data);
+        setIsLoading(false);
+      }).catch(err => {
+        // This catch is for unexpected errors in the getReviews function itself
+        console.error("Failed to fetch reviews:", err);
+        setIsLoading(false);
+      });
+    }
+  }, [firestore]);
+
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-8">
+        <div>
+            <Skeleton className="h-9 w-1/4" />
+            <Skeleton className="h-4 w-1/2 mt-2" />
+        </div>
+        <div className="rounded-md border bg-card">
+            <div className="p-4">
+                 <Skeleton className="h-10 w-64" />
+            </div>
+            <div className="border-t p-4 space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+            </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-8">
