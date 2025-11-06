@@ -4,7 +4,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare, Shield } from 'lucide-react';
+import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare, Shield, MapPin } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import {
   SidebarProvider,
@@ -190,6 +190,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           <Shield className="mr-2 h-4 w-4" />
                           <span>Admin Controls</span>
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push('/dashboard/locations')}>
+                          <MapPin className="mr-2 h-4 w-4" />
+                          <span>Locations</span>
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
                           <Settings className="mr-2 h-4 w-4" />
                           <span>Settings</span>
@@ -223,6 +227,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <DropdownMenuItem onClick={() => router.push('/ceo')}>
                     <Shield className="mr-2 h-4 w-4" />
                     <span>Admin Controls</span>
+                  </DropdownMenuItem>
+                   <DropdownMenuItem onClick={() => router.push('/dashboard/locations')}>
+                    <MapPin className="mr-2 h-4 w-4" />
+                    <span>Locations</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
                     <Settings className="mr-2 h-4 w-4" />
