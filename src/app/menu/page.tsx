@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +15,9 @@ import DispensaryLocator from './components/dispensary-locator';
 import { useProducts } from '@/firebase/firestore/use-products';
 import { type Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useStore } from '@/hooks/use-store';
+import { products as demoProducts } from '@/lib/data';
+
 
 const Header = () => {
     const { toggleCart, getItemCount } = useCart();
@@ -152,8 +156,16 @@ const groupProductsByCategory = (products: Product[]) => {
 }
 
 export default function MenuPage() {
-    const { data: products, isLoading } = useProducts();
-    const groupedProducts = products ? groupProductsByCategory(products) : {};
+    const { isDemoMode } = useStore();
+    const { data: firestoreProducts, isLoading: isFirestoreLoading } = useProducts();
+    
+    const products = isDemoMode ? demoProducts : firestoreProducts;
+    const isLoading = isDemoMode ? false : isFirestoreLoading;
+
+    const groupedProducts = useMemo(() => {
+        return products ? groupProductsByCategory(products) : {};
+    }, [products]);
+
     const categories = Object.keys(groupedProducts);
 
   return (
@@ -257,4 +269,6 @@ export default function MenuPage() {
     </div>
   );
 }
+    
+
     
