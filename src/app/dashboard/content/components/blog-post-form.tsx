@@ -58,8 +58,10 @@ export default function ProductDescriptionForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const imageFormRef = useRef<HTMLFormElement>(null);
 
-  const [generatedContent, setGeneratedContent] = useState<GenerateProductDescriptionOutput | null>(null);
+  const [generatedContent, setGeneratedContent] = useState<GenerateProductDescriptionOutput & { productId?: string } | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
+
 
   const { chatbotIcon } = useStore();
 
@@ -70,10 +72,10 @@ export default function ProductDescriptionForm() {
       }
     }
     if (!descriptionState.error && descriptionState.data) {
-        setGeneratedContent(prev => ({...(prev ?? {}), ...descriptionState.data} as GenerateProductDescriptionOutput));
+        setGeneratedContent(prev => ({...(prev ?? {}), ...descriptionState.data, productId: selectedProductId } as GenerateProductDescriptionOutput & { productId?: string }));
         formRef.current?.reset();
     }
-  }, [descriptionState, toast]);
+  }, [descriptionState, toast, selectedProductId]);
 
   useEffect(() => {
     if (imageState.message) {
@@ -88,9 +90,10 @@ export default function ProductDescriptionForm() {
             ...(prev ?? {}),
             productName: prev?.productName ?? formRef.current?.productName.value ?? 'Generated Image',
             imageUrl: imageState.imageUrl,
-        } as GenerateProductDescriptionOutput));
+            productId: selectedProductId
+        } as GenerateProductDescriptionOutput & { productId?: string }));
     }
-  }, [imageState, toast]);
+  }, [imageState, toast, selectedProductId]);
 
   const handleImageGeneration = (formData: FormData) => {
     if (chatbotIcon) {
@@ -111,6 +114,7 @@ export default function ProductDescriptionForm() {
     if (generatedContent?.imageUrl) {
         formData.append('imageUrl', generatedContent.imageUrl);
     }
+    formData.append('productId', selectedProductId);
     startTransition(() => {
         descriptionFormAction(formData);
     });
@@ -126,6 +130,7 @@ export default function ProductDescriptionForm() {
               <CardDescription>Fill in the details below to generate content. The same details will be used for both image and text generation.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <input type="hidden" name="productId" value={selectedProductId} />
               <div className="space-y-2">
                 <Label htmlFor="productName">Product Name</Label>
                 <Input id="productName" name="productName" placeholder="e.g., Cosmic Caramels" />

@@ -11,7 +11,7 @@ import { useTransition } from 'react';
 import { updateProductFeedback } from '@/lib/actions';
 
 interface ProductDescriptionDisplayProps {
-  productDescription: GenerateProductDescriptionOutput | null;
+  productDescription: (GenerateProductDescriptionOutput & { productId?: string }) | null;
 }
 
 export default function ProductDescriptionDisplay({ productDescription }: ProductDescriptionDisplayProps) {
@@ -69,12 +69,28 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
   };
 
   const handleFeedback = (feedback: 'like' | 'dislike') => {
-    // This component doesn't have a product ID, so we log it for now.
-    // A more robust solution would involve associating the generated content with a product.
-    console.log(`User ${feedback}d the generated content.`);
-    toast({
-      title: 'Feedback Submitted!',
-      description: `Thank you for your feedback.`,
+    if (!productDescription?.productId) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Submit Feedback',
+        description: 'Please generate content for a specific product first.',
+      });
+      return;
+    }
+    startTransition(async () => {
+      const result = await updateProductFeedback(productDescription.productId!, feedback);
+      if (result.success) {
+        toast({
+          title: 'Feedback Submitted!',
+          description: 'Thank you for your feedback.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: result.message,
+        });
+      }
     });
   };
 
@@ -133,8 +149,8 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
          <CardContent className="border-t pt-4">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" aria-label="Like" onClick={() => handleFeedback('like')}><ThumbsUp className="h-4 w-4 text-green-500"/></Button>
-                    <Button variant="outline" size="icon" aria-label="Dislike" onClick={() => handleFeedback('dislike')}><ThumbsDown className="h-4 w-4 text-red-500"/></Button>
+                    <Button variant="outline" size="icon" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isPending}><ThumbsUp className="h-4 w-4 text-green-500"/></Button>
+                    <Button variant="outline" size="icon" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isPending}><ThumbsDown className="h-4 w-4 text-red-500"/></Button>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" aria-label="Regenerate"><RotateCw className="h-4 w-4"/></Button>

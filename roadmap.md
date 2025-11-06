@@ -2,6 +2,12 @@
 
 This document outlines the planned features and improvements for the BakedBot AI application.
 
+## Version 1.9.2 - AI Content Feedback Integration
+
+### Core Features:
+- **Product ID Association**: Associated generated content with a specific product ID to enable targeted feedback.
+- **Feedback Action Hook**: Connected the thumbs up/down buttons on the content generator page to the `updateProductFeedback` server action.
+
 ## Version 1.9.1 - Review Submission Logic
 
 ### Core Features:
