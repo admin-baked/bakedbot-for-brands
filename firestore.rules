@@ -11,6 +11,12 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Helper function to check that only specific fields are being updated
+    function isUpdatingAllowedFields(allowedFields) {
+      return request.resource.data.keys().hasAll(resource.data.keys()) &&
+             request.resource.data.keys().hasOnly(resource.data.keys().concat(allowedFields));
+    }
+
     match /users/{userId} {
       allow read, delete: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
@@ -30,7 +36,9 @@ service cloud.firestore {
 
     match /products/{productId} {
       allow get, list: if true;
-      allow write: if false;
+      // Allow authenticated users to update ONLY the 'likes' and 'dislikes' fields.
+      allow update: if isAuthenticated() && isUpdatingAllowedFields(['likes', 'dislikes']);
+      allow create, delete: if false;
     }
 
     match /users/{userId}/orders/{orderId} {
@@ -47,5 +55,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

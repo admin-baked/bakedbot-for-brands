@@ -2,6 +2,13 @@
 
 This document outlines the planned features and improvements for the BakedBot AI application.
 
+## Version 1.8.9 - Feedback System Backend
+
+### Core Features:
+- **Feedback Server Action**: Created a server action (`updateProductFeedback`) to atomically increment `likes` or `dislikes` in Firestore.
+- **Security Rules Update**: Updated Firestore security rules to securely allow authenticated users to update only the `likes` and `dislikes` fields on products.
+- **Client-Side Integration**: Connected the "thumbs up/down" buttons in the chatbot to the new server action, making feedback functional.
+
 ## Version 1.8.8 - Feedback System Foundation
 
 ### Core Features:

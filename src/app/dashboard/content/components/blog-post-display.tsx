@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Clipboard, ThumbsUp, ThumbsDown, RotateCw, Image as ImageIcon, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { useTransition } from 'react';
+import { updateProductFeedback } from '@/lib/actions';
 
 interface ProductDescriptionDisplayProps {
   productDescription: GenerateProductDescriptionOutput | null;
@@ -14,6 +16,7 @@ interface ProductDescriptionDisplayProps {
 
 export default function ProductDescriptionDisplay({ productDescription }: ProductDescriptionDisplayProps) {
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
 
   const handleCopy = () => {
     if (productDescription?.description) {
@@ -66,10 +69,12 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
   };
 
   const handleFeedback = (feedback: 'like' | 'dislike') => {
+    // This component doesn't have a product ID, so we log it for now.
+    // A more robust solution would involve associating the generated content with a product.
     console.log(`User ${feedback}d the generated content.`);
     toast({
       title: 'Feedback Submitted!',
-      description: `Thank you for rating the ${feedback === 'like' ? 'content' : 'content'}.`,
+      description: `Thank you for your feedback.`,
     });
   };
 

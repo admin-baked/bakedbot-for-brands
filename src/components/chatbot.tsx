@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect, type FormEvent } from 'react';
+import { useState, useRef, useEffect, type FormEvent, useTransition } from 'react';
 import Image from 'next/image';
 import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown, ChevronDown, Wand2, Sparkles, Loader2, Download, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { createSocialMediaImage } from '@/app/dashboard/content/actions';
 import type { ImageFormState } from '@/app/dashboard/content/actions';
 import { useToast } from '@/hooks/use-toast';
+import { updateProductFeedback } from '@/lib/actions';
 
 
 type Message = {
@@ -37,7 +38,7 @@ const initialImageState: ImageFormState = {
     error: false,
 };
 
-const ProductCarousel = ({ onAskSmokey, isCompact }: { onAskSmokey: (product: Product) => void, isCompact: boolean }) => (
+const ProductCarousel = ({ onAskSmokey, isCompact, onFeedback }: { onAskSmokey: (product: Product) => void, isCompact: boolean, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => (
     <>
       {!isCompact && (
         <CardHeader>
@@ -60,10 +61,10 @@ const ProductCarousel = ({ onAskSmokey, isCompact }: { onAskSmokey: (product: Pr
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                     
                     <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => console.log(`Liked ${p.name}`)}>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => onFeedback(p.id, 'like')}>
                             <ThumbsUp className="h-4 w-4 text-green-400" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => console.log(`Disliked ${p.name}`)}>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => onFeedback(p.id, 'dislike')}>
                             <ThumbsDown className="h-4 w-4 text-red-400" />
                         </Button>
                     </div>
@@ -85,7 +86,12 @@ const ProductCarousel = ({ onAskSmokey, isCompact }: { onAskSmokey: (product: Pr
     </>
 );
 
-const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand }: { product: Product, onAskSmokey: (p: Product) => void, isExpanded: boolean, onExpand: (p: Product) => void }) => {
+const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand, onFeedback }: { product: Product, onAskSmokey: (p: Product) => void, isExpanded: boolean, onExpand: (p: Product) => void, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => {
+    const handleFeedbackClick = (e: React.MouseEvent, type: 'like' | 'dislike') => {
+        e.stopPropagation();
+        onFeedback(product.id, type);
+    };
+    
     if (isExpanded) {
         return (
             <div className="flex-shrink-0 w-48 flex flex-col gap-2 rounded-md border bg-background p-2 text-foreground cursor-pointer" onClick={() => onExpand(product)}>
@@ -97,8 +103,8 @@ const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand }: {
                     <p className="text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
                 </div>
                 <div className="flex gap-1">
-                    <Button variant="outline" size="icon" className="h-7 w-7 flex-1" onClick={() => console.log(`Liked ${product.name}`)}><ThumbsUp className="h-4 w-4 text-green-500" /></Button>
-                    <Button variant="outline" size="icon" className="h-7 w-7 flex-1" onClick={() => console.log(`Disliked ${product.name}`)}><ThumbsDown className="h-4 w-4 text-red-500" /></Button>
+                    <Button variant="outline" size="icon" className="h-7 w-7 flex-1" onClick={(e) => handleFeedbackClick(e, 'like')}><ThumbsUp className="h-4 w-4 text-green-500" /></Button>
+                    <Button variant="outline" size="icon" className="h-7 w-7 flex-1" onClick={(e) => handleFeedbackClick(e, 'dislike')}><ThumbsDown className="h-4 w-4 text-red-500" /></Button>
                 </div>
                  <Button size="sm" className="w-full h-8" onClick={(e) => { e.stopPropagation(); onAskSmokey(product); }}>Ask Smokey</Button>
             </div>
@@ -115,15 +121,15 @@ const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand }: {
                 <p className="text-xs text-muted-foreground">${product.price.toFixed(2)}</p>
             </div>
             <div className="flex flex-col gap-1">
-                <Button variant="outline" size="icon" className="h-5 w-5 shrink-0" onClick={(e) => {e.stopPropagation(); console.log(`Liked ${product.name}`)}}><ThumbsUp className="h-3 w-3 text-green-500" /></Button>
-                <Button variant="outline" size="icon" className="h-5 w-5 shrink-0" onClick={(e) => {e.stopPropagation(); console.log(`Disliked ${product.name}`)}}><ThumbsDown className="h-3 w-3 text-red-500" /></Button>
+                <Button variant="outline" size="icon" className="h-5 w-5 shrink-0" onClick={(e) => handleFeedbackClick(e, 'like')}><ThumbsUp className="h-3 w-3 text-green-500" /></Button>
+                <Button variant="outline" size="icon" className="h-5 w-5 shrink-0" onClick={(e) => handleFeedbackClick(e, 'dislike')}><ThumbsDown className="h-3 w-3 text-red-500" /></Button>
             </div>
         </div>
     )
 };
 
 
-const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, className }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>, onAskSmokey: (p: Product) => void, className?: string}) => {
+const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, className, onFeedback }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>, onAskSmokey: (p: Product) => void, className?: string, onFeedback: (productId: string, type: 'like' | 'dislike') => void}) => {
     const { toast } = useToast();
     const [expandedProduct, setExpandedProduct] = useState<Product | null>(null);
 
@@ -202,6 +208,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
                                     onAskSmokey={onAskSmokey}
                                     isExpanded={expandedProduct?.id === p.id}
                                     onExpand={setExpandedProduct}
+                                    onFeedback={onFeedback}
                                 />
                             ))}
                         </div>
@@ -247,6 +254,7 @@ const ChatWindow = ({
   setInputValue,
   onMagicImageClick,
   chatMode,
+  onFeedback,
 }: {
   chatExperience: 'default' | 'classic';
   onAskSmokey: (product: Product) => void;
@@ -259,11 +267,12 @@ const ChatWindow = ({
   setInputValue: (value: string) => void;
   onMagicImageClick: () => void;
   chatMode: 'chat' | 'image';
+  onFeedback: (productId: string, type: 'like' | 'dislike') => void;
 }) => {
   return (
     <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-card border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
       <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
-        {chatExperience === 'default' && <ProductCarousel onAskSmokey={onAskSmokey} isCompact={hasStartedChat} />}
+        {chatExperience === 'default' && <ProductCarousel onAskSmokey={onAskSmokey} isCompact={hasStartedChat} onFeedback={onFeedback} />}
 
         {chatExperience === 'classic' && !hasStartedChat && (
         <CardHeader>
@@ -279,6 +288,7 @@ const ChatWindow = ({
             messagesEndRef={messagesEndRef}
             onAskSmokey={onAskSmokey}
             className="h-full"
+            onFeedback={onFeedback}
           />
         </div>
       
@@ -321,6 +331,9 @@ export default function Chatbot() {
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const { chatbotIcon, chatExperience, welcomeMessage, brandImageGenerations, lastBrandImageGeneration, recordBrandImageGeneration } = useStore();
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
+  const [isPending, startTransition] = useTransition();
+
+  const { toast } = useToast();
 
   const [messages, setMessages] = useState<Message[]>([
      { id: 1, text: welcomeMessage, sender: 'bot' },
@@ -480,6 +493,24 @@ export default function Chatbot() {
       setIsBotTyping(false);
     }
   };
+
+  const handleFeedback = (productId: string, type: 'like' | 'dislike') => {
+    startTransition(async () => {
+        const result = await updateProductFeedback(productId, type);
+        if (result.success) {
+            toast({
+                title: 'Feedback Submitted!',
+                description: `Thanks for letting us know you ${type}d the product.`,
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Submission Failed',
+                description: result.message,
+            });
+        }
+    });
+  };
   
 
     return (
@@ -509,6 +540,7 @@ export default function Chatbot() {
               setInputValue={setInputValue}
               onMagicImageClick={handleMagicImageClick}
               chatMode={chatMode}
+              onFeedback={handleFeedback}
             />
           )}
         </>
