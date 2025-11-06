@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -34,17 +33,17 @@ export default function DispensaryLocator() {
     const [nearbyLocations, setNearbyLocations] = useState<LocationWithDistance[]>([]);
     const [isLocating, setIsLocating] = useState(true);
 
-     const demoLocations = [
-        { id: 'demo1', name: 'Green Leaf Central', address: '123 Main St', city: 'Metropolis', state: 'IL', zip: '12345', phone: '(555) 123-4567', lat: 40.7128, lon: -74.0060 },
-        { id: 'demo2', name: 'Herbal Haven Downtown', address: '456 Oak Ave', city: 'Metropolis', state: 'IL', zip: '12346', phone: '(555) 987-6543', lat: 40.7580, lon: -73.9855 },
-        { id: 'demo3', name: 'Bloom Apothecary North', address: '789 Pine Ln', city: 'Springfield', state: 'IL', zip: '67890', phone: '(555) 234-5678', lat: 39.7817, lon: -89.6501 },
-        { id: 'demo4', name: 'The Grove', address: '1010 Maple Rd', city: 'Metropolis', state: 'IL', zip: '12347', phone: '(555) 111-2222', lat: 40.730, lon: -73.990 },
-    ];
-
-    const locations = isDemoMode ? demoLocations : storeLocations;
-
     useEffect(() => {
-        // This entire effect now runs only on the client-side, avoiding hydration errors.
+        // This entire effect runs only on the client-side, avoiding hydration errors.
+        const demoLocations = [
+            { id: 'demo1', name: 'Green Leaf Central', address: '123 Main St', city: 'Metropolis', state: 'IL', zip: '12345', phone: '(555) 123-4567', lat: 40.7128, lon: -74.0060 },
+            { id: 'demo2', name: 'Herbal Haven Downtown', address: '456 Oak Ave', city: 'Metropolis', state: 'IL', zip: '12346', phone: '(555) 987-6543', lat: 40.7580, lon: -73.9855 },
+            { id: 'demo3', name: 'Bloom Apothecary North', address: '789 Pine Ln', city: 'Springfield', state: 'IL', zip: '67890', phone: '(555) 234-5678', lat: 39.7817, lon: -89.6501 },
+            { id: 'demo4', name: 'The Grove', address: '1010 Maple Rd', city: 'Metropolis', state: 'IL', zip: '12347', phone: '(555) 111-2222', lat: 40.730, lon: -73.990 },
+        ];
+        
+        const locations = isDemoMode ? demoLocations : storeLocations;
+
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -85,7 +84,7 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false);
         }
-    }, [isDemoMode]); // Re-run if demo mode changes
+    }, [isDemoMode, storeLocations, toast]);
 
 
     return (
