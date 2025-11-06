@@ -410,7 +410,10 @@ export default function Chatbot() {
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const chatbotIcon = isDemoMode ? null : customIcon;
+  const chatbotIcon = isDemoMode
+    ? "https://bakedbot.ai/wp-content/uploads/2024/10/Bakedbot_2024_vertical_logo-PNG-transparent.webp"
+    : customIcon;
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -684,5 +687,7 @@ export default function Chatbot() {
         </>
       );
 }
+
+    
 
     
