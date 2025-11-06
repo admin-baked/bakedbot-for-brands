@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https,
+        protocol: 'https',
         hostname: 'bakedbot.ai',
         port: '',
         pathname: '/**',
