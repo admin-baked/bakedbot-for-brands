@@ -1,10 +1,10 @@
 
-
 import BrandSettings from "./components/brand-settings";
 import CannMenusSettings from "./components/cannmenus-settings";
 import ChatbotSettings from "./components/chatbot-settings";
 import ProductImportSettings from "./components/product-import-settings";
 import ThemeSettings from "./components/theme-settings";
+import BrandVoiceSettings from "./components/brand-voice-settings";
 
 export default function SettingsPage() {
   return (
@@ -20,7 +20,10 @@ export default function SettingsPage() {
         <BrandSettings />
       </div>
       <ChatbotSettings />
-      <ProductImportSettings />
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <ProductImportSettings />
+        <BrandVoiceSettings />
+      </div>
       <CannMenusSettings />
     </div>
   );
