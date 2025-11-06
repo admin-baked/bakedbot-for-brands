@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { type GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { Button } from '@/components/ui/button';
 import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon, Loader2 } from 'lucide-react';
@@ -50,7 +50,6 @@ export default function ProductDescriptionDisplay({ productDescription, isImageP
                 description: 'Content shared successfully.',
             });
         } else {
-             // Fallback for browsers that don't support sharing files
              await navigator.clipboard.writeText(productDescription.imageUrl);
              toast({
                 title: 'Image URL Copied!',
@@ -59,7 +58,6 @@ export default function ProductDescriptionDisplay({ productDescription, isImageP
         }
     } catch (error) {
         console.error('Share error:', error);
-        // Fallback for any other error
         await navigator.clipboard.writeText(productDescription.imageUrl);
         toast({
             variant: 'destructive',
@@ -105,7 +103,7 @@ export default function ProductDescriptionDisplay({ productDescription, isImageP
             <CardTitle>{productDescription?.productName ?? 'Generated Content'}</CardTitle>
             <CardDescription>Review the AI-generated content below.</CardDescription>
         </div>
-        {productDescription && (
+        {hasContent && (
           <div className="flex items-center gap-2">
             {productDescription.msrp && <div className="text-lg font-bold text-primary">${productDescription.msrp}</div>}
             {productDescription.imageUrl && (
@@ -150,8 +148,8 @@ export default function ProductDescriptionDisplay({ productDescription, isImageP
         )}
       </CardContent>
         {hasContent && (
-         <CardContent className="border-t pt-4">
-             <div className="flex items-center justify-between">
+         <CardFooter className="border-t pt-4">
+             <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending || isGenerating || !productDescription?.productId}>
                         <ThumbsUp className="h-4 w-4 text-green-500"/>
@@ -161,7 +159,7 @@ export default function ProductDescriptionDisplay({ productDescription, isImageP
                     </Button>
                 </div>
              </div>
-        </CardContent>
+        </CardFooter>
         )}
     </Card>
   );

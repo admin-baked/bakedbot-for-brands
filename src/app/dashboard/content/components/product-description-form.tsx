@@ -1,8 +1,7 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { createProductDescription, createSocialMediaImage } from '../actions';
 import type { DescriptionFormState, ImageFormState } from '../actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,24 +15,17 @@ import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-produ
 import { useStore } from '@/hooks/use-store';
 import { useProducts } from '@/firebase/firestore/use-products';
 
-const initialDescriptionState: DescriptionFormState = {
-  message: '',
-  data: null,
-  error: false,
-  fieldErrors: {},
-};
 
-const initialImageState: ImageFormState = {
-  message: '',
-  imageUrl: null,
-  error: false,
-};
+interface SubmitButtonProps {
+  formAction: (payload: FormData) => void;
+  type: 'description' | 'image';
+}
 
-function SubmitButton({ action, type }: { action: (formData: FormData) => void, type: 'description' | 'image' }) {
+function SubmitButton({ formAction, type }: SubmitButtonProps) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" formAction={action} disabled={pending} className="w-full sm:w-auto" variant={type === 'description' ? 'default' : 'outline'}>
+    <Button type="submit" formAction={formAction} disabled={pending} className="w-full sm:w-auto" variant={type === 'description' ? 'default' : 'outline'}>
       {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (type === 'description' ? <FileText className="mr-2 h-4 w-4" /> : <Wand2 className="mr-2 h-4 w-4" />)}
       {type === 'description' ? 'Generate Description' : 'Generate Image'}
     </Button>
@@ -41,46 +33,47 @@ function SubmitButton({ action, type }: { action: (formData: FormData) => void, 
 }
 
 interface ProductDescriptionFormProps {
-    onContentGenerated: (content: (GenerateProductDescriptionOutput & { productId?: string }) | null) => void;
+    onContentUpdate: (content: (GenerateProductDescriptionOutput & { productId?: string }) | null) => void;
+    descriptionFormAction: (payload: FormData) => void;
+    imageFormAction: (payload: FormData) => void;
+    descriptionState: DescriptionFormState;
+    imageState: ImageFormState;
 }
 
-export default function ProductDescriptionForm({ onContentGenerated }: ProductDescriptionFormProps) {
-  const [descriptionState, descriptionFormAction, isDescriptionPending] = useActionState(createProductDescription, initialDescriptionState);
-  const [imageState, imageFormAction, isImagePending] = useActionState(createSocialMediaImage, initialImageState);
-  
+export default function ProductDescriptionForm({ onContentUpdate, descriptionFormAction, imageFormAction, descriptionState, imageState }: ProductDescriptionFormProps) {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [localGeneratedContent, setLocalGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
   
   const { chatbotIcon, isDemoMode } = useStore();
   const { data: products, isLoading: areProductsLoading } = useProducts();
   const logoToUse = isDemoMode ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-horizontal-logo-PNG-transparent.png" : chatbotIcon;
 
-  // Store the generated content locally to pass to parent
-  const [localGeneratedContent, setLocalGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
-
+  // Effect for handling description generation results
   useEffect(() => {
-    if (descriptionState.message && !isDescriptionPending) {
-      if (descriptionState.error && !descriptionState.fieldErrors) {
-        toast({ variant: 'destructive', title: 'Error', description: descriptionState.message });
-      }
-    }
-    if (!descriptionState.error && descriptionState.data) {
-        // We need to merge the new data with any existing data (like an image URL)
+    if (descriptionState.message) {
+      if (descriptionState.error) {
+        if(!descriptionState.fieldErrors) { // Show toast only for general errors
+          toast({ variant: 'destructive', title: 'Error', description: descriptionState.message });
+        }
+      } else if (descriptionState.data) {
         const newContent = { 
             ...(localGeneratedContent ?? {}), 
             ...descriptionState.data, 
             productId: selectedProductId 
         } as GenerateProductDescriptionOutput & { productId?: string };
         setLocalGeneratedContent(newContent);
-        onContentGenerated(newContent);
+        onContentUpdate(newContent);
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [descriptionState, isDescriptionPending]);
+  }, [descriptionState]);
 
+  // Effect for handling image generation results
   useEffect(() => {
-    if (imageState.message && !isImagePending) {
+    if (imageState.message) {
       toast({
         variant: imageState.error ? 'destructive' : 'default',
         title: imageState.error ? 'Image Generation Error' : 'Success',
@@ -96,10 +89,10 @@ export default function ProductDescriptionForm({ onContentGenerated }: ProductDe
             productId: selectedProductId
         } as GenerateProductDescriptionOutput & { productId?: string };
         setLocalGeneratedContent(newContent);
-        onContentGenerated(newContent);
+        onContentUpdate(newContent);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageState, isImagePending]);
+  }, [imageState]);
   
 
   return (
@@ -184,8 +177,8 @@ export default function ProductDescriptionForm({ onContentGenerated }: ProductDe
             </div>
         </CardContent>
          <CardFooter className="flex-col sm:flex-row gap-2">
-            <SubmitButton action={descriptionFormAction} type="description" />
-            <SubmitButton action={imageFormAction} type="image" />
+            <SubmitButton formAction={descriptionFormAction} type="description" />
+            <SubmitButton formAction={imageFormAction} type="image" />
          </CardFooter>
       </form>
     </Card>
