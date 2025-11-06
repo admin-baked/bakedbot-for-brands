@@ -398,7 +398,7 @@ export default function Chatbot() {
       if (summaryResult.cons && summaryResult.cons.length > 0) {
         botResponseText += `**Cons:**\n${summaryResult.cons.map(c => `- ${c}`).join('\n')}\n\n`;
       }
-      botResponseText += "Does this sound like a good fit, or would you like to know more?";
+      botResponseText += `Want to read more? [See all reviews](#)\n\nDoes this sound like a good fit, or would you like to know more?`;
   
       const botMessage: Message = { 
         id: Date.now() + 1, 
@@ -572,5 +572,7 @@ export default function Chatbot() {
         </>
       );
 }
+
+    
 
     
