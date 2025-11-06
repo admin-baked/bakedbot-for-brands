@@ -219,9 +219,9 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey }: { 
                     </Avatar>
                     <div className="max-w-[80%] rounded-lg bg-muted px-3 py-2 rounded-bl-none">
                         <div className="flex items-center justify-center gap-1.5 h-5">
-                            <Sparkles className="h-4 w-4 animate-pulse text-primary/50 [animation-delay:-0.3s]" />
-                            <Sparkles className="h-4 w-4 animate-pulse text-primary/50 [animation-delay:-0.15s]" />
-                            <Sparkles className="h-4 w-4 animate-pulse text-primary/50" />
+                            <Sparkles className="h-4 w-4 animate-wiggle text-primary [animation-delay:-0.4s]" />
+                            <Sparkles className="h-4 w-4 animate-wiggle text-foreground [animation-delay:-0.2s]" />
+                            <Sparkles className="h-4 w-4 animate-wiggle text-muted-foreground" />
                         </div>
                     </div>
                 </div>
