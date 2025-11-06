@@ -164,7 +164,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey }: { 
     return (
     <ScrollArea className="flex-1 border-t">
         <CardContent className="p-4">
-        <div className="space-y-4">
+        <div className="space-y-4 pt-4">
             {messages.map((message) => (
             <div key={message.id} className={cn("flex items-end gap-3", message.sender === 'user' && 'justify-end')}>
                 {message.sender === 'bot' && (
