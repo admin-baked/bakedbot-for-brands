@@ -133,13 +133,21 @@
       "type": "object",
       "description": "Represents a customer order.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Order entity."
-        },
         "userId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Order)"
+          "description": "Reference to User. (Relationship: User 1:N Order). Can be 'guest' for anonymous checkouts."
+        },
+        "customerName": {
+            "type": "string",
+            "description": "Full name of the customer placing the order."
+        },
+        "customerPhone": {
+            "type": "string",
+            "description": "Phone number of the customer."
+        },
+        "locationId": {
+            "type": "string",
+            "description": "The ID of the dispensary location for pickup."
         },
         "orderDate": {
           "type": "string",
@@ -150,19 +158,20 @@
           "type": "number",
           "description": "Total amount of the order."
         },
-        "orderItems": {
-          "type": "array",
-          "description": "Array of order items",
-          "items": {
-            "type": "string"
-          }
+        "status": {
+            "type": "string",
+            "enum": ["pending", "confirmed", "ready", "completed", "cancelled"],
+            "description": "The current status of the order."
         }
       },
       "required": [
-        "id",
         "userId",
+        "customerName",
+        "customerPhone",
+        "locationId",
         "orderDate",
-        "totalAmount"
+        "totalAmount",
+        "status"
       ]
     },
     "OrderItem": {
@@ -171,17 +180,13 @@
       "type": "object",
       "description": "Represents an item within an order.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the OrderItem entity."
-        },
-        "orderId": {
-          "type": "string",
-          "description": "Reference to Order. (Relationship: Order 1:N OrderItem)"
-        },
         "productId": {
           "type": "string",
           "description": "Reference to Product. (Relationship: Product 1:N OrderItem)"
+        },
+        "productName": {
+            "type": "string",
+            "description": "Name of the product at the time of order."
         },
         "quantity": {
           "type": "number",
@@ -189,14 +194,14 @@
         },
         "price": {
           "type": "number",
-          "description": "Price of the item"
+          "description": "Price of the item at the time of order."
         }
       },
       "required": [
-        "id",
-        "orderId",
         "productId",
-        "quantity"
+        "productName",
+        "quantity",
+        "price"
       ]
     },
     "Review": {

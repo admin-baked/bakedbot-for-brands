@@ -45,6 +45,25 @@ service cloud.firestore {
           && review.productId is string
           && review.createdAt == request.time;
     }
+
+    // Schema validation for Order
+    function isValidOrder(order) {
+        return order.customerName is string && order.customerName.size() > 0
+            && order.customerPhone is string && order.customerPhone.size() > 0
+            && order.locationId is string && order.locationId.size() > 0
+            && order.totalAmount is number && order.totalAmount > 0
+            && order.orderDate == request.time
+            && order.status == 'pending'
+            && (order.userId == request.auth.uid || order.userId == 'guest');
+    }
+
+    // Schema validation for OrderItem
+    function isValidOrderItem(item) {
+        return item.productId is string && item.productId.size() > 0
+            && item.productName is string && item.productName.size() > 0
+            && item.quantity is number && item.quantity > 0
+            && item.price is number && item.price >= 0;
+    }
     
     //============================================================
     //  COLLECTION RULES
@@ -81,12 +100,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     
+    // Guest users can create orders, authenticated users can manage their own.
     match /users/{userId}/orders/{orderId} {
-        allow get, list, create, update, delete: if isOwner(userId);
-        
+        allow get, list, update, delete: if isOwner(userId);
+        allow create: if isValidOrder(request.resource.data) && (isOwner(userId) || userId == 'guest');
+
+        // OrderItems can only be created along with the order
+        // and can only be read by the user who owns the order.
         match /orderItems/{orderItemId} {
-            // Inherit ownership from parent order document
-             allow get, list, create, update, delete: if isOwner(userId);
+             allow read, write: if isOwner(userId) && isValidOrderItem(request.resource.data);
         }
     }
   }

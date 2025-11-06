@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useActionState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,16 +10,38 @@ import { useCart } from '@/hooks/use-cart';
 import { useStore, type Location } from '@/hooks/use-store';
 import Link from 'next/link';
 import Image from 'next/image';
-import { PartyPopper, Loader2 } from 'lucide-react';
+import { PartyPopper, Loader2, Send } from 'lucide-react';
 import { haversineDistance } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { submitOrder } from './actions';
+import { useFormStatus } from 'react-dom';
+import { useUser } from '@/firebase';
 
 type LocationWithDistance = Location & { distance?: number };
+
+const initialState = {
+    message: '',
+    error: false,
+    fieldErrors: {},
+};
+
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" className="w-full md:w-auto" disabled={pending}>
+            {pending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+            Submit Order
+        </Button>
+    )
+}
 
 export default function CheckoutPage() {
     const { items, getCartTotal, clearCart } = useCart();
     const { locations: storeLocations, isDemoMode } = useStore();
     const { toast } = useToast();
+    const { user } = useUser();
+    const formRef = useRef<HTMLFormElement>(null);
+    const [state, formAction] = useActionState(submitOrder, initialState);
 
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [userCoords, setUserCoords] = useState<{ lat: number, lon: number} | null>(null);
@@ -87,17 +109,31 @@ export default function CheckoutPage() {
         }
     }, [userCoords, locations]);
 
+    useEffect(() => {
+        if (state.message) {
+            if (!state.error) {
+                clearCart();
+                setIsSubmitted(true);
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Order Failed',
+                    description: state.message,
+                });
+            }
+        }
+    }, [state, toast, clearCart]);
+
 
     const subtotal = getCartTotal();
     const taxes = subtotal * 0.15; // Example 15% tax rate
     const total = subtotal + taxes;
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        // In a real app, you'd send this data to a backend or service.
-        // For now, we'll just clear the cart and show a success message.
-        clearCart();
-        setIsSubmitted(true);
+    const handleSubmit = (formData: FormData) => {
+        formData.append('cartItems', JSON.stringify(items));
+        formData.append('userId', user?.uid || 'guest');
+        formData.append('totalAmount', String(total));
+        formAction(formData);
     };
 
     if (isSubmitted) {
@@ -148,7 +184,7 @@ export default function CheckoutPage() {
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             <Card className="w-full max-w-4xl">
-                <form onSubmit={handleSubmit}>
+                <form ref={formRef} action={handleSubmit}>
                     <CardHeader>
                         <CardTitle className="text-2xl">Checkout</CardTitle>
                         <CardDescription>
@@ -198,11 +234,13 @@ export default function CheckoutPage() {
                                 <div className="mt-4 grid grid-cols-1 gap-4">
                                     <div className="space-y-1">
                                         <Label htmlFor="name">Full Name</Label>
-                                        <Input id="name" required />
+                                        <Input id="name" name="customerName" required defaultValue={user?.displayName || ''} />
+                                        {state.fieldErrors?.customerName && <p className="text-sm text-destructive">{state.fieldErrors.customerName[0]}</p>}
                                     </div>
                                      <div className="space-y-1">
                                         <Label htmlFor="phone">Phone Number</Label>
-                                        <Input id="phone" type="tel" placeholder="(555) 123-4567" required />
+                                        <Input id="phone" name="customerPhone" type="tel" placeholder="(555) 123-4567" required defaultValue={user?.phoneNumber || ''} />
+                                        {state.fieldErrors?.customerPhone && <p className="text-sm text-destructive">{state.fieldErrors.customerPhone[0]}</p>}
                                     </div>
                                 </div>
                             </div>
@@ -210,7 +248,7 @@ export default function CheckoutPage() {
                                 <h3 className="text-lg font-semibold">Pickup Location</h3>
                                 <div className="mt-4 space-y-1">
                                     <Label htmlFor="location">Select a dispensary</Label>
-                                    <Select required>
+                                    <Select name="locationId" required>
                                         <SelectTrigger id="location" disabled={isLocating}>
                                             <SelectValue placeholder={isLocating ? 'Finding nearby locations...' : 'Choose a pickup location'} />
                                         </SelectTrigger>
@@ -232,6 +270,7 @@ export default function CheckoutPage() {
                                             )}
                                         </SelectContent>
                                     </Select>
+                                    {state.fieldErrors?.locationId && <p className="text-sm text-destructive">{state.fieldErrors.locationId[0]}</p>}
                                 </div>
                             </div>
                         </div>
@@ -242,7 +281,7 @@ export default function CheckoutPage() {
                                 Cancel
                             </Link>
                         </Button>
-                        <Button type="submit" className="w-full md:w-auto">Submit Order</Button>
+                        <SubmitButton />
                     </CardFooter>
                 </form>
             </Card>
