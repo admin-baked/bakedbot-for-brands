@@ -35,7 +35,6 @@ export default function DispensaryLocator() {
     const [isLocating, setIsLocating] = useState(true);
     const [hasMounted, setHasMounted] = useState(false);
     
-    // We must use the store hook conditionally to avoid hydration errors.
     const store = useStore();
 
 
@@ -44,15 +43,28 @@ export default function DispensaryLocator() {
     }, []);
 
     useEffect(() => {
-        // This entire effect runs only on the client-side, avoiding hydration errors.
         if (!hasMounted) return;
         
-        // Now it's safe to access the store
         const isDemoMode = store.isDemoMode;
         const storeLocations = store.locations;
         
         const locations = isDemoMode ? demoLocations : storeLocations;
+        
+        // --- DEMO MODE LOGIC ---
+        // If in demo mode, bypass geolocation and show Chicago locations immediately.
+        if (isDemoMode) {
+            const userCoords = { lat: 41.8781, lon: -87.6298 }; // Central Chicago coordinates
+            const demoLocationsWithDistance = demoLocations.map(loc => {
+                 const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
+                 return { ...loc, distance };
+            }).sort((a, b) => a.distance - b.distance);
+            
+            setNearbyLocations(demoLocationsWithDistance.slice(0, 3));
+            setIsLocating(false);
+            return; // End the effect here for demo mode
+        }
 
+        // --- LIVE MODE LOGIC ---
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
