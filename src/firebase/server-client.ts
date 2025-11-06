@@ -12,7 +12,6 @@ export async function createServerClient() {
     const firestore = getFirestore(app);
     // In a server environment, we don't wait for auth state to be ready
     // as it's typically determined by a cookie or header on each request.
-    // await auth.authStateReady(); 
-
+    
     return {auth, app, firestore};
 }
