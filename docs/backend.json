@@ -248,7 +248,8 @@
   "auth": {
     "providers": [
       "google.com",
-      "password"
+      "password",
+      "emailLink"
     ]
   },
   "firestore": {
