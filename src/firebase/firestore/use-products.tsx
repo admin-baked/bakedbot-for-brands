@@ -21,9 +21,10 @@ export function useProducts() {
 
   // Memoize the query to prevent re-renders. The query is stable.
   const productsQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !isHydrated) return null;
+    if (isDemoMode) return null;
     return query(collection(firestore, 'products'));
-  }, [firestore]);
+  }, [firestore, isHydrated, isDemoMode]);
 
   const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useCollection<Product>(productsQuery);
 
