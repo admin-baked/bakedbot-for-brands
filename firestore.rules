@@ -44,11 +44,10 @@ service cloud.firestore {
     
     // This rule allows a collection group query on 'reviews' by any authenticated user.
     match /{path=**}/reviews/{reviewId} {
-        allow list: if isAuthenticated();
+        allow get, list: if isAuthenticated();
     }
 
     match /products/{productId}/reviews/{reviewId} {
-      allow get: if true;
       // Allow create for authenticated users if they own the review.
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if false; // No editing or deleting reviews for now
