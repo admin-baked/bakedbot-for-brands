@@ -2,13 +2,12 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { createServerClient } from "@/firebase/server-client";
 import { collectionGroup, getDocs, Timestamp, doc, getDoc, Firestore } from "firebase/firestore";
 import { products } from "@/lib/data";
 import { ReviewsTable } from "./components/reviews-table";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import { useFirebase } from "@/firebase";
+import { useFirebase, useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Define the shape of a review document from Firestore
@@ -84,11 +83,13 @@ async function getReviews(firestore: Firestore): Promise<ReviewData[]> {
 
 export default function ReviewsPage() {
   const { firestore } = useFirebase();
+  const { isUserLoading } = useUser();
   const [reviews, setReviews] = useState<ReviewData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (firestore) {
+    // Only fetch data if firestore is available and the initial user auth check is complete.
+    if (firestore && !isUserLoading) {
       getReviews(firestore).then(data => {
         setReviews(data);
         setIsLoading(false);
@@ -98,10 +99,10 @@ export default function ReviewsPage() {
         setIsLoading(false);
       });
     }
-  }, [firestore]);
+  }, [firestore, isUserLoading]); // Re-run when firestore or user loading status changes.
 
 
-  if (isLoading) {
+  if (isLoading || isUserLoading) {
     return (
       <div className="flex flex-col gap-8">
         <div>
