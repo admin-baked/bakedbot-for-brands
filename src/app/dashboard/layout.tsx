@@ -32,6 +32,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
 
+  React.useEffect(() => {
+    // If loading is finished and there's no user, redirect to login.
+    if (!isUserLoading && !user) {
+      router.push('/brand-login');
+    }
+  }, [isUserLoading, user, router]);
+
+
   const handleSignOut = async () => {
     try {
       await signOut(auth);
@@ -54,7 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return email.substring(0, 2).toUpperCase();
   }
 
-  if (isUserLoading) {
+  if (isUserLoading || !user) {
     return (
         <div className="flex h-screen items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
