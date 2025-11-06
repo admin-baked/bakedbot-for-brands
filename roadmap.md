@@ -23,6 +23,12 @@ This document outlines the planned features and improvements for the BakedBot AI
 
 ## Future Enhancements
 
+### Reviews & Feedback System
+- **In-App Product Reviews**: Allow end-users to leave star ratings and written reviews for products directly within the application or chatbot.
+- **Display Average Ratings**: Show the average star rating on product cards in the chatbot and product listings.
+- **AI Content Feedback**: Implement the logic for the "thumbs up/down" buttons on AI-generated content to collect feedback for future model fine-tuning.
+- **Reviews Management**: Create a new dashboard page for brands to view, manage, and respond to customer reviews.
+
 ### Chatbot & AI Agent
 - **AI-Powered Branding Agent**: Implement the backend logic for the AI agent to crawl a user's website and automatically match brand colors and style.
 - **AI-Powered Image Generation**: Wire up the "Generate Image" button to an AI image generation model (like DALL-E or Imagen) to create product packaging concepts.
