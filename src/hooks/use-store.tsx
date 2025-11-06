@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -25,6 +24,8 @@ interface StoreState {
   setBasePrompt: (prompt: string) => void;
   welcomeMessage: string;
   setWelcomeMessage: (message: string) => void;
+  isCeoMode: boolean;
+  toggleCeoMode: () => void;
 }
 
 const defaultState = {
@@ -37,6 +38,7 @@ const defaultState = {
   brandUrl: '',
   basePrompt: "You are Smokey, a friendly and knowledgeable AI budtender. Your goal is to help users discover the best cannabis products for them. Keep your tone light, informative, and a little playful.",
   welcomeMessage: "Hello! I'm Smokey, your AI budtender. Browse our products above and ask me anything about them!",
+  isCeoMode: false,
 };
 
 const createStore = () => create<StoreState>()(
@@ -50,6 +52,7 @@ const createStore = () => create<StoreState>()(
       setBrandUrl: (url: string) => set({ brandUrl: url }),
       setBasePrompt: (prompt: string) => set({ basePrompt: prompt }),
       setWelcomeMessage: (message: string) => set({ welcomeMessage: message }),
+      toggleCeoMode: () => set((state) => ({ isCeoMode: !state.isCeoMode })),
       recordBrandImageGeneration: () => {
         const { lastBrandImageGeneration, brandImageGenerations } = get();
         const now = Date.now();
@@ -108,6 +111,7 @@ export function useStore() {
     setBrandUrl: state.setBrandUrl,
     setBasePrompt: state.setBasePrompt,
     setWelcomeMessage: state.setWelcomeMessage,
+    toggleCeoMode: state.toggleCeoMode,
   };
 
   const fullState = { ...state, ...setters };
@@ -121,7 +125,8 @@ export function useStore() {
     setBrandUrl: (url: string) => {},
     setBasePrompt: (prompt: string) => {},
     setWelcomeMessage: (message: string) => {},
+    toggleCeoMode: () => {},
   }
 
-  return hydrated ? fullState : { ...defaultState, ...defaultSetters };
+  return hydrated ? fullState : { ...defaultState, ...defaultSetters, isCeoMode: state.isCeoMode, toggleCeoMode: state.toggleCeoMode };
 }

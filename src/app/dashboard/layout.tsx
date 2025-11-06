@@ -1,10 +1,9 @@
-
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PenSquare, Settings, LogOut, Star, Package } from 'lucide-react';
+import { LayoutDashboard, PenSquare, Settings, LogOut, Star, Package, Pencil, Trash2 } from 'lucide-react';
 import {
   SidebarProvider,
   Sidebar,
@@ -16,6 +15,7 @@ import {
   SidebarFooter,
   SidebarTrigger,
   SidebarInset,
+  SidebarMenuAction,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
@@ -25,24 +25,29 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { useStore } from '@/hooks/use-store';
+import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
+  const { isCeoMode } = useStore();
 
   React.useEffect(() => {
     // If loading is finished and there's no user, redirect to login.
     if (!isUserLoading && !user) {
-      router.push('/brand-login');
+      router.replace('/brand-login');
     }
   }, [isUserLoading, user, router]);
 
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      if(auth) {
+        await signOut(auth);
+      }
       router.push('/brand-login');
     } catch (error) {
       console.error('Sign out error', error);
@@ -82,16 +87,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <SidebarMenu>
                 {menuItems.map((item) => (
                   <SidebarMenuItem key={item.label}>
-                    <Link href={item.href} passHref>
+                    <Link href={item.href} passHref legacyBehavior>
                       <SidebarMenuButton
                         as="a"
                         isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
                         tooltip={item.label}
+                        className={cn(isCeoMode && "pr-12")}
                       >
                         <item.icon />
                         <span>{item.label}</span>
                       </SidebarMenuButton>
                     </Link>
+                     {isCeoMode && (
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
+                            <SidebarMenuAction tooltip="Edit" size="icon" className="h-6 w-6" asChild>
+                                <Pencil/>
+                            </SidebarMenuAction>
+                             <SidebarMenuAction tooltip="Delete" size="icon" className="h-6 w-6 text-destructive" asChild>
+                                <Trash2/>
+                            </SidebarMenuAction>
+                        </div>
+                    )}
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
