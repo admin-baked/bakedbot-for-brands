@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -156,6 +155,7 @@ export default function ProductDescriptionDisplay({ productDescription, onRegene
                     <Button variant="outline" size="icon" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending}><ThumbsDown className="h-4 w-4 text-red-500"/></Button>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button variant="outline" size="icon" aria-label="Regenerate Image" onClick={() => onRegenerate('image')} disabled={isDescriptionPending || isImagePending}><ImageIcon className="h-4 w-4"/></Button>
                     <Button variant="outline" size="icon" aria-label="Regenerate Description" onClick={() => onRegenerate('description')} disabled={isDescriptionPending || isImagePending}><RotateCw className="h-4 w-4"/></Button>
                 </div>
              </div>

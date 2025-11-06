@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useActionState, useEffect, useRef, useState } from 'react';
@@ -31,22 +30,24 @@ const initialImageState: ImageFormState = {
   error: false,
 };
 
-function SubmitButton({ type }: { type: 'description' | 'image' }) {
+function GenerateDescriptionButton() {
   const { pending } = useFormStatus();
-  if (type === 'description') {
-    return (
-      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
-        {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2" />}
-        Generate Description
-      </Button>
-    );
-  }
   return (
-    <Button type="submit" disabled={pending} variant="outline" className="w-full sm:w-auto">
-      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2" />}
-      Generate Image
+    <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2" />}
+      Generate Description
     </Button>
   );
+}
+
+function GenerateImageButton() {
+    const { pending } = useFormStatus();
+    return (
+      <Button type="submit" disabled={pending} variant="outline" className="w-full sm:w-auto">
+        {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2" />}
+        Generate Image
+      </Button>
+    );
 }
 
 export default function ProductDescriptionForm() {
@@ -90,18 +91,22 @@ export default function ProductDescriptionForm() {
     }
   }, [imageState, isImagePending, toast, selectedProductId]);
   
-  const handleGeneration = (type: 'description' | 'image') => {
-    const formData = new FormData(formRef.current!);
+  const handleRegenerate = (type: 'description' | 'image') => {
+    if (!formRef.current) return;
+    const formData = new FormData(formRef.current);
+    
+    // Add hidden values to the FormData for the actions
+    if (chatbotIcon) {
+        formData.append('logoDataUri', chatbotIcon);
+    }
+     if (generatedContent?.imageUrl) {
+        formData.append('imageUrl', generatedContent.imageUrl);
+    }
+    formData.append('productId', selectedProductId);
+
     if (type === 'image') {
-        if (chatbotIcon) {
-            formData.append('logoDataUri', chatbotIcon);
-        }
         imageFormAction(formData);
     } else {
-        if (generatedContent?.imageUrl) {
-            formData.append('imageUrl', generatedContent.imageUrl);
-        }
-        formData.append('productId', selectedProductId);
         descriptionFormAction(formData);
     }
   };
@@ -110,15 +115,19 @@ export default function ProductDescriptionForm() {
     <div className="grid grid-cols-1 gap-8 @container">
       <div className="flex flex-col gap-8">
         <Card>
-          <form action={handleDescriptionGeneration} ref={formRef}>
+          <form ref={formRef}>
             <CardHeader>
               <CardTitle>Product Content Generator</CardTitle>
               <CardDescription>Fill in the details below to generate content. The same details will be used for both image and text generation.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+               <input type="hidden" name="logoDataUri" value={chatbotIcon || ''} />
+               <input type="hidden" name="imageUrl" value={generatedContent?.imageUrl || ''} />
+               <input type="hidden" name="productId" value={selectedProductId} />
+
               <div className="space-y-2">
                 <Label htmlFor="product-select">Select a Product (Optional)</Label>
-                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                <Select name="productId" value={selectedProductId} onValueChange={setSelectedProductId}>
                     <SelectTrigger id="product-select">
                         <SelectValue placeholder="Select a product to associate feedback" />
                     </SelectTrigger>
@@ -187,18 +196,14 @@ export default function ProductDescriptionForm() {
                 </div>
             </CardContent>
              <CardFooter className="flex-col sm:flex-row gap-2">
-                <form action={() => handleGeneration('description')} className="w-full sm:w-auto">
-                    <SubmitButton type="description" />
-                </form>
-                <form action={() => handleGeneration('image')} className="w-full sm:w-auto">
-                    <SubmitButton type="image" />
-                </form>
+                <GenerateDescriptionButton />
+                <GenerateImageButton />
              </CardFooter>
           </form>
         </Card>
         <ProductDescriptionDisplay 
             productDescription={generatedContent}
-            onRegenerate={handleGeneration}
+            onRegenerate={handleRegenerate}
             isImagePending={isImagePending}
             isDescriptionPending={isDescriptionPending}
         />
