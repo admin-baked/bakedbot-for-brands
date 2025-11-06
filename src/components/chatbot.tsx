@@ -17,6 +17,7 @@ import { useStore } from '@/hooks/use-store';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { recommendProducts, type RecommendProductsOutput } from '@/ai/ai-powered-product-recommendations';
+import { summarizeReviews } from '@/ai/flows/summarize-reviews';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { createSocialMediaImage } from '@/app/dashboard/content/actions';
 import type { ImageFormState } from '@/app/dashboard/content/actions';
@@ -374,25 +375,50 @@ export default function Chatbot() {
     }
   }
 
-  const handleAskSmokey = (product: Product) => {
+  const handleAskSmokey = async (product: Product) => {
     setChatMode('chat');
-    const userMessage: Message = { id: Date.now(), text: `Tell me about the ${product.name}`, sender: 'user' };
+    const userMessage: Message = { id: Date.now(), text: `Tell me what people are saying about the ${product.name}.`, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
-    
+  
     if (!hasStartedChat) {
       setHasStartedChat(true);
     }
-
+  
     setIsBotTyping(true);
-    setTimeout(() => {
+  
+    try {
+      const summaryResult = await summarizeReviews({ productId: product.id, productName: product.name });
+      
+      let botResponseText = `Here's what people are saying about **${product.name}**:\n\n`;
+      botResponseText += `${summaryResult.summary}\n\n`;
+  
+      if (summaryResult.pros && summaryResult.pros.length > 0) {
+        botResponseText += `**Pros:**\n${summaryResult.pros.map(p => `- ${p}`).join('\n')}\n\n`;
+      }
+      if (summaryResult.cons && summaryResult.cons.length > 0) {
+        botResponseText += `**Cons:**\n${summaryResult.cons.map(c => `- ${c}`).join('\n')}\n\n`;
+      }
+      botResponseText += "Does this sound like a good fit, or would you like to know more?";
+  
       const botMessage: Message = { 
         id: Date.now() + 1, 
-        text: `Of course! The ${product.name} is a fantastic choice. ${product.description} This is great for anyone looking for a relaxing and euphoric experience. Does this sound like a good fit, or would you like to know more?`, 
-        sender: 'bot' 
+        text: botResponseText, 
+        sender: 'bot',
+        productSuggestions: [product] // Suggest the product we just talked about
       };
       setMessages(prev => [...prev, botMessage]);
+  
+    } catch (error) {
+      console.error("Failed to get review summary:", error);
+      const errorMessage: Message = {
+        id: Date.now() + 1,
+        text: `I'm sorry, I couldn't fetch the review summary for ${product.name} right now. It is great for anyone looking for a relaxing and euphoric experience, though!`,
+        sender: 'bot',
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsBotTyping(false);
-    }, 1200);
+    }
   };
 
   const handleSendMessage = async (e: FormEvent) => {
@@ -546,3 +572,5 @@ export default function Chatbot() {
         </>
       );
 }
+
+    
