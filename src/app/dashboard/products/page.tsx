@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
-import { PenSquare, Plus, Search, ShoppingBag, User, MapPin, Loader2 } from 'lucide-react';
+import { PenSquare, Plus, Search, ShoppingBag, User, MapPin, Loader2, CreditCard } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
 import CartSidebar from '../menu/components/cart-sidebar';
 import { useEffect, useState } from 'react';
 import { useStore, type Location } from '@/hooks/use-store';
 import { useToast } from '@/hooks/use-toast';
 import { haversineDistance } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
 
 
 type LocationWithDistance = Location & { distance?: number };
@@ -48,8 +49,8 @@ const Header = () => {
               <ShoppingBag className="h-5 w-5" />
             </Button>
             {itemCount > 0 && (
-                <Badge 
-                    variant="destructive" 
+                <Badge
+                    variant="destructive"
                     className="absolute -top-2 -right-2 h-5 w-5 justify-center rounded-full p-0"
                 >
                     {itemCount}
@@ -64,7 +65,7 @@ const Header = () => {
 
 const ProductCard = ({ product }: { product: typeof products[0] }) => {
     const { addToCart } = useCart();
-    
+
     return (
         <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow border-none">
             <CardHeader className="p-0">
@@ -103,6 +104,41 @@ const DispensaryCard = ({ location }: { location: LocationWithDistance }) => (
         </CardContent>
     </Card>
 );
+
+const FloatingCartPill = () => {
+    const { getItemCount, getCartTotal } = useCart();
+    const itemCount = getItemCount();
+    const subtotal = getCartTotal();
+
+    return (
+        <AnimatePresence>
+            {itemCount > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 100 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 100 }}
+                    transition={{ ease: "easeInOut", duration: 0.3 }}
+                    className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+                >
+                    <Card className="shadow-2xl">
+                        <CardContent className="p-0">
+                            <div className="flex items-center gap-4 p-3">
+                                <Badge>{itemCount}</Badge>
+                                <span className="font-semibold text-lg">${subtotal.toFixed(2)}</span>
+                                <Button asChild>
+                                    <Link href="/dashboard/menu/checkout">
+                                        <CreditCard className="mr-2 h-4 w-4" /> Checkout
+                                    </Link>
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+
 
 const groupProductsByCategory = (products: typeof products) => {
     return products.reduce((acc, product) => {
@@ -150,7 +186,7 @@ export default function ProductsPage() {
                             return loc;
                         })
                         .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-                    
+
                     setNearbyLocations(locationsWithDistance.slice(0, 3));
                     setIsLocating(false);
                 },
@@ -181,8 +217,8 @@ export default function ProductsPage() {
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12">
-            <Image 
-                src="https://picsum.photos/seed/menu-hero/1200/400" 
+            <Image
+                src="https://picsum.photos/seed/menu-hero/1200/400"
                 alt="Let's Fill Some Bowls"
                 layout="fill"
                 objectFit="cover"
@@ -271,6 +307,9 @@ export default function ProductsPage() {
         </div>
       </footer>
       <CartSidebar />
+      <FloatingCartPill />
     </div>
   );
 }
+
+    
