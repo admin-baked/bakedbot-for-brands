@@ -60,10 +60,10 @@ const ProductCarousel = ({ onAskSmokey, isCompact }: { onAskSmokey: (product: Pr
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                     
                     <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white">
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => console.log(`Liked ${p.name}`)}>
                             <ThumbsUp className="h-4 w-4 text-green-400" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white">
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-white hover:bg-white/20 hover:text-white" onClick={() => console.log(`Disliked ${p.name}`)}>
                             <ThumbsDown className="h-4 w-4 text-red-400" />
                         </Button>
                     </div>
@@ -97,8 +97,8 @@ const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand }: {
                     <p className="text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
                 </div>
                 <div className="flex gap-1">
-                    <Button variant="outline" size="icon" className="h-7 w-7 flex-1"><ThumbsUp className="h-4 w-4 text-green-500" /></Button>
-                    <Button variant="outline" size="icon" className="h-7 w-7 flex-1"><ThumbsDown className="h-4 w-4 text-red-500" /></Button>
+                    <Button variant="outline" size="icon" className="h-7 w-7 flex-1" onClick={() => console.log(`Liked ${product.name}`)}><ThumbsUp className="h-4 w-4 text-green-500" /></Button>
+                    <Button variant="outline" size="icon" className="h-7 w-7 flex-1" onClick={() => console.log(`Disliked ${product.name}`)}><ThumbsDown className="h-4 w-4 text-red-500" /></Button>
                 </div>
                  <Button size="sm" className="w-full h-8" onClick={(e) => { e.stopPropagation(); onAskSmokey(product); }}>Ask Smokey</Button>
             </div>
@@ -115,8 +115,8 @@ const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand }: {
                 <p className="text-xs text-muted-foreground">${product.price.toFixed(2)}</p>
             </div>
             <div className="flex flex-col gap-1">
-                <Button variant="outline" size="icon" className="h-5 w-5 shrink-0"><ThumbsUp className="h-3 w-3 text-green-500" /></Button>
-                <Button variant="outline" size="icon" className="h-5 w-5 shrink-0"><ThumbsDown className="h-3 w-3 text-red-500" /></Button>
+                <Button variant="outline" size="icon" className="h-5 w-5 shrink-0" onClick={(e) => {e.stopPropagation(); console.log(`Liked ${product.name}`)}}><ThumbsUp className="h-3 w-3 text-green-500" /></Button>
+                <Button variant="outline" size="icon" className="h-5 w-5 shrink-0" onClick={(e) => {e.stopPropagation(); console.log(`Disliked ${product.name}`)}}><ThumbsDown className="h-3 w-3 text-red-500" /></Button>
             </div>
         </div>
     )

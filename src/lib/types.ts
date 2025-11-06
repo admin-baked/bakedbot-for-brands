@@ -6,6 +6,8 @@ export type Product = {
   imageUrl: string;
   imageHint: string;
   description: string;
+  likes?: number;
+  dislikes?: number;
 };
 
 export type Order = {

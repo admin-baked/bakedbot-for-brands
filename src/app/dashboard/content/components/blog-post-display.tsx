@@ -65,6 +65,14 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
     }
   };
 
+  const handleFeedback = (feedback: 'like' | 'dislike') => {
+    console.log(`User ${feedback}d the generated content.`);
+    toast({
+      title: 'Feedback Submitted!',
+      description: `Thank you for rating the ${feedback === 'like' ? 'content' : 'content'}.`,
+    });
+  };
+
   return (
     <Card className="flex flex-col @container">
       <CardHeader className="flex flex-row items-start justify-between">
@@ -120,8 +128,8 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
          <CardContent className="border-t pt-4">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" aria-label="Like"><ThumbsUp className="h-4 w-4 text-green-500"/></Button>
-                    <Button variant="outline" size="icon" aria-label="Dislike"><ThumbsDown className="h-4 w-4 text-red-500"/></Button>
+                    <Button variant="outline" size="icon" aria-label="Like" onClick={() => handleFeedback('like')}><ThumbsUp className="h-4 w-4 text-green-500"/></Button>
+                    <Button variant="outline" size="icon" aria-label="Dislike" onClick={() => handleFeedback('dislike')}><ThumbsDown className="h-4 w-4 text-red-500"/></Button>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" aria-label="Regenerate"><RotateCw className="h-4 w-4"/></Button>
