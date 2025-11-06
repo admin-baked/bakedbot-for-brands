@@ -4,7 +4,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare, Shield, MapPin, Package } from 'lucide-react';
+import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare, Shield, MapPin, Package, ExternalLink } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import {
   SidebarProvider,
@@ -190,21 +190,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           <Shield className="mr-2 h-4 w-4" />
                           <span>Admin Controls</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push('/dashboard/products')}>
-                          <MenuSquare className="mr-2 h-4 w-4" />
-                          <span>Menu</span>
-                        </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => router.push('/dashboard/orders')}>
-                          <Package className="mr-2 h-4 w-4" />
-                          <span>Orders</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push('/dashboard/locations')}>
-                          <MapPin className="mr-2 h-4 w-4" />
-                          <span>Locations</span>
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
                           <Settings className="mr-2 h-4 w-4" />
                           <span>Settings</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                           <Link href="/menu" target="_blank">
+                             <ExternalLink className="mr-2 h-4 w-4" />
+                             <span>Public Menu</span>
+                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleSignOut}>
@@ -236,22 +231,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <Shield className="mr-2 h-4 w-4" />
                     <span>Admin Controls</span>
                   </DropdownMenuItem>
-                   <DropdownMenuItem onClick={() => router.push('/dashboard/products')}>
-                    <MenuSquare className="mr-2 h-4 w-4" />
-                    <span>Menu</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/dashboard/orders')}>
-                    <Package className="mr-2 h-4 w-4" />
-                    <span>Orders</span>
-                  </DropdownMenuItem>
-                   <DropdownMenuItem onClick={() => router.push('/dashboard/locations')}>
-                    <MapPin className="mr-2 h-4 w-4" />
-                    <span>Locations</span>
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </DropdownMenuItem>
+                   <DropdownMenuSeparator />
+                   <DropdownMenuItem asChild>
+                     <Link href="/menu" target="_blank">
+                       <ExternalLink className="mr-2 h-4 w-4" />
+                       <span>Public Menu</span>
+                     </Link>
+                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
