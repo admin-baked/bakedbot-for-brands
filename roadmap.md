@@ -2,6 +2,15 @@
 
 This document outlines the planned features and improvements for the BakedBot AI application.
 
+## Version 1.9.4 - AI-Powered Image Generation
+
+### Core Features:
+- **Image Generation Flow**: Added a new Genkit flow (`generate-social-image`) that uses `gemini-2.5-flash-image-preview` to create social media images with a watermark.
+- **Image Generation Action**: Created a new server action (`createSocialMediaImage`) to handle image generation requests from the client.
+- **Content Form Integration**: The "Generate Image" button on the content generator page is now fully functional and will display the generated image.
+- **Magic Brand Image**: Added a new, standalone "Magic Brand Image" generator to the content page for creating quick, brand-focused visuals.
+- **Chatbot Image Generation**: Users can now generate brand images directly from within the chatbot by clicking the "magic wand" icon.
+
 ## Version 1.9.3 - Reviews Management Dashboard
 
 ### Core Features:
