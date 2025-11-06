@@ -88,28 +88,25 @@ export default function ReviewsPage() {
   const { firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
   const [reviews, setReviews] = useState<ReviewData[]>([]);
-  const [isFetchingData, setIsFetchingData] = useState(false);
+  const [isFetchingData, setIsFetchingData] = useState(true);
 
   useEffect(() => {
-    // This effect now strictly waits for the user to be loaded AND present.
     if (!isUserLoading && user && firestore) {
       setIsFetchingData(true);
       getReviews(firestore).then(data => {
         setReviews(data);
         setIsFetchingData(false);
       }).catch(err => {
-        // This catch is for unexpected errors in the getReviews function itself
         console.error("Failed to fetch reviews:", err);
         setIsFetchingData(false);
       });
     } else if (!isUserLoading && !user) {
-        // If the user is definitively logged out, we stop loading.
         setIsFetchingData(false);
     }
   }, [firestore, user, isUserLoading]);
 
 
-  if (isUserLoading || isFetchingData) {
+  if (isFetchingData) {
     return (
       <div className="flex flex-col gap-8">
         <div>
@@ -136,7 +133,7 @@ export default function ReviewsPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Product Reviews</h1>
         <p className="text-muted-foreground">
-          Here&apos;s what your customers are saying about your products.
+          Here's what your customers are saying about your products.
         </p>
       </div>
       <ReviewsTable data={reviews} />
