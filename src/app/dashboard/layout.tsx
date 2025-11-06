@@ -3,7 +3,8 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PenSquare, Settings, LogOut, Star, Package, Pencil, Trash2 } from 'lucide-react';
+import { Settings, LogOut, Star, Pencil, Trash2, Plus } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import {
   SidebarProvider,
   Sidebar,
@@ -25,15 +26,23 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { useStore } from '@/hooks/use-store';
+import { useStore, type NavLink } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
+import EditLinkDialog from './components/edit-link-dialog';
+import DeleteLinkDialog from './components/delete-link-dialog';
+
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
-  const { isCeoMode } = useStore();
+  const { isCeoMode, navLinks } = useStore();
+
+  const [isEditOpen, setIsEditOpen] = React.useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const [isAddOpen, setIsAddOpen] = React.useState(false);
+  const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
 
   React.useEffect(() => {
     // If loading is finished and there's no user, redirect to login.
@@ -41,7 +50,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/brand-login');
     }
   }, [isUserLoading, user, router]);
-
 
   const handleSignOut = async () => {
     try {
@@ -54,18 +62,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   };
 
-  const menuItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/dashboard/products', label: 'Products', icon: Package },
-    { href: '/dashboard/content', label: 'Content Generator', icon: PenSquare },
-    { href: '/dashboard/reviews', label: 'Reviews', icon: Star },
-    { href: '/dashboard/settings', label: 'Settings', icon: Settings },
-  ];
+  const handleEditClick = (link: NavLink) => {
+    setSelectedLink(link);
+    setIsEditOpen(true);
+  };
   
+  const handleDeleteClick = (link: NavLink) => {
+    setSelectedLink(link);
+    setIsDeleteOpen(true);
+  };
+  
+  const handleAddClick = () => {
+    setSelectedLink(null); // No link is selected for adding a new one
+    setIsAddOpen(true);
+  };
+
   const getInitials = (email?: string | null) => {
     if (!email) return 'U';
     return email.substring(0, 2).toUpperCase();
-  }
+  };
 
   if (isUserLoading || !user) {
     return (
@@ -85,8 +100,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </SidebarHeader>
             <SidebarContent>
               <SidebarMenu>
-                {menuItems.map((item) => (
-                  <SidebarMenuItem key={item.label}>
+                {navLinks.map((item) => {
+                   const Icon = (LucideIcons as any)[item.icon] || LucideIcons.PanelRight;
+                   return (
+                  <SidebarMenuItem key={item.href}>
                     <Link href={item.href} passHref legacyBehavior>
                       <SidebarMenuButton
                         as="a"
@@ -94,25 +111,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         tooltip={item.label}
                         className={cn(isCeoMode && "pr-12")}
                       >
-                        <item.icon />
+                        <Icon />
                         <span>{item.label}</span>
                       </SidebarMenuButton>
                     </Link>
                      {isCeoMode && (
                         <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
-                            <SidebarMenuAction tooltip="Edit" size="icon" className="h-6 w-6" asChild>
+                            <SidebarMenuAction tooltip="Edit" size="icon" className="h-6 w-6" onClick={() => handleEditClick(item)}>
                                 <Pencil/>
                             </SidebarMenuAction>
-                             <SidebarMenuAction tooltip="Delete" size="icon" className="h-6 w-6 text-destructive" asChild>
+                             <SidebarMenuAction tooltip="Delete" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteClick(item)}>
                                 <Trash2/>
                             </SidebarMenuAction>
                         </div>
                     )}
                   </SidebarMenuItem>
-                ))}
+                   )
+                })}
               </SidebarMenu>
             </SidebarContent>
             <SidebarFooter>
+                 {isCeoMode && (
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton tooltip="Add Link" onClick={handleAddClick}>
+                            <Plus />
+                            <span>Add Link</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                )}
               <SidebarMenu>
                  <SidebarMenuItem>
                     <DropdownMenu>
@@ -169,6 +197,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <Chatbot />
       </TooltipProvider>
+
+      {/* Dialogs for CEO mode */}
+      <EditLinkDialog 
+        isOpen={isEditOpen} 
+        setIsOpen={setIsEditOpen}
+        link={selectedLink}
+      />
+      <DeleteLinkDialog 
+        isOpen={isDeleteOpen}
+        setIsOpen={setIsDeleteOpen}
+        link={selectedLink}
+      />
+      <EditLinkDialog
+        isOpen={isAddOpen}
+        setIsOpen={setIsAddOpen}
+        link={null} // Pass null for add mode
+      />
     </SidebarProvider>
   );
 }

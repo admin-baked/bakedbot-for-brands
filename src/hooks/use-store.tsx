@@ -5,6 +5,15 @@ import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createContext, useContext, useRef, type ReactNode } from 'react';
+import { LayoutDashboard, PenSquare, Settings, Star, Package, type LucideIcon } from 'lucide-react';
+import { ComponentType } from 'react';
+
+// Define the type for a navigation link
+export type NavLink = {
+  href: string;
+  label: string;
+  icon: keyof typeof import('lucide-react'); // Store icon name as a string
+};
 
 interface StoreState {
   theme: Theme;
@@ -26,9 +35,22 @@ interface StoreState {
   setWelcomeMessage: (message: string) => void;
   isCeoMode: boolean;
   toggleCeoMode: () => void;
+  navLinks: NavLink[];
+  addNavLink: (link: NavLink) => void;
+  updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
+  removeNavLink: (href: string) => void;
 }
 
-const defaultState = {
+const defaultNavLinks: NavLink[] = [
+    { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
+    { href: '/dashboard/products', label: 'Products', icon: 'Package' },
+    { href: '/dashboard/content', label: 'Content Generator', icon: 'PenSquare' },
+    { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star' },
+    { href: '/dashboard/settings', label: 'Settings', icon: 'Settings' },
+];
+
+
+const defaultState: Omit<StoreState, 'setTheme' | 'setChatbotIcon' | 'setChatExperience' | 'recordBrandImageGeneration' | 'setBrandColor' | 'setBrandUrl' | 'setBasePrompt' | 'setWelcomeMessage' | 'toggleCeoMode' | 'addNavLink' | 'updateNavLink' | 'removeNavLink'> = {
   theme: 'green' as Theme,
   chatbotIcon: null,
   chatExperience: 'default' as 'default' | 'classic',
@@ -39,7 +61,9 @@ const defaultState = {
   basePrompt: "You are Smokey, a friendly and knowledgeable AI budtender. Your goal is to help users discover the best cannabis products for them. Keep your tone light, informative, and a little playful.",
   welcomeMessage: "Hello! I'm Smokey, your AI budtender. Browse our products above and ask me anything about them!",
   isCeoMode: false,
+  navLinks: defaultNavLinks,
 };
+
 
 const createStore = () => create<StoreState>()(
   persist(
@@ -66,10 +90,31 @@ const createStore = () => create<StoreState>()(
           set({ brandImageGenerations: 1, lastBrandImageGeneration: now });
         }
       },
+      addNavLink: (link: NavLink) => set((state) => ({ navLinks: [...state.navLinks, link] })),
+      updateNavLink: (href: string, newLink: Partial<NavLink>) => set((state) => ({
+          navLinks: state.navLinks.map((link) => link.href === href ? { ...link, ...newLink } : link)
+      })),
+      removeNavLink: (href: string) => set((state) => ({
+          navLinks: state.navLinks.filter((link) => link.href !== href)
+      })),
     }),
     {
       name: 'smokey-store',
       storage: createJSONStorage(() => localStorage),
+      // A patch to handle the fact that icon components are not serializable
+      onRehydrateStorage: (state) => {
+        return (state, error) => {
+          if (error) {
+            console.error("An error happened during rehydration", error);
+          }
+          if (state) {
+            // If navLinks are missing from storage, use default
+            if (!state.navLinks || state.navLinks.length === 0) {
+              state.navLinks = defaultNavLinks;
+            }
+          }
+        };
+      },
     }
   )
 );
@@ -89,7 +134,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useStore() {
+// A new type that includes all state and all setters
+type FullStoreState = StoreState & {
+    setTheme: (theme: Theme) => void;
+    setChatbotIcon: (icon: string | null) => void;
+    setChatExperience: (experience: 'default' | 'classic') => void;
+    recordBrandImageGeneration: () => void;
+    setBrandColor: (color: string) => void;
+    setBrandUrl: (url: string) => void;
+    setBasePrompt: (prompt: string) => void;
+    setWelcomeMessage: (message: string) => void;
+    toggleCeoMode: () => void;
+    addNavLink: (link: NavLink) => void;
+    updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
+    removeNavLink: (href: string) => void;
+};
+
+
+export function useStore(): FullStoreState {
   const store = useContext(StoreContext);
   if (!store) {
     throw new Error('useStore must be used within a StoreProvider.');
@@ -101,20 +163,11 @@ export function useStore() {
   }, []);
 
   const state = store();
-
-  const setters = {
-    setTheme: state.setTheme,
-    setChatbotIcon: state.setChatbotIcon,
-    setChatExperience: state.setChatExperience,
-    recordBrandImageGeneration: state.recordBrandImageGeneration,
-    setBrandColor: state.setBrandColor,
-    setBrandUrl: state.setBrandUrl,
-    setBasePrompt: state.setBasePrompt,
-    setWelcomeMessage: state.setWelcomeMessage,
-    toggleCeoMode: state.toggleCeoMode,
+  
+  const hydratedState = {
+    ...state,
+    navLinks: state.navLinks && state.navLinks.length > 0 ? state.navLinks : defaultNavLinks
   };
-
-  const fullState = { ...state, ...setters };
 
   const defaultSetters = {
     setTheme: (theme: Theme) => {},
@@ -126,7 +179,15 @@ export function useStore() {
     setBasePrompt: (prompt: string) => {},
     setWelcomeMessage: (message: string) => {},
     toggleCeoMode: () => {},
+    addNavLink: (link: NavLink) => {},
+    updateNavLink: (href: string, newLink: Partial<NavLink>) => {},
+    removeNavLink: (href: string) => {},
   }
 
-  return hydrated ? fullState : { ...defaultState, ...defaultSetters, isCeoMode: state.isCeoMode, toggleCeoMode: state.toggleCeoMode };
+  const combinedState: FullStoreState = {
+    ...state,
+    ...(hydrated ? hydratedState : defaultState),
+  };
+
+  return hydrated ? combinedState : { ...defaultState, ...defaultSetters, isCeoMode: state.isCeoMode, toggleCeoMode: state.toggleCeoMode };
 }
