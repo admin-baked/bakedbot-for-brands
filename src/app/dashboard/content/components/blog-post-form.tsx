@@ -53,7 +53,9 @@ export default function ProductDescriptionForm() {
   const [generatedContent, setGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   
-  const { chatbotIcon } = useStore();
+  const { chatbotIcon, isDemoMode } = useStore();
+  const logoToUse = isDemoMode ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-vertical-logo-PNG-transparent.png" : chatbotIcon;
+
 
   useEffect(() => {
     if (descriptionState.message && !isDescriptionPending) {
@@ -89,8 +91,8 @@ export default function ProductDescriptionForm() {
     const formData = new FormData(formRef.current);
     
     // Add hidden values to the FormData for the actions
-    if (chatbotIcon) {
-        formData.append('logoDataUri', chatbotIcon);
+    if (logoToUse) {
+        formData.append('logoDataUri', logoToUse);
     }
      if (generatedContent?.imageUrl) {
         formData.append('imageUrl', generatedContent.imageUrl);
@@ -114,7 +116,7 @@ export default function ProductDescriptionForm() {
               <CardDescription>Fill in the details below to generate content. The same details will be used for both image and text generation.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-               <input type="hidden" name="logoDataUri" value={chatbotIcon || ''} />
+               <input type="hidden" name="logoDataUri" value={logoToUse || ''} />
                <input type="hidden" name="imageUrl" value={generatedContent?.imageUrl || ''} />
                <input type="hidden" name="productId" value={selectedProductId} />
 
