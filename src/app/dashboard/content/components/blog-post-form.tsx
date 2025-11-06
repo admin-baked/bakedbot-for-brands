@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useEffect, useRef, useState, useTransition } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { createProductDescription, createSocialMediaImage } from '../actions';
 import type { DescriptionFormState, ImageFormState } from '../actions';
@@ -52,14 +52,13 @@ function GenerateImageButton() {
 
 export default function ProductDescriptionForm() {
   const [descriptionState, descriptionFormAction] = useActionState(createProductDescription, initialDescriptionState);
-  const [imageState, imageFormAction] = useActionState(createSocialMediaImage, initialImageState);
+  const [imageState, imageFormAction, isImagePending] = useActionState(createSocialMediaImage, initialImageState);
   
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const imageFormRef = useRef<HTMLFormElement>(null);
 
   const [generatedContent, setGeneratedContent] = useState<GenerateProductDescriptionOutput & { productId?: string } | null>(null);
-  const [isPending, startTransition] = useTransition();
   const [selectedProductId, setSelectedProductId] = useState<string>('');
 
 
@@ -73,12 +72,11 @@ export default function ProductDescriptionForm() {
     }
     if (!descriptionState.error && descriptionState.data) {
         setGeneratedContent(prev => ({...(prev ?? {}), ...descriptionState.data, productId: selectedProductId } as GenerateProductDescriptionOutput & { productId?: string }));
-        formRef.current?.reset();
     }
   }, [descriptionState, toast, selectedProductId]);
 
   useEffect(() => {
-    if (imageState.message) {
+    if (imageState.message && !isImagePending) {
       toast({
         variant: imageState.error ? 'destructive' : 'default',
         title: imageState.error ? 'Image Generation Error' : 'Success',
@@ -93,7 +91,7 @@ export default function ProductDescriptionForm() {
             productId: selectedProductId
         } as GenerateProductDescriptionOutput & { productId?: string }));
     }
-  }, [imageState, toast, selectedProductId]);
+  }, [imageState, isImagePending, toast, selectedProductId]);
 
   const handleImageGeneration = (formData: FormData) => {
     if (chatbotIcon) {
@@ -105,9 +103,7 @@ export default function ProductDescriptionForm() {
     formData.set('features', mainFormData.get('features') || '');
     formData.set('brandVoice', mainFormData.get('brandVoice') || '');
     
-    startTransition(() => {
-        imageFormAction(formData);
-    });
+    imageFormAction(formData);
   }
 
   const handleDescriptionGeneration = (formData: FormData) => {
@@ -115,9 +111,7 @@ export default function ProductDescriptionForm() {
         formData.append('imageUrl', generatedContent.imageUrl);
     }
     formData.append('productId', selectedProductId);
-    startTransition(() => {
-        descriptionFormAction(formData);
-    });
+    descriptionFormAction(formData);
   }
 
   return (
