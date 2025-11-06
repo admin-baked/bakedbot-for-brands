@@ -86,10 +86,10 @@ service cloud.firestore {
     }
 
     match /products/{productId} {
-      allow get, list: if true; // Publicly readable
+      allow get, list: if isAuthenticated();
       allow create, delete: if false;
-      // Allow anyone to update ONLY the 'likes' and 'dislikes' fields.
-      allow update: if isUpdatingAllowedFields(['likes', 'dislikes']);
+      // Allow authenticated users to update ONLY the 'likes' and 'dislikes' fields.
+      allow update: if isAuthenticated() && isUpdatingAllowedFields(['likes', 'dislikes']);
     }
 
     match /products/{productId}/reviews/{reviewId} {

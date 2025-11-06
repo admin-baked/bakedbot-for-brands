@@ -12,12 +12,7 @@ import Link from 'next/link';
 import DeleteLocationDialog from './components/delete-location-dialog';
 import EditLocationDialog from './components/edit-location-dialog';
 import { useToast } from '@/hooks/use-toast';
-
-const demoLocations: Location[] = [
-  { id: 'demo1', name: 'Windy City Cannabis', address: '923 W Weed St', city: 'Chicago', state: 'IL', zip: '60642', phone: '(312) 874-7042', email: 'orders@windycity.demo', lat: 41.908, lon: -87.653 },
-  { id: 'demo2', name: 'Sunnyside Dispensary', address: '436 N Clark St', city: 'Chicago', state: 'IL', zip: '60654', phone: '(312) 212-0300', email: 'orders@sunnyside.demo', lat: 41.890, lon: -87.632 },
-  { id: 'demo3', name: 'Dispensary 33', address: '5001 N Clark St', city: 'Chicago', state: 'IL', zip: '60640', phone: '(773) 754-8822', email: 'orders@dispensary33.demo', lat: 41.973, lon: -87.668 },
-];
+import { demoLocations } from '@/lib/data';
 
 export default function LocationsPage() {
   const { isDemoMode, locations, addLocation, isCeoMode } = useStore();

@@ -1,5 +1,7 @@
+
 import type { Product, Order } from './types';
 import { PlaceHolderImages } from './placeholder-images';
+import type { Location } from '@/hooks/use-store';
 
 const getPlaceholderImage = (id: string) => {
   const image = PlaceHolderImages.find((img) => img.id === id);
@@ -122,4 +124,10 @@ export const orders: Order[] = [
   { id: 'ORD-005', customer: 'Natasha Romanoff', date: '2023-10-22', status: 'Cancelled', total: 35.0 },
   { id: 'ORD-006', customer: 'Steve Rogers', date: '2023-10-21', status: 'Delivered', total: 125.0 },
   { id: 'ORD-007', customer: 'Tony Stark', date: '2023-10-20', status: 'Shipped', total: 250.75 },
+];
+
+export const demoLocations: Location[] = [
+    { id: 'demo1', name: 'Windy City Cannabis', address: '923 W Weed St', city: 'Chicago', state: 'IL', zip: '60642', phone: '(312) 874-7042', email: 'orders@windycity.demo', lat: 41.908, lon: -87.653 },
+    { id: 'demo2', name: 'Sunnyside Dispensary', address: '436 N Clark St', city: 'Chicago', state: 'IL', zip: '60654', phone: '(312) 212-0300', email: 'orders@sunnyside.demo', lat: 41.890, lon: -87.632 },
+    { id: 'demo3', name: 'Dispensary 33', address: '5001 N Clark St', city: 'Chicago', state: 'IL', zip: '60640', phone: '(773) 754-8822', email: 'orders@dispensary33.demo', lat: 41.973, lon: -87.668 },
 ];
