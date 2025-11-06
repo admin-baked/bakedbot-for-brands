@@ -43,7 +43,7 @@ export default function BrandLoginPage() {
         }
     }, [searchParams, toast]);
 
-    const handleGoogleSignIn = useCallback(async () => {
+    const handleGoogleSignIn = () => {
         setIsLoading(true);
         if (!auth) {
             toast({
@@ -55,10 +55,9 @@ export default function BrandLoginPage() {
             return;
         }
         const provider = new GoogleAuthProvider();
-        try {
-            await signInWithRedirect(auth, provider);
-            // No need to set isLoading(false) here, as signInWithRedirect navigates away.
-        } catch (error) {
+        // This is a client-side redirect, it should not be async/awaited.
+        // Firebase handles the redirect and the auth state observer will pick up the result.
+        signInWithRedirect(auth, provider).catch((error) => {
             console.error("Google Sign-In error:", error);
             setIsLoading(false);
             toast({
@@ -66,8 +65,8 @@ export default function BrandLoginPage() {
                 title: 'Google Sign-In Failed',
                 description: 'Could not initiate Google Sign-In. Please try again.',
             });
-        }
-    }, [auth, toast]);
+        });
+    };
 
     const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
         e.preventDefault();
@@ -83,7 +82,7 @@ export default function BrandLoginPage() {
 
         setIsLoading(true);
         try {
-            // This is now a client-side only operation to remember the email
+            // Save email to local storage for the callback page to use
             window.localStorage.setItem('emailForSignIn', finalEmail);
             
             const result = await sendMagicLink(finalEmail);
@@ -183,5 +182,3 @@ export default function BrandLoginPage() {
         </div>
     );
 }
-
-    
