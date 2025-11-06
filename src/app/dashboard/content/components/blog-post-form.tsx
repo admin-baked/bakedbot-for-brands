@@ -108,7 +108,7 @@ export default function ProductDescriptionForm() {
     <div className="grid grid-cols-1 gap-8 @container">
       <div className="flex flex-col gap-8">
         <Card>
-          <form ref={formRef} action={descriptionFormAction}>
+          <form ref={formRef}>
             <CardHeader>
               <CardTitle>Product Content Generator</CardTitle>
               <CardDescription>Fill in the details below to generate content. The same details will be used for both image and text generation.</CardDescription>
@@ -189,8 +189,14 @@ export default function ProductDescriptionForm() {
                 </div>
             </CardContent>
              <CardFooter className="flex-col sm:flex-row gap-2">
-                <SubmitButton action={descriptionFormAction} />
-                <SubmitButton action={imageFormAction} />
+                <Button onClick={() => descriptionFormAction(new FormData(formRef.current!))} disabled={isDescriptionPending || isImagePending} className="w-full sm:w-auto">
+                    {isDescriptionPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2" />}
+                    Generate Description
+                </Button>
+                 <Button onClick={() => imageFormAction(new FormData(formRef.current!))} disabled={isDescriptionPending || isImagePending} className="w-full sm:w-auto" variant="outline">
+                    {isImagePending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2" />}
+                    Generate Image
+                </Button>
              </CardFooter>
           </form>
         </Card>
