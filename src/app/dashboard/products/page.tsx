@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
-import { PenSquare, Plus, Search, ShoppingBag, User, MapPin, Loader2, CreditCard } from 'lucide-react';
+import { PenSquare, Plus, Search, ShoppingBag, User, MapPin, Loader2, CreditCard, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
 import CartSidebar from '../menu/components/cart-sidebar';
 import { useEffect, useState } from 'react';
@@ -67,16 +67,26 @@ const ProductCard = ({ product }: { product: typeof products[0] }) => {
     const { addToCart } = useCart();
 
     return (
-        <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow border-none">
+        <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow border-none flex flex-col">
             <CardHeader className="p-0">
                 <div className="relative aspect-square w-full">
                     <Image src={product.imageUrl} alt={product.name} layout="fill" objectFit="cover" data-ai-hint={product.imageHint} />
                 </div>
             </CardHeader>
-            <CardContent className="p-4 bg-card">
+            <CardContent className="p-4 bg-card flex-1">
                 <Badge variant="secondary">{product.category}</Badge>
                 <CardTitle className="mt-2 text-lg truncate font-semibold">{product.name}</CardTitle>
                  <p className="text-sm text-muted-foreground mt-1">AVAILABLE AT 3 LOCATIONS</p>
+                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                        <ThumbsUp className="h-3 w-3 text-green-500" />
+                        <span>{product.likes}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <ThumbsDown className="h-3 w-3 text-red-500" />
+                        <span>{product.dislikes}</span>
+                    </div>
+                </div>
             </CardContent>
             <CardFooter className="flex justify-between items-center p-4 pt-0 bg-card">
                 <span className="text-xl font-bold">${product.price.toFixed(2)}</span>
@@ -311,5 +321,3 @@ export default function ProductsPage() {
     </div>
   );
 }
-
-    
