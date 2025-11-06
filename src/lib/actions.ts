@@ -42,3 +42,4 @@ export async function updateProductFeedback(
 
   return { success: true, message: 'Feedback submitted successfully.' };
 }
+

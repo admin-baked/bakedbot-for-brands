@@ -128,8 +128,7 @@ export default function ProductDescriptionForm() {
             <CardContent className="space-y-6">
                <input type="hidden" name="logoDataUri" value={logoToUse || ''} />
                <input type="hidden" name="imageUrl" value={generatedContent?.imageUrl || ''} />
-               <input type="hidden" name="productId" value={selectedProductId} />
-
+               
               <div className="space-y-2">
                 <Label htmlFor="product-select">Select a Product (Optional)</Label>
                 <Select name="productId" value={selectedProductId || "none"} onValueChange={(value) => setSelectedProductId(value === 'none' ? '' : value)}>
