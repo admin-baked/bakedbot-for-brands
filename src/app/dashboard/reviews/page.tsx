@@ -3,6 +3,8 @@ import { createServerClient } from "@/firebase/server-client";
 import { collectionGroup, getDocs, Timestamp, doc, getDoc } from "firebase/firestore";
 import { products } from "@/lib/data";
 import { ReviewsTable } from "./components/reviews-table";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 // Define the shape of a review document from Firestore
 type ReviewDoc = {
@@ -28,39 +30,50 @@ export type ReviewData = {
 async function getReviews(): Promise<ReviewData[]> {
   const { firestore } = await createServerClient();
 
-  // Use a collectionGroup query to get all reviews from all products
   const reviewsQuery = collectionGroup(firestore, "reviews");
-  const querySnapshot = await getDocs(reviewsQuery);
+  const querySnapshot = await getDocs(reviewsQuery).catch(serverError => {
+    const permissionError = new FirestorePermissionError({
+      path: 'reviews', // Path for a collection group query
+      operation: 'list',
+    });
+    errorEmitter.emit('permission-error', permissionError);
+    // Return an empty snapshot to prevent further errors down the chain
+    return { docs: [] } as unknown as typeof querySnapshot;
+  });
 
-  const reviews: ReviewData[] = [];
+  if (!querySnapshot) return [];
 
-  for (const reviewDoc of querySnapshot.docs) {
+  const reviewsPromises = querySnapshot.docs.map(async (reviewDoc) => {
     const review = reviewDoc.data() as ReviewDoc;
-    
-    // Find product name from our local data for simplicity
     const productName = products.find(p => p.id === review.productId)?.name ?? "Unknown Product";
-    
-    // Fetch the user's email from the users collection
     let userEmail = "Anonymous";
-    try {
-        const userDocRef = doc(firestore, 'users', review.userId);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            userEmail = userDoc.data()?.email ?? "Anonymous";
-        }
-    } catch (error) {
-        console.error(`Failed to fetch user ${review.userId}`, error);
-    }
+
+    const userDocRef = doc(firestore, 'users', review.userId);
+    const userDoc = await getDoc(userDocRef).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        // Return null to handle the failure gracefully
+        return null;
+    });
     
-    reviews.push({
+    if (userDoc && userDoc.exists()) {
+        userEmail = userDoc.data()?.email ?? "Anonymous";
+    }
+
+    return {
       id: reviewDoc.id,
       productName: productName,
       userEmail: userEmail,
       rating: review.rating,
       text: review.text,
       date: review.createdAt.toDate().toLocaleDateString(),
-    });
-  }
+    };
+  });
+
+  const reviews = await Promise.all(reviewsPromises);
 
   // Sort reviews by most recent first
   return reviews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
