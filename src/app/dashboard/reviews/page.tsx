@@ -89,7 +89,8 @@ export default function ReviewsPage() {
 
   useEffect(() => {
     // Only fetch data if firestore is available and the initial user auth check is complete.
-    if (firestore && !isUserLoading) {
+    if (!isUserLoading && firestore) {
+      setIsLoading(true);
       getReviews(firestore).then(data => {
         setReviews(data);
         setIsLoading(false);
