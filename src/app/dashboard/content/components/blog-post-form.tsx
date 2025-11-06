@@ -76,8 +76,8 @@ export default function ProductDescriptionForm() {
     }
     if (!imageState.error && imageState.imageUrl) {
         setGeneratedContent(prev => ({
-            ...(prev ?? {}),
-            productName: prev?.productName ?? formRef.current?.productName.value ?? 'Generated Image',
+            ...(prev ?? { productName: '', description: '' }),
+            productName: prev?.productName || formRef.current?.productName.value || 'Generated Image',
             imageUrl: imageState.imageUrl,
             productId: selectedProductId
         } as GenerateProductDescriptionOutput & { productId?: string }));

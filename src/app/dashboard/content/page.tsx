@@ -10,7 +10,7 @@ export default function ProductDescriptionGeneratorPage() {
           Generate compelling product descriptions, social media images, and more with the power of AI.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-8 @[60rem]:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 @container md:grid-cols-2">
         <ProductDescriptionForm />
         <div className="flex flex-col gap-8">
             <BrandImageGenerator />
