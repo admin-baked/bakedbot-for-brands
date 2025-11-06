@@ -42,8 +42,8 @@ service cloud.firestore {
 
       match /reviews/{reviewId} {
         allow get, list: if true;
-        // Allow create for authenticated users for now. We will lock this down further.
-        allow create: if isAuthenticated();
+        // Allow create for authenticated users if they own the review.
+        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
         allow update, delete: if false; // No editing or deleting reviews for now
       }
     }
@@ -62,5 +62,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

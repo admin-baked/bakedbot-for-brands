@@ -2,6 +2,13 @@
 
 This document outlines the planned features and improvements for the BakedBot AI application.
 
+## Version 1.9.1 - Review Submission Logic
+
+### Core Features:
+- **Review Server Action**: Created a server action (`submitReview`) to validate and save review data to Firestore.
+- **Form Integration**: Connected the `/leave-a-review` page form to the server action using `useActionState` to handle submission, validation, and user feedback.
+- **Security Rules Update**: Updated Firestore rules to allow authenticated users to create their own reviews.
+
 ## Version 1.9.0 - Verified Reviews Foundation
 
 ### Core Features:
@@ -64,5 +71,3 @@ This document outlines the planned features and improvements for the BakedBot AI
 ### Settings & Configuration
 - **Fine-grained Chatbot Control**: Add more settings to control the chatbot's personality, tone of voice, and default opening messages.
 - **Brand Document Analysis**: Implement the logic to process uploaded brand guideline documents to extract brand voice and style.
-
-    
