@@ -1,13 +1,12 @@
-
 'use client';
 
 import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
-import { PenSquare, Plus, Search, ShoppingBag, User, CreditCard, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { PenSquare, Plus, Search, ShoppingBag, User, CreditCard, ThumbsUp, ThumbsDown, MapPin, ArrowRight } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
 import CartSidebar from '@/app/menu/components/cart-sidebar';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -25,7 +24,7 @@ const Header = () => {
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/menu-alt" className="text-2xl font-bold font-teko tracking-wider">
-          BAKEDBOT ALT
+          BAKEDBOT
         </Link>
         <nav className="hidden md:flex items-center gap-6 font-semibold text-sm">
             <Link href="/menu-alt" className="text-foreground hover:text-foreground">Home</Link>
@@ -36,8 +35,10 @@ const Header = () => {
           <Button variant="ghost" size="icon">
             <Search className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon">
-            <User className="h-5 w-5" />
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/brand-login">
+              <User className="h-5 w-5" />
+            </Link>
           </Button>
           <div className="relative">
              <Button variant="ghost" size="icon" onClick={toggleCart}>
@@ -64,16 +65,14 @@ const ProductCard = ({ product }: { product: Product }) => {
     return (
         <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow border-none flex flex-col group">
             <CardHeader className="p-0">
-                <div className="relative aspect-video w-full">
+                <div className="relative aspect-square w-full">
                     <Image src={product.imageUrl} alt={product.name} layout="fill" objectFit="cover" data-ai-hint={product.imageHint} />
-                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+                     <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
                 </div>
             </CardHeader>
-            <CardContent className="p-4 bg-card flex-1 flex flex-col">
-                <Badge variant="secondary">{product.category}</Badge>
-                <CardTitle className="mt-2 text-lg truncate font-semibold">{product.name}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2 flex-1">{product.description}</p>
-                 <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+            <CardContent className="p-4 bg-card flex-1">
+                <CardTitle className="text-base truncate font-semibold">{product.name}</CardTitle>
+                <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                         <ThumbsUp className="h-3 w-3 text-green-500" />
                         <span>{product.likes}</span>
@@ -85,9 +84,9 @@ const ProductCard = ({ product }: { product: Product }) => {
                 </div>
             </CardContent>
             <CardFooter className="flex justify-between items-center p-4 pt-0 bg-card">
-                <span className="text-xl font-bold">${product.price.toFixed(2)}</span>
-                <Button onClick={() => addToCart({ ...product, quantity: 1 })}>
-                    <Plus className="mr-2 h-4 w-4"/> Add to Cart
+                <span className="text-lg font-bold">${product.price.toFixed(2)}</span>
+                <Button size="icon" onClick={() => addToCart({ ...product, quantity: 1 })}>
+                    <Plus className="h-4 w-4"/>
                 </Button>
             </CardFooter>
         </Card>
@@ -96,15 +95,14 @@ const ProductCard = ({ product }: { product: Product }) => {
 
 const ProductSkeleton = () => (
     <Card className="overflow-hidden shadow-md flex flex-col">
-        <Skeleton className="aspect-video w-full" />
+        <Skeleton className="aspect-square w-full" />
         <CardContent className="p-4 flex-1 space-y-2">
-            <Skeleton className="h-5 w-1/3" />
-            <Skeleton className="h-6 w-3/4" />
-            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-5 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
         </CardContent>
         <CardFooter className="p-4 pt-0 flex justify-between items-center">
             <Skeleton className="h-7 w-1/4" />
-            <Skeleton className="h-10 w-28 rounded-md" />
+            <Skeleton className="h-10 w-10 rounded-md" />
         </CardFooter>
     </Card>
 )
@@ -122,7 +120,7 @@ const FloatingCartPill = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 100 }}
                     transition={{ ease: "easeInOut", duration: 0.3 }}
-                    className="fixed bottom-6 left-6 z-50"
+                    className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
                 >
                     <Card className="shadow-2xl">
                         <CardContent className="p-0">
@@ -161,56 +159,64 @@ export default function MenuAltClient() {
 
     const categories = Object.keys(groupedProducts);
 
+    const featuredProduct = products ? products.find(p => p.id === '5') : null;
+
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-muted/40">
             <Header />
             <main className="container mx-auto px-4 py-8">
-                <div className="grid md:grid-cols-2 gap-8 items-center mb-12">
-                    <div className="text-center md:text-left">
-                        <h1 className="text-5xl md:text-7xl font-teko tracking-widest uppercase">
-                            A New Vibe
-                        </h1>
-                        <p className="text-muted-foreground mt-2 max-w-2xl">
-                            Explore our products in a fresh, new way. This is an alternative menu layout.
-                        </p>
-                        <Button asChild className="mt-6">
-                            <Link href="/leave-a-review">
-                                <PenSquare className="mr-2 h-4 w-4" />
-                                Leave a Review
-                            </Link>
-                        </Button>
-                    </div>
-                    <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden">
-                         <Image
-                            src="https://picsum.photos/seed/menu-alt-hero/800/600"
-                            alt="Alternative Menu"
-                            layout="fill"
-                            objectFit="cover"
-                            data-ai-hint="cannabis modern design"
-                        />
+                
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+                    {/* Hero Card */}
+                    <Card className="lg:col-span-2 relative overflow-hidden rounded-2xl shadow-lg flex items-end text-white bg-gray-900">
+                         <Image src="https://picsum.photos/seed/menu-hero-main/1200/800" alt="Featured product" layout="fill" objectFit="cover" data-ai-hint="cannabis lifestyle product" className="opacity-50" />
+                         <div className="relative p-8">
+                            <Badge variant="secondary">Featured</Badge>
+                            <h2 className="text-4xl font-bold mt-2">{featuredProduct?.name ?? "Nebula Nugs"}</h2>
+                            <p className="mt-2 max-w-lg text-white/80">{featuredProduct?.description ?? "Dense, trichome-covered nugs with a sweet and pungent aroma. A premium flower for the discerning connoisseur."}</p>
+                            <Button size="lg" className="mt-6">
+                                Learn More <ArrowRight className="ml-2"/>
+                            </Button>
+                         </div>
+                    </Card>
+                    <div className="flex flex-col gap-6">
+                        <Card className="flex-1 flex flex-col justify-center items-center text-center p-6 rounded-2xl shadow-lg">
+                           <MapPin className="h-10 w-10 text-primary mb-2" />
+                           <CardTitle>Find a Dispensary</CardTitle>
+                           <CardDescription className="mt-1">Locate our partner dispensaries near you.</CardDescription>
+                           <Button asChild className="mt-4 w-full">
+                             <Link href="/product-locator">Find Now</Link>
+                           </Button>
+                        </Card>
+                        <Card className="flex-1 flex flex-col justify-center items-center text-center p-6 rounded-2xl shadow-lg">
+                           <PenSquare className="h-10 w-10 text-primary mb-2" />
+                           <CardTitle>Leave a Review</CardTitle>
+                           <CardDescription className="mt-1">Share your experience and help the community.</CardDescription>
+                           <Button asChild variant="outline" className="mt-4 w-full">
+                             <Link href="/leave-a-review">Write a Review</Link>
+                           </Button>
+                        </Card>
                     </div>
                 </div>
 
                 <DispensaryLocator />
 
                 {isLoading ? (
-                    // Show skeleton loaders while products are loading
                     Array.from({ length: 3 }).map((_, i) => (
                         <section key={i} className="mb-12">
                             <Skeleton className="h-8 w-1/4 mb-6" />
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {Array.from({ length: 3 }).map((_, j) => (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                {Array.from({ length: 4 }).map((_, j) => (
                                 <ProductSkeleton key={j} />
                                 ))}
                             </div>
                         </section>
                     ))
                 ) : (
-                    // Render products once loaded
                     categories.map(category => (
                         <section key={category} className="mb-12">
                             <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">{category}</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             {groupedProducts[category].map(product => (
                                 <ProductCard key={product.id} product={product} />
                             ))}
@@ -223,8 +229,8 @@ export default function MenuAltClient() {
             <footer className="dark-theme py-12 text-background bg-foreground">
                 <div className="container mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
                     <div>
-                        <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">BAKEDBOT ALT</h3>
-                        <p className="text-sm text-muted-foreground">The second cool menu.</p>
+                        <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">BAKEDBOT</h3>
+                        <p className="text-sm text-muted-foreground">The future of cannabis retail.</p>
                     </div>
                     <div>
                         <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">SHOP</h3>
