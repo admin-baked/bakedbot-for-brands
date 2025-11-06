@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react';
 export function useProducts() {
   const { firestore } = useFirebase();
   const isDemoMode = useStore((state) => state.isDemoMode);
-  const isHydrated = useStore((state) => !!state.isCeoMode || state._hasHydrated);
+  const isHydrated = useStore((state) => state._hasHydrated);
   
   const productsQuery = useMemoFirebase(() => {
     // Only return a query if we are in live mode and firestore is available.

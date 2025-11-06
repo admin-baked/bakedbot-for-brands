@@ -90,10 +90,11 @@ const getDefaultInitialState = () => ({
 });
 
 
-const zustandContext = createContext<ReturnType<typeof initializeStore> | null>(null);
+type AppStore = ReturnType<typeof initializeStore>;
+const zustandContext = createContext<AppStore | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-    const storeRef = useRef<ReturnType<typeof initializeStore>>();
+    const storeRef = useRef<AppStore>();
     if (!storeRef.current) {
         storeRef.current = initializeStore();
     }
