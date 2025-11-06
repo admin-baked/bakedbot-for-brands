@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -54,8 +53,11 @@ interface StoreState {
   addNavLink: (link: NavLink) => void;
   updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
   toggleNavLinkVisibility: (href: string) => void;
+  removeNavLink: (href: string) => void;
   locations: Location[];
   addLocation: (location: Location) => void;
+  updateLocation: (id: string, newLocation: Partial<Location>) => void;
+  removeLocation: (id: string) => void;
 }
 
 const defaultNavLinks: NavLink[] = [
@@ -68,7 +70,7 @@ const defaultNavLinks: NavLink[] = [
 ];
 
 
-const defaultState: Omit<StoreState, 'setTheme' | 'setChatbotIcon' | 'setChatExperience' | 'recordBrandImageGeneration' | 'setBrandColor' | 'setBrandUrl' | 'setBasePrompt' | 'setWelcomeMessage' | 'toggleCeoMode' | 'toggleDemoMode' | 'addNavLink' | 'updateNavLink' | 'toggleNavLinkVisibility' | 'addLocation'> = {
+const defaultState: Omit<StoreState, 'setTheme' | 'setChatbotIcon' | 'setChatExperience' | 'recordBrandImageGeneration' | 'setBrandColor' | 'setBrandUrl' | 'setBasePrompt' | 'setWelcomeMessage' | 'toggleCeoMode' | 'toggleDemoMode' | 'addNavLink' | 'updateNavLink' | 'toggleNavLinkVisibility' | 'removeNavLink' | 'addLocation' | 'updateLocation' | 'removeLocation'> = {
   theme: 'green' as Theme,
   chatbotIcon: null,
   chatExperience: 'default' as 'default' | 'classic',
@@ -118,7 +120,12 @@ const createStore = () => create<StoreState>()(
       toggleNavLinkVisibility: (href: string) => set((state) => ({
           navLinks: state.navLinks.map((link) => link.href === href ? { ...link, hidden: !link.hidden } : link)
       })),
+      removeNavLink: (href: string) => set(state => ({ navLinks: state.navLinks.filter(l => l.href !== href) })),
       addLocation: (location: Location) => set((state) => ({ locations: [...state.locations, location] })),
+      updateLocation: (id: string, newLocation: Partial<Location>) => set((state) => ({
+          locations: state.locations.map((loc) => loc.id === id ? { ...loc, ...newLocation } : loc)
+      })),
+      removeLocation: (id: string) => set(state => ({ locations: state.locations.filter(l => l.id !== id) })),
     }),
     {
       name: 'smokey-store',
@@ -171,7 +178,10 @@ type FullStoreState = StoreState & {
     addNavLink: (link: NavLink) => void;
     updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
     toggleNavLinkVisibility: (href: string) => void;
+    removeNavLink: (href: string) => void;
     addLocation: (location: Location) => void;
+    updateLocation: (id: string, newLocation: Partial<Location>) => void;
+    removeLocation: (id: string) => void;
 };
 
 
@@ -207,7 +217,10 @@ export function useStore(): FullStoreState {
     addNavLink: (link: NavLink) => {},
     updateNavLink: (href: string, newLink: Partial<NavLink>) => {},
     toggleNavLinkVisibility: (href: string) => {},
+    removeNavLink: (href: string) => {},
     addLocation: (location: Location) => {},
+    updateLocation: (id: string, newLocation: Partial<Location>) => {},
+    removeLocation: (id: string) => {},
   }
 
   const combinedState: FullStoreState = {

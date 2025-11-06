@@ -12,26 +12,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useStore, type NavLink } from '@/hooks/use-store';
+import { useStore, type Location } from '@/hooks/use-store';
 import { useToast } from '@/hooks/use-toast';
 
-interface DeleteLinkDialogProps {
+interface DeleteLocationDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  link: NavLink | null;
+  location: Location | null;
 }
 
-export default function DeleteLinkDialog({ isOpen, setIsOpen, link }: DeleteLinkDialogProps) {
-  const { removeNavLink } = useStore();
+export default function DeleteLocationDialog({ isOpen, setIsOpen, location }: DeleteLocationDialogProps) {
+  const { removeLocation } = useStore();
   const { toast } = useToast();
 
   const handleDelete = () => {
-    if (!link) return;
+    if (!location) return;
 
-    removeNavLink(link.href);
+    removeLocation(location.id);
     toast({
-      title: 'Link Removed',
-      description: `The "${link.label}" link has been permanently removed.`,
+      title: 'Location Removed',
+      description: `The "${location.name}" location has been permanently removed.`,
     });
     setIsOpen(false);
   };
@@ -42,7 +42,7 @@ export default function DeleteLinkDialog({ isOpen, setIsOpen, link }: DeleteLink
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the <strong>{link?.label}</strong> navigation link.
+            This action cannot be undone. This will permanently delete the <strong>{location?.name}</strong> location.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
