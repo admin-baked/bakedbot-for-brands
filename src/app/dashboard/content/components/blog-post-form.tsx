@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useActionState, useEffect, useRef, useState } from 'react';
@@ -127,12 +128,12 @@ export default function ProductDescriptionForm() {
 
               <div className="space-y-2">
                 <Label htmlFor="product-select">Select a Product (Optional)</Label>
-                <Select name="productId" value={selectedProductId} onValueChange={setSelectedProductId}>
+                <Select name="productId" value={selectedProductId || "none"} onValueChange={(value) => setSelectedProductId(value === 'none' ? '' : value)}>
                     <SelectTrigger id="product-select">
                         <SelectValue placeholder="Select a product to associate feedback" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {products.map(product => (
                             <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
                         ))}
