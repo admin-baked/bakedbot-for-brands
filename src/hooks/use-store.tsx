@@ -25,6 +25,8 @@ export type Location = {
     state: string;
     zip: string;
     phone?: string;
+    lat?: number;
+    lon?: number;
 };
 
 interface StoreState {

@@ -1,21 +1,92 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCart } from '@/hooks/use-cart';
-import { useStore } from '@/hooks/use-store';
+import { useStore, type Location } from '@/hooks/use-store';
 import Link from 'next/link';
 import Image from 'next/image';
-import { PartyPopper } from 'lucide-react';
+import { PartyPopper, Loader2 } from 'lucide-react';
+import { haversineDistance } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+
+type LocationWithDistance = Location & { distance?: number };
 
 export default function CheckoutPage() {
     const { items, getCartTotal, clearCart } = useCart();
-    const { locations } = useStore();
+    const { locations: storeLocations, isDemoMode } = useStore();
+    const { toast } = useToast();
+
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [userCoords, setUserCoords] = useState<{ lat: number, lon: number} | null>(null);
+    const [isLocating, setIsLocating] = useState(true);
+    const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>([]);
+    
+    // In demo mode, use the demo locations with coordinates
+    const locations = isDemoMode 
+        ? [
+            { id: 'demo1', name: 'Green Leaf Central', address: '123 Main St', city: 'Metropolis', state: 'IL', zip: '12345', phone: '(555) 123-4567', lat: 40.7128, lon: -74.0060 },
+            { id: 'demo2', name: 'Herbal Haven Downtown', address: '456 Oak Ave', city: 'Metropolis', state: 'IL', zip: '12346', phone: '(555) 987-6543', lat: 40.7580, lon: -73.9855 },
+            { id: 'demo3', name: 'Bloom Apothecary North', address: '789 Pine Ln', city: 'Springfield', state: 'IL', zip: '67890', phone: '(555) 234-5678', lat: 39.7817, lon: -89.6501 },
+        ] 
+        : storeLocations;
+
+    useEffect(() => {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setUserCoords({
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude
+                    });
+                    setIsLocating(false);
+                },
+                (error) => {
+                    console.error("Geolocation error:", error);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Location Error',
+                        description: 'Could not get your location. Please select a dispensary manually.'
+                    });
+                    // If user denies location, just use the original list
+                    setSortedLocations(locations);
+                    setIsLocating(false);
+                }
+            );
+        } else {
+            // Geolocation not supported
+            setSortedLocations(locations);
+            setIsLocating(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (userCoords) {
+            const locationsWithDistance = locations
+                .map(loc => {
+                    if (loc.lat && loc.lon) {
+                        const distance = haversineDistance(userCoords, { lat: loc.lat, lon: loc.lon });
+                        return { ...loc, distance };
+                    }
+                    return loc;
+                })
+                .sort((a, b) => {
+                    if (a.distance && b.distance) {
+                        return a.distance - b.distance;
+                    }
+                    // Keep original order if distances are not available
+                    return 0;
+                });
+            setSortedLocations(locationsWithDistance);
+        } else {
+            setSortedLocations(locations);
+        }
+    }, [userCoords, locations]);
+
 
     const subtotal = getCartTotal();
     const taxes = subtotal * 0.15; // Example 15% tax rate
@@ -140,13 +211,21 @@ export default function CheckoutPage() {
                                 <div className="mt-4 space-y-1">
                                     <Label htmlFor="location">Select a dispensary</Label>
                                     <Select required>
-                                        <SelectTrigger id="location">
-                                            <SelectValue placeholder="Choose a pickup location" />
+                                        <SelectTrigger id="location" disabled={isLocating}>
+                                            <SelectValue placeholder={isLocating ? 'Finding nearby locations...' : 'Choose a pickup location'} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {locations.length > 0 ? (
-                                                locations.map(loc => (
-                                                    <SelectItem key={loc.id} value={loc.id}>{loc.name} - {loc.city}</SelectItem>
+                                            {isLocating && <div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}
+                                            {sortedLocations.length > 0 ? (
+                                                sortedLocations.map(loc => (
+                                                    <SelectItem key={loc.id} value={loc.id}>
+                                                        {loc.name} - {loc.city}
+                                                        {loc.distance && (
+                                                            <span className='ml-2 text-xs text-muted-foreground'>
+                                                                ({loc.distance.toFixed(1)} miles away)
+                                                            </span>
+                                                        )}
+                                                    </SelectItem>
                                                 ))
                                             ) : (
                                                 <SelectItem value="none" disabled>No locations configured.</SelectItem>
