@@ -11,7 +11,7 @@ import { PenSquare, Plus, Search, ShoppingBag, User, CreditCard, ThumbsUp, Thumb
 import { useCart } from '@/hooks/use-cart';
 import CartSidebar from './components/cart-sidebar';
 import { AnimatePresence, motion } from 'framer-motion';
-import DispensaryLocator from '../dashboard/menu/components/dispensary-locator';
+import DispensaryLocator from './components/dispensary-locator';
 
 const Header = () => {
     const { toggleCart, getItemCount } = useCart();
@@ -224,4 +224,6 @@ export default function MenuPage() {
     </div>
   );
 }
+    
+
     
