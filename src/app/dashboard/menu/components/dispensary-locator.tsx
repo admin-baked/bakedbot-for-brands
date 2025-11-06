@@ -44,6 +44,7 @@ export default function DispensaryLocator() {
     const locations = isDemoMode ? demoLocations : storeLocations;
 
     useEffect(() => {
+        // This entire effect now runs only on the client-side, avoiding hydration errors.
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -84,7 +85,7 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false);
         }
-    }, [isDemoMode]);
+    }, [isDemoMode]); // Re-run if demo mode changes
 
 
     return (
@@ -104,6 +105,3 @@ export default function DispensaryLocator() {
         </div>
     );
 }
-
-
-    
