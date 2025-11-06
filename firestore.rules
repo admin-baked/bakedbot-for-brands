@@ -81,12 +81,12 @@ service cloud.firestore {
     }
 
     match /categories/{categoryId} {
-      allow get, list: if isAuthenticated();
+      allow get, list: if true;
       allow create, update, delete: if false;
     }
 
     match /products/{productId} {
-      allow get, list: if isAuthenticated();
+      allow get, list: if true;
       allow create, delete: if false;
       // Allow authenticated users to update ONLY the 'likes' and 'dislikes' fields.
       allow update: if isAuthenticated() && isUpdatingAllowedFields(['likes', 'dislikes']);
