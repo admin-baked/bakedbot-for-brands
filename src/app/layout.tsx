@@ -19,7 +19,7 @@ export default function RootLayoutWrapper({
     <StoreProvider>
       <FirebaseClientProvider>
         <CartProvider>
-            <RootLayout>{children}</RootLayout>
+          <RootLayout>{children}</RootLayout>
         </CartProvider>
       </FirebaseClientProvider>
     </StoreProvider>
