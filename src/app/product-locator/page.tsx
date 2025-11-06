@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Facebook, Instagram, Twitter } from "lucide-react";
+import { Facebook, Instagram, PenSquare, Twitter } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -73,6 +73,19 @@ export default function ProductLocatorPage() {
                         </div>
                     </div>
                 </div>
+                 {/* Leave a review callout */}
+                <div className="bg-[#EBDDCC] py-12 px-4">
+                    <div className="container mx-auto text-center">
+                        <h2 className="text-3xl font-bold">Have Feedback?</h2>
+                        <p className="mt-2 text-primary-foreground/80">Loved a product? Let us know what you think!</p>
+                        <Button asChild className="mt-4">
+                            <Link href="/leave-a-review">
+                                <PenSquare className="mr-2 h-4 w-4" />
+                                Leave a Review
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
             </main>
 
             {/* Footer */}
@@ -103,3 +116,4 @@ export default function ProductLocatorPage() {
         </div>
     );
 }
+    

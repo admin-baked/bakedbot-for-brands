@@ -39,6 +39,13 @@ service cloud.firestore {
       // Allow authenticated users to update ONLY the 'likes' and 'dislikes' fields.
       allow update: if isAuthenticated() && isUpdatingAllowedFields(['likes', 'dislikes']);
       allow create, delete: if false;
+
+      match /reviews/{reviewId} {
+        allow get, list: if true;
+        // Allow create for authenticated users for now. We will lock this down further.
+        allow create: if isAuthenticated();
+        allow update, delete: if false; // No editing or deleting reviews for now
+      }
     }
 
     match /users/{userId}/orders/{orderId} {
@@ -55,3 +62,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

@@ -198,6 +198,51 @@
         "productId",
         "quantity"
       ]
+    },
+    "Review": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Review",
+      "type": "object",
+      "description": "Represents a product review from a customer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Review."
+        },
+        "productId": {
+          "type": "string",
+          "description": "The ID of the product being reviewed."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user submitting the review."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Star rating from 1 to 5."
+        },
+        "text": {
+          "type": "string",
+          "description": "The written content of the review."
+        },
+        "verificationImageUrl": {
+          "type": "string",
+          "description": "URL of the uploaded receipt or COA image for verification.",
+          "format": "uri"
+        },
+        "createdAt": {
+            "type": "string",
+            "description": "The timestamp when the review was created.",
+            "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "productId",
+        "userId",
+        "rating",
+        "text"
+      ]
     }
   },
   "auth": {
@@ -273,6 +318,26 @@
         }
       },
       {
+        "path": "/products/{productId}/reviews/{reviewId}",
+        "definition": {
+          "entityName": "Review",
+          "schema": {
+            "$ref": "#/backend/entities/Review"
+          },
+          "description": "Stores customer reviews for a specific product.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "The unique identifier for the product."
+            },
+            {
+              "name": "reviewId",
+              "description": "The unique identifier for the review."
+            }
+          ]
+        }
+      },
+      {
         "path": "/users/{userId}/orders/{orderId}",
         "definition": {
           "entityName": "Order",
@@ -317,6 +382,8 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the BakedBot AI Assistant plugin, prioritizing security, scalability, and debuggability as per the core design principles. User data is stored under `/users/{userId}` for private data, ensuring path-based ownership. A separate `/user-private/{userId}` collection is added for sensitive data like API keys, with strict ownership rules. Categories and Products are stored as top-level collections, as they are not directly owned by users, with the product's category relationship expressed via the `categoryId` field. Orders and OrderItems follow a hierarchical path under users for ownership and data locality. This design eliminates the need for `get()` calls in security rules, enabling atomic operations. The structure facilitates secure list operations by segregating data based on ownership (user-owned data under `/users/{userId}`) and type (categories, products)."
+    "reasoning": "The Firestore structure is designed to support the BakedBot AI Assistant plugin, prioritizing security, scalability, and debuggability as per the core design principles. User data is stored under `/users/{userId}` for private data, ensuring path-based ownership. A separate `/user-private/{userId}` collection is added for sensitive data like API keys, with strict ownership rules. Categories and Products are stored as top-level collections, as they are not directly owned by users, with the product's category relationship expressed via the `categoryId` field. Orders and OrderItems follow a hierarchical path under users for ownership and data locality. Reviews are stored as a subcollection under each product to keep them organized and directly associated with the item they describe. This design eliminates the need for `get()` calls in security rules, enabling atomic operations. The structure facilitates secure list operations by segregating data based on ownership (user-owned data under `/users/{userId}`) and type (categories, products, reviews)."
   }
 }
+
+    

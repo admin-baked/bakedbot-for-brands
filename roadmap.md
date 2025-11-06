@@ -2,6 +2,13 @@
 
 This document outlines the planned features and improvements for the BakedBot AI application.
 
+## Version 1.9.0 - Verified Reviews Foundation
+
+### Core Features:
+- **Review Data Model**: Added `Review` entity to the backend schema, including fields for rating, text, and a verification image URL.
+- **Review Submission UI**: Created a new, customer-facing page at `/leave-a-review` with a form for submitting product reviews. The form includes product selection, a star rating system, a text area, and a file uploader for verification (receipt or COA).
+- **Security Rule Placeholder**: Added a Firestore rule for the `/products/{productId}/reviews/{reviewId}` collection to allow reads by anyone but restrict writes, pending implementation of write logic.
+
 ## Version 1.8.9 - Feedback System Backend
 
 ### Core Features:
@@ -57,3 +64,5 @@ This document outlines the planned features and improvements for the BakedBot AI
 ### Settings & Configuration
 - **Fine-grained Chatbot Control**: Add more settings to control the chatbot's personality, tone of voice, and default opening messages.
 - **Brand Document Analysis**: Implement the logic to process uploaded brand guideline documents to extract brand voice and style.
+
+    
