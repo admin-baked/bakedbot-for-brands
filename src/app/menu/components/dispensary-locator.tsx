@@ -42,6 +42,7 @@ export default function DispensaryLocator() {
     useEffect(() => {
         // Wait until the store has been rehydrated from localStorage.
         if (!isHydrated) {
+            setIsLocating(true);
             return;
         }
         
