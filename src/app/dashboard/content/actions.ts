@@ -10,6 +10,11 @@ import {
   type GenerateSocialMediaImageInput,
   type GenerateSocialMediaImageOutput
 } from '@/ai/flows/generate-social-image';
+import {
+  summarizeReviews,
+  type SummarizeReviewsInput,
+  type SummarizeReviewsOutput,
+} from '@/ai/flows/summarize-reviews';
 import { z } from 'zod';
 
 const FormSchema = z.object({
@@ -32,6 +37,12 @@ export type DescriptionFormState = {
 export type ImageFormState = {
   message: string;
   imageUrl: string | null;
+  error: boolean;
+};
+
+export type ReviewSummaryFormState = {
+  message: string;
+  data: SummarizeReviewsOutput | null;
   error: boolean;
 };
 
@@ -123,6 +134,38 @@ export async function createSocialMediaImage(
     return {
       message: `Failed to generate image: ${errorMessage}`,
       imageUrl: null,
+      error: true,
+    };
+  }
+}
+
+export async function summarizeProductReviews(
+  prevState: ReviewSummaryFormState,
+  formData: FormData
+): Promise<ReviewSummaryFormState> {
+  const productId = formData.get('productId') as string;
+  const productName = formData.get('productName') as string;
+
+  if (!productId || !productName) {
+    return {
+      message: 'Please select a product to summarize.',
+      data: null,
+      error: true,
+    };
+  }
+
+  try {
+    const result = await summarizeReviews({ productId, productName });
+    return {
+      message: 'Review summary generated successfully.',
+      data: result,
+      error: false,
+    };
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+    return {
+      message: `Failed to summarize reviews: ${errorMessage}`,
+      data: null,
       error: true,
     };
   }
