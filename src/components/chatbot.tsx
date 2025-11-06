@@ -123,7 +123,7 @@ const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand }: {
 };
 
 
-const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>, onAskSmokey: (p: Product) => void}) => {
+const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, className }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>, onAskSmokey: (p: Product) => void, className?: string}) => {
     const { toast } = useToast();
     const [expandedProduct, setExpandedProduct] = useState<Product | null>(null);
 
@@ -162,7 +162,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey }: { 
 
 
     return (
-    <ScrollArea className="flex-1">
+    <ScrollArea className={className}>
         <div className="space-y-4 p-4">
             {messages.map((message) => (
             <div key={message.id} className={cn("flex items-start gap-3", message.sender === 'user' ? 'justify-end' : '')}>
@@ -263,18 +263,22 @@ const ChatWindow = ({
   return (
     <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-card border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
       <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
-          {chatExperience === 'default' && <ProductCarousel onAskSmokey={onAskSmokey} isCompact={hasStartedChat} />}
+        {chatExperience === 'default' && <ProductCarousel onAskSmokey={onAskSmokey} isCompact={hasStartedChat} />}
 
-          {chatExperience === 'classic' && !hasStartedChat && (
-          <CardHeader>
-              <CardTitle>Smokey AI</CardTitle>
-              <CardDescription>Ask me anything about our products.</CardDescription>
-          </CardHeader>
-          )}
+        {chatExperience === 'classic' && !hasStartedChat && (
+        <CardHeader>
+            <CardTitle>Smokey AI</CardTitle>
+            <CardDescription>Ask me anything about our products.</CardDescription>
+        </CardHeader>
+        )}
         
-        <div className="flex-1 flex flex-col min-h-0 border-t">
-          <ChatMessages messages={messages} isBotTyping={isBotTyping} messagesEndRef={messagesEndRef} onAskSmokey={onAskSmokey} />
-        </div>
+        <ChatMessages 
+          messages={messages} 
+          isBotTyping={isBotTyping} 
+          messagesEndRef={messagesEndRef} 
+          onAskSmokey={onAskSmokey}
+          className="flex-1 min-h-0 border-t"
+        />
       
       <CardFooter className="p-4 border-t">
         <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
@@ -508,5 +512,3 @@ export default function Chatbot() {
         </>
       );
 }
-
-    
