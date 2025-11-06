@@ -15,8 +15,6 @@ import DispensaryLocator from './components/dispensary-locator';
 import { useProducts } from '@/firebase/firestore/use-products';
 import { type Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useStore } from '@/hooks/use-store';
-import { products as demoProducts } from '@/lib/data';
 
 
 const Header = () => {
@@ -156,16 +154,7 @@ const groupProductsByCategory = (products: Product[]) => {
 }
 
 export default function MenuPage() {
-    const { isDemoMode } = useStore();
-    const { data: firestoreProducts, isLoading: isFirestoreLoading } = useProducts();
-    const [hasMounted, setHasMounted] = useState(false);
-
-    useEffect(() => {
-        setHasMounted(true);
-    }, []);
-
-    const products = isDemoMode ? demoProducts : firestoreProducts;
-    const isLoading = hasMounted ? (isDemoMode ? false : isFirestoreLoading) : true;
+    const { data: products, isLoading } = useProducts();
 
     const groupedProducts = useMemo(() => {
         return products ? groupProductsByCategory(products) : {};
