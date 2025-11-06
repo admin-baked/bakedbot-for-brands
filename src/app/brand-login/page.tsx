@@ -58,8 +58,8 @@ export default function BrandLoginPage() {
         const provider = new GoogleAuthProvider();
         try {
             await signInWithPopup(auth, provider);
-            // The onAuthStateChanged listener in FirebaseProvider will handle the redirect to /dashboard
-            router.push('/dashboard');
+            // The onAuthStateChanged listener in FirebaseProvider will handle the redirect.
+            // No need to manually push the router.
         } catch (error: any) {
             // Handle errors here, such as user closing the popup.
             console.error("Google Sign-In error:", error);
@@ -189,3 +189,5 @@ export default function BrandLoginPage() {
         </div>
     );
 }
+
+    
