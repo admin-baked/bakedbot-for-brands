@@ -31,7 +31,7 @@ function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { theme } = useStore();
+  const theme = useStore((state) => state.theme);
 
   useEffect(() => {
     const selectedTheme = themes.find((t) => t.name === theme);
@@ -40,15 +40,6 @@ function RootLayout({
       Object.entries(selectedTheme.cssVars.light).forEach(([key, value]) => {
         root.style.setProperty(`--${key}`, value);
       });
-      // The dark theme variables are not dynamically set here, assuming they are in globals.css
-      // or handled separately if dynamic dark themes are needed.
-      // If you want to support dynamic dark themes, you would do:
-      // Object.entries(selectedTheme.cssVars.dark).forEach(([key, value]) => {
-      //   root.style.setProperty(`--dark-${key}`, value); // Or however you structure dark vars
-      // });
-      
-      // For simplicity, this example just switches between predefined light themes
-      // and assumes a single dark theme defined in globals.css
       document.body.classList.remove(...themes.map(t => `theme-${t.name}`));
       document.body.classList.add(`theme-${theme}`);
     }

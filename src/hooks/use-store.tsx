@@ -1,22 +1,19 @@
 
 'use client';
 
-import * as React from 'react';
 import { type Theme } from '@/lib/themes';
-import { create } from 'zustand';
+import { createStore, useStore as useZustandStore } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { createContext, useContext, useRef, type ReactNode, useState, useEffect } from 'react';
-import { LayoutDashboard, PenSquare, Settings, Star, Package, type LucideIcon, MapPin, MenuSquare } from 'lucide-react';
+import { createContext, useContext, useRef, type ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
-// Define the type for a navigation link
 export type NavLink = {
   href: string;
   label: string;
-  icon: keyof typeof import('lucide-react'); // Store icon name as a string
+  icon: keyof typeof import('lucide-react');
   hidden?: boolean;
 };
 
-// Define the type for a location
 export type Location = {
     id: string;
     name: string;
@@ -30,7 +27,7 @@ export type Location = {
     lon?: number;
 };
 
-interface StoreState {
+export interface StoreState {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   chatbotIcon: string | null;
@@ -75,8 +72,7 @@ const defaultNavLinks: NavLink[] = [
     { href: '/dashboard/settings', label: 'Settings', icon: 'Settings', hidden: false },
 ];
 
-
-const defaultState: Omit<StoreState, 'setTheme' | 'setChatbotIcon' | 'setChatExperience' | 'recordBrandImageGeneration' | 'setBrandColor' | 'setBrandUrl' | 'setBasePrompt' | 'setWelcomeMessage' | 'toggleCeoMode' | 'toggleDemoMode' | 'addNavLink' | 'updateNavLink' | 'toggleNavLinkVisibility' | 'removeNavLink' | 'addLocation' | 'updateLocation' | 'removeLocation' | 'setHasHydrated'> = {
+const getDefaultInitialState = () => ({
   theme: 'green' as Theme,
   chatbotIcon: null,
   chatExperience: 'default' as 'default' | 'classic',
@@ -91,84 +87,82 @@ const defaultState: Omit<StoreState, 'setTheme' | 'setChatbotIcon' | 'setChatExp
   navLinks: defaultNavLinks,
   locations: [],
   _hasHydrated: false,
-};
+});
 
 
-const createStore = () => create<StoreState>()(
-  persist(
-    (set, get) => ({
-      ...defaultState,
-      setTheme: (theme: Theme) => set({ theme }),
-      setChatbotIcon: (icon: string | null) => set({ chatbotIcon: icon }),
-      setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
-      setBrandColor: (color: string) => set({ brandColor: color }),
-      setBrandUrl: (url: string) => set({ brandUrl: url }),
-      setBasePrompt: (prompt: string) => set({ basePrompt: prompt }),
-      setWelcomeMessage: (message: string) => set({ welcomeMessage: message }),
-      toggleCeoMode: () => set((state) => ({ isCeoMode: !state.isCeoMode })),
-      toggleDemoMode: () => set((state) => ({ isDemoMode: !state.isDemoMode })),
-      recordBrandImageGeneration: () => {
-        const { lastBrandImageGeneration, brandImageGenerations } = get();
-        const now = Date.now();
-        const today = new Date(now).toDateString();
-        const lastDate = lastBrandImageGeneration ? new Date(lastBrandImageGeneration).toDateString() : null;
-
-        if (today === lastDate) {
-          set({ brandImageGenerations: brandImageGenerations + 1, lastBrandImageGeneration: now });
-        } else {
-          // It's a new day, reset the count
-          set({ brandImageGenerations: 1, lastBrandImageGeneration: now });
-        }
-      },
-      addNavLink: (link: NavLink) => set((state) => ({ navLinks: [...state.navLinks, { ...link, hidden: false }] })),
-      updateNavLink: (href: string, newLink: Partial<NavLink>) => set((state) => ({
-          navLinks: state.navLinks.map((link) => link.href === href ? { ...link, ...newLink } : link)
-      })),
-      toggleNavLinkVisibility: (href: string) => set((state) => ({
-          navLinks: state.navLinks.map((link) => link.href === href ? { ...link, hidden: !link.hidden } : link)
-      })),
-      removeNavLink: (href: string) => set(state => ({ navLinks: state.navLinks.filter(l => l.href !== href) })),
-      addLocation: (location: Location) => set((state) => ({ locations: [...state.locations, location] })),
-      updateLocation: (id: string, newLocation: Partial<Location>) => set((state) => ({
-          locations: state.locations.map((loc) => loc.id === id ? { ...loc, ...newLocation } : loc)
-      })),
-      removeLocation: (id: string) => set(state => ({ locations: state.locations.filter(l => l.id !== id) })),
-      setHasHydrated: (hydrated: boolean) => set({ _hasHydrated: hydrated }),
-    }),
-    {
-      name: 'smokey-store',
-      storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-          if (state) {
-              state.setHasHydrated(true);
-              if (!state.navLinks || state.navLinks.length === 0) {
-                state.navLinks = defaultNavLinks;
-              }
-          }
-      },
-    }
-  )
-);
-
-type StoreApi = ReturnType<typeof createStore>;
-const StoreContext = createContext<StoreApi | null>(null);
+const zustandContext = createContext<ReturnType<typeof initializeStore> | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const storeRef = useRef<StoreApi>();
-  if (!storeRef.current) {
-    storeRef.current = createStore();
-  }
-  return (
-    <StoreContext.Provider value={storeRef.current}>
-      {children}
-    </StoreContext.Provider>
-  );
+    const storeRef = useRef<ReturnType<typeof initializeStore>>();
+    if (!storeRef.current) {
+        storeRef.current = initializeStore();
+    }
+    return (
+        <zustandContext.Provider value={storeRef.current}>
+            {children}
+        </zustandContext.Provider>
+    );
 }
 
-export function useStore<T>(selector: (state: StoreState) => T): T {
-    const store = useContext(StoreContext);
-    if (!store) {
-        throw new Error('useStore must be used within a StoreProvider.');
-    }
-    return store(selector);
+export function useStore<T>(selector: (state: StoreState) => T) {
+    const store = useContext(zustandContext);
+    if (!store) throw new Error('useStore must be used within a StoreProvider');
+    return useZustandStore(store, selector);
 }
+
+const initializeStore = () => {
+    return createStore<StoreState>()(
+        persist(
+            (set, get) => ({
+                ...getDefaultInitialState(),
+                setTheme: (theme: Theme) => set({ theme }),
+                setChatbotIcon: (icon: string | null) => set({ chatbotIcon: icon }),
+                setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
+                setBrandColor: (color: string) => set({ brandColor: color }),
+                setBrandUrl: (url: string) => set({ brandUrl: url }),
+                setBasePrompt: (prompt: string) => set({ basePrompt: prompt }),
+                setWelcomeMessage: (message: string) => set({ welcomeMessage: message }),
+                toggleCeoMode: () => set((state) => ({ isCeoMode: !state.isCeoMode })),
+                toggleDemoMode: () => set((state) => ({ isDemoMode: !state.isDemoMode })),
+                recordBrandImageGeneration: () => {
+                    const { lastBrandImageGeneration, brandImageGenerations } = get();
+                    const now = Date.now();
+                    const today = new Date(now).toDateString();
+                    const lastDate = lastBrandImageGeneration ? new Date(lastBrandImageGeneration).toDateString() : null;
+
+                    if (today === lastDate) {
+                        set({ brandImageGenerations: brandImageGenerations + 1, lastBrandImageGeneration: now });
+                    } else {
+                        set({ brandImageGenerations: 1, lastBrandImageGeneration: now });
+                    }
+                },
+                addNavLink: (link: NavLink) => set((state) => ({ navLinks: [...state.navLinks, { ...link, hidden: false }] })),
+                updateNavLink: (href: string, newLink: Partial<NavLink>) => set((state) => ({
+                    navLinks: state.navLinks.map((link) => link.href === href ? { ...link, ...newLink } : link)
+                })),
+                toggleNavLinkVisibility: (href: string) => set((state) => ({
+                    navLinks: state.navLinks.map((link) => link.href === href ? { ...link, hidden: !link.hidden } : link)
+                })),
+                removeNavLink: (href: string) => set(state => ({ navLinks: state.navLinks.filter(l => l.href !== href) })),
+                addLocation: (location: Location) => set((state) => ({ locations: [...state.locations, location] })),
+                updateLocation: (id: string, newLocation: Partial<Location>) => set((state) => ({
+                    locations: state.locations.map((loc) => loc.id === id ? { ...loc, ...newLocation } : loc)
+                })),
+                removeLocation: (id: string) => set(state => ({ locations: state.locations.filter(l => l.id !== id) })),
+                setHasHydrated: (hydrated: boolean) => set({ _hasHydrated: hydrated }),
+            }),
+            {
+                name: 'smokey-store',
+                storage: createJSONStorage(() => localStorage),
+                onRehydrateStorage: () => (state) => {
+                    if (state) {
+                        state.setHasHydrated(true);
+                         if (!state.navLinks || state.navLinks.length === 0) {
+                            state.navLinks = defaultNavLinks;
+                        }
+                    }
+                },
+            }
+        )
+    );
+};
