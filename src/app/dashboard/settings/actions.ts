@@ -13,54 +13,47 @@ const FormSchema = z.object({
 });
 
 export async function saveCannMenusApiKey(prevState: any, formData: FormData) {
-  try {
-    const { auth, firestore } = await createServerClient();
-    const user = auth.currentUser;
+  const { auth, firestore } = await createServerClient();
+  const user = auth.currentUser;
 
-    if (!user) {
-      throw new Error('You must be logged in to save an API key.');
-    }
-
-    const validatedFields = FormSchema.safeParse({
-      apiKey: formData.get('cannmenus-api-key'),
-    });
-
-    if (!validatedFields.success) {
-      return {
-        message: 'Invalid form data. Please check your inputs.',
-        error: true,
-        fieldErrors: validatedFields.error.flatten().fieldErrors,
-      };
-    }
-
-    const { apiKey } = validatedFields.data;
-
-    const userPrivateRef = doc(firestore, 'user-private', user.uid);
-    
-    // Using non-blocking setDoc
-    setDoc(userPrivateRef, { cannMenusApiKey: apiKey }, { merge: true })
-        .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: userPrivateRef.path,
-                operation: 'write',
-                requestResourceData: { cannMenusApiKey: 'REDACTED' } // Redact sensitive data
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        });
-
-
-    revalidatePath('/dashboard/settings');
-
+  if (!user) {
+    // This is an application-level error, not a rules error. Return it directly.
     return {
-      message: 'API Key saved successfully!',
-      error: false,
-    };
-  } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-    // This will now primarily catch setup errors (like no user), not Firestore rule errors.
-    return {
-      message: `Failed to save API Key: ${errorMessage}`,
+      message: 'You must be logged in to save an API key.',
       error: true,
     };
   }
+
+  const validatedFields = FormSchema.safeParse({
+    apiKey: formData.get('cannmenus-api-key'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      message: 'Invalid form data. Please check your inputs.',
+      error: true,
+      fieldErrors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+
+  const { apiKey } = validatedFields.data;
+  const userPrivateRef = doc(firestore, 'user-private', user.uid);
+  
+  // Using non-blocking setDoc with contextual error handling
+  setDoc(userPrivateRef, { cannMenusApiKey: apiKey }, { merge: true })
+      .catch(async (serverError) => {
+          const permissionError = new FirestorePermissionError({
+              path: userPrivateRef.path,
+              operation: 'update', // Using 'update' as merge:true behaves like an upsert
+              requestResourceData: { cannMenusApiKey: 'REDACTED' } // Redact sensitive data
+          });
+          errorEmitter.emit('permission-error', permissionError);
+      });
+
+  revalidatePath('/dashboard/settings');
+
+  return {
+    message: 'API Key saved successfully!',
+    error: false,
+  };
 }

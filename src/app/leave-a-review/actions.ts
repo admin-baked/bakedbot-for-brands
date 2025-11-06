@@ -37,47 +37,40 @@ export async function submitReview(prevState: any, formData: FormData) {
     };
   }
   
-  try {
-    const { firestore } = await createServerClient();
-    const { productId, ...reviewData } = validatedFields.data;
+  // We need to establish the server client here to handle both success and error paths.
+  const { firestore } = await createServerClient();
+  const { productId, ...reviewData } = validatedFields.data;
 
-    // TODO: Handle the actual image upload to Firebase Storage
-    // For now, we'll store a placeholder or a marker that it exists.
-    const verificationImageUrl = validatedFields.data.verificationImage.size > 0 
-        ? 'placeholder/verification_image.jpg' 
-        : '';
-    
-    const reviewCollectionRef = collection(firestore, 'products', productId, 'reviews');
-    
-    const dataToSave = {
-        ...reviewData,
-        verificationImageUrl,
-        createdAt: serverTimestamp(),
-    };
+  // TODO: Handle the actual image upload to Firebase Storage
+  // For now, we'll store a placeholder or a marker that it exists.
+  const verificationImageUrl = validatedFields.data.verificationImage.size > 0 
+      ? 'placeholder/verification_image.jpg' 
+      : '';
+  
+  const reviewCollectionRef = collection(firestore, 'products', productId, 'reviews');
+  
+  const dataToSave = {
+      ...reviewData,
+      verificationImageUrl,
+      createdAt: serverTimestamp(),
+  };
 
-    // Use non-blocking addDoc and chain a .catch for error handling
-    addDoc(reviewCollectionRef, dataToSave)
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-            path: reviewCollectionRef.path,
-            operation: 'create',
-            requestResourceData: { ...dataToSave, createdAt: 'SERVER_TIMESTAMP' } // Use string placeholder for server value
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
+  // Use non-blocking addDoc and chain a .catch for error handling
+  addDoc(reviewCollectionRef, dataToSave)
+    .catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+          path: reviewCollectionRef.path,
+          operation: 'create',
+          requestResourceData: { ...dataToSave, createdAt: 'SERVER_TIMESTAMP' } // Use string placeholder for server value
+      } satisfies SecurityRuleContext);
+      errorEmitter.emit('permission-error', permissionError);
     });
 
-    revalidatePath('/products'); // Revalidate product pages if they show reviews
-    revalidatePath('/dashboard/reviews'); // also revalidate the reviews dashboard
+  revalidatePath('/products'); // Revalidate product pages if they show reviews
+  revalidatePath('/dashboard/reviews'); // also revalidate the reviews dashboard
 
-    return {
-      message: 'Thank you! Your review has been submitted successfully.',
-      error: false,
-    };
-  } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-    return {
-      message: `Failed to submit review: ${errorMessage}`,
-      error: true,
-    };
-  }
+  return {
+    message: 'Thank you! Your review has been submitted successfully.',
+    error: false,
+  };
 }
