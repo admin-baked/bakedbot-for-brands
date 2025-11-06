@@ -4,7 +4,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare, Shield, MapPin } from 'lucide-react';
+import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare, Shield, MapPin, Package } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import {
   SidebarProvider,
@@ -194,6 +194,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           <MenuSquare className="mr-2 h-4 w-4" />
                           <span>Menu</span>
                         </DropdownMenuItem>
+                         <DropdownMenuItem onClick={() => router.push('/dashboard/orders')}>
+                          <Package className="mr-2 h-4 w-4" />
+                          <span>Orders</span>
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => router.push('/dashboard/locations')}>
                           <MapPin className="mr-2 h-4 w-4" />
                           <span>Locations</span>
@@ -235,6 +239,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                    <DropdownMenuItem onClick={() => router.push('/dashboard/products')}>
                     <MenuSquare className="mr-2 h-4 w-4" />
                     <span>Menu</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/dashboard/orders')}>
+                    <Package className="mr-2 h-4 w-4" />
+                    <span>Orders</span>
                   </DropdownMenuItem>
                    <DropdownMenuItem onClick={() => router.push('/dashboard/locations')}>
                     <MapPin className="mr-2 h-4 w-4" />
