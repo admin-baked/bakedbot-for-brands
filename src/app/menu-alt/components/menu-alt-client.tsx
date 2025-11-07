@@ -160,7 +160,7 @@ export default function MenuAltClient() {
         return products ? groupProductsByCategory(products) : {};
     }, [products]);
 
-    const categories = useMemo(() => isLoading ? SKELETON_CATEGORIES : Object.keys(groupedProducts), [isLoading, groupedProducts]);
+    const categories = isLoading ? SKELETON_CATEGORIES : Object.keys(groupedProducts);
 
     const featuredProduct = products ? products.find(p => p.id === '5') : null;
 

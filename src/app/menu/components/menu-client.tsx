@@ -164,7 +164,7 @@ export default function MenuClient() {
         return products ? groupProductsByCategory(products) : {};
     }, [products]);
 
-    const categories = useMemo(() => isLoading ? SKELETON_CATEGORIES : Object.keys(groupedProducts), [isLoading, groupedProducts]);
+    const categories = isLoading ? SKELETON_CATEGORIES : Object.keys(groupedProducts);
 
     return (
         <div className="min-h-screen bg-background">
