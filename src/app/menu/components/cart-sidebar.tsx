@@ -70,11 +70,11 @@ export default function CartSidebar() {
     }
   }, [isCartOpen]);
 
-  const handleOrderSuccess = (newOrderId: string) => {
+  const handleOrderSuccess = React.useCallback((newOrderId: string) => {
     setOrderId(newOrderId);
     setStep('success');
     clearCart();
-  }
+  }, [clearCart]);
 
   const subtotal = getCartTotal(selectedLocationId);
 
