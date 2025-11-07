@@ -8,6 +8,7 @@ service cloud.firestore {
     //============================================================
 
     function isAuthenticated() {
+      // Enforce App Check for all authenticated requests
       return request.auth != null && request.app != null;
     }
 

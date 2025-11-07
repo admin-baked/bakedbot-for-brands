@@ -8,7 +8,8 @@ service cloud.firestore {
     //============================================================
 
     function isAuthenticated() {
-      return request.auth != null;
+      // Enforce App Check for all authenticated requests
+      return request.auth != null && request.app != null;
     }
 
     function isOwner(userId) {
@@ -16,7 +17,7 @@ service cloud.firestore {
     }
     
     function isCeo() {
-      // Check for a 'ceo' custom claim on the user's auth token.
+      // Check for a 'ceo' custom claim on the user's auth token and a valid app check.
       return isAuthenticated() && request.auth.token.ceo == true;
     }
 
@@ -61,7 +62,7 @@ service cloud.firestore {
             && order.totalAmount is number && order.totalAmount > 0
             && order.orderDate == request.time
             && order.status == 'pending'
-            && (order.userId == request.auth.uid || order.userId == 'guest');
+            && ((isAuthenticated() && order.userId == request.auth.uid) || order.userId == 'guest');
     }
 
     // Schema validation for OrderItem
@@ -88,19 +89,23 @@ service cloud.firestore {
     }
 
     match /categories/{categoryId} {
+      // Publicly readable for menus.
       allow get, list: if true;
+      // Prevent any writes from the client.
       allow create, update, delete: if false;
     }
 
     match /products/{productId} {
+      // Publicly readable for menus.
       allow get, list: if true;
+      // Prevent direct creation or deletion from clients.
       allow create, delete: if false;
       // Allow authenticated users to update ONLY the 'likes' and 'dislikes' fields.
       allow update: if isAuthenticated() && isUpdatingAllowedFields(['likes', 'dislikes']);
     }
 
     match /products/{productId}/reviews/{reviewId} {
-      // Any authenticated user can read reviews
+      // Any authenticated user can read reviews to allow for summarization.
       allow get, list: if isAuthenticated();
       // Users can only create reviews for themselves and the data must be valid
       allow create: if isAuthenticated() && isValidReview(request.resource.data);
@@ -115,7 +120,8 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
         
         // A user can create an order for themselves, or a guest can create an order.
-        allow create: if isValidOrder(request.resource.data) && (isOwner(userId) || userId == 'guest');
+        // App check is enforced if the user is authenticated.
+        allow create: if (isValidOrder(request.resource.data) && ((isAuthenticated() && isOwner(userId)) || userId == 'guest'));
 
         // OrderItems can only be created along with the order
         // and can only be read by the user who owns the order or an admin.
@@ -123,14 +129,13 @@ service cloud.firestore {
              allow read, write: if (isOwner(userId) || isCeo()) && isValidOrderItem(request.resource.data);
         }
     }
-    
-    // This rule allows admins to list all orders across all users.
+
+    // This rule allows admins to list all orders across all users for the dashboard.
     match /users/{userId}/orders/{orderId} {
       allow list: if isCeo();
     }
 
-    // Rules for all reviews in the system.
-    // This allows an admin to read all reviews for the dashboard.
+    // This rule allows admins to list all reviews across all users for the dashboard.
     match /products/{productId}/reviews/{reviewId} {
       allow list: if isCeo();
     }
