@@ -4,12 +4,39 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/hooks/use-store";
 import { themes, type Theme } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 
 export default function ThemeSettings() {
-    const { theme, setTheme } = useStore();
+    const { theme, setTheme, _hasHydrated } = useStore();
+
+    if (!_hasHydrated) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle>Theme Customization</CardTitle>
+                    <CardDescription>
+                        Select a color theme for your application and chatbot widget.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                        {themes.map((t) => (
+                             <div key={t.name} className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4">
+                                <div className="flex items-center gap-2">
+                                     <Skeleton className="h-6 w-6 rounded-sm" />
+                                     <Skeleton className="h-6 w-6 rounded-sm" />
+                                </div>
+                                <Skeleton className="h-5 w-20 mt-2" />
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <Card>
@@ -30,7 +57,7 @@ export default function ThemeSettings() {
                             key={t.name}
                             htmlFor={t.name}
                             className={cn(
-                                "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground",
+                                "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer",
                                 theme === t.name && "border-primary"
                             )}
                         >
