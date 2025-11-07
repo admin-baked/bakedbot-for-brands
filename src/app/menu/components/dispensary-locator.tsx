@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -107,7 +108,7 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false); // Unsupported path
         }
-    }, [isHydrated, locations, toast]);
+    }, [isHydrated, locations]);
 
 
     if (isLocating) {

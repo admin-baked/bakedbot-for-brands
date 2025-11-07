@@ -96,7 +96,7 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false);
         }
-    }, [isHydrated, isDemoMode, storeLocations, toast]);
+    }, [isHydrated, isDemoMode, storeLocations]);
 
 
     if (isLocating || !isHydrated) {
