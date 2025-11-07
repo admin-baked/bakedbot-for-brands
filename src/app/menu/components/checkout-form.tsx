@@ -42,8 +42,8 @@ function SubmitButton() {
 }
 
 export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: (orderId: string) => void; onBack: () => void; }) {
-    const { items, getCartTotal, clearCart } = useCart();
-    const { locations } = useMenuData();
+    const { items, getCartTotal } = useCart();
+    const { locations, isUsingDemoData } = useMenuData();
     const { toast } = useToast();
     const { user } = useUser();
     const router = useRouter();
@@ -165,9 +165,11 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
              <div>
                 <div className="flex justify-between items-center mb-4">
                      <h3 className="text-lg font-semibold">Your Information</h3>
-                     <Button type="button" variant="outline" size="sm" onClick={fillWithTestData}>
-                        <FlaskConical className="mr-2 h-4 w-4" /> Test Checkout
-                    </Button>
+                     {isUsingDemoData && (
+                        <Button type="button" variant="outline" size="sm" onClick={fillWithTestData}>
+                           <FlaskConical className="mr-2 h-4 w-4" /> Test Checkout
+                       </Button>
+                     )}
                 </div>
                 <div className="mt-4 grid grid-cols-1 gap-4">
                     <div className="space-y-1">

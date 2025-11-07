@@ -30,15 +30,16 @@ export default function DispensaryLocator() {
     const { toast } = useToast();
     const { locations, isLoading: areLocationsLoading } = useMenuData();
     const [nearbyLocations, setNearbyLocations] = useState<LocationWithDistance[]>([]);
-    const [isLocating, setIsLocating] = useState(true);
+    const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
     useEffect(() => {
         if (!locations || locations.length === 0) {
-            setIsLocating(false);
+            if (!areLocationsLoading) {
+              setStatus('success'); // No locations to show, but not an error or loading state.
+            }
             return;
         }
 
-        setIsLocating(true);
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -55,7 +56,7 @@ export default function DispensaryLocator() {
                         .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
 
                     setNearbyLocations(locationsWithDistance.slice(0, 3));
-                    setIsLocating(false);
+                    setStatus('success');
                 },
                 (error) => {
                     console.error("Geolocation error:", error);
@@ -65,7 +66,7 @@ export default function DispensaryLocator() {
                         description: 'Could not get your location. Showing default dispensaries.'
                     });
                     setNearbyLocations(locations.slice(0, 3));
-                    setIsLocating(false);
+                    setStatus('error');
                 }
             );
         } else {
@@ -75,13 +76,12 @@ export default function DispensaryLocator() {
                 description: 'Geolocation is not supported by your browser.'
             });
             setNearbyLocations(locations.slice(0, 3));
-            setIsLocating(false);
+            setStatus('error');
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [locations, areLocationsLoading, toast]);
 
 
-    if (isLocating || areLocationsLoading) {
+    if (status === 'loading' || areLocationsLoading) {
          return (
              <div className="mb-12">
                 <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
