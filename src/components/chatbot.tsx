@@ -661,7 +661,7 @@ export default function Chatbot() {
               {isOpen ? (
                 <X className="h-8 w-8" />
               ) : chatbotIcon ? (
-                <Image src={chatbotIcon} alt="Chatbot Icon" layout="fill" className="object-cover" />
+                <Image src={chatbotIcon} alt="Chatbot Icon" fill className="object-cover" />
               ) : (
                 <Bot className="h-8 w-8" />
               )}
