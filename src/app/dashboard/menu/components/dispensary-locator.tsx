@@ -77,7 +77,8 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false);
         }
-    }, [locations, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
 
     if (isLocating || areLocationsLoading) {

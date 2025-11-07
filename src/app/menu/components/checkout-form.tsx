@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCart } from '@/hooks/use-cart';
 import type { Location } from '@/lib/types';
-import { Loader2, Send, MapPin, Upload, CalendarIcon } from 'lucide-react';
+import { Loader2, Send, MapPin, Upload, CalendarIcon, FlaskConical } from 'lucide-react';
 import { haversineDistance } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { submitOrder } from './actions';
@@ -123,6 +123,28 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
             setIdImageName(null);
         }
     };
+    
+    const fillWithTestData = () => {
+        if (!formRef.current) return;
+        formRef.current.customerName.value = 'Martez Smith';
+        formRef.current.customerEmail.value = 'martez@bakedbot.ai';
+        formRef.current.customerPhone.value = '555-123-4567';
+        setBirthDate(new Date('1990-01-15'));
+        
+        // You might need a more robust way to handle file inputs for testing,
+        // but for now, we'll just indicate a file could be there.
+        setIdImageName('test_id.jpg');
+
+        // Select the first location if available
+        if (sortedLocations.length > 0 && sortedLocations[0].id) {
+            setSelectedLocationId(sortedLocations[0].id);
+        }
+        
+        toast({
+            title: 'Test Data Filled',
+            description: 'The form has been populated with test data.',
+        });
+    };
 
     const handleSubmit = (formData: FormData) => {
         formData.append('cartItems', JSON.stringify(items));
@@ -141,7 +163,12 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     return (
         <form ref={formRef} action={handleSubmit} className="space-y-6">
              <div>
-                <h3 className="text-lg font-semibold">Your Information</h3>
+                <div className="flex justify-between items-center mb-4">
+                     <h3 className="text-lg font-semibold">Your Information</h3>
+                     <Button type="button" variant="outline" size="sm" onClick={fillWithTestData}>
+                        <FlaskConical className="mr-2 h-4 w-4" /> Test Checkout
+                    </Button>
+                </div>
                 <div className="mt-4 grid grid-cols-1 gap-4">
                     <div className="space-y-1">
                         <Label htmlFor="name">Full Name</Label>
