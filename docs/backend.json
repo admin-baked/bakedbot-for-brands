@@ -11,14 +11,6 @@
           "type": "string",
           "description": "Unique identifier for the User entity."
         },
-        "googleId": {
-          "type": "string",
-          "description": "User's Google ID for Google Login."
-        },
-        "magicButtonToken": {
-          "type": "string",
-          "description": "Token for Magic Button authentication."
-        },
         "email": {
           "type": "string",
           "description": "User's email address.",
