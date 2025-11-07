@@ -50,7 +50,7 @@ function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <title>BakedBot AI Assistant</title>
-        <meta name="description" content="AI Assistant for Dispensaries" />
+        <meta name="description" content="Headless Menu and AI Agent Budtender for Brands." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
