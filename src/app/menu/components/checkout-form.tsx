@@ -4,16 +4,18 @@ import { useState, useEffect, useActionState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCart } from '@/hooks/use-cart';
 import type { Location } from '@/lib/types';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, MapPin } from 'lucide-react';
 import { haversineDistance } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { submitOrder } from './actions';
 import { useFormStatus } from 'react-dom';
 import { useUser } from '@/firebase';
 import { useMenuData } from '@/hooks/use-menu-data';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 type LocationWithDistance = Location & { distance?: number };
 
@@ -85,7 +87,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     };
 
     return (
-        <form ref={formRef} action={handleSubmit} className="space-y-4">
+        <form ref={formRef} action={handleSubmit} className="space-y-6">
              <div>
                 <h3 className="text-lg font-semibold">Your Information</h3>
                 <div className="mt-4 grid grid-cols-1 gap-4">
@@ -103,32 +105,28 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
             </div>
              <div>
                 <h3 className="text-lg font-semibold">Pickup Location</h3>
-                <div className="mt-4 space-y-1">
-                    <Label htmlFor="location">Select a dispensary</Label>
-                    <Select name="locationId" required>
-                        <SelectTrigger id="location" disabled={isLocating}>
-                            <SelectValue placeholder={isLocating ? 'Finding nearby locations...' : 'Choose a pickup location'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {isLocating && <div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}
-                            {sortedLocations.length > 0 ? (
-                                sortedLocations.map(loc => (
-                                    <SelectItem key={loc.id} value={loc.id}>
-                                        {loc.name} - {loc.city}
-                                        {loc.distance && (
-                                            <span className='ml-2 text-xs text-muted-foreground'>
-                                                ({loc.distance.toFixed(1)} miles away)
-                                            </span>
-                                        )}
-                                    </SelectItem>
-                                ))
-                            ) : (
-                                <SelectItem value="none" disabled>No locations configured.</SelectItem>
-                            )}
-                        </SelectContent>
-                    </Select>
-                    {state.fieldErrors?.locationId && <p className="text-sm text-destructive">{state.fieldErrors.locationId[0]}</p>}
-                </div>
+                <RadioGroup name="locationId" className="mt-4 space-y-2">
+                    {isLocating && <div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}
+                    {sortedLocations.length > 0 ? (
+                        sortedLocations.map(loc => (
+                            <div key={loc.id}>
+                                <RadioGroupItem value={loc.id} id={loc.id} className="peer sr-only" />
+                                <Label htmlFor={loc.id} className="block cursor-pointer rounded-lg border bg-card p-4 peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                    <div className="flex items-start justify-between">
+                                        <div className='flex-1'>
+                                            <p className="font-semibold">{loc.name}</p>
+                                            <p className="text-sm text-muted-foreground">{loc.address}, {loc.city}</p>
+                                        </div>
+                                        {loc.distance && <p className="text-sm font-bold">{loc.distance.toFixed(1)} mi</p>}
+                                    </div>
+                                </Label>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No locations configured.</p>
+                    )}
+                </RadioGroup>
+                {state.fieldErrors?.locationId && <p className="mt-2 text-sm text-destructive">{state.fieldErrors.locationId[0]}</p>}
             </div>
              <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm text-muted-foreground">
