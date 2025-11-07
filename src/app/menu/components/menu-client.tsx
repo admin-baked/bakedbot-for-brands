@@ -200,9 +200,8 @@ export default function MenuClient() {
                 </div>
 
                 {isLoading ? (
-                    // Show skeleton loaders while products are loading
-                    Array.from({ length: 3 }).map((_, i) => (
-                        <section key={i} className="mb-12">
+                    <div className="space-y-12">
+                        <section>
                             <Skeleton className="h-8 w-1/4 mb-6" />
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
                                 {Array.from({ length: 5 }).map((_, j) => (
@@ -210,7 +209,15 @@ export default function MenuClient() {
                                 ))}
                             </div>
                         </section>
-                    ))
+                         <section>
+                            <Skeleton className="h-8 w-1/4 mb-6" />
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                                {Array.from({ length: 5 }).map((_, j) => (
+                                <ProductSkeleton key={j} />
+                                ))}
+                            </div>
+                        </section>
+                    </div>
                 ) : (
                     // Render products once loaded
                     categories.map(category => (
@@ -266,5 +273,7 @@ export default function MenuClient() {
         </div>
     );
 }
+
+    
 
     
