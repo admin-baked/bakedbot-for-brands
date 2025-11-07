@@ -10,19 +10,18 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useDemoData } from '@/hooks/use-demo-data';
 import { type Product } from '@/lib/types';
-import { ScrollArea } from './ui/scroll-area';
-import { Badge } from './ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import type { CartItem } from '@/lib/types';
 import { useStore } from '@/hooks/use-store';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { recommendProducts, type RecommendProductsOutput } from '@/ai/ai-powered-product-recommendations';
 import { summarizeReviews } from '@/ai/flows/summarize-reviews';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { createSocialMediaImage } from '@/app/dashboard/content/actions';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { createSocialMediaImage, updateProductFeedback } from '@/app/dashboard/content/actions';
 import type { ImageFormState } from '@/app/dashboard/content/actions';
 import { useToast } from '@/hooks/use-toast';
-import { updateProductFeedback } from '@/lib/actions';
 
 
 type Message = {
@@ -616,7 +615,7 @@ export default function Chatbot() {
 
       // Add reasoning to the main message if there's only one product
       if (recommendedProductDetails.length === 1 && recommendedProductDetails[0].reasoning) {
-        botResponseText += `\n\n**${recommendedProductDetails[0].name}**: ${recommendedProductDetails[0].reasoning}`;
+        botResponseText += `\n\n**${recommendedProductDetails[0].name}**: ${recommendedProd.reasoning}`;
       }
   
       const botMessage: Message = {

@@ -7,7 +7,7 @@ import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon, Loader2 } from 'luc
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { useTransition } from 'react';
-import { updateProductFeedback } from '@/lib/actions';
+import { updateProductFeedback } from '@/app/dashboard/content/actions';
 
 interface ProductDescriptionDisplayProps {
   productDescription: (GenerateProductDescriptionOutput & { productId?: string }) | null;

@@ -66,11 +66,14 @@ export default function DispensaryLocator() {
     useEffect(() => {
         if (!locations || locations.length === 0) {
             if (!areLocationsLoading) {
-              setStatus('success'); // No locations to show, but not an error or loading state.
+                setStatus('success'); // No locations to show, but not an error or loading state.
+                setSortedLocations([]);
             }
             return;
         }
 
+        // Set loading state only when we start the async operation
+        setStatus('loading');
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -109,7 +112,7 @@ export default function DispensaryLocator() {
             setSortedLocations(locations.slice(0, 3));
             setStatus('error');
         }
-    }, [locations, areLocationsLoading]);
+    }, [locations, areLocationsLoading, toast]);
 
 
     if (status === 'loading' || areLocationsLoading) {

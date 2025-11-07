@@ -27,7 +27,9 @@ export function useMenuData() {
 
   // Memoize the result to stabilize the array references
   const memoizedData = useMemo(() => {
-    if (isUsingDemoData) {
+    const usingDemo = isUsingDemoData || !_hasHydrated;
+    
+    if (usingDemo) {
       return {
         products: demoProducts as Product[],
         locations: demoLocations as Location[],
@@ -44,7 +46,7 @@ export function useMenuData() {
       error: error,
       isUsingDemoData: false,
     };
-  }, [isUsingDemoData, firestoreProducts, storeLocations, demoProducts, isFirestoreLoading, error]);
+  }, [isUsingDemoData, _hasHydrated, firestoreProducts, storeLocations, demoProducts, isFirestoreLoading, error]);
 
   return {
     ...memoizedData,

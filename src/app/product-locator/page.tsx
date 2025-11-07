@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import DispensaryLocator from '../menu/components/dispensary-locator';
+import DispensaryLocator from '@/app/menu/components/dispensary-locator';
 import { Button } from '@/components/ui/button';
 import { Search, ShoppingBag, User } from 'lucide-react';
 
