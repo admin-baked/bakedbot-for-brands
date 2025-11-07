@@ -75,10 +75,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isAddOpen, setIsAddOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
-
+  
+  // This state will be false on the server and during initial client render.
+  // It will only become true after the component has mounted on the client.
+  const [showClientContent, setShowClientContent] = React.useState(false);
+  
   React.useEffect(() => {
-    // This effect runs only on the client side.
-    // If loading is finished and there's no user, redirect to login.
+    // This effect runs only on the client side, after hydration.
+    setShowClientContent(true);
+
     if (!isUserLoading && !user) {
       router.replace('/brand-login');
     }
@@ -118,8 +123,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!email) return 'U';
     return email.substring(0, 2).toUpperCase();
   };
+  
+  const shouldShowAdminControls = showClientContent && isCeoMode;
 
-  const visibleLinks = isCeoMode ? navLinks : navLinks.filter(link => !link.hidden);
+  const visibleLinks = shouldShowAdminControls ? navLinks : navLinks.filter(link => !link.hidden);
 
   return (
     <SidebarProvider>
@@ -134,19 +141,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {visibleLinks.map((item) => {
                    const Icon = (LucideIcons as any)[item.icon] || LucideIcons.PanelRight;
                    return (
-                  <SidebarMenuItem key={item.href} className={cn(isCeoMode && item.hidden && "opacity-50 hover:opacity-100")}>
+                  <SidebarMenuItem key={item.href} className={cn(shouldShowAdminControls && item.hidden && "opacity-50 hover:opacity-100")}>
                       <SidebarMenuButton
                         asChild
                         isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
                         tooltip={item.label}
-                        className={cn(isCeoMode && _hasHydrated && "pr-16")}
+                        className={cn(shouldShowAdminControls && "pr-16")}
                       >
                         <Link href={item.href}>
                           <Icon />
                           <span>{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
-                     {isCeoMode && _hasHydrated && (
+                     {shouldShowAdminControls && (
                         <SidebarAdminControls
                             link={item}
                             onEdit={handleEditClick}
@@ -160,7 +167,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </SidebarMenu>
             </SidebarContent>
             <SidebarFooter>
-                 {isCeoMode && _hasHydrated && (
+                 {shouldShowAdminControls && (
                   <SidebarMenu>
                      <SidebarMenuItem className="p-2">
                         <div className='flex items-center space-x-2 rounded-lg'>
