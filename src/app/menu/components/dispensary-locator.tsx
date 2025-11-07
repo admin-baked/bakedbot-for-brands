@@ -3,28 +3,31 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, MapPin } from 'lucide-react';
-import { useStore, type Location } from '@/hooks/use-store';
 import { useToast } from '@/hooks/use-toast';
 import { haversineDistance } from '@/lib/utils';
 import { useMenuData } from '@/hooks/use-menu-data';
+import type { Location } from '@/lib/types';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 type LocationWithDistance = Location & { distance?: number };
 
 const DispensaryCard = ({ location }: { location: LocationWithDistance }) => (
-    <Card className="w-full">
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-                <MapPin className="h-4 w-4" />
-                {location.name}
-            </CardTitle>
-        </CardHeader>
-        <CardContent>
-            <p className="text-sm text-muted-foreground">{location.address}, {location.city}, {location.state}</p>
-             {location.distance && (
-                <p className="text-sm font-bold mt-2">{location.distance.toFixed(1)} miles away</p>
-            )}
-        </CardContent>
-    </Card>
+    <div className="w-64 flex-shrink-0 md:w-full">
+        <Card className="w-full h-full">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                    <MapPin className="h-4 w-4" />
+                    {location.name}
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-muted-foreground">{location.address}, {location.city}, {location.state}</p>
+                {location.distance && (
+                    <p className="text-sm font-bold mt-2">{location.distance.toFixed(1)} miles away</p>
+                )}
+            </CardContent>
+        </Card>
+    </div>
 );
 
 export default function DispensaryLocator() {
@@ -98,11 +101,16 @@ export default function DispensaryLocator() {
     return (
         <div className="mb-12">
             <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {nearbyLocations.map(loc => (
-                    <DispensaryCard key={loc.id} location={loc} />
-                ))}
-            </div>
+             <div className="md:grid md:grid-cols-3 md:gap-4">
+                <ScrollArea className="w-full md:w-auto md:col-span-3">
+                   <div className="flex space-x-4 pb-4 md:grid md:grid-cols-3 md:gap-4 md:space-x-0">
+                     {nearbyLocations.map(loc => (
+                         <DispensaryCard key={loc.id} location={loc} />
+                     ))}
+                   </div>
+                   <ScrollBar orientation="horizontal" className="md:hidden" />
+                </ScrollArea>
+             </div>
         </div>
     );
 }
