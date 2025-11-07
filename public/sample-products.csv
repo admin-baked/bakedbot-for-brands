@@ -1,4 +1,5 @@
-id,name,description,price,category
-"cosmic-caramels","Cosmic Caramels","Deliciously chewy caramels infused with premium, full-spectrum cannabis oil. A sweet escape to the cosmos.","25.00","Edibles"
-"galaxy-gummies","Galaxy Gummies","Starburst-flavored gummies that pack a potent punch. Each gummy is a journey through a galaxy of flavor.","22.50","Edibles"
-"orion-originals","Orion Originals","A classic, earthy strain known for its relaxing and euphoric effects. A constellation of quality in every bud.","45.00","Flower"
+id,name,category,price,imageUrl,description,likes,dislikes
+"10","OG Kush","Flower","60.00","https://picsum.photos/seed/product10/400/400","A classic indica-dominant strain known for its relaxing effects. Features a complex aroma with notes of fuel, skunk, and spice.","150","5"
+"11","Blue Dream","Flower","55.00","https://picsum.photos/seed/product11/400/400","A sativa-dominant hybrid that provides balanced, full-body relaxation with gentle cerebral invigoration. Sweet berry aroma.","210","8"
+"12","Pineapple Express","Vapes","42.50","https://picsum.photos/seed/product12/400/400","A potent vape cartridge with a taste of fresh apple and mango. Offers a long-lasting energetic buzz perfect for productive afternoons.","180","3"
+"13","Midnight Mint","Edibles","28.00","https://picsum.photos/seed/product13/400/400","Rich dark chocolate infused with cool mint and full-spectrum cannabis oil. Each piece contains 10mg of THC.","95","2"

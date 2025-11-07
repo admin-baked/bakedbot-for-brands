@@ -1,5 +1,4 @@
-name,address,city,state,zip,phone
-"Green Leaf Central","123 Main St","Metropolis","IL","12345","(555) 123-4567"
-"Herbal Haven Downtown","456 Oak Ave","Metropolis","IL","12346","(555) 987-6543"
-"Bloom Apothecary North","789 Pine Ln","Springfield","IL","67890","(555) 234-5678"
-"The Bud Box South","101 Maple Dr","Springfield","IL","67891","(555) 876-5432"
+id,name,address,city,state,zip,phone,email,lat,lon
+"demo4","Green Cross","1234 Market St","San Francisco","CA","94102","(415) 555-1234","orders@greencross.demo",37.7749,-122.4194
+"demo5","The People's Dispensary","5678 Telegraph Ave","Oakland","CA","94609","(510) 555-5678","orders@peoples.demo",37.8430,-122.2643
+"demo6","Coastal Cannabis","420 Shoreline Hwy","Sausalito","CA","94965","(415) 555-4321","orders@coastal.demo",37.8591,-122.4853
