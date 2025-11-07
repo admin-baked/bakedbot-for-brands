@@ -4,7 +4,7 @@
 import { type Theme } from '@/lib/themes';
 import { createStore, useStore as useZustandStore } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { createContext, useContext, useRef, type ReactNode, useEffect, useState } from 'react';
+import { createContext, useContext, useRef, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
 export type NavLink = {
@@ -165,22 +165,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     );
 }
 
-export function useStore<T>(selector: (state: StoreState) => T): T {
+// Overload signatures for the useStore hook
+export function useStore(): StoreState;
+export function useStore<T>(selector: (state: StoreState) => T): T;
+
+/**
+ * Custom hook to access the Zustand store.
+ * It can be called with a selector function to get a specific slice of the state,
+ * or without any arguments to get the entire state.
+ * It also handles server-side rendering by returning a server-side state
+ * until the store has been hydrated on the client.
+ */
+export function useStore<T>(selector?: (state: StoreState) => T): T | StoreState {
   const store = useContext(StoreContext);
   if (!store) {
     throw new Error('useStore must be used within a StoreProvider');
   }
 
-  const serverState = selector(store.getState());
-  const clientState = useZustandStore(store, selector);
+  // Determine the selector, defaulting to returning the whole state.
+  const a = selector || ((s: StoreState) => s);
+  const result = useZustandStore(store, a);
 
-  const [hydrated, setHydrated] = useState(false);
+  const hasHydrated = useZustandStore(store, (s) => s._hasHydrated);
 
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
+  // On the server or before hydration, return the initial state.
+  // Use the selector if provided, otherwise the whole initial state.
+  if (!hasHydrated) {
+    const initialState = store.getState();
+    return selector ? selector(initialState) : initialState;
+  }
 
-  return hydrated ? clientState : serverState;
+  return result;
 }
-
-    
