@@ -33,6 +33,7 @@ import EditLinkDialog from './components/edit-link-dialog';
 import DeleteLinkDialog from './components/delete-link-dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -54,11 +55,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   React.useEffect(() => {
     // This effect runs only on the client side.
-    // If loading is finished, there's no user, AND we are not in CEO mode, redirect to login.
-    if (!isUserLoading && !user && !isCeoMode) {
+    // If loading is finished and there's no user, redirect to login.
+    if (!isUserLoading && !user) {
       router.replace('/brand-login');
     }
-  }, [isUserLoading, user, router, isCeoMode]);
+  }, [isUserLoading, user, router]);
 
   const handleSignOut = async () => {
     try {
@@ -94,15 +95,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!email) return 'U';
     return email.substring(0, 2).toUpperCase();
   };
-
-  // Show a loading spinner while auth state is being determined, unless in CEO mode.
-  if (isUserLoading && !isCeoMode) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </div>
-    );
-  }
 
   const visibleLinks = isCeoMode ? navLinks : navLinks.filter(link => !link.hidden);
 
@@ -176,11 +168,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                  <SidebarMenuItem>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <SidebarMenuButton tooltip="Profile" className="w-full">
-                           <Avatar className="h-7 w-7">
-                              <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
-                           </Avatar>
-                           <span className="truncate">{user?.email ?? 'Your Profile'}</span>
+                        <SidebarMenuButton tooltip="Profile" className="w-full" disabled={isUserLoading}>
+                           {isUserLoading ? (
+                             <>
+                               <Skeleton className="h-7 w-7 rounded-full" />
+                               <Skeleton className="h-4 w-20" />
+                             </>
+                           ) : (
+                             <>
+                               <Avatar className="h-7 w-7">
+                                  <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+                               </Avatar>
+                               <span className="truncate">{user?.email ?? 'Your Profile'}</span>
+                             </>
+                           )}
                         </SidebarMenuButton>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="w-56 mb-2" side="top" align="start">
@@ -217,10 +218,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <SidebarTrigger className="lg:hidden" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                     <Avatar className="h-8 w-8">
-                        <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
-                     </Avatar>
+                  <Button variant="ghost" size="icon" className="rounded-full" disabled={isUserLoading}>
+                    {isUserLoading ? (
+                       <Skeleton className="h-8 w-8 rounded-full" />
+                    ) : (
+                       <Avatar className="h-8 w-8">
+                          <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+                       </Avatar>
+                    )}
                      <span className="sr-only">User Profile</span>
                   </Button>
                 </DropdownMenuTrigger>
