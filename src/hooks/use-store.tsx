@@ -77,7 +77,7 @@ const defaultNavLinks: NavLink[] = [
 const getDefaultInitialState = () => ({
   theme: 'green' as Theme,
   menuStyle: 'default' as 'default' | 'alt',
-  chatbotIcon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAclBMVEUAdL3///8Acb0Ab7wAbLwAarwAcrz7/v7+/v4AcLzu+PoAe78AeL7O8PDe9/gAfr8AgcAAd77L7/jE7ffB6/b3+/0AgMBpudcAhcMph8I2jMLy+vxOsNFZtNUpicHX9PjW8/dgr9g6kMM9lcQwhsI4jsNMuNJzveB4pXyTAAACyElEQVR4nO3d65KiMBQFYImkGkVFBRVzKCjO+7/OQ5oEBoZLe2/Od/ZOzPVE2mapj1hREREhO5Nq5dJ3r9H6nS6ve3t7d3L5Y7m9/tS6Z5+L3eX3t6e3N7e+nbe5/1y/X4/nU73d2+l3+83m82+lK53Op0mDMP3S/fe7/c2m81u13f8A5qLxuPx+v1+e3t722w229vbW/M8/6tE4vF4PBqNvu/7+Xy+3+/t9/vL+fn5fr9/57f6/f55nv9f8zz/0Xg8Hs/z/H6//85v9Xg8HovFslgsnuf5bre73W43m83zPP+vZrP5xG/1eDwezcYxhuM4DMMwDMM4jtfv92q1Ws/z/L+a5/m9Xu/xeGy1Ws/z/H89z/Pj8Xg0Go/H43mef5/P93q9vu/7fr//zv+k3+/3+/1+u90+z/Pj8Xg0Hs/z/H6/3+v1HMfx+/1+uVz2+/08z/PxeDwev99vNpv9Wt/3vV5vNpv1+/3zPM/z/H89z/Pj8Xi8Xq/v+97v95vNZrPZ/J/3/fl8vtvtHsfxtnvebre73W6/3+92u13X9Xq9Xq/H4/H7/X6/3zRNM5lMRqNRq9UcDsfj8Xg8nq7rNE3zb3p7e3t7e/uV0+/3S/oXm82yWCxWq/V+v+/7/n6//85/0+/3z/P8v16v1+v1bre73W5vb28/3u/3S+d7Pp/2+/08z//r+/77/f7L5bLb7W7XNdM0zmaz2Ww2nU4nEonNZvPjfr9vNps8z1uWZcuyzGaz2+1Wq9X7/X61Wq3X6x3H8Xg8vu/7/f7+W2l7e3s6nW63283n836/v91uZ57nPM88z/P5fH9/f+d/1e/39/f3z/P8er32fd/3fX8/n6/X6/f7/f5+fn6+3+/f+a/0+/3zPM/z/H+d5/nxeLxeL/v9vr7vf728vDyfz/f7/Xme5/n5+fnd/u73+3me5/l/ned5Pp+uruv7vs/z/Pj4uP/29va1nuf5eDz+4v+XpmmWZZlpmmEYzGaz2Ww+n0+n02EYhqbp5/b39/e3t7ffNjc35/P55+fn59vt9nQ6/dy+5fn5+eXl5e3t7eXl5e7ubtM0m83mfr//2r/3+/08z//+e/0+nw/DMJ/PZ5qmdrvdrus4jjzP9/v9ZFn+2n+w2+3z+fzxeDzLsvP5fDwej8fj8ffv32+1Wq/X63a7/bX/+fb2ts/nbzabmabp+/7xeDwej0aj0Wiapt/evlgs5nkehuHxePz69ev1en1/f3+1Wn348OHp6enBweHFixdPT0+vXr26urq6vr7+9u1bFEVRlEql0ujo6OhobGysrq6+f//+0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0d-EHUNoW2W+d4uAAAAAElFTkSuQmCC",
+  chatbotIcon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAclBMVEUAdL3///8Acb0Ab7wAbLwAarwAcrz7/v7+/v4AcLzu+PoAe78AeL7O8PDe9/gAfr8AgcAAd77L7/jE7ffB6/b3+/0AgMBpudcAhcMph8I2jMLy+vxOsNFZtNUpicHX9PjW8/dgr9g6kMM9lcQwhsI4jsNMuNJzveB4pXyTAAACyElEQVR4nO3d65KiMBQFYImkGkVFBRVzKCjO+7/OQ5oEBoZLe2/Od/ZOzPVE2mapj1hREREhO5Nq5dJ3r9H6nS6ve3t7d3L5Y7m9/tS6Z5+L3eX3t6e3N7e+nbe5/1y/X4/nU73d2+l3+83m82+lK53Op0mDMP3S/fe7/c2m81u13f8A5qLxuPx+v1+e3t722w229vbW/M8/6tE4vF4PBqNvu/7+Xy+3+/t9/vL+fn5fr9/57f6/f55nv9f8zz/0Xg8Hs/z/H6//85v9Xg8HovFslgsnuf5bre73W43m83zPP+vZrP5xG/1eDwezcYxhuM4DMMwDMM4jtfv92q1Ws/z/L+a5/m9Xu/xeGy1Ws/z/H89z/Pj8Xg0Go/H43mef5/P93q9vu/7fr//zv+k3+/3+/1+u90+z/Pj8Xg0Hs/z/H6/3+v1HMfx+/1+uVz2+/08z/PxeDwev99vNpv9Wt/3vV5vNpv1+/3zPM/z/H89z/Pj8Xi8Xq/v+97v95vNZrPZ/J/3/fl8vtvtHsfxtnvebre73W6/3+92u13X9Xq9Xq/H4/H7/X6/3zRNM5lMRqNRq9UcDsfj8Xg8nq7rNE3zb3p7e3t7e/uV0+/3S/oXm82yWCxWq/V+v+/7/n6//85/0+/3z/P8v16v1+v1bre73W5vb28/3u/3S+d7Pp/2+/08z//r+/77/f7L5bLb7W7XNdM0zmaz2Ww2nU4nEonNZvPjfr9vNps8z1uWZcuyzGaz2+1Wq9X7/X61Wq3X6x3H8Xg8vu/7/f7+W2l7e3s6nW63283n836/v91uZ57nPM88z/P5fH9/f+d/1e/39/f3z/P8er32fd/3fX8/n6/X6/f7/f5+fn6+3+/f+a/0+/3zPM/z/H+d5/nxeLxeL/v9vr7vf728vDyfz/f7/Xme5/n5+fnd/u73+3me5/l/ned5Pp+uruv7vs/z/Pj4uP/29va1nuf5eDz+4v+XpmmWZZlpmmEYzGaz2Ww+n0+n02EYhqbp5/b39/e3t7ffNjc35/P55+fn59vt9nQ6/dy+5fn5+eXl5e3t7eXl5e7ubtM0m83mfr//2r/3+/08z//+e/0+nw/DMJ/PZ5qmdrvdrus4jjzP9/v9ZFn+2n+w2+3z+fzxeDzLsvP5fDwej8fj8ffv32+1Wq/X63a7/bX/+fb2ts/nbzabmabp+/7xeDwej0aj0Wiapt/evlgs5nkehuHxePz69ev1en1/f3+1Wn348OHp6enBweHFixdPT0+vXr26urq6vr7+9u1bFEVRlEql0ujo6OhobGysrq6+f//+0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0d-EHUNoW2W+d4uAAAAAElFTkSuQmCC",
   chatExperience: 'default' as 'default' | 'classic',
   brandImageGenerations: 0,
   lastBrandImageGeneration: null,
@@ -171,25 +171,16 @@ export function useStore<T>(selector: (state: StoreState) => T): T {
     throw new Error('useStore must be used within a StoreProvider');
   }
 
-  // This is the key part for handling hydration
-  const [isHydrated, setIsHydrated] = useState(false);
-  
-  useEffect(() => {
-    const unsubscribe = store.persist.onRehydrate(() => {
-        setIsHydrated(true);
-    });
-
-    if (store.persist.hasHydrated()) {
-        setIsHydrated(true);
-    }
-
-    return () => {
-      unsubscribe();
-    };
-  }, [store]);
-
+  const serverState = selector(store.getState());
   const clientState = useZustandStore(store, selector);
-  const serverState = useZustandStore(createHydratableStore(getDefaultInitialState()), selector);
 
-  return isHydrated ? clientState : serverState;
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  return hydrated ? clientState : serverState;
 }
+
+    
