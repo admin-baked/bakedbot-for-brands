@@ -89,7 +89,9 @@ export default function CartSidebar() {
                         You'll receive a notification when it's ready for pickup.
                     </SheetDescription>
                      {orderId && (
-                        <Button variant="outline" className="mt-4" onClick={() => { router.push(`/order/${orderId}`); toggleCart(); }}>View Order Status</Button>
+                        <Button asChild variant="outline" className="mt-4" onClick={toggleCart}>
+                           <Link href={`/order/${orderId}`}>View Order Status</Link>
+                        </Button>
                      )}
                     <Button onClick={() => { setStep('cart'); toggleCart(); }} className="mt-2 w-full">Continue Shopping</Button>
                 </div>
@@ -175,7 +177,6 @@ export default function CartSidebar() {
                         </div>
                         <Button 
                             className="w-full" 
-                            disabled={items.length === 0}
                             onClick={() => {
                                 if (!selectedLocationId) {
                                     toast({
@@ -187,6 +188,7 @@ export default function CartSidebar() {
                                 }
                                 setStep('checkout');
                             }}
+                            disabled={items.length === 0}
                         >
                             Proceed to Checkout
                         </Button>
