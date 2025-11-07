@@ -13,9 +13,7 @@ export function initializeFirebase() {
   if (typeof window === 'undefined') {
     return { firebaseApp: null, auth: null, firestore: null };
   }
-
-  const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-
+  
   // This block is crucial for local development with App Check.
   // It tells App Check to use a debug token instead of a real reCAPTCHA token.
   // You must set the environment variable to 'development' in your local environment.
@@ -23,7 +21,9 @@ export function initializeFirebase() {
     // @ts-ignore
     self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
   }
-  
+
+  const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
   const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
   if (recaptchaSiteKey && recaptchaSiteKey !== 'YOUR_RECAPTCHA_V3_SITE_KEY_HERE') {
     try {
