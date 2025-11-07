@@ -65,7 +65,7 @@ export default function DispensaryLocator() {
 
     useEffect(() => {
         if (!isHydrated || !locations) {
-            setIsLocating(true);
+            setIsLocating(true); // Keep showing loader until data is ready
             return;
         }
 
@@ -85,7 +85,7 @@ export default function DispensaryLocator() {
                         .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
 
                     setNearbyLocations(locationsWithDistance.slice(0, 3));
-                    setIsLocating(false);
+                    setIsLocating(false); // Success path
                 },
                 (error) => {
                     console.error("Geolocation error:", error);
@@ -95,7 +95,7 @@ export default function DispensaryLocator() {
                         description: 'Could not get your location. Showing default dispensaries.'
                     });
                     setNearbyLocations(locations.slice(0, 3));
-                    setIsLocating(false);
+                    setIsLocating(false); // Error path
                 }
             );
         } else {
@@ -105,12 +105,12 @@ export default function DispensaryLocator() {
                 description: 'Geolocation is not supported by your browser.'
             });
             setNearbyLocations(locations.slice(0, 3));
-            setIsLocating(false);
+            setIsLocating(false); // Unsupported path
         }
     }, [isHydrated, locations, toast]);
 
 
-    if (isLocating || !isHydrated) {
+    if (isLocating) {
          return (
              <div className="mb-12">
                 <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
