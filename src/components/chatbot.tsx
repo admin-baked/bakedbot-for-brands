@@ -20,6 +20,7 @@ import { createSocialMediaImage, updateProductFeedback } from '@/app/dashboard/c
 import type { ImageFormState } from '@/app/dashboard/content/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useMenuData } from '@/hooks/use-menu-data';
+import { ChatbotIcon } from './chatbot-icon';
 
 
 type Message = {
@@ -406,26 +407,17 @@ const ChatWindow = ({
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
-  const { chatbotIcon: customIcon, chatExperience, _hasHydrated } = useStore();
+  const { chatExperience } = useStore();
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
   const [isPending, startTransition] = useTransition();
-
   const { toast } = useToast();
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
   const { products } = useMenuData();
-  
-  const [showClientContent, setShowClientContent] = useState(false);
-  useEffect(() => {
-    setShowClientContent(true);
-  }, []);
+  const { chatbotIcon: customIcon } = useStore();
 
-  const defaultChatbotIcon = 'https://storage.googleapis.com/stedi-assets/misc/smokey-icon.png';
-  const chatbotIcon = _hasHydrated && customIcon ? customIcon : defaultChatbotIcon;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -578,7 +570,7 @@ export default function Chatbot() {
     setIsBotTyping(true);
 
     if (chatMode === 'image') {
-        const logo = customIcon || defaultChatbotIcon;
+        const logo = customIcon;
         if (!logo) {
             const errorMessage: Message = {
                 id: Date.now() + 1,
@@ -691,10 +683,8 @@ export default function Chatbot() {
              <Button size="icon" className="h-16 w-16 rounded-full shadow-lg overflow-hidden p-0" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
               {isOpen ? (
                 <X className="h-8 w-8" />
-              ) : (showClientContent && chatbotIcon) ? (
-                <Image src={chatbotIcon} alt="Chatbot Icon" fill className="object-cover" />
               ) : (
-                <Bot className="h-8 w-8" />
+                <ChatbotIcon />
               )}
             </Button>
           </div>
