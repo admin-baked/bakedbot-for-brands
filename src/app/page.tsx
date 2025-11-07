@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useStore } from '@/hooks/use-store';
@@ -11,8 +10,8 @@ import { useEffect, useState } from 'react';
  * the user's preference stored in the global state. This prevents
  * server-side rendering issues related to accessing cookies.
  */
-function MenuSelector() {
-  const { menuStyle, _hasHydrated } = useStore();
+export default function RootPage() {
+  const { menuStyle, _hasHydrated } = useStore(state => ({ menuStyle: state.menuStyle, _hasHydrated: state._hasHydrated }));
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -23,7 +22,7 @@ function MenuSelector() {
   // Before hydration or on the server, we can render a fallback or nothing.
   // Once hydrated, we can safely render the correct menu.
   if (!isClient || !_hasHydrated) {
-    // You can return a loading skeleton here if you prefer
+    // Render the fallback/skeleton for the default menu page.
     return <MenuPage />;
   }
 
@@ -32,9 +31,4 @@ function MenuSelector() {
   }
 
   return <MenuPage />;
-}
-
-
-export default function RootPage() {
-  return <MenuSelector />;
 }
