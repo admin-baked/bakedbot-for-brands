@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useActionState, useRef } from 'react';
@@ -16,7 +15,6 @@ import { useFormStatus } from 'react-dom';
 import { useUser } from '@/firebase';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
-import { cn } from '@/lib/utils';
 
 type LocationWithDistance = Location & { distance?: number };
 
@@ -46,18 +44,43 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     
     const { selectedLocationId, setSelectedLocationId } = useStore();
 
-    const [isLocating, setIsLocating] = useState(false);
-    const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>(locations || []);
+    const [isLocating, setIsLocating] = useState(true);
+    const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>([]);
     
     useEffect(() => {
-        // Since we are always in demo mode for data, we can pre-sort locations by distance from a central point.
-        // For a real app, this effect could run to get the user's geolocation.
-        const centralPoint = { lat: 41.8781, lon: -87.6298 }; // Chicago
-        const locationsWithDistance = (locations || []).map(loc => {
-            const distance = haversineDistance(centralPoint, { lat: loc.lat!, lon: loc.lon! });
-            return { ...loc, distance };
-        }).sort((a, b) => a.distance - b.distance);
-        setSortedLocations(locationsWithDistance);
+        if (!locations) {
+            setIsLocating(true);
+            return;
+        }
+
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userCoords = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude
+                    };
+                    const locationsWithDistance = locations
+                        .filter(loc => loc.lat && loc.lon)
+                        .map(loc => {
+                            const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
+                            return { ...loc, distance };
+                        })
+                        .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+
+                    setSortedLocations(locationsWithDistance);
+                    setIsLocating(false);
+                },
+                (error) => {
+                    console.error("Geolocation error:", error);
+                    setSortedLocations(locations); // Fallback to unsorted list
+                    setIsLocating(false);
+                }
+            );
+        } else {
+            setSortedLocations(locations); // Fallback for browsers without geolocation
+            setIsLocating(false);
+        }
     }, [locations]);
 
 
@@ -77,7 +100,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     }, [state, toast, clearCart, onOrderSuccess]);
 
 
-    const subtotal = getCartTotal();
+    const subtotal = getCartTotal(selectedLocationId);
     const taxes = subtotal * 0.15; // Example 15% tax rate
     const total = subtotal + taxes;
 
