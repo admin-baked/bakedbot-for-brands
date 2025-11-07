@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -66,10 +65,11 @@ export default function DispensaryLocator() {
 
     useEffect(() => {
         if (!locations) {
-            setIsLocating(true);
+            setIsLocating(false);
             return;
         }
-
+        
+        setIsLocating(true);
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -86,7 +86,7 @@ export default function DispensaryLocator() {
                         .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
 
                     setNearbyLocations(locationsWithDistance.slice(0, 3));
-                    setIsLocating(false); // Success path
+                    setIsLocating(false);
                 },
                 (error) => {
                     console.error("Geolocation error:", error);
@@ -96,7 +96,7 @@ export default function DispensaryLocator() {
                         description: 'Could not get your location. Showing default dispensaries.'
                     });
                     setNearbyLocations(locations.slice(0, 3));
-                    setIsLocating(false); // Error path
+                    setIsLocating(false);
                 }
             );
         } else {
@@ -106,7 +106,7 @@ export default function DispensaryLocator() {
                 description: 'Geolocation is not supported by your browser.'
             });
             setNearbyLocations(locations.slice(0, 3));
-            setIsLocating(false); // Unsupported path
+            setIsLocating(false);
         }
     }, [locations, toast]);
 

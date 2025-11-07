@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,7 +6,7 @@ import { Loader2, MapPin } from 'lucide-react';
 import { useStore, type Location } from '@/hooks/use-store';
 import { useToast } from '@/hooks/use-toast';
 import { haversineDistance } from '@/lib/utils';
-import { demoLocations } from '@/lib/data';
+import { useMenuData } from '@/hooks/use-menu-data';
 
 
 type LocationWithDistance = Location & { distance?: number };
@@ -31,33 +30,17 @@ const DispensaryCard = ({ location }: { location: LocationWithDistance }) => (
 
 export default function DispensaryLocator() {
     const { toast } = useToast();
+    const { locations } = useMenuData();
     const [nearbyLocations, setNearbyLocations] = useState<LocationWithDistance[]>([]);
     const [isLocating, setIsLocating] = useState(true);
 
-    const isDemoMode = useStore((state) => state.isDemoMode);
-    const storeLocations = useStore((state) => state.locations);
-    const isHydrated = useStore((state) => state._hasHydrated);
-
     useEffect(() => {
-        if (!isHydrated) {
-            setIsLocating(true);
-            return;
-        }
-        
-        const locations = isDemoMode ? demoLocations : storeLocations;
-        
-        if (isDemoMode) {
-            const userCoords = { lat: 41.8781, lon: -87.6298 }; // Central Chicago coordinates
-            const demoLocationsWithDistance = demoLocations.map(loc => {
-                 const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
-                 return { ...loc, distance };
-            }).sort((a, b) => a.distance - b.distance);
-            
-            setNearbyLocations(demoLocationsWithDistance.slice(0, 3));
+        if (!locations) {
             setIsLocating(false);
             return;
         }
 
+        setIsLocating(true);
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -96,10 +79,10 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false);
         }
-    }, [isHydrated, isDemoMode, storeLocations, toast]);
+    }, [locations, toast]);
 
 
-    if (isLocating || !isHydrated) {
+    if (isLocating) {
          return (
              <div className="mb-12">
                 <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>

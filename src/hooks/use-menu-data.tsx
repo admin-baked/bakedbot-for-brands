@@ -15,9 +15,10 @@ import type { Location } from '@/hooks/use-store';
  * hydration errors.
  */
 export function useMenuData() {
-  const { isUsingDemoData, _hasHydrated } = useStore(state => ({
+  const { isUsingDemoData, _hasHydrated, locations: storeLocations } = useStore(state => ({
     isUsingDemoData: state.isUsingDemoData,
     _hasHydrated: state._hasHydrated,
+    locations: state.locations,
   }));
 
   // Fetch both sets of data, but only one will be used.
@@ -37,11 +38,11 @@ export function useMenuData() {
 
     return {
       products: firestoreProducts,
-      locations: demoLocations, // In a real app, this would be live data
+      locations: storeLocations, // Use live locations from the store
       isLoading: isFirestoreLoading,
       error: error,
     };
-  }, [isUsingDemoData, firestoreProducts, demoLocations, isFirestoreLoading, error]);
+  }, [isUsingDemoData, firestoreProducts, demoProducts, isFirestoreLoading, error, storeLocations, demoLocations]);
 
   return {
     ...memoizedData,
