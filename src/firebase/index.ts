@@ -11,17 +11,19 @@ import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 export function initializeFirebase() {
   // Only initialize on the client side
   if (typeof window === 'undefined') {
-    // On the server, return a placeholder or throw an error
-    // For this app, we expect client-side initialization.
-    // This will prevent the "app/no-options" error during server-side build.
     return { firebaseApp: null, auth: null, firestore: null };
   }
 
   const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-  // Initialize App Check only if the site key is available and not a placeholder
-  // You must add NEXT_PUBLIC_RECAPTCHA_SITE_KEY to your environment variables
-  // For local development, you can get a test key from the Google reCAPTCHA admin console.
+  // This block is crucial for local development with App Check.
+  // It tells App Check to use a debug token instead of a real reCAPTCHA token.
+  // You must set the environment variable to 'development' in your local environment.
+  if (process.env.NODE_ENV === 'development') {
+    // @ts-ignore
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  }
+  
   const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
   if (recaptchaSiteKey && recaptchaSiteKey !== 'YOUR_RECAPTCHA_V3_SITE_KEY_HERE') {
     try {
