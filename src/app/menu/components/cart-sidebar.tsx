@@ -11,6 +11,7 @@ import CheckoutForm from './checkout-form';
 import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 const SelectedLocationHeader = () => {
     const { selectedLocationId } = useStore();
@@ -53,6 +54,7 @@ export default function CartSidebar() {
   } = useCart();
   
   const { selectedLocationId } = useStore();
+  const { toast } = useToast();
 
   const [step, setStep] = React.useState<'cart' | 'checkout' | 'success'>('cart');
 
@@ -65,6 +67,18 @@ export default function CartSidebar() {
 
   const handleOrderSuccess = () => {
     setStep('success');
+  }
+
+  const handleProceedToCheckout = () => {
+    if (!selectedLocationId) {
+        toast({
+            variant: 'destructive',
+            title: 'No Location Selected',
+            description: 'Please select a pickup location before proceeding.',
+        });
+        return;
+    }
+    setStep('checkout');
   }
 
   const subtotal = getCartTotal(selectedLocationId);
@@ -161,7 +175,7 @@ export default function CartSidebar() {
                         <span>Subtotal</span>
                         <span>${subtotal.toFixed(2)}</span>
                         </div>
-                        <Button className="w-full" onClick={() => setStep('checkout')} disabled={items.length === 0}>
+                        <Button className="w-full" onClick={handleProceedToCheckout} disabled={items.length === 0}>
                             Proceed to Checkout
                         </Button>
                     </div>
