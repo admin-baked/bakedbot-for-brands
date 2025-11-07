@@ -2,51 +2,30 @@
 
 import { useStore } from './use-store';
 import { useProducts } from '@/firebase/firestore/use-products';
-import { useDemoData } from './use-demo-data';
 import { useMemo } from 'react';
-import type { Product } from '@/lib/types';
 import type { Location } from '@/hooks/use-store';
 
 /**
- * A unified hook to get menu data (products and locations).
- * It intelligently switches between static demo data and live Firestore data
- * based on the global `isUsingDemoData` state.
- * This ensures that both server and client renders are consistent, preventing
- * hydration errors.
+ * A unified hook to get menu data (products and locations) from Firestore.
  */
 export function useMenuData() {
-  const { isUsingDemoData, _hasHydrated, locations: storeLocations } = useStore(state => ({
-    isUsingDemoData: state.isUsingDemoData,
+  const { _hasHydrated, locations: storeLocations } = useStore(state => ({
     _hasHydrated: state._hasHydrated,
     locations: state.locations,
   }));
 
-  // Fetch both sets of data, but only one will be used.
   const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useProducts();
-  const { products: demoProducts, locations: demoLocations } = useDemoData();
 
   // Memoize the result to stabilize the array references
   const memoizedData = useMemo(() => {
-    const usingDemo = isUsingDemoData || !_hasHydrated;
-    
-    if (usingDemo) {
-      return {
-        products: demoProducts as Product[],
-        locations: demoLocations as Location[],
-        isLoading: false,
-        error: null,
-        isUsingDemoData: true,
-      };
-    }
-
     return {
       products: firestoreProducts,
-      locations: storeLocations, // Use live locations from the store
-      isLoading: isFirestoreLoading,
+      locations: storeLocations as Location[],
+      isLoading: isFirestoreLoading || !_hasHydrated,
       error: error,
-      isUsingDemoData: false,
+      isUsingDemoData: false, // Always false now
     };
-  }, [isUsingDemoData, _hasHydrated, firestoreProducts, storeLocations, demoProducts, demoLocations, isFirestoreLoading, error]);
+  }, [_hasHydrated, firestoreProducts, storeLocations, isFirestoreLoading, error]);
 
   return {
     ...memoizedData,
