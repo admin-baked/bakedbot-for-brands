@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, ShoppingBag, Plus, Search, User, ThumbsUp, ThumbsDown } from 'lucide-react';
 import CartSidebar from '@/app/menu/components/cart-sidebar';
 import Chatbot from '@/components/chatbot';
+import ReviewSummary from './components/review-summary';
 
 const Header = () => {
     const { toggleCart, getItemCount } = useCart();
@@ -130,7 +131,7 @@ function ProductPageClient() {
                     Add to Cart
                 </Button>
 
-                 {/* TODO: Add Review Summary Section here */}
+                <ReviewSummary productId={product.id} productName={product.name} />
             </div>
         </div>
     );
@@ -154,6 +155,7 @@ function ProductPageSkeleton() {
             <Skeleton className="h-4 w-2/3" />
         </div>
         <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-48 w-full" />
       </div>
     </div>
   );
