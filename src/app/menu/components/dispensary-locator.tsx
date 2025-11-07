@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -12,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useMenuData } from '@/hooks/use-menu-data';
 
 type LocationWithDistance = Location & { distance?: number };
 
@@ -57,8 +59,8 @@ const DispensaryCard = ({ location, isSelected, onSelect }: { location: Location
 
 export default function DispensaryLocator() {
     const { toast } = useToast();
-    // Get locations directly from the stable client-side store
-    const { locations, selectedLocationId, setSelectedLocationId } = useStore();
+    const { locations, isLoading: areLocationsLoading } = useMenuData();
+    const { selectedLocationId, setSelectedLocationId } = useStore();
     const [nearbyLocations, setNearbyLocations] = useState<LocationWithDistance[]>([]);
     const [isLocating, setIsLocating] = useState(true);
 
@@ -110,7 +112,7 @@ export default function DispensaryLocator() {
     }, [locations, toast]);
 
 
-    if (isLocating) {
+    if (isLocating || areLocationsLoading) {
          return (
              <div className="mb-12">
                 <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
