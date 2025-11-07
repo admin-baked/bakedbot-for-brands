@@ -399,7 +399,7 @@ const ChatWindow = ({
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
-  const { chatbotIcon: customIcon, isDemoMode, chatExperience, welcomeMessage, brandImageGenerations, lastBrandImageGeneration, recordBrandImageGeneration } = useStore();
+  const { chatbotIcon: customIcon, isDemoMode, chatExperience, welcomeMessage, brandImageGenerations, lastBrandImageGeneration, recordBrandImageGeneration, _hasHydrated } = useStore();
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
   const [isPending, startTransition] = useTransition();
 
@@ -409,6 +409,11 @@ export default function Chatbot() {
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const [showClientContent, setShowClientContent] = useState(false);
+  useEffect(() => {
+    setShowClientContent(true);
+  }, []);
 
   const chatbotIcon = isDemoMode
     ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-horizontal-logo-PNG-transparent.png"
@@ -660,7 +665,7 @@ export default function Chatbot() {
              <Button size="icon" className="h-16 w-16 rounded-full shadow-lg overflow-hidden" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
               {isOpen ? (
                 <X className="h-8 w-8" />
-              ) : chatbotIcon ? (
+              ) : showClientContent && chatbotIcon ? (
                 <Image src={chatbotIcon} alt="Chatbot Icon" fill className="object-cover" />
               ) : (
                 <Bot className="h-8 w-8" />
@@ -688,5 +693,8 @@ export default function Chatbot() {
         </>
       );
 }
+
+    
+
 
     
