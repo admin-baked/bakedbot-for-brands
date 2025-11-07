@@ -59,14 +59,14 @@ const DispensaryCard = ({ location, isSelected, onSelect }: { location: Location
 
 export default function DispensaryLocator() {
     const { toast } = useToast();
-    const { locations, isHydrated } = useMenuData();
+    const { locations } = useMenuData();
     const { selectedLocationId, setSelectedLocationId } = useStore();
     const [nearbyLocations, setNearbyLocations] = useState<LocationWithDistance[]>([]);
     const [isLocating, setIsLocating] = useState(true);
 
     useEffect(() => {
-        if (!isHydrated || !locations) {
-            setIsLocating(true); // Keep showing loader until data is ready
+        if (!locations) {
+            setIsLocating(true);
             return;
         }
 
@@ -108,7 +108,7 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false); // Unsupported path
         }
-    }, [isHydrated]);
+    }, [locations, toast]);
 
 
     if (isLocating) {
