@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCart } from '@/hooks/use-cart';
 import type { Location } from '@/lib/types';
-import { Loader2, Send, MapPin } from 'lucide-react';
+import { Loader2, Send, MapPin, Upload, CalendarIcon } from 'lucide-react';
 import { haversineDistance } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { submitOrder } from './actions';
@@ -15,6 +15,10 @@ import { useFormStatus } from 'react-dom';
 import { useUser } from '@/firebase';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
+import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
 
 type LocationWithDistance = Location & { distance?: number };
 
@@ -46,6 +50,10 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
 
     const [isLocating, setIsLocating] = useState(true);
     const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>([]);
+    const [birthDate, setBirthDate] = useState<Date | undefined>();
+    const [idImageName, setIdImageName] = useState<string | null>(null);
+
+    const isAgeInvalid = birthDate && new Date().getFullYear() - birthDate.getFullYear() < 21;
     
     useEffect(() => {
         if (!locations) {
@@ -104,12 +112,23 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     const taxes = subtotal * 0.15; // Example 15% tax rate
     const total = subtotal + taxes;
 
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setIdImageName(file.name);
+        } else {
+            setIdImageName(null);
+        }
+    };
+
     const handleSubmit = (formData: FormData) => {
         formData.append('cartItems', JSON.stringify(items));
         formData.append('userId', user?.uid || 'guest');
         formData.append('totalAmount', String(total));
         formData.append('locations', JSON.stringify(sortedLocations));
-        // Ensure the selectedLocationId is on the form data if it's not already
+        if (birthDate) {
+            formData.append('customerBirthDate', birthDate.toISOString());
+        }
         if (!formData.has('locationId') && selectedLocationId) {
              formData.append('locationId', selectedLocationId);
         }
@@ -127,12 +146,62 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
                         {state.fieldErrors?.customerName && <p className="text-sm text-destructive">{state.fieldErrors.customerName[0]}</p>}
                     </div>
                      <div className="space-y-1">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" name="customerEmail" type="email" required defaultValue={user?.email || ''} />
+                        {state.fieldErrors?.customerEmail && <p className="text-sm text-destructive">{state.fieldErrors.customerEmail[0]}</p>}
+                    </div>
+                     <div className="space-y-1">
                         <Label htmlFor="phone">Phone Number</Label>
                         <Input id="phone" name="customerPhone" type="tel" placeholder="(555) 123-4567" required defaultValue={user?.phoneNumber || ''} />
                         {state.fieldErrors?.customerPhone && <p className="text-sm text-destructive">{state.fieldErrors.customerPhone[0]}</p>}
                     </div>
                 </div>
             </div>
+             <div>
+                <h3 className="text-lg font-semibold">Compliance</h3>
+                <div className="mt-4 grid grid-cols-1 gap-4">
+                     <div className="space-y-1">
+                        <Label htmlFor="birthDate">Date of Birth</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !birthDate && "text-muted-foreground"
+                                )}
+                                >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {birthDate ? format(birthDate, "PPP") : <span>Pick a date</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                mode="single"
+                                selected={birthDate}
+                                onSelect={setBirthDate}
+                                initialFocus
+                                captionLayout="dropdown-buttons"
+                                fromYear={1920}
+                                toYear={new Date().getFullYear()}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                         {state.fieldErrors?.customerBirthDate && <p className="text-sm text-destructive">{state.fieldErrors.customerBirthDate[0]}</p>}
+                         {isAgeInvalid && <p className="text-sm text-destructive">You must be at least 21 years old.</p>}
+                    </div>
+                    <div className="space-y-1">
+                         <Label htmlFor="idImage">Upload ID</Label>
+                          <Label htmlFor="idImage" className={cn("flex items-center gap-2 cursor-pointer rounded-md border border-input px-3 py-2 text-sm", idImageName ? "text-primary" : "text-muted-foreground")}>
+                            <Upload className="h-4 w-4" />
+                            <span className='truncate flex-1'>{idImageName || 'Upload a photo of your ID'}</span>
+                          </Label>
+                         <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" onChange={handleFileChange} required/>
+                          {state.fieldErrors?.idImage && <p className="text-sm text-destructive">{state.fieldErrors.idImage[0]}</p>}
+                    </div>
+                </div>
+            </div>
+
              <div>
                 <h3 className="text-lg font-semibold">Pickup Location</h3>
                 <RadioGroup name="locationId" className="mt-4 space-y-2" value={selectedLocationId || ''} onValueChange={setSelectedLocationId}>

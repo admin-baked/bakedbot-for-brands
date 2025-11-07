@@ -141,9 +141,24 @@
             "type": "string",
             "description": "Full name of the customer placing the order."
         },
+        "customerEmail": {
+          "type": "string",
+          "description": "Email address of the customer.",
+          "format": "email"
+        },
         "customerPhone": {
             "type": "string",
             "description": "Phone number of the customer."
+        },
+        "customerBirthDate": {
+          "type": "string",
+          "description": "The customer's date of birth for age verification.",
+          "format": "date-time"
+        },
+        "idImageUrl": {
+          "type": "string",
+          "description": "URL of the uploaded ID image for verification.",
+          "format": "uri"
         },
         "locationId": {
             "type": "string",
@@ -167,7 +182,9 @@
       "required": [
         "userId",
         "customerName",
+        "customerEmail",
         "customerPhone",
+        "customerBirthDate",
         "locationId",
         "orderDate",
         "totalAmount",
