@@ -1,11 +1,10 @@
+
 'use server';
 
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { collection, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import type { CartItem, Location } from '@/lib/types';
 
 
@@ -122,17 +121,14 @@ export async function submitOrder(prevState: any, formData: FormData) {
       orderId: orderRef.id,
     };
   } catch (serverError: any) {
-    const permissionError = new FirestorePermissionError({
-        path: `users/${userId}/orders`,
-        operation: 'create',
-        requestResourceData: { order: { ...fullOrderData, orderDate: 'SERVER_TIMESTAMP' }, items: cartItems.length }
-    } satisfies SecurityRuleContext);
+    // This is a server action, so we can't use the client-side error emitter.
+    // Log the error on the server for debugging and return a generic message.
+    console.error("[submitOrder] Firestore batch commit failed:", serverError);
     
-    errorEmitter.emit('permission-error', permissionError);
-
-    console.error("Firestore batch commit failed:", serverError);
+    // Return a user-friendly error message.
+    // Avoid sending raw serverError.message to the client in production.
     return {
-      message: `Failed to submit order: ${serverError.message}`,
+      message: "Failed to submit order due to a server error. Please try again.",
       error: true,
     }
   }
