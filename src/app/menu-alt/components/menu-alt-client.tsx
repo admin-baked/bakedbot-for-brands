@@ -202,39 +202,35 @@ export default function MenuAltClient() {
 
                 <DispensaryLocator />
 
-                {isLoading ? (
-                    <div className="space-y-12">
-                        <section>
-                            <Skeleton className="h-8 w-1/4 mb-6" />
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                {Array.from({ length: 4 }).map((_, j) => (
-                                <ProductSkeleton key={j} />
-                                ))}
-                            </div>
-                        </section>
-                         <section>
-                            <Skeleton className="h-8 w-1/4 mb-6" />
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                {Array.from({ length: 4 }).map((_, j) => (
-                                <ProductSkeleton key={j} />
-                                ))}
-                            </div>
-                        </section>
-                    </div>
-                ) : (
-                    <div className="space-y-12">
-                        {categories.map(category => (
-                            <section key={category}>
-                                <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">{category}</h2>
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                {groupedProducts[category].map(product => (
-                                    <ProductCard key={product.id} product={product} />
-                                ))}
-                                </div>
-                            </section>
-                        ))}
-                    </div>
-                )}
+                <div className="space-y-12">
+                    {isLoading ? (
+                        <>
+                            {Array.from({ length: 2 }).map((_, i) => (
+                                <section key={i}>
+                                    <Skeleton className="h-8 w-1/4 mb-6" />
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                        {Array.from({ length: 4 }).map((_, j) => (
+                                            <ProductSkeleton key={j} />
+                                        ))}
+                                    </div>
+                                </section>
+                            ))}
+                        </>
+                    ) : (
+                        <>
+                            {categories.map(category => (
+                                <section key={category}>
+                                    <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">{category}</h2>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                    {groupedProducts[category].map(product => (
+                                        <ProductCard key={product.id} product={product} />
+                                    ))}
+                                    </div>
+                                </section>
+                            ))}
+                        </>
+                    )}
+                </div>
 
             </main>
             <footer className="dark-theme py-12 text-background bg-foreground">
@@ -277,3 +273,5 @@ export default function MenuAltClient() {
         </div>
     );
 }
+
+    
