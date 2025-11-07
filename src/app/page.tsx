@@ -1,29 +1,35 @@
+import MenuPage from './menu/page';
+import MenuAltPage from './menu-alt/page';
+import { cookies } from 'next/headers';
 
-'use client';
-
-import { useEffect } from 'react';
-import { useStore } from '@/hooks/use-store';
-import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+// The value of the store is a stringified JSON object.
+// e.g. {"state":{"theme":"green","menuStyle":"alt", ...}}
+type StoreState = {
+  state: {
+    menuStyle: 'default' | 'alt';
+  };
+};
 
 export default function RootPage() {
-  const { menuStyle, _hasHydrated } = useStore(state => ({ menuStyle: state.menuStyle, _hasHydrated: state._hasHydrated }));
-  const router = useRouter();
+  const cookieStore = cookies();
+  const storeCookie = cookieStore.get('smokey-store');
 
-  useEffect(() => {
-    if (_hasHydrated) {
-      if (menuStyle === 'alt') {
-        router.replace('/menu-alt');
-      } else {
-        router.replace('/menu');
+  let menuStyle = 'default';
+
+  if (storeCookie) {
+    try {
+      const storeValue: StoreState = JSON.parse(storeCookie.value);
+      if (storeValue.state.menuStyle === 'alt') {
+        menuStyle = 'alt';
       }
+    } catch (e) {
+      // Could not parse cookie, fallback to default.
     }
-  }, [_hasHydrated, menuStyle, router]);
+  }
 
-  // Render a loading spinner until the store is hydrated and redirection happens.
-  return (
-    <div className="flex h-screen w-full items-center justify-center">
-      <Loader2 className="h-12 w-12 animate-spin text-primary" />
-    </div>
-  );
+  if (menuStyle === 'alt') {
+    return <MenuAltPage />;
+  }
+
+  return <MenuPage />;
 }
