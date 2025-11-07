@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase/firestore';
+
 export type Product = {
   id: string;
   name: string;
@@ -19,3 +21,13 @@ export type Order = {
 };
 
 export type CartItem = Product & { quantity: number };
+
+export type Review = {
+  id: string;
+  productId: string;
+  userId: string;
+  rating: number;
+  text: string;
+  verificationImageUrl: string;
+  createdAt: Timestamp;
+};

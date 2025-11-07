@@ -2,55 +2,44 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { collectionGroup, getDocs, Timestamp, doc, getDoc, Firestore } from "firebase/firestore";
-import { products } from "@/lib/data";
+import { collection, query, getDocs, doc, getDoc, Firestore } from "firebase/firestore";
 import { ReviewsTable } from "./components/reviews-table";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { useFirebase, useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
-
-// Define the shape of a review document from Firestore
-type ReviewDoc = {
-  id: string;
-  productId: string;
-  userId: string;
-  rating: number;
-  text: string;
-  verificationImageUrl: string;
-  createdAt: Timestamp;
-};
+import { useProducts } from "@/firebase/firestore/use-products";
+import type { Product } from '@/lib/types';
+import type { Review } from '@/lib/types';
 
 // Define the shape of the data we'll pass to the table
 export type ReviewData = {
   id: string;
   productName: string;
-  userEmail: string; // We'll fetch this separately
+  userEmail: string;
   rating: number;
   text: string;
   date: string;
 };
 
-async function getReviews(firestore: Firestore): Promise<ReviewData[]> {
-  const reviewsQuery = collectionGroup(firestore, "reviews");
+async function getReviews(firestore: Firestore, products: Product[] | null): Promise<ReviewData[]> {
+  const reviewsQuery = query(collection(firestore, "reviews"));
   const querySnapshot = await getDocs(reviewsQuery).catch(serverError => {
     const permissionError = new FirestorePermissionError({
-      path: 'reviews', // Path for a collection group query
+      path: 'reviews',
       operation: 'list',
     });
     errorEmitter.emit('permission-error', permissionError);
-    // Return an empty snapshot to prevent further errors down the chain
     return { docs: [] } as unknown as typeof querySnapshot;
   });
 
-  if (!querySnapshot) return [];
+  if (!querySnapshot || !products) return [];
 
   const reviewsPromises = querySnapshot.docs.map(async (reviewDoc) => {
-    const review = reviewDoc.data() as ReviewDoc;
+    const review = reviewDoc.data() as Review;
     const productName = products.find(p => p.id === review.productId)?.name ?? "Unknown Product";
     let userEmail = "Anonymous";
 
-    // Only attempt to fetch user if userId is present
     if (review.userId) {
       const userDocRef = doc(firestore, 'users', review.userId);
       try {
@@ -64,7 +53,6 @@ async function getReviews(firestore: Firestore): Promise<ReviewData[]> {
             operation: 'get',
         });
         errorEmitter.emit('permission-error', permissionError);
-        // Fail gracefully, user email will remain "Anonymous"
       }
     }
 
@@ -80,7 +68,6 @@ async function getReviews(firestore: Firestore): Promise<ReviewData[]> {
 
   const reviews = await Promise.all(reviewsPromises);
 
-  // Sort reviews by most recent first
   return reviews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
@@ -89,11 +76,12 @@ export default function ReviewsPage() {
   const { user, isUserLoading } = useUser();
   const [reviews, setReviews] = useState<ReviewData[]>([]);
   const [isFetchingData, setIsFetchingData] = useState(true);
+  const { data: products, isLoading: areProductsLoading } = useProducts();
 
   useEffect(() => {
-    if (!isUserLoading && user && firestore) {
+    if (!isUserLoading && user && firestore && !areProductsLoading) {
       setIsFetchingData(true);
-      getReviews(firestore).then(data => {
+      getReviews(firestore, products).then(data => {
         setReviews(data);
         setIsFetchingData(false);
       }).catch(err => {
@@ -103,10 +91,10 @@ export default function ReviewsPage() {
     } else if (!isUserLoading && !user) {
         setIsFetchingData(false);
     }
-  }, [firestore, user, isUserLoading]);
+  }, [firestore, user, isUserLoading, products, areProductsLoading]);
 
 
-  if (isFetchingData) {
+  if (isFetchingData || areProductsLoading) {
     return (
       <div className="flex flex-col gap-8">
         <div>
