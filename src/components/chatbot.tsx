@@ -424,7 +424,8 @@ export default function Chatbot() {
     setShowClientContent(true);
   }, []);
 
-  const chatbotIcon = customIcon;
+  const defaultChatbotIcon = 'https://storage.googleapis.com/stedi-assets/misc/smokey-icon.png';
+  const chatbotIcon = _hasHydrated ? (customIcon || defaultChatbotIcon) : defaultChatbotIcon;
 
 
   const scrollToBottom = () => {
@@ -578,7 +579,7 @@ export default function Chatbot() {
     setIsBotTyping(true);
 
     if (chatMode === 'image') {
-        const logo = chatbotIcon;
+        const logo = customIcon || defaultChatbotIcon;
         if (!logo) {
             const errorMessage: Message = {
                 id: Date.now() + 1,
@@ -663,7 +664,7 @@ export default function Chatbot() {
     } finally {
       setIsBotTyping(false);
     }
-  }, [inputValue, isBotTyping, hasStartedChat, chatMode, chatbotIcon, products, handleOnboardingComplete]);
+  }, [inputValue, isBotTyping, hasStartedChat, chatMode, customIcon, products, handleOnboardingComplete]);
 
   const handleFeedback = (productId: string, type: 'like' | 'dislike') => {
     startTransition(async () => {
@@ -688,10 +689,10 @@ export default function Chatbot() {
     return (
         <>
           <div className="fixed bottom-6 right-6 z-50">
-             <Button size="icon" className="h-16 w-16 rounded-full shadow-lg overflow-hidden" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
+             <Button size="icon" className="h-16 w-16 rounded-full shadow-lg overflow-hidden p-0" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
               {isOpen ? (
                 <X className="h-8 w-8" />
-              ) : showClientContent && chatbotIcon ? (
+              ) : chatbotIcon ? (
                 <Image src={chatbotIcon} alt="Chatbot Icon" fill className="object-cover" />
               ) : (
                 <Bot className="h-8 w-8" />
