@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,8 +6,6 @@ import { Loader2, MapPin } from 'lucide-react';
 import { useStore, type Location } from '@/hooks/use-store';
 import { useToast } from '@/hooks/use-toast';
 import { haversineDistance } from '@/lib/utils';
-import { useMenuData } from '@/hooks/use-menu-data';
-
 
 type LocationWithDistance = Location & { distance?: number };
 
@@ -31,12 +28,13 @@ const DispensaryCard = ({ location }: { location: LocationWithDistance }) => (
 
 export default function DispensaryLocator() {
     const { toast } = useToast();
-    const { locations } = useMenuData();
+    // Get locations directly from the stable client-side store
+    const { locations } = useStore();
     const [nearbyLocations, setNearbyLocations] = useState<LocationWithDistance[]>([]);
     const [isLocating, setIsLocating] = useState(true);
 
     useEffect(() => {
-        if (!locations) {
+        if (!locations || locations.length === 0) {
             setIsLocating(false);
             return;
         }
@@ -80,8 +78,7 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [locations]);
+    }, [locations, toast]);
 
 
     if (isLocating) {

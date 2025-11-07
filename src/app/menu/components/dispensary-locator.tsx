@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, MapPin, CheckCircle, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { haversineDistance } from '@/lib/utils';
-import { useMenuData } from '@/hooks/use-menu-data';
 import type { Location } from '@/lib/types';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useStore } from '@/hooks/use-store';
@@ -58,13 +57,13 @@ const DispensaryCard = ({ location, isSelected, onSelect }: { location: Location
 
 export default function DispensaryLocator() {
     const { toast } = useToast();
-    const { locations } = useMenuData();
-    const { selectedLocationId, setSelectedLocationId } = useStore();
+    // Get locations directly from the stable client-side store
+    const { locations, selectedLocationId, setSelectedLocationId } = useStore();
     const [nearbyLocations, setNearbyLocations] = useState<LocationWithDistance[]>([]);
     const [isLocating, setIsLocating] = useState(true);
 
     useEffect(() => {
-        if (!locations) {
+        if (!locations || locations.length === 0) {
             setIsLocating(false);
             return;
         }
@@ -108,8 +107,7 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [locations]);
+    }, [locations, toast]);
 
 
     if (isLocating) {
