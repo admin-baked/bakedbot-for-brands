@@ -77,7 +77,7 @@ service cloud.firestore {
     //============================================================
 
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      allow read: if isOwner(userId) || isCeo();
       allow create: if isOwner(userId) && isValidUser(request.resource.data);
       allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isOwner(userId);
@@ -100,7 +100,7 @@ service cloud.firestore {
     }
 
     match /products/{productId}/reviews/{reviewId} {
-      // Any authenticated user can read reviews
+      // Any authenticated user can read reviews to allow for summarization.
       allow get, list: if isAuthenticated();
       // Users can only create reviews for themselves and the data must be valid
       allow create: if isAuthenticated() && isValidReview(request.resource.data);
@@ -111,7 +111,7 @@ service cloud.firestore {
     match /users/{userId}/orders/{orderId} {
         // The user who owns the order can read, update, or delete it.
         // A CEO/admin can also read or update any order.
-        allow get, list, update: if isOwner(userId) || isCeo();
+        allow get, update: if isOwner(userId) || isCeo();
         allow delete: if isOwner(userId);
         
         // A user can create an order for themselves, or a guest can create an order.
@@ -131,6 +131,7 @@ service cloud.firestore {
 
     // Rules for all reviews in the system.
     // This allows an admin to read all reviews for the dashboard.
+    // This is a duplicate of the rule above, but is needed for collection group queries.
     match /products/{productId}/reviews/{reviewId} {
       allow list: if isCeo();
     }
