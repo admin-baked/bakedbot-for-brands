@@ -12,6 +12,7 @@ import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 const SelectedLocationHeader = () => {
     const { selectedLocationId } = useStore();
@@ -56,17 +57,21 @@ export default function CartSidebar() {
   
   const { selectedLocationId } = useStore();
   const { toast } = useToast();
+  const router = useRouter();
 
   const [step, setStep] = React.useState<'cart' | 'checkout' | 'success'>('cart');
+  const [orderId, setOrderId] = React.useState<string | null>(null);
 
   // When cart is opened, always reset to the cart view
   React.useEffect(() => {
     if (isCartOpen) {
       setStep('cart');
+      setOrderId(null);
     }
   }, [isCartOpen]);
 
-  const handleOrderSuccess = () => {
+  const handleOrderSuccess = (newOrderId: string) => {
+    setOrderId(newOrderId);
     setStep('success');
     clearCart();
   }
@@ -83,7 +88,10 @@ export default function CartSidebar() {
                     <SheetDescription className="mt-2">
                         You'll receive a notification when it's ready for pickup.
                     </SheetDescription>
-                    <Button onClick={() => { setStep('cart'); toggleCart(); }} className="mt-6 w-full">Continue Shopping</Button>
+                     {orderId && (
+                        <Button variant="outline" className="mt-4" onClick={() => { router.push(`/order/${orderId}`); toggleCart(); }}>View Order Status</Button>
+                     )}
+                    <Button onClick={() => { setStep('cart'); toggleCart(); }} className="mt-2 w-full">Continue Shopping</Button>
                 </div>
             );
         case 'checkout':

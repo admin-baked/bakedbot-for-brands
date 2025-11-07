@@ -45,3 +45,25 @@ export type Review = {
   verificationImageUrl: string;
   createdAt: Timestamp;
 };
+
+// Type for the Order document stored in Firestore
+export type OrderDoc = {
+  userId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerBirthDate: string; // Stored as ISO string
+  locationId: string;
+  orderDate: Timestamp;
+  totalAmount: number;
+  status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+  idImageUrl?: string;
+};
+
+// Type for the OrderItem sub-collection documents
+export type OrderItemDoc = {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+};

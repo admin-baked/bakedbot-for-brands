@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { collectionGroup, getDocs, Timestamp, Firestore } from "firebase/firestore";
+import { collectionGroup, getDocs, Timestamp, Firestore, query, orderBy } from "firebase/firestore";
 import { OrdersTable } from "./components/orders-table";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -9,16 +9,8 @@ import { useFirebase, useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/hooks/use-store";
 import { useMenuData } from "@/hooks/use-menu-data";
+import { OrderDoc } from "@/lib/types";
 
-// Define the shape of a review document from Firestore
-type OrderDoc = {
-  id: string;
-  customerName: string;
-  orderDate: Timestamp;
-  status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
-  totalAmount: number;
-  locationId: string;
-};
 
 // Define the shape of the data we'll pass to the table
 export type OrderData = {
@@ -31,7 +23,8 @@ export type OrderData = {
 };
 
 async function getOrders(firestore: Firestore, locations: any[]): Promise<OrderData[]> {
-  const ordersQuery = collectionGroup(firestore, "orders");
+  const ordersQuery = query(collectionGroup(firestore, "orders"), orderBy("orderDate", "desc"));
+  
   const querySnapshot = await getDocs(ordersQuery).catch(serverError => {
     const permissionError = new FirestorePermissionError({
       path: 'orders', // Path for a collection group query
@@ -62,8 +55,7 @@ async function getOrders(firestore: Firestore, locations: any[]): Promise<OrderD
     };
   });
 
-  // Sort orders by most recent first
-  return orders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return orders;
 }
 
 export default function OrdersPage() {
@@ -77,7 +69,7 @@ export default function OrdersPage() {
   const currentLocations = locations;
 
   useEffect(() => {
-    if (!isUserLoading && user && firestore && _hasHydrated) {
+    if (!isUserLoading && user && firestore && _hasHydrated && currentLocations) {
       setIsFetchingData(true);
       getOrders(firestore, currentLocations).then(data => {
         setOrders(data);

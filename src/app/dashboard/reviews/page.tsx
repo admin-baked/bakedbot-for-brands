@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
-import { collection, query, getDocs, doc, getDoc, Firestore } from "firebase/firestore";
+import { collectionGroup, query, getDocs, doc, getDoc, Firestore, orderBy } from "firebase/firestore";
 import { ReviewsTable } from "./components/reviews-table";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -23,52 +22,51 @@ export type ReviewData = {
 };
 
 async function getReviews(firestore: Firestore, products: Product[] | null): Promise<ReviewData[]> {
-  const reviewsQuery = query(collection(firestore, "reviews"));
-  const querySnapshot = await getDocs(reviewsQuery).catch(serverError => {
-    const permissionError = new FirestorePermissionError({
-      path: 'reviews',
-      operation: 'list',
-    });
-    errorEmitter.emit('permission-error', permissionError);
-    return { docs: [] } as unknown as typeof querySnapshot;
-  });
+    const reviewsQuery = query(collectionGroup(firestore, "reviews"), orderBy("createdAt", "desc"));
 
-  if (!querySnapshot || !products) return [];
-
-  const reviewsPromises = querySnapshot.docs.map(async (reviewDoc) => {
-    const review = reviewDoc.data() as Review;
-    const productName = products.find(p => p.id === review.productId)?.name ?? "Unknown Product";
-    let userEmail = "Anonymous";
-
-    if (review.userId) {
-      const userDocRef = doc(firestore, 'users', review.userId);
-      try {
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            userEmail = userDoc.data()?.email ?? "Anonymous";
-        }
-      } catch (e) {
-         const permissionError = new FirestorePermissionError({
-            path: userDocRef.path,
-            operation: 'get',
+    const querySnapshot = await getDocs(reviewsQuery).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+        path: 'reviews', // Simplified path for collection group
+        operation: 'list',
         });
         errorEmitter.emit('permission-error', permissionError);
-      }
-    }
+        return { docs: [] } as unknown as typeof querySnapshot;
+    });
 
-    return {
-      id: reviewDoc.id,
-      productName: productName,
-      userEmail: userEmail,
-      rating: review.rating,
-      text: review.text,
-      date: review.createdAt.toDate().toLocaleDateString(),
-    };
-  });
+    if (!querySnapshot || !products) return [];
+
+    const reviewsPromises = querySnapshot.docs.map(async (reviewDoc) => {
+        const review = reviewDoc.data() as Review;
+        const productName = products.find(p => p.id === review.productId)?.name ?? "Unknown Product";
+        let userEmail = "Anonymous";
+
+        // Since reviews are in a subcollection, the path is products/{productId}/reviews/{reviewId}
+        if (review.userId) {
+            const userDocRef = doc(firestore, 'users', review.userId);
+            try {
+                const userDoc = await getDoc(userDocRef);
+                if (userDoc.exists()) {
+                    userEmail = userDoc.data()?.email ?? "Anonymous";
+                }
+            } catch (e) {
+                // This might fail if the user doesn't have permission to read other user docs
+                console.warn(`Could not fetch user email for review ${reviewDoc.id}:`, e);
+            }
+        }
+
+        return {
+            id: reviewDoc.id,
+            productName: productName,
+            userEmail: userEmail,
+            rating: review.rating,
+            text: review.text,
+            date: review.createdAt.toDate().toLocaleDateString(),
+        };
+    });
 
   const reviews = await Promise.all(reviewsPromises);
 
-  return reviews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return reviews;
 }
 
 export default function ReviewsPage() {

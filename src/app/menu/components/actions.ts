@@ -93,6 +93,10 @@ export async function submitOrder(prevState: any, formData: FormData) {
     revalidatePath('/dashboard/orders');
     revalidatePath('/dashboard/menu');
 
+    // Get the base URL for constructing links
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const orderPageUrl = `${baseUrl}/order/${orderRef.id}`;
+
     // --- NOTIFICATION SIMULATION ---
     const brandOwners = ['jack@bakedbot.ai', 'martez@bakedbot.com'];
     console.log('--- ORDER FULFILLMENT NOTIFICATION ---');
@@ -109,11 +113,13 @@ export async function submitOrder(prevState: any, formData: FormData) {
     cartItems.forEach(item => {
         console.log(`  - ${item.name} (x${item.quantity})`);
     });
+    console.log(`- Official Order Link: ${orderPageUrl}`);
     console.log('------------------------------------');
 
     return {
       message: 'Order submitted successfully!',
       error: false,
+      orderId: orderRef.id,
     };
   } catch (serverError: any) {
     const permissionError = new FirestorePermissionError({

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useActionState, useRef } from 'react';
@@ -21,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { useRouter } from 'next/navigation';
 
 type LocationWithDistance = Location & { distance?: number };
 
@@ -28,6 +28,7 @@ const initialState = {
     message: '',
     error: false,
     fieldErrors: {},
+    orderId: null,
 };
 
 function SubmitButton() {
@@ -40,11 +41,12 @@ function SubmitButton() {
     )
 }
 
-export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: () => void; onBack: () => void; }) {
+export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: (orderId: string) => void; onBack: () => void; }) {
     const { items, getCartTotal, clearCart } = useCart();
     const { locations } = useMenuData();
     const { toast } = useToast();
     const { user } = useUser();
+    const router = useRouter();
     const formRef = useRef<HTMLFormElement>(null);
     const [state, formAction] = useActionState(submitOrder, initialState);
     
@@ -96,9 +98,8 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
 
     useEffect(() => {
         if (state.message) {
-            if (!state.error) {
-                clearCart();
-                onOrderSuccess();
+            if (!state.error && state.orderId) {
+                onOrderSuccess(state.orderId);
             } else {
                 toast({
                     variant: 'destructive',
@@ -107,7 +108,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
                 });
             }
         }
-    }, [state, toast, clearCart, onOrderSuccess]);
+    }, [state, toast, onOrderSuccess]);
 
 
     const subtotal = getCartTotal(selectedLocationId);
