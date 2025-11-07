@@ -108,7 +108,7 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false); // Unsupported path
         }
-    }, [isHydrated, locations]);
+    }, [isHydrated]);
 
 
     if (isLocating) {
