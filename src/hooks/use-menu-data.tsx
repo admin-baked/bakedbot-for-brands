@@ -22,28 +22,40 @@ export function useMenuData() {
   const { products: demoProducts, locations: demoLocations } = useDemoData();
 
   const memoizedData = useMemo(() => {
-    // Determine if we should use demo data as a fallback.
-    // Use it if the store isn't hydrated yet, or if there are no products in Firestore.
-    const shouldUseDemoFallback = !_hasHydrated || (firestoreProducts && firestoreProducts.length === 0);
-
-    if (shouldUseDemoFallback) {
+    // Before hydration, always use demo data for consistency between server and client.
+    if (!_hasHydrated) {
       return {
         products: demoProducts as Product[],
         locations: demoLocations as Location[],
-        isLoading: false,
+        isLoading: false, // Not loading, as it's static data
         error: null,
         isUsingDemoData: true,
       };
     }
 
+    // After hydration, check if Firestore has products.
+    // If Firestore is loading, or if it has finished loading and there are no products, use demo data.
+    const shouldUseDemoFallback = isFirestoreLoading || (firestoreProducts && firestoreProducts.length === 0);
+
+    if (shouldUseDemoFallback) {
+       return {
+        products: demoProducts as Product[],
+        locations: demoLocations as Location[],
+        isLoading: isFirestoreLoading, // Reflect that it might still be loading in the background
+        error: null,
+        isUsingDemoData: true,
+      };
+    }
+
+    // Only use live data if hydration is complete and Firestore has products.
     return {
       products: firestoreProducts,
       locations: storeLocations, // Use live locations from the store
-      isLoading: isFirestoreLoading,
+      isLoading: false, // It's not loading anymore if we have products
       error: error,
       isUsingDemoData: false,
     };
-  }, [_hasHydrated, firestoreProducts, storeLocations, demoProducts, demoLocations, isFirestoreLoading, error]);
+  }, [_hasHydrated, firestoreProducts, isFirestoreLoading, storeLocations, demoProducts, demoLocations, error]);
 
   return {
     ...memoizedData,
