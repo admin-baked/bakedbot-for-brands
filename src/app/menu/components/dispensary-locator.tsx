@@ -3,11 +3,10 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, MapPin } from 'lucide-react';
+import { useStore, type Location } from '@/hooks/use-store';
 import { useToast } from '@/hooks/use-toast';
 import { haversineDistance } from '@/lib/utils';
-import { useDemoData } from '@/hooks/use-demo-data';
-import type { Location } from '@/lib/types';
-
+import { useMenuData } from '@/hooks/use-menu-data';
 
 type LocationWithDistance = Location & { distance?: number };
 
@@ -30,27 +29,58 @@ const DispensaryCard = ({ location }: { location: LocationWithDistance }) => (
 
 export default function DispensaryLocator() {
     const { toast } = useToast();
-    const { locations: demoLocations } = useDemoData();
+    const { locations, isHydrated } = useMenuData();
     const [nearbyLocations, setNearbyLocations] = useState<LocationWithDistance[]>([]);
     const [isLocating, setIsLocating] = useState(true);
 
     useEffect(() => {
-        // In a real app, you might use browser geolocation here.
-        // For this stable demo, we'll use a fixed central point to calculate distances for the demo locations.
-        const userCoords = { lat: 41.8781, lon: -87.6298 }; // Central Chicago
-        
-        const locationsWithDistance = demoLocations.map(loc => {
-             const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
-             return { ...loc, distance };
-        }).sort((a, b) => a.distance - b.distance);
-        
-        setNearbyLocations(locationsWithDistance.slice(0, 3));
-        setIsLocating(false);
+        if (!isHydrated || !locations) {
+            setIsLocating(true);
+            return;
+        }
 
-    }, [demoLocations]);
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userCoords = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude
+                    };
+                    const locationsWithDistance = locations
+                        .filter(loc => loc.lat && loc.lon)
+                        .map(loc => {
+                            const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
+                            return { ...loc, distance };
+                        })
+                        .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+
+                    setNearbyLocations(locationsWithDistance.slice(0, 3));
+                    setIsLocating(false);
+                },
+                (error) => {
+                    console.error("Geolocation error:", error);
+                    toast({
+                        variant: 'default',
+                        title: 'Location Info',
+                        description: 'Could not get your location. Showing default dispensaries.'
+                    });
+                    setNearbyLocations(locations.slice(0, 3));
+                    setIsLocating(false);
+                }
+            );
+        } else {
+            toast({
+                variant: 'default',
+                title: 'Location Info',
+                description: 'Geolocation is not supported by your browser.'
+            });
+            setNearbyLocations(locations.slice(0, 3));
+            setIsLocating(false);
+        }
+    }, [isHydrated, locations, toast]);
 
 
-    if (isLocating) {
+    if (isLocating || !isHydrated) {
          return (
              <div className="mb-12">
                 <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>

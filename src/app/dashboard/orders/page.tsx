@@ -8,7 +8,7 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { useFirebase, useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/hooks/use-store";
-import { useDemoData } from "@/hooks/use-demo-data";
+import { useMenuData } from "@/hooks/use-menu-data";
 
 // Define the shape of a review document from Firestore
 type OrderDoc = {
@@ -71,7 +71,7 @@ export default function OrdersPage() {
   const { user, isUserLoading } = useUser();
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [isFetchingData, setIsFetchingData] = useState(true);
-  const { locations } = useDemoData();
+  const { locations } = useMenuData();
   const { _hasHydrated } = useStore();
   
   const currentLocations = locations;

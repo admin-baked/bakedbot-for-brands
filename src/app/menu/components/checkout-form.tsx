@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { submitOrder } from './actions';
 import { useFormStatus } from 'react-dom';
 import { useUser } from '@/firebase';
-import { useDemoData } from '@/hooks/use-demo-data';
+import { useMenuData } from '@/hooks/use-menu-data';
 
 type LocationWithDistance = Location & { distance?: number };
 
@@ -35,25 +35,25 @@ function SubmitButton() {
 
 export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: () => void; onBack: () => void; }) {
     const { items, getCartTotal, clearCart } = useCart();
-    const { locations: demoLocations } = useDemoData();
+    const { locations } = useMenuData();
     const { toast } = useToast();
     const { user } = useUser();
     const formRef = useRef<HTMLFormElement>(null);
     const [state, formAction] = useActionState(submitOrder, initialState);
 
     const [isLocating, setIsLocating] = useState(false);
-    const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>(demoLocations);
+    const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>(locations || []);
     
     useEffect(() => {
         // Since we are always in demo mode for data, we can pre-sort locations by distance from a central point.
         // For a real app, this effect could run to get the user's geolocation.
         const centralPoint = { lat: 41.8781, lon: -87.6298 }; // Chicago
-        const locationsWithDistance = demoLocations.map(loc => {
+        const locationsWithDistance = (locations || []).map(loc => {
             const distance = haversineDistance(centralPoint, { lat: loc.lat!, lon: loc.lon! });
             return { ...loc, distance };
         }).sort((a, b) => a.distance - b.distance);
         setSortedLocations(locationsWithDistance);
-    }, [demoLocations]);
+    }, [locations]);
 
 
     useEffect(() => {
