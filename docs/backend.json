@@ -272,7 +272,13 @@
       "google.com",
       "password",
       "emailLink"
-    ]
+    ],
+    "customClaims": {
+        "ceo": {
+            "type": "boolean",
+            "description": "Grants CEO-level administrative privileges across the application."
+        }
+    }
   },
   "firestore": {
     "/users/{userId}": {

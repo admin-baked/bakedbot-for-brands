@@ -16,10 +16,8 @@ service cloud.firestore {
     }
     
     function isCeo() {
-      // In a real app, this would check a custom claim.
-      // For this demo, we'll check against a specific hardcoded UID.
-      // Replace with your actual CEO/Admin UID.
-      return isAuthenticated() && request.auth.uid == "REPLACE_WITH_YOUR_ADMIN_UID";
+      // Check for a 'ceo' custom claim on the user's auth token.
+      return isAuthenticated() && request.auth.token.ceo == true;
     }
 
     function isNewData() {
