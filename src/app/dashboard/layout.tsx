@@ -36,6 +36,29 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
+// New component to isolate client-side-only controls
+const SidebarAdminControls = ({ link, onEdit, onToggle, onDelete }: { link: NavLink, onEdit: (link: NavLink) => void, onToggle: (href: string) => void, onDelete: (link: NavLink) => void }) => {
+  return (
+    <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
+        <SidebarMenuAction tooltip="Edit" size="icon" className="h-6 w-6" onClick={() => onEdit(link)}>
+            <Pencil/>
+        </SidebarMenuAction>
+        <SidebarMenuAction
+          tooltip={link.hidden ? 'Show' : 'Hide'}
+          size="icon"
+          className="h-6 w-6 text-muted-foreground"
+          onClick={() => onToggle(link.href)}
+        >
+            {link.hidden ? <Eye /> : <EyeOff />}
+        </SidebarMenuAction>
+        <SidebarMenuAction tooltip="Delete" size="icon" className="h-6 w-6 text-destructive" onClick={() => onDelete(link)}>
+            <Trash2/>
+        </SidebarMenuAction>
+    </div>
+  );
+};
+
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -124,22 +147,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </Link>
                       </SidebarMenuButton>
                      {isCeoMode && _hasHydrated && (
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
-                            <SidebarMenuAction tooltip="Edit" size="icon" className="h-6 w-6" onClick={() => handleEditClick(item)}>
-                                <Pencil/>
-                            </SidebarMenuAction>
-                            <SidebarMenuAction
-                              tooltip={item.hidden ? 'Show' : 'Hide'}
-                              size="icon"
-                              className="h-6 w-6 text-muted-foreground"
-                              onClick={() => handleToggleVisibilityClick(item.href)}
-                            >
-                                {item.hidden ? <Eye /> : <EyeOff />}
-                            </SidebarMenuAction>
-                            <SidebarMenuAction tooltip="Delete" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteClick(item)}>
-                                <Trash2/>
-                            </SidebarMenuAction>
-                        </div>
+                        <SidebarAdminControls
+                            link={item}
+                            onEdit={handleEditClick}
+                            onToggle={handleToggleVisibilityClick}
+                            onDelete={handleDeleteClick}
+                        />
                     )}
                   </SidebarMenuItem>
                    )
