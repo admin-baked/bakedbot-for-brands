@@ -46,7 +46,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const user = firebaseContext?.user;
   const isUserLoading = firebaseContext?.isUserLoading ?? true; // Default to loading on server
 
-  const { isCeoMode, navLinks, toggleNavLinkVisibility, isDemoMode, toggleDemoMode } = useStore();
+  const { isCeoMode, navLinks, toggleNavLinkVisibility, isDemoMode, toggleDemoMode, _hasHydrated } = useStore();
 
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [isAddOpen, setIsAddOpen] = React.useState(false);
@@ -116,14 +116,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         asChild
                         isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
                         tooltip={item.label}
-                        className={cn(isCeoMode && "pr-16")}
+                        className={cn(isCeoMode && _hasHydrated && "pr-16")}
                       >
                         <Link href={item.href}>
                           <Icon />
                           <span>{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
-                     {isCeoMode && (
+                     {isCeoMode && _hasHydrated && (
                         <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
                             <SidebarMenuAction tooltip="Edit" size="icon" className="h-6 w-6" onClick={() => handleEditClick(item)}>
                                 <Pencil/>
@@ -147,7 +147,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </SidebarMenu>
             </SidebarContent>
             <SidebarFooter>
-                 {isCeoMode && (
+                 {isCeoMode && _hasHydrated && (
                   <SidebarMenu>
                      <SidebarMenuItem className="p-2">
                         <div className='flex items-center space-x-2 rounded-lg'>
