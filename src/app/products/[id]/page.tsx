@@ -1,25 +1,47 @@
-'use client';
 
 import { Suspense } from 'react';
-import { useParams } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useProduct } from '@/firebase/firestore/use-product';
-import { useCart } from '@/hooks/use-cart';
-import { useMenuData } from '@/hooks/use-menu-data';
-
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { notFound } from 'next/navigation';
+import { products as demoProducts } from '@/lib/data';
+import type { Metadata, ResolvingMetadata } from 'next';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, ShoppingBag, Plus, Search, User, ThumbsUp, ThumbsDown } from 'lucide-react';
+import ProductDetailsClient from './components/product-details-client';
 import CartSidebar from '@/app/menu/components/cart-sidebar';
 import Chatbot from '@/components/chatbot';
-import ReviewSummary from './components/review-summary';
+import Link from 'next/link';
+import { Search, User, ShoppingBag } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+
+type Props = {
+  params: { id: string }
+}
+
+// In a real app with Firestore, you would fetch this data from the database.
+// For this demo, we'll find the product from our static data file.
+const getProduct = (id: string) => {
+    return demoProducts.find(p => p.id === id);
+}
+
+export async function generateMetadata(
+  { params }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const id = params.id;
+  const product = getProduct(id);
+
+  if (!product) {
+    return {
+      title: 'Product Not Found',
+    }
+  }
+
+  return {
+    title: `${product.name} | BakedBot AI Assistant`,
+    description: product.description,
+  }
+}
 
 const Header = () => {
-    const { toggleCart, getItemCount } = useCart();
-    const itemCount = getItemCount();
-
     return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
@@ -35,107 +57,17 @@ const Header = () => {
               <User className="h-5 w-5" />
             </Link>
           </Button>
-          <div className="relative">
-             <Button variant="ghost" size="icon" onClick={toggleCart}>
-              <ShoppingBag className="h-5 w-5" />
-            </Button>
-            {itemCount > 0 && (
-                <Badge
-                    variant="destructive"
-                    className="absolute -top-2 -right-2 h-5 w-5 justify-center rounded-full p-0"
-                >
-                    {itemCount}
-                </Badge>
-            )}
-          </div>
+          {/* Cart button here will not be interactive without being a client component.
+              We'll rely on the one inside ProductDetailsClient for interaction. */}
+          <Button variant="ghost" size="icon">
+            <ShoppingBag className="h-5 w-5" />
+          </Button>
         </div>
       </div>
     </header>
   );
 };
 
-function ProductPageClient() {
-    const params = useParams();
-    const { products: allProducts, isLoading: isAllProductsLoading } = useMenuData();
-    const { addToCart } = useCart();
-    const id = typeof params.id === 'string' ? params.id : '';
-
-    // The useProduct hook could be used here to fetch a single document from Firestore
-    // const { data: product, isLoading, error } = useProduct(id);
-    
-    // For this demo, we'll find the product from the static list for simplicity
-    const product = allProducts?.find(p => p.id === id);
-    const isLoading = isAllProductsLoading;
-
-    if (isLoading) {
-        return <ProductPageSkeleton />;
-    }
-
-    if (!product) {
-        return (
-            <div className="flex flex-col items-center justify-center text-center py-20">
-                <h1 className="text-2xl font-bold">Product Not Found</h1>
-                <p className="text-muted-foreground mt-2">We couldn't find the product you were looking for.</p>
-                <Button asChild className="mt-6">
-                    <Link href="/menu">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Menu
-                    </Link>
-                </Button>
-            </div>
-        );
-    }
-
-    return (
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start max-w-6xl mx-auto py-8 px-4">
-            <div className="relative aspect-square w-full rounded-lg overflow-hidden border">
-                <Image
-                    src={product.imageUrl}
-                    alt={product.name}
-                    layout="fill"
-                    objectFit="cover"
-                    data-ai-hint={product.imageHint}
-                />
-            </div>
-
-            <div className="space-y-6">
-                <Button variant="outline" size="sm" asChild className="w-fit">
-                    <Link href="/menu">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Menu
-                    </Link>
-                </Button>
-                
-                <div className="space-y-3">
-                    <Badge variant="secondary">{product.category}</Badge>
-                    <h1 className="text-4xl font-bold font-teko tracking-wider uppercase">{product.name}</h1>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                            <ThumbsUp className="h-4 w-4 text-green-500" />
-                            <span>{product.likes} Likes</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <ThumbsDown className="h-4 w-4 text-red-500" />
-                            <span>{product.dislikes} Dislikes</span>
-                        </div>
-                    </div>
-                    <p className="text-2xl font-bold">${product.price.toFixed(2)}</p>
-                </div>
-                
-                <div className="prose text-muted-foreground">
-                    <p>{product.description}</p>
-                </div>
-
-                <Button size="lg" className="w-full" onClick={() => addToCart({ ...product, quantity: 1 })}>
-                    <Plus className="mr-2 h-5 w-5" />
-                    Add to Cart
-                </Button>
-
-                <ReviewSummary productId={product.id} productName={product.name} />
-            </div>
-        </div>
-    );
-}
 
 function ProductPageSkeleton() {
   return (
@@ -162,13 +94,19 @@ function ProductPageSkeleton() {
 }
 
 
-export default function ProductPage() {
+export default function ProductPage({ params }: Props) {
+    const product = getProduct(params.id);
+
+    if (!product) {
+        notFound();
+    }
+
     return (
         <div className="min-h-screen bg-background">
             <Header />
             <main>
                 <Suspense fallback={<ProductPageSkeleton />}>
-                    <ProductPageClient />
+                    <ProductDetailsClient product={product} />
                 </Suspense>
             </main>
             <CartSidebar />
