@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -7,11 +6,67 @@ import { useCart } from '@/hooks/use-cart';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus, ThumbsUp, ThumbsDown } from 'lucide-react';
-import ReviewSummary from './review-summary';
+import { ArrowLeft, Plus, ThumbsUp, ThumbsDown, MessageSquare, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import type { Product } from '@/lib/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 
-export default function ProductDetailsClient({ product }: { product: Product }) {
+
+function ReviewSummaryDisplay({ summary, isLoading }: { summary: SummarizeReviewsOutput | null, isLoading: boolean }) {
+     return (
+        <Card className="bg-muted/30">
+            <CardHeader>
+                <div className="flex items-center gap-2">
+                    <MessageSquare className='h-5 w-5 text-primary' />
+                    <CardTitle className="text-xl">AI Review Summary</CardTitle>
+                </div>
+                <CardDescription>A quick overview of what customers are saying.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center space-y-2 text-muted-foreground h-32">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p>Generating summary...</p>
+                    </div>
+                ) : !summary ? (
+                     <div className="flex flex-col items-center justify-center space-y-2 text-destructive h-32">
+                        <XCircle className="h-8 w-8" />
+                        <p>Could not load summary.</p>
+                    </div>
+                ) : (
+                    <div className='space-y-4'>
+                        <div className='flex items-center gap-2'>
+                            <Badge variant="secondary">{summary.reviewCount} reviews analyzed</Badge>
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground italic">"{summary.summary}"</p>
+
+                        <Separator />
+                        
+                        <div className='grid grid-cols-1 @sm:grid-cols-2 gap-4'>
+                            <div className='space-y-2'>
+                                 <h4 className='font-semibold flex items-center gap-2'><CheckCircle className='h-5 w-5 text-green-500'/> Pros</h4>
+                                 <ul className='list-disc pl-5 space-y-1 text-sm'>
+                                    {summary.pros.length > 0 ? summary.pros.map((pro, i) => <li key={i}>{pro}</li>) : <li>No common pros found.</li>}
+                                 </ul>
+                            </div>
+                            <div className='space-y-2'>
+                                <h4 className='font-semibold flex items-center gap-2'><XCircle className='h-5 w-5 text-red-500'/> Cons</h4>
+                                 <ul className='list-disc pl-5 space-y-1 text-sm'>
+                                    {summary.cons.length > 0 ? summary.cons.map((con, i) => <li key={i}>{con}</li>) : <li>No common cons found.</li>}
+                                 </ul>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+
+export default function ProductDetailsClient({ product, summary }: { product: Product, summary: SummarizeReviewsOutput | null }) {
     const { addToCart } = useCart();
     
     return (
@@ -59,7 +114,7 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
                     Add to Cart
                 </Button>
 
-                <ReviewSummary productId={product.id} productName={product.name} />
+                <ReviewSummaryDisplay summary={summary} isLoading={false} />
             </div>
         </div>
     );

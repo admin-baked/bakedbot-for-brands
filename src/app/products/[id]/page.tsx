@@ -1,4 +1,3 @@
-
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { products as demoProducts } from '@/lib/data';
@@ -10,7 +9,8 @@ import Chatbot from '@/components/chatbot';
 import Link from 'next/link';
 import { Search, User, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
+import { summarizeReviews } from '@/ai/flows/summarize-reviews';
+import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 
 type Props = {
   params: { id: string }
@@ -20,6 +20,12 @@ type Props = {
 // For this demo, we'll find the product from our static data file.
 const getProduct = (id: string) => {
     return demoProducts.find(p => p.id === id);
+}
+
+export async function generateStaticParams() {
+  return demoProducts.map((product) => ({
+    id: product.id,
+  }))
 }
 
 export async function generateMetadata(
@@ -94,11 +100,19 @@ function ProductPageSkeleton() {
 }
 
 
-export default function ProductPage({ params }: Props) {
+export default async function ProductPage({ params }: Props) {
     const product = getProduct(params.id);
 
     if (!product) {
         notFound();
+    }
+    
+    let summary: SummarizeReviewsOutput | null = null;
+    try {
+        summary = await summarizeReviews({ productId: product.id, productName: product.name });
+    } catch(e) {
+        console.error("Failed to fetch review summary during page build:", e);
+        // We can continue without a summary if it fails
     }
 
     return (
@@ -106,7 +120,7 @@ export default function ProductPage({ params }: Props) {
             <Header />
             <main>
                 <Suspense fallback={<ProductPageSkeleton />}>
-                    <ProductDetailsClient product={product} />
+                    <ProductDetailsClient product={product} summary={summary} />
                 </Suspense>
             </main>
             <CartSidebar />
