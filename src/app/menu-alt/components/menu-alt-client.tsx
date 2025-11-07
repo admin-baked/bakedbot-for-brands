@@ -151,7 +151,6 @@ const groupProductsByCategory = (products: Product[]) => {
     }, {} as Record<string, Product[]>);
 }
 
-// Define a placeholder structure that is consistent on server and client
 const SKELETON_CATEGORIES = ['Edibles', 'Flower', 'Vapes'];
 
 export default function MenuAltClient() {
@@ -161,7 +160,7 @@ export default function MenuAltClient() {
         return products ? groupProductsByCategory(products) : {};
     }, [products]);
 
-    const categories = useMemo(() => Object.keys(groupedProducts), [groupedProducts]);
+    const categories = useMemo(() => isLoading ? SKELETON_CATEGORIES : Object.keys(groupedProducts), [isLoading, groupedProducts]);
 
     const featuredProduct = products ? products.find(p => p.id === '5') : null;
 
@@ -206,31 +205,22 @@ export default function MenuAltClient() {
                 <DispensaryLocator />
 
                 <div className="space-y-12">
-                    {isLoading ? (
-                         <>
-                            {SKELETON_CATEGORIES.map(category => (
-                                <section key={`skeleton-${category}`}>
-                                    <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6"><Skeleton className="h-8 w-1/4" /></h2>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                        {Array.from({ length: 4 }).map((_, i) => <ProductSkeleton key={i} />)}
-                                    </div>
-                                </section>
-                            ))}
-                        </>
-                    ) : (
-                        <>
-                            {categories.map(category => (
-                                <section key={category}>
-                                    <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">{category}</h2>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                    {groupedProducts[category].map(product => (
+                    {categories.map(category => (
+                        <section key={category}>
+                            <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">
+                                {isLoading ? <Skeleton className="h-8 w-1/4" /> : category}
+                            </h2>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                {isLoading ? (
+                                    Array.from({ length: 4 }).map((_, i) => <ProductSkeleton key={i} />)
+                                ) : (
+                                    groupedProducts[category]?.map(product => (
                                         <ProductCard key={product.id} product={product} />
-                                    ))}
-                                    </div>
-                                </section>
-                            ))}
-                        </>
-                    )}
+                                    ))
+                                )}
+                            </div>
+                        </section>
+                    ))}
                 </div>
 
             </main>
