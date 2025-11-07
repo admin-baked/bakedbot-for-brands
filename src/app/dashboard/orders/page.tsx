@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -72,12 +71,12 @@ export default function OrdersPage() {
   const { user, isUserLoading } = useUser();
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [isFetchingData, setIsFetchingData] = useState(true);
-  const { locations, isDemoMode } = useStore();
+  const { locations, isDemoMode, _hasHydrated } = useStore();
   
   const currentLocations = isDemoMode ? demoLocations : locations;
 
   useEffect(() => {
-    if (!isUserLoading && user && firestore) {
+    if (!isUserLoading && user && firestore && _hasHydrated) {
       setIsFetchingData(true);
       getOrders(firestore, currentLocations).then(data => {
         setOrders(data);
@@ -86,13 +85,13 @@ export default function OrdersPage() {
         console.error("Failed to fetch orders:", err);
         setIsFetchingData(false);
       });
-    } else if (!isUserLoading && !user) {
+    } else if (!_hasHydrated || (!isUserLoading && !user)) {
         setIsFetchingData(false);
     }
-  }, [firestore, user, isUserLoading, isDemoMode]);
+  }, [firestore, user, isUserLoading, isDemoMode, _hasHydrated, currentLocations]);
 
 
-  if (isFetchingData) {
+  if (isFetchingData || !_hasHydrated) {
     return (
       <div className="flex flex-col gap-8">
         <div>

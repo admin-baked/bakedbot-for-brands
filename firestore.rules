@@ -14,6 +14,13 @@ service cloud.firestore {
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
+    
+    function isCeo() {
+      // In a real app, this would check a custom claim.
+      // For this demo, we'll check against a specific hardcoded UID.
+      // Replace with your actual CEO/Admin UID.
+      return isAuthenticated() && request.auth.uid == "REPLACE_WITH_YOUR_ADMIN_UID";
+    }
 
     function isNewData() {
       return resource == null;
@@ -93,23 +100,39 @@ service cloud.firestore {
     }
 
     match /products/{productId}/reviews/{reviewId} {
+      // Any authenticated user can read reviews
       allow get, list: if isAuthenticated();
-      // Allow create for authenticated users if they own the review and the data is valid
+      // Users can only create reviews for themselves and the data must be valid
       allow create: if isAuthenticated() && isValidReview(request.resource.data);
       // No updates or deletes to maintain review integrity
       allow update, delete: if false;
     }
     
-    // Guest users can create orders, authenticated users can manage their own.
     match /users/{userId}/orders/{orderId} {
-        allow get, list, update, delete: if isOwner(userId);
+        // The user who owns the order can read, update, or delete it.
+        // A CEO/admin can also read or update any order.
+        allow get, list, update: if isOwner(userId) || isCeo();
+        allow delete: if isOwner(userId);
+        
+        // A user can create an order for themselves, or a guest can create an order.
         allow create: if isValidOrder(request.resource.data) && (isOwner(userId) || userId == 'guest');
 
         // OrderItems can only be created along with the order
-        // and can only be read by the user who owns the order.
+        // and can only be read by the user who owns the order or an admin.
         match /orderItems/{orderItemId} {
-             allow read, write: if isOwner(userId) && isValidOrderItem(request.resource.data);
+             allow read, write: if (isOwner(userId) || isCeo()) && isValidOrderItem(request.resource.data);
         }
+    }
+
+    // This rule allows admins to list all orders across all users.
+    match /users/{userId}/orders/{orderId} {
+      allow list: if isCeo();
+    }
+
+    // Rules for all reviews in the system.
+    // This allows an admin to read all reviews for the dashboard.
+    match /products/{productId}/reviews/{reviewId} {
+      allow list: if isCeo();
     }
   }
 }
