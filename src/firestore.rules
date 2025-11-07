@@ -101,7 +101,7 @@ service cloud.firestore {
 
     match /products/{productId}/reviews/{reviewId} {
       // Any authenticated user can read reviews
-      allow get, list: if isAuthenticated();
+      allow get: if isAuthenticated();
       // Users can only create reviews for themselves and the data must be valid
       allow create: if isAuthenticated() && isValidReview(request.resource.data);
       // No updates or deletes to maintain review integrity
