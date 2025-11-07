@@ -12,6 +12,19 @@ export type Product = {
   dislikes?: number;
 };
 
+export type Location = {
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    phone?: string;
+    email?: string;
+    lat?: number;
+    lon?: number;
+};
+
 export type Order = {
   id: string;
   customer: string;

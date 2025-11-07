@@ -6,7 +6,7 @@ import { collection, writeBatch, doc, serverTimestamp } from 'firebase/firestore
 import { revalidatePath } from 'next/cache';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
-import type { CartItem } from '@/lib/types';
+import type { CartItem, Location } from '@/lib/types';
 
 
 const CheckoutSchema = z.object({
@@ -16,6 +16,8 @@ const CheckoutSchema = z.object({
   locationId: z.string().min(1, 'Please select a pickup location.'),
   cartItems: z.string().min(1, 'Your cart is empty.'),
   totalAmount: z.coerce.number().positive('Total amount must be positive.'),
+  // We'll pass the full list of locations to find the email
+  locations: z.string(),
 });
 
 export async function submitOrder(prevState: any, formData: FormData) {
@@ -26,6 +28,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
     locationId: formData.get('locationId'),
     cartItems: formData.get('cartItems'),
     totalAmount: formData.get('totalAmount'),
+    locations: formData.get('locations'),
   });
 
   if (!validatedFields.success) {
@@ -37,12 +40,16 @@ export async function submitOrder(prevState: any, formData: FormData) {
   }
   
   const { firestore } = await createServerClient();
-  const { userId, cartItems: cartItemsJson, ...orderData } = validatedFields.data;
+  const { userId, cartItems: cartItemsJson, locations: locationsJson, ...orderData } = validatedFields.data;
   
   const cartItems: CartItem[] = JSON.parse(cartItemsJson);
   if (cartItems.length === 0) {
     return { message: 'Cannot submit an empty order.', error: true };
   }
+  
+  const allLocations: Location[] = JSON.parse(locationsJson);
+  const selectedLocation = allLocations.find(loc => loc.id === orderData.locationId);
+  const fulfillmentEmail = selectedLocation?.email;
 
   // A batch allows us to perform multiple writes as a single atomic unit.
   const batch = writeBatch(firestore);
@@ -51,6 +58,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
   const orderRef = doc(collection(firestore, 'users', userId, 'orders'));
   const fullOrderData = {
     ...orderData,
+    userId: userId,
     orderDate: serverTimestamp(),
     status: 'pending',
   };
@@ -76,6 +84,22 @@ export async function submitOrder(prevState: any, formData: FormData) {
     revalidatePath('/dashboard/orders');
     revalidatePath('/dashboard/menu');
 
+    // --- NOTIFICATION SIMULATION ---
+    // In a real app, you would use a service like Resend, SendGrid, or a Firebase Extension to send an email.
+    // For this demo, we will log the intended action to the console.
+    console.log('--- ORDER FULFILLMENT NOTIFICATION ---');
+    console.log(`Simulating sending email to: ${fulfillmentEmail || 'No email configured'}`);
+    console.log('Order Details:');
+    console.log(`- Customer: ${orderData.customerName}`);
+    console.log(`- Phone: ${orderData.customerPhone}`);
+    console.log(`- Location: ${selectedLocation?.name || 'Unknown'}`);
+    console.log(`- Total: $${orderData.totalAmount.toFixed(2)}`);
+    console.log('- Items:');
+    cartItems.forEach(item => {
+        console.log(`  - ${item.name} (x${item.quantity})`);
+    });
+    console.log('------------------------------------');
+
     return {
       message: 'Order submitted successfully!',
       error: false,
@@ -86,7 +110,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
     const permissionError = new FirestorePermissionError({
         path: `users/${userId}/orders`, // General path for the operation
         operation: 'create',
-        requestResourceData: { order: fullOrderData, items: cartItems.length }
+        requestResourceData: { order: { ...fullOrderData, orderDate: 'SERVER_TIMESTAMP' }, items: cartItems.length }
     } satisfies SecurityRuleContext);
     
     errorEmitter.emit('permission-error', permissionError);

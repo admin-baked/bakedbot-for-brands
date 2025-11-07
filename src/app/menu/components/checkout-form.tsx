@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCart } from '@/hooks/use-cart';
-import { useStore, type Location } from '@/hooks/use-store';
+import { useStore } from '@/hooks/use-store';
+import type { Location } from '@/lib/types';
 import { Loader2, Send } from 'lucide-react';
 import { haversineDistance } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -41,7 +42,6 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     const formRef = useRef<HTMLFormElement>(null);
     const [state, formAction] = useActionState(submitOrder, initialState);
 
-    const [userCoords, setUserCoords] = useState<{ lat: number, lon: number} | null>(null);
     const [isLocating, setIsLocating] = useState(true);
     const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>([]);
     
@@ -68,7 +68,6 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
                         lat: position.coords.latitude,
                         lon: position.coords.longitude
                     };
-                    setUserCoords(coords);
                     const locationsWithDistance = locations.map(loc => {
                         if (loc.lat && loc.lon) {
                             const distance = haversineDistance(coords, { lat: loc.lat, lon: loc.lon });
@@ -116,6 +115,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
         formData.append('cartItems', JSON.stringify(items));
         formData.append('userId', user?.uid || 'guest');
         formData.append('totalAmount', String(total));
+        formData.append('locations', JSON.stringify(locations));
         formAction(formData);
     };
 
