@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -171,13 +171,18 @@ const groupProductsByCategory = (products: Product[]) => {
 
 export default function MenuClient() {
     const { products, isLoading, isHydrated } = useMenuData();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
     
     const groupedProducts = useMemo(() => {
         return products ? groupProductsByCategory(products) : {};
     }, [products]);
 
     const categories = Object.keys(groupedProducts);
-    const showSkeletons = isLoading || !isHydrated;
+    const showSkeletons = isLoading || !isHydrated || !isClient;
 
     return (
         <div className="min-h-screen bg-background">
