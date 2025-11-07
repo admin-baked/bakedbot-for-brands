@@ -2,8 +2,8 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/generate-product-description.ts';
-import '@/ai/flows/generate-social-image.ts';
-import '@/ai/tools/get-product-reviews.ts';
-import '@/ai/flows/summarize-reviews.ts';
-import '@/ai/ai-powered-product-recommendations.ts';
+import './flows/generate-product-description.ts';
+import './flows/generate-social-image.ts';
+import './tools/get-product-reviews.ts';
+import './flows/summarize-reviews.ts';
+import './ai-powered-product-recommendations.ts';
