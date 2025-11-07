@@ -9,41 +9,42 @@ import { useMemo } from 'react';
 
 /**
  * Hook to fetch products, supporting both live Firestore data and local demo data.
- * It correctly handles the client-side hydration of the store.
+ * It correctly handles the client-side hydration of the store to prevent race conditions.
  *
  * @returns { useCollectionResult<Product> } An object containing the products data, loading state, and error.
  */
 export function useProducts() {
   const { firestore } = useFirebase();
-  // Get both state values in a single selector to avoid extra re-renders
+  // Select both state values in a single selector to avoid extra re-renders.
   const { isDemoMode, isHydrated } = useStore((state) => ({
     isDemoMode: state.isDemoMode,
     isHydrated: state._hasHydrated,
   }));
 
-  // Memoize the query to prevent re-renders.
+  // Memoize the query. It will be null until the store is hydrated and we are in live mode.
   const productsQuery = useMemo(() => {
-    // A query can only be created if we are in live mode and have a firestore instance.
-    if (!firestore || isDemoMode) return null;
+    if (!isHydrated || isDemoMode || !firestore) {
+      return null;
+    }
     return query(collection(firestore, 'products'));
-  }, [firestore, isDemoMode]);
+  }, [firestore, isDemoMode, isHydrated]);
 
-  // This hook will only run the query if it's not null.
+  // This hook will only execute the query if it's not null.
   const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useCollection<Product>(productsQuery);
 
-  // CRITICAL FIX: Do not return any data until the store has been rehydrated from localStorage.
-  // Before hydration, we don't know if we should be in demo mode or not.
+  // PRIMARY FIX: Do not return any data until the store has rehydrated from localStorage.
+  // Before hydration, we cannot know if we should be in demo mode or not.
+  // Returning a loading state here prevents a "flash of incorrect content".
   if (!isHydrated) {
     return { data: null, isLoading: true, error: null };
   }
 
-  // Once hydrated, we can decide what to show.
+  // Once hydrated, we can definitively decide what data to show.
   if (isDemoMode) {
-    // In demo mode, return the static demo products.
+    // In demo mode, immediately return the static demo products.
     return { data: demoProducts, isLoading: false, error: null };
   }
 
-  // In live mode, return the data from Firestore.
-  // The loading state and error are passed through from the useCollection hook.
+  // In live mode, return the data and status from the Firestore query.
   return { data: firestoreProducts, isLoading: isFirestoreLoading, error };
 }
