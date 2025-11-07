@@ -151,6 +151,9 @@ const groupProductsByCategory = (products: Product[]) => {
     }, {} as Record<string, Product[]>);
 }
 
+// Define a placeholder structure that is consistent on server and client
+const SKELETON_CATEGORIES = ['Edibles', 'Flower', 'Vapes'];
+
 export default function MenuAltClient() {
     const { data: products, isLoading } = useProducts();
     
@@ -158,7 +161,7 @@ export default function MenuAltClient() {
         return products ? groupProductsByCategory(products) : {};
     }, [products]);
 
-    const categories = Object.keys(groupedProducts);
+    const categories = useMemo(() => Object.keys(groupedProducts), [groupedProducts]);
 
     const featuredProduct = products ? products.find(p => p.id === '5') : null;
 
@@ -205,24 +208,14 @@ export default function MenuAltClient() {
                 <div className="space-y-12">
                     {isLoading ? (
                          <>
-                            <section>
-                                <Skeleton className="h-8 w-1/4 mb-6" />
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                    <ProductSkeleton />
-                                    <ProductSkeleton />
-                                    <ProductSkeleton />
-                                    <ProductSkeleton />
-                                </div>
-                            </section>
-                             <section>
-                                <Skeleton className="h-8 w-1/4 mb-6" />
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                    <ProductSkeleton />
-                                    <ProductSkeleton />
-                                    <ProductSkeleton />
-                                    <ProductSkeleton />
-                                </div>
-                            </section>
+                            {SKELETON_CATEGORIES.map(category => (
+                                <section key={`skeleton-${category}`}>
+                                    <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6"><Skeleton className="h-8 w-1/4" /></h2>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                        {Array.from({ length: 4 }).map((_, i) => <ProductSkeleton key={i} />)}
+                                    </div>
+                                </section>
+                            ))}
                         </>
                     ) : (
                         <>
