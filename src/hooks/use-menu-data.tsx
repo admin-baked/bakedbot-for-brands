@@ -42,7 +42,7 @@ export function useMenuData() {
       isLoading: isFirestoreLoading,
       error: error,
     };
-  }, [isUsingDemoData, firestoreProducts, demoProducts, isFirestoreLoading, error, storeLocations, demoLocations]);
+  }, [isUsingDemoData, firestoreProducts, demoProducts, isFirestoreLoading, error, storeLocations]);
 
   return {
     ...memoizedData,
