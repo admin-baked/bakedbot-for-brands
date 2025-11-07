@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -63,28 +64,30 @@ const Header = () => {
 
 const ProductCard = ({ product }: { product: Product }) => {
     const { addToCart } = useCart();
-
+    
     return (
-        <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow border-none flex flex-col group">
-            <CardHeader className="p-0">
-                <div className="relative aspect-square w-full">
-                    <Image src={product.imageUrl} alt={product.name} layout="fill" objectFit="cover" data-ai-hint={product.imageHint} />
-                     <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
-                </div>
-            </CardHeader>
-            <CardContent className="p-4 bg-card flex-1">
-                <CardTitle className="text-base truncate font-semibold">{product.name}</CardTitle>
-                <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                        <ThumbsUp className="h-3 w-3 text-green-500" />
-                        <span>{product.likes}</span>
+        <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow border-none flex flex-col w-full group">
+            <Link href={`/products/${product.id}`} className="flex flex-col flex-1">
+                <CardHeader className="p-0">
+                    <div className="relative aspect-square w-full">
+                        <Image src={product.imageUrl} alt={product.name} layout="fill" objectFit="cover" data-ai-hint={product.imageHint} />
+                        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
                     </div>
-                    <div className="flex items-center gap-1">
-                        <ThumbsDown className="h-3 w-3 text-red-500" />
-                        <span>{product.dislikes}</span>
+                </CardHeader>
+                <CardContent className="p-4 bg-card flex-1">
+                    <CardTitle className="text-base truncate font-semibold">{product.name}</CardTitle>
+                    <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                            <ThumbsUp className="h-3 w-3 text-green-500" />
+                            <span>{product.likes}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <ThumbsDown className="h-3 w-3 text-red-500" />
+                            <span>{product.dislikes}</span>
+                        </div>
                     </div>
-                </div>
-            </CardContent>
+                </CardContent>
+            </Link>
             <CardFooter className="flex justify-between items-center p-4 pt-0 bg-card">
                 <span className="text-lg font-bold">${product.price.toFixed(2)}</span>
                 <Button size="icon" onClick={() => addToCart({ ...product, quantity: 1 })}>
@@ -122,7 +125,7 @@ const FloatingCartPill = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 100 }}
                     transition={{ ease: "easeInOut", duration: 0.3 }}
-                    className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+                    className="fixed bottom-6 left-6 z-50"
                 >
                     <Card className="shadow-2xl">
                         <CardContent className="p-0">
@@ -177,8 +180,10 @@ export default function MenuAltClient() {
                             <Badge variant="secondary">Featured</Badge>
                             <h2 className="text-4xl font-bold mt-2">{featuredProduct?.name ?? "Nebula Nugs"}</h2>
                             <p className="mt-2 max-w-lg text-white/80">{featuredProduct?.description ?? "Dense, trichome-covered nugs with a sweet and pungent aroma. A premium flower for the discerning connoisseur."}</p>
-                            <Button size="lg" className="mt-6">
-                                Learn More <ArrowRight className="ml-2"/>
+                            <Button size="lg" className="mt-6" asChild>
+                                <Link href={featuredProduct ? `/products/${featuredProduct.id}` : '/menu-alt'}>
+                                    Learn More <ArrowRight className="ml-2"/>
+                                </Link>
                             </Button>
                          </div>
                     </Card>
