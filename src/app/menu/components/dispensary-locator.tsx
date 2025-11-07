@@ -64,11 +64,13 @@ export default function DispensaryLocator() {
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
     useEffect(() => {
+        if (areLocationsLoading) {
+            setStatus('loading');
+            return;
+        }
         if (!locations || locations.length === 0) {
-            if (!areLocationsLoading) {
-                setStatus('success'); // No locations to show, but not an error or loading state.
-                setSortedLocations([]);
-            }
+            setStatus('success'); // No locations to show, but not an error or loading state.
+            setSortedLocations([]);
             return;
         }
 

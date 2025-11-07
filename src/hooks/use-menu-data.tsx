@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useStore } from './use-store';
@@ -28,12 +27,15 @@ export function useMenuData() {
 
   // Memoize the result to stabilize the array references
   const memoizedData = useMemo(() => {
-    if (isUsingDemoData) {
+    const usingDemo = isUsingDemoData || !_hasHydrated;
+    
+    if (usingDemo) {
       return {
         products: demoProducts as Product[],
         locations: demoLocations as Location[],
         isLoading: false,
         error: null,
+        isUsingDemoData: true,
       };
     }
 
@@ -42,8 +44,9 @@ export function useMenuData() {
       locations: storeLocations, // Use live locations from the store
       isLoading: isFirestoreLoading,
       error: error,
+      isUsingDemoData: false,
     };
-  }, [isUsingDemoData, firestoreProducts, storeLocations, demoProducts, isFirestoreLoading, error]);
+  }, [isUsingDemoData, _hasHydrated, firestoreProducts, storeLocations, demoProducts, demoLocations, isFirestoreLoading, error]);
 
   return {
     ...memoizedData,
