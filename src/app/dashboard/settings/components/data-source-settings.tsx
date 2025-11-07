@@ -18,7 +18,7 @@ export default function DataSourceSettings() {
                     <Database className="h-4 w-4" />
                     <AlertTitle>Live Data Mode Active</AlertTitle>
                     <AlertDescription>
-                        The application is connected to your live Firestore product catalog. Any changes you make to your products in Firestore will be reflected on the public menu.
+                        The application is connected to your live Firestore product catalog. If the catalog is empty, it will automatically fall back to demo data.
                     </AlertDescription>
                 </Alert>
             </CardContent>
