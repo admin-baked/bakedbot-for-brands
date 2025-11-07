@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, type FormEvent, useTransition, useActionState } from 'react';
+import { useState, useRef, useEffect, type FormEvent, useTransition, useActionState, useCallback } from 'react';
 import Image from 'next/image';
 import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown, ChevronDown, Wand2, Sparkles, Loader2, Download, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,20 +8,18 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { useDemoData } from '@/hooks/use-demo-data';
 import { type Product } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import type { CartItem } from '@/lib/types';
 import { useStore } from '@/hooks/use-store';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { recommendProducts, type RecommendProductsOutput } from '@/ai/ai-powered-product-recommendations';
 import { summarizeReviews } from '@/ai/flows/summarize-reviews';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { createSocialMediaImage, updateProductFeedback } from '@/app/dashboard/content/actions';
 import type { ImageFormState } from '@/app/dashboard/content/actions';
 import { useToast } from '@/hooks/use-toast';
+import { useMenuData } from '@/hooks/use-menu-data';
 
 
 type Message = {
@@ -410,7 +408,8 @@ export default function Chatbot() {
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { products } = useDemoData();
+  
+  const { products } = useMenuData();
   
   const [showClientContent, setShowClientContent] = useState(false);
   useEffect(() => {
@@ -454,7 +453,7 @@ export default function Chatbot() {
     }
   }
 
-  const handleAskSmokey = async (product: Product) => {
+  const handleAskSmokey = useCallback(async (product: Product) => {
     setChatMode('chat');
     const userMessage: Message = { id: Date.now(), text: `Tell me what people are saying about the ${product.name}.`, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
@@ -498,9 +497,9 @@ export default function Chatbot() {
     } finally {
       setIsBotTyping(false);
     }
-  };
+  }, [hasStartedChat]);
 
-  const handleOnboardingComplete = async (answers: OnboardingAnswers) => {
+  const handleOnboardingComplete = useCallback(async (answers: OnboardingAnswers) => {
     setHasStartedChat(true);
     setIsBotTyping(true);
     setMessages([]); // Clear onboarding UI
@@ -510,6 +509,17 @@ export default function Chatbot() {
     // Create a pseudo user message to show in the history
     const userMessage: Message = { id: Date.now(), text: "I've answered the questions!", sender: 'user' };
     setMessages([userMessage]);
+
+    if (!products) {
+        const errorMessage: Message = {
+            id: Date.now() + 1,
+            text: "I'm sorry, I can't see the product list right now. Please try again in a moment.",
+            sender: 'bot',
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        setIsBotTyping(false);
+        return;
+    }
 
     const availableProducts = JSON.stringify(products.map(p => ({ id: p.id, name: p.name, description: p.description, category: p.category, price: p.price })));
     
@@ -538,9 +548,9 @@ export default function Chatbot() {
     } finally {
         setIsBotTyping(false);
     }
-  };
+  }, [products]);
 
-  const handleSendMessage = async (e: FormEvent) => {
+  const handleSendMessage = useCallback(async (e: FormEvent) => {
     e.preventDefault();
     if (inputValue.trim() === '' || isBotTyping) return;
   
@@ -597,6 +607,17 @@ export default function Chatbot() {
         return;
     }
   
+    if (!products) {
+        const errorMessage: Message = {
+            id: Date.now() + 1,
+            text: "I'm sorry, I can't see the product list right now. Please try again in a moment.",
+            sender: 'bot',
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        setIsBotTyping(false);
+        return;
+    }
+    
     try {
       const availableProducts = JSON.stringify(products.map(p => ({ id: p.id, name: p.name, description: p.description, category: p.category, price: p.price })));
       
@@ -615,7 +636,7 @@ export default function Chatbot() {
 
       // Add reasoning to the main message if there's only one product
       if (recommendedProductDetails.length === 1 && recommendedProductDetails[0].reasoning) {
-        botResponseText += `\n\n**${recommendedProductDetails[0].name}**: ${recommendedProd.reasoning}`;
+        botResponseText += `\n\n**${recommendedProductDetails[0].name}**: ${recommendedProductDetails[0].reasoning}`;
       }
   
       const botMessage: Message = {
@@ -638,10 +659,11 @@ export default function Chatbot() {
     } finally {
       setIsBotTyping(false);
     }
-  };
+  }, [inputValue, isBotTyping, hasStartedChat, chatMode, chatbotIcon, products]);
 
   const handleFeedback = (productId: string, type: 'like' | 'dislike') => {
     startTransition(async () => {
+        if (!productId) return;
         const result = await updateProductFeedback(productId, type);
         if (result.success) {
             toast({
@@ -673,7 +695,7 @@ export default function Chatbot() {
             </Button>
           </div>
     
-          {isOpen && (
+          {isOpen && products && (
             <ChatWindow
               products={products}
               chatExperience={chatExperience}
