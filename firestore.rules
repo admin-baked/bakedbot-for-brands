@@ -88,17 +88,17 @@ service cloud.firestore {
     }
 
     match /categories/{categoryId} {
-      // Publicly readable, no app check needed for individual gets.
-      allow get: if true;
-      // List is disabled for public to prevent scraping.
-      allow list, create, update, delete: if false;
+      // Publicly readable for menus.
+      allow get, list: if true;
+      // Prevent any writes from the client.
+      allow create, update, delete: if false;
     }
 
     match /products/{productId} {
-      // Publicly readable, no app check needed for individual gets.
-      allow get: if true;
-       // List is disabled for public to prevent scraping.
-      allow list, create, delete: if false;
+      // Publicly readable for menus.
+      allow get, list: if true;
+      // Prevent direct creation or deletion from clients.
+      allow create, delete: if false;
       // Allow authenticated users to update ONLY the 'likes' and 'dislikes' fields.
       allow update: if isAuthenticated() && isUpdatingAllowedFields(['likes', 'dislikes']);
     }
