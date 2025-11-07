@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -6,20 +7,20 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 export default function RootPage() {
-  const menuStyle = useStore((state) => state.menuStyle);
-  const isHydrated = useStore((state) => state._hasHydrated);
+  const { menuStyle, _hasHydrated } = useStore(state => ({ menuStyle: state.menuStyle, _hasHydrated: state._hasHydrated }));
   const router = useRouter();
 
   useEffect(() => {
-    if (isHydrated) {
+    if (_hasHydrated) {
       if (menuStyle === 'alt') {
         router.replace('/menu-alt');
       } else {
         router.replace('/menu');
       }
     }
-  }, [isHydrated, menuStyle, router]);
+  }, [_hasHydrated, menuStyle, router]);
 
+  // Render a loading spinner until the store is hydrated and redirection happens.
   return (
     <div className="flex h-screen w-full items-center justify-center">
       <Loader2 className="h-12 w-12 animate-spin text-primary" />
