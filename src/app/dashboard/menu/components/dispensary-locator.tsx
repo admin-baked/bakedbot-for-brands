@@ -78,7 +78,7 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setStatus('error');
         }
-    }, [locations, areLocationsLoading, toast]);
+    }, [locations, areLocationsLoading]);
 
 
     if (status === 'loading' || areLocationsLoading) {
