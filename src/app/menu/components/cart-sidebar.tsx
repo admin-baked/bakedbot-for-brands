@@ -5,9 +5,34 @@ import { useCart } from '@/hooks/use-cart';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { Minus, Plus, Trash2, PartyPopper } from 'lucide-react';
+import { Minus, Plus, Trash2, PartyPopper, MapPin } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import CheckoutForm from './checkout-form';
+import { useStore } from '@/hooks/use-store';
+import { useMenuData } from '@/hooks/use-menu-data';
+
+const SelectedLocationHeader = () => {
+    const { selectedLocationId } = useStore();
+    const { locations } = useMenuData();
+    const selectedLocation = locations?.find(loc => loc.id === selectedLocationId);
+
+    if (!selectedLocation) {
+        return null;
+    }
+
+    return (
+        <div className="px-6 py-4 bg-muted/50 border-b">
+            <div className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
+                <div>
+                    <p className="font-semibold text-sm">Pickup Location</p>
+                    <p className="text-sm text-muted-foreground">{selectedLocation.name}</p>
+                    <p className="text-xs text-muted-foreground">{selectedLocation.address}, {selectedLocation.city}</p>
+                </div>
+            </div>
+        </div>
+    )
+}
 
 export default function CartSidebar() {
   const {
@@ -18,6 +43,8 @@ export default function CartSidebar() {
     removeFromCart,
     getCartTotal,
   } = useCart();
+  
+  const { selectedLocationId } = useStore();
 
   const [step, setStep] = React.useState<'cart' | 'checkout' | 'success'>('cart');
 
@@ -32,7 +59,7 @@ export default function CartSidebar() {
     setStep('success');
   }
 
-  const subtotal = getCartTotal();
+  const subtotal = getCartTotal(selectedLocationId);
 
   const renderContent = () => {
     switch (step) {
@@ -50,10 +77,11 @@ export default function CartSidebar() {
         case 'checkout':
             return (
                 <>
-                    <SheetHeader className="px-6">
+                    <SheetHeader className="px-6 pt-6">
                         <SheetTitle>Checkout</SheetTitle>
                         <SheetDescription>Confirm your details and place your order.</SheetDescription>
                     </SheetHeader>
+                    <SelectedLocationHeader />
                     <ScrollArea className="flex-1 px-6 py-4">
                         <CheckoutForm onOrderSuccess={handleOrderSuccess} onBack={() => setStep('cart')} />
                     </ScrollArea>
@@ -63,56 +91,60 @@ export default function CartSidebar() {
         default:
             return (
                 <>
-                 <SheetHeader className="px-6">
+                 <SheetHeader className="px-6 pt-6">
                     <SheetTitle>Your Cart</SheetTitle>
                  </SheetHeader>
+                 <SelectedLocationHeader />
                 {items.length > 0 ? (
                 <>
-                    <ScrollArea className="flex-1 -mx-6">
+                    <ScrollArea className="flex-1">
                     <div className="px-6 divide-y">
-                        {items.map((item) => (
-                        <div key={item.id} className="flex items-center gap-4 py-4">
-                            <div className="relative h-16 w-16 rounded-md overflow-hidden border">
-                            <Image
-                                src={item.imageUrl}
-                                alt={item.name}
-                                fill
-                                objectFit="cover"
-                            />
-                            </div>
-                            <div className="flex-1">
-                            <p className="font-semibold">{item.name}</p>
-                            <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                                <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                >
-                                <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="w-6 text-center">{item.quantity}</span>
-                                <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                >
-                                <Plus className="h-3 w-3" />
-                                </Button>
-                            </div>
-                            </div>
-                            <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground"
-                            onClick={() => removeFromCart(item.id)}
-                            >
-                            <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        ))}
+                        {items.map((item) => {
+                            const price = selectedLocationId ? item.prices[selectedLocationId] ?? item.price : item.price;
+                            return (
+                                <div key={item.id} className="flex items-center gap-4 py-4">
+                                    <div className="relative h-16 w-16 rounded-md overflow-hidden border">
+                                    <Image
+                                        src={item.imageUrl}
+                                        alt={item.name}
+                                        fill
+                                        objectFit="cover"
+                                    />
+                                    </div>
+                                    <div className="flex-1">
+                                    <p className="font-semibold">{item.name}</p>
+                                    <p className="text-sm text-muted-foreground">${price.toFixed(2)}</p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                        >
+                                        <Minus className="h-3 w-3" />
+                                        </Button>
+                                        <span className="w-6 text-center">{item.quantity}</span>
+                                        <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                        >
+                                        <Plus className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                    </div>
+                                    <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-muted-foreground"
+                                    onClick={() => removeFromCart(item.id)}
+                                    >
+                                    <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            );
+                        })}
                     </div>
                     </ScrollArea>
                     <SheetFooter className="mt-auto border-t pt-6 px-6">
@@ -121,14 +153,14 @@ export default function CartSidebar() {
                         <span>Subtotal</span>
                         <span>${subtotal.toFixed(2)}</span>
                         </div>
-                        <Button className="w-full" onClick={() => setStep('checkout')}>
-                            Proceed to Checkout
+                        <Button className="w-full" onClick={() => setStep('checkout')} disabled={!selectedLocationId}>
+                            {!selectedLocationId ? 'Please select a dispensary' : 'Proceed to Checkout'}
                         </Button>
                     </div>
                     </SheetFooter>
                 </>
                 ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
                     <p className="text-lg font-semibold">Your cart is empty</p>
                     <p className="text-muted-foreground mt-1">Add some products to get started.</p>
                 </div>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -72,7 +71,7 @@ const ProductCard = ({ product }: { product: Product }) => {
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        addToCart({ ...product, quantity: 1 });
+        addToCart({ ...product, quantity: 1, price: price });
     };
 
     return (
@@ -124,8 +123,9 @@ const ProductSkeleton = () => (
 
 const FloatingCartPill = () => {
     const { getItemCount, getCartTotal, toggleCart } = useCart();
+    const { selectedLocationId } = useStore();
     const itemCount = getItemCount();
-    const subtotal = getCartTotal();
+    const subtotal = getCartTotal(selectedLocationId);
 
     return (
         <AnimatePresence>

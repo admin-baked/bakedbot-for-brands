@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -13,7 +12,7 @@ interface CartState {
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   toggleCart: () => void;
-  getCartTotal: () => number;
+  getCartTotal: (locationId?: string | null) => number;
   getItemCount: () => number;
 }
 
@@ -48,8 +47,11 @@ const useCartStore = create<CartState>((set, get) => ({
   },
   clearCart: () => set({ items: [] }),
   toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
-  getCartTotal: () => {
-    return get().items.reduce((total, item) => total + item.price * item.quantity, 0);
+  getCartTotal: (locationId) => {
+    return get().items.reduce((total, item) => {
+      const price = locationId ? item.prices[locationId] ?? item.price : item.price;
+      return total + price * item.quantity;
+    }, 0);
   },
   getItemCount: () => {
     return get().items.reduce((total, item) => total + item.quantity, 0);
