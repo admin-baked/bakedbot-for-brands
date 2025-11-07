@@ -21,7 +21,9 @@ export function useProducts() {
 
   // Memoize the query to prevent re-renders. The query is stable.
   const productsQuery = useMemo(() => {
-    if (!firestore || !isHydrated) return null;
+    // Wait until the store is hydrated and we have a firestore instance.
+    if (!isHydrated || !firestore) return null;
+    // If in demo mode, we don't need a Firestore query.
     if (isDemoMode) return null;
     return query(collection(firestore, 'products'));
   }, [firestore, isHydrated, isDemoMode]);
@@ -41,3 +43,4 @@ export function useProducts() {
   // In live mode, return the data from Firestore.
   return { data: firestoreProducts, isLoading: isFirestoreLoading, error };
 }
+

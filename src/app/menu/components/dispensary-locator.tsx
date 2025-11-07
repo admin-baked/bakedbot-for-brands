@@ -75,7 +75,7 @@ export default function DispensaryLocator() {
                             const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
                             return { ...loc, distance };
                         })
-                        .sort((a, b) => a.distance - b.distance);
+                        .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
 
                     setNearbyLocations(locationsWithDistance.slice(0, 3));
                     setIsLocating(false);

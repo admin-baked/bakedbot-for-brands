@@ -33,25 +33,19 @@ export default function DispensaryLocator() {
     const { toast } = useToast();
     const [nearbyLocations, setNearbyLocations] = useState<LocationWithDistance[]>([]);
     const [isLocating, setIsLocating] = useState(true);
-    const [hasMounted, setHasMounted] = useState(false);
-    
-    const store = useStore();
 
-
-    useEffect(() => {
-      setHasMounted(true);
-    }, []);
+    const isDemoMode = useStore((state) => state.isDemoMode);
+    const storeLocations = useStore((state) => state.locations);
+    const isHydrated = useStore((state) => state._hasHydrated);
 
     useEffect(() => {
-        if (!hasMounted) return;
-        
-        const isDemoMode = store.isDemoMode;
-        const storeLocations = store.locations;
+        if (!isHydrated) {
+            setIsLocating(true);
+            return;
+        }
         
         const locations = isDemoMode ? demoLocations : storeLocations;
         
-        // --- DEMO MODE LOGIC ---
-        // If in demo mode, bypass geolocation and show Chicago locations immediately.
         if (isDemoMode) {
             const userCoords = { lat: 41.8781, lon: -87.6298 }; // Central Chicago coordinates
             const demoLocationsWithDistance = demoLocations.map(loc => {
@@ -61,10 +55,9 @@ export default function DispensaryLocator() {
             
             setNearbyLocations(demoLocationsWithDistance.slice(0, 3));
             setIsLocating(false);
-            return; // End the effect here for demo mode
+            return;
         }
 
-        // --- LIVE MODE LOGIC ---
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -73,12 +66,10 @@ export default function DispensaryLocator() {
                         lon: position.coords.longitude
                     };
                     const locationsWithDistance = locations
+                        .filter(loc => loc.lat && loc.lon)
                         .map(loc => {
-                            if (loc.lat && loc.lon) {
-                                const distance = haversineDistance(userCoords, { lat: loc.lat, lon: loc.lon });
-                                return { ...loc, distance };
-                            }
-                            return loc;
+                            const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
+                            return { ...loc, distance };
                         })
                         .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
 
@@ -105,10 +96,10 @@ export default function DispensaryLocator() {
             setNearbyLocations(locations.slice(0, 3));
             setIsLocating(false);
         }
-    }, [hasMounted, store.isDemoMode, store.locations, toast]);
+    }, [isHydrated, isDemoMode, storeLocations, toast]);
 
 
-    if (!hasMounted || isLocating) {
+    if (isLocating || !isHydrated) {
          return (
              <div className="mb-12">
                 <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
