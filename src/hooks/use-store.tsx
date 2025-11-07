@@ -5,6 +5,7 @@ import { createStore, useStore as useZustandStore } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createContext, useContext, useRef, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { cookieStorage } from '@/lib/cookie-storage';
 
 export type NavLink = {
   href: string;
@@ -86,7 +87,7 @@ const getDefaultInitialState = () => ({
   basePrompt: "You are Smokey, a friendly and knowledgeable AI budtender. Your goal is to help users discover the best cannabis products for them. Keep your tone light, informative, and a little playful.",
   welcomeMessage: "Hello! I'm Smokey, your AI budtender. Browse our products above and ask me anything about them!",
   isCeoMode: false,
-  navLinks: [],
+  navLinks: defaultNavLinks,
   locations: [],
   _hasHydrated: false,
 });
@@ -135,7 +136,7 @@ const createHydratableStore = (initialState: StoreState) => {
             }),
             {
                 name: 'smokey-store',
-                storage: createJSONStorage(() => localStorage),
+                storage: createJSONStorage(() => cookieStorage),
                 onRehydrateStorage: () => (state) => {
                     if (state) {
                         state.setHasHydrated(true);
