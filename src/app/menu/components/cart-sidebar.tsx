@@ -59,24 +59,12 @@ export default function CartSidebar() {
 
   const [step, setStep] = React.useState<'cart' | 'checkout' | 'success'>('cart');
 
+  // When cart is opened, always reset to the cart view
   React.useEffect(() => {
-    // When cart is re-opened, reset to the cart view unless it was on the success step
-    if (isCartOpen && step !== 'success') {
+    if (isCartOpen) {
       setStep('cart');
     }
-  }, [isCartOpen, step]);
-
-  const handleProceedToCheckout = () => {
-    if (!selectedLocationId) {
-        toast({
-            variant: 'destructive',
-            title: 'No Location Selected',
-            description: 'Please select a pickup location from the menu before proceeding.',
-        });
-        return;
-    }
-    setStep('checkout');
-  };
+  }, [isCartOpen]);
 
   const handleOrderSuccess = () => {
     setStep('success');
@@ -180,7 +168,17 @@ export default function CartSidebar() {
                         <Button 
                             className="w-full" 
                             disabled={items.length === 0}
-                            onClick={handleProceedToCheckout}
+                            onClick={() => {
+                                if (!selectedLocationId) {
+                                    toast({
+                                        variant: 'destructive',
+                                        title: 'No Location Selected',
+                                        description: 'Please select a pickup location from the menu before proceeding.',
+                                    });
+                                    return;
+                                }
+                                setStep('checkout');
+                            }}
                         >
                             Proceed to Checkout
                         </Button>
