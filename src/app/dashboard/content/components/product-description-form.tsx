@@ -47,9 +47,8 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [localGeneratedContent, setLocalGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
   
-  const { chatbotIcon, isDemoMode } = useStore();
+  const { chatbotIcon } = useStore();
   const { data: products, isLoading: areProductsLoading } = useProducts();
-  const logoToUse = isDemoMode ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-horizontal-logo-PNG-transparent.png" : chatbotIcon;
 
   // Effect for handling description generation results
   useEffect(() => {
@@ -103,7 +102,7 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
           <CardDescription>Fill in the details below to generate content. The same details will be used for both image and text generation.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-           <input type="hidden" name="logoDataUri" value={logoToUse || ''} />
+           <input type="hidden" name="logoDataUri" value={chatbotIcon || ''} />
            <input type="hidden" name="imageUrl" value={localGeneratedContent?.imageUrl || ''} />
            
           <div className="space-y-2">
