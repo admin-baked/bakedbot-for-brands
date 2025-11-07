@@ -5,11 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 
 export default function CeoPage() {
-  const { isCeoMode, toggleCeoMode } = useStore();
+  const { isCeoMode } = useStore();
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
@@ -21,25 +19,18 @@ export default function CeoPage() {
              <Shield className="h-12 w-12 text-muted-foreground" />
           )}
           <div className="space-y-1">
-            <CardTitle className="text-2xl">Admin Controls</CardTitle>
+            <CardTitle className="text-2xl">Admin Status</CardTitle>
             <CardDescription>
               {isCeoMode
                 ? 'CEO Mode is active. Advanced features are enabled.'
-                : 'Activate CEO Mode for advanced administrative features.'}
+                : 'CEO Mode is not active for your account.'}
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className='flex items-center space-x-2 rounded-lg border p-4'>
-            <ShieldCheck className='h-6 w-6' />
-            <div className="flex-1 space-y-1">
-                <Label htmlFor="ceo-mode-switch">CEO Mode</Label>
-                <p className='text-xs text-muted-foreground'>
-                    Unlock sidebar editing and other administrative controls.
-                </p>
-            </div>
-             <Switch id="ceo-mode-switch" checked={isCeoMode} onCheckedChange={toggleCeoMode} />
-          </div>
+        <CardContent className="text-center">
+             <p className="text-sm text-muted-foreground">
+                This status is determined by a secure custom claim on your user account. It cannot be changed from this screen.
+             </p>
         </CardContent>
         <CardContent className="text-center">
             <Button variant="link" asChild>

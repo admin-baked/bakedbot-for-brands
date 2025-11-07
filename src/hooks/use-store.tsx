@@ -52,7 +52,7 @@ export interface StoreState {
   welcomeMessage: string;
   setWelcomeMessage: (message: string) => void;
   isCeoMode: boolean;
-  toggleCeoMode: () => void;
+  setIsCeoMode: (isCeo: boolean) => void;
   emailProvider: 'sendgrid' | 'gmail';
   setEmailProvider: (provider: 'sendgrid' | 'gmail') => void;
   sendgridApiKey: string | null;
@@ -115,7 +115,7 @@ const createHydratableStore = (initialState: StoreState) => {
                 setBrandUrl: (url: string) => set({ brandUrl: url }),
                 setBasePrompt: (prompt: string) => set({ basePrompt: prompt }),
                 setWelcomeMessage: (message: string) => set({ welcomeMessage: message }),
-                toggleCeoMode: () => set((state) => ({ isCeoMode: !state.isCeoMode })),
+                setIsCeoMode: (isCeo: boolean) => set({ isCeoMode: isCeo }),
                 setEmailProvider: (provider) => set({ emailProvider: provider }),
                 setSendgridApiKey: (key) => set({ sendgridApiKey: key }),
                 recordBrandImageGeneration: () => {

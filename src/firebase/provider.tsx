@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -8,6 +7,7 @@ import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 import { errorEmitter } from './error-emitter';
 import { FirestorePermissionError } from './errors';
+import { useStore } from '@/hooks/use-store';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -70,6 +70,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     userError: null,
   });
 
+  const { setIsCeoMode } = useStore();
+
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
     if (!auth || !firestore) { 
@@ -83,6 +85,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       async (firebaseUser) => {
         if (firebaseUser) {
+          // Check for CEO custom claim
+          const idTokenResult = await firebaseUser.getIdTokenResult();
+          const isCeo = idTokenResult.claims.ceo === true;
+          setIsCeoMode(isCeo);
+
           const userDocRef = doc(firestore, 'users', firebaseUser.uid);
           try {
             const userDoc = await getDoc(userDocRef);
@@ -112,17 +119,21 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               });
               errorEmitter.emit('permission-error', permissionError);
           }
+        } else {
+          // No user, ensure CEO mode is off
+          setIsCeoMode(false);
         }
         
         setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
       },
       (error) => { // Auth listener error
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
+        setIsCeoMode(false); // Ensure CEO mode is off on error
         setUserAuthState({ user: null, isUserLoading: false, userError: error });
       }
     );
     return () => unsubscribe(); // Cleanup
-  }, [auth, firestore]);
+  }, [auth, firestore, setIsCeoMode]);
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
