@@ -22,6 +22,50 @@ const BrandVoiceSchema = z.object({
     brandDoc: z.instanceof(File).refine(file => file.size > 0, 'Please upload a document.'),
 });
 
+const EmailSettingsSchema = z.object({
+  emailProvider: z.enum(['sendgrid', 'gmail']),
+  apiKey: z.string().optional(),
+})
+
+export async function saveEmailSettings(prevState: any, formData: FormData) {
+  // In a real app, you'd encrypt and securely store the API key.
+  // For this demo, we'll just confirm we received it.
+  const validatedFields = EmailSettingsSchema.safeParse({
+    emailProvider: formData.get('emailProvider'),
+    apiKey: formData.get('apiKey'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      message: 'Invalid email settings.',
+      error: true,
+      fieldErrors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+
+  const { emailProvider, apiKey } = validatedFields.data;
+
+  if (emailProvider === 'sendgrid' && (!apiKey || apiKey.trim() === '')) {
+     return {
+      message: 'API Key is required for SendGrid.',
+      error: true,
+      fieldErrors: { apiKey: ['API Key is required.'] }
+    };
+  }
+  
+  console.log(`Email provider set to: ${emailProvider}`);
+  if (apiKey) {
+    console.log('API Key received (handling would be secure in production)');
+  }
+
+  revalidatePath('/dashboard/settings');
+  
+  return {
+    message: 'Email settings saved successfully!',
+    error: false,
+  };
+}
+
 export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
   const { auth, firestore } = await createServerClient();
   const user = auth.currentUser;

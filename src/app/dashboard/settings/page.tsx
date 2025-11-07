@@ -9,6 +9,7 @@ import ProductImportSettings from "./components/product-import-settings";
 import BrandVoiceSettings from "./components/brand-voice-settings";
 import MenuSettings from "./components/menu-settings";
 import DataSourceSettings from "./components/data-source-settings";
+import EmailSettings from "./components/email-settings";
 
 export default function SettingsPage() {
   const { isCeoMode } = useStore();
@@ -36,7 +37,12 @@ export default function SettingsPage() {
         <BrandVoiceSettings />
       </div>
       <ChatbotSettings />
-      {isCeoMode && <BakedBotSettings />}
+      {isCeoMode && (
+        <div className="space-y-8">
+          <EmailSettings />
+          <BakedBotSettings />
+        </div>
+      )}
     </div>
   );
 }

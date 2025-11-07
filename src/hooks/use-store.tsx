@@ -53,6 +53,10 @@ export interface StoreState {
   setWelcomeMessage: (message: string) => void;
   isCeoMode: boolean;
   toggleCeoMode: () => void;
+  emailProvider: 'sendgrid' | 'gmail';
+  setEmailProvider: (provider: 'sendgrid' | 'gmail') => void;
+  sendgridApiKey: string | null;
+  setSendgridApiKey: (key: string | null) => void;
   navLinks: NavLink[];
   addNavLink: (link: NavLink) => void;
   updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
@@ -89,6 +93,8 @@ const getDefaultInitialState = () => ({
   basePrompt: "You are Smokey, a friendly and knowledgeable AI budtender. Your goal is to help users discover the best cannabis products for them. Keep your tone light, informative, and a little playful.",
   welcomeMessage: "Hello! I'm Smokey, your AI budtender. Browse our products above and ask me anything about them!",
   isCeoMode: false,
+  emailProvider: 'sendgrid' as 'sendgrid' | 'gmail',
+  sendgridApiKey: null,
   navLinks: defaultNavLinks,
   locations: [],
   _hasHydrated: false,
@@ -110,6 +116,8 @@ const createHydratableStore = (initialState: StoreState) => {
                 setBasePrompt: (prompt: string) => set({ basePrompt: prompt }),
                 setWelcomeMessage: (message: string) => set({ welcomeMessage: message }),
                 toggleCeoMode: () => set((state) => ({ isCeoMode: !state.isCeoMode })),
+                setEmailProvider: (provider) => set({ emailProvider: provider }),
+                setSendgridApiKey: (key) => set({ sendgridApiKey: key }),
                 recordBrandImageGeneration: () => {
                     const { lastBrandImageGeneration, brandImageGenerations } = get();
                     const now = Date.now();
