@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useActionState, useRef } from 'react';
@@ -19,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 type LocationWithDistance = Location & { distance?: number };
 
@@ -202,31 +204,38 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
                 </div>
             </div>
 
-             <div>
-                <h3 className="text-lg font-semibold">Pickup Location</h3>
-                <RadioGroup name="locationId" className="mt-4 space-y-2" value={selectedLocationId || ''} onValueChange={setSelectedLocationId}>
-                    {isLocating && <div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}
-                    {sortedLocations.length > 0 ? (
-                        sortedLocations.map(loc => (
-                            <div key={loc.id}>
-                                <RadioGroupItem value={loc.id} id={`checkout-${loc.id}`} className="peer sr-only" />
-                                <Label htmlFor={`checkout-${loc.id}`} className="block cursor-pointer rounded-lg border bg-card p-4 peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                                    <div className="flex items-start justify-between">
-                                        <div className='flex-1'>
-                                            <p className="font-semibold">{loc.name}</p>
-                                            <p className="text-sm text-muted-foreground">{loc.address}, {loc.city}</p>
-                                        </div>
-                                        {loc.distance && <p className="text-sm font-bold">{loc.distance.toFixed(1)} mi</p>}
-                                    </div>
-                                </Label>
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-sm text-muted-foreground">No locations configured.</p>
-                    )}
-                </RadioGroup>
-                {state.fieldErrors?.locationId && <p className="mt-2 text-sm text-destructive">{state.fieldErrors.locationId[0]}</p>}
-            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Pickup Location</h3>
+              <RadioGroup name="locationId" className="mt-4" value={selectedLocationId || ''} onValueChange={setSelectedLocationId}>
+                  {isLocating && <div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}
+                  
+                  <ScrollArea className="w-full whitespace-nowrap">
+                      <div className="flex space-x-4 pb-4">
+                          {sortedLocations.length > 0 ? (
+                              sortedLocations.map(loc => (
+                                  <div key={loc.id} className="w-64">
+                                      <RadioGroupItem value={loc.id} id={`checkout-${loc.id}`} className="peer sr-only" />
+                                      <Label htmlFor={`checkout-${loc.id}`} className="block h-full cursor-pointer rounded-lg border bg-card p-4 peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                          <div className="flex flex-col justify-between h-full">
+                                              <div>
+                                                  <p className="font-semibold">{loc.name}</p>
+                                                  <p className="text-sm text-muted-foreground">{loc.address}, {loc.city}</p>
+                                              </div>
+                                              {loc.distance && <p className="text-sm font-bold mt-2">{loc.distance.toFixed(1)} mi</p>}
+                                          </div>
+                                      </Label>
+                                  </div>
+                              ))
+                          ) : (
+                              <p className="text-sm text-muted-foreground">No locations configured.</p>
+                          )}
+                      </div>
+                      <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+              </RadioGroup>
+              {state.fieldErrors?.locationId && <p className="mt-2 text-sm text-destructive">{state.fieldErrors.locationId[0]}</p>}
+          </div>
+
              <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Subtotal</span>
