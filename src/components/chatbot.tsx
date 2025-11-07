@@ -26,7 +26,7 @@ type Message = {
   id: number;
   text: string;
   sender: 'user' | 'bot';
-  productSuggestions?: Product[];
+  productSuggestions?: (Product & { reasoning: string })[];
   imageUrl?: string;
 };
 
@@ -150,7 +150,7 @@ const ProductCarousel = ({ products, onAskSmokey, isCompact, onFeedback }: { pro
     </>
 );
 
-const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand, onFeedback }: { product: Product, onAskSmokey: (p: Product) => void, isExpanded: boolean, onExpand: (p: Product) => void, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => {
+const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand, onFeedback }: { product: Product & { reasoning: string }, onAskSmokey: (p: Product) => void, isExpanded: boolean, onExpand: (p: Product & { reasoning: string }) => void, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => {
     const handleFeedbackClick = (e: React.MouseEvent, type: 'like' | 'dislike') => {
         e.stopPropagation();
         onFeedback(product.id, type);
@@ -158,25 +158,28 @@ const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand, onF
     
     if (isExpanded) {
         return (
-            <div className="flex-shrink-0 w-48 flex flex-col gap-2 rounded-md border bg-background p-2 text-foreground cursor-pointer" onClick={() => onExpand(product)}>
-                <div className="relative h-24 w-full shrink-0 overflow-hidden rounded-md">
-                    <Image src={product.imageUrl} alt={product.name} data-ai-hint={product.imageHint} fill className="object-cover"/>
+            <div className="w-full rounded-md border bg-background p-2 text-foreground cursor-pointer" onClick={() => onExpand(product)}>
+                <div className="flex gap-3">
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md">
+                        <Image src={product.imageUrl} alt={product.name} data-ai-hint={product.imageHint} fill className="object-cover"/>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                        <p className="font-semibold truncate">{product.name}</p>
+                        <p className="text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
+                        <div className="flex gap-1 mt-1">
+                            <Button variant="outline" size="icon" className="h-6 w-6" onClick={(e) => handleFeedbackClick(e, 'like')}><ThumbsUp className="h-3 w-3 text-green-500" /></Button>
+                            <Button variant="outline" size="icon" className="h-6 w-6" onClick={(e) => handleFeedbackClick(e, 'dislike')}><ThumbsDown className="h-3 w-3 text-red-500" /></Button>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex-1 overflow-hidden">
-                    <p className="font-semibold truncate">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
-                </div>
-                <div className="flex gap-1">
-                    <Button variant="outline" size="icon" className="h-7 w-7 flex-1" onClick={(e) => handleFeedbackClick(e, 'like')}><ThumbsUp className="h-4 w-4 text-green-500" /></Button>
-                    <Button variant="outline" size="icon" className="h-7 w-7 flex-1" onClick={(e) => handleFeedbackClick(e, 'dislike')}><ThumbsDown className="h-4 w-4 text-red-500" /></Button>
-                </div>
-                 <Button size="sm" className="w-full h-8" onClick={(e) => { e.stopPropagation(); onAskSmokey(product); }}>Ask Smokey</Button>
+                 <p className="text-xs text-muted-foreground mt-2 p-1">{product.reasoning}</p>
+                 <Button size="sm" className="w-full h-8 mt-1" onClick={(e) => { e.stopPropagation(); onAskSmokey(product); }}>Ask Smokey</Button>
             </div>
         )
     }
 
     return (
-        <div className="flex-shrink-0 w-48 flex items-center gap-2 rounded-md border bg-background p-2 text-foreground cursor-pointer hover:bg-muted" onClick={() => onExpand(product)}>
+        <div className="w-full flex items-center gap-2 rounded-md border bg-background p-2 text-foreground cursor-pointer hover:bg-muted" onClick={() => onExpand(product)}>
             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
                 <Image src={product.imageUrl} alt={product.name} data-ai-hint={product.imageHint} fill className="object-cover"/>
             </div>
@@ -184,10 +187,7 @@ const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand, onF
                 <p className="text-sm font-semibold truncate">{product.name}</p>
                 <p className="text-xs text-muted-foreground">${product.price.toFixed(2)}</p>
             </div>
-            <div className="flex flex-col gap-1">
-                <Button variant="outline" size="icon" className="h-5 w-5 shrink-0" onClick={(e) => handleFeedbackClick(e, 'like')}><ThumbsUp className="h-3 w-3 text-green-500" /></Button>
-                <Button variant="outline" size="icon" className="h-5 w-5 shrink-0" onClick={(e) => handleFeedbackClick(e, 'dislike')}><ThumbsDown className="h-3 w-3 text-red-500" /></Button>
-            </div>
+             <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
         </div>
     )
 };
@@ -195,7 +195,7 @@ const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand, onF
 
 const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, className, onFeedback }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>, onAskSmokey: (p: Product) => void, className?: string, onFeedback: (productId: string, type: 'like' | 'dislike') => void}) => {
     const { toast } = useToast();
-    const [expandedProduct, setExpandedProduct] = useState<Product | null>(null);
+    const [expandedProduct, setExpandedProduct] = useState<(Product & { reasoning: string }) | null>(null);
 
     const handleShare = async (message: Message) => {
         if (!message.imageUrl) return;
@@ -230,6 +230,14 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
         }
     };
 
+    const handleExpand = (product: Product & { reasoning: string }) => {
+        if (expandedProduct?.id === product.id) {
+            setExpandedProduct(null);
+        } else {
+            setExpandedProduct(product);
+        }
+    }
+
 
     return (
         <ScrollArea className={className}>
@@ -244,7 +252,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
                     </Avatar>
                     )}
                     <div className={cn(
-                        "max-w-[85%] rounded-lg px-3 py-2", 
+                        "flex flex-col gap-2 max-w-[85%] rounded-lg px-3 py-2", 
                         message.sender === 'user' 
                             ? 'bg-primary text-primary-foreground rounded-br-none' 
                             : 'bg-muted rounded-bl-none'
@@ -264,14 +272,14 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
                         </div>
                     )}
                     {message.productSuggestions && (
-                        <div className="mt-2 flex gap-2 overflow-x-auto pb-2">
+                        <div className="mt-2 flex flex-col gap-2">
                             {message.productSuggestions.slice(0, 3).map(p => (
                                 <ExpandableProductCard 
                                     key={p.id}
                                     product={p}
                                     onAskSmokey={onAskSmokey}
                                     isExpanded={expandedProduct?.id === p.id}
-                                    onExpand={setExpandedProduct}
+                                    onExpand={handleExpand}
                                     onFeedback={onFeedback}
                                 />
                             ))}
@@ -481,8 +489,7 @@ export default function Chatbot() {
       const botMessage: Message = { 
         id: Date.now() + 1, 
         text: botResponseText, 
-        sender: 'bot',
-        productSuggestions: [product] // Suggest the product we just talked about
+        sender: 'bot'
       };
       setMessages(prev => [...prev, botMessage]);
   
@@ -528,12 +535,17 @@ export default function Chatbot() {
             query: query,
             availableProducts: availableProducts,
         });
+        
+        const recommendedProductDetails = result.products.map(recommendedProd => {
+            const fullProduct = products.find(p => p.id === recommendedProd.productId);
+            return fullProduct ? { ...fullProduct, reasoning: recommendedProd.reasoning } : null;
+        }).filter((p): p is Product & { reasoning: string } => p !== null);
 
         const botMessage: Message = {
             id: Date.now() + 1,
             text: result.overallReasoning || "Here are some recommendations based on your preferences:",
             sender: 'bot',
-            productSuggestions: result.products.map(p => products.find(prod => prod.id === p.productId)).filter(Boolean) as Product[],
+            productSuggestions: recommendedProductDetails,
         };
         setMessages(prev => [...prev, botMessage]);
 
@@ -625,23 +637,15 @@ export default function Chatbot() {
         query: currentInput,
         availableProducts: availableProducts,
       });
-  
-      let botResponseText = result.overallReasoning || "Here are some recommendations based on your query:";
-      
+        
       const recommendedProductDetails = result.products.map(recommendedProd => {
         const fullProduct = products.find(p => p.id === recommendedProd.productId);
         return fullProduct ? { ...fullProduct, reasoning: recommendedProd.reasoning } : null;
       }).filter((p): p is Product & { reasoning: string } => p !== null);
 
-
-      // Add reasoning to the main message if there's only one product
-      if (recommendedProductDetails.length === 1 && recommendedProductDetails[0].reasoning) {
-        botResponseText += `\n\n**${recommendedProductDetails[0].name}**: ${recommendedProdDetails[0].reasoning}`;
-      }
-  
       const botMessage: Message = {
         id: Date.now() + 1,
-        text: botResponseText,
+        text: result.overallReasoning || "Here are some recommendations based on your query:",
         sender: 'bot',
         productSuggestions: recommendedProductDetails.length > 0 ? recommendedProductDetails : undefined,
       };

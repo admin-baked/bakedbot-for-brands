@@ -8,7 +8,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import { getProductReviews } from '@/ai/tools/get-product-reviews';
 
 const RecommendProductsInputSchema = z.object({
@@ -21,7 +21,7 @@ export type RecommendProductsInput = z.infer<typeof RecommendProductsInputSchema
 const RecommendedProductSchema = z.object({
   productId: z.string().describe('The unique ID of the recommended product.'),
   productName: z.string().describe('The name of the recommended product.'),
-  reasoning: z.string().describe('A brief, user-facing reason why this specific product was recommended.'),
+  reasoning: z.string().describe('A brief, one-sentence, user-facing reason why this specific product was recommended based on the user query.'),
 });
 
 const RecommendProductsOutputSchema = z.object({
@@ -48,7 +48,7 @@ Customer History: {{{customerHistory}}}
 Available Products (JSON):
 {{{availableProducts}}}
 
-Provide a list of recommended products and a compelling reason for each recommendation. Keep the reasoning for each product concise and user-friendly.
+Provide a list of recommended products and a compelling, one-sentence reason for each recommendation. Keep the reasoning for each product concise and user-friendly.
 Also provide an overall reasoning for why this collection of products was chosen.
 Limit your recommendations to a maximum of 3 products.
 `,
