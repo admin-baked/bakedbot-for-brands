@@ -250,7 +250,7 @@ export default function MenuAltClient() {
                 </div>
 
             </main>
-            <footer className="dark-theme py-12 text-background bg-foreground">
+            <footer className="py-12 bg-foreground text-background">
                 <div className="container mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
                     <div>
                         <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">BAKEDBOT</h3>
