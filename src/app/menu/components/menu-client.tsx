@@ -38,8 +38,10 @@ const Header = () => {
           <Button variant="ghost" size="icon">
             <Search className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon">
-            <User className="h-5 w-5" />
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/brand-login">
+              <User className="h-5 w-5" />
+            </Link>
           </Button>
           <div className="relative">
              <Button variant="ghost" size="icon" onClick={toggleCart}>
@@ -123,7 +125,7 @@ const FloatingCartPill = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 100 }}
                     transition={{ ease: "easeInOut", duration: 0.3 }}
-                    className="fixed bottom-6 left-6 z-50"
+                    className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
                 >
                     <Card className="shadow-2xl">
                         <CardContent className="p-0">
@@ -264,3 +266,5 @@ export default function MenuClient() {
         </div>
     );
 }
+
+    
