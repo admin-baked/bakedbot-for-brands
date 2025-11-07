@@ -1,0 +1,138 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    //============================================================
+    //  HELPER FUNCTIONS
+    //============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isCeo() {
+      // Check for a 'ceo' custom claim on the user's auth token.
+      return isAuthenticated() && request.auth.token.ceo == true;
+    }
+
+    function isNewData() {
+      return resource == null;
+    }
+
+    function isExistingData() {
+      return resource != null;
+    }
+
+    function isUpdating(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    function isUpdatingAllowedFields(allowedFields) {
+      let allFields = resource.data.keys().concat(allowedFields);
+      return request.resource.data.keys().hasOnly(allFields);
+    }
+
+    // Schema validation for User
+    function isValidUser(user) {
+      return user.id == request.auth.uid;
+    }
+
+    // Schema validation for Review
+    function isValidReview(review) {
+      return review.userId == request.auth.uid
+          && review.rating is number && review.rating >= 1 && review.rating <= 5
+          && review.text is string && review.text.size() > 0
+          && review.productId is string
+          && review.createdAt == request.time;
+    }
+
+    // Schema validation for Order
+    function isValidOrder(order) {
+        return order.customerName is string && order.customerName.size() > 0
+            && order.customerEmail is string && order.customerEmail.matches('.+@.+\\..+')
+            && order.customerPhone is string && order.customerPhone.size() > 0
+            && order.customerBirthDate is string && order.customerBirthDate.size() > 0
+            && order.locationId is string && order.locationId.size() > 0
+            && order.totalAmount is number && order.totalAmount > 0
+            && order.orderDate == request.time
+            && order.status == 'pending'
+            && (order.userId == request.auth.uid || order.userId == 'guest');
+    }
+
+    // Schema validation for OrderItem
+    function isValidOrderItem(item) {
+        return item.productId is string && item.productId.size() > 0
+            && item.productName is string && item.productName.size() > 0
+            && item.quantity is number && item.quantity > 0
+            && item.price is number && item.price >= 0;
+    }
+    
+    //============================================================
+    //  COLLECTION RULES
+    //============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(userId);
+    }
+
+    match /user-private/{userId} {
+      allow get, list, write: if isOwner(userId);
+    }
+
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    match /products/{productId} {
+      allow get, list: if true;
+      allow create, delete: if false;
+      // Allow authenticated users to update ONLY the 'likes' and 'dislikes' fields.
+      allow update: if isAuthenticated() && isUpdatingAllowedFields(['likes', 'dislikes']);
+    }
+
+    match /products/{productId}/reviews/{reviewId} {
+      // Any authenticated user can read reviews
+      allow get, list: if isAuthenticated();
+      // Users can only create reviews for themselves and the data must be valid
+      allow create: if isAuthenticated() && isValidReview(request.resource.data);
+      // No updates or deletes to maintain review integrity
+      allow update, delete: if false;
+    }
+    
+    match /users/{userId}/orders/{orderId} {
+        // The user who owns the order can read, update, or delete it.
+        // A CEO/admin can also read or update any order.
+        allow get, update: if isOwner(userId) || isCeo();
+        allow delete: if isOwner(userId);
+        
+        // A user can create an order for themselves, or a guest can create an order.
+        allow create: if isValidOrder(request.resource.data) && (isOwner(userId) || userId == 'guest');
+
+        // OrderItems can only be created along with the order
+        // and can only be read by the user who owns the order or an admin.
+        match /orderItems/{orderItemId} {
+             allow read, write: if (isOwner(userId) || isCeo()) && isValidOrderItem(request.resource.data);
+        }
+    }
+    
+    // This rule allows admins to list all orders across all users.
+    match /users/{userId}/orders/{orderId} {
+      allow list: if isCeo();
+    }
+
+    // Rules for all reviews in the system.
+    // This allows an admin to read all reviews for the dashboard.
+    match /products/{productId}/reviews/{reviewId} {
+      allow list: if isCeo();
+    }
+  }
+}
