@@ -1,7 +1,7 @@
 'use client';
 
 import { useCollection, useFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, type CollectionReference, type Query, type DocumentData } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
 import { useStore } from '@/hooks/use-store';
 import { products as demoProducts } from '@/lib/data';
@@ -15,32 +15,39 @@ import { useMemo } from 'react';
  */
 export function useProducts() {
   const { firestore } = useFirebase();
+
   // Select both state values in a single selector to avoid extra re-renders.
   const { isDemoMode, isHydrated } = useStore((state) => ({
     isDemoMode: state.isDemoMode,
     isHydrated: state._hasHydrated,
   }));
-
-  // PRIMARY FIX: Do not return any data or create a query until the store has been rehydrated.
-  // Before hydration, we cannot know if we should be in demo mode or not.
-  // Returning a loading state here prevents a "flash of incorrect content".
-  if (!isHydrated) {
-    return { data: null, isLoading: true, error: null };
-  }
-
-  // Once hydrated, we can definitively decide what data to show.
-  if (isDemoMode) {
-    // In demo mode, immediately return the static demo products.
-    return { data: demoProducts, isLoading: false, error: null };
-  }
-
-  // In live mode, proceed with the Firestore query.
-  // We can use a stable query reference here because isHydrated and isDemoMode will not change again.
-  const productsQuery = firestore ? query(collection(firestore, 'products')) : null;
   
-  // This hook will only execute the query if it's not null.
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+  // Memoize the Firestore query. It will be null until Firestore is ready.
+  // This is called unconditionally, following the Rules of Hooks.
+  const productsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'products'));
+  }, [firestore]);
+
+  // Fetch data from Firestore unconditionally.
+  // The useCollection hook is designed to handle a null query, so this is safe.
   const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useCollection<Product>(productsQuery);
 
-  return { data: firestoreProducts, isLoading: isFirestoreLoading, error };
+  // Now, determine what to return based on the hydration and demo mode state.
+  return useMemo(() => {
+    // If the store isn't hydrated yet, we are in a loading state.
+    // We also check isFirestoreLoading to ensure we don't flash content if hydration finishes
+    // but the Firestore query is still pending.
+    if (!isHydrated) {
+      return { data: null, isLoading: true, error: null };
+    }
+
+    // If hydrated and in demo mode, return the static demo products.
+    if (isDemoMode) {
+      return { data: demoProducts, isLoading: false, error: null };
+    }
+
+    // If hydrated and not in demo mode, return the results from the Firestore query.
+    return { data: firestoreProducts, isLoading: isFirestoreLoading, error };
+  }, [isHydrated, isDemoMode, firestoreProducts, isFirestoreLoading, error]);
 }
