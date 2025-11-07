@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useStore } from './use-store';
@@ -42,7 +43,7 @@ export function useMenuData() {
       isLoading: isFirestoreLoading,
       error: error,
     };
-  }, [isUsingDemoData, firestoreProducts, demoProducts, isFirestoreLoading, error, storeLocations]);
+  }, [isUsingDemoData, firestoreProducts, storeLocations, demoProducts, isFirestoreLoading, error]);
 
   return {
     ...memoizedData,
