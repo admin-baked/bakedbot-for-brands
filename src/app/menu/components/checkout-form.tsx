@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useActionState, useRef } from 'react';
@@ -31,10 +32,10 @@ const initialState = {
     orderId: null,
 };
 
-function SubmitButton() {
+function SubmitButton({ disabled }: { disabled?: boolean }) {
     const { pending } = useFormStatus();
     return (
-        <Button type="submit" className="w-full" disabled={pending}>
+        <Button type="submit" className="w-full" disabled={pending || disabled}>
             {pending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             Submit Order
         </Button>
@@ -57,7 +58,16 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     const [birthDate, setBirthDate] = useState<Date | undefined>();
     const [idImageName, setIdImageName] = useState<string | null>(null);
 
-    const isAgeInvalid = birthDate && new Date().getFullYear() - birthDate.getFullYear() < 21;
+    const isAgeInvalid = useMemo(() => {
+        if (!birthDate) return false;
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age < 21;
+    }, [birthDate]);
     
     useEffect(() => {
         if (!locations) {
@@ -281,7 +291,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
                 </div>
             </div>
             <div className="space-y-2">
-                <SubmitButton />
+                <SubmitButton disabled={isAgeInvalid || !birthDate} />
                 <Button variant="outline" className="w-full" onClick={onBack}>
                     Back to Cart
                 </Button>
