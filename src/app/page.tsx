@@ -1,30 +1,30 @@
+
+'use client';
+
+import { useStore } from '@/hooks/use-store';
 import MenuPage from './menu/page';
 import MenuAltPage from './menu-alt/page';
-import { cookies } from 'next/headers';
+import { useEffect, useState } from 'react';
 
-// The value of the store is a stringified JSON object.
-// e.g. {"state":{"theme":"green","menuStyle":"alt", ...}}
-type StoreState = {
-  state: {
-    menuStyle: 'default' | 'alt';
-  };
-};
+/**
+ * A client-side component that selects which menu to display based on
+ * the user's preference stored in the global state. This prevents
+ * server-side rendering issues related to accessing cookies.
+ */
+function MenuSelector() {
+  const { menuStyle, _hasHydrated } = useStore();
+  const [isClient, setIsClient] = useState(false);
 
-export default function RootPage() {
-  const cookieStore = cookies();
-  const storeCookie = cookieStore.get('smokey-store');
+  useEffect(() => {
+    // This ensures the component only renders on the client after mounting.
+    setIsClient(true);
+  }, []);
 
-  let menuStyle = 'default';
-
-  if (storeCookie) {
-    try {
-      const storeValue: StoreState = JSON.parse(storeCookie.value);
-      if (storeValue.state.menuStyle === 'alt') {
-        menuStyle = 'alt';
-      }
-    } catch (e) {
-      // Could not parse cookie, fallback to default.
-    }
+  // Before hydration or on the server, we can render a fallback or nothing.
+  // Once hydrated, we can safely render the correct menu.
+  if (!isClient || !_hasHydrated) {
+    // You can return a loading skeleton here if you prefer
+    return <MenuPage />;
   }
 
   if (menuStyle === 'alt') {
@@ -32,4 +32,9 @@ export default function RootPage() {
   }
 
   return <MenuPage />;
+}
+
+
+export default function RootPage() {
+  return <MenuSelector />;
 }
