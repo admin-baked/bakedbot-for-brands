@@ -24,7 +24,7 @@ export function useMenuData() {
   const memoizedData = useMemo(() => {
     // Determine if we should use demo data as a fallback.
     // Use it if the store isn't hydrated yet, or if there are no products in Firestore.
-    const shouldUseDemoFallback = !_hasHydrated || !firestoreProducts || firestoreProducts.length === 0;
+    const shouldUseDemoFallback = !_hasHydrated || (firestoreProducts && firestoreProducts.length === 0);
 
     if (shouldUseDemoFallback) {
       return {
