@@ -161,8 +161,8 @@ export default function CartSidebar() {
                         <span>Subtotal</span>
                         <span>${subtotal.toFixed(2)}</span>
                         </div>
-                        <Button className="w-full" onClick={() => setStep('checkout')} disabled={!selectedLocationId}>
-                            {!selectedLocationId ? 'Please select a dispensary' : 'Proceed to Checkout'}
+                        <Button className="w-full" onClick={() => setStep('checkout')} disabled={items.length === 0}>
+                            Proceed to Checkout
                         </Button>
                     </div>
                     </SheetFooter>
