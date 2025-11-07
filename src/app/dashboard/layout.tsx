@@ -138,7 +138,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </SidebarHeader>
             <SidebarContent>
               <SidebarMenu>
-                {visibleLinks.map((item) => {
+                {showClientContent && visibleLinks.map((item) => {
                    const Icon = (LucideIcons as any)[item.icon] || LucideIcons.PanelRight;
                    return (
                   <SidebarMenuItem key={item.href} className={cn(shouldShowAdminControls && item.hidden && "opacity-50 hover:opacity-100")}>
