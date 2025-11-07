@@ -90,18 +90,22 @@ export async function submitOrder(prevState: any, formData: FormData) {
 
     // Revalidate paths to show fresh data
     revalidatePath('/dashboard/orders');
-    revalidatePath('/dashboard/menu');
+    revalidatePath('/menu');
 
     // Get the base URL for constructing links
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const orderPageUrl = `${baseUrl}/order/${orderRef.id}`;
 
     // --- NOTIFICATION SIMULATION ---
+    // In a real app, you would replace this console log with an actual email sending service call
     const brandOwners = ['jack@bakedbot.ai', 'martez@bakedbot.com'];
-    console.log('--- ORDER FULFILLMENT NOTIFICATION ---');
-    console.log(`Brand: BakedBot`);
-    console.log(`Simulating sending email to Dispensary: ${fulfillmentEmail}`);
-    console.log(`Simulating sending copy to Brand Owners: ${brandOwners.join(', ')}`);
+    console.log('--- SIMULATING ORDER FULFILLMENT NOTIFICATION ---');
+    console.log(`To: ${fulfillmentEmail}`);
+    console.log(`Bcc: ${brandOwners.join(', ')}`);
+    console.log('Subject: New Online Order for Pickup!');
+    console.log('---');
+    console.log('Body:');
+    console.log(`You have a new order for pickup from ${orderData.customerName}.`);
     console.log('Order Details:');
     console.log(`- Customer Name: ${orderData.customerName}`);
     console.log(`- Customer Email: ${orderData.customerEmail}`);
@@ -113,7 +117,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
         console.log(`  - ${item.name} (x${item.quantity})`);
     });
     console.log(`- Official Order Link: ${orderPageUrl}`);
-    console.log('------------------------------------');
+    console.log('--- END OF SIMULATION ---');
 
     return {
       message: 'Order submitted successfully!',
