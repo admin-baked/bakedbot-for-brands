@@ -8,7 +8,7 @@ service cloud.firestore {
     //============================================================
 
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null && request.app != null;
     }
 
     function isOwner(userId) {
@@ -16,7 +16,7 @@ service cloud.firestore {
     }
     
     function isCeo() {
-      // Check for a 'ceo' custom claim on the user's auth token.
+      // Check for a 'ceo' custom claim on the user's auth token and a valid app check.
       return isAuthenticated() && request.auth.token.ceo == true;
     }
 
@@ -61,7 +61,7 @@ service cloud.firestore {
             && order.totalAmount is number && order.totalAmount > 0
             && order.orderDate == request.time
             && order.status == 'pending'
-            && (order.userId == request.auth.uid || order.userId == 'guest');
+            && ((isAuthenticated() && order.userId == request.auth.uid) || order.userId == 'guest');
     }
 
     // Schema validation for OrderItem
@@ -88,11 +88,13 @@ service cloud.firestore {
     }
 
     match /categories/{categoryId} {
+      // Publicly readable, no app check needed.
       allow get, list: if true;
       allow create, update, delete: if false;
     }
 
     match /products/{productId} {
+      // Publicly readable, no app check needed.
       allow get, list: if true;
       allow create, delete: if false;
       // Allow authenticated users to update ONLY the 'likes' and 'dislikes' fields.
@@ -115,7 +117,8 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
         
         // A user can create an order for themselves, or a guest can create an order.
-        allow create: if isValidOrder(request.resource.data) && (isOwner(userId) || userId == 'guest');
+        // App check is enforced if the user is authenticated.
+        allow create: if (isValidOrder(request.resource.data) && ((isAuthenticated() && isOwner(userId)) || userId == 'guest'));
 
         // OrderItems can only be created along with the order
         // and can only be read by the user who owns the order or an admin.
