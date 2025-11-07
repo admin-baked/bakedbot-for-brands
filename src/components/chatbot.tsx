@@ -425,8 +425,7 @@ export default function Chatbot() {
   }, []);
 
   const defaultChatbotIcon = 'https://storage.googleapis.com/stedi-assets/misc/smokey-icon.png';
-  const chatbotIcon = _hasHydrated ? (customIcon || defaultChatbotIcon) : defaultChatbotIcon;
-
+  const chatbotIcon = _hasHydrated && customIcon ? customIcon : defaultChatbotIcon;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -692,7 +691,7 @@ export default function Chatbot() {
              <Button size="icon" className="h-16 w-16 rounded-full shadow-lg overflow-hidden p-0" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
               {isOpen ? (
                 <X className="h-8 w-8" />
-              ) : chatbotIcon ? (
+              ) : (showClientContent && chatbotIcon) ? (
                 <Image src={chatbotIcon} alt="Chatbot Icon" fill className="object-cover" />
               ) : (
                 <Bot className="h-8 w-8" />
@@ -721,5 +720,7 @@ export default function Chatbot() {
         </>
       );
 }
+
+    
 
     
