@@ -88,15 +88,17 @@ service cloud.firestore {
     }
 
     match /categories/{categoryId} {
-      // Publicly readable, no app check needed.
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      // Publicly readable, no app check needed for individual gets.
+      allow get: if true;
+      // List is disabled for public to prevent scraping.
+      allow list, create, update, delete: if false;
     }
 
     match /products/{productId} {
-      // Publicly readable, no app check needed.
-      allow get, list: if true;
-      allow create, delete: if false;
+      // Publicly readable, no app check needed for individual gets.
+      allow get: if true;
+       // List is disabled for public to prevent scraping.
+      allow list, create, delete: if false;
       // Allow authenticated users to update ONLY the 'likes' and 'dislikes' fields.
       allow update: if isAuthenticated() && isUpdatingAllowedFields(['likes', 'dislikes']);
     }
@@ -127,14 +129,12 @@ service cloud.firestore {
         }
     }
 
-    // This rule allows admins to list all orders across all users.
+    // This rule allows admins to list all orders across all users for the dashboard.
     match /users/{userId}/orders/{orderId} {
       allow list: if isCeo();
     }
 
-    // Rules for all reviews in the system.
-    // This allows an admin to read all reviews for the dashboard.
-    // This is a duplicate of the rule above, but is needed for collection group queries.
+    // This rule allows admins to list all reviews across all users for the dashboard.
     match /products/{productId}/reviews/{reviewId} {
       allow list: if isCeo();
     }
