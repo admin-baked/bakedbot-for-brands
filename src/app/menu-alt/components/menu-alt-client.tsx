@@ -281,7 +281,3 @@ export default function MenuAltClient() {
         </div>
     );
 }
-
-    
-
-    

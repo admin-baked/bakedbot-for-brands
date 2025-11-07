@@ -280,7 +280,3 @@ export default function MenuClient() {
         </div>
     );
 }
-
-    
-
-    
