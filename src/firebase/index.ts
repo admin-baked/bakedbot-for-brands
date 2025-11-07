@@ -20,13 +20,13 @@ export function initializeFirebase() {
   const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
   // Initialize App Check only if the site key is available and not a placeholder
-  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-  if (recaptchaSiteKey && recaptchaSiteKey !== 'YOUR_RECAPTCHA_V3_SITE_KEY_HERE') {
-    initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(recaptchaSiteKey),
-      isTokenAutoRefreshEnabled: true
-    });
-  }
+  // const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+  // if (recaptchaSiteKey && recaptchaSiteKey !== 'YOUR_RECAPTCHA_V3_SITE_KEY_HERE') {
+  //   initializeAppCheck(app, {
+  //     provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+  //     isTokenAutoRefreshEnabled: true
+  //   });
+  // }
   
   return getSdks(app);
 }
