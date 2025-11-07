@@ -206,6 +206,7 @@ export default function MenuClient() {
 
 
                 <div className="text-center mb-12">
+                    <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">2. Browse the Menu</h2>
                     <Button variant="outline" asChild>
                         <Link href="/leave-a-review">
                             <PenSquare className="mr-2 h-4 w-4" />

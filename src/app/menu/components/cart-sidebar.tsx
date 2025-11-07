@@ -5,11 +5,12 @@ import { useCart } from '@/hooks/use-cart';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { Minus, Plus, Trash2, PartyPopper, MapPin } from 'lucide-react';
+import { Minus, Plus, Trash2, PartyPopper, MapPin, ExternalLink } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import CheckoutForm from './checkout-form';
 import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
+import Link from 'next/link';
 
 const SelectedLocationHeader = () => {
     const { selectedLocationId } = useStore();
@@ -20,6 +21,8 @@ const SelectedLocationHeader = () => {
         return null;
     }
 
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedLocation.name}, ${selectedLocation.address}, ${selectedLocation.city}, ${selectedLocation.state} ${selectedLocation.zip}`)}`;
+
     return (
         <div className="px-6 py-4 bg-muted/50 border-b">
             <div className="flex items-start gap-3">
@@ -28,6 +31,11 @@ const SelectedLocationHeader = () => {
                     <p className="font-semibold text-sm">Pickup Location</p>
                     <p className="text-sm text-muted-foreground">{selectedLocation.name}</p>
                     <p className="text-xs text-muted-foreground">{selectedLocation.address}, {selectedLocation.city}</p>
+                     <Button variant="link" size="sm" asChild className="h-auto p-0 text-xs mt-1">
+                        <Link href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                           View on Map <ExternalLink className="ml-1 h-3 w-3" />
+                        </Link>
+                    </Button>
                 </div>
             </div>
         </div>
