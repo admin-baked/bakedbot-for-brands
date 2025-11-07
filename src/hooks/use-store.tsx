@@ -34,6 +34,8 @@ export interface StoreState {
   setMenuStyle: (style: 'default' | 'alt') => void;
   isUsingDemoData: boolean;
   setIsUsingDemoData: (isDemo: boolean) => void;
+  selectedLocationId: string | null;
+  setSelectedLocationId: (id: string | null) => void;
   chatbotIcon: string | null;
   setChatbotIcon: (icon: string | null) => void;
   chatExperience: 'default' | 'classic';
@@ -78,6 +80,7 @@ const getDefaultInitialState = () => ({
   theme: 'green' as Theme,
   menuStyle: 'default' as 'default' | 'alt',
   isUsingDemoData: true,
+  selectedLocationId: null,
   chatbotIcon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAclBMVEUAdL3///8Acb0Ab7wAbLwAarwAcrz7/v7+/v4AcLzu+PoAe78AeL7O8PDe9/gAfr8AgcAAd77L7/jE7ffB6/b3+/0AgMBpudcAhcMph8I2jMLy+vxOsNFZtNUpicHX9PjW8/dgr9g6kMM9lcQwhsI4jsNMuNJzveB4pXyTAAACyElEQVR4nO3d65KiMBQFYImkGkVFBRVzKCjO+7/OQ5oEBoZLe2/Od/ZOzPVE2mapj1hREREhO5Nq5dJ3r9H6nS6ve3t7d3L5Y7m9/tS6Z5+L3eX3t6e3N7e+nbe5/1y/X4/nU73d2+l3+83m82+lK53Op0mDMP3S/fe7/c2m81u13f8A5qLxuPx+v1+e3t722w229vbW/M8/6tE4vF4PBqNvu/7+Xy+3+/t9/vL+fn5fr9/57f6/f55nv9f8zz/0Xg8Hs/z/H6/3+v1+nU63d7e3ra5uXmbzVatVqvVajwe/+7+vF6v1+t1u91ub29vb29/eHh4eHh4sVgsFovl+/4/z/Pj8Xg0Go/H43mef5/P93q9vu/7fr//zv+k3+/3+/1+u90+z/Pj8Xi8Hs/z/H6/3+v1HMfx+/1+uVz2+/08z/Pj8Xg8v99vNpv9Wt/3vV5vNpv1+/3zPM/z/H+d5/nxeLxeL/v9vr7vf728vDyfz/f7/Xme5/n5+fnd/u73+3me5/l/ned5Pp+uruv7vs/z/Pj4uP/29va1nuf5eDz+4v+XpmmWZZlpmmEYzGaz2Ww+n0+n02EYhqbp5/b39/e3t7ffNjc35/P55+fn59vt9nQ6/dy+5fn5+eXl5e3t7eXl5e7ubtM0m83mfr//2r/3+/08z//+e/0+nw/DMJ/PZ5qmdrvdrus4jjzP9/v9ZFn+2n+w2+3z+fzxeDzLsvP5fDwej8fj8ffv32+1Wq/X63a7/bX/+fb2ts/nbzabmabp+/7xeDweD0aj0Wiapt/evlgs5nkehuHxePz69ev1en1/f3+1Wn348OHp6enBweHFixdPT0+vXr26urq6vr7+9u1bFEVRlEql0ujo6OhobGysrq6+f//+0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0d-EHUNoW2W+d4uAAAAAElFTkSuQmCC",
   chatExperience: 'default' as 'default' | 'classic',
   brandImageGenerations: 0,
@@ -100,6 +103,7 @@ const createHydratableStore = (initialState: StoreState) => {
                 setTheme: (theme: Theme) => set({ theme }),
                 setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
                 setIsUsingDemoData: (isDemo: boolean) => set({ isUsingDemoData: isDemo }),
+                setSelectedLocationId: (id: string | null) => set({ selectedLocationId: id }),
                 setChatbotIcon: (icon: string | null) => set({ chatbotIcon: icon }),
                 setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
                 setBrandColor: (color: string) => set({ brandColor: color }),

@@ -2,23 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, MapPin } from 'lucide-react';
+import { Loader2, MapPin, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { haversineDistance } from '@/lib/utils';
 import { useMenuData } from '@/hooks/use-menu-data';
 import type { Location } from '@/lib/types';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { useStore } from '@/hooks/use-store';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 type LocationWithDistance = Location & { distance?: number };
 
-const DispensaryCard = ({ location }: { location: LocationWithDistance }) => (
+const DispensaryCard = ({ location, isSelected, onSelect }: { location: LocationWithDistance, isSelected: boolean, onSelect: (id: string) => void }) => (
     <div className="w-64 flex-shrink-0 md:w-full">
-        <Card className="w-full h-full">
+        <Card 
+            className={cn("w-full h-full cursor-pointer transition-all", isSelected ? "border-primary ring-2 ring-primary" : "border-border")}
+            onClick={() => onSelect(location.id)}
+        >
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                    <MapPin className="h-4 w-4" />
-                    {location.name}
-                </CardTitle>
+                <div className="flex justify-between items-start">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <MapPin className="h-4 w-4" />
+                        {location.name}
+                    </CardTitle>
+                    {isSelected && (
+                        <Badge variant="default" className="flex items-center gap-1">
+                           <CheckCircle className="h-3 w-3" />
+                           Selected
+                        </Badge>
+                    )}
+                </div>
             </CardHeader>
             <CardContent>
                 <p className="text-sm text-muted-foreground">{location.address}, {location.city}, {location.state}</p>
@@ -33,6 +47,7 @@ const DispensaryCard = ({ location }: { location: LocationWithDistance }) => (
 export default function DispensaryLocator() {
     const { toast } = useToast();
     const { locations, isHydrated } = useMenuData();
+    const { selectedLocationId, setSelectedLocationId } = useStore();
     const [nearbyLocations, setNearbyLocations] = useState<LocationWithDistance[]>([]);
     const [isLocating, setIsLocating] = useState(true);
 
@@ -105,7 +120,12 @@ export default function DispensaryLocator() {
                 <ScrollArea className="w-full md:w-auto md:col-span-3">
                    <div className="flex space-x-4 pb-4 md:grid md:grid-cols-3 md:gap-4 md:space-x-0">
                      {nearbyLocations.map(loc => (
-                         <DispensaryCard key={loc.id} location={loc} />
+                         <DispensaryCard 
+                            key={loc.id} 
+                            location={loc} 
+                            isSelected={selectedLocationId === loc.id}
+                            onSelect={setSelectedLocationId}
+                         />
                      ))}
                    </div>
                    <ScrollBar orientation="horizontal" className="md:hidden" />

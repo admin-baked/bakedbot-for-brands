@@ -16,6 +16,7 @@ import { type Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Chatbot from '@/components/chatbot';
 import { useMenuData } from '@/hooks/use-menu-data';
+import { useStore } from '@/hooks/use-store';
 
 const SKELETON_CATEGORIES = ['Edibles', 'Flower', 'Vapes'];
 
@@ -66,6 +67,15 @@ const Header = () => {
 
 const ProductCard = ({ product }: { product: Product }) => {
     const { addToCart } = useCart();
+    const { selectedLocationId } = useStore();
+    
+    const price = selectedLocationId ? product.prices[selectedLocationId] ?? product.price : product.price;
+
+    const handleAddToCart = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        addToCart({ ...product, quantity: 1 });
+    };
 
     return (
         <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow border-none flex flex-col w-full">
@@ -92,8 +102,8 @@ const ProductCard = ({ product }: { product: Product }) => {
                 </CardContent>
             </Link>
             <CardFooter className="flex justify-between items-center p-4 pt-0 bg-card">
-                <span className="text-xl font-bold">${product.price.toFixed(2)}</span>
-                <Button size="icon" onClick={() => addToCart({ ...product, quantity: 1 })}>
+                <span className="text-xl font-bold">${price.toFixed(2)}</span>
+                <Button size="icon" onClick={handleAddToCart}>
                     <Plus className="h-4 w-4"/>
                 </Button>
             </CardFooter>
