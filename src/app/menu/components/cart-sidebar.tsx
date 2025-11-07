@@ -51,6 +51,7 @@ export default function CartSidebar() {
     updateQuantity,
     removeFromCart,
     getCartTotal,
+    clearCart,
   } = useCart();
   
   const { selectedLocationId } = useStore();
@@ -67,18 +68,7 @@ export default function CartSidebar() {
 
   const handleOrderSuccess = () => {
     setStep('success');
-  }
-
-  const handleProceedToCheckout = () => {
-    if (!selectedLocationId) {
-        toast({
-            variant: 'destructive',
-            title: 'No Location Selected',
-            description: 'Please select a pickup location before proceeding.',
-        });
-        return;
-    }
-    setStep('checkout');
+    clearCart();
   }
 
   const subtotal = getCartTotal(selectedLocationId);
@@ -93,7 +83,7 @@ export default function CartSidebar() {
                     <SheetDescription className="mt-2">
                         You'll receive a notification when it's ready for pickup.
                     </SheetDescription>
-                    <Button onClick={toggleCart} className="mt-6 w-full">Continue Shopping</Button>
+                    <Button onClick={() => { setStep('cart'); toggleCart(); }} className="mt-6 w-full">Continue Shopping</Button>
                 </div>
             );
         case 'checkout':
@@ -175,7 +165,21 @@ export default function CartSidebar() {
                         <span>Subtotal</span>
                         <span>${subtotal.toFixed(2)}</span>
                         </div>
-                        <Button className="w-full" onClick={handleProceedToCheckout} disabled={items.length === 0}>
+                        <Button 
+                            className="w-full" 
+                            disabled={items.length === 0}
+                            onClick={() => {
+                                if (!selectedLocationId) {
+                                    toast({
+                                        variant: 'destructive',
+                                        title: 'No Location Selected',
+                                        description: 'Please select a pickup location before proceeding.',
+                                    });
+                                    return;
+                                }
+                                setStep('checkout');
+                            }}
+                        >
                             Proceed to Checkout
                         </Button>
                     </div>
