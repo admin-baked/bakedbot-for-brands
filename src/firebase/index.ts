@@ -24,10 +24,14 @@ export function initializeFirebase() {
   // For local development, you can get a test key from the Google reCAPTCHA admin console.
   const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
   if (recaptchaSiteKey && recaptchaSiteKey !== 'YOUR_RECAPTCHA_V3_SITE_KEY_HERE') {
-    initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(recaptchaSiteKey),
-      isTokenAutoRefreshEnabled: true
-    });
+    try {
+        initializeAppCheck(app, {
+          provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+          isTokenAutoRefreshEnabled: true
+        });
+    } catch (error) {
+        console.warn("Firebase App Check initialization failed. This may be due to an incorrect reCAPTCHA site key or network issues. The app will continue without App Check.", error);
+    }
   }
   
   return getSdks(app);
