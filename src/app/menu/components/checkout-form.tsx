@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useActionState, useRef } from 'react';
@@ -14,7 +15,7 @@ import { submitOrder } from './actions';
 import { useFormStatus } from 'react-dom';
 import { useUser } from '@/firebase';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useStore } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
 
 type LocationWithDistance = Location & { distance?: number };
@@ -42,6 +43,8 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     const { user } = useUser();
     const formRef = useRef<HTMLFormElement>(null);
     const [state, formAction] = useActionState(submitOrder, initialState);
+    
+    const { selectedLocationId, setSelectedLocationId } = useStore();
 
     const [isLocating, setIsLocating] = useState(false);
     const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>(locations || []);
@@ -83,6 +86,10 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
         formData.append('userId', user?.uid || 'guest');
         formData.append('totalAmount', String(total));
         formData.append('locations', JSON.stringify(sortedLocations));
+        // Ensure the selectedLocationId is on the form data if it's not already
+        if (!formData.has('locationId') && selectedLocationId) {
+             formData.append('locationId', selectedLocationId);
+        }
         formAction(formData);
     };
 
@@ -105,13 +112,13 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
             </div>
              <div>
                 <h3 className="text-lg font-semibold">Pickup Location</h3>
-                <RadioGroup name="locationId" className="mt-4 space-y-2">
+                <RadioGroup name="locationId" className="mt-4 space-y-2" value={selectedLocationId || ''} onValueChange={setSelectedLocationId}>
                     {isLocating && <div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}
                     {sortedLocations.length > 0 ? (
                         sortedLocations.map(loc => (
                             <div key={loc.id}>
-                                <RadioGroupItem value={loc.id} id={loc.id} className="peer sr-only" />
-                                <Label htmlFor={loc.id} className="block cursor-pointer rounded-lg border bg-card p-4 peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                <RadioGroupItem value={loc.id} id={`checkout-${loc.id}`} className="peer sr-only" />
+                                <Label htmlFor={`checkout-${loc.id}`} className="block cursor-pointer rounded-lg border bg-card p-4 peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
                                     <div className="flex items-start justify-between">
                                         <div className='flex-1'>
                                             <p className="font-semibold">{loc.name}</p>
