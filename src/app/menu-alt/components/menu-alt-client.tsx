@@ -212,7 +212,7 @@ export default function MenuAltClient() {
                                 ))}
                             </div>
                         </section>
-                        <section>
+                         <section>
                             <Skeleton className="h-8 w-1/4 mb-6" />
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                                 {Array.from({ length: 4 }).map((_, j) => (
@@ -222,16 +222,18 @@ export default function MenuAltClient() {
                         </section>
                     </div>
                 ) : (
-                    categories.map(category => (
-                        <section key={category} className="mb-12">
-                            <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">{category}</h2>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                            {groupedProducts[category].map(product => (
-                                <ProductCard key={product.id} product={product} />
-                            ))}
-                            </div>
-                        </section>
-                    ))
+                    <div className="space-y-12">
+                        {categories.map(category => (
+                            <section key={category}>
+                                <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">{category}</h2>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                {groupedProducts[category].map(product => (
+                                    <ProductCard key={product.id} product={product} />
+                                ))}
+                                </div>
+                            </section>
+                        ))}
+                    </div>
                 )}
 
             </main>
@@ -275,7 +277,3 @@ export default function MenuAltClient() {
         </div>
     );
 }
-
-    
-
-    

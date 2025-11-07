@@ -219,17 +219,18 @@ export default function MenuClient() {
                         </section>
                     </div>
                 ) : (
-                    // Render products once loaded
-                    categories.map(category => (
-                        <section key={category} className="mb-12">
-                            <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">{category}</h2>
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-                            {groupedProducts[category].map(product => (
-                                <ProductCard key={product.id} product={product} />
-                            ))}
-                            </div>
-                        </section>
-                    ))
+                    <div className="space-y-12">
+                        {categories.map(category => (
+                            <section key={category}>
+                                <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">{category}</h2>
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                                {groupedProducts[category].map(product => (
+                                    <ProductCard key={product.id} product={product} />
+                                ))}
+                                </div>
+                            </section>
+                        ))}
+                    </div>
                 )}
 
             </main>
@@ -273,7 +274,3 @@ export default function MenuClient() {
         </div>
     );
 }
-
-    
-
-    
