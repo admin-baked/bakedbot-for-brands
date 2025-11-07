@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -36,7 +35,6 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
-// New component to isolate client-side-only controls
 const SidebarAdminControls = ({ link, onEdit, onToggle, onDelete }: { link: NavLink, onEdit: (link: NavLink) => void, onToggle: (href: string) => void, onDelete: (link: NavLink) => void }) => {
   return (
     <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
@@ -63,25 +61,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   
-  // Safely get Firebase context. It might be undefined on the server.
   const firebaseContext = React.useContext(FirebaseContext);
   const auth = firebaseContext?.auth;
   const user = firebaseContext?.user;
-  const isUserLoading = firebaseContext?.isUserLoading ?? true; // Default to loading on server
+  const isUserLoading = firebaseContext?.isUserLoading ?? true;
 
-  const { isCeoMode, navLinks, toggleNavLinkVisibility, isDemoMode, toggleDemoMode, _hasHydrated } = useStore();
+  const { isCeoMode, navLinks, toggleNavLinkVisibility, _hasHydrated } = useStore();
 
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [isAddOpen, setIsAddOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
   
-  // This state will be false on the server and during initial client render.
-  // It will only become true after the component has mounted on the client.
   const [showClientContent, setShowClientContent] = React.useState(false);
   
   React.useEffect(() => {
-    // This effect runs only on the client side, after hydration.
     setShowClientContent(true);
 
     if (!isUserLoading && !user) {
@@ -124,8 +118,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return email.substring(0, 2).toUpperCase();
   };
   
-  const shouldShowAdminControls = showClientContent && isCeoMode;
-
+  const shouldShowAdminControls = showClientContent && isCeoMode && _hasHydrated;
   const visibleLinks = shouldShowAdminControls ? navLinks : navLinks.filter(link => !link.hidden);
 
   return (
@@ -169,14 +162,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <SidebarFooter>
                  {shouldShowAdminControls && (
                   <SidebarMenu>
-                     <SidebarMenuItem className="p-2">
-                        <div className='flex items-center space-x-2 rounded-lg'>
-                            <FlaskConical className='h-5 w-5' />
-                            <Label htmlFor="demo-mode-switch" className="flex-1 text-sm">Demo Mode</Label>
-                            <Switch id="demo-mode-switch" checked={isDemoMode} onCheckedChange={toggleDemoMode} />
-                        </div>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
+                     <SidebarMenuItem>
                         <SidebarMenuButton tooltip="Add Link" onClick={handleAddClick}>
                             <Plus />
                             <span>Add Link</span>

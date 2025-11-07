@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCart } from '@/hooks/use-cart';
-import { useStore } from '@/hooks/use-store';
 import type { Location } from '@/lib/types';
 import { Loader2, Send } from 'lucide-react';
 import { haversineDistance } from '@/lib/utils';
@@ -14,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { submitOrder } from './actions';
 import { useFormStatus } from 'react-dom';
 import { useUser } from '@/firebase';
-import { demoLocations } from '@/lib/data';
+import { useDemoData } from '@/hooks/use-demo-data';
 
 type LocationWithDistance = Location & { distance?: number };
 
@@ -36,59 +35,25 @@ function SubmitButton() {
 
 export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: () => void; onBack: () => void; }) {
     const { items, getCartTotal, clearCart } = useCart();
-    const { locations: storeLocations, isDemoMode } = useStore();
+    const { locations: demoLocations } = useDemoData();
     const { toast } = useToast();
     const { user } = useUser();
     const formRef = useRef<HTMLFormElement>(null);
     const [state, formAction] = useActionState(submitOrder, initialState);
 
-    const [isLocating, setIsLocating] = useState(true);
-    const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>([]);
+    const [isLocating, setIsLocating] = useState(false);
+    const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>(demoLocations);
     
-    const locations = isDemoMode ? demoLocations : storeLocations;
-
     useEffect(() => {
-        if (isDemoMode) {
-            // In demo mode, bypass geolocation and use predefined demo locations
-            const demoCoords = { lat: 41.8781, lon: -87.6298 }; // Central Chicago
-            const demoLocationsWithDistance = demoLocations.map(loc => {
-                const distance = haversineDistance(demoCoords, { lat: loc.lat!, lon: loc.lon! });
-                return { ...loc, distance };
-            }).sort((a, b) => a.distance - b.distance);
-            setSortedLocations(demoLocationsWithDistance);
-            setIsLocating(false);
-            return;
-        }
-
-        // Live mode logic
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const coords = {
-                        lat: position.coords.latitude,
-                        lon: position.coords.longitude
-                    };
-                    const locationsWithDistance = locations.map(loc => {
-                        if (loc.lat && loc.lon) {
-                            const distance = haversineDistance(coords, { lat: loc.lat, lon: loc.lon });
-                            return { ...loc, distance };
-                        }
-                        return loc;
-                    }).sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-                    setSortedLocations(locationsWithDistance);
-                    setIsLocating(false);
-                },
-                (error) => {
-                    console.error("Geolocation error:", error);
-                    setSortedLocations(locations);
-                    setIsLocating(false);
-                }
-            );
-        } else {
-            setSortedLocations(locations);
-            setIsLocating(false);
-        }
-    }, [isDemoMode, storeLocations, locations]);
+        // Since we are always in demo mode for data, we can pre-sort locations by distance from a central point.
+        // For a real app, this effect could run to get the user's geolocation.
+        const centralPoint = { lat: 41.8781, lon: -87.6298 }; // Chicago
+        const locationsWithDistance = demoLocations.map(loc => {
+            const distance = haversineDistance(centralPoint, { lat: loc.lat!, lon: loc.lon! });
+            return { ...loc, distance };
+        }).sort((a, b) => a.distance - b.distance);
+        setSortedLocations(locationsWithDistance);
+    }, [demoLocations]);
 
 
     useEffect(() => {
@@ -115,7 +80,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
         formData.append('cartItems', JSON.stringify(items));
         formData.append('userId', user?.uid || 'guest');
         formData.append('totalAmount', String(total));
-        formData.append('locations', JSON.stringify(locations));
+        formData.append('locations', JSON.stringify(sortedLocations));
         formAction(formData);
     };
 

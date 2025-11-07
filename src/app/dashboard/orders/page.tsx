@@ -8,7 +8,7 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { useFirebase, useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/hooks/use-store";
-import { demoLocations } from "@/lib/data";
+import { useDemoData } from "@/hooks/use-demo-data";
 
 // Define the shape of a review document from Firestore
 type OrderDoc = {
@@ -71,9 +71,10 @@ export default function OrdersPage() {
   const { user, isUserLoading } = useUser();
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [isFetchingData, setIsFetchingData] = useState(true);
-  const { locations, isDemoMode, _hasHydrated } = useStore();
+  const { locations } = useDemoData();
+  const { _hasHydrated } = useStore();
   
-  const currentLocations = isDemoMode ? demoLocations : locations;
+  const currentLocations = locations;
 
   useEffect(() => {
     if (!isUserLoading && user && firestore && _hasHydrated) {
@@ -88,7 +89,7 @@ export default function OrdersPage() {
     } else if (!_hasHydrated || (!isUserLoading && !user)) {
         setIsFetchingData(false);
     }
-  }, [firestore, user, isUserLoading, isDemoMode, _hasHydrated, currentLocations]);
+  }, [firestore, user, isUserLoading, _hasHydrated, currentLocations]);
 
 
   if (isFetchingData || !_hasHydrated) {

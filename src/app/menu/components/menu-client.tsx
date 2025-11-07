@@ -11,11 +11,10 @@ import { useCart } from '@/hooks/use-cart';
 import CartSidebar from './cart-sidebar';
 import { AnimatePresence, motion } from 'framer-motion';
 import DispensaryLocator from './dispensary-locator';
-import { useProducts } from '@/firebase/firestore/use-products';
+import { useDemoData } from '@/hooks/use-demo-data';
 import { type Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Chatbot from '@/components/chatbot';
-import { useStore } from '@/hooks/use-store';
 
 const Header = () => {
     const { toggleCart, getItemCount } = useCart();
@@ -155,19 +154,14 @@ const groupProductsByCategory = (products: Product[]) => {
     }, {} as Record<string, Product[]>);
 }
 
-const SKELETON_CATEGORIES = ['Edibles', 'Flower', 'Vapes'];
-
 export default function MenuClient() {
-    const { data: products, isLoading } = useProducts();
-    const isHydrated = useStore(state => state._hasHydrated);
+    const { products } = useDemoData();
     
     const groupedProducts = useMemo(() => {
         return products ? groupProductsByCategory(products) : {};
     }, [products]);
 
     const categories = Object.keys(groupedProducts);
-    
-    const showSkeletons = isLoading || !isHydrated;
 
     return (
         <div className="min-h-screen bg-background">
@@ -205,33 +199,18 @@ export default function MenuClient() {
                 </div>
 
                 <div className="space-y-12">
-                    {showSkeletons ? (
-                        <>
-                            {SKELETON_CATEGORIES.map(category => (
-                                <section key={category}>
-                                    <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">
-                                        <Skeleton className="h-8 w-1/4" />
-                                    </h2>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-                                        {Array.from({ length: 5 }).map((_, i) => <ProductSkeleton key={i} />)}
-                                    </div>
-                                </section>
-                            ))}
-                        </>
-                    ) : (
-                        categories.map(category => (
-                            <section key={category}>
-                                <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">
-                                    {category}
-                                </h2>
-                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-                                    {groupedProducts[category].map(product => (
-                                        <ProductCard key={product.id} product={product} />
-                                    ))}
-                                </div>
-                            </section>
-                        ))
-                    )}
+                    {categories.map(category => (
+                        <section key={category}>
+                            <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">
+                                {category}
+                            </h2>
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                                {groupedProducts[category].map(product => (
+                                    <ProductCard key={product.id} product={product} />
+                                ))}
+                            </div>
+                        </section>
+                    ))}
                 </div>
 
             </main>

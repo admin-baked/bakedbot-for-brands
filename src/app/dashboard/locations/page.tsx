@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -15,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { demoLocations } from '@/lib/data';
 
 export default function LocationsPage() {
-  const { isDemoMode, locations, addLocation, isCeoMode } = useStore();
+  const { locations, addLocation, isCeoMode } = useStore();
   const formRef = React.useRef<HTMLFormElement>(null);
   const { toast } = useToast();
 
@@ -66,7 +65,7 @@ export default function LocationsPage() {
     setDialogState({ ...dialogState, editOpen: true, selectedLocation: location });
   };
 
-  const currentLocations = isDemoMode ? demoLocations : locations;
+  const currentLocations = locations;
 
   return (
     <>
@@ -161,7 +160,7 @@ export default function LocationsPage() {
           <CardHeader>
             <CardTitle>Your Locations</CardTitle>
             <CardDescription>
-              {isDemoMode ? "Showing demo locations. Disable demo mode to manage your own." : "A list of your saved dispensary locations."}
+              A list of your saved dispensary locations.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -187,7 +186,7 @@ export default function LocationsPage() {
                                     <Pencil className="h-4 w-4" />
                                 </Button>
                                 )}
-                                <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(loc)} disabled={isDemoMode}>
+                                <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(loc)}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>

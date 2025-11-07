@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent, useTransition, useActionState } from 'react';
@@ -9,7 +8,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { products, type Product } from '@/lib/data';
+import { useDemoData } from '@/hooks/use-demo-data';
+import { type Product } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import type { CartItem } from '@/lib/types';
@@ -105,7 +105,7 @@ const OnboardingFlow = ({ onComplete }: { onComplete: (answers: OnboardingAnswer
 };
 
 
-const ProductCarousel = ({ onAskSmokey, isCompact, onFeedback }: { onAskSmokey: (product: Product) => void, isCompact: boolean, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => (
+const ProductCarousel = ({ products, onAskSmokey, isCompact, onFeedback }: { products: Product[], onAskSmokey: (product: Product) => void, isCompact: boolean, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => (
     <>
       {!isCompact && (
         <CardHeader>
@@ -311,6 +311,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
 
 const ChatWindow = ({
   chatExperience,
+  products,
   onAskSmokey,
   hasStartedChat,
   messages,
@@ -325,6 +326,7 @@ const ChatWindow = ({
   onOnboardingComplete
 }: {
   chatExperience: 'default' | 'classic';
+  products: Product[];
   onAskSmokey: (product: Product) => void;
   hasStartedChat: boolean;
   messages: Message[];
@@ -344,7 +346,7 @@ const ChatWindow = ({
         
         {hasStartedChat ? (
              <>
-                {chatExperience === 'default' && <ProductCarousel onAskSmokey={onAskSmokey} isCompact={true} onFeedback={onFeedback} />}
+                {chatExperience === 'default' && <ProductCarousel products={products} onAskSmokey={onAskSmokey} isCompact={true} onFeedback={onFeedback} />}
                 <div className="flex-1 min-h-0 border-t">
                     <ChatMessages
                         messages={messages}
@@ -399,7 +401,7 @@ const ChatWindow = ({
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
-  const { chatbotIcon: customIcon, isDemoMode, chatExperience, welcomeMessage, brandImageGenerations, lastBrandImageGeneration, recordBrandImageGeneration, _hasHydrated } = useStore();
+  const { chatbotIcon: customIcon, chatExperience, _hasHydrated } = useStore();
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
   const [isPending, startTransition] = useTransition();
 
@@ -409,15 +411,14 @@ export default function Chatbot() {
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { products } = useDemoData();
   
   const [showClientContent, setShowClientContent] = useState(false);
   useEffect(() => {
     setShowClientContent(true);
   }, []);
 
-  const chatbotIcon = isDemoMode
-    ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-horizontal-logo-PNG-transparent.png"
-    : customIcon;
+  const chatbotIcon = customIcon;
 
 
   const scrollToBottom = () => {
@@ -556,7 +557,7 @@ export default function Chatbot() {
     setIsBotTyping(true);
 
     if (chatMode === 'image') {
-        const logo = isDemoMode ? "https://bakedbot.ai/wp-content/uploads/2024/03/Bakedbot-2024-horizontal-logo-PNG-transparent.png" : customIcon;
+        const logo = chatbotIcon;
         if (!logo) {
             const errorMessage: Message = {
                 id: Date.now() + 1,
@@ -674,7 +675,8 @@ export default function Chatbot() {
           </div>
     
           {isOpen && (
-            <ChatWindow 
+            <ChatWindow
+              products={products}
               chatExperience={chatExperience}
               onAskSmokey={handleAskSmokey}
               hasStartedChat={hasStartedChat}
@@ -693,8 +695,3 @@ export default function Chatbot() {
         </>
       );
 }
-
-    
-
-
-    
