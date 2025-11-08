@@ -15,7 +15,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { doc, getDoc } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
 import { demoProducts } from '@/lib/data';
-import { FloatingCartPill } from '@/app/menu/components/menu-client';
+import { FloatingCartPill } from '@/app/menu/components/floating-cart-pill';
 import DispensaryLocator from '@/app/menu/components/dispensary-locator';
 
 type Props = {
