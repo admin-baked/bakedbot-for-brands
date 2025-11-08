@@ -12,12 +12,16 @@ import { PenSquare, Plus, Search, ShoppingBag, User, CreditCard, ThumbsUp, Thumb
 import { useCart } from '@/hooks/use-cart';
 import CartSidebar from './cart-sidebar';
 import { AnimatePresence, motion } from 'framer-motion';
-import DispensaryLocator from './dispensary-locator';
 import { type Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Chatbot from '@/components/chatbot';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
+
+const DispensaryLocator = dynamic(() => import('./dispensary-locator'), {
+    ssr: false,
+    loading: () => <DispensaryLocatorSkeleton />,
+});
 
 const HeroSliderSkeleton = () => (
     <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12 bg-muted">
@@ -28,6 +32,17 @@ const HeroSliderSkeleton = () => (
         </div>
     </div>
 );
+
+const DispensaryLocatorSkeleton = () => (
+     <div className="mb-12">
+        <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+            <Card><CardContent className="p-4"><Skeleton className="h-24 w-full" /></CardContent></Card>
+            <Card><CardContent className="p-4"><Skeleton className="h-24 w-full" /></CardContent></Card>
+            <Card><CardContent className="p-4"><Skeleton className="h-24 w-full" /></CardContent></Card>
+        </div>
+    </div>
+)
 
 // Dynamically import HeroSlider only on the client side.
 const HeroSlider = dynamic(() => import('./hero-slider'), {
