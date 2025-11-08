@@ -1,3 +1,4 @@
+
 'use client';
 
 import { type Theme } from '@/lib/themes';
@@ -179,6 +180,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 // Overload signatures for the useStore hook
 export function useStore(): StoreState;
 export function useStore<T>(selector: (state: StoreState) => T): T;
+export function useStore<T>(selector?: (state: StoreState) => T, serverState?: T): T | StoreState;
+
 
 /**
  * Custom hook to access the Zustand store.
@@ -187,7 +190,7 @@ export function useStore<T>(selector: (state: StoreState) => T): T;
  * It also handles server-side rendering by returning a server-side state
  * until the store has been hydrated on the client.
  */
-export function useStore<T>(selector?: (state: StoreState) => T): T | StoreState {
+export function useStore<T>(selector?: (state: StoreState) => T, serverState?: T): T | StoreState {
   const store = useContext(StoreContext);
   if (!store) {
     throw new Error('useStore must be used within a StoreProvider');
@@ -199,12 +202,14 @@ export function useStore<T>(selector?: (state: StoreState) => T): T | StoreState
 
   const hasHydrated = useZustandStore(store, (s) => s._hasHydrated);
 
-  // On the server or before hydration, return the initial state.
-  // Use the selector if provided, otherwise the whole initial state.
   if (!hasHydrated) {
+    if (serverState !== undefined) {
+      return serverState;
+    }
     const initialState = store.getState();
     return selector ? selector(initialState) : initialState;
   }
+  
 
   return result;
 }

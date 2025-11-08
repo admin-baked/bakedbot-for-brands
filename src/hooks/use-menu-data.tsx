@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useStore } from './use-store';
@@ -24,7 +25,7 @@ export function useMenuData() {
     // While loading from Firestore and not yet hydrated on the client, show a loading state.
     if (isFirestoreLoading && !_hasHydrated) {
        return {
-        products: [],
+        products: null,
         locations: [],
         isLoading: true,
         error: null,
