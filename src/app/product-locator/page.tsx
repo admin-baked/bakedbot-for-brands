@@ -4,39 +4,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import DispensaryLocator from '@/app/menu/components/dispensary-locator';
-import { Button } from '@/components/ui/button';
-import { Search, ShoppingBag, User } from 'lucide-react';
-
-
-const Header = () => {
-    return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-      <div className="container flex h-16 items-center justify-between">
-        <Link href="/menu" className="text-2xl font-bold font-teko tracking-wider">
-          BAKEDBOT
-        </Link>
-        <nav className="hidden md:flex items-center gap-6 font-semibold text-sm">
-            <Link href="/menu" className="text-muted-foreground hover:text-foreground">Home</Link>
-            <Link href="/menu" className="text-muted-foreground hover:text-foreground">About Us</Link>
-            <Link href="/product-locator" className="text-foreground hover:text-foreground">Product Locator</Link>
-            <Link href="/menu" className="text-muted-foreground hover:text-foreground">Our Partners</Link>
-            <Link href="/menu" className="text-muted-foreground hover:text-foreground">Careers</Link>
-        </nav>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
-            <Search className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon">
-            <User className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon">
-            <ShoppingBag className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
-    </header>
-  );
-};
+import Header from '@/app/menu/components/header';
 
 
 export default function ProductLocatorPage() {

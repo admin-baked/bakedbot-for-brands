@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
-import { PenSquare, Plus, Search, ShoppingBag, User, CreditCard, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { PenSquare, Plus, ShoppingBag, CreditCard, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
 import CartSidebar from './cart-sidebar';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Chatbot from '@/components/chatbot';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
+import Header from './header';
 
 const DispensaryLocator = dynamic(() => import('./dispensary-locator'), {
     ssr: false,
@@ -51,51 +52,6 @@ const HeroSlider = dynamic(() => import('./hero-slider'), {
 });
 
 const SKELETON_CATEGORIES = ['Edibles', 'Flower', 'Vapes'];
-
-const Header = () => {
-    const { toggleCart, getItemCount } = useCart();
-    const itemCount = getItemCount();
-
-    return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-      <div className="container flex h-16 items-center justify-between">
-        <Link href="/menu" className="text-2xl font-bold font-teko tracking-wider">
-          BAKEDBOT
-        </Link>
-        <nav className="hidden md:flex items-center gap-6 font-semibold text-sm">
-            <Link href="/menu" className="text-foreground hover:text-foreground">Home</Link>
-            <Link href="/menu" className="text-muted-foreground hover:text-foreground">About Us</Link>
-            <Link href="/product-locator" className="text-muted-foreground hover:text-foreground">Product Locator</Link>
-            <Link href="/menu" className="text-muted-foreground hover:text-foreground">Our Partners</Link>
-            <Link href="/menu" className="text-muted-foreground hover:text-foreground">Careers</Link>
-        </nav>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
-            <Search className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/brand-login">
-              <User className="h-5 w-5" />
-            </Link>
-          </Button>
-          <div className="relative">
-             <Button variant="ghost" size="icon" onClick={toggleCart}>
-              <ShoppingBag className="h-5 w-5" />
-            </Button>
-            {itemCount > 0 && (
-                <Badge
-                    variant="destructive"
-                    className="absolute -top-2 -right-2 h-5 w-5 justify-center rounded-full p-0"
-                >
-                    {itemCount}
-                </Badge>
-            )}
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-};
 
 const ProductCard = ({ product }: { product: Product }) => {
     const { addToCart } = useCart();

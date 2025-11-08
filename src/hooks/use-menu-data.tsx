@@ -27,9 +27,9 @@ export function useMenuData() {
   // Memoize the result to stabilize the array references
   const memoizedData = useMemo(() => {
     // Determine if we should use demo data.
-    // Use demo data if the store flag is set, if the store hasn't hydrated yet,
-    // or if there are no products in Firestore after loading.
-    const useDemo = isUsingDemoData || !_hasHydrated || (!isFirestoreLoading && (!firestoreProducts || firestoreProducts.length === 0));
+    // Use demo data if the store flag is set OR if the store hasn't hydrated yet.
+    // This provides a stable SSR output and prevents flicker on initial client load.
+    const useDemo = isUsingDemoData || !_hasHydrated;
 
     if (useDemo) {
       return {
@@ -41,12 +41,17 @@ export function useMenuData() {
       };
     }
 
+    // Once hydrated and if not using demo data, switch to live data.
+    // Fallback to demo if live data is empty AFTER loading.
+    const finalProducts = !isFirestoreLoading && (!firestoreProducts || firestoreProducts.length === 0) ? demoProducts : firestoreProducts;
+    const finalLocations = !isFirestoreLoading && (!storeLocations || storeLocations.length === 0) ? demoLocations : storeLocations;
+
     return {
-      products: firestoreProducts,
-      locations: storeLocations, // Use live locations from the store
+      products: finalProducts,
+      locations: finalLocations,
       isLoading: isFirestoreLoading,
       error: error,
-      isUsingDemoData: false,
+      isUsingDemoData: !firestoreProducts || firestoreProducts.length === 0,
     };
   }, [isUsingDemoData, _hasHydrated, firestoreProducts, storeLocations, demoProducts, demoLocations, isFirestoreLoading, error]);
 
