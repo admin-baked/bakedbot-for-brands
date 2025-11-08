@@ -44,9 +44,9 @@ service cloud.firestore {
     // Schema validation for User
     function isValidUser(user) {
       return user.id == request.auth.uid
-          && user.email is string
-          && user.firstName is string
-          && user.lastName is string
+          && (user.email is string || user.email == null)
+          && (user.firstName is string || user.firstName == null)
+          && (user.lastName is string || user.lastName == null)
           && user.keys().hasOnly(['id', 'email', 'firstName', 'lastName']);
     }
 
@@ -72,7 +72,7 @@ service cloud.firestore {
           && order.totalAmount is number && order.totalAmount > 0
           && order.orderDate == request.time
           && order.status == 'pending'
-          && (order.idImageUrl is string) // Can be empty, but must exist
+          && (order.idImageUrl is string || order.idImageUrl == null)
           && order.keys().hasOnly(['userId', 'customerName', 'customerEmail', 'customerPhone', 'customerBirthDate', 'locationId', 'orderDate', 'totalAmount', 'status', 'idImageUrl']);
     }
 
