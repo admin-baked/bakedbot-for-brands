@@ -1,34 +1,37 @@
+
 'use client';
 
 import * as React from 'react';
-import { type CartItem } from '@/lib/types';
+import { type CartItem, type Product } from '@/lib/types';
 import { create } from 'zustand';
 
 interface CartState {
   items: CartItem[];
   isCartOpen: boolean;
-  addToCart: (item: CartItem) => void;
+  addToCart: (product: Product, locationId?: string | null) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   toggleCart: () => void;
-  getCartTotal: (locationId?: string | null) => number;
+  getCartTotal: () => number;
   getItemCount: () => number;
 }
 
 const useCartStore = create<CartState>((set, get) => ({
   items: [],
   isCartOpen: false,
-  addToCart: (item) => {
-    const existingItem = get().items.find((i) => i.id === item.id);
+  addToCart: (product, locationId) => {
+    const existingItem = get().items.find((i) => i.id === product.id);
+    const price = locationId ? product.prices[locationId] ?? product.price : product.price;
+
     if (existingItem) {
       set((state) => ({
         items: state.items.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i
+          i.id === product.id ? { ...i, quantity: i.quantity + 1, price: price } : i
         ),
       }));
     } else {
-      set((state) => ({ items: [...state.items, item] }));
+      set((state) => ({ items: [...state.items, { ...product, quantity: 1, price: price }] }));
     }
   },
   removeFromCart: (itemId) => {
@@ -47,10 +50,9 @@ const useCartStore = create<CartState>((set, get) => ({
   },
   clearCart: () => set({ items: [] }),
   toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
-  getCartTotal: (locationId) => {
+  getCartTotal: () => {
     return get().items.reduce((total, item) => {
-      const price = locationId ? item.prices[locationId] ?? item.price : item.price;
-      return total + price * item.quantity;
+      return total + item.price * item.quantity;
     }, 0);
   },
   getItemCount: () => {

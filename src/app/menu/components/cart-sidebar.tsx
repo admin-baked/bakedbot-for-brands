@@ -77,7 +77,7 @@ export default function CartSidebar() {
     clearCart();
   }, [clearCart]);
 
-  const subtotal = getCartTotal(selectedLocationId);
+  const subtotal = getCartTotal();
 
   const renderContent = () => {
     switch (step) {
@@ -122,9 +122,7 @@ export default function CartSidebar() {
                 <>
                     <ScrollArea className="flex-1">
                     <div className="px-6 divide-y">
-                        {items.map((item) => {
-                            const price = selectedLocationId ? item.prices[selectedLocationId] ?? item.price : item.price;
-                            return (
+                        {items.map((item) => (
                                 <div key={item.id} className="flex items-center gap-4 py-4">
                                     <div className="relative h-16 w-16 rounded-md overflow-hidden border">
                                     <Image
@@ -136,7 +134,7 @@ export default function CartSidebar() {
                                     </div>
                                     <div className="flex-1">
                                     <p className="font-semibold">{item.name}</p>
-                                    <p className="text-sm text-muted-foreground">${price.toFixed(2)}</p>
+                                    <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
                                     <div className="flex items-center gap-2 mt-2">
                                         <Button
                                         variant="outline"
@@ -166,8 +164,7 @@ export default function CartSidebar() {
                                     <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>
-                            );
-                        })}
+                            ))}
                     </div>
                     </ScrollArea>
                     <SheetFooter className="mt-auto border-t pt-6 px-6">

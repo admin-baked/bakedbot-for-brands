@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useActionState, useRef, useMemo } from 'react';
@@ -120,7 +121,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     }, [state, toast, onOrderSuccess]);
 
 
-    const subtotal = getCartTotal(selectedLocationId);
+    const subtotal = getCartTotal();
     const taxes = subtotal * 0.15; // Example 15% tax rate
     const total = subtotal + taxes;
 

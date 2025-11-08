@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -116,7 +117,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                     <p>{product.description}</p>
                 </div>
 
-                <Button size="lg" className="w-full" onClick={() => addToCart({ ...product, quantity: 1 })}>
+                <Button size="lg" className="w-full" onClick={() => addToCart(product, selectedLocationId)}>
                     <Plus className="mr-2 h-5 w-5" />
                     Add to Cart
                 </Button>
