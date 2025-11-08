@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -21,7 +22,7 @@ export function ChatbotIcon() {
   }
   
   // Define the default icon URL.
-  const defaultIcon = 'https://storage.googleapis.com/stedi-assets/misc/smokey-icon.png';
+  const defaultIcon = 'https://storage.googleapis.com/stedi-assets/misc/smokey-icon-1.png';
   
   // Determine which icon to use now that we are safely on the client.
   const iconToUse = customIcon || defaultIcon;

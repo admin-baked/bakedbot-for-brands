@@ -85,7 +85,7 @@ const getDefaultInitialState = () => ({
   menuStyle: 'default' as 'default' | 'alt',
   isUsingDemoData: true,
   selectedLocationId: null,
-  chatbotIcon: "https://storage.googleapis.com/stedi-assets/misc/smokey-icon.png",
+  chatbotIcon: "https://storage.googleapis.com/stedi-assets/misc/smokey-icon-1.png",
   chatExperience: 'default' as 'default' | 'classic',
   brandImageGenerations: 0,
   lastBrandImageGeneration: null,
