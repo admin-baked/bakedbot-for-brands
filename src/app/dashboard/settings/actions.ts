@@ -7,7 +7,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import Papa from 'papaparse';
+import * as Papa from 'papaparse';
 
 // Schema for API Key
 const ApiKeySchema = z.object({
