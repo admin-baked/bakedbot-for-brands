@@ -55,7 +55,7 @@ export default function HeroSlider() {
                         <Image
                             src={product.imageUrl}
                             alt={product.name}
-                            layout="fill"
+                            fill
                             objectFit="cover"
                             data-ai-hint={product.imageHint}
                             className="brightness-75"
