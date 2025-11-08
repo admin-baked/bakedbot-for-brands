@@ -28,7 +28,7 @@ const HeroSliderSkeleton = () => (
 
 export default function HeroSlider() {
     const { products, isLoading, isHydrated } = useMenuData();
-    const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 5000 })]);
+    const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [new Autoplay({ delay: 5000 })]);
     const [selectedIndex, setSelectedIndex] = React.useState(0);
 
     React.useEffect(() => {
