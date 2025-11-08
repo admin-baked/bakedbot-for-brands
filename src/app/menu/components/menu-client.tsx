@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Chatbot from '@/components/chatbot';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
+import HeroSlider from './hero-slider';
 
 const SKELETON_CATEGORIES = ['Edibles', 'Flower', 'Vapes'];
 
@@ -183,24 +184,8 @@ export default function MenuClient() {
         <div className="min-h-screen bg-background">
             <Header />
             <main className="container mx-auto px-4 py-8">
-                <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12">
-                    <Image
-                        src="https://picsum.photos/seed/menu-hero/1200/400"
-                        alt="Let's Fill Some Bowls"
-                        layout="fill"
-                        objectFit="cover"
-                        data-ai-hint="cannabis lifestyle"
-                        className="brightness-75"
-                    />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                        <h1 className="text-5xl md:text-7xl text-white font-teko tracking-widest uppercase">
-                            Find Your Bliss
-                        </h1>
-                        <p className="text-white/80 mt-2 max-w-2xl">
-                            Browse our curated selection of premium cannabis products. Use the filters to find exactly what you're looking for.
-                        </p>
-                    </div>
-                </div>
+                
+                <HeroSlider />
 
                 <DispensaryLocator />
 
