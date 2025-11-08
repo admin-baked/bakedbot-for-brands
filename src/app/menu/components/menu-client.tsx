@@ -57,7 +57,25 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
     const { addToCart } = useCart();
     const { selectedLocationId } = useStore();
     
-    const price = selectedLocationId && product.prices?.[selectedLocationId] ? product.prices[selectedLocationId] : product.price;
+    const priceDisplay = useMemo(() => {
+        if (selectedLocationId && product.prices?.[selectedLocationId]) {
+            return `$${product.prices[selectedLocationId].toFixed(2)}`;
+        }
+        
+        const priceValues = Object.values(product.prices || {});
+        if (priceValues.length === 0) {
+            return `$${product.price.toFixed(2)}`;
+        }
+
+        const minPrice = Math.min(...priceValues);
+        const maxPrice = Math.max(...priceValues);
+
+        if (minPrice === maxPrice) {
+            return `$${minPrice.toFixed(2)}`;
+        }
+
+        return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
+    }, [product, selectedLocationId]);
 
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -90,7 +108,7 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
                     </CardContent>
                 </Link>
                 <CardFooter className="flex justify-between items-center p-4 pt-0 bg-card">
-                    <span className="text-lg font-bold">${price.toFixed(2)}</span>
+                    <span className="text-lg font-bold">{priceDisplay}</span>
                     <Button size="icon" onClick={handleAddToCart}>
                         <Plus className="h-4 w-4"/>
                     </Button>
@@ -124,7 +142,7 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
                 </CardContent>
             </Link>
             <CardFooter className="flex justify-between items-center p-4 pt-0 bg-card">
-                <span className="text-xl font-bold">${price.toFixed(2)}</span>
+                <span className="text-xl font-bold">{priceDisplay}</span>
                 <Button size="icon" onClick={handleAddToCart}>
                     <Plus className="h-4 w-4"/>
                 </Button>

@@ -52,8 +52,9 @@ const useCartStore = create<CartState>((set, get) => ({
   toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
   getCartTotal: (locationId) => {
     return get().items.reduce((total, item) => {
-        const price = locationId && item.prices?.[locationId] ? item.prices[locationId] : item.price;
-        return total + price * item.quantity;
+        // When calculating total, we should use the price stored in the cart item itself,
+        // as it was set based on the location at the time of adding it.
+        return total + item.price * item.quantity;
     }, 0);
   },
   getItemCount: () => {
