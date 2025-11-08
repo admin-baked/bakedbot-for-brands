@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/hooks/use-cart';
+import { useStore } from '@/hooks/use-store';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,7 +69,13 @@ function ReviewSummaryDisplay({ summary, isLoading }: { summary: SummarizeReview
 
 export default function ProductDetailsClient({ product, summary }: { product: Product, summary: SummarizeReviewsOutput | null }) {
     const { addToCart } = useCart();
+    const { selectedLocationId } = useStore();
     
+    // Determine the correct price based on the selected location
+    const price = selectedLocationId && product.prices?.[selectedLocationId] 
+        ? product.prices[selectedLocationId] 
+        : product.price;
+
     return (
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start max-w-6xl mx-auto py-8 px-4">
             <div className="relative aspect-square w-full rounded-lg overflow-hidden border">
@@ -102,14 +109,14 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                             <span>{product.dislikes} Dislikes</span>
                         </div>
                     </div>
-                    <p className="text-2xl font-bold">${product.price.toFixed(2)}</p>
+                    <p className="text-2xl font-bold">${price.toFixed(2)}</p>
                 </div>
                 
                 <div className="prose text-muted-foreground">
                     <p>{product.description}</p>
                 </div>
 
-                <Button size="lg" className="w-full" onClick={() => addToCart({ ...product, quantity: 1 })}>
+                <Button size="lg" className="w-full" onClick={() => addToCart({ ...product, quantity: 1, price })}>
                     <Plus className="mr-2 h-5 w-5" />
                     Add to Cart
                 </Button>
