@@ -38,6 +38,10 @@ export default function HeroSlider() {
     if (isLoading || !isHydrated) {
         return null;
     }
+    
+    if (featuredProducts.length === 0) {
+        return null; // Don't render anything if there's no products
+    }
 
     return (
         <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12" ref={emblaRef}>
