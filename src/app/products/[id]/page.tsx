@@ -14,26 +14,31 @@ import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { createServerClient } from '@/firebase/server-client';
 import { doc, getDoc } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
+import { demoProducts } from '@/lib/data';
 
 type Props = {
   params: { id: string }
 }
 
-// Fetch a single product from Firestore on the server
+// Fetch a single product from Firestore on the server, with a fallback to demo data
 const getProduct = async (id: string): Promise<Product | null> => {
     try {
         const { firestore } = await createServerClient();
         const productRef = doc(firestore, 'products', id);
         const productSnap = await getDoc(productRef);
 
-        if (!productSnap.exists()) {
-            return null;
+        if (productSnap.exists()) {
+            return { id: productSnap.id, ...productSnap.data() } as Product;
         }
         
-        return { id: productSnap.id, ...productSnap.data() } as Product;
+        // Fallback to demo data if not found in Firestore
+        const demoProduct = demoProducts.find(p => p.id === id);
+        return demoProduct || null;
+
     } catch (error) {
-        console.error("Error fetching product on server:", error);
-        return null;
+        console.error("Error fetching product on server, falling back to demo data:", error);
+        const demoProduct = demoProducts.find(p => p.id === id);
+        return demoProduct || null;
     }
 }
 
