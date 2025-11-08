@@ -25,7 +25,12 @@ import { useRouter } from 'next/navigation';
 
 type LocationWithDistance = Location & { distance?: number };
 
-const initialState = {
+const initialState: {
+    message: string;
+    error: boolean;
+    fieldErrors?: any;
+    orderId?: string | null;
+} = {
     message: '',
     error: false,
     fieldErrors: {},
@@ -110,7 +115,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
         if (state.message) {
             if (!state.error && state.orderId) {
                 onOrderSuccess(state.orderId);
-            } else {
+            } else if (state.error) {
                 toast({
                     variant: 'destructive',
                     title: 'Order Failed',
