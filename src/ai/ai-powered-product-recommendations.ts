@@ -38,7 +38,7 @@ const recommendProductsPrompt = ai.definePrompt({
   prompt: `You are an expert AI budtender. Your goal is to recommend the best products to a user based on their request and history.
 
 Analyze the user's query and their customer history to understand their needs and preferences.
-Based on this analysis, select the most suitable products from the list of available products.
+Based on this analysis, select up to a maximum of 3 suitable products from the list of available products.
 You can use the getProductReviews tool to see what other customers are saying.
 
 User Query: {{{query}}}
@@ -48,9 +48,8 @@ Customer History: {{{customerHistory}}}
 Available Products (JSON):
 {{{availableProducts}}}
 
-Provide a list of recommended products and a compelling, one-sentence reason for each recommendation. Keep the reasoning for each product concise and user-friendly.
-Also provide an overall reasoning for why this collection of products was chosen.
-Limit your recommendations to a maximum of 3 products.
+You must provide a compelling, one-sentence reason for each product recommendation.
+Most importantly, you MUST also provide an 'overallReasoning' for why this specific collection of products was chosen.
 `,
 });
 
