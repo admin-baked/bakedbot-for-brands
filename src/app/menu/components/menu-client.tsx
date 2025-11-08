@@ -170,14 +170,13 @@ const groupProductsByCategory = (products: Product[]) => {
 }
 
 export default function MenuClient() {
-    const { products, isLoading, isHydrated } = useMenuData();
+    const { products, isLoading } = useMenuData();
     
     const groupedProducts = useMemo(() => {
         return products ? groupProductsByCategory(products) : {};
     }, [products]);
 
     const categories = Object.keys(groupedProducts);
-    const showSkeletons = isLoading || !isHydrated;
 
     return (
         <div className="min-h-screen bg-background">
@@ -216,7 +215,7 @@ export default function MenuClient() {
                 </div>
 
                 <div className="space-y-12">
-                    {showSkeletons ? (
+                    {isLoading ? (
                         <>
                             {SKELETON_CATEGORIES.map(category => (
                                 <section key={category}>
