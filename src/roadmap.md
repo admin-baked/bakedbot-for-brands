@@ -5,7 +5,6 @@ This document outlines the planned features and improvements for the BakedBot AI
 ## Future Enhancements (Roadmap to Production)
 
 ### 1. Production Deployment & Security
-- **Order Notification System**: Integrate a system (e.g., email service) to send the completed order details to the selected dispensary for fulfillment. This will complete the "headless" checkout experience without direct payment processing.
 - **Production Firebase & Security**:
     - Provisioning: Ensure production instances of Firebase Authentication and Firestore are set up.
     - Security Rules: Continue to refine and deploy comprehensive Firestore security rules to protect all data collections.
@@ -26,6 +25,7 @@ This document outlines the planned features and improvements for the BakedBot AI
 ## Completed Features
 
 ### Version 2.0 - Headless Menu & Enhanced AI
+- **Order Notification System**: Integrated a system using Genkit and SendGrid to automatically email order details to the selected dispensary for fulfillment.
 - **Headless Menu & Checkout Flow**: 
     - Built a full-featured, public-facing product menu.
     - Implemented a complete checkout UI with a form for customer details.
