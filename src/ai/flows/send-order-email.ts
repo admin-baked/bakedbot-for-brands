@@ -77,11 +77,7 @@ const sendOrderEmailFlow = ai.defineFlow(
       <p>Please notify the customer when the order is ready for pickup.</p>
     `;
 
-    await emailRequest.send({
-      to: to,
-      bcc: bcc,
-      subject: subject,
-      html: htmlBody,
-    });
+    // Call the emailRequest tool with the constructed email content.
+    await emailRequest(input);
   }
 );
