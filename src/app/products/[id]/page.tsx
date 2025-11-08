@@ -16,6 +16,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
 import { demoProducts } from '@/lib/data';
 import { FloatingCartPill } from '@/app/menu/components/menu-client';
+import DispensaryLocator from '@/app/menu/components/dispensary-locator';
 
 type Props = {
   params: { id: string }
@@ -133,10 +134,13 @@ export default async function ProductPage({ params }: Props) {
     return (
         <div className="min-h-screen bg-background">
             <Header />
-            <main>
+            <main className="container mx-auto">
                 <Suspense fallback={<ProductPageSkeleton />}>
                     <ProductDetailsClient product={product} summary={summary} />
                 </Suspense>
+                <div className="py-8 px-4">
+                    <DispensaryLocator />
+                </div>
             </main>
             <CartSidebar />
             <FloatingCartPill />

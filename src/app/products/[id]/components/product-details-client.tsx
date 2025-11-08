@@ -4,6 +4,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/hooks/use-cart';
+import { useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -72,10 +73,25 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
     const { addToCart } = useCart();
     const { selectedLocationId } = useStore();
     
-    // Determine the correct price based on the selected location
-    const price = selectedLocationId && product.prices?.[selectedLocationId] 
-        ? product.prices[selectedLocationId] 
-        : product.price;
+    const priceDisplay = useMemo(() => {
+        if (selectedLocationId && product.prices?.[selectedLocationId]) {
+            return `$${product.prices[selectedLocationId].toFixed(2)}`;
+        }
+        
+        const priceValues = Object.values(product.prices || {});
+        if (priceValues.length === 0) {
+            return `$${product.price.toFixed(2)}`;
+        }
+
+        const minPrice = Math.min(...priceValues);
+        const maxPrice = Math.max(...priceValues);
+
+        if (minPrice === maxPrice) {
+            return `$${minPrice.toFixed(2)}`;
+        }
+
+        return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
+    }, [product, selectedLocationId]);
 
     return (
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start max-w-6xl mx-auto py-8 px-4">
@@ -110,7 +126,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                             <span>{product.dislikes} Dislikes</span>
                         </div>
                     </div>
-                    <p className="text-2xl font-bold">${price.toFixed(2)}</p>
+                    <p className="text-2xl font-bold">{priceDisplay}</p>
                 </div>
                 
                 <div className="prose text-muted-foreground">
