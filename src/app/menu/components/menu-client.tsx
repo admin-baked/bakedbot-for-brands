@@ -195,7 +195,7 @@ export default function MenuClient() {
     }, [products]);
 
     const categories = Object.keys(groupedProducts);
-    const showSkeletons = isLoading || !isHydrated;
+    const showSkeletons = (isLoading || !isHydrated) && (!products || products.length === 0);
 
     return (
         <div className="min-h-screen bg-background">
