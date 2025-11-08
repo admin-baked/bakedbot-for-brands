@@ -1,6 +1,6 @@
+
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
-import { products as demoProducts } from '@/lib/data';
 import type { Metadata, ResolvingMetadata } from 'next';
 import { Skeleton } from '@/components/ui/skeleton';
 import ProductDetailsClient from './components/product-details-client';
@@ -11,21 +11,30 @@ import { Search, User, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { summarizeReviews } from '@/ai/flows/summarize-reviews';
 import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
+import { createServerClient } from '@/firebase/server-client';
+import { doc, getDoc } from 'firebase/firestore';
+import type { Product } from '@/lib/types';
 
 type Props = {
   params: { id: string }
 }
 
-// In a real app with Firestore, you would fetch this data from the database.
-// For this demo, we'll find the product from our static data file.
-const getProduct = (id: string) => {
-    return demoProducts.find(p => p.id === id);
-}
+// Fetch a single product from Firestore on the server
+const getProduct = async (id: string): Promise<Product | null> => {
+    try {
+        const { firestore } = await createServerClient();
+        const productRef = doc(firestore, 'products', id);
+        const productSnap = await getDoc(productRef);
 
-export async function generateStaticParams() {
-  return demoProducts.map((product) => ({
-    id: product.id,
-  }))
+        if (!productSnap.exists()) {
+            return null;
+        }
+        
+        return { id: productSnap.id, ...productSnap.data() } as Product;
+    } catch (error) {
+        console.error("Error fetching product on server:", error);
+        return null;
+    }
 }
 
 export async function generateMetadata(
@@ -33,7 +42,7 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const id = params.id;
-  const product = getProduct(id);
+  const product = await getProduct(id);
 
   if (!product) {
     return {
@@ -101,7 +110,7 @@ function ProductPageSkeleton() {
 
 
 export default async function ProductPage({ params }: Props) {
-    const product = getProduct(params.id);
+    const product = await getProduct(params.id);
 
     if (!product) {
         notFound();

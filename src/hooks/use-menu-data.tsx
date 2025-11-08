@@ -1,16 +1,13 @@
-
 'use client';
 
 import { useStore } from './use-store';
 import { useProducts } from '@/firebase/firestore/use-products';
-import { useDemoData } from './use-demo-data';
 import { useMemo } from 'react';
 import type { Product } from '@/lib/types';
 import type { Location } from '@/hooks/use-store';
 
 /**
- * A unified hook to get menu data (products and locations).
- * It will fall back to demo data if the store is not hydrated or if there are no live products.
+ * A unified hook to get menu data (products and locations) from Firestore.
  */
 export function useMenuData() {
   const { _hasHydrated, locations: storeLocations } = useStore(state => ({
@@ -19,7 +16,6 @@ export function useMenuData() {
   }));
 
   const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useProducts();
-  const { products: demoProducts, locations: demoLocations } = useDemoData();
 
   const memoizedData = useMemo(() => {
     // While loading from Firestore and not yet hydrated on the client, show a loading state.
@@ -29,32 +25,16 @@ export function useMenuData() {
         locations: [],
         isLoading: true,
         error: null,
-        isUsingDemoData: true, 
-      };
-    }
-    
-    // After hydration and loading, if firestoreProducts is null or empty, use demo data as a fallback.
-    const useDemo = !_hasHydrated || !firestoreProducts || firestoreProducts.length === 0;
-
-    if (useDemo) {
-      return {
-        products: demoProducts as Product[],
-        locations: demoLocations as Location[],
-        isLoading: false,
-        error: null,
-        isUsingDemoData: true,
       };
     }
 
-    // Otherwise, we have live data from Firestore.
     return {
       products: firestoreProducts,
       locations: storeLocations,
-      isLoading: false,
+      isLoading: isFirestoreLoading,
       error: error,
-      isUsingDemoData: false,
     };
-  }, [firestoreProducts, isFirestoreLoading, _hasHydrated, storeLocations, demoProducts, demoLocations, error]);
+  }, [firestoreProducts, isFirestoreLoading, _hasHydrated, storeLocations, error]);
 
   return {
     ...memoizedData,
