@@ -1,10 +1,9 @@
-
 'use client';
 
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEmblaCarousel } from 'embla-carousel-react';
+import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -28,7 +27,7 @@ const HeroSliderSkeleton = () => (
 
 export default function HeroSlider() {
     const { products, isLoading, isHydrated } = useMenuData();
-    const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 5000 })]);
+    const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay.default({ delay: 5000 })]);
     const [selectedIndex, setSelectedIndex] = React.useState(0);
 
     React.useEffect(() => {
