@@ -3,7 +3,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/hooks/use-cart';
-import { useStore } from '@/hooks/use-store';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +11,7 @@ import type { Product } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
+import { useStore } from '@/hooks/use-store';
 
 
 function ReviewSummaryDisplay({ summary, isLoading }: { summary: SummarizeReviewsOutput | null, isLoading: boolean }) {
@@ -116,7 +116,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                     <p>{product.description}</p>
                 </div>
 
-                <Button size="lg" className="w-full" onClick={() => addToCart({ ...product, quantity: 1, price })}>
+                <Button size="lg" className="w-full" onClick={() => addToCart({ ...product, quantity: 1 })}>
                     <Plus className="mr-2 h-5 w-5" />
                     Add to Cart
                 </Button>
