@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -6,7 +7,7 @@ import { Firestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 import { errorEmitter } from './error-emitter';
-import { FirestorePermissionError } from './errors';
+import { FirestorePermissionError, type SecurityRuleContext } from './errors';
 import { useStore } from '@/hooks/use-store';
 
 interface FirebaseProviderProps {
@@ -91,29 +92,29 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           setIsCeoMode(isCeo);
 
           const userDocRef = doc(firestore, 'users', firebaseUser.uid);
+          
           try {
             const userDoc = await getDoc(userDocRef);
             if (!userDoc.exists()) {
-              // User document doesn't exist, so create it.
               const newUser = {
                 id: firebaseUser.uid,
                 email: firebaseUser.email,
                 firstName: firebaseUser.displayName?.split(' ')[0] ?? '',
                 lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') ?? '',
               };
-
-              // Use non-blocking setDoc with error handling
-              setDoc(userDocRef, newUser).catch(serverError => {
+              
+              setDoc(userDocRef, newUser)
+                .catch(async (serverError) => {
                   const permissionError = new FirestorePermissionError({
                       path: userDocRef.path,
                       operation: 'create',
                       requestResourceData: newUser,
-                  });
+                  } satisfies SecurityRuleContext);
                   errorEmitter.emit('permission-error', permissionError);
               });
             }
           } catch (error) {
-              const permissionError = new FirestorePermissionError({
+             const permissionError = new FirestorePermissionError({
                   path: userDocRef.path,
                   operation: 'get',
               });
