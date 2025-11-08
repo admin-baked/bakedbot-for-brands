@@ -96,7 +96,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
     // Get the base URL for constructing links
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const orderPageUrl = `${baseUrl}/order/${orderRef.id}`;
-    const brandOwners = ['jack@bakedbot.ai', 'martez@bakedbot.com'];
+    const brandOwners = ['jack@bakedbot.ai', 'martez@bakedbot.com', 'vip@bakedbot.ai'];
 
     // Send the fulfillment email using the Genkit flow
     await sendOrderEmail({

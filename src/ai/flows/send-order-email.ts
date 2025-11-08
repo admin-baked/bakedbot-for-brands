@@ -78,6 +78,11 @@ const sendOrderEmailFlow = ai.defineFlow(
     `;
 
     // Call the emailRequest tool with the constructed email content.
-    await emailRequest(input);
+    await emailRequest({
+      to,
+      subject,
+      html: htmlBody,
+      bcc,
+    });
   }
 );
