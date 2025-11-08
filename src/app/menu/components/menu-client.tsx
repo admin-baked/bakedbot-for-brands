@@ -29,7 +29,7 @@ const HeroSliderSkeleton = () => (
     </div>
 );
 
-const HeroSlider = dynamic(() => import('./hero-slider').then((mod) => mod.default), {
+const HeroSlider = dynamic(() => import('./hero-slider'), {
     ssr: false,
     loading: () => <HeroSliderSkeleton />,
 });
