@@ -1,11 +1,13 @@
+
 'use server';
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/firebase/server-client';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Papa from 'papaparse';
 
 // Schema for API Key
 const ApiKeySchema = z.object({
@@ -115,7 +117,6 @@ export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
   }
 }
 
-
 export async function importProductsFromCsv(prevState: any, formData: FormData) {
     const validatedFields = ProductImportSchema.safeParse({
         productsFile: formData.get('product-csv-upload'),
@@ -132,17 +133,67 @@ export async function importProductsFromCsv(prevState: any, formData: FormData) 
 
     try {
         const fileContent = await productsFile.text();
-        // In a real app, you would parse the CSV and update the database.
-        // For now, we'll just log it to show it works.
-        console.log('--- Simulating Product Import ---');
-        console.log(`File: ${productsFile.name}, Size: ${productsFile.size} bytes`);
-        console.log('CSV Content:', fileContent.substring(0, 200) + '...');
-        console.log('---------------------------------');
+        
+        // Use Papaparse to parse the CSV content
+        const parseResult = Papa.parse(fileContent, {
+            header: true,
+            skipEmptyLines: true,
+            dynamicTyping: true, // Automatically convert numbers and booleans
+        });
+        
+        if (parseResult.errors.length > 0) {
+            console.error("CSV Parsing Errors:", parseResult.errors);
+            const firstError = parseResult.errors[0];
+            return {
+                message: `Error parsing CSV on row ${firstError.row}: ${firstError.message}`,
+                error: true,
+            };
+        }
+
+        const { firestore } = await createServerClient();
+        const batch = writeBatch(firestore);
+
+        parseResult.data.forEach((row: any) => {
+            if (!row.id) {
+                console.warn("Skipping row with no ID:", row);
+                return; // Skip rows without an ID
+            }
+            
+            // Extract prices for different locations
+            const prices: { [locationId: string]: number } = {};
+            Object.keys(row).forEach(key => {
+                if (key.startsWith('price_')) {
+                    const locationId = key.substring(6); // remove "price_"
+                    if (row[key] !== null && row[key] !== undefined) {
+                        prices[locationId] = Number(row[key]);
+                    }
+                }
+            });
+
+            const productData = {
+                id: String(row.id),
+                name: row.name,
+                category: row.category,
+                price: Number(row.price), // Base price
+                prices: prices,
+                imageUrl: row.imageUrl,
+                imageHint: row.imageHint,
+                description: row.description,
+                likes: Number(row.likes) || 0,
+                dislikes: Number(row.dislikes) || 0,
+            };
+
+            const productRef = doc(firestore, 'products', productData.id);
+            batch.set(productRef, productData);
+        });
+
+        await batch.commit();
 
         revalidatePath('/dashboard/settings');
+        revalidatePath('/menu'); // Revalidate menu to show new products
 
         return {
-            message: `Successfully imported products from ${productsFile.name}.`,
+            message: `Successfully imported ${parseResult.data.length} products from ${productsFile.name}.`,
             error: false,
         };
 
