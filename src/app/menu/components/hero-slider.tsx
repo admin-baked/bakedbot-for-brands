@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import useEmblaCarousel from 'embla-carousel-react';
+import useEmblaCarousel, { type EmblaCarouselType } from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -32,10 +32,11 @@ export default function HeroSlider() {
 
     React.useEffect(() => {
         if (!emblaApi) return;
-        const onSelect = () => {
-            setSelectedIndex(emblaApi.selectedScrollSnap());
+        const onSelect = (api: EmblaCarouselType) => {
+            setSelectedIndex(api.selectedScrollSnap());
         };
         emblaApi.on('select', onSelect);
+        onSelect(emblaApi); // Set initial index
         return () => { emblaApi.off('select', onSelect) };
     }, [emblaApi]);
 
