@@ -58,7 +58,7 @@ export async function generateMetadata(
   }
 
   return {
-    title: `${product.name} | BakedBot AI Assistant`,
+    title: `${product.name} | AI Agent Budtender`,
     description: product.description,
   }
 }
