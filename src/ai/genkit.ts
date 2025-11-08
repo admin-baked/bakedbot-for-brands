@@ -3,9 +3,6 @@ import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'zod';
 import * as sgMail from '@sendgrid/mail';
 
-// Set the SendGrid API key from environment variables
-sgMail.setApiKey(process.env.SENDGRID_API_KEY || '');
-
 export const ai = genkit({
   plugins: [
     googleAI(),
@@ -32,6 +29,9 @@ export const emailRequest = ai.defineTool(
     outputSchema: z.void(),
   },
   async (input) => {
+    // Set the SendGrid API key from environment variables just before use.
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY || '');
+
     const { to, subject, html, bcc } = input;
 
     const fromEmail = process.env.SENDGRID_FROM_EMAIL;
