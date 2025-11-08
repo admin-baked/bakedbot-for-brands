@@ -52,6 +52,10 @@ function createEventEmitter<T extends Record<string, any>>() {
      * @param data The data payload that corresponds to the event's type.
      */
     emit<K extends keyof T>(eventName: K, data: T[K]) {
+      if (typeof window === 'undefined') {
+        // Don't emit on the server.
+        return;
+      }
       if (!events[eventName]) {
         return;
       }

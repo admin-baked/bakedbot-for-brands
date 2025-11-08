@@ -92,22 +92,27 @@ export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
   const { apiKey } = validatedFields.data;
   const userPrivateRef = doc(firestore, 'user-private', user.uid);
   
-  setDoc(userPrivateRef, { bakedBotApiKey: apiKey }, { merge: true })
-      .catch(async (serverError) => {
-          const permissionError = new FirestorePermissionError({
-              path: userPrivateRef.path,
-              operation: 'update',
-              requestResourceData: { bakedBotApiKey: 'REDACTED' }
-          });
-          errorEmitter.emit('permission-error', permissionError);
+  try {
+    await setDoc(userPrivateRef, { bakedBotApiKey: apiKey }, { merge: true });
+    
+    revalidatePath('/dashboard/settings');
+
+    return {
+      message: 'API Key saved successfully!',
+      error: false,
+    };
+  } catch (serverError) {
+      const permissionError = new FirestorePermissionError({
+          path: userPrivateRef.path,
+          operation: 'update',
+          requestResourceData: { bakedBotApiKey: 'REDACTED' }
       });
-
-  revalidatePath('/dashboard/settings');
-
-  return {
-    message: 'API Key saved successfully!',
-    error: false,
-  };
+      errorEmitter.emit('permission-error', permissionError);
+      return {
+          message: 'Permission denied. Could not save API key.',
+          error: true
+      };
+  }
 }
 
 
