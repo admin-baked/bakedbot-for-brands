@@ -135,12 +135,12 @@ export default async function ProductPage({ params }: Props) {
         <div className="min-h-screen bg-background">
             <Header />
             <main className="container mx-auto">
-                <Suspense fallback={<ProductPageSkeleton />}>
-                    <ProductDetailsClient product={product} summary={summary} />
-                </Suspense>
                 <div className="py-8 px-4">
                     <DispensaryLocator />
                 </div>
+                <Suspense fallback={<ProductPageSkeleton />}>
+                    <ProductDetailsClient product={product} summary={summary} />
+                </Suspense>
             </main>
             <CartSidebar />
             <FloatingCartPill />
