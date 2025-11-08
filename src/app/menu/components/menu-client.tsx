@@ -69,7 +69,7 @@ const ProductCard = ({ product }: { product: Product }) => {
     const { addToCart } = useCart();
     const { selectedLocationId } = useStore();
     
-    const price = selectedLocationId ? product.prices[selectedLocationId] ?? product.price : product.price;
+    const price = selectedLocationId && product.prices?.[selectedLocationId] ? product.prices[selectedLocationId] : product.price;
 
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -126,10 +126,11 @@ const ProductSkeleton = () => (
     </Card>
 )
 
-const FloatingCartPill = () => {
+export const FloatingCartPill = () => {
     const { getItemCount, getCartTotal, toggleCart } = useCart();
+    const { selectedLocationId } = useStore();
     const itemCount = getItemCount();
-    const subtotal = getCartTotal();
+    const subtotal = getCartTotal(selectedLocationId);
 
     return (
         <AnimatePresence>

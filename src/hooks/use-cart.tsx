@@ -13,7 +13,7 @@ interface CartState {
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   toggleCart: () => void;
-  getCartTotal: () => number;
+  getCartTotal: (locationId?: string | null) => number;
   getItemCount: () => number;
 }
 
@@ -22,7 +22,7 @@ const useCartStore = create<CartState>((set, get) => ({
   isCartOpen: false,
   addToCart: (product, locationId) => {
     const existingItem = get().items.find((i) => i.id === product.id);
-    const price = locationId ? product.prices[locationId] ?? product.price : product.price;
+    const price = locationId && product.prices?.[locationId] ? product.prices[locationId] : product.price;
 
     if (existingItem) {
       set((state) => ({
@@ -50,9 +50,10 @@ const useCartStore = create<CartState>((set, get) => ({
   },
   clearCart: () => set({ items: [] }),
   toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
-  getCartTotal: () => {
+  getCartTotal: (locationId) => {
     return get().items.reduce((total, item) => {
-      return total + item.price * item.quantity;
+        const price = locationId && item.prices?.[locationId] ? item.prices[locationId] : item.price;
+        return total + price * item.quantity;
     }, 0);
   },
   getItemCount: () => {

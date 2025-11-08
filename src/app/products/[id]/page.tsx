@@ -15,6 +15,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { doc, getDoc } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
 import { demoProducts } from '@/lib/data';
+import { FloatingCartPill } from '@/app/menu/components/menu-client';
 
 type Props = {
   params: { id: string }
@@ -138,6 +139,7 @@ export default async function ProductPage({ params }: Props) {
                 </Suspense>
             </main>
             <CartSidebar />
+            <FloatingCartPill />
             <Chatbot />
         </div>
     )
