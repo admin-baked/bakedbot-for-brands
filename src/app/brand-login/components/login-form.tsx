@@ -188,13 +188,9 @@ export default function LoginForm() {
                         </Button>
                     </form>
                 </CardContent>
-                <CardFooter className="flex flex-col gap-2">
-                    <p className="text-xs text-muted-foreground">For testing purposes:</p>
-                    <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')} disabled={isLoading || isGoogleLoading || isMagicLinkLoading}>
-                         <Sparkles className="mr-2 h-4 w-4 text-amber-500" /> Dev Magic Button (martez@bakedbot.ai)
-                    </Button>
-                </CardFooter>
             </Card>
         </div>
     );
 }
+
+    
