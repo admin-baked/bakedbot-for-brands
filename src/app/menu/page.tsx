@@ -1,8 +1,8 @@
 
-import MenuClientDynamic from './components/menu-client-dynamic';
+import MenuClient from './components/menu-client';
 
 export default function MenuPage() {
     return (
-        <MenuClientDynamic />
+        <MenuClient />
     );
 }

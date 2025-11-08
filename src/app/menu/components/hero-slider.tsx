@@ -8,16 +8,17 @@ import useEmblaCarousel, { type EmblaCarouselType } from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { AnimatePresence, motion } from 'framer-motion';
 
-import { useMenuData } from '@/hooks/use-menu-data';
 import { type Product } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ArrowRight } from 'lucide-react';
 
-export default function HeroSlider() {
-    const { products, isLoading, isHydrated } = useMenuData();
+interface HeroSliderProps {
+    products: Product[];
+}
+
+export default function HeroSlider({ products }: HeroSliderProps) {
     const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay()]);
     const [selectedIndex, setSelectedIndex] = React.useState(0);
 
@@ -34,13 +35,9 @@ export default function HeroSlider() {
     const featuredProducts = React.useMemo(() => {
         return products ? products.slice(0, 5) : [];
     }, [products]);
-
-    if (isLoading || !isHydrated) {
-        return null;
-    }
     
     if (featuredProducts.length === 0) {
-        return null; // Don't render anything if there's no products
+        return null; // Don't render anything if there are no products
     }
 
     return (
