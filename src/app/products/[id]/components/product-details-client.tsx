@@ -121,7 +121,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                     Add to Cart
                 </Button>
 
-                <ReviewSummaryDisplay summary={summary} isLoading={false} />
+                <ReviewSummaryDisplay summary={summary} isLoading={!summary} />
             </div>
         </div>
     );
