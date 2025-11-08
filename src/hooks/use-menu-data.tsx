@@ -9,10 +9,9 @@ import type { Location } from '@/hooks/use-store';
 
 /**
  * A unified hook to get menu data (products and locations).
- * It intelligently switches between static demo data and live Firestore data
- * based on the global `isUsingDemoData` state.
- * This ensures that both server and client renders are consistent, preventing
- * hydration errors.
+ * It intelligently switches between static demo data and live Firestore data.
+ * If live data is empty or not available, it reliably falls back to demo data.
+ * This ensures that both server and client renders are consistent, preventing hydration errors.
  */
 export function useMenuData() {
   const { isUsingDemoData, _hasHydrated, locations: storeLocations } = useStore(state => ({
@@ -29,8 +28,8 @@ export function useMenuData() {
   const memoizedData = useMemo(() => {
     // Determine if we should use demo data.
     // Use demo data if the store flag is set, if the store hasn't hydrated yet,
-    // or if there are no products in Firestore.
-    const useDemo = isUsingDemoData || !_hasHydrated || !firestoreProducts || firestoreProducts.length === 0;
+    // or if there are no products in Firestore after loading.
+    const useDemo = isUsingDemoData || !_hasHydrated || (!isFirestoreLoading && (!firestoreProducts || firestoreProducts.length === 0));
 
     if (useDemo) {
       return {

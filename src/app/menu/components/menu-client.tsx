@@ -189,44 +189,20 @@ const groupProductsByCategory = (products: Product[]) => {
 
 export default function MenuClient() {
     const { products, isLoading, isHydrated } = useMenuData();
-    const [isClient, setIsClient] = useState(false);
-
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
     
     const groupedProducts = useMemo(() => {
         return products ? groupProductsByCategory(products) : {};
     }, [products]);
 
     const categories = Object.keys(groupedProducts);
-
-    if (!isHydrated) {
-        return (
-             <div className="container mx-auto px-4 py-8">
-                <HeroSliderSkeleton />
-                 <div className="space-y-12">
-                    {SKELETON_CATEGORIES.map(category => (
-                        <section key={category}>
-                            <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">
-                                <Skeleton className="h-8 w-1/4" />
-                            </h2>
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-                                {Array.from({ length: 5 }).map((_, i) => <ProductSkeleton key={i} />)}
-                            </div>
-                        </section>
-                    ))}
-                </div>
-            </div>
-        );
-    }
+    const showSkeletons = isLoading || !isHydrated;
 
     return (
         <div className="min-h-screen bg-background">
             <Header />
             <main className="container mx-auto px-4 py-8">
                 
-                {isClient && products && <HeroSlider products={products} />}
+                <HeroSlider products={products || []} />
 
                 <DispensaryLocator />
 
@@ -242,7 +218,7 @@ export default function MenuClient() {
                 </div>
 
                 <div className="space-y-12">
-                    {isLoading ? (
+                    {showSkeletons ? (
                         <>
                             {SKELETON_CATEGORIES.map(category => (
                                 <section key={category}>
