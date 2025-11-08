@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -18,11 +19,6 @@ import Chatbot from '@/components/chatbot';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
 
-const HeroSlider = dynamic(() => import('./hero-slider'), {
-    ssr: false,
-    loading: () => <HeroSliderSkeleton />,
-});
-
 const HeroSliderSkeleton = () => (
     <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12 bg-muted">
         <Skeleton className="h-full w-full" />
@@ -32,6 +28,11 @@ const HeroSliderSkeleton = () => (
         </div>
     </div>
 );
+
+const HeroSlider = dynamic(() => import('./hero-slider').then((mod) => mod.default), {
+    ssr: false,
+    loading: () => <HeroSliderSkeleton />,
+});
 
 
 const SKELETON_CATEGORIES = ['Edibles', 'Flower', 'Vapes'];
