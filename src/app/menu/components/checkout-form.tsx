@@ -169,14 +169,13 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
         if (birthDate) {
             formData.append('customerBirthDate', birthDate.toISOString());
         }
-        if (!formData.has('locationId') && selectedLocationId) {
-             formData.append('locationId', selectedLocationId);
-        }
         formAction(formData);
     };
 
     return (
         <form ref={formRef} action={handleSubmit} className="space-y-6">
+             {/* Hidden input to ensure locationId is always submitted */}
+             <input type="hidden" name="locationId" value={selectedLocationId || ''} />
              <div>
                 <div className="flex justify-between items-center mb-4">
                      <h3 className="text-lg font-semibold">Your Information</h3>
