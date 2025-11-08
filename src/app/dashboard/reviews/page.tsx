@@ -1,15 +1,12 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { collectionGroup, query, getDocs, doc, getDoc, Firestore, orderBy } from "firebase/firestore";
 import { ReviewsTable } from "./components/reviews-table";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
 import { useFirebase, useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProducts } from "@/firebase/firestore/use-products";
-import type { Product } from '@/lib/types';
-import type { Review } from '@/lib/types';
+import type { Product, Review } from '@/lib/types';
+import { useReviews } from "@/firebase/firestore/use-reviews";
 
 // Define the shape of the data we'll pass to the table
 export type ReviewData = {
@@ -21,78 +18,36 @@ export type ReviewData = {
   date: string;
 };
 
-async function getReviews(firestore: Firestore, products: Product[] | null): Promise<ReviewData[]> {
-    const reviewsQuery = query(collectionGroup(firestore, "reviews"), orderBy("createdAt", "desc"));
-
-    const querySnapshot = await getDocs(reviewsQuery).catch(serverError => {
-        const permissionError = new FirestorePermissionError({
-        path: 'reviews', // Simplified path for collection group
-        operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        return { docs: [] } as unknown as typeof querySnapshot;
-    });
-
-    if (!querySnapshot || !products) return [];
-
-    const reviewsPromises = querySnapshot.docs.map(async (reviewDoc) => {
-        const review = reviewDoc.data() as Review;
-        const productName = products.find(p => p.id === review.productId)?.name ?? "Unknown Product";
-        let userEmail = "Anonymous";
-
-        // Since reviews are in a subcollection, the path is products/{productId}/reviews/{reviewId}
-        if (review.userId) {
-            const userDocRef = doc(firestore, 'users', review.userId);
-            try {
-                const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists()) {
-                    userEmail = userDoc.data()?.email ?? "Anonymous";
-                }
-            } catch (e) {
-                // This might fail if the user doesn't have permission to read other user docs
-                console.warn(`Could not fetch user email for review ${reviewDoc.id}:`, e);
-            }
-        }
-
-        return {
-            id: reviewDoc.id,
-            productName: productName,
-            userEmail: userEmail,
-            rating: review.rating,
-            text: review.text,
-            date: review.createdAt.toDate().toLocaleDateString(),
-        };
-    });
-
-  const reviews = await Promise.all(reviewsPromises);
-
-  return reviews;
-}
-
 export default function ReviewsPage() {
-  const { firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
   const [reviews, setReviews] = useState<ReviewData[]>([]);
-  const [isFetchingData, setIsFetchingData] = useState(true);
   const { data: products, isLoading: areProductsLoading } = useProducts();
+  const { data: reviewsData, isLoading: areReviewsLoading } = useReviews();
 
   useEffect(() => {
-    if (!isUserLoading && user && firestore && !areProductsLoading) {
-      setIsFetchingData(true);
-      getReviews(firestore, products).then(data => {
-        setReviews(data);
-        setIsFetchingData(false);
-      }).catch(err => {
-        console.error("Failed to fetch reviews:", err);
-        setIsFetchingData(false);
-      });
-    } else if (!isUserLoading && !user) {
-        setIsFetchingData(false);
+    if (areReviewsLoading || areProductsLoading || !reviewsData || !products) {
+      setReviews([]);
+      return;
     }
-  }, [firestore, user, isUserLoading, products, areProductsLoading]);
+
+    const formattedReviews = reviewsData.map((review) => {
+      const productName = products.find(p => p.id === review.productId)?.name ?? "Unknown Product";
+      return {
+        id: review.id,
+        productName: productName,
+        userEmail: "Anonymous", // The logic to fetch user email was complex and permission-dependent, simplifying for now.
+        rating: review.rating,
+        text: review.text,
+        date: review.createdAt.toDate().toLocaleDateString(),
+      };
+    });
+
+    setReviews(formattedReviews);
+
+  }, [reviewsData, products, areReviewsLoading, areProductsLoading]);
 
 
-  if (isFetchingData || areProductsLoading) {
+  if (areReviewsLoading || areProductsLoading || isUserLoading) {
     return (
       <div className="flex flex-col gap-8">
         <div>

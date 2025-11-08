@@ -1,15 +1,13 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { collectionGroup, getDocs, Timestamp, Firestore, query, orderBy } from "firebase/firestore";
 import { OrdersTable } from "./components/orders-table";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
-import { useFirebase, useUser } from "@/firebase";
+import { useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/hooks/use-store";
 import { useMenuData } from "@/hooks/use-menu-data";
 import { OrderDoc } from "@/lib/types";
+import { useOrders } from "@/firebase/firestore/use-orders";
 
 
 // Define the shape of the data we'll pass to the table
@@ -22,69 +20,40 @@ export type OrderData = {
   location: string;
 };
 
-async function getOrders(firestore: Firestore, locations: any[]): Promise<OrderData[]> {
-  const ordersQuery = query(collectionGroup(firestore, "orders"), orderBy("orderDate", "desc"));
-  
-  const querySnapshot = await getDocs(ordersQuery).catch(serverError => {
-    const permissionError = new FirestorePermissionError({
-      path: 'orders', // Path for a collection group query
-      operation: 'list',
-    });
-    errorEmitter.emit('permission-error', permissionError);
-    // Return an empty snapshot to prevent further errors down the chain
-    return { docs: [] } as unknown as typeof querySnapshot;
-  });
-
-  if (!querySnapshot) return [];
-  
-  const allLocations = locations;
-  const getLocationName = (id: string) => {
-    return allLocations.find(l => l.id === id)?.name || "Unknown Location";
-  };
-
-
-  const orders = querySnapshot.docs.map((orderDoc) => {
-    const order = orderDoc.data() as OrderDoc;
-    return {
-      id: orderDoc.id,
-      customerName: order.customerName,
-      date: order.orderDate.toDate().toLocaleDateString(),
-      status: order.status,
-      total: `$${order.totalAmount.toFixed(2)}`,
-      location: getLocationName(order.locationId),
-    };
-  });
-
-  return orders;
-}
-
 export default function OrdersPage() {
-  const { firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
-  const [orders, setOrders] = useState<OrderData[]>([]);
-  const [isFetchingData, setIsFetchingData] = useState(true);
   const { locations } = useMenuData();
   const { _hasHydrated } = useStore();
-  
-  const currentLocations = locations;
+  const { data: ordersData, isLoading: areOrdersLoading } = useOrders();
+
+  const [orders, setOrders] = useState<OrderData[]>([]);
 
   useEffect(() => {
-    if (!isUserLoading && user && firestore && _hasHydrated && currentLocations) {
-      setIsFetchingData(true);
-      getOrders(firestore, currentLocations).then(data => {
-        setOrders(data);
-        setIsFetchingData(false);
-      }).catch(err => {
-        console.error("Failed to fetch orders:", err);
-        setIsFetchingData(false);
-      });
-    } else if (!_hasHydrated || (!isUserLoading && !user)) {
-        setIsFetchingData(false);
-    }
-  }, [firestore, user, isUserLoading, _hasHydrated, currentLocations]);
+    if (areOrdersLoading || !_hasHydrated || !locations || !ordersData) {
+      setOrders([]);
+      return;
+    };
+
+    const getLocationName = (id: string) => {
+        return locations.find(l => l.id === id)?.name || "Unknown Location";
+    };
+
+    const formattedOrders = ordersData.map((order) => {
+        return {
+            id: order.id,
+            customerName: order.customerName,
+            date: order.orderDate.toDate().toLocaleDateString(),
+            status: order.status,
+            total: `$${order.totalAmount.toFixed(2)}`,
+            location: getLocationName(order.locationId),
+        };
+    });
+    setOrders(formattedOrders);
+
+  }, [areOrdersLoading, ordersData, locations, _hasHydrated]);
 
 
-  if (isFetchingData || !_hasHydrated) {
+  if (areOrdersLoading || !_hasHydrated || isUserLoading) {
     return (
       <div className="flex flex-col gap-8">
         <div>
