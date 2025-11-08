@@ -15,16 +15,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ArrowRight } from 'lucide-react';
 
-const HeroSliderSkeleton = () => (
-    <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12 bg-muted">
-        <Skeleton className="h-full w-full" />
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-            <Skeleton className="h-10 w-3/4 mb-4" />
-            <Skeleton className="h-5 w-1/2" />
-        </div>
-    </div>
-);
-
 export default function HeroSlider() {
     const { products, isLoading, isHydrated } = useMenuData();
     const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay()]);
@@ -45,7 +35,7 @@ export default function HeroSlider() {
     }, [products]);
 
     if (isLoading || !isHydrated) {
-        return <HeroSliderSkeleton />;
+        return null;
     }
 
     return (

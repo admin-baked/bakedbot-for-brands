@@ -1,7 +1,7 @@
-
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,22 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Chatbot from '@/components/chatbot';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
-import HeroSlider from './hero-slider';
+
+const HeroSlider = dynamic(() => import('./hero-slider'), {
+    ssr: false,
+    loading: () => <HeroSliderSkeleton />,
+});
+
+const HeroSliderSkeleton = () => (
+    <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12 bg-muted">
+        <Skeleton className="h-full w-full" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+            <Skeleton className="h-10 w-3/4 mb-4" />
+            <Skeleton className="h-5 w-1/2" />
+        </div>
+    </div>
+);
+
 
 const SKELETON_CATEGORIES = ['Edibles', 'Flower', 'Vapes'];
 
