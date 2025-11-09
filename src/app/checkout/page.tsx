@@ -1,10 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useStore } from '@/hooks/use-store';
 import { useCart } from '@/hooks/use-cart';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import Header from '@/app/menu/components/header';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, MapPin } from 'lucide-react';
@@ -14,14 +14,62 @@ import { Button } from '@/components/ui/button';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const [showContent, setShowContent] = useState(false);
+  const [status, setStatus] = useState<'loading' | 'checking' | 'ready' | 'error'>('loading');
+  const [errorMessage, setErrorMessage] = useState('');
   
-  // Subscribe to individual pieces of state
+  // Subscribe to state
   const hasHydrated = useStore((state) => state._hasHydrated);
   const selectedLocationId = useStore((state) => state.selectedLocationId);
   const locations = useStore((state) => state.locations);
   const { items: cart, getCartTotal, clearCart } = useCart();
-
+  
+  useEffect(() => {
+    // Wait for hydration
+    if (!hasHydrated) {
+      setStatus('loading');
+      return;
+    }
+    
+    setStatus('checking');
+    
+    // Small delay to ensure state is fully updated
+    const timer = setTimeout(() => {
+      // Check prerequisites
+      if (!selectedLocationId) {
+        setErrorMessage('No location selected. Redirecting...');
+        setStatus('error');
+        setTimeout(() => router.replace('/menu?error=no-location'), 2000);
+        return;
+      }
+      
+      if (locations.length === 0) {
+        setErrorMessage('Locations not loaded. Redirecting...');
+        setStatus('error');
+        setTimeout(() => router.replace('/menu?error=no-locations'), 2000);
+        return;
+      }
+      
+      const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
+      if (!selectedLocation) {
+        setErrorMessage('Selected location could not be found. Redirecting...');
+        setStatus('error');
+        setTimeout(() => router.replace('/menu?error=location-not-found'), 2000);
+        return;
+      }
+      
+      if (cart.length === 0) {
+        setErrorMessage('Your cart is empty. Redirecting...');
+        setStatus('error');
+        setTimeout(() => router.replace('/menu?error=empty-cart'), 2000);
+        return;
+      }
+      
+      setStatus('ready');
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [hasHydrated, selectedLocationId, locations, cart.length, router]);
+  
   const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
   const { subtotal, taxes, total } = getCartTotal();
 
@@ -31,43 +79,39 @@ export default function CheckoutPage() {
         router.push(`/order-confirmation/${orderId}`);
     }
   };
-  
-  // Wait for hydration, THEN check prerequisites
-  useEffect(() => {
-    if (!hasHydrated) {
-      return;
-    }
-    
-    // Give it a tiny moment for state to stabilize
-    const timer = setTimeout(() => {
-      if (!selectedLocationId) {
-        router.replace('/menu?error=no-location');
-        return;
-      }
-      
-      if (cart.length === 0) {
-        router.replace('/menu?error=empty-cart');
-        return;
-      }
-      
-      setShowContent(true);
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, [hasHydrated, selectedLocationId, cart.length, router]);
-  
-  // Show loading during hydration or while checks are running
-  if (!hasHydrated || !showContent) {
+
+  // Loading state
+  if (status === 'loading') {
     return (
+      <div className="flex flex-col h-screen items-center justify-center text-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground mt-4">Loading checkout...</p>
+      </div>
+    );
+  }
+  
+  // Checking state
+  if (status === 'checking') {
+     return (
       <div className="flex flex-col h-screen items-center justify-center text-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="text-muted-foreground mt-4">Preparing your checkout...</p>
       </div>
     );
   }
+  
+  // Error state
+  if (status === 'error') {
+     return (
+      <div className="flex flex-col h-screen items-center justify-center text-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-destructive" />
+        <p className="text-destructive mt-4">{errorMessage}</p>
+      </div>
+    );
+  }
 
   // Final safety check before rendering - this prevents a crash if the location lookup fails
-  if (!selectedLocation) {
+  if (status === 'ready' && !selectedLocation) {
      return (
        <div className="flex flex-col h-screen items-center justify-center text-center py-20">
          <Loader2 className="h-8 w-8 animate-spin text-destructive" />
@@ -85,7 +129,7 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left side - Form */}
           <div>
-             <CheckoutForm onOrderSuccess={handleOrderSuccess} selectedLocation={selectedLocation} />
+             <CheckoutForm onOrderSuccess={handleOrderSuccess} selectedLocation={selectedLocation!} />
           </div>
 
           {/* Right side - Summary */}
@@ -98,8 +142,8 @@ export default function CheckoutPage() {
                     <div className='space-y-4'>
                         <div className="text-sm">
                             <p className="font-semibold text-muted-foreground flex items-center gap-2"><MapPin className='h-4 w-4'/> Pickup Location</p>
-                            <p className='font-medium mt-1'>{selectedLocation.name}</p>
-                            <p className='text-xs text-muted-foreground'>{selectedLocation.address}, {selectedLocation.city}</p>
+                            <p className='font-medium mt-1'>{selectedLocation!.name}</p>
+                            <p className='text-xs text-muted-foreground'>{selectedLocation!.address}, {selectedLocation!.city}</p>
                         </div>
                     
                         <Separator />

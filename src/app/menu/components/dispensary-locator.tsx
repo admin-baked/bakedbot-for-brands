@@ -58,8 +58,8 @@ const DispensaryCard = ({ location, isSelected, onSelect }: { location: Location
 
 export default function DispensaryLocator() {
     const { toast } = useToast();
-    const { locations, isLoading: areLocationsLoading } = useMenuData();
-    const { selectedLocationId, setSelectedLocationId } = useStore();
+    const { data: menuLocations, isLoading: areLocationsLoading } = useMenuData();
+    const { selectedLocationId, setSelectedLocationId, setLocations } = useStore();
     const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>([]);
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
@@ -68,13 +68,16 @@ export default function DispensaryLocator() {
             setStatus('loading');
             return;
         }
-        if (!locations || locations.length === 0) {
-            setStatus('success'); // No locations to show, but not an error or loading state.
+        if (!menuLocations || menuLocations.length === 0) {
+            setStatus('success');
             setSortedLocations([]);
+            setLocations([]);
             return;
         }
 
-        // Set loading state only when we start the async operation
+        // Set locations in the global store
+        setLocations(menuLocations);
+        
         setStatus('loading');
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
@@ -83,7 +86,7 @@ export default function DispensaryLocator() {
                         lat: position.coords.latitude,
                         lon: position.coords.longitude
                     };
-                    const locationsWithDistance = locations
+                    const locationsWithDistance = menuLocations
                         .filter(loc => loc.lat && loc.lon)
                         .map(loc => {
                             const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
@@ -95,13 +98,12 @@ export default function DispensaryLocator() {
                     setStatus('success');
                 },
                 (error) => {
-                    console.error("Geolocation error:", error);
                     toast({
                         variant: 'default',
                         title: 'Location Info',
                         description: 'Could not get your location. Showing default dispensaries.'
                     });
-                    setSortedLocations(locations.slice(0, 3));
+                    setSortedLocations(menuLocations.slice(0, 3));
                     setStatus('error');
                 }
             );
@@ -111,10 +113,10 @@ export default function DispensaryLocator() {
                 title: 'Location Info',
                 description: 'Geolocation is not supported by your browser.'
             });
-            setSortedLocations(locations.slice(0, 3));
+            setSortedLocations(menuLocations.slice(0, 3));
             setStatus('error');
         }
-    }, [locations, areLocationsLoading, toast]);
+    }, [menuLocations, areLocationsLoading, toast, setLocations]);
 
 
     if (status === 'loading' || areLocationsLoading) {
