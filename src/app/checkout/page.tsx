@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useStore } from '@/hooks/use-store';
@@ -11,6 +12,7 @@ import { Loader2, MapPin } from 'lucide-react';
 import { CheckoutForm } from '@/app/menu/components/checkout-form';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useMenuData } from '@/hooks/use-menu-data';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -18,14 +20,13 @@ export default function CheckoutPage() {
   const [errorMessage, setErrorMessage] = useState('');
   
   // Subscribe to state
-  const hasHydrated = useStore((state) => state._hasHydrated);
-  const selectedLocationId = useStore((state) => state.selectedLocationId);
-  const locations = useStore((state) => state.locations);
+  const { _hasHydrated, selectedLocationId } = useStore();
+  const { locations } = useMenuData();
   const { items: cart, getCartTotal, clearCart } = useCart();
   
   useEffect(() => {
     // Wait for hydration
-    if (!hasHydrated) {
+    if (!_hasHydrated) {
       setStatus('loading');
       return;
     }
@@ -68,7 +69,7 @@ export default function CheckoutPage() {
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [hasHydrated, selectedLocationId, locations, cart.length, router]);
+  }, [_hasHydrated, selectedLocationId, locations, cart.length, router]);
   
   const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
   const { subtotal, taxes, total } = getCartTotal();

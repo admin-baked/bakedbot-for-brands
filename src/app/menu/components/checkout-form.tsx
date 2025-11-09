@@ -135,7 +135,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                          {state?.fieldErrors?.idImage && <p className="text-sm text-destructive mt-1">{state.fieldErrors.idImage[0]}</p>}
                     </div>
                     
-                    {state?.message && state.error && (
+                    {state?.message && state.error && !state.fieldErrors && (
                         <Alert variant='destructive'>
                             <AlertTitle>Submission Error</AlertTitle>
                             <AlertDescription>{state.message}</AlertDescription>
