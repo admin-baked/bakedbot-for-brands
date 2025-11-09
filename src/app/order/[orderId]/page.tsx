@@ -2,7 +2,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useOrder } from '@/firebase/firestore/use-order';
@@ -52,12 +52,17 @@ const QRDisplay = ({ text }: { text: string }) => {
 
 function OrderPageClient() {
     const params = useParams();
+    const searchParams = useSearchParams();
     const orderId = typeof params.orderId === 'string' ? params.orderId : '';
     const { user } = useUser();
     const { locations } = useMenuData();
 
+    // For guest checkouts, the userId will be in the query params
+    const urlUserId = searchParams.get('userId');
+    const finalUserId = user?.uid || urlUserId || 'guest';
+
     // The useOrder hook will need the userId to construct the path
-    const { data: order, items, isLoading, error } = useOrder(orderId, user?.uid || 'guest');
+    const { data: order, items, isLoading, error } = useOrder(orderId, finalUserId);
     
     const pickupLocation = locations?.find(loc => loc.id === order?.locationId);
 

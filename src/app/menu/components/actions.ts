@@ -4,9 +4,8 @@
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { collection, writeBatch, doc, serverTimestamp, addDoc } from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
-import type { CartItem, Location } from '@/lib/types';
 import { sendOrderEmail } from '@/ai/flows/send-order-email';
+import type { CartItem } from '@/lib/types';
 
 const CheckoutSchema = z.object({
   userId: z.string(),
@@ -22,7 +21,7 @@ const CheckoutSchema = z.object({
 });
 
 export async function submitOrder(prevState: any, formData: FormData) {
-  console.log('Server action called');
+  console.log('🚀 Server action: submitOrder called');
   
   const validatedFields = CheckoutSchema.safeParse({
     userId: formData.get('userId'),
@@ -38,7 +37,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
   });
 
   if (!validatedFields.success) {
-    console.error('Validation failed:', validatedFields.error);
+    console.error('❌ Validation failed:', validatedFields.error.flatten());
     return {
       message: 'Invalid form data. Please check your inputs.',
       error: true,
@@ -56,50 +55,53 @@ export async function submitOrder(prevState: any, formData: FormData) {
   
   const fulfillmentEmail = 'martezandco@gmail.com';
 
-  const batch = writeBatch(firestore);
-
-  // CRITICAL FIX: Use the correct path based on user login status.
-  const orderCollectionPath = userId === 'guest' 
-    ? 'users/guest/orders'
-    : `users/${userId}/orders`;
-  const orderRef = doc(collection(firestore, orderCollectionPath));
-  
-  const fullOrderData = {
-    ...orderData,
-    userId: userId,
-    orderDate: serverTimestamp(),
-    status: 'pending' as const,
-    idImageUrl: idImage.size > 0 ? 'placeholder/id_image.jpg' : '',
-  };
-  batch.set(orderRef, fullOrderData);
-
-  // CRITICAL FIX: Create order items in the correct subcollection.
-  for (const item of cartItems) {
-    const orderItemRef = doc(collection(orderRef, 'orderItems'));
-    const itemData = {
-      productId: item.id,
-      productName: item.name,
-      quantity: item.quantity,
-      price: item.price,
-    };
-    batch.set(orderItemRef, itemData);
-  }
-
   try {
-    await batch.commit();
+    const batch = writeBatch(firestore);
 
-    revalidatePath('/dashboard/orders');
-    revalidatePath('/menu');
+    // CRITICAL: Use correct Firestore path structure
+    // Path: /users/{userId}/orders/{orderId}
+    const userDocRef = doc(firestore, 'users', userId);
+    const ordersCollectionRef = collection(userDocRef, 'orders');
+    const newOrderRef = doc(ordersCollectionRef); // Auto-generate ID
+    console.log('📍 Order path:', newOrderRef.path);
+    
+    const fullOrderData = {
+      ...orderData,
+      userId: userId,
+      orderDate: serverTimestamp(),
+      status: 'pending' as const,
+      idImageUrl: idImage.size > 0 ? 'placeholder/id_image.jpg' : '',
+    };
+    batch.set(newOrderRef, fullOrderData);
+    console.log('📝 Order document prepared');
+
+    // Create order items in the correct subcollection
+    const itemsCollectionRef = collection(newOrderRef, 'orderItems');
+    cartItems.forEach((item, index) => {
+        const itemRef = doc(itemsCollectionRef); // Auto-generate ID for sub-collection item
+        const itemData = {
+            productId: item.id,
+            productName: item.name,
+            quantity: item.quantity,
+            price: item.price,
+        };
+        batch.set(itemRef, itemData);
+        console.log(`📦 Item ${index + 1} prepared:`, item.name);
+    });
+
+    console.log('💾 Committing batch write...');
+    await batch.commit();
+    console.log('✅ Batch committed successfully!');
 
     // This part is for sending an email and can be adjusted
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const orderPageUrl = `${baseUrl}/order/${orderRef.id}`;
+    const orderPageUrl = `${baseUrl}/order/${newOrderRef.id}?userId=${userId}`; // Pass userId for guest lookups
     const brandOwners = ['jack@bakedbot.ai', 'martez@bakedbot.com', 'vip@bakedbot.ai'];
 
     await sendOrderEmail({
       to: fulfillmentEmail,
       bcc: brandOwners,
-      orderId: orderRef.id,
+      orderId: newOrderRef.id,
       customerName: orderData.customerName,
       customerEmail: orderData.customerEmail,
       pickupLocationName: locationName || 'Unknown',
@@ -111,12 +113,18 @@ export async function submitOrder(prevState: any, formData: FormData) {
     return {
       message: 'Order submitted successfully!',
       error: false,
-      orderId: orderRef.id,
+      orderId: newOrderRef.id,
     };
   } catch (serverError: any) {
-    console.error("[submitOrder] Firestore batch commit or email sending failed:", serverError);
+    console.error('❌ Order submission error:', serverError);
+    console.error('Error details:', {
+      code: serverError.code,
+      message: serverError.message,
+      stack: serverError.stack,
+    });
+    
     return {
-      message: "Failed to submit order due to a server error. Please try again.",
+      message: `Server error: ${serverError.message || 'Unknown error'}`,
       error: true,
     }
   }

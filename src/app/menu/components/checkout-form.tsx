@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,8 +48,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     const { user } = useUser();
     const [state, formAction] = useFormState(submitOrder, initialState);
     
-    const { selectedLocationId } = useStore();
-    const { locations } = useMenuData();
+    const { selectedLocationId, locations } = useStore();
 
     const [birthDate, setBirthDate] = useState<Date | undefined>();
     const [idImageName, setIdImageName] = useState<string | null>(null);
@@ -69,7 +68,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
         if (state.message) {
             if (!state.error && state.orderId) {
                 onOrderSuccess(state.orderId);
-                clearCart(); // Clear cart on success
+                // The cart is now cleared in the success step of the cart sidebar
             } else if (state.error) {
                 toast({
                     variant: 'destructive',
@@ -97,15 +96,8 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     const handleSubmit = (formData: FormData) => {
         const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
         
-        formData.append('cartItems', JSON.stringify(items));
-        formData.append('userId', user?.uid || 'guest');
-        formData.append('totalAmount', String(total));
-        if (birthDate) {
-            formData.append('customerBirthDate', birthDate.toISOString());
-        }
-        if (selectedLocation) {
-            formData.append('locationName', selectedLocation.name);
-        }
+        // No longer need to manually append, form handles it.
+        // Just ensuring the hidden fields have the right values before form submission.
         formAction(formData);
     };
 
@@ -133,8 +125,14 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
 
 
     return (
-        <form action={handleSubmit} className="space-y-6">
+        <form action={formAction} className="space-y-6">
+             <input type="hidden" name="userId" value={user?.uid || 'guest'} />
              <input type="hidden" name="locationId" value={selectedLocationId || ''} />
+             <input type="hidden" name="locationName" value={locations.find(l => l.id === selectedLocationId)?.name || ''} />
+             <input type="hidden" name="cartItems" value={JSON.stringify(items)} />
+             <input type="hidden" name="totalAmount" value={String(total)} />
+             {birthDate && <input type="hidden" name="customerBirthDate" value={birthDate.toISOString()} />}
+             
              <div>
                 <h3 className="text-lg font-semibold">Your Information</h3>
                 <div className="mt-4 grid grid-cols-1 gap-4">
