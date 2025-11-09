@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState, useEffect, useActionState, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +13,6 @@ import { Loader2, Send, MapPin, Upload, CalendarIcon, FlaskConical, AlertTriangl
 import { haversineDistance } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { submitOrder } from './actions';
-import { useFormStatus } from 'react-dom';
 import { useUser } from '@/firebase';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
@@ -55,7 +55,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     const { user } = useUser();
     const router = useRouter();
     const formRef = useRef<HTMLFormElement>(null);
-    const [state, formAction] = useActionState(submitOrder, initialState);
+    const [state, formAction] = useFormState(submitOrder, initialState);
     
     const { selectedLocationId, setSelectedLocationId } = useStore();
 

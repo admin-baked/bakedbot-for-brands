@@ -1,7 +1,8 @@
+
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ function SubmitButton() {
 }
 
 export default function EmailSettings() {
-    const [state, formAction] = useActionState(saveEmailSettings, initialState);
+    const [state, formAction] = useFormState(saveEmailSettings, initialState);
     const { toast } = useToast();
     const { emailProvider, setEmailProvider, sendgridApiKey, setSendgridApiKey } = useStore();
     const [apiKey, setApiKey] = useState(sendgridApiKey || '');

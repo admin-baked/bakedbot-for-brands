@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useFormState } from 'react-dom';
+import { useState } from 'react';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import BrandImageGenerator from './components/brand-image-generator';
 import ProductDescriptionDisplay from './components/product-description-display';
@@ -12,8 +13,8 @@ export default function ProductDescriptionGeneratorPage() {
   const [generatedContent, setGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
   
   // Get the pending states from the form actions
-  const [descriptionState, descriptionFormAction, isDescriptionPending] = useActionState(createProductDescription, { message: '', data: null, error: false });
-  const [imageState, imageFormAction, isImagePending] = useActionState(createSocialMediaImage, { message: '', imageUrl: null, error: false });
+  const [descriptionState, descriptionFormAction] = useFormState(createProductDescription, { message: '', data: null, error: false });
+  const [imageState, imageFormAction] = useFormState(createSocialMediaImage, { message: '', imageUrl: null, error: false });
 
   const handleContentUpdate = (content: (GenerateProductDescriptionOutput & { productId?: string }) | null) => {
     setGeneratedContent(content);
@@ -51,8 +52,8 @@ export default function ProductDescriptionGeneratorPage() {
             <div className="grid grid-cols-1 @lg:grid-cols-2 gap-8">
               <ProductDescriptionDisplay 
                   productDescription={generatedContent}
-                  isDescriptionPending={isDescriptionPending}
-                  isImagePending={isImagePending}
+                  isDescriptionPending={false}
+                  isImagePending={false}
               />
               <BrandImageGenerator onImageGenerated={handleBrandImageGenerated} />
             </div>

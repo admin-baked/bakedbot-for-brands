@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useActionState, useEffect } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,7 @@ function SubmitButton() {
 }
 
 export default function BakedBotSettings() {
-    const [state, formAction] = useActionState(saveBakedBotApiKey, initialState);
+    const [state, formAction] = useFormState(saveBakedBotApiKey, initialState);
     const { toast } = useToast();
 
     useEffect(() => {

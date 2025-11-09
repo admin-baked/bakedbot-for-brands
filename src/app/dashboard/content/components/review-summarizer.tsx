@@ -1,7 +1,7 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -30,19 +30,20 @@ function SubmitButton() {
 }
 
 export default function ReviewSummarizer() {
-    const [state, formAction, isPending] = useActionState(summarizeProductReviews, initialState);
+    const [state, formAction] = useFormState(summarizeProductReviews, initialState);
+    const { pending } = useFormStatus();
     const { toast } = useToast();
     const formRef = useRef<HTMLFormElement>(null);
     const [selectedProductName, setSelectedProductName] = useState('');
     const { data: products, isLoading: areProductsLoading } = useProducts();
 
     useEffect(() => {
-        if (state.message && !isPending) {
+        if (state.message && !pending) {
             if (state.error) {
                 toast({ variant: 'destructive', title: 'Error', description: state.message });
             }
         }
-    }, [state, isPending, toast]);
+    }, [state, pending, toast]);
 
     const handleSelectChange = (value: string) => {
         const product = products?.find(p => p.id === value);
@@ -73,9 +74,9 @@ export default function ReviewSummarizer() {
                     <SubmitButton />
                 </CardFooter>
             </form>
-            {(isPending || state.data) && (
+            {(pending || state.data) && (
                 <CardContent className="border-t pt-6 space-y-4">
-                     {isPending ? (
+                     {pending ? (
                         <div className="flex flex-col items-center justify-center space-y-2 text-muted-foreground">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             <p>Reading reviews and generating summary...</p>

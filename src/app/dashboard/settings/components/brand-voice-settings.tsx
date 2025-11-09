@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ function SubmitButton() {
 }
 
 export default function BrandVoiceSettings() {
-    const [state, formAction] = useActionState(trainOnBrandDocuments, initialState);
+    const [state, formAction] = useFormState(trainOnBrandDocuments, initialState);
     const { toast } = useToast();
     const [fileName, setFileName] = useState<string | null>(null);
     const formRef = useRef<HTMLFormElement>(null);

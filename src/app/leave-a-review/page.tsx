@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useActionState, useEffect, useState, useRef } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,6 @@ import { Star, Upload, Send, Loader2, PartyPopper } from 'lucide-react';
 import Link from 'next/link';
 import { submitReview } from './actions';
 import { useToast } from '@/hooks/use-toast';
-import { useFormStatus } from 'react-dom';
 import { useUser } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useProducts } from '@/firebase/firestore/use-products';
@@ -60,7 +60,7 @@ export default function LeaveReviewPage() {
   const [fileName, setFileName] = useState<string | null>(null);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction] = useActionState(submitReview, initialState);
+  const [state, formAction] = useFormState(submitReview, initialState);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
