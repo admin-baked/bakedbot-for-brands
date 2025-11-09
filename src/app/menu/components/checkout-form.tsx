@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCart } from '@/hooks/use-cart';
-import { Loader2, Send, CalendarIcon, AlertTriangle } from 'lucide-react';
+import { Loader2, Send, CalendarIcon, AlertTriangle, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { submitOrder } from './actions';
 import { useUser } from '@/firebase';
