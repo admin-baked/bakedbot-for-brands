@@ -49,6 +49,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     const [state, formAction] = useFormState(submitOrder, initialState);
     
     const { selectedLocationId } = useStore();
+    const { locations } = useMenuData();
 
     const [birthDate, setBirthDate] = useState<Date | undefined>();
     const [idImageName, setIdImageName] = useState<string | null>(null);
@@ -94,14 +95,17 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
     };
     
     const handleSubmit = (formData: FormData) => {
-        // Append all the necessary data for the server action
+        const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
+        
         formData.append('cartItems', JSON.stringify(items));
         formData.append('userId', user?.uid || 'guest');
         formData.append('totalAmount', String(total));
         if (birthDate) {
             formData.append('customerBirthDate', birthDate.toISOString());
         }
-        // The rest of the form data (name, email, etc.) is already present
+        if (selectedLocation) {
+            formData.append('locationName', selectedLocation.name);
+        }
         formAction(formData);
     };
 
