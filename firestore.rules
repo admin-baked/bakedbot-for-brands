@@ -2,150 +2,44 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    //============================================================
-    //  HELPER FUNCTIONS
-    //============================================================
-
-    function isAuthenticated() {
-      // Enforce App Check for all authenticated requests
-      return request.auth != null && request.app != null;
-    }
-
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+    
+    // CEO gets full access to everything - CHECK THIS FIRST
+    match /{document=**} {
+      allow read, write: if request.auth != null && 
+        request.auth.token.email == 'martez@bakedbot.ai';
     }
     
-    function isCeo() {
-      // Check for the specific CEO email address.
-      return isAuthenticated() && request.auth.token.email == 'martez@bakedbot.ai';
-    }
-
-    function isNewData() {
-      return resource == null;
-    }
-
-    function isExistingData() {
-      return resource != null;
-    }
-
-    function isUpdating(fields) {
-      return request.resource.data.keys().hasAll(fields);
-    }
-    
-    // Checks that only the specified fields are being changed.
-    function isUpdatingAllowedFields(allowedFields) {
-      // Create a list of all fields in the existing resource and the ones allowed to change.
-      let allAllowedFields = resource.data.keys().concat(allowedFields);
-      // Ensure the incoming request only contains keys from this combined list.
-      return request.resource.data.keys().hasOnly(allAllowedFields);
-    }
-
-    // Schema validation for User
-    function isValidUser(user) {
-      return user.id == request.auth.uid
-          && (user.email is string || user.email == null)
-          && (user.firstName is string || user.firstName == null)
-          && (user.lastName is string || user.lastName == null)
-          && (user.role is string || user.role == null)
-          && (user.onboardingCompleted is bool || user.onboardingCompleted == null)
-          && user.keys().hasOnly(['id', 'email', 'firstName', 'lastName', 'role', 'onboardingCompleted']);
-    }
-
-    // Schema validation for Review
-    function isValidReview(review) {
-      return review.userId == request.auth.uid
-          && review.productId is string
-          && review.rating is number && review.rating >= 1 && review.rating <= 5
-          && review.text is string && review.text.size() > 0 && review.text.size() < 1000
-          && review.createdAt == request.time
-          && review.verificationImageUrl is string
-          && review.keys().hasOnly(['id', 'userId', 'productId', 'rating', 'text', 'createdAt', 'verificationImageUrl']);
-    }
-
-    // Schema validation for Order
-    function isValidOrder(order) {
-      return ((isAuthenticated() && order.userId == request.auth.uid) || order.userId == 'guest')
-          && order.customerName is string && order.customerName.size() > 0
-          && order.customerEmail is string && order.customerEmail.matches('.+@.+\\..+')
-          && order.customerPhone is string && order.customerPhone.size() > 0
-          && order.customerBirthDate is string && order.customerBirthDate.size() > 0
-          && order.locationId is string && order.locationId.size() > 0
-          && order.totalAmount is number && order.totalAmount > 0
-          && order.orderDate == request.time
-          && order.status == 'pending'
-          && (order.idImageUrl is string || order.idImageUrl == null)
-          && order.keys().hasOnly(['userId', 'customerName', 'customerEmail', 'customerPhone', 'customerBirthDate', 'locationId', 'orderDate', 'totalAmount', 'status', 'idImageUrl']);
-    }
-
-    // Schema validation for OrderItem
-    function isValidOrderItem(item) {
-        return item.productId is string && item.productId.size() > 0
-            && item.productName is string && item.productName.size() > 0
-            && item.quantity is number && item.quantity > 0
-            && item.price is number && item.price >= 0
-            && item.keys().hasOnly(['productId', 'productName', 'quantity', 'price']);
-    }
-    
-    //============================================================
-    //  COLLECTION RULES
-    //============================================================
-
+    // Users can create and update their own profile
     match /users/{userId} {
-      allow read, write: if isCeo();
-      allow read, create, delete: if isOwner(userId);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data);
-    }
-
-    match /user-private/{userId} {
-      allow read, write: if isOwner(userId) || isCeo();
-    }
-
-    match /categories/{categoryId} {
-      // Publicly readable for menus.
-      allow get, list: if true;
-      // Prevent any writes from the client.
-      allow create, update, delete: if isCeo();
-    }
-
-    match /products/{productId} {
-      // Publicly readable for menus.
-      allow get, list: if true;
-      // Allow CEO to do anything
-      allow write: if isCeo();
-      // Allow authenticated users to update ONLY the 'likes' and 'dislikes' fields.
-      allow update: if isAuthenticated() && isUpdatingAllowedFields(['likes', 'dislikes']);
-    }
-
-    match /products/{productId}/reviews/{reviewId} {
-      // Allow anyone to read reviews for the AI summary feature.
-      allow get, list: if true;
-      allow write: if isCeo();
-      // Users can only create reviews for themselves and the data must be valid
-      allow create: if isAuthenticated() && isValidReview(request.resource.data);
-      // No updates or deletes to maintain review integrity
-      allow update, delete: if false;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    match /users/{userId}/orders/{orderId} {
-        // The user who owns the order can read, update, or delete it.
-        // A CEO/admin can also read or update any order.
-        allow get, update, list: if isOwner(userId) || isCeo();
-        allow delete: if isOwner(userId);
-        
-        // Allow order creation only if the user is authenticated (or a guest) and the data is valid.
-        allow create: if isValidOrder(request.resource.data) &&
-                       ((isAuthenticated() && isOwner(userId)) || userId == 'guest');
+    // Products - public read, authenticated write
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Reviews collection for a specific product
+    match /products/{productId}/reviews/{reviewId} {
+      allow read: if true; // Publicly readable
+      allow create: if request.auth != null; // Authenticated users can create
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid; // Only author can update/delete
+    }
+    
+    // Orders - users can access their own
+     match /users/{userId}/orders/{orderId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
 
-        // OrderItems rules
         match /orderItems/{orderItemId} {
-             allow read: if isOwner(userId) || isCeo();
-             // Allow creation only if the user is authenticated (or a guest) and the item data is valid.
-             allow create: if isValidOrderItem(request.resource.data) &&
-                            ((isAuthenticated() && isOwner(userId)) || userId == 'guest');
-             // Prevent direct updates or deletes of order items.
-             allow update, delete: if false;
+            allow read, write: if request.auth != null && request.auth.uid == userId;
         }
+    }
+    
+    // Publicly readable collections
+    match /categories/{categoryId} {
+        allow read: if true;
+        allow write: if false; // Client-side cannot write to categories
     }
   }
 }
