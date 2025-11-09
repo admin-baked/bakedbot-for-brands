@@ -5,7 +5,7 @@ service cloud.firestore {
     // CEO gets full access to everything - This is evaluated first.
     match /{document=**} {
       allow read, write: if request.auth != null && 
-        request.auth.token.email == 'martez@bakedbot.ai';
+        request.auth.uid == 'GrRRe2YR4zY0MT0PEfMPrPCsR5A3';
     }
     
     // Users can create and manage their own profile.
@@ -48,3 +48,4 @@ service cloud.firestore {
     }
   }
 }
+    

@@ -86,7 +86,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       async (firebaseUser) => {
         if (firebaseUser) {
-          const isCeo = firebaseUser.email === 'martez@bakedbot.ai';
+          const isCeo = firebaseUser.uid === 'GrRRe2YR4zY0MT0PEfMPrPCsR5A3';
           setIsCeoMode(isCeo);
           
           // "Upsert" user profile data.
@@ -214,3 +214,5 @@ export const useFirebaseApp = (): FirebaseApp | null => {
   const { firebaseApp } = useFirebase();
   return firebaseApp;
 };
+
+    
