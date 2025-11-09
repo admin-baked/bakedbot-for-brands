@@ -69,9 +69,6 @@ export default function LoginForm() {
             return;
         }
         const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({
-          'hd': 'brands.bakedbot.ai'
-        });
         try {
             await signInWithPopup(auth, provider);
             // The onAuthStateChanged listener in FirebaseProvider will handle the redirect
