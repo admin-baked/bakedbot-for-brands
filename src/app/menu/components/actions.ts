@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -108,7 +107,8 @@ export async function submitOrder(prevState: any, formData: FormData) {
     await batch.commit();
     console.log('✅ Batch committed successfully! Order ID:', newOrderRef.id);
 
-    // Email sending logic
+    // Temporarily disable email sending to isolate the Firestore issue.
+    /*
     const fulfillmentEmail = 'martezandco@gmail.com';
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const orderPageUrl = `${baseUrl}/order/${newOrderRef.id}?userId=${userId}`;
@@ -125,6 +125,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
       cartItems: cartItems,
       orderPageUrl: orderPageUrl,
     });
+    */
 
     return {
       message: 'Order submitted successfully!',
