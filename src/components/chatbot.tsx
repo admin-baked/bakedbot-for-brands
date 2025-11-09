@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent, useTransition, useActionState, useCallback } from 'react';
@@ -710,7 +711,3 @@ export default function Chatbot() {
         </>
       );
 }
-
-    
-
-    
