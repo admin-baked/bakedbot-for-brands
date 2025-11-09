@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { Minus, Plus, Trash2, PartyPopper, MapPin, ExternalLink, AlertTriangle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import CheckoutForm from './checkout-form';
+import { CheckoutForm } from './checkout-form';
 import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
 import Link from 'next/link';
@@ -102,7 +102,7 @@ export default function CartSidebar() {
                     </SheetDescription>
                      {orderId && (
                         <Button asChild variant="outline" className="mt-4" onClick={toggleCart}>
-                           <Link href={`/order/${orderId}`}>View Order Status</Link>
+                           <Link href={`/order/${orderId}?userId=guest`}>View Order Status</Link>
                         </Button>
                      )}
                     <Button onClick={() => { setStep('cart'); toggleCart(); }} className="mt-2 w-full">Continue Shopping</Button>
