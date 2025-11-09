@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
-import { collection, writeBatch, doc, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
 import { sendOrderEmail } from '@/ai/flows/send-order-email';
 import type { CartItem } from '@/lib/types';
 
@@ -58,9 +58,18 @@ export async function submitOrder(prevState: any, formData: FormData) {
   try {
     const batch = writeBatch(firestore);
 
-    // CRITICAL: Use correct Firestore path structure
-    // Path: /users/{userId}/orders/{orderId}
+    // CRITICAL: Ensure user document exists (especially for guest)
     const userDocRef = doc(firestore, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists() && userId === 'guest') {
+        console.log('📝 Creating user document for: guest');
+        // Create a placeholder document for the guest user
+        batch.set(userDocRef, { id: 'guest', role: 'guest' });
+        console.log('✅ Guest user document prepared');
+    }
+
+    // Path: /users/{userId}/orders/{orderId}
     const ordersCollectionRef = collection(userDocRef, 'orders');
     const newOrderRef = doc(ordersCollectionRef); // Auto-generate ID
     console.log('📍 Order path:', newOrderRef.path);
@@ -115,17 +124,22 @@ export async function submitOrder(prevState: any, formData: FormData) {
       error: false,
       orderId: newOrderRef.id,
     };
-  } catch (serverError: any) {
-    console.error('❌ Order submission error:', serverError);
-    console.error('Error details:', {
-      code: serverError.code,
-      message: serverError.message,
-      stack: serverError.stack,
-    });
+  } catch (error: any) {
+    console.error('❌ Order submission error:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
+    // Provide more specific error messages
+    if (error.code === 'permission-denied') {
+      return {
+        success: false,
+        message: 'Permission denied. Please check Firestore security rules.',
+      };
+    }
     
     return {
-      message: `Server error: ${serverError.message || 'Unknown error'}`,
-      error: true,
-    }
+      success: false,
+      message: `Server error: ${error.code || error.message}`,
+    };
   }
 }

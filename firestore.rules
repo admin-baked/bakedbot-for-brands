@@ -26,7 +26,8 @@ service cloud.firestore {
     
     // Guest users collection
     match /users/guest {
-        allow create: if request.auth == null; // Allow creation of the guest user "document" container if needed
+        // Allow creation of the guest user "document" container if needed
+        allow create: if request.auth == null; 
         
         // Guest users can create orders in their specific path
         match /orders/{orderId} {
