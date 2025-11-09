@@ -29,7 +29,7 @@ const initialState = {
 
 export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSuccess: (orderId: string) => void; selectedLocation: Location }) {
   const { user } = useUser();
-  const { items: cart, getCartTotal, clearCart } = useCart();
+  const { items, getCartTotal, clearCart } = useCart();
   const [state, formAction] = useFormState(submitOrder, initialState);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -49,9 +49,8 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
       console.log('✅ Order successful, redirecting...');
       clearCart();
       onOrderSuccess(state.orderId);
-      router.push(`/order/${state.orderId}?userId=${user?.uid || 'guest'}`);
     }
-  }, [state, onOrderSuccess, clearCart, router, user]);
+  }, [state, onOrderSuccess, clearCart]);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,7 +58,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
     setIdImageName(file ? file.name : null);
   };
   
-  if (cart.length === 0) {
+  if (items.length === 0) {
     return (
       <Alert>
          <AlertTitle>Your Cart is Empty</AlertTitle>
@@ -84,7 +83,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                     <input type="hidden" name="userId" value={user?.uid || 'guest'} />
                     <input type="hidden" name="locationId" value={selectedLocation.id} />
                     <input type="hidden" name="locationName" value={selectedLocation.name} />
-                    <input type="hidden" name="cartItems" value={JSON.stringify(cart)} />
+                    <input type="hidden" name="cartItems" value={JSON.stringify(items)} />
                     <input type="hidden" name="totalAmount" value={String(total)} />
                     {birthDate && <input type="hidden" name="customerBirthDate" value={birthDate.toISOString()} />}
 
@@ -144,7 +143,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                             <Upload className="h-4 w-4" />
                             <span className='truncate flex-1'>{idImageName || 'Upload a photo of your ID'}</span>
                         </Label>
-                        <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" onChange={handleFileChange} required/>
+                        <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" required/>
                     </div>
                     
                     {state?.message && state.error && (

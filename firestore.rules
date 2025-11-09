@@ -1,9 +1,55 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // TEMPORARY TEST MODE - ALLOW EVERYTHING
+    
+    // CEO gets everything
     match /{document=**} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == 'GrRRe2YR4zY0MT0PEfMPrPCsR5A3';
+    }
+    
+    // Guest user path
+    match /users/guest {
       allow read, write: if true;
+      
+      // Guest orders
+      match /orders/{orderId} {
+        allow read, write: if true;
+        
+        // Guest order items
+        match /orderItems/{itemId} {
+          allow read, write: if true;
+        }
+      }
+    }
+    
+    // Authenticated users
+    match /users/{userId} {
+      allow create: if request.auth != null;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // User orders
+      match /orders/{orderId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        
+        match /orderItems/{itemId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+      }
+    }
+    
+    // Products, locations, reviews are public-read
+    match /products/{productId} {
+      allow read: if true;
+      
+      match /reviews/{reviewId} {
+          allow read: if true;
+          allow create: if request.auth != null;
+      }
+    }
+    
+    match /locations/{locationId} {
+      allow read: if true;
     }
   }
 }
