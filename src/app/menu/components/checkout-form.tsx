@@ -2,7 +2,7 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import { useTransition, Suspense, useState, useEffect } from 'react';
+import { useTransition, Suspense, useState, useEffect, useRef } from 'react';
 import { Upload, CalendarIcon, Loader2, PartyPopper } from 'lucide-react';
 import { submitOrder } from './actions';
 import { useUser } from '@/firebase';
@@ -41,8 +41,11 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
   const taxes = subtotal * 0.15; // Example 15% tax rate
   const total = subtotal + taxes;
 
+  const processedOrderId = useRef<string | null>(null);
+
   useEffect(() => {
-    if (state && !state.error && state.orderId) {
+    if (state && !state.error && state.orderId && state.orderId !== processedOrderId.current) {
+      processedOrderId.current = state.orderId;
       console.log('✅ Order successful, redirecting...');
       clearCart();
       onOrderSuccess(state.orderId);
@@ -144,11 +147,16 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                         <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" onChange={handleFileChange} required/>
                     </div>
                     
-                    {state?.message && (
-                        <Alert variant={state.error ? 'destructive' : 'default'}>
-                             {state.error ? '❌' : '✅'}
-                            <AlertTitle>{state.error ? 'Submission Error' : 'Success!'}</AlertTitle>
+                    {state?.message && state.error && (
+                        <Alert variant='destructive'>
+                            <AlertTitle>Submission Error</AlertTitle>
                             <AlertDescription>{state.message}</AlertDescription>
+                        </Alert>
+                    )}
+                     {state?.message && !state.error && state.orderId && (
+                        <Alert variant='default'>
+                             <AlertTitle>Success!</AlertTitle>
+                             <AlertDescription>{state.message}</AlertDescription>
                         </Alert>
                     )}
                     

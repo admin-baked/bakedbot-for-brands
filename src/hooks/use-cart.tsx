@@ -2,7 +2,8 @@
 'use client';
 
 import * as React from 'react';
-import { type CartItem, type Product, type Location } from '@/lib/types';
+import { useCallback } from 'react';
+import { type CartItem, type Product } from '@/lib/types';
 import { create } from 'zustand';
 
 interface CartState {
@@ -14,7 +15,7 @@ interface CartState {
   updateItemPrices: (locationId: string | null, products: Product[]) => void;
   clearCart: () => void;
   toggleCart: () => void;
-  getCartTotal: (locationId?: string | null) => number;
+  getCartTotal: () => number;
   getItemCount: () => number;
 }
 
@@ -72,10 +73,8 @@ const useCartStore = create<CartState>((set, get) => ({
   },
   clearCart: () => set({ items: [] }),
   toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
-  getCartTotal: (locationId) => {
+  getCartTotal: () => {
     const { items } = get();
-    // This function can now optionally recalculate total based on a location
-    // but the primary source of truth is the item's price when added/updated.
     return items.reduce((total, item) => total + item.price * item.quantity, 0);
   },
   getItemCount: () => {
@@ -84,12 +83,111 @@ const useCartStore = create<CartState>((set, get) => ({
 }));
 
 
+// This is the new, memoized hook that consumers will use.
+const useStableCart = () => {
+  const store = useCartStore();
+
+  const addToCart = useCallback((product: Product, locationId?: string | null) => {
+    store.getState().addToCart(product, locationId);
+  }, []);
+
+  const removeFromCart = useCallback((itemId: string) => {
+    store.getState().removeFromCart(itemId);
+  }, []);
+
+  const updateQuantity = useCallback((itemId: string, quantity: number) => {
+    store.getState().updateQuantity(itemId, quantity);
+  }, []);
+  
+  const updateItemPrices = useCallback((locationId: string | null, products: Product[]) => {
+    store.getState().updateItemPrices(locationId, products);
+  }, []);
+
+  const clearCart = useCallback(() => {
+    store.getState().clearCart();
+  }, []);
+
+  const toggleCart = useCallback(() => {
+    store.getState().toggleCart();
+  }, []);
+  
+  const getCartTotal = useCallback(() => {
+    return store.getState().getCartTotal();
+  }, []);
+
+  const getItemCount = useCallback(() => {
+    return store.getState().getItemCount();
+  }, []);
+  
+  return {
+    items: store.items,
+    isCartOpen: store.isCartOpen,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    updateItemPrices,
+    clearCart,
+    toggleCart,
+    getCartTotal,
+    getItemCount
+  };
+}
+
+
 // Context provider setup
-const CartContext = React.createContext<CartState | undefined>(undefined);
+const CartContext = React.createContext<ReturnType<typeof useStableCart> | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
-    const store = useCartStore();
-    return <CartContext.Provider value={store}>{children}</CartContext.Provider>;
+    // We use the raw store state here, but the hook provides memoized functions
+    const items = useCartStore((state) => state.items);
+    const isCartOpen = useCartStore((state) => state.isCartOpen);
+
+    const addToCart = useCallback((product: Product, locationId?: string | null) => {
+        useCartStore.getState().addToCart(product, locationId);
+    }, []);
+
+    const removeFromCart = useCallback((itemId: string) => {
+        useCartStore.getState().removeFromCart(itemId);
+    }, []);
+
+    const updateQuantity = useCallback((itemId: string, quantity: number) => {
+        useCartStore.getState().updateQuantity(itemId, quantity);
+    }, []);
+
+    const updateItemPrices = useCallback((locationId: string | null, products: Product[]) => {
+        useCartStore.getState().updateItemPrices(locationId, products);
+    }, []);
+
+    const clearCart = useCallback(() => {
+        useCartStore.getState().clearCart();
+    }, []);
+
+    const toggleCart = useCallback(() => {
+        useCartStore.getState().toggleCart();
+    }, []);
+
+    const getCartTotal = useCallback(() => {
+        return useCartStore.getState().getCartTotal();
+    }, []);
+
+    const getItemCount = useCallback(() => {
+        return useCartStore.getState().getItemCount();
+    }, []);
+
+    const contextValue = {
+        items,
+        isCartOpen,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        updateItemPrices,
+        clearCart,
+        toggleCart,
+        getCartTotal,
+        getItemCount,
+    };
+
+    return <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>;
 };
 
 export const useCart = () => {
