@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Image from 'next/image';
@@ -74,11 +75,12 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
     const { selectedLocationId } = useStore();
     
     const priceDisplay = useMemo(() => {
+        const priceValues = Object.values(product.prices || {});
+
         if (selectedLocationId && product.prices?.[selectedLocationId]) {
             return `$${product.prices[selectedLocationId].toFixed(2)}`;
         }
-        
-        const priceValues = Object.values(product.prices || {});
+
         if (priceValues.length === 0) {
             return `$${product.price.toFixed(2)}`;
         }

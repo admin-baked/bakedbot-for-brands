@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo } from 'react';
@@ -58,13 +59,14 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
     const { selectedLocationId } = useStore();
     
     const priceDisplay = useMemo(() => {
+        if (!product.prices || Object.keys(product.prices).length === 0) {
+            return `$${product.price.toFixed(2)}`;
+        }
+    
+        const priceValues = Object.values(product.prices);
+
         if (selectedLocationId && product.prices?.[selectedLocationId]) {
             return `$${product.prices[selectedLocationId].toFixed(2)}`;
-        }
-        
-        const priceValues = Object.values(product.prices || {});
-        if (priceValues.length === 0) {
-            return `$${product.price.toFixed(2)}`;
         }
 
         const minPrice = Math.min(...priceValues);
@@ -80,7 +82,8 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        addToCart(product, selectedLocationId);
+        const price = selectedLocationId && product.prices?.[selectedLocationId] ? product.prices[selectedLocationId] : product.price;
+        addToCart({ ...product, price });
     };
 
     if (layout === 'alt') {
