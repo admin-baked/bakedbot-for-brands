@@ -66,7 +66,7 @@ export default function DispensaryLocator() {
 
     useEffect(() => {
         // This effect ensures that the fetched locations are persisted in the Zustand store.
-        if (_hasHydrated && menuLocations.length > 0 && storeLocations.length === 0) {
+        if (_hasHydrated && menuLocations && menuLocations.length > 0 && storeLocations.length === 0) {
             setLocations(menuLocations);
         }
     }, [_hasHydrated, menuLocations, storeLocations.length, setLocations]);
