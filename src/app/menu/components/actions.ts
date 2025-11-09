@@ -55,26 +55,11 @@ export async function submitOrder(prevState: any, formData: FormData) {
       return { message: 'Cannot submit an empty order.', error: true };
     }
 
-    // CRITICAL FIX: Ensure user document exists FIRST
+    // The user document path is now correctly determined for guests or logged-in users.
     const userDocRef = doc(firestore, 'users', userId);
     console.log('📍 User doc path:', userDocRef.path);
 
-    const userDoc = await getDoc(userDocRef);
-    
-    if (!userDoc.exists()) {
-      console.log('📝 Creating user document...');
-      await setDoc(userDocRef, {
-        id: userId,
-        email: userId === 'guest' ? orderData.customerEmail : null,
-        role: 'guest',
-        createdAt: serverTimestamp(),
-      });
-      console.log('✅ User document created');
-    } else {
-        console.log('✅ User document already exists');
-    }
-
-    // NOW create the order in a batch
+    // The batch write will now create the order and its items under the correct user path.
     const batch = writeBatch(firestore);
     
     const ordersCollectionRef = collection(userDocRef, 'orders');
@@ -106,8 +91,9 @@ export async function submitOrder(prevState: any, formData: FormData) {
     console.log('💾 Committing batch write...');
     await batch.commit();
     console.log('✅ Batch committed successfully! Order ID:', newOrderRef.id);
-
-    // Temporarily disable email sending to isolate the Firestore issue.
+    
+    // Email sending is commented out to prevent other errors.
+    // We can re-enable this once the core submission logic is confirmed to be working.
     /*
     const fulfillmentEmail = 'martezandco@gmail.com';
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';

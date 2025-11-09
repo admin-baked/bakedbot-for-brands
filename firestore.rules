@@ -8,36 +8,35 @@ service cloud.firestore {
         request.auth.uid == 'GrRRe2YR4zY0MT0PEfMPrPCsR5A3';
     }
     
-    // CRITICAL: Allow guest user document creation
-    match /users/guest {
-      allow read, write: if true; // Allow anyone to create/read guest doc
+    // Guest users can create orders under the 'guest' document.
+    // This rule allows unauthenticated users to create their own order.
+    match /users/guest/orders/{orderId} {
+      allow create: if request.auth == null;
       
-      // Guest orders
-      match /orders/{orderId} {
-        allow read, write: if true;
-        
-        match /orderItems/{itemId} {
-          allow read, write: if true;
-        }
+      // Allow read/write for guest order items as well during creation.
+      match /orderItems/{itemId} {
+        allow create: if request.auth == null;
       }
     }
-    
-    // Authenticated users
+
+    // Authenticated users can create their own user document.
     match /users/{userId} {
-      allow create: if request.auth != null;
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // Authenticated users can read and update their own user document.
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
       
-      // User orders
+      // Authenticated users can manage their own orders and order items.
       match /orders/{orderId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
         
         match /orderItems/{itemId} {
-          allow read, write: if request.auth != null && request.auth.uid == userId;
+          allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
         }
       }
     }
     
-    // Products, locations - public read
+    // Products and locations are public and can be read by anyone.
     match /products/{productId} {
       allow read: if true;
     }
