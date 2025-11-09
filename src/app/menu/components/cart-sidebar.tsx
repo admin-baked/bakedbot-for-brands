@@ -61,6 +61,11 @@ export default function CartSidebar() {
     removeFromCart,
     getCartTotal,
   } = useCart();
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   const { selectedLocationId } = useStore();
 
@@ -76,7 +81,7 @@ export default function CartSidebar() {
             <SheetTitle>Your Cart</SheetTitle>
           </SheetHeader>
           <SelectedLocationHeader />
-        {items.length > 0 ? (
+        {isClient && items.length > 0 ? (
         <>
             <ScrollArea className="flex-1">
             <div className="px-6 divide-y">
@@ -129,7 +134,7 @@ export default function CartSidebar() {
             <div className="w-full space-y-4">
                 <div className="flex justify-between font-semibold">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>${subtotal}</span>
                 </div>
                 <Button 
                     className="w-full"

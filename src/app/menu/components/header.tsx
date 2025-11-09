@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -6,9 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Search, ShoppingBag, User } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 export default function Header() {
     const { toggleCart, getItemCount } = useCart();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     const itemCount = getItemCount();
     const pathname = usePathname();
 
@@ -40,7 +48,7 @@ export default function Header() {
              <Button variant="ghost" size="icon" onClick={toggleCart}>
               <ShoppingBag className="h-5 w-5" />
             </Button>
-            {itemCount > 0 && (
+            {isClient && itemCount > 0 && (
                 <Badge
                     variant="destructive"
                     className="absolute -top-2 -right-2 h-5 w-5 justify-center rounded-full p-0"
