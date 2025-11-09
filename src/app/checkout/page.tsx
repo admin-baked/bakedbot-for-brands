@@ -15,12 +15,13 @@ import { Button } from '@/components/ui/button';
 
 export default function CheckoutPage() {
     const { items, getCartTotal, clearCart } = useCart();
-    const { locations, selectedLocationId, _hasHydrated } = useStore(state => ({
-        locations: state.locations,
-        selectedLocationId: state.selectedLocationId,
-        _hasHydrated: state._hasHydrated,
-    }));
     const router = useRouter();
+
+    // CORRECT: Subscribe to each piece of state individually.
+    const locations = useStore(state => state.locations);
+    const selectedLocationId = useStore(state => state.selectedLocationId);
+    const _hasHydrated = useStore(state => state._hasHydrated);
+
 
     const handleOrderSuccess = (orderId: string) => {
         if (orderId) {
