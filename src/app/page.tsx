@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { PenSquare, Plus, ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
 import CartSidebar from '@/app/menu/components/cart-sidebar';
-import { type Product } from '@/lib/types';
+import { type Product, type Location } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Chatbot from '@/components/chatbot';
 import { useMenuData } from '@/hooks/use-menu-data';
@@ -53,7 +53,7 @@ const DispensaryLocatorSkeleton = () => (
 
 const SKELETON_CATEGORIES = ['Edibles', 'Flower', 'Vapes'];
 
-const ProductCard = ({ product, layout = 'default' }: { product: Product, layout?: 'default' | 'alt' }) => {
+const ProductCard = ({ product, layout = 'default', locations }: { product: Product, layout?: 'default' | 'alt', locations: Location[] }) => {
     const { addToCart } = useCart();
     const { selectedLocationId } = useStore();
     
@@ -134,7 +134,7 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
                 <CardContent className="p-4 bg-card flex-1">
                     <Badge variant="secondary">{product.category}</Badge>
                     <CardTitle className="mt-2 text-lg truncate font-semibold">{product.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">AVAILABLE AT 3 LOCATIONS</p>
+                    <p className="text-sm text-muted-foreground mt-1">AVAILABLE AT {locations.length} LOCATIONS</p>
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                             <ThumbsUp className="h-3 w-3 text-green-500" />
@@ -183,7 +183,7 @@ const groupProductsByCategory = (products: Product[]) => {
     }, {} as Record<string, Product[]>);
 }
 
-const DefaultLayout = ({ products, groupedProducts, categories, showSkeletons }: { products: Product[], groupedProducts: Record<string, Product[]>, categories: string[], showSkeletons: boolean }) => (
+const DefaultLayout = ({ products, groupedProducts, categories, showSkeletons, locations }: { products: Product[], groupedProducts: Record<string, Product[]>, categories: string[], showSkeletons: boolean, locations: Location[] }) => (
     <>
         <HeroSlider products={products} />
         <div className="text-center mb-12">
@@ -219,7 +219,7 @@ const DefaultLayout = ({ products, groupedProducts, categories, showSkeletons }:
                         </h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
                             {groupedProducts[category].map(product => (
-                                <ProductCard key={product.id} product={product} layout="default"/>
+                                <ProductCard key={product.id} product={product} layout="default" locations={locations}/>
                             ))}
                         </div>
                     </section>
@@ -229,7 +229,7 @@ const DefaultLayout = ({ products, groupedProducts, categories, showSkeletons }:
     </>
 );
 
-const AltLayout = ({ products, groupedProducts, categories, showSkeletons }: { products: Product[], groupedProducts: Record<string, Product[]>, categories: string[], showSkeletons: boolean }) => {
+const AltLayout = ({ products, groupedProducts, categories, showSkeletons, locations }: { products: Product[], groupedProducts: Record<string, Product[]>, categories: string[], showSkeletons: boolean, locations: Location[] }) => {
     const featuredProduct = products ? products.find(p => p.id === '5') : null;
     return (
         <>
@@ -266,7 +266,7 @@ const AltLayout = ({ products, groupedProducts, categories, showSkeletons }: { p
                             </h2>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                                 {groupedProducts[category]?.map(product => (
-                                    <ProductCard key={product.id} product={product} layout="alt" />
+                                    <ProductCard key={product.id} product={product} layout="alt" locations={locations} />
                                 ))}
                             </div>
                         </section>
@@ -278,7 +278,7 @@ const AltLayout = ({ products, groupedProducts, categories, showSkeletons }: { p
 };
 
 export default function HomePage() {
-    const { products, isLoading, isHydrated } = useMenuData();
+    const { products, locations, isLoading, isHydrated } = useMenuData();
     const { menuStyle, selectedLocationId } = useStore();
     const { updateItemPrices } = useCart();
     
@@ -301,7 +301,7 @@ export default function HomePage() {
         <div className="min-h-screen bg-background">
             <Header />
             <main className="container mx-auto px-4 py-8">
-                 <LayoutComponent products={products || []} groupedProducts={groupedProducts} categories={categories} showSkeletons={showSkeletons} />
+                 <LayoutComponent products={products || []} groupedProducts={groupedProducts} categories={categories} showSkeletons={showSkeletons} locations={locations || []} />
             </main>
             <CartSidebar />
             <FloatingCartPill />
@@ -309,3 +309,5 @@ export default function HomePage() {
         </div>
     );
 }
+
+    
