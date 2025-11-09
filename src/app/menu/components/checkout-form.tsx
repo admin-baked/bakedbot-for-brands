@@ -134,6 +134,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
 
     return (
         <form action={handleSubmit} className="space-y-6">
+             <input type="hidden" name="locationId" value={selectedLocationId || ''} />
              <div>
                 <h3 className="text-lg font-semibold">Your Information</h3>
                 <div className="mt-4 grid grid-cols-1 gap-4">
@@ -143,13 +144,13 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
                         {state.fieldErrors?.customerName && <p className="text-sm text-destructive">{state.fieldErrors.customerName[0]}</p>}
                     </div>
                      <div className="space-y-1">
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" name="customerEmail" type="email" required defaultValue={user?.email || ''} />
+                        <Label htmlFor="customerEmail">Email</Label>
+                        <Input id="customerEmail" name="customerEmail" type="email" required defaultValue={user?.email || ''} />
                         {state.fieldErrors?.customerEmail && <p className="text-sm text-destructive">{state.fieldErrors.customerEmail[0]}</p>}
                     </div>
                      <div className="space-y-1">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input id="phone" name="customerPhone" type="tel" placeholder="(555) 123-4567" required defaultValue={user?.phoneNumber || ''} />
+                        <Label htmlFor="customerPhone">Phone Number</Label>
+                        <Input id="customerPhone" name="customerPhone" type="tel" placeholder="(555) 123-4567" required defaultValue={user?.phoneNumber || ''} />
                         {state.fieldErrors?.customerPhone && <p className="text-sm text-destructive">{state.fieldErrors.customerPhone[0]}</p>}
                     </div>
                 </div>
