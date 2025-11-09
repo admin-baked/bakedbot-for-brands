@@ -84,39 +84,47 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      async (firebaseUser) => {
-        if (firebaseUser) {
-          const isCeo = firebaseUser.uid === 'GrRRe2YR4zY0MT0PEfMPrPCsR5A3';
-          setIsCeoMode(isCeo);
-          
-          // "Upsert" user profile data.
-          const userDocRef = doc(firestore, 'users', firebaseUser.uid);
-          
-          const newUser = {
-            id: firebaseUser.uid,
-            email: firebaseUser.email,
-            firstName: firebaseUser.displayName?.split(' ')[0] ?? '',
-            lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') ?? '',
-            onboardingCompleted: isCeo, // Skip onboarding for CEO
-            role: isCeo ? 'ceo' : null,
-          };
+      async (user) => {
+        if (user) {
+          const userDocRef = doc(firestore, 'users', user.uid);
+          const isCEO = user.uid === 'GrRRe2YR4zY0MT0PEfMPrPCsR5A3';
+          setIsCeoMode(isCEO);
 
-          // Use set with merge to create or update the user document.
-          setDoc(userDocRef, newUser, { merge: true }).catch((serverError) => {
-              const permissionError = new FirestorePermissionError({
-                path: userDocRef.path,
-                operation: 'write', 
-                requestResourceData: newUser,
-              });
-              errorEmitter.emit('permission-error', permissionError);
+          // Check if the user document already exists
+          const userDocSnap = await getDoc(userDocRef).catch(err => {
+              console.error("Error fetching user document:", err);
+              // Don't throw, allow app to continue. The creation might fail too but we'll handle that.
+              return null;
           });
 
+          if (userDocSnap && !userDocSnap.exists()) {
+            // Only create if document doesn't exist
+            const displayNameParts = user.displayName?.split(' ') || [];
+            const newUser = {
+              id: user.uid,
+              email: user.email || '',
+              firstName: displayNameParts[0] || '',
+              lastName: displayNameParts.slice(1).join(' ') || '',
+              onboardingCompleted: isCEO ? true : false, // Skip onboarding for CEO
+              role: isCEO ? 'ceo' : null, // Auto-assign CEO role
+            };
+
+            // Use set with merge to create or update the user document.
+            setDoc(userDocRef, newUser, { merge: true }).catch((serverError) => {
+                const permissionError = new FirestorePermissionError({
+                  path: userDocRef.path,
+                  operation: 'write', 
+                  requestResourceData: newUser,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
+          }
         } else {
           // No user, ensure CEO mode is off
           setIsCeoMode(false);
         }
         
-        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+        setUserAuthState({ user: user, isUserLoading: false, userError: null });
       },
       (error) => { // Auth listener error
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
@@ -214,5 +222,3 @@ export const useFirebaseApp = (): FirebaseApp | null => {
   const { firebaseApp } = useFirebase();
   return firebaseApp;
 };
-
-    
