@@ -7,43 +7,39 @@ service cloud.firestore {
       allow read, write: if request.auth != null && 
         request.auth.uid == 'GrRRe2YR4zY0MT0PEfMPrPCsR5A3';
     }
-    
-    // Guest user path
-    match /users/guest {
+
+    // GUEST CHECKOUT: Open access for guest cart and orders.
+    // This allows unauthenticated server actions to create orders for guests.
+    match /users/guest/{document=**} {
       allow read, write: if true;
-      
-      // Guest orders
-      match /orders/{orderId} {
-        allow read, write: if true;
-        
-        // Guest order items
-        match /orderItems/{itemId} {
-          allow read, write: if true;
-        }
-      }
     }
     
-    // Authenticated users
+    // AUTHENTICATED USERS: Secure access to their own data.
     match /users/{userId} {
+      // Allow user creation on signup.
       allow create: if request.auth != null;
+      // Allow users to read and write their own profile document.
       allow read, write: if request.auth != null && request.auth.uid == userId;
       
-      // User orders
+      // USER ORDERS: Users can only access their own orders.
       match /orders/{orderId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
         
+        // USER ORDER ITEMS: Users can only access items within their own orders.
         match /orderItems/{itemId} {
           allow read, write: if request.auth != null && request.auth.uid == userId;
         }
       }
     }
     
-    // Products, locations, reviews are public-read
+    // PUBLIC DATA: Products, locations, and reviews are public-read.
     match /products/{productId} {
       allow read: if true;
+      allow update: if true; // Allow feedback updates
       
       match /reviews/{reviewId} {
           allow read: if true;
+          // Allow any authenticated user to create a review.
           allow create: if request.auth != null;
       }
     }
