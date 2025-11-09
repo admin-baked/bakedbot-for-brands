@@ -1,8 +1,9 @@
 
 'use client';
 
-import { useActionState, useTransition } from 'react';
-import { Upload } from 'lucide-react';
+import { useFormState, useFormStatus } from 'react-dom';
+import { useTransition } from 'react';
+import { Upload, CalendarIcon, Loader2 } from 'lucide-react';
 import { submitOrder } from './actions';
 import { useUser } from '@/firebase';
 import { useCart } from '@/hooks/use-cart';
@@ -15,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 
@@ -30,7 +30,7 @@ export function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: (orde
   const { user } = useUser();
   const { items: cart, getCartTotal } = useCart();
   const { selectedLocationId, locations } = useStore();
-  const [state, formAction] = useActionState(submitOrder, initialState);
+  const [state, formAction] = useFormState(submitOrder, initialState);
   const [isPending, startTransition] = useTransition();
 
   const [birthDate, setBirthDate] = useState<Date | undefined>();
