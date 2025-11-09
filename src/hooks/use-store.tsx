@@ -147,8 +147,21 @@ const createHydratableStore = (initialState: StoreState) => {
                 setHasHydrated: (hydrated: boolean) => set({ _hasHydrated: hydrated }),
             }),
             {
-                name: 'smokey-store',
+                name: 'bakedbot-storage',
                 storage: createJSONStorage(() => cookieStorage),
+                partialize: (state) => ({ 
+                    selectedLocationId: state.selectedLocationId,
+                    theme: state.theme,
+                    menuStyle: state.menuStyle,
+                    chatbotIcon: state.chatbotIcon,
+                    chatExperience: state.chatExperience,
+                    brandColor: state.brandColor,
+                    brandUrl: state.brandUrl,
+                    basePrompt: state.basePrompt,
+                    welcomeMessage: state.welcomeMessage,
+                    navLinks: state.navLinks,
+                    locations: state.locations,
+                 }),
                 onRehydrateStorage: () => (state) => {
                     if (state) {
                         state.setHasHydrated(true);

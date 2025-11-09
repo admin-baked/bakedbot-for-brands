@@ -7,6 +7,7 @@ import { collection, writeBatch, doc, serverTimestamp } from 'firebase/firestore
 import { revalidatePath } from 'next/cache';
 import type { CartItem, Location } from '@/lib/types';
 import { sendOrderEmail } from '@/ai/flows/send-order-email';
+import { useStore } from '@/hooks/use-store';
 
 
 const CheckoutSchema = z.object({
@@ -18,23 +19,24 @@ const CheckoutSchema = z.object({
   locationId: z.string().min(1, 'Please select a pickup location.'),
   cartItems: z.string().min(1, 'Your cart is empty.'),
   totalAmount: z.coerce.number().positive('Total amount must be positive.'),
-  locations: z.string(),
   // For now, we'll make the image optional on the server-side
   // as we are not handling file uploads yet.
   idImage: z.any().optional(),
 });
 
 export async function submitOrder(prevState: any, formData: FormData) {
+  const { locations } = useStore.getState(); // Get locations from the server-side store state
+  const locationId = formData.get('locationId') as string;
+
   const validatedFields = CheckoutSchema.safeParse({
     userId: formData.get('userId'),
     customerName: formData.get('customerName'),
     customerEmail: formData.get('customerEmail'),
     customerPhone: formData.get('customerPhone'),
     customerBirthDate: formData.get('customerBirthDate'),
-    locationId: formData.get('locationId'),
+    locationId: locationId,
     cartItems: formData.get('cartItems'),
     totalAmount: formData.get('totalAmount'),
-    locations: formData.get('locations'),
     idImage: formData.get('idImage'),
   });
 
@@ -47,25 +49,25 @@ export async function submitOrder(prevState: any, formData: FormData) {
   }
   
   const { firestore } = await createServerClient();
-  const { userId, cartItems: cartItemsJson, locations: locationsJson, idImage, ...orderData } = validatedFields.data;
+  const { userId, cartItems: cartItemsJson, idImage, ...orderData } = validatedFields.data;
   
   const cartItems: CartItem[] = JSON.parse(cartItemsJson);
   if (cartItems.length === 0) {
     return { message: 'Cannot submit an empty order.', error: true };
   }
   
-  const allLocations: Location[] = JSON.parse(locationsJson);
-  const selectedLocation = allLocations.find(loc => loc.id === orderData.locationId);
-  const fulfillmentEmail = selectedLocation?.email || 'martezandco@gmail.com'; // Default for testing
+  const selectedLocation = locations.find(loc => loc.id === locationId);
+  // Fallback email for testing or if location email is not set
+  const fulfillmentEmail = selectedLocation?.email || 'martezandco@gmail.com';
 
   // A batch allows us to perform multiple writes as a single atomic unit.
   const batch = writeBatch(firestore);
 
   // 1. Create the main Order document
-  const orderCollectionRef = userId === 'guest' 
-    ? collection(firestore, 'users', 'guest', 'orders')
-    : collection(firestore, 'users', userId, 'orders');
-  const orderRef = doc(orderCollectionRef);
+  const orderCollectionPath = userId === 'guest' 
+    ? 'users/guest/orders'
+    : `users/${userId}/orders`;
+  const orderRef = doc(collection(firestore, orderCollectionPath));
   
   const fullOrderData = {
     ...orderData,
