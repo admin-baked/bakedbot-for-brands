@@ -4,7 +4,7 @@
 import { useStore } from './use-store';
 import { useProducts } from '@/firebase/firestore/use-products';
 import { useDemoData } from './use-demo-data';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { Product } from '@/lib/types';
 import type { Location } from '@/hooks/use-store';
 
@@ -12,18 +12,34 @@ import type { Location } from '@/hooks/use-store';
  * A unified hook to get menu data (products and locations).
  * It intelligently switches between static demo data and live Firestore data.
  * If live data is empty or not available, it reliably falls back to demo data.
- * This ensures that both server and client renders are consistent, preventing hydration errors.
+ * This hook is now also responsible for populating the Zustand store with locations.
  */
 export function useMenuData() {
-  const { isUsingDemoData, _hasHydrated, locations: storeLocations } = useStore(state => ({
+  const { 
+    isUsingDemoData, 
+    _hasHydrated, 
+    locations: storeLocations, 
+    setLocations 
+  } = useStore(state => ({
     isUsingDemoData: state.isUsingDemoData,
     _hasHydrated: state._hasHydrated,
     locations: state.locations,
+    setLocations: state.setLocations,
   }));
 
-  // Fetch both sets of data, but only one will be used.
   const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useProducts();
   const { products: demoProducts, locations: demoLocations } = useDemoData();
+
+  // Effect to populate the store with locations if it's empty
+  useEffect(() => {
+    // Only run on the client, after hydration, and if the store has no locations
+    if (_hasHydrated && storeLocations.length === 0) {
+      // For now, we use the demoLocations as the canonical source to load into the store.
+      // In a real app, this would be where you fetch from an API.
+      setLocations(demoLocations);
+    }
+  }, [_hasHydrated, storeLocations.length, demoLocations, setLocations]);
+
 
   // Memoize the result to stabilize the array references
   const memoizedData = useMemo(() => {
@@ -50,9 +66,9 @@ export function useMenuData() {
     return {
       products: finalProducts,
       locations: finalLocations,
-      isLoading: isFirestoreLoading,
+      isLoading: isFirestoreLoading || (storeLocations.length === 0 && _hasHydrated), // Also loading if we are about to populate locations
       error: error,
-      isUsingDemoData: !firestoreProducts || firestoreProducts.length === 0,
+      isUsingDemoData: !isFirestoreLoading && (!firestoreProducts || firestoreProducts.length === 0),
     };
   }, [isUsingDemoData, _hasHydrated, firestoreProducts, storeLocations, demoProducts, demoLocations, isFirestoreLoading, error]);
 
