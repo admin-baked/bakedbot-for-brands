@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -57,6 +58,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
 
   const batch = writeBatch(firestore);
 
+  // CRITICAL FIX: Use the correct path based on user login status.
   const orderCollectionPath = userId === 'guest' 
     ? 'users/guest/orders'
     : `users/${userId}/orders`;
@@ -71,6 +73,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
   };
   batch.set(orderRef, fullOrderData);
 
+  // CRITICAL FIX: Create order items in the correct subcollection.
   for (const item of cartItems) {
     const orderItemRef = doc(collection(orderRef, 'orderItems'));
     const itemData = {
@@ -88,6 +91,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
     revalidatePath('/dashboard/orders');
     revalidatePath('/menu');
 
+    // This part is for sending an email and can be adjusted
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const orderPageUrl = `${baseUrl}/order/${orderRef.id}`;
     const brandOwners = ['jack@bakedbot.ai', 'martez@bakedbot.com', 'vip@bakedbot.ai'];
