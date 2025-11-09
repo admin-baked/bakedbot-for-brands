@@ -5,9 +5,6 @@ import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import type { CartItem } from '@/lib/types';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-
 
 const CheckoutSchema = z.object({
   userId: z.string(),
@@ -95,17 +92,8 @@ export async function submitOrder(prevState: any, formData: FormData) {
   } catch (error: any) {
     console.error('❌ Order submission failed:', error);
     
-    // This is a generic way to handle potential permission errors
-    // during the batch commit, though more specific path info might be lost.
-    if (error.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({
-            path: `users/${userId}/orders`,
-            operation: 'create',
-            requestResourceData: { details: 'Batch write failed.'}
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    }
-    
+    // The server action can't trigger a client-side event emitter.
+    // It should just return an error state to the client form.
     return {
       error: true,
       message: error.message || 'An unknown error occurred during order submission.',
