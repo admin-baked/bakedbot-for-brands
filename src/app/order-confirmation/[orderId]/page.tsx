@@ -60,7 +60,7 @@ function OrderPageClient() {
 
     // For guest checkouts, the userId will be in the query params
     const urlUserId = searchParams.get('userId');
-    const finalUserId = user?.uid || urlUserId || 'guest';
+    const finalUserId = user?.uid || urlUserId;
 
     // The useOrder hook will need the userId to construct the path
     const { data: order, items, isLoading, error } = useOrder(orderId, finalUserId);

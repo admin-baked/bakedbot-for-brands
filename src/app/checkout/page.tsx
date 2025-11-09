@@ -75,10 +75,13 @@ export default function CheckoutPage() {
   const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
   const { subtotal, taxes, total } = getCartTotal();
 
-  const handleOrderSuccess = (orderId: string) => {
+  const handleOrderSuccess = (orderId: string, userId?: string) => {
     if (orderId) {
         clearCart();
-        router.push(`/order-confirmation/${orderId}`);
+        const confirmationUrl = userId
+            ? `/order-confirmation/${orderId}?userId=${userId}`
+            : `/order-confirmation/${orderId}`;
+        router.push(confirmationUrl);
     }
   };
 

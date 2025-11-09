@@ -142,6 +142,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
       message: 'Order submitted successfully!',
       error: false,
       orderId: newOrderRef.id,
+      userId: userId,
     };
   } catch (error: any) {
     console.error('❌ Order submission failed:', error);

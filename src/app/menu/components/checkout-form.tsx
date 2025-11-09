@@ -23,6 +23,7 @@ const initialState = {
   error: false,
   fieldErrors: {},
   orderId: null,
+  userId: null,
 };
 
 function SubmitButton() {
@@ -35,7 +36,7 @@ function SubmitButton() {
     )
 }
 
-export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSuccess: (orderId: string) => void; selectedLocation: Location }) {
+export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSuccess: (orderId: string, userId?: string) => void; selectedLocation: Location }) {
   const { user } = useUser();
   const { items } = useCart();
   const [state, formAction] = useFormState(submitOrder, initialState);
@@ -50,7 +51,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
         console.error("Server Action Error:", state.message);
     } else if (state.message && !state.error && state.orderId) {
         // On success, call the parent handler
-        onOrderSuccess(state.orderId);
+        onOrderSuccess(state.orderId, state.userId);
     }
   }, [state, onOrderSuccess]);
 
