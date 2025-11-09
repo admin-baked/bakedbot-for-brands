@@ -81,19 +81,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
   
   React.useEffect(() => {
-    // If user is loaded and not null
-    if (!isUserLoading && user) {
-        // If profile is loaded and onboarding is not complete, redirect
-        if (!isProfileLoading && userProfile && !userProfile.onboardingCompleted) {
-             if (pathname !== '/onboarding') {
-                router.replace('/onboarding');
-            }
-        }
-    } else if (!isUserLoading && !user) {
-         // If not loading and no user, send to login
-        router.replace('/brand-login');
+    const isAuthPage = pathname === '/brand-login' || pathname.startsWith('/auth/callback');
+
+    // Wait until loading is false before making any decisions
+    if (isUserLoading || isProfileLoading) {
+        return;
     }
-  }, [isUserLoading, user, isProfileLoading, userProfile, router, pathname]);
+
+    if (user) {
+        // User is logged in
+        if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
+            // User is logged in but hasn't completed onboarding, redirect them
+            router.replace('/onboarding');
+        } else if (userProfile?.onboardingCompleted && isAuthPage) {
+            // User is logged in, has completed onboarding, and is on an auth page, redirect to dashboard
+            router.replace('/dashboard');
+        }
+    } else {
+        // User is not logged in, protect non-auth pages
+        if (!isAuthPage && pathname !== '/onboarding') { // Also allow access to onboarding page if not logged in
+             router.replace('/brand-login');
+        }
+    }
+  }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router]);
+
 
   const handleSignOut = async () => {
     try {
