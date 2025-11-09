@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -59,36 +58,32 @@ const DispensaryCard = ({ location, isSelected, onSelect }: { location: Location
 
 export default function DispensaryLocator() {
     const { toast } = useToast();
-    const { data: menuLocations, isLoading: areLocationsLoading } = useMenuData();
+    const { data: menuLocations } = useMenuData();
     const { selectedLocationId, setSelectedLocationId, setLocations, locations: storeLocations, _hasHydrated } = useStore();
     const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>([]);
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
     useEffect(() => {
-        // Step 1: Persist fetched locations to the global store if it's empty.
-        // This ensures the data is available on subsequent page loads.
-        if (_hasHydrated && menuLocations && menuLocations.length > 0 && storeLocations.length === 0) {
-            setLocations(menuLocations);
-        }
-    }, [_hasHydrated, menuLocations, storeLocations, setLocations]);
-
-
-    useEffect(() => {
-        // Step 2: Main logic for geolocation and sorting.
-        // Wait for hydration and for locations to be available in the store.
-        if (!_hasHydrated || (!areLocationsLoading && storeLocations.length === 0)) {
-            setStatus('loading');
+        // Step 1: Wait for hydration
+        if (!_hasHydrated) {
             return;
         }
 
-        const locationsToUse = storeLocations;
+        // Determine which locations to use
+        const locationsToProcess = storeLocations.length > 0 ? storeLocations : menuLocations;
 
-        if (locationsToUse.length === 0) {
+        // Step 2: Load locations into store if not already present
+        if (locationsToProcess && locationsToProcess.length > 0 && storeLocations.length === 0) {
+            setLocations(locationsToProcess);
+        }
+
+        if (!locationsToProcess || locationsToProcess.length === 0) {
             setStatus('success'); // No locations to show, but not an error
             setSortedLocations([]);
             return;
         }
-
+        
+        // Step 3: Request Geolocation
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -96,7 +91,7 @@ export default function DispensaryLocator() {
                         lat: position.coords.latitude,
                         lon: position.coords.longitude
                     };
-                    const locationsWithDistance = locationsToUse
+                    const locationsWithDistance = locationsToProcess
                         .filter(loc => loc.lat && loc.lon)
                         .map(loc => {
                             const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
@@ -113,7 +108,7 @@ export default function DispensaryLocator() {
                         title: 'Location Info',
                         description: 'Could not get your location. Showing default dispensaries.'
                     });
-                    setSortedLocations(locationsToUse.slice(0, 3));
+                    setSortedLocations(locationsToProcess.slice(0, 3));
                     setStatus('error');
                 }
             );
@@ -123,10 +118,10 @@ export default function DispensaryLocator() {
                 title: 'Location Info',
                 description: 'Geolocation is not supported by your browser.'
             });
-            setSortedLocations(locationsToUse.slice(0, 3));
+            setSortedLocations(locationsToProcess.slice(0, 3));
             setStatus('error');
         }
-    }, [_hasHydrated, areLocationsLoading, storeLocations, toast]);
+    }, [_hasHydrated, menuLocations, storeLocations, setLocations, toast]);
 
 
     if (status === 'loading') {
@@ -165,4 +160,3 @@ export default function DispensaryLocator() {
         </div>
     );
 }
-
