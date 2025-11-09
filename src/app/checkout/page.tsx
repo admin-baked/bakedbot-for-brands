@@ -41,7 +41,7 @@ function CheckoutPageClient() {
     const { subtotal, taxes, total } = getCartTotal();
     
     // Redirect if prerequisites are not met
-    if (typeof window !== 'undefined' && (!selectedLocationId || !selectedLocation || items.length === 0)) {
+    if (typeof window !== 'undefined' && (!selectedLocationId || !selectedLocation)) {
         router.replace('/menu');
         return (
             <div className="flex flex-col h-screen items-center justify-center text-center py-20">
