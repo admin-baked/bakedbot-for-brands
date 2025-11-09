@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { Upload, CalendarIcon, Loader2 } from 'lucide-react';
 import { submitOrder } from './actions';
 import { useUser } from '@/firebase';
@@ -17,13 +18,22 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Location } from '@/lib/types';
 
-
 const initialState = {
   message: '',
   error: false,
   fieldErrors: {},
   orderId: null,
 };
+
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" className="w-full" disabled={pending}>
+            {pending ? <Loader2 className="mr-2 animate-spin" /> : null}
+            {pending ? 'Submitting...' : 'Submit Order'}
+        </Button>
+    )
+}
 
 export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSuccess: (orderId: string) => void; selectedLocation: Location }) {
   const { user } = useUser();
@@ -35,18 +45,22 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
 
   const { total } = getCartTotal();
 
+  // This effect will run when the server action completes
   useEffect(() => {
-    if (state && !state.error && state.orderId) {
-      onOrderSuccess(state.orderId);
+    if (state.message && state.error) {
+        // Handle and display errors from the server action
+        console.error("Server Action Error:", state.message);
+    } else if (state.message && !state.error && state.orderId) {
+        // On success, call the parent handler
+        onOrderSuccess(state.orderId);
     }
   }, [state, onOrderSuccess]);
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setIdImageName(file ? file.name : null);
   };
-  
-  const { pending } = useFormStatus();
   
   return (
      <div className="space-y-6">
@@ -56,13 +70,14 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
             </CardHeader>
             <CardContent>
                 <form action={formAction} className="space-y-4">
+                    {/* Hidden inputs to pass necessary data to the server action */}
                     <input type="hidden" name="userId" value={user?.uid || 'guest'} />
                     <input type="hidden" name="locationId" value={selectedLocation.id} />
-                    <input type="hidden" name="locationName" value={selectedLocation.name} />
                     <input type="hidden" name="cartItems" value={JSON.stringify(items)} />
                     <input type="hidden" name="totalAmount" value={String(total)} />
                     {birthDate && <input type="hidden" name="customerBirthDate" value={birthDate.toISOString()} />}
 
+                    {/* Form Fields */}
                     <div>
                         <Label htmlFor="customerName">Full Name</Label>
                         <Input id="customerName" name="customerName" required defaultValue={user?.displayName || ''} />
@@ -114,12 +129,13 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                     </div>
 
                     <div className="space-y-1">
-                        <Label htmlFor="idImage">Upload ID</Label>
+                        <Label htmlFor="idImage">Upload ID (Required)</Label>
                         <Label htmlFor="idImage" className={cn("flex items-center gap-2 cursor-pointer rounded-md border border-input px-3 py-2 text-sm", idImageName ? "text-primary" : "text-muted-foreground")}>
                             <Upload className="h-4 w-4" />
                             <span className='truncate flex-1'>{idImageName || 'Upload a photo of your ID'}</span>
                         </Label>
                         <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" onChange={handleFileChange} required/>
+                         {state?.fieldErrors?.idImage && <p className="text-sm text-destructive mt-1">{state.fieldErrors.idImage[0]}</p>}
                     </div>
                     
                     {state?.message && state.error && (
@@ -129,10 +145,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                         </Alert>
                     )}
                     
-                    <Button type="submit" className="w-full" disabled={pending}>
-                        {pending ? <Loader2 className="mr-2 animate-spin" /> : null}
-                        Submit Order
-                    </Button>
+                    <SubmitButton />
                 </form>
             </CardContent>
         </Card>

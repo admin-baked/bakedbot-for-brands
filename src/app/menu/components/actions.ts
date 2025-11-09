@@ -1,9 +1,13 @@
+
 'use server';
 
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import type { CartItem } from '@/lib/types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
 
 const CheckoutSchema = z.object({
   userId: z.string(),
@@ -18,12 +22,9 @@ const CheckoutSchema = z.object({
 });
 
 export async function submitOrder(prevState: any, formData: FormData) {
-  console.log('🚀 START submitOrder');
-  console.log('📋 FormData:', Object.fromEntries(formData));
-
   const { firestore } = await createServerClient();
   const userId = (formData.get('userId') as string) || 'guest';
-  console.log('👤 User ID:', userId);
+  console.log('🚀 START submitOrder for user:', userId);
 
   try {
     const validatedFields = CheckoutSchema.safeParse({
@@ -55,28 +56,23 @@ export async function submitOrder(prevState: any, formData: FormData) {
     }
 
     const userDocRef = doc(firestore, 'users', userId);
-    console.log('📍 Will write to path:', userDocRef.path);
-    
     const batch = writeBatch(firestore);
-    console.log('💾 Creating batch...');
 
     const ordersCollectionRef = collection(userDocRef, 'orders');
     const newOrderRef = doc(ordersCollectionRef);
-    console.log('📍 Order path:', newOrderRef.path);
     
     const fullOrderData = {
       ...orderData,
       orderDate: serverTimestamp(),
       status: 'pending' as const,
+      // In a real app, this would be a URL from Firebase Storage
       idImageUrl: idImage.size > 0 ? 'placeholder/id_image.jpg' : '',
     };
     
-    console.log('📝 Adding order to batch');
     batch.set(newOrderRef, fullOrderData);
 
     const itemsCollectionRef = collection(newOrderRef, 'orderItems');
-    console.log('📦 Adding items to batch');
-    cartItems.forEach((item, index) => {
+    cartItems.forEach((item) => {
         const itemRef = doc(itemsCollectionRef);
         const itemData = {
             productId: item.id,
@@ -87,7 +83,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
         batch.set(itemRef, itemData);
     });
 
-    console.log('🔥 About to commit batch');
+    console.log('🔥 Committing batch for order:', newOrderRef.id);
     await batch.commit();
     console.log('✅ SUCCESS! Order created:', newOrderRef.id);
     
@@ -97,13 +93,22 @@ export async function submitOrder(prevState: any, formData: FormData) {
       orderId: newOrderRef.id,
     };
   } catch (error: any) {
-    console.error('❌ FAILED at:', error.message);
-    console.error('Error code:', error.code);
-    console.error('Full error:', error);
+    console.error('❌ Order submission failed:', error);
+    
+    // This is a generic way to handle potential permission errors
+    // during the batch commit, though more specific path info might be lost.
+    if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+            path: `users/${userId}/orders`,
+            operation: 'create',
+            requestResourceData: { details: 'Batch write failed.'}
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
     
     return {
       error: true,
-      message: `${error.code || 'ERROR'}: ${error.message}`,
+      message: error.message || 'An unknown error occurred during order submission.',
     };
   }
 }

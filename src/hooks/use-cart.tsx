@@ -44,12 +44,12 @@ const useCartStore = create<CartStore>()(
           const existingItem = state.items.find((i) => i.id === product.id);
           
           // Determine the correct price based on location
-          let price = (locationId && product.prices?.[locationId])
+          const price = (locationId && product.prices?.[locationId])
             ? product.prices[locationId]
             : product.price;
 
           if (existingItem) {
-            // If item exists, update its quantity and price
+            // If item exists, update its quantity and ensure its price is current
             return {
               items: state.items.map((i) =>
                 i.id === product.id ? { ...i, quantity: i.quantity + 1, price } : i
@@ -115,7 +115,7 @@ const useCartStore = create<CartStore>()(
   )
 );
 
-export const useCart = () => useCartStore();
+export const useCart = useCartStore;
 
 // Create and export the CartProvider component
 export function CartProvider({ children }: { children: React.ReactNode }) {

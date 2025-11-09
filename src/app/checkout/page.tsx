@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useMemo, Suspense, useEffect, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { CheckoutForm } from '@/app/menu/components/checkout-form';
 import Header from '@/app/menu/components/header';
 import { useCart } from '@/hooks/use-cart';
@@ -16,35 +16,44 @@ function CheckoutPageClient() {
     const { items, getCartTotal, clearCart } = useCart();
     const { locations } = useMenuData();
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const selectedLocationId = searchParams.get('locationId');
+    
+    // This ref will prevent multiple redirects if the state updates rapidly
     const processedOrderId = useRef<string | null>(null);
 
-    const selectedLocation = useMemo(() => {
-        return locations?.find(loc => loc.id === selectedLocationId);
-    }, [locations, selectedLocationId]);
-
-    const { subtotal, taxes, total } = getCartTotal();
-
     const handleOrderSuccess = (orderId: string) => {
+        // Only process and redirect once
         if (orderId && orderId !== processedOrderId.current) {
             processedOrderId.current = orderId;
             clearCart();
-            router.push(`/order/${orderId}?userId=guest`);
+            router.push(`/order-confirmation/${orderId}`);
         }
     };
     
-    // Redirect if location not selected or cart is empty
-    useEffect(() => {
-        if (!selectedLocationId || items.length === 0) {
-            router.replace('/menu');
-        }
-    }, [selectedLocationId, items, router]);
-
-
-    if (!selectedLocationId || !selectedLocation) {
+    // Get the selected location from the URL
+    // This needs to be done in a client component that uses Suspense
+    const searchParams =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search)
+        : new URLSearchParams();
+    const selectedLocationId = searchParams.get('locationId');
+    
+    const selectedLocation = locations?.find(loc => loc.id === selectedLocationId);
+    const { subtotal, taxes, total } = getCartTotal();
+    
+    // Redirect if prerequisites are not met
+    if (typeof window !== 'undefined' && (!selectedLocationId || !selectedLocation || items.length === 0)) {
+        router.replace('/menu');
+        return (
+            <div className="flex flex-col h-screen items-center justify-center text-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground mt-4">Preparing your checkout...</p>
+            </div>
+        );
+    }
+    
+    if (!selectedLocation) {
          return (
-            <div className="flex flex-col items-center justify-center text-center py-20">
+            <div className="flex flex-col h-screen items-center justify-center text-center py-20">
                 <h1 className="text-2xl font-bold">Location Not Selected</h1>
                 <p className="text-muted-foreground mt-2">
                     Please return to the menu and select a pickup location to proceed.
