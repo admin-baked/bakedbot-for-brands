@@ -131,29 +131,29 @@ service cloud.firestore {
         allow get, update: if isOwner(userId) || isCeo();
         allow delete: if isOwner(userId);
         
-        // A user can create an order for themselves, or a guest can create an order.
-        // App check is enforced if the user is authenticated.
-        allow create: if (isValidOrder(request.resource.data) && ((isAuthenticated() && isOwner(userId)) || userId == 'guest'));
+        // Allow creation only as part of a batch write that includes at least one order item.
+        // This ensures an order cannot be created without items.
+        allow create: if isValidOrder(request.resource.data) &&
+                       ((isAuthenticated() && isOwner(userId)) || userId == 'guest') &&
+                       request.method == 'write' &&
+                       existsAfter(/databases/$(database)/documents/users/$(userId)/orders/$(orderId)/orderItems/$(get(request.write).deletes[0].split('/')[7]));
 
         // OrderItems can only be created along with the order
         // and can only be read by the user who owns the order or an admin.
         match /orderItems/{orderItemId} {
              allow read: if isOwner(userId) || isCeo();
-             // Prevent direct creation/update/delete of order items outside of the batch write
-             allow write: if false;
+             // Allow creation only if the parent order is also being created in the same batch.
+             allow create: if isValidOrderItem(request.resource.data) &&
+                            ((isAuthenticated() && isOwner(userId)) || userId == 'guest') &&
+                            get(/databases/$(database)/documents/users/$(userId)/orders/$(orderId)) == null;
+             // Prevent direct updates or deletes of order items outside of the batch write
+             allow update, delete: if false;
         }
     }
 
     // This rule allows admins to list all orders across all users for the dashboard.
     match /users/{userId}/orders/{orderId} {
       allow list: if isCeo();
-    }
-    
-    // This rule is a workaround for batch writes.
-    // allow write access on the orderItems subcollection
-    // so that the client can create an order and order items in a single batch.
-    match /users/{userId}/orders/{orderId}/orderItems/{orderItemId} {
-        allow create: if isValidOrderItem(request.resource.data) && ((isAuthenticated() && isOwner(userId)) || userId == 'guest');
     }
 
     // This rule allows admins to list all reviews across all users for the dashboard.
