@@ -12,9 +12,8 @@ import { CreditCard } from 'lucide-react';
 
 export const FloatingCartPill = () => {
     const { getItemCount, getCartTotal, toggleCart } = useCart();
-    const { selectedLocationId } = useStore();
     const itemCount = getItemCount();
-    const subtotal = getCartTotal(selectedLocationId);
+    const { subtotal } = getCartTotal();
 
     return (
         <AnimatePresence>
@@ -30,7 +29,7 @@ export const FloatingCartPill = () => {
                         <CardContent className="p-0">
                             <div className="flex items-center gap-4 p-3">
                                 <Badge>{itemCount}</Badge>
-                                <span className="font-semibold text-lg">${subtotal.toFixed(2)}</span>
+                                <span className="font-semibold text-lg">${subtotal}</span>
                                 <Button onClick={toggleCart}>
                                     <CreditCard className="mr-2 h-4 w-4" /> View Cart
                                 </Button>
@@ -42,3 +41,4 @@ export const FloatingCartPill = () => {
         </AnimatePresence>
     );
 };
+
