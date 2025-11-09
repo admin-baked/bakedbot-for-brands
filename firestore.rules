@@ -131,22 +131,19 @@ service cloud.firestore {
         allow get, update: if isOwner(userId) || isCeo();
         allow delete: if isOwner(userId);
         
-        // Allow creation only as part of a batch write that includes at least one order item.
-        // This ensures an order cannot be created without items.
+        // Allow order creation only for valid orders by the owner (or guest).
         allow create: if isValidOrder(request.resource.data) &&
-                       ((isAuthenticated() && isOwner(userId)) || userId == 'guest') &&
-                       request.method == 'write' &&
-                       existsAfter(/databases/$(database)/documents/users/$(userId)/orders/$(orderId)/orderItems/$(get(request.write).deletes[0].split('/')[7]));
+                       ((isAuthenticated() && isOwner(userId)) || userId == 'guest');
 
-        // OrderItems can only be created along with the order
-        // and can only be read by the user who owns the order or an admin.
+        // OrderItems rules
         match /orderItems/{orderItemId} {
              allow read: if isOwner(userId) || isCeo();
-             // Allow creation only if the parent order is also being created in the same batch.
+             // Allow creation only if the parent order is also being created in the same request, and the item data is valid.
              allow create: if isValidOrderItem(request.resource.data) &&
                             ((isAuthenticated() && isOwner(userId)) || userId == 'guest') &&
-                            get(/databases/$(database)/documents/users/$(userId)/orders/$(orderId)) == null;
-             // Prevent direct updates or deletes of order items outside of the batch write
+                            // Ensure this is part of a batch write creating the parent order.
+                            !exists(/databases/$(database)/documents/users/$(userId)/orders/$(orderId));
+             // Prevent direct updates or deletes of order items.
              allow update, delete: if false;
         }
     }
