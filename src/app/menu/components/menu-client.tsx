@@ -59,15 +59,14 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
     const { selectedLocationId } = useStore();
     
     const priceDisplay = useMemo(() => {
+        if (selectedLocationId && product.prices?.[selectedLocationId]) {
+            return `$${product.prices[selectedLocationId].toFixed(2)}`;
+        }
         if (!product.prices || Object.keys(product.prices).length === 0) {
             return `$${product.price.toFixed(2)}`;
         }
     
         const priceValues = Object.values(product.prices);
-
-        if (selectedLocationId && product.prices?.[selectedLocationId]) {
-            return `$${product.prices[selectedLocationId].toFixed(2)}`;
-        }
 
         const minPrice = Math.min(...priceValues);
         const maxPrice = Math.max(...priceValues);
@@ -82,8 +81,7 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        const price = selectedLocationId && product.prices?.[selectedLocationId] ? product.prices[selectedLocationId] : product.price;
-        addToCart({ ...product, price });
+        addToCart(product, selectedLocationId);
     };
 
     if (layout === 'alt') {
@@ -112,7 +110,7 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
                 </Link>
                 <CardFooter className="flex justify-between items-center p-4 pt-0 bg-card">
                     <span className="text-lg font-bold">{priceDisplay}</span>
-                    <Button size="icon" onClick={handleAddToCart}>
+                    <Button size="icon" onClick={handleAddToCart} disabled={!selectedLocationId && Object.keys(product.prices || {}).length > 0}>
                         <Plus className="h-4 w-4"/>
                     </Button>
                 </CardFooter>
@@ -146,7 +144,7 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
             </Link>
             <CardFooter className="flex justify-between items-center p-4 pt-0 bg-card">
                 <span className="text-xl font-bold">{priceDisplay}</span>
-                <Button size="icon" onClick={handleAddToCart}>
+                <Button size="icon" onClick={handleAddToCart} disabled={!selectedLocationId && Object.keys(product.prices || {}).length > 0}>
                     <Plus className="h-4 w-4"/>
                 </Button>
             </CardFooter>

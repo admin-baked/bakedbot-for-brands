@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { type CartItem, type Product } from '@/lib/types';
+import { type CartItem, type Product, type Location } from '@/lib/types';
 import { create } from 'zustand';
 
 interface CartState {
@@ -11,9 +11,10 @@ interface CartState {
   addToCart: (product: Product, locationId?: string | null) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
+  updateItemPrices: (locationId: string | null, products: Product[]) => void;
   clearCart: () => void;
   toggleCart: () => void;
-  getCartTotal: (locationId?: string | null) => number;
+  getCartTotal: () => number;
   getItemCount: () => number;
 }
 
@@ -21,31 +22,24 @@ const useCartStore = create<CartState>((set, get) => ({
   items: [],
   isCartOpen: false,
   addToCart: (product, locationId) => {
-    const existingItem = get().items.find((i) => i.id === product.id);
+    const { items } = get();
+    const existingItem = items.find((i) => i.id === product.id);
     
     let price: number;
-    // If a location is selected, use that price.
     if (locationId && product.prices?.[locationId]) {
         price = product.prices[locationId];
-    } 
-    // If no location, but there are multiple prices, use the lowest price for the initial cart add.
-    else if (product.prices && Object.keys(product.prices).length > 0) {
-        price = Math.min(...Object.values(product.prices));
-    } 
-    // Fallback to the base price.
-    else {
+    } else {
         price = product.price;
     }
 
-
     if (existingItem) {
-      set((state) => ({
-        items: state.items.map((i) =>
-          i.id === product.id ? { ...i, quantity: i.quantity + 1, price: price } : i
+      set({
+        items: items.map((i) =>
+          i.id === product.id ? { ...i, quantity: i.quantity + 1, price } : i
         ),
-      }));
+      });
     } else {
-      set((state) => ({ items: [...state.items, { ...product, quantity: 1, price: price }] }));
+      set({ items: [...items, { ...product, quantity: 1, price }] });
     }
   },
   removeFromCart: (itemId) => {
@@ -62,14 +56,24 @@ const useCartStore = create<CartState>((set, get) => ({
       }));
     }
   },
+  updateItemPrices: (locationId, products) => {
+    set((state) => ({
+      items: state.items.map(cartItem => {
+        const fullProduct = products.find(p => p.id === cartItem.id);
+        if (!fullProduct) return cartItem; // Should not happen
+
+        const newPrice = (locationId && fullProduct.prices?.[locationId]) 
+          ? fullProduct.prices[locationId] 
+          : fullProduct.price;
+        
+        return { ...cartItem, price: newPrice };
+      })
+    }));
+  },
   clearCart: () => set({ items: [] }),
   toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
-  getCartTotal: (locationId) => {
-    return get().items.reduce((total, item) => {
-        // When calculating total, we should use the price stored in the cart item itself,
-        // as it was set based on the location at the time of adding it.
-        return total + item.price * item.quantity;
-    }, 0);
+  getCartTotal: () => {
+    return get().items.reduce((total, item) => total + item.price * item.quantity, 0);
   },
   getItemCount: () => {
     return get().items.reduce((total, item) => total + item.quantity, 0);
