@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -59,24 +60,30 @@ const DispensaryCard = ({ location, isSelected, onSelect }: { location: Location
 export default function DispensaryLocator() {
     const { toast } = useToast();
     const { data: menuLocations, isLoading: areLocationsLoading } = useMenuData();
-    const { selectedLocationId, setSelectedLocationId, setLocations } = useStore();
+    const { selectedLocationId, setSelectedLocationId, setLocations, locations: storeLocations, _hasHydrated } = useStore();
     const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>([]);
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
     useEffect(() => {
-        if (areLocationsLoading) {
+        // This effect ensures that the fetched locations are persisted in the Zustand store.
+        if (_hasHydrated && menuLocations.length > 0 && storeLocations.length === 0) {
+            setLocations(menuLocations);
+        }
+    }, [_hasHydrated, menuLocations, storeLocations.length, setLocations]);
+
+    useEffect(() => {
+        const locationsToUse = storeLocations.length > 0 ? storeLocations : menuLocations;
+
+        if (areLocationsLoading || !_hasHydrated) {
             setStatus('loading');
             return;
         }
-        if (!menuLocations || menuLocations.length === 0) {
-            setStatus('success');
+
+        if (!locationsToUse || locationsToUse.length === 0) {
+            setStatus('success'); // No locations to show, but not an error
             setSortedLocations([]);
-            setLocations([]);
             return;
         }
-
-        // Set locations in the global store
-        setLocations(menuLocations);
         
         setStatus('loading');
         if ("geolocation" in navigator) {
@@ -86,7 +93,7 @@ export default function DispensaryLocator() {
                         lat: position.coords.latitude,
                         lon: position.coords.longitude
                     };
-                    const locationsWithDistance = menuLocations
+                    const locationsWithDistance = locationsToUse
                         .filter(loc => loc.lat && loc.lon)
                         .map(loc => {
                             const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
@@ -103,7 +110,7 @@ export default function DispensaryLocator() {
                         title: 'Location Info',
                         description: 'Could not get your location. Showing default dispensaries.'
                     });
-                    setSortedLocations(menuLocations.slice(0, 3));
+                    setSortedLocations(locationsToUse.slice(0, 3));
                     setStatus('error');
                 }
             );
@@ -113,10 +120,10 @@ export default function DispensaryLocator() {
                 title: 'Location Info',
                 description: 'Geolocation is not supported by your browser.'
             });
-            setSortedLocations(menuLocations.slice(0, 3));
+            setSortedLocations(locationsToUse.slice(0, 3));
             setStatus('error');
         }
-    }, [menuLocations, areLocationsLoading, toast, setLocations]);
+    }, [menuLocations, areLocationsLoading, toast, storeLocations, _hasHydrated]);
 
 
     if (status === 'loading' || areLocationsLoading) {
