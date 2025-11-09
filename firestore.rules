@@ -17,8 +17,8 @@ service cloud.firestore {
     }
     
     function isCeo() {
-      // Check for a 'ceo' custom claim on the user's auth token and a valid app check.
-      return isAuthenticated() && request.auth.token.ceo == true;
+      // Check for the specific CEO email address.
+      return isAuthenticated() && request.auth.token.email == 'martez@bakedbot.ai';
     }
 
     function isNewData() {
@@ -92,28 +92,29 @@ service cloud.firestore {
     //============================================================
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isCeo();
+      allow read, write: if isCeo();
+      allow read: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUser(request.resource.data);
       allow update: if isOwner(userId) && isValidUser(request.resource.data);
       allow delete: if isOwner(userId);
     }
 
     match /user-private/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isOwner(userId) || isCeo();
     }
 
     match /categories/{categoryId} {
       // Publicly readable for menus.
       allow get, list: if true;
       // Prevent any writes from the client.
-      allow create, update, delete: if false;
+      allow create, update, delete: if isCeo();
     }
 
     match /products/{productId} {
       // Publicly readable for menus.
       allow get, list: if true;
-      // Prevent direct creation or deletion from clients.
-      allow create, delete: if false;
+      // Allow CEO to do anything
+      allow write: if isCeo();
       // Allow authenticated users to update ONLY the 'likes' and 'dislikes' fields.
       allow update: if isAuthenticated() && isUpdatingAllowedFields(['likes', 'dislikes']);
     }
@@ -121,6 +122,7 @@ service cloud.firestore {
     match /products/{productId}/reviews/{reviewId} {
       // Allow anyone to read reviews for the AI summary feature.
       allow get, list: if true;
+      allow write: if isCeo();
       // Users can only create reviews for themselves and the data must be valid
       allow create: if isAuthenticated() && isValidReview(request.resource.data);
       // No updates or deletes to maintain review integrity
@@ -130,7 +132,7 @@ service cloud.firestore {
     match /users/{userId}/orders/{orderId} {
         // The user who owns the order can read, update, or delete it.
         // A CEO/admin can also read or update any order.
-        allow get, update: if isOwner(userId) || isCeo();
+        allow get, update, list: if isOwner(userId) || isCeo();
         allow delete: if isOwner(userId);
         
         // Allow order creation only if the user is authenticated (or a guest) and the data is valid.
@@ -146,16 +148,6 @@ service cloud.firestore {
              // Prevent direct updates or deletes of order items.
              allow update, delete: if false;
         }
-    }
-
-    // This rule allows admins to list all orders across all users for the dashboard.
-    match /users/{userId}/orders/{orderId} {
-      allow list: if isCeo();
-    }
-
-    // This rule allows admins to list all reviews across all users for the dashboard.
-    match /products/{productId}/reviews/{reviewId} {
-      allow list: if isCeo();
     }
   }
 }

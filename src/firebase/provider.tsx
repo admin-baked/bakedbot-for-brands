@@ -86,25 +86,19 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       async (firebaseUser) => {
         if (firebaseUser) {
-          // Check for CEO via email
-          if (firebaseUser.email === 'martez@bakedbot.ai') {
-             setIsCeoMode(true);
-          } else {
-            // Also check for CEO custom claim for non-dev users
-            const idTokenResult = await firebaseUser.getIdTokenResult();
-            const isCeo = idTokenResult.claims.ceo === true;
-            setIsCeoMode(isCeo);
-          }
-
+          const isCeo = firebaseUser.email === 'martez@bakedbot.ai';
+          setIsCeoMode(isCeo);
+          
           // "Upsert" user profile data.
           const userDocRef = doc(firestore, 'users', firebaseUser.uid);
+          
           const newUser = {
             id: firebaseUser.uid,
             email: firebaseUser.email,
             firstName: firebaseUser.displayName?.split(' ')[0] ?? '',
             lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') ?? '',
-            onboardingCompleted: false, // Default for new users
-            role: null, // Add role to match schema
+            onboardingCompleted: isCeo, // Skip onboarding for CEO
+            role: isCeo ? 'ceo' : null,
           };
 
           // Use set with merge to create or update the user document.
