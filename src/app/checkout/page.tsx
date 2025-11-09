@@ -1,22 +1,17 @@
 
 'use client';
 
-import { useFormState } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { submitOrder } from '@/app/menu/components/actions';
-import { useUser } from '@/firebase/auth/use-user';
 import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
-import { useEffect, useState, useRef } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Header from '@/app/menu/components/header';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, MapPin } from 'lucide-react';
 import { CheckoutForm } from '@/app/menu/components/checkout-form';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function CheckoutPage() {
     const { items, getCartTotal, clearCart } = useCart();
@@ -26,31 +21,26 @@ export default function CheckoutPage() {
         _hasHydrated: state._hasHydrated,
     }));
     const router = useRouter();
-    const processedOrderId = useRef<string | null>(null);
 
     const handleOrderSuccess = (orderId: string) => {
-        if (orderId && orderId !== processedOrderId.current) {
-            processedOrderId.current = orderId;
+        if (orderId) {
             clearCart();
             router.push(`/order-confirmation/${orderId}`);
         }
     };
-
+    
     const selectedLocation = locations?.find(loc => loc.id === selectedLocationId);
     const { subtotal, taxes, total } = getCartTotal();
 
-    // REDIRECT FIX: Do not run redirect logic until the store has hydrated on the client.
     useEffect(() => {
-        if (!_hasHydrated) {
-            return; // Wait for hydration
-        }
-
-        if (!selectedLocationId || !selectedLocation) {
+        // Only run this effect after the store has been hydrated on the client.
+        if (_hasHydrated && !selectedLocationId) {
             router.replace('/menu');
         }
-    }, [_hasHydrated, selectedLocationId, selectedLocation, router]);
+    }, [_hasHydrated, selectedLocationId, router]);
 
 
+    // State 1: Hydrating. Show a full-page loader.
     if (!_hasHydrated) {
         return (
             <div className="flex flex-col h-screen items-center justify-center text-center py-20">
@@ -60,6 +50,7 @@ export default function CheckoutPage() {
         );
     }
 
+    // State 2: Post-Hydration Check. If no location is selected after hydration, show a redirecting message.
     if (!selectedLocation) {
          return (
             <div className="flex flex-col h-screen items-center justify-center text-center py-20">
@@ -69,6 +60,7 @@ export default function CheckoutPage() {
         );
     }
     
+    // State 3: Render the full checkout page.
     return (
         <div className="min-h-screen bg-muted/20">
             <Header />
