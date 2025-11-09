@@ -9,7 +9,7 @@ import Chatbot from '@/components/chatbot';
 import Link from 'next/link';
 import { Search, User, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { summarizeReviews } from '@/ai/flows/summarize-reviews';
+import { getReviewSummary } from './actions';
 import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { createServerClient } from '@/firebase/server-client';
 import { doc, getDoc } from 'firebase/firestore';
@@ -123,13 +123,8 @@ export default async function ProductPage({ params }: Props) {
         notFound();
     }
     
-    let summary: SummarizeReviewsOutput | null = null;
-    try {
-        summary = await summarizeReviews({ productId: product.id, productName: product.name });
-    } catch(e) {
-        console.error("Failed to fetch review summary during page build:", e);
-        // We can continue without a summary if it fails
-    }
+    // Fetch the review summary using the new server action
+    const summary = await getReviewSummary(product.id, product.name);
 
     return (
         <div className="min-h-screen bg-background">
