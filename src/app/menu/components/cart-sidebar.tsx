@@ -64,7 +64,7 @@ export default function CartSidebar() {
   
   const { selectedLocationId } = useStore();
 
-  const subtotal = getCartTotal();
+  const { subtotal } = getCartTotal();
   const isCheckoutDisabled = items.length === 0 || !selectedLocationId;
   
   const checkoutUrl = selectedLocationId ? `/checkout?locationId=${selectedLocationId}` : '/checkout';
