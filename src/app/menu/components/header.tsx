@@ -4,9 +4,8 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, ShoppingBag, User } from 'lucide-react';
+import { Search, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
-import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 export default function Header() {
@@ -30,13 +29,8 @@ export default function Header() {
             <Link href="/#locator" className="text-muted-foreground hover:text-foreground">Locations</Link>
         </nav>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="hidden md:inline-flex">
             <Search className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/brand-login">
-              <User className="h-5 w-5" />
-            </Link>
           </Button>
           <div className="relative">
              <Button variant="ghost" size="icon" onClick={toggleCart}>
@@ -51,6 +45,18 @@ export default function Header() {
                 </Badge>
             )}
           </div>
+           <div className="hidden md:flex items-center gap-2">
+              <Button variant="ghost" asChild>
+                <Link href="/brand-login">
+                  Login
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link href="/brand-login">
+                  Get Started
+                </Link>
+              </Button>
+           </div>
         </div>
       </div>
     </header>
