@@ -11,17 +11,20 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useMenuData } from '@/hooks/use-menu-data';
+import { useStore } from '@/hooks/use-store';
 
 function CheckoutPageClient() {
     const { items, getCartTotal, clearCart } = useCart();
     const { locations } = useMenuData();
     const router = useRouter();
+    const { selectedLocationId, _hasHydrated } = useStore(state => ({
+        selectedLocationId: state.selectedLocationId,
+        _hasHydrated: state._hasHydrated,
+    }));
     
-    // This ref will prevent multiple redirects if the state updates rapidly
     const processedOrderId = useRef<string | null>(null);
 
     const handleOrderSuccess = (orderId: string) => {
-        // Only process and redirect once
         if (orderId && orderId !== processedOrderId.current) {
             processedOrderId.current = orderId;
             clearCart();
@@ -29,20 +32,11 @@ function CheckoutPageClient() {
         }
     };
     
-    // Get the selected location from the URL
-    // This needs to be done in a client component that uses Suspense
-    const searchParams =
-      typeof window !== 'undefined'
-        ? new URLSearchParams(window.location.search)
-        : new URLSearchParams();
-    const selectedLocationId = searchParams.get('locationId');
-    
     const selectedLocation = locations?.find(loc => loc.id === selectedLocationId);
     const { subtotal, taxes, total } = getCartTotal();
     
-    // Redirect if prerequisites are not met
-    if (typeof window !== 'undefined' && (!selectedLocationId || !selectedLocation)) {
-        router.replace('/menu');
+    // REDIRECT FIX: Do not run redirect logic until the store has hydrated on the client.
+    if (!_hasHydrated) {
         return (
             <div className="flex flex-col h-screen items-center justify-center text-center py-20">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -51,19 +45,14 @@ function CheckoutPageClient() {
         );
     }
     
-    if (!selectedLocation) {
-         return (
+    // Now that we are hydrated, we can safely check for the location.
+    if (!selectedLocationId || !selectedLocation) {
+        router.replace('/menu');
+        // Return loading state while redirecting
+        return (
             <div className="flex flex-col h-screen items-center justify-center text-center py-20">
-                <h1 className="text-2xl font-bold">Location Not Selected</h1>
-                <p className="text-muted-foreground mt-2">
-                    Please return to the menu and select a pickup location to proceed.
-                </p>
-                <Button asChild className="mt-6">
-                    <Link href="/menu">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Menu
-                    </Link>
-                </Button>
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground mt-4">No location selected, returning to menu...</p>
             </div>
         );
     }
