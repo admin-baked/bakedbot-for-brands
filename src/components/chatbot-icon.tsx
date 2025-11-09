@@ -15,19 +15,15 @@ export function ChatbotIcon() {
     setIsClient(true);
   }, []);
 
-  // On the server, or before the client has mounted, render a placeholder.
-  // This prevents any hydration mismatch.
-  if (!isClient || !_hasHydrated) {
-    return <Bot className="h-8 w-8" />;
-  }
-  
   // Define the default icon URL.
   const defaultIcon = 'https://storage.googleapis.com/stedi-assets/misc/smokey-icon-1.png';
   
-  // Determine which icon to use now that we are safely on the client.
-  const iconToUse = customIcon || defaultIcon;
+  // Determine which icon to use. Before hydration, always use the default.
+  const iconToUse = isClient && _hasHydrated && customIcon ? customIcon : defaultIcon;
 
-  // Now, render the Image component with the correct URL.
+  // By always rendering an <Image> component, we ensure the server and client
+  // HTML structure are identical, preventing a hydration mismatch error.
+  // The `src` will update reactively after hydration without changing the component type.
   return (
     <Image 
       src={iconToUse} 
