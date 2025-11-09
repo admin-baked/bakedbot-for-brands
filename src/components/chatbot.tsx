@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, type FormEvent, useTransition, useActionState, useCallback } from 'react';
 import Image from 'next/image';
-import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown, ChevronDown, Wand2, Sparkles, Loader2, Download, Share2 } from 'lucide-react';
+import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown, ChevronDown, Wand2, Sparkles, Loader2, Download, Share2, HelpCircle, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -66,11 +66,11 @@ const OnboardingFlow = ({ onComplete }: { onComplete: (answers: OnboardingAnswer
     };
 
     return (
-        <div className="p-4 text-center h-full flex flex-col justify-center">
+        <div className="p-4 text-center h-full flex flex-col justify-center animate-in fade-in-50">
             {step === 'mood' && (
                 <>
-                    <h2 className="text-lg font-semibold">Welcome to your virtual budtender 🌿</h2>
-                    <p className="text-muted-foreground text-sm mt-1 mb-4">How would you like to feel today?</p>
+                    <h2 className="text-lg font-semibold">How would you like to feel?</h2>
+                    <p className="text-muted-foreground text-sm mt-1 mb-4">Select an effect to get started.</p>
                     <div className="grid grid-cols-2 gap-2">
                         {moods.map(mood => (
                             <Button key={mood} variant="outline" onClick={() => selectAnswer('mood', mood)}>{mood}</Button>
@@ -321,6 +321,10 @@ const ChatWindow = ({
   products,
   onAskSmokey,
   hasStartedChat,
+  startOnboarding,
+  startFreeChat,
+  isOnboarding,
+  onOnboardingComplete,
   messages,
   isBotTyping,
   messagesEndRef,
@@ -330,12 +334,15 @@ const ChatWindow = ({
   onMagicImageClick,
   chatMode,
   onFeedback,
-  onOnboardingComplete
 }: {
   chatExperience: 'default' | 'classic';
   products: Product[];
   onAskSmokey: (product: Product) => void;
   hasStartedChat: boolean;
+  startOnboarding: () => void;
+  startFreeChat: () => void;
+  isOnboarding: boolean;
+  onOnboardingComplete: (answers: OnboardingAnswers) => void;
   messages: Message[];
   isBotTyping: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement>;
@@ -345,60 +352,75 @@ const ChatWindow = ({
   onMagicImageClick: () => void;
   chatMode: 'chat' | 'image';
   onFeedback: (productId: string, type: 'like' | 'dislike') => void;
-  onOnboardingComplete: (answers: OnboardingAnswers) => void;
 }) => {
   return (
     <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-card border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
       <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
         
-        {hasStartedChat ? (
-             <>
-                {chatExperience === 'default' && <ProductCarousel products={products} onAskSmokey={onAskSmokey} isCompact={true} onFeedback={onFeedback} />}
-                <div className="flex-1 min-h-0 border-t">
-                    <ChatMessages
-                        messages={messages}
-                        isBotTyping={isBotTyping}
-                        messagesEndRef={messagesEndRef}
-                        onAskSmokey={onAskSmokey}
-                        className="h-full"
-                        onFeedback={onFeedback}
-                    />
-                </div>
-             </>
-        ) : (
-            <OnboardingFlow onComplete={onOnboardingComplete} />
+        {chatExperience === 'default' && (
+          <div className={cn(hasStartedChat && "border-b")}>
+            <ProductCarousel products={products} onAskSmokey={onAskSmokey} isCompact={hasStartedChat} onFeedback={onFeedback} />
+          </div>
         )}
+        
+        <div className="flex-1 min-h-0">
+            {!hasStartedChat ? (
+                <div className="p-4 text-center h-full flex flex-col justify-center items-center">
+                    <h2 className="text-lg font-semibold">Welcome to your virtual budtender 🌿</h2>
+                    <p className="text-muted-foreground text-sm mt-1 mb-4">How can I help you find your bliss?</p>
+                    <div className="w-full space-y-2">
+                       <Button className="w-full" onClick={startOnboarding}>
+                            <HelpCircle className="mr-2" /> Find product recommendations
+                       </Button>
+                       <Button variant="ghost" className="w-full text-muted-foreground" onClick={startFreeChat}>
+                            Just ask me a question <ChevronRight className="ml-1" />
+                       </Button>
+                    </div>
+                </div>
+            ) : isOnboarding ? (
+                <OnboardingFlow onComplete={onOnboardingComplete} />
+            ) : (
+                <ChatMessages
+                    messages={messages}
+                    isBotTyping={isBotTyping}
+                    messagesEndRef={messagesEndRef}
+                    onAskSmokey={onAskSmokey}
+                    className="h-full"
+                    onFeedback={onFeedback}
+                />
+            )}
+        </div>
       
-      {hasStartedChat && (
-        <CardFooter className="p-4 border-t">
-            <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button type="button" variant="ghost" size="icon" onClick={onMagicImageClick} disabled={isBotTyping}>
-                                <Wand2 className={cn("h-5 w-5", chatMode === 'image' ? "text-primary" : "")} />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                            <p>Generate a brand image</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+        {hasStartedChat && !isOnboarding && (
+            <CardFooter className="p-4 border-t">
+                <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button type="button" variant="ghost" size="icon" onClick={onMagicImageClick} disabled={isBotTyping}>
+                                    <Wand2 className={cn("h-5 w-5", chatMode === 'image' ? "text-primary" : "")} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                                <p>Generate a brand image</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
 
-            <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={chatMode === 'image' ? "What do you love about the brand?" : 'Type a message...'}
-                className="flex-1"
-                autoComplete="off"
-                disabled={isBotTyping}
-            />
-            <Button type="submit" size="icon" disabled={isBotTyping || inputValue.trim() === ''}>
-                {chatMode === 'image' ? <Sparkles className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-            </Button>
-            </form>
-        </CardFooter>
-      )}
+                <Input
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder={chatMode === 'image' ? "What do you love about the brand?" : 'Type a message...'}
+                    className="flex-1"
+                    autoComplete="off"
+                    disabled={isBotTyping}
+                />
+                <Button type="submit" size="icon" disabled={isBotTyping || inputValue.trim() === ''}>
+                    {chatMode === 'image' ? <Sparkles className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                </Button>
+                </form>
+            </CardFooter>
+        )}
       </Card>
     </div>
   );
@@ -407,6 +429,7 @@ const ChatWindow = ({
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const { chatExperience } = useStore();
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
@@ -429,10 +452,10 @@ export default function Chatbot() {
   }, [messages, isBotTyping]);
   
   useEffect(() => {
-    // Reset hasStartedChat state when the chatbot is closed
     if (!isOpen) {
         setHasStartedChat(false);
-        setMessages([]); // Clear messages when closing
+        setIsOnboarding(false);
+        setMessages([]);
     }
   }, [isOpen]);
   
@@ -442,6 +465,7 @@ export default function Chatbot() {
 
     if (!hasStartedChat) {
         setHasStartedChat(true);
+        setIsOnboarding(false);
     }
     
     if (newChatMode === 'image') {
@@ -456,12 +480,13 @@ export default function Chatbot() {
 
   const handleAskSmokey = useCallback(async (product: Product) => {
     setChatMode('chat');
+    setIsOnboarding(false);
+    if (!hasStartedChat) {
+        setHasStartedChat(true);
+    }
+
     const userMessage: Message = { id: Date.now(), text: `Tell me what people are saying about the ${product.name}.`, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
-  
-    if (!hasStartedChat) {
-      setHasStartedChat(true);
-    }
   
     setIsBotTyping(true);
   
@@ -477,7 +502,7 @@ export default function Chatbot() {
       if (summaryResult.cons && summaryResult.cons.length > 0) {
         botResponseText += `**Cons:**\n${summaryResult.cons.map(c => `- ${c}`).join('\n')}\n\n`;
       }
-      botResponseText += `Want to read more? [See all reviews](#)\n\nDoes this sound like a good fit, or would you like to know more?`;
+      botResponseText += `Does this sound like a good fit, or would you like to know more?`;
   
       const botMessage: Message = { 
         id: Date.now() + 1, 
@@ -500,13 +525,11 @@ export default function Chatbot() {
   }, [hasStartedChat]);
 
   const handleOnboardingComplete = useCallback(async (answers: OnboardingAnswers) => {
-    setHasStartedChat(true);
+    setIsOnboarding(false);
     setIsBotTyping(true);
-    setMessages([]); // Clear onboarding UI
 
     const query = `I want to feel ${answers.mood}. I'm a ${answers.experience} user and I'll be ${answers.social === 'Solo' ? 'by myself' : 'with friends'}.`;
     
-    // Create a pseudo user message to show in the history
     const userMessage: Message = { id: Date.now(), text: "I've answered the questions!", sender: 'user' };
     setMessages([userMessage]);
 
@@ -564,6 +587,7 @@ export default function Chatbot() {
   
     if (!hasStartedChat) {
       setHasStartedChat(true);
+      setIsOnboarding(false);
     }
   
     const currentInput = inputValue;
@@ -677,7 +701,21 @@ export default function Chatbot() {
     });
   };
   
+  const startOnboarding = () => {
+    setHasStartedChat(true);
+    setIsOnboarding(true);
+  };
 
+  const startFreeChat = () => {
+    setHasStartedChat(true);
+    setIsOnboarding(false);
+    const botMessage: Message = { 
+      id: Date.now(), 
+      text: `Of course! What's on your mind? You can ask me about specific products or tell me what you're looking for.`, 
+      sender: 'bot' 
+    };
+    setMessages([botMessage]);
+  }
     return (
         <>
           <div className="fixed bottom-6 right-6 z-50">
@@ -696,6 +734,10 @@ export default function Chatbot() {
               chatExperience={chatExperience}
               onAskSmokey={handleAskSmokey}
               hasStartedChat={hasStartedChat}
+              startOnboarding={startOnboarding}
+              startFreeChat={startFreeChat}
+              isOnboarding={isOnboarding}
+              onOnboardingComplete={handleOnboardingComplete}
               messages={messages}
               isBotTyping={isBotTyping}
               messagesEndRef={messagesEndRef}
@@ -705,7 +747,6 @@ export default function Chatbot() {
               onMagicImageClick={handleMagicImageClick}
               chatMode={chatMode}
               onFeedback={handleFeedback}
-              onOnboardingComplete={handleOnboardingComplete}
             />
           )}
         </>
