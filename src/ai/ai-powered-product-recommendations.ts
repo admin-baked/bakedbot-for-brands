@@ -11,11 +11,12 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getProductReviews } from '@/ai/tools/get-product-reviews';
+import { getProduct } from '@/ai/tools/get-product';
 
 const RecommendProductsInputSchema = z.object({
   query: z.string().describe('The user query or description of what they are looking for.'),
   customerHistory: z.string().optional().describe('A summary of the customer purchase history and preferences.'),
-  availableProducts: z.string().describe('A list of available products with descriptions, provided in JSON format.'),
+  availableProducts: z.string().describe('A list of available products with descriptions, provided in JSON format. The AI should use the `getProduct` tool to get more details on promising candidates.'),
 });
 export type RecommendProductsInput = z.infer<typeof RecommendProductsInputSchema>;
 
@@ -35,12 +36,12 @@ const recommendProductsPrompt = ai.definePrompt({
   name: 'recommendProductsPrompt',
   input: {schema: RecommendProductsInputSchema},
   output: {schema: RecommendProductsOutputSchema},
-  tools: [getProductReviews],
+  tools: [getProductReviews, getProduct],
   prompt: `You are an expert AI budtender. Your goal is to recommend the best products to a user based on their request and history.
 
 Analyze the user's query and their customer history to understand their needs and preferences.
 Based on this analysis, select up to a maximum of 3 suitable products from the list of available products.
-You can use the getProductReviews tool to see what other customers are saying.
+You can use the getProduct tool to get more details, and the getProductReviews tool to see what other customers are saying.
 
 User Query: {{{query}}}
 {{#if customerHistory}}
