@@ -4,20 +4,22 @@ import { useMemo } from 'react';
 import { CheckoutForm } from '@/app/menu/components/checkout-form';
 import Header from '@/app/menu/components/header';
 import { useCart } from '@/hooks/use-cart';
-import { useStore } from '@/hooks/use-store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useMenuData } from '@/hooks/use-menu-data';
+import { useStore } from '@/hooks/use-store';
 
 export default function CheckoutPage() {
     const { items, getCartTotal } = useCart();
-    const { selectedLocationId, locations } = useStore();
+    const { selectedLocationId } = useStore();
+    const { locations } = useMenuData();
     const router = useRouter();
 
     const selectedLocation = useMemo(() => {
-        return locations.find(loc => loc.id === selectedLocationId);
+        return locations?.find(loc => loc.id === selectedLocationId);
     }, [locations, selectedLocationId]);
 
     const totals = getCartTotal();
@@ -50,12 +52,14 @@ export default function CheckoutPage() {
                                 <CardTitle>Order Summary</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                {selectedLocation && (
+                                {selectedLocation ? (
                                      <div className="text-sm">
                                         <p className="font-semibold text-muted-foreground">Pickup Location</p>
                                         <p className='font-medium'>{selectedLocation.name}</p>
                                         <p className='text-xs text-muted-foreground'>{selectedLocation.address}, {selectedLocation.city}</p>
                                      </div>
+                                ) : (
+                                    <p className="text-sm text-destructive">Please select a pickup location from the menu.</p>
                                 )}
                                
                                 <div className="space-y-2 border-t pt-4">
