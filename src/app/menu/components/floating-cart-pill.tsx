@@ -3,17 +3,27 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCart } from '@/hooks/use-cart';
-import { useStore } from '@/hooks/use-store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CreditCard } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 
 export const FloatingCartPill = () => {
     const { getItemCount, getCartTotal, toggleCart } = useCart();
+    const [isClient, setIsClient] = useState(false);
+    
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     const itemCount = getItemCount();
     const { subtotal } = getCartTotal();
+    
+    if (!isClient) {
+        return null;
+    }
 
     return (
         <AnimatePresence>
@@ -41,4 +51,3 @@ export const FloatingCartPill = () => {
         </AnimatePresence>
     );
 };
-
