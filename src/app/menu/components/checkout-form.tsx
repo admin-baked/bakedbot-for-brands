@@ -138,8 +138,8 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
                 <h3 className="text-lg font-semibold">Your Information</h3>
                 <div className="mt-4 grid grid-cols-1 gap-4">
                     <div className="space-y-1">
-                        <Label htmlFor="name">Full Name</Label>
-                        <Input id="name" name="customerName" required defaultValue={user?.displayName || ''} />
+                        <Label htmlFor="customerName">Full Name</Label>
+                        <Input id="customerName" name="customerName" required defaultValue={user?.displayName || ''} />
                         {state.fieldErrors?.customerName && <p className="text-sm text-destructive">{state.fieldErrors.customerName[0]}</p>}
                     </div>
                      <div className="space-y-1">
