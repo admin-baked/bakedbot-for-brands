@@ -3,7 +3,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { useTransition, Suspense, useState, useEffect } from 'react';
-import { Upload, CalendarIcon, Loader2 } from 'lucide-react';
+import { Upload, CalendarIcon, Loader2, PartyPopper } from 'lucide-react';
 import { submitOrder } from './actions';
 import { useUser } from '@/firebase';
 import { useCart } from '@/hooks/use-cart';
@@ -28,7 +28,7 @@ const initialState = {
 
 export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSuccess: (orderId: string) => void; selectedLocation: Location }) {
   const { user } = useUser();
-  const { items: cart, getCartTotal } = useCart();
+  const { items: cart, getCartTotal, clearCart } = useCart();
   const [state, formAction] = useFormState(submitOrder, initialState);
   const [isPending, startTransition] = useTransition();
 
@@ -40,14 +40,13 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
   const total = subtotal + taxes;
 
   useEffect(() => {
-    if (state) {
+    if (state && state.message) {
       if (state.error === false && state.orderId) {
         onOrderSuccess(state.orderId);
-      } else if (state.error === true && state.message) {
-        // Optionally show a toast or alert for errors
+        clearCart();
       }
     }
-  }, [state, onOrderSuccess]);
+  }, [state, onOrderSuccess, clearCart]);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,9 +142,10 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                         <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" onChange={handleFileChange} required/>
                     </div>
                     
-                    {state?.message && !state.success && (
-                        <Alert variant="destructive">
-                            <AlertTitle>Submission Error</AlertTitle>
+                    {state?.message && (
+                        <Alert variant={state.error ? 'destructive' : 'default'}>
+                             <PartyPopper className="h-4 w-4" />
+                            <AlertTitle>{state.error ? 'Submission Error' : 'Success!'}</AlertTitle>
                             <AlertDescription>{state.message}</AlertDescription>
                         </Alert>
                     )}

@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -8,25 +9,22 @@ service cloud.firestore {
         request.auth.uid == 'GrRRe2YR4zY0MT0PEfMPrPCsR5A3';
     }
     
-    // Guest users can create orders under the 'guest' document.
-    // This rule allows unauthenticated users to create their own order.
+    // Guest users can create and read their orders.
     match /users/guest/orders/{orderId} {
-      allow read, create: if request.auth == null;
+      allow create: if request.auth == null;
+      allow get, list: if true; // Allow anyone to read guest orders and items
       
-      // Allow read for guest order items as well during creation.
       match /orderItems/{itemId} {
-        allow read, create: if request.auth == null;
+        allow create: if request.auth == null;
+        allow get, list: if true;
       }
     }
 
-    // Authenticated users can create their own user document.
+    // Authenticated users can manage their own data.
     match /users/{userId} {
       allow create: if request.auth != null && request.auth.uid == userId;
-
-      // Authenticated users can read and update their own user document.
       allow read, update, delete: if request.auth != null && request.auth.uid == userId;
       
-      // Authenticated users can manage their own orders and order items.
       match /orders/{orderId} {
         allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
         
