@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -92,9 +93,9 @@ export async function submitOrder(prevState: any, formData: FormData) {
     await batch.commit();
     console.log('✅ Batch committed successfully! Order ID:', newOrderRef.id);
     
-    // Email sending is commented out to prevent other errors.
-    // We can re-enable this once the core submission logic is confirmed to be working.
     /*
+    // Temporarily disable email sending to fix freezing issue.
+    // This can be re-enabled once SendGrid is configured properly.
     const fulfillmentEmail = 'martezandco@gmail.com';
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const orderPageUrl = `${baseUrl}/order/${newOrderRef.id}?userId=${userId}`;
