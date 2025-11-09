@@ -17,7 +17,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
 import { demoProducts } from '@/lib/data';
 import { FloatingCartPill } from '@/app/menu/components/floating-cart-pill';
-import DispensaryLocator from '@/app/menu/components/dispensary-locator';
+import Header from '@/app/menu/components/header';
 
 type Props = {
   params: { id: string }
@@ -64,34 +64,6 @@ export async function generateMetadata(
   }
 }
 
-const Header = () => {
-    return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-      <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="text-2xl font-bold font-teko tracking-wider">
-          BAKEDBOT
-        </Link>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
-            <Search className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/brand-login">
-              <User className="h-5 w-5" />
-            </Link>
-          </Button>
-          {/* Cart button here will not be interactive without being a client component.
-              We'll rely on the one inside ProductDetailsClient for interaction. */}
-          <Button variant="ghost" size="icon">
-            <ShoppingBag className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
-    </header>
-  );
-};
-
-
 function ProductPageSkeleton() {
   return (
     <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start max-w-6xl mx-auto py-8 px-4">
@@ -131,9 +103,6 @@ export default async function ProductPage({ params }: Props) {
         <div className="min-h-screen bg-background">
             <Header />
             <main className="container mx-auto">
-                <div className="py-8 px-4">
-                    <DispensaryLocator />
-                </div>
                 <Suspense fallback={<ProductPageSkeleton />}>
                     <ProductDetailsClient product={product} summary={summary} />
                 </Suspense>
