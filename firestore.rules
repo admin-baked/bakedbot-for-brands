@@ -13,7 +13,7 @@ service cloud.firestore {
     match /users/guest/orders/{orderId} {
       allow read, create: if request.auth == null;
       
-      // Allow read/write for guest order items as well during creation.
+      // Allow read for guest order items as well during creation.
       match /orderItems/{itemId} {
         allow read, create: if request.auth == null;
       }
