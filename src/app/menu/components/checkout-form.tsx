@@ -140,7 +140,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                             <Upload className="h-4 w-4" />
                             <span className='truncate flex-1'>{idImageName || 'Upload a photo of your ID'}</span>
                         </Label>
-                        <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" required/>
+                        <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" onChange={handleFileChange} required/>
                     </div>
                     
                     {state?.message && !state.success && (

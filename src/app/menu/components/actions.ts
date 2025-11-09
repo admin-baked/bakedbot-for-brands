@@ -112,7 +112,6 @@ export async function submitOrder(prevState: any, formData: FormData) {
       bcc: brandOwners,
       orderId: newOrderRef.id,
       customerName: orderData.customerName,
-      customerEmail: orderData.customerEmail,
       pickupLocationName: locationName || 'Unknown',
       totalAmount: orderData.totalAmount,
       cartItems: cartItems,
