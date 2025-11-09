@@ -74,12 +74,10 @@ export async function submitReview(prevState: any, formData: FormData) {
         requestResourceData: { ...dataToSave, createdAt: 'SERVER_TIMESTAMP' } // Use string placeholder for server value
     } satisfies SecurityRuleContext);
     
-    errorEmitter.emit('permission-error', permissionError);
-
-    // We can't actually throw here because it's a server action,
-    // but we can return the specific error message to the client.
+    // Server actions can't emit client events. Instead, we return a structured
+    // error that the client form can display.
     return {
-      message: `Submission failed: ${serverError.message}`,
+      message: `Submission failed: A permission error occurred. Please check your security rules.`,
       error: true,
     }
   }

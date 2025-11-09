@@ -37,13 +37,11 @@ function SubmitButton() {
 
 export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSuccess: (orderId: string) => void; selectedLocation: Location }) {
   const { user } = useUser();
-  const { items, getCartTotal } = useCart();
+  const { items } = useCart();
   const [state, formAction] = useFormState(submitOrder, initialState);
   
   const [birthDate, setBirthDate] = useState<Date | undefined>();
   const [idImageName, setIdImageName] = useState<string | null>(null);
-
-  const { total } = getCartTotal();
 
   // This effect will run when the server action completes
   useEffect(() => {
@@ -74,7 +72,6 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                     <input type="hidden" name="userId" value={user?.uid || 'guest'} />
                     <input type="hidden" name="locationId" value={selectedLocation.id} />
                     <input type="hidden" name="cartItems" value={JSON.stringify(items)} />
-                    <input type="hidden" name="totalAmount" value={String(total)} />
                     {birthDate && <input type="hidden" name="customerBirthDate" value={birthDate.toISOString()} />}
 
                     {/* Form Fields */}

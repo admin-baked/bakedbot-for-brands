@@ -17,7 +17,7 @@ import {
 } from '@/ai/flows/summarize-reviews';
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
-import { doc, increment, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, increment, updateDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
@@ -191,6 +191,15 @@ export async function updateProductFeedback(
   }
 
   const productRef = doc(firestore, 'products', productId);
+  
+  // --- SERVER-SIDE VALIDATION ---
+  // First, verify the product actually exists before trying to update it.
+  const productSnap = await getDoc(productRef);
+  if (!productSnap.exists()) {
+      return { success: false, message: `Product with ID ${productId} not found.` };
+  }
+  // --- END VALIDATION ---
+
   const fieldToUpdate = feedbackType === 'like' ? 'likes' : 'dislikes';
   const updatePayload = { [fieldToUpdate]: increment(1) };
 
@@ -203,7 +212,10 @@ export async function updateProductFeedback(
       operation: 'update',
       requestResourceData: { [fieldToUpdate]: 'increment(1)' },
     });
-    errorEmitter.emit('permission-error', permissionError);
-    return { success: false, message: 'Permission denied.' };
+    // The server action can't emit a client event, but this would be where
+    // you log to a server-side logging service. The client will get a generic
+    // permission error from the failed updateDoc call if rules are enforced.
+    // For this demo, we return a clear message.
+    return { success: false, message: 'Permission denied. Your security rules might be blocking this update.' };
   }
 }

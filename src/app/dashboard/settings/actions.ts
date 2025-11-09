@@ -109,9 +109,10 @@ export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
           operation: 'update',
           requestResourceData: { bakedBotApiKey: 'REDACTED' }
       });
-      errorEmitter.emit('permission-error', permissionError);
+      // The server action can't directly trigger a client-side event emitter.
+      // Instead, we return a clear error message to the form state.
       return {
-          message: 'Permission denied. Could not save API key.',
+          message: 'Permission denied. Could not save API key. Check Firestore rules for user-private collection.',
           error: true
       };
   }

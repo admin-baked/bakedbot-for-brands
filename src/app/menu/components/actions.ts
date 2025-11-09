@@ -3,8 +3,8 @@
 
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
-import { collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
-import type { CartItem } from '@/lib/types';
+import { collection, doc, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
+import type { CartItem, Product } from '@/lib/types';
 
 const CheckoutSchema = z.object({
   userId: z.string(),
@@ -14,7 +14,7 @@ const CheckoutSchema = z.object({
   customerBirthDate: z.string().min(1, 'Please enter your date of birth.'),
   locationId: z.string().min(1, 'Please select a pickup location.'),
   cartItems: z.string().min(1, 'Your cart is empty.'),
-  totalAmount: z.coerce.number().positive('Total amount must be positive.'),
+  // totalAmount is removed - it will be calculated on the server.
   idImage: z.any().optional(),
 });
 
@@ -32,7 +32,6 @@ export async function submitOrder(prevState: any, formData: FormData) {
       customerBirthDate: formData.get('customerBirthDate'),
       locationId: formData.get('locationId'),
       cartItems: formData.get('cartItems'),
-      totalAmount: formData.get('totalAmount'),
       idImage: formData.get('idImage'),
     });
 
@@ -47,10 +46,43 @@ export async function submitOrder(prevState: any, formData: FormData) {
     
     const { cartItems: cartItemsJson, idImage, ...orderData } = validatedFields.data;
     
-    const cartItems: CartItem[] = JSON.parse(cartItemsJson);
-    if (cartItems.length === 0) {
+    const clientCartItems: CartItem[] = JSON.parse(cartItemsJson);
+    if (clientCartItems.length === 0) {
       return { message: 'Cannot submit an empty order.', error: true };
     }
+
+    // --- SERVER-SIDE PRICE CALCULATION ---
+    let serverCalculatedTotal = 0;
+    const validatedCartItems: Omit<CartItem, 'description' | 'imageHint' | 'likes' | 'dislikes' | 'prices'>[] = [];
+
+    for (const item of clientCartItems) {
+        const productRef = doc(firestore, 'products', item.id);
+        const productSnap = await getDoc(productRef);
+
+        if (!productSnap.exists()) {
+            throw new Error(`Product with ID ${item.id} not found.`);
+        }
+
+        const productData = productSnap.data() as Product;
+        const price = (orderData.locationId && productData.prices?.[orderData.locationId])
+            ? productData.prices[orderData.locationId]
+            : productData.price;
+        
+        serverCalculatedTotal += price * item.quantity;
+        validatedCartItems.push({
+            id: item.id,
+            name: productData.name,
+            category: productData.category,
+            price: price,
+            imageUrl: productData.imageUrl,
+            quantity: item.quantity,
+        });
+    }
+    // Simple tax calculation on the server
+    const taxes = serverCalculatedTotal * 0.15;
+    const finalTotal = serverCalculatedTotal + taxes;
+    // --- END SERVER-SIDE CALCULATION ---
+
 
     const userDocRef = doc(firestore, 'users', userId);
     const batch = writeBatch(firestore);
@@ -60,16 +92,16 @@ export async function submitOrder(prevState: any, formData: FormData) {
     
     const fullOrderData = {
       ...orderData,
+      totalAmount: finalTotal, // Use server-calculated total
       orderDate: serverTimestamp(),
       status: 'pending' as const,
-      // In a real app, this would be a URL from Firebase Storage
       idImageUrl: idImage.size > 0 ? 'placeholder/id_image.jpg' : '',
     };
     
     batch.set(newOrderRef, fullOrderData);
 
     const itemsCollectionRef = collection(newOrderRef, 'orderItems');
-    cartItems.forEach((item) => {
+    validatedCartItems.forEach((item) => {
         const itemRef = doc(itemsCollectionRef);
         const itemData = {
             productId: item.id,
@@ -92,8 +124,6 @@ export async function submitOrder(prevState: any, formData: FormData) {
   } catch (error: any) {
     console.error('❌ Order submission failed:', error);
     
-    // The server action can't trigger a client-side event emitter.
-    // It should just return an error state to the client form.
     return {
       error: true,
       message: error.message || 'An unknown error occurred during order submission.',
