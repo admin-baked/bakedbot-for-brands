@@ -92,6 +92,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId) || isCeo();
       allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      // User can update their own profile, but cannot change their ID.
       allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isOwner(userId);
     }
@@ -131,9 +132,12 @@ service cloud.firestore {
         allow get, update: if isOwner(userId) || isCeo();
         allow delete: if isOwner(userId);
         
-        // Allow order creation only for valid orders by the owner (or guest).
+        // Allow order creation only if it's a batch write with valid items.
         allow create: if isValidOrder(request.resource.data) &&
-                       ((isAuthenticated() && isOwner(userId)) || userId == 'guest');
+                       ((isAuthenticated() && isOwner(userId)) || userId == 'guest') &&
+                       // Ensure this is part of a batch write creating at least one orderItem.
+                       request.method == 'write' &&
+                       existsAfter(/databases/$(database)/documents/users/$(userId)/orders/$(orderId)/orderItems/$(request.resource.data.orderItemIds[0]));
 
         // OrderItems rules
         match /orderItems/{orderItemId} {
