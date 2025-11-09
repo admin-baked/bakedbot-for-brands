@@ -1,15 +1,39 @@
+
 'use client';
 
+import { useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import Image from 'next/image';
 import Link from 'next/link';
-import Header from '@/app/menu/components/header';
+import { PenSquare, Plus, ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { useCart } from '@/hooks/use-cart';
 import CartSidebar from '@/app/menu/components/cart-sidebar';
-import { FloatingCartPill } from '@/app/menu/components/floating-cart-pill';
-import Chatbot from '@/components/chatbot';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { type Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import Chatbot from '@/components/chatbot';
+import { useMenuData } from '@/hooks/use-menu-data';
+import { useStore } from '@/hooks/use-store';
+import Header from '@/app/menu/components/header';
+import { FloatingCartPill } from '@/app/menu/components/floating-cart-pill';
+
+const HeroSliderSkeleton = () => (
+    <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12 bg-muted">
+        <Skeleton className="h-full w-full" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+            <Skeleton className="h-10 w-3/4 mb-4" />
+            <Skeleton className="h-5 w-1/2" />
+        </div>
+    </div>
+);
+
+// Dynamically import HeroSlider only on the client side.
+const HeroSlider = dynamic(() => import('@/app/menu/components/hero-slider'), {
+    ssr: false,
+    loading: () => <HeroSliderSkeleton />,
+});
 
 const DispensaryLocator = dynamic(() => import('@/app/menu/components/dispensary-locator'), {
     ssr: false,
@@ -17,7 +41,7 @@ const DispensaryLocator = dynamic(() => import('@/app/menu/components/dispensary
 });
 
 const DispensaryLocatorSkeleton = () => (
-     <div className="py-12">
+     <div className="py-12" id="locator">
         <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
         <div className="grid md:grid-cols-3 gap-4 max-w-6xl mx-auto">
             <Card><CardContent className="p-4"><Skeleton className="h-24 w-full" /></CardContent></Card>
@@ -27,65 +51,261 @@ const DispensaryLocatorSkeleton = () => (
     </div>
 );
 
+const SKELETON_CATEGORIES = ['Edibles', 'Flower', 'Vapes'];
 
-export default function LandingPage() {
+const ProductCard = ({ product, layout = 'default' }: { product: Product, layout?: 'default' | 'alt' }) => {
+    const { addToCart } = useCart();
+    const { selectedLocationId } = useStore();
+    
+    const priceDisplay = useMemo(() => {
+        const hasPricing = product.prices && Object.keys(product.prices).length > 0;
+        
+        // If a location is selected, show its specific price.
+        if (selectedLocationId && hasPricing && product.prices[selectedLocationId]) {
+            return `$${product.prices[selectedLocationId].toFixed(2)}`;
+        }
+        
+        // If no location is selected but there are multiple prices, show a range.
+        if (!selectedLocationId && hasPricing) {
+            const priceValues = Object.values(product.prices);
+            const minPrice = Math.min(...priceValues);
+            const maxPrice = Math.max(...priceValues);
+
+            if (minPrice === maxPrice) {
+                return `$${minPrice.toFixed(2)}`;
+            }
+            return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
+        }
+        
+        // Fallback to the base price if no other conditions are met.
+        return `$${product.price.toFixed(2)}`;
+    }, [product, selectedLocationId]);
+
+    const handleAddToCart = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        addToCart(product, selectedLocationId);
+    };
+    
+    const canAddToCart = !!selectedLocationId;
+
+    if (layout === 'alt') {
+        return (
+            <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow border-none flex flex-col w-full group">
+                <Link href={`/products/${product.id}`} className="flex flex-col flex-1">
+                    <CardHeader className="p-0">
+                        <div className="relative aspect-square w-full">
+                            <Image src={product.imageUrl} alt={product.name} layout="fill" objectFit="cover" data-ai-hint={product.imageHint} />
+                            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-4 bg-card flex-1">
+                        <CardTitle className="text-base truncate font-semibold">{product.name}</CardTitle>
+                        <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                                <ThumbsUp className="h-3 w-3 text-green-500" />
+                                <span>{product.likes}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <ThumbsDown className="h-3 w-3 text-red-500" />
+                                <span>{product.dislikes}</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Link>
+                <CardFooter className="flex justify-between items-center p-4 pt-0 bg-card">
+                    <span className="text-lg font-bold">{priceDisplay}</span>
+                    <Button size="icon" onClick={handleAddToCart} disabled={!canAddToCart}>
+                        <Plus className="h-4 w-4"/>
+                    </Button>
+                </CardFooter>
+            </Card>
+        )
+    }
+
+    return (
+        <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow border-none flex flex-col w-full">
+            <Link href={`/products/${product.id}`} className="flex flex-col flex-1">
+                <CardHeader className="p-0">
+                    <div className="relative aspect-square w-full">
+                        <Image src={product.imageUrl} alt={product.name} layout="fill" objectFit="cover" data-ai-hint={product.imageHint} />
+                    </div>
+                </CardHeader>
+                <CardContent className="p-4 bg-card flex-1">
+                    <Badge variant="secondary">{product.category}</Badge>
+                    <CardTitle className="mt-2 text-lg truncate font-semibold">{product.name}</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">AVAILABLE AT 3 LOCATIONS</p>
+                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                            <ThumbsUp className="h-3 w-3 text-green-500" />
+                            <span>{product.likes}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <ThumbsDown className="h-3 w-3 text-red-500" />
+                            <span>{product.dislikes}</span>
+                        </div>
+                    </div>
+                </CardContent>
+            </Link>
+            <CardFooter className="flex justify-between items-center p-4 pt-0 bg-card">
+                <span className="text-xl font-bold">{priceDisplay}</span>
+                <Button size="icon" onClick={handleAddToCart} disabled={!canAddToCart}>
+                    <Plus className="h-4 w-4"/>
+                </Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
+const ProductSkeleton = () => (
+    <Card className="overflow-hidden shadow-md flex flex-col">
+        <Skeleton className="aspect-square w-full" />
+        <CardContent className="p-4 flex-1 space-y-2">
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+        </CardContent>
+        <CardFooter className="p-4 pt-0 flex justify-between items-center">
+            <Skeleton className="h-7 w-1/4" />
+            <Skeleton className="h-10 w-10 rounded-md" />
+        </CardFooter>
+    </Card>
+)
+
+const groupProductsByCategory = (products: Product[]) => {
+    return products.reduce((acc, product) => {
+        const { category } = product;
+        if (!acc[category]) {
+            acc[category] = [];
+        }
+        acc[category].push(product);
+        return acc;
+    }, {} as Record<string, Product[]>);
+}
+
+const DefaultLayout = ({ products, groupedProducts, categories, showSkeletons }: { products: Product[], groupedProducts: Record<string, Product[]>, categories: string[], showSkeletons: boolean }) => (
+    <>
+        <HeroSlider products={products} />
+        <div className="text-center mb-12">
+            <Button variant="outline" asChild>
+                <Link href="/leave-a-review">
+                    <PenSquare className="mr-2 h-4 w-4" />
+                    Have Feedback? Leave a Review
+                </Link>
+            </Button>
+        </div>
+        <div id="locator">
+            <DispensaryLocator />
+        </div>
+        <div className="space-y-12 mt-12">
+            {showSkeletons ? (
+                <>
+                    {SKELETON_CATEGORIES.map(category => (
+                        <section key={category}>
+                            <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">
+                                <Skeleton className="h-8 w-1/4" />
+                            </h2>
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                                {Array.from({ length: 5 }).map((_, i) => <ProductSkeleton key={i} />)}
+                            </div>
+                        </section>
+                    ))}
+                </>
+            ) : (
+                categories.map(category => (
+                    <section key={category}>
+                        <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">
+                            {category}
+                        </h2>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                            {groupedProducts[category].map(product => (
+                                <ProductCard key={product.id} product={product} layout="default"/>
+                            ))}
+                        </div>
+                    </section>
+                ))
+            )}
+        </div>
+    </>
+);
+
+const AltLayout = ({ products, groupedProducts, categories, showSkeletons }: { products: Product[], groupedProducts: Record<string, Product[]>, categories: string[], showSkeletons: boolean }) => {
+    const featuredProduct = products ? products.find(p => p.id === '5') : null;
+    return (
+        <>
+             <div className="text-center mb-12">
+                <Button variant="outline" asChild>
+                    <Link href="/leave-a-review">
+                        <PenSquare className="mr-2 h-4 w-4" />
+                        Have Feedback? Leave a Review
+                    </Link>
+                </Button>
+            </div>
+            <div id="locator">
+                <DispensaryLocator />
+            </div>
+            <div className="space-y-12 mt-12">
+                {showSkeletons ? (
+                    <>
+                        {SKELETON_CATEGORIES.map(category => (
+                            <section key={category}>
+                                <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">
+                                    <Skeleton className="h-8 w-1/4" />
+                                </h2>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                    {Array.from({ length: 4 }).map((_, i) => <ProductSkeleton key={i} />)}
+                                </div>
+                            </section>
+                        ))}
+                    </>
+                ) : (
+                    categories.map(category => (
+                        <section key={category}>
+                            <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-6">
+                                {category}
+                            </h2>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                {groupedProducts[category]?.map(product => (
+                                    <ProductCard key={product.id} product={product} layout="alt" />
+                                ))}
+                            </div>
+                        </section>
+                    ))
+                )}
+            </div>
+        </>
+    );
+};
+
+export default function HomePage() {
+    const { products, isLoading, isHydrated } = useMenuData();
+    const { menuStyle, selectedLocationId } = useStore();
+    const { updateItemPrices } = useCart();
+    
+    useEffect(() => {
+        if (products) {
+            updateItemPrices(selectedLocationId, products);
+        }
+    }, [selectedLocationId, products, updateItemPrices]);
+    
+    const groupedProducts = useMemo(() => {
+        return products ? groupProductsByCategory(products) : {};
+    }, [products]);
+
+    const categories = Object.keys(groupedProducts);
+    const showSkeletons = (isLoading || !isHydrated) && (!products || products.length === 0);
+
+    const LayoutComponent = menuStyle === 'alt' ? AltLayout : DefaultLayout;
+
     return (
         <div className="min-h-screen bg-background">
             <Header />
             <main className="container mx-auto px-4 py-8">
-                <div className="text-center py-16 md:py-24">
-                     <h1 className="text-6xl md:text-8xl font-teko tracking-widest uppercase text-foreground">
-                        Find Your Bliss
-                     </h1>
-                     <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-                        Discover premium, handcrafted cannabis products designed to elevate your moments. Explore our menu to find the perfect match for your mood and occasion.
-                     </p>
-                     <Button asChild size="lg" className="mt-8">
-                        <Link href="/menu">
-                            Browse the Full Menu <ArrowRight className="ml-2" />
-                        </Link>
-                     </Button>
-                </div>
-
-                <DispensaryLocator />
+                 <LayoutComponent products={products || []} groupedProducts={groupedProducts} categories={categories} showSkeletons={showSkeletons} />
             </main>
-             <footer className="py-12 bg-foreground text-background">
-                <div className="container mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
-                    <div>
-                        <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">BAKEDBOT</h3>
-                        <p className="text-sm text-muted-foreground">Your AI-powered cannabis co-pilot.</p>
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">SHOP</h3>
-                        <ul className="space-y-2 text-sm">
-                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Edibles</Link></li>
-                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Flower</Link></li>
-                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Vapes</Link></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">ABOUT</h3>
-                        <ul className="space-y-2 text-sm">
-                            <li><Link href="/" className="text-muted-foreground hover:text-primary">Our Story</Link></li>
-                            <li><Link href="/" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
-                            <li><Link href="/brand-login" className="text-muted-foreground hover:text-primary">Brand Login</Link></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">CONTACT</h3>
-                        <ul className="space-y-2 text-sm">
-                            <li><Link href="/" className="text-muted-foreground hover:text-primary">Contact Us</Link></li>
-                            <li><Link href="/" className="text-muted-foreground hover:text-primary">Careers</Link></li>
-                        </ul>
-                    </div>
-                </div>
-                <div className="container mx-auto mt-8 pt-8 border-t border-muted-foreground/20 text-center text-muted-foreground text-sm">
-                    <p>&copy; 2024 BakedBot. All rights reserved.</p>
-                </div>
-            </footer>
             <CartSidebar />
             <FloatingCartPill />
             <Chatbot />
         </div>
-    )
+    );
 }

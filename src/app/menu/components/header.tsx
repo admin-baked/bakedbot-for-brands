@@ -26,8 +26,7 @@ export default function Header() {
           BAKEDBOT
         </Link>
         <nav className="hidden md:flex items-center gap-6 font-semibold text-sm">
-            <Link href="/" className="text-muted-foreground hover:text-foreground">Home</Link>
-            <Link href="/menu" className="text-muted-foreground hover:text-foreground">Menu</Link>
+            <Link href="/" className="text-muted-foreground hover:text-foreground">Menu</Link>
             <Link href="/#locator" className="text-muted-foreground hover:text-foreground">Locations</Link>
         </nav>
         <div className="flex items-center gap-2">
