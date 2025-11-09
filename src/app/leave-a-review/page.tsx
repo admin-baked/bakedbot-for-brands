@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
@@ -121,7 +122,7 @@ export default function LeaveReviewPage() {
                     <div>
                         <Button variant="link" asChild>
                             <Link href="/dashboard/products">
-                                &larr; Back to Menu
+                                &larr; Back to Dashboard
                             </Link>
                         </Button>
                     </div>
@@ -136,7 +137,7 @@ export default function LeaveReviewPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
        <div className="absolute top-4 left-4">
             <Button variant="outline" asChild>
-                <Link href="/menu">
+                <Link href="/">
                     &larr; Back to Menu
                 </Link>
             </Button>

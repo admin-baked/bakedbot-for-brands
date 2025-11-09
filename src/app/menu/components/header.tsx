@@ -25,15 +25,15 @@ export default function Header() {
     return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/menu" className="text-2xl font-bold font-teko tracking-wider">
+        <Link href="/" className="text-2xl font-bold font-teko tracking-wider">
           BAKEDBOT
         </Link>
         <nav className="hidden md:flex items-center gap-6 font-semibold text-sm">
-            <Link href="/menu" className="text-muted-foreground hover:text-foreground">Home</Link>
-            <Link href="/menu#about" className="text-muted-foreground hover:text-foreground">About Us</Link>
+            <Link href="/" className="text-muted-foreground hover:text-foreground">Home</Link>
+            <Link href="/#about" className="text-muted-foreground hover:text-foreground">About Us</Link>
             <Link href="/product-locator" className={isLocatorActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}>Product Locator</Link>
-            <Link href="/menu#partners" className="text-muted-foreground hover:text-foreground">Our Partners</Link>
-            <Link href="/menu#careers" className="text-muted-foreground hover:text-foreground">Careers</Link>
+            <Link href="/#partners" className="text-muted-foreground hover:text-foreground">Our Partners</Link>
+            <Link href="/#careers" className="text-muted-foreground hover:text-foreground">Careers</Link>
         </nav>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon">

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -245,7 +246,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                           <Link href="/menu" target="_blank">
+                           <Link href="/" target="_blank">
                              <ExternalLink className="mr-2 h-4 w-4" />
                              <span>Public Menu</span>
                            </Link>
@@ -290,7 +291,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </DropdownMenuItem>
                    <DropdownMenuSeparator />
                    <DropdownMenuItem asChild>
-                     <Link href="/menu" target="_blank">
+                     <Link href="/" target="_blank">
                        <ExternalLink className="mr-2 h-4 w-4" />
                        <span>Public Menu</span>
                      </Link>

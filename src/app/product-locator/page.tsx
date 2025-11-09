@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -43,24 +44,24 @@ export default function ProductLocatorPage() {
                     <div>
                         <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">SHOP</h3>
                         <ul className="space-y-2 text-sm">
-                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Edibles</Link></li>
-                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Flower</Link></li>
-                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Vapes</Link></li>
+                            <li><Link href="/" className="text-muted-foreground hover:text-primary">Edibles</Link></li>
+                            <li><Link href="/" className="text-muted-foreground hover:text-primary">Flower</Link></li>
+                            <li><Link href="/" className="text-muted-foreground hover:text-primary">Vapes</Link></li>
                         </ul>
                     </div>
                     <div>
                         <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">ABOUT</h3>
                         <ul className="space-y-2 text-sm">
-                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Our Story</Link></li>
-                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
+                            <li><Link href="/" className="text-muted-foreground hover:text-primary">Our Story</Link></li>
+                            <li><Link href="/" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
                             <li><Link href="/brand-login" className="text-muted-foreground hover:text-primary">Brand Login</Link></li>
                         </ul>
                     </div>
                     <div>
                         <h3 className="font-bold text-lg mb-4 font-teko tracking-wider">CONTACT</h3>
                         <ul className="space-y-2 text-sm">
-                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Contact Us</Link></li>
-                            <li><Link href="/menu" className="text-muted-foreground hover:text-primary">Careers</Link></li>
+                            <li><Link href="/" className="text-muted-foreground hover:text-primary">Contact Us</Link></li>
+                            <li><Link href="/" className="text-muted-foreground hover:text-primary">Careers</Link></li>
                         </ul>
                     </div>
                 </div>

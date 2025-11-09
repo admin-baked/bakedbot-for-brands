@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import Image from 'next/image';
@@ -114,7 +115,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
 
             <div className="space-y-6">
                 <Button variant="outline" size="sm" asChild className="w-fit">
-                    <Link href="/menu">
+                    <Link href="/">
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Menu
                     </Link>

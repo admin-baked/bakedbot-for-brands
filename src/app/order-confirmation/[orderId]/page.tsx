@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Suspense } from 'react';
@@ -80,7 +81,7 @@ function OrderPageClient() {
                   {error ? `Error: ${error.message}` : "We couldn't find the order you were looking for."}
                 </p>
                 <Button asChild className="mt-6">
-                    <Link href="/menu">
+                    <Link href="/">
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Menu
                     </Link>
@@ -167,7 +168,7 @@ function OrderPageClient() {
                         You will receive an email confirmation shortly. Please bring a valid, government-issued photo ID for pickup.
                      </p>
                      <Button asChild variant="outline">
-                        <Link href="/menu">
+                        <Link href="/">
                             <Home className="mr-2" /> Continue Shopping
                         </Link>
                      </Button>

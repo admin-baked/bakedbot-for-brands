@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useStore } from '@/hooks/use-store';
@@ -39,14 +40,14 @@ export default function CheckoutPage() {
       if (!selectedLocationId) {
         setErrorMessage('No location selected. Redirecting...');
         setStatus('error');
-        setTimeout(() => router.replace('/menu?error=no-location'), 2000);
+        setTimeout(() => router.replace('/?error=no-location'), 2000);
         return;
       }
       
       if (locations.length === 0) {
         setErrorMessage('Locations not loaded. Redirecting...');
         setStatus('error');
-        setTimeout(() => router.replace('/menu?error=no-locations'), 2000);
+        setTimeout(() => router.replace('/?error=no-locations'), 2000);
         return;
       }
       
@@ -54,14 +55,14 @@ export default function CheckoutPage() {
       if (!selectedLocation) {
         setErrorMessage('Selected location could not be found. Redirecting...');
         setStatus('error');
-        setTimeout(() => router.replace('/menu?error=location-not-found'), 2000);
+        setTimeout(() => router.replace('/?error=location-not-found'), 2000);
         return;
       }
       
       if (cart.length === 0) {
         setErrorMessage('Your cart is empty. Redirecting...');
         setStatus('error');
-        setTimeout(() => router.replace('/menu?error=empty-cart'), 2000);
+        setTimeout(() => router.replace('/?error=empty-cart'), 2000);
         return;
       }
       
@@ -186,7 +187,7 @@ export default function CheckoutPage() {
                 </CardContent>
                 <CardFooter>
                      <Button variant="outline" className="w-full" asChild>
-                        <Link href="/menu">
+                        <Link href="/">
                             Edit Cart
                         </Link>
                      </Button>

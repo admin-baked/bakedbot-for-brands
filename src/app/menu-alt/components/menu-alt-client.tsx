@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -83,7 +84,7 @@ const FloatingCartPill = () => {
     const { getItemCount, getCartTotal, toggleCart } = useCart();
     const { selectedLocationId } = useStore();
     const itemCount = getItemCount();
-    const subtotal = getCartTotal(selectedLocationId);
+    const {subtotal} = getCartTotal();
 
     return (
         <AnimatePresence>

@@ -1,4 +1,5 @@
 
+
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -67,7 +68,7 @@ const Header = () => {
     return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/menu" className="text-2xl font-bold font-teko tracking-wider">
+        <Link href="/" className="text-2xl font-bold font-teko tracking-wider">
           BAKEDBOT
         </Link>
         <div className="flex items-center gap-2">
