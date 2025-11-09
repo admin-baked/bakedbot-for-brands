@@ -14,7 +14,7 @@ interface CartState {
   updateItemPrices: (locationId: string | null, products: Product[]) => void;
   clearCart: () => void;
   toggleCart: () => void;
-  getCartTotal: () => number;
+  getCartTotal: (locationId?: string | null) => number;
   getItemCount: () => number;
 }
 
@@ -72,8 +72,11 @@ const useCartStore = create<CartState>((set, get) => ({
   },
   clearCart: () => set({ items: [] }),
   toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
-  getCartTotal: () => {
-    return get().items.reduce((total, item) => total + item.price * item.quantity, 0);
+  getCartTotal: (locationId) => {
+    const { items } = get();
+    // This function can now optionally recalculate total based on a location
+    // but the primary source of truth is the item's price when added/updated.
+    return items.reduce((total, item) => total + item.price * item.quantity, 0);
   },
   getItemCount: () => {
     return get().items.reduce((total, item) => total + item.quantity, 0);

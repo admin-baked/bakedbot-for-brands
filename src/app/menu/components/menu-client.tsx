@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -298,7 +298,14 @@ const AltLayout = ({ products, groupedProducts, categories, showSkeletons }: { p
 
 export default function MenuClient() {
     const { products, isLoading, isHydrated } = useMenuData();
-    const { menuStyle } = useStore();
+    const { menuStyle, selectedLocationId } = useStore();
+    const { updateItemPrices } = useCart();
+    
+    useEffect(() => {
+        if (products) {
+            updateItemPrices(selectedLocationId, products);
+        }
+    }, [selectedLocationId, products, updateItemPrices]);
     
     const groupedProducts = useMemo(() => {
         return products ? groupProductsByCategory(products) : {};
