@@ -35,6 +35,22 @@ const HeroSlider = dynamic(() => import('@/app/menu/components/hero-slider'), {
     loading: () => <HeroSliderSkeleton />,
 });
 
+const DispensaryLocator = dynamic(() => import('@/app/menu/components/dispensary-locator'), {
+    ssr: false,
+    loading: () => <DispensaryLocatorSkeleton />,
+});
+
+const DispensaryLocatorSkeleton = () => (
+     <div className="py-12">
+        <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
+        <div className="grid md:grid-cols-3 gap-4 max-w-6xl mx-auto">
+            <Card><CardContent className="p-4"><Skeleton className="h-24 w-full" /></CardContent></Card>
+            <Card><CardContent className="p-4"><Skeleton className="h-24 w-full" /></CardContent></Card>
+            <Card><CardContent className="p-4"><Skeleton className="h-24 w-full" /></CardContent></Card>
+        </div>
+    </div>
+);
+
 const SKELETON_CATEGORIES = ['Edibles', 'Flower', 'Vapes'];
 
 const ProductCard = ({ product, layout = 'default' }: { product: Product, layout?: 'default' | 'alt' }) => {
@@ -171,8 +187,6 @@ const DefaultLayout = ({ products, groupedProducts, categories, showSkeletons }:
     <>
         <HeroSlider products={products} />
         <div className="text-center mb-12">
-            <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Browse the Menu</h2>
-            <p className="text-muted-foreground mb-4">Select a dispensary on the homepage to enable pricing and add to cart.</p>
             <Button variant="outline" asChild>
                 <Link href="/leave-a-review">
                     <PenSquare className="mr-2 h-4 w-4" />
@@ -180,7 +194,8 @@ const DefaultLayout = ({ products, groupedProducts, categories, showSkeletons }:
                 </Link>
             </Button>
         </div>
-        <div className="space-y-12">
+        <DispensaryLocator />
+        <div className="space-y-12 mt-12">
             {showSkeletons ? (
                 <>
                     {SKELETON_CATEGORIES.map(category => (
@@ -217,8 +232,6 @@ const AltLayout = ({ products, groupedProducts, categories, showSkeletons }: { p
     return (
         <>
              <div className="text-center mb-12">
-                <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Browse the Menu</h2>
-                <p className="text-muted-foreground mb-4">Select a dispensary on the homepage to enable pricing and add to cart.</p>
                 <Button variant="outline" asChild>
                     <Link href="/leave-a-review">
                         <PenSquare className="mr-2 h-4 w-4" />
@@ -226,8 +239,9 @@ const AltLayout = ({ products, groupedProducts, categories, showSkeletons }: { p
                     </Link>
                 </Button>
             </div>
+             <DispensaryLocator />
             
-            <div className="space-y-12">
+            <div className="space-y-12 mt-12">
                 {showSkeletons ? (
                     <>
                         {SKELETON_CATEGORIES.map(category => (
