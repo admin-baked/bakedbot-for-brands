@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -115,3 +116,8 @@ const useCartStore = create<CartStore>()(
 );
 
 export const useCart = () => useCartStore();
+
+// Create and export the CartProvider component
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
