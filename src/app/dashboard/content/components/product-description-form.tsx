@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -46,6 +47,7 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
   
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [localGeneratedContent, setLocalGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
+  const [packagingImage, setPackagingImage] = useState<string>('');
   
   const { chatbotIcon } = useStore();
   const { data: products, isLoading: areProductsLoading } = useProducts();
@@ -59,8 +61,8 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
         }
       } else if (descriptionState.data) {
         const newContent = { 
-            ...(localGeneratedContent ?? {}), 
-            ...descriptionState.data, 
+            ...descriptionState.data,
+            imageUrl: descriptionState.data.imageUrl || localGeneratedContent?.imageUrl || '',
             productId: selectedProductId 
         } as GenerateProductDescriptionOutput & { productId?: string };
         setLocalGeneratedContent(newContent);
@@ -93,6 +95,26 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageState]);
   
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUri = reader.result as string;
+        setPackagingImage(dataUri);
+        // Also update the display immediately
+        const newContent = {
+            ...(localGeneratedContent ?? { productName: '', description: '' }),
+            productName: formRef.current?.productName.value || localGeneratedContent?.productName || 'Packaging Preview',
+            imageUrl: dataUri,
+            productId: selectedProductId
+        } as GenerateProductDescriptionOutput & { productId?: string };
+        setLocalGeneratedContent(newContent);
+        onContentUpdate(newContent);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   return (
     <Card>
@@ -103,7 +125,7 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
         </CardHeader>
         <CardContent className="space-y-6">
            <input type="hidden" name="logoDataUri" value={chatbotIcon || ''} />
-           <input type="hidden" name="imageUrl" value={localGeneratedContent?.imageUrl || ''} />
+           <input type="hidden" name="imageUrl" value={packagingImage || ''} />
            
           <div className="space-y-2">
             <Label htmlFor="product-select">Select a Product (Optional)</Label>
@@ -170,7 +192,7 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
                             <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                             <p className="text-xs text-muted-foreground">SVG, PNG, JPG (Optional, to guide image generation)</p>
                         </div>
-                        <Input id="dropzone-file" type="file" className="hidden" />
+                        <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
                     </Label>
                 </div>
             </div>

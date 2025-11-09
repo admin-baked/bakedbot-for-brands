@@ -28,6 +28,7 @@ const FormSchema = z.object({
   keywords: z.string().min(3, 'Keywords must be at least 3 characters.'),
   brandVoice: z.string().min(1, 'Please select a brand voice.'),
   msrp: z.string().optional(),
+  imageUrl: z.string().optional(), // Now we expect the image URL (as a data URI)
 });
 
 export type DescriptionFormState = {
@@ -61,6 +62,7 @@ export async function createProductDescription(
     keywords: formData.get('keywords'),
     brandVoice: formData.get('brandVoice'),
     msrp: formData.get('msrp'),
+    imageUrl: formData.get('imageUrl'), // Read the image URL from the form
   });
 
   if (!validatedFields.success) {
@@ -71,14 +73,13 @@ export async function createProductDescription(
       fieldErrors: validatedFields.error.flatten().fieldErrors,
     };
   }
-
-  // Use the image URL from the form if it exists
-  const existingImageUrl = formData.get('imageUrl') as string | null;
+  
+  const { imageUrl, ...restOfData } = validatedFields.data;
 
   try {
     const result = await generateProductDescription({
-      ...validatedFields.data,
-      imageUrl: existingImageUrl ?? undefined, // Pass existing URL or undefined
+      ...restOfData,
+      imageUrl: imageUrl ?? undefined, // Pass existing URL or undefined
     } as GenerateProductDescriptionInput);
     return {
       message: 'Product description generated successfully.',
