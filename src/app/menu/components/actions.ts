@@ -23,63 +23,67 @@ const CheckoutSchema = z.object({
 export async function submitOrder(prevState: any, formData: FormData) {
   console.log('🚀 Server action: submitOrder called');
   
-  const validatedFields = CheckoutSchema.safeParse({
-    userId: formData.get('userId'),
-    customerName: formData.get('customerName'),
-    customerEmail: formData.get('customerEmail'),
-    customerPhone: formData.get('customerPhone'),
-    customerBirthDate: formData.get('customerBirthDate'),
-    locationId: formData.get('locationId'),
-    locationName: formData.get('locationName'),
-    cartItems: formData.get('cartItems'),
-    totalAmount: formData.get('totalAmount'),
-    idImage: formData.get('idImage'),
-  });
-
-  if (!validatedFields.success) {
-    console.error('❌ Validation failed:', validatedFields.error.flatten());
-    return {
-      message: 'Invalid form data. Please check your inputs.',
-      error: true,
-      fieldErrors: validatedFields.error.flatten().fieldErrors,
-    };
-  }
-  
   const { firestore } = await createServerClient();
-  const { userId, cartItems: cartItemsJson, idImage, locationName, ...orderData } = validatedFields.data;
-  
-  const cartItems: CartItem[] = JSON.parse(cartItemsJson);
-  if (cartItems.length === 0) {
-    return { message: 'Cannot submit an empty order.', error: true };
-  }
-  
-  // This should be an environment variable in a real app
-  const fulfillmentEmail = 'martezandco@gmail.com';
+  const userId = (formData.get('userId') as string) || 'guest';
 
   try {
-    const batch = writeBatch(firestore);
+    const validatedFields = CheckoutSchema.safeParse({
+      userId: formData.get('userId'),
+      customerName: formData.get('customerName'),
+      customerEmail: formData.get('customerEmail'),
+      customerPhone: formData.get('customerPhone'),
+      customerBirthDate: formData.get('customerBirthDate'),
+      locationId: formData.get('locationId'),
+      locationName: formData.get('locationName'),
+      cartItems: formData.get('cartItems'),
+      totalAmount: formData.get('totalAmount'),
+      idImage: formData.get('idImage'),
+    });
 
-    // CRITICAL: Path must be /users/{userId}/orders/{orderId}
-    const userDocRef = doc(firestore, 'users', userId);
+    if (!validatedFields.success) {
+      console.error('❌ Validation failed:', validatedFields.error.flatten());
+      return {
+        message: 'Invalid form data. Please check your inputs.',
+        error: true,
+        fieldErrors: validatedFields.error.flatten().fieldErrors,
+      };
+    }
     
-    // For guest checkouts, we must ensure the parent `users/guest` doc exists
-    if (userId === 'guest') {
-        const guestDocSnap = await getDoc(userDocRef);
-        if (!guestDocSnap.exists()) {
-            console.log("📝 Guest user document doesn't exist. Creating it now.");
-            // We set it directly, not in the batch, to ensure it exists before the subcollection write
-            await setDoc(userDocRef, { id: 'guest', role: 'guest' });
-            console.log('✅ Guest user document created.');
-        }
+    const { cartItems: cartItemsJson, idImage, locationName, ...orderData } = validatedFields.data;
+    
+    const cartItems: CartItem[] = JSON.parse(cartItemsJson);
+    if (cartItems.length === 0) {
+      return { message: 'Cannot submit an empty order.', error: true };
     }
 
+    // CRITICAL FIX: Ensure user document exists FIRST
+    const userDocRef = doc(firestore, 'users', userId);
+    console.log('📍 User doc path:', userDocRef.path);
+
+    const userDoc = await getDoc(userDocRef);
+    
+    if (!userDoc.exists()) {
+      console.log('📝 Creating user document...');
+      await setDoc(userDocRef, {
+        id: userId,
+        email: userId === 'guest' ? orderData.customerEmail : null,
+        role: 'guest',
+        createdAt: serverTimestamp(),
+      });
+      console.log('✅ User document created');
+    } else {
+        console.log('✅ User document already exists');
+    }
+
+    // NOW create the order in a batch
+    const batch = writeBatch(firestore);
+    
     const ordersCollectionRef = collection(userDocRef, 'orders');
     const newOrderRef = doc(ordersCollectionRef); // Auto-generate ID
     console.log('📍 Order path:', newOrderRef.path);
     
     const fullOrderData = {
       ...orderData,
-      userId: userId,
       orderDate: serverTimestamp(),
       status: 'pending' as const,
       idImageUrl: idImage.size > 0 ? 'placeholder/id_image.jpg' : '',
@@ -102,9 +106,10 @@ export async function submitOrder(prevState: any, formData: FormData) {
 
     console.log('💾 Committing batch write...');
     await batch.commit();
-    console.log('✅ Batch committed successfully!');
+    console.log('✅ Batch committed successfully! Order ID:', newOrderRef.id);
 
-    // This part is for sending an email and can be adjusted
+    // Email sending logic
+    const fulfillmentEmail = 'martezandco@gmail.com';
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const orderPageUrl = `${baseUrl}/order/${newOrderRef.id}?userId=${userId}`;
     const brandOwners = ['jack@bakedbot.ai', 'martez@bakedbot.com', 'vip@bakedbot.ai'];
@@ -114,6 +119,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
       bcc: brandOwners,
       orderId: newOrderRef.id,
       customerName: orderData.customerName,
+      customerEmail: orderData.customerEmail,
       pickupLocationName: locationName || 'Unknown',
       totalAmount: orderData.totalAmount,
       cartItems: cartItems,
