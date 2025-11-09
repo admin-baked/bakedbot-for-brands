@@ -11,11 +11,11 @@ service cloud.firestore {
     // Guest users can create orders under the 'guest' document.
     // This rule allows unauthenticated users to create their own order.
     match /users/guest/orders/{orderId} {
-      allow create: if request.auth == null;
+      allow read, create: if request.auth == null;
       
       // Allow read/write for guest order items as well during creation.
       match /orderItems/{itemId} {
-        allow create: if request.auth == null;
+        allow read, create: if request.auth == null;
       }
     }
 
