@@ -1,162 +1,200 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, MapPin, CheckCircle, ExternalLink } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { haversineDistance } from '@/lib/utils';
-import type { Location } from '@/lib/types';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useStore } from '@/hooks/use-store';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { useMenuData } from '@/hooks/use-menu-data';
+import { MapPin, Navigation } from 'lucide-react';
+import type { Location } from '@/hooks/use-store';
 
-type LocationWithDistance = Location & { distance?: number };
-
-const DispensaryCard = ({ location, isSelected, onSelect }: { location: LocationWithDistance, isSelected: boolean, onSelect: (id: string) => void }) => {
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${location.name}, ${location.address}, ${location.city}, ${location.state} ${location.zip}`)}`;
-    
-    return (
-    <div className="w-72 flex-shrink-0 md:w-full">
-        <Card 
-            className={cn("w-full h-full flex flex-col transition-all", isSelected ? "border-primary ring-2 ring-primary" : "border-border")}
-        >
-            <div className="p-4 cursor-pointer flex-1" onClick={() => onSelect(location.id)}>
-                <div className="flex justify-between items-start">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                        <MapPin className="h-4 w-4" />
-                        {location.name}
-                    </CardTitle>
-                    {isSelected && (
-                        <Badge variant="default" className="flex items-center gap-1">
-                           <CheckCircle className="h-3 w-3" />
-                           Selected
-                        </Badge>
-                    )}
-                </div>
-                <CardContent className="p-0 pt-2">
-                    <p className="text-sm text-muted-foreground">{location.address}, {location.city}, {location.state}</p>
-                    {location.distance && (
-                        <p className="text-sm font-bold mt-2">{location.distance.toFixed(1)} miles away</p>
-                    )}
-                </CardContent>
-            </div>
-            <div className="p-4 pt-0">
-                 <Button variant="outline" size="sm" asChild className="w-full">
-                    <Link href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="mr-2" /> View on Map
-                    </Link>
-                </Button>
-            </div>
-        </Card>
-    </div>
-    )
-};
+// Simple distance calculation
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3959; // Earth's radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
 
 export default function DispensaryLocator() {
-    const { toast } = useToast();
-    const { data: menuLocations } = useMenuData();
-    const { selectedLocationId, setSelectedLocationId, setLocations, locations: storeLocations, _hasHydrated } = useStore();
-    const [sortedLocations, setSortedLocations] = useState<LocationWithDistance[]>([]);
-    const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-
-    useEffect(() => {
-        // Step 1: Wait for hydration
-        if (!_hasHydrated) {
-            return;
-        }
-
-        // Determine which locations to use
-        const locationsToProcess = storeLocations.length > 0 ? storeLocations : menuLocations;
-
-        // Step 2: Load locations into store if not already present
-        if (locationsToProcess && locationsToProcess.length > 0 && storeLocations.length === 0) {
-            setLocations(locationsToProcess);
-        }
-
-        if (!locationsToProcess || locationsToProcess.length === 0) {
-            setStatus('success'); // No locations to show, but not an error
-            setSortedLocations([]);
-            return;
-        }
-        
-        // Step 3: Request Geolocation
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const userCoords = {
-                        lat: position.coords.latitude,
-                        lon: position.coords.longitude
-                    };
-                    const locationsWithDistance = locationsToProcess
-                        .filter(loc => loc.lat && loc.lon)
-                        .map(loc => {
-                            const distance = haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! });
-                            return { ...loc, distance };
-                        })
-                        .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-
-                    setSortedLocations(locationsWithDistance.slice(0, 3));
-                    setStatus('success');
-                },
-                (error) => {
-                    toast({
-                        variant: 'default',
-                        title: 'Location Info',
-                        description: 'Could not get your location. Showing default dispensaries.'
-                    });
-                    setSortedLocations(locationsToProcess.slice(0, 3));
-                    setStatus('error');
-                }
-            );
-        } else {
-            toast({
-                variant: 'default',
-                title: 'Location Info',
-                description: 'Geolocation is not supported by your browser.'
-            });
-            setSortedLocations(locationsToProcess.slice(0, 3));
-            setStatus('error');
-        }
-    }, [_hasHydrated, menuLocations, storeLocations, setLocations, toast]);
-
-
-    if (status === 'loading') {
-         return (
-             <div className="mb-12">
-                <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
-                <div className="flex justify-center items-center h-24">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-            </div>
-         )
+  const { locations, setLocations, selectedLocationId, setSelectedLocationId } = useStore();
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [sortedLocations, setSortedLocations] = useState<Location[]>([]);
+  
+  // Step 1: Load locations on mount (if empty)
+  useEffect(() => {
+    console.log('🔍 DispensaryLocator mounted');
+    console.log('📍 Locations in store:', locations.length);
+    
+    if (locations.length === 0) {
+      console.log('⚠️ No locations in store, loading static data...');
+      
+      // Use static fallback locations
+      const staticLocations: Location[] = [
+        {
+          id: '1',
+          name: 'High Altitude Herbs',
+          address: '456 Mountain View',
+          city: 'Boulder',
+          state: 'CO',
+          zip: '80301',
+          lat: 40.0150,
+          lon: -105.2705,
+        },
+        {
+          id: '2',
+          name: 'The Green Spot',
+          address: '123 Leafy Lane',
+          city: 'Denver',
+          state: 'CO',
+          zip: '80202',
+          lat: 39.7392,
+          lon: -104.9903,
+        },
+        {
+          id: '3',
+          name: 'City Cannabis Collective',
+          address: '789 Urban Avenue',
+          city: 'Denver',
+          state: 'CO',
+          zip: '80203',
+          lat: 39.7294,
+          lon: -104.9619,
+        },
+      ];
+      
+      console.log('✅ Setting static locations:', staticLocations.length);
+      setLocations(staticLocations);
+      setSortedLocations(staticLocations);
+      setStatus('ready');
+    } else {
+      console.log('✅ Locations already loaded');
+      setSortedLocations(locations);
+      setStatus('ready');
+    }
+  }, []); // Only run once on mount
+  
+  // Step 2: Request geolocation after locations are loaded
+  useEffect(() => {
+    if (status !== 'ready' || locations.length === 0) return;
+    
+    console.log('📍 Requesting geolocation...');
+    
+    if (!navigator.geolocation) {
+      console.log('⚠️ Geolocation not supported');
+      return;
     }
     
-    if (sortedLocations.length === 0) {
-        return null; // Don't render anything if there are no locations to show
-    }
-
-    return (
-        <div className="mb-12">
-            <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">1. Select a Dispensary</h2>
-             <div className="md:grid md:grid-cols-3 md:gap-4">
-                <ScrollArea className="w-full md:w-auto md:col-span-3">
-                   <div className="flex space-x-4 pb-4 md:grid md:grid-cols-3 md:gap-4 md:space-x-0">
-                     {sortedLocations.map(loc => (
-                         <DispensaryCard 
-                            key={loc.id} 
-                            location={loc} 
-                            isSelected={selectedLocationId === loc.id}
-                            onSelect={setSelectedLocationId}
-                         />
-                     ))}
-                   </div>
-                   <ScrollBar orientation="horizontal" className="md:hidden" />
-                </ScrollArea>
-             </div>
-        </div>
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        console.log('✅ Got user location:', position.coords);
+        const userLoc = {
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        };
+        
+        // Sort locations by distance
+        const sorted = [...locations]
+          .map(loc => ({
+            ...loc,
+            distance: loc.lat && loc.lon 
+              ? calculateDistance(userLoc.lat, userLoc.lon, loc.lat, loc.lon)
+              : 999,
+          }))
+          .sort((a, b) => a.distance - b.distance);
+        
+        console.log('📍 Sorted locations:', sorted.map(l => `${l.name}: ${l.distance.toFixed(1)} mi`));
+        setSortedLocations(sorted);
+      },
+      (error) => {
+        console.log('⚠️ Geolocation error:', error.message);
+        // Just use unsorted locations
+        setSortedLocations(locations);
+      },
+      {
+        timeout: 5000,
+        maximumAge: 300000, // 5 minutes
+      }
     );
+  }, [status, locations]);
+  
+  const handleSelectLocation = (locationId: string) => {
+    console.log('📍 User selected location:', locationId);
+    setSelectedLocationId(locationId);
+  };
+  
+  if (status === 'loading') {
+    return (
+      <div className="py-12 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading dispensaries...</p>
+      </div>
+    );
+  }
+  
+  if (locations.length === 0) {
+    return (
+      <div className="py-12 text-center">
+        <p className="text-red-600">No dispensaries available</p>
+      </div>
+    );
+  }
+  
+  // Show top 3 locations
+  const displayLocations = sortedLocations.slice(0, 3);
+  
+  return (
+    <div className="py-8">
+      <h2 className="text-2xl font-bold text-center mb-8">FIND A DISPENSARY NEAR YOU</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto px-4">
+        {displayLocations.map((location) => (
+          <div
+            key={location.id}
+            className={`bg-white rounded-lg shadow-lg p-6 border-2 transition-all cursor-pointer hover:shadow-xl ${
+              selectedLocationId === location.id 
+                ? 'border-green-600 bg-green-50' 
+                : 'border-gray-200'
+            }`}
+            onClick={() => handleSelectLocation(location.id)}
+          >
+            {/* Location Icon */}
+            <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-4">
+              <MapPin className="h-6 w-6 text-green-600" />
+            </div>
+            
+            {/* Name */}
+            <h3 className="text-lg font-bold mb-2">{location.name}</h3>
+            
+            {/* Address */}
+            <p className="text-sm text-gray-600 mb-1">{location.address}</p>
+            <p className="text-sm text-gray-600 mb-3">
+              {location.city}, {location.state} {location.zip}
+            </p>
+            
+            {/* Distance */}
+            {location.distance && location.distance < 999 && (
+              <div className="flex items-center gap-2 text-sm text-gray-700 mb-3">
+                <Navigation className="h-4 w-4" />
+                <span>{location.distance.toFixed(1)} miles away</span>
+              </div>
+            )}
+            
+            {/* Select Button */}
+            <button
+              className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
+                selectedLocationId === location.id
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {selectedLocationId === location.id ? '✓ Selected' : 'Select Location'}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }

@@ -19,13 +19,14 @@ export type Location = {
     id: string;
     name: string;
     address: string;
-    city: string;
-    state: string;
-    zip: string;
+    city?: string;
+    state?: string;
+    zip?: string;
     phone?: string;
     email?: string;
     lat?: number;
     lon?: number;
+    distance?: number; // Add this for sorting
 };
 
 export interface StoreState {
@@ -233,5 +234,6 @@ export function useStore<T>(selector?: (state: StoreState) => T, serverState?: T
 
   return result;
 }
+
 
 
