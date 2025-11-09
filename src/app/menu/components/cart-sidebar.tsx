@@ -134,16 +134,16 @@ export default function CartSidebar() {
             <div className="w-full space-y-4">
                 <div className="flex justify-between font-semibold">
                 <span>Subtotal</span>
-                <span>${subtotal}</span>
+                <span>${subtotal.toFixed(2)}</span>
                 </div>
-                <Button 
-                    className="w-full"
-                    disabled={isCheckoutDisabled}
-                    asChild
-                    onClick={toggleCart}
-                >
-                    <Link href={checkoutUrl}>Proceed to Checkout</Link>
-                </Button>
+                <Link href={checkoutUrl} onClick={toggleCart} passHref>
+                    <Button 
+                        className="w-full"
+                        disabled={isCheckoutDisabled}
+                    >
+                        Proceed to Checkout
+                    </Button>
+                </Link>
             </div>
             </SheetFooter>
         </>
