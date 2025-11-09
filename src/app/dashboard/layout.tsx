@@ -1,9 +1,10 @@
+
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare, Shield, MapPin, Package, ExternalLink } from 'lucide-react';
+import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare, Shield, MapPin, Package, ExternalLink, Loader2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import {
   SidebarProvider,
@@ -24,7 +25,7 @@ import Chatbot from '@/components/chatbot';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { FirebaseContext } from '@/firebase';
+import { FirebaseContext, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useStore, type NavLink } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,8 @@ import DeleteLinkDialog from './components/delete-link-dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { doc } from 'firebase/firestore';
 
 
 const SidebarAdminControls = ({ link, onEdit, onToggle, onDelete }: { link: NavLink, onEdit: (link: NavLink) => void, onToggle: (href: string) => void, onDelete: (link: NavLink) => void }) => {
@@ -63,8 +66,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const firebaseContext = React.useContext(FirebaseContext);
   const auth = firebaseContext?.auth;
-  const user = firebaseContext?.user;
-  const isUserLoading = firebaseContext?.isUserLoading ?? true;
+  const firestore = firebaseContext?.firestore;
+  const { user, isUserLoading } = useUser();
+
+  // Fetch the user's profile from Firestore to check onboarding status
+  const userDocRef = React.useMemo(() => user && firestore ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
 
   const { isCeoMode, navLinks, toggleNavLinkVisibility, _hasHydrated } = useStore();
 
@@ -73,15 +80,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
   
-  const [showClientContent, setShowClientContent] = React.useState(false);
-  
   React.useEffect(() => {
-    setShowClientContent(true);
-
-    if (!isUserLoading && !user) {
-      router.replace('/brand-login');
+    // If user is loaded and not null
+    if (!isUserLoading && user) {
+        // If profile is loaded and onboarding is not complete, redirect
+        if (!isProfileLoading && userProfile && !userProfile.onboardingCompleted) {
+             if (pathname !== '/onboarding') {
+                router.replace('/onboarding');
+            }
+        }
+    } else if (!isUserLoading && !user) {
+         // If not loading and no user, send to login
+        router.replace('/brand-login');
     }
-  }, [isUserLoading, user, router]);
+  }, [isUserLoading, user, isProfileLoading, userProfile, router, pathname]);
 
   const handleSignOut = async () => {
     try {
@@ -118,8 +130,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return email.substring(0, 2).toUpperCase();
   };
   
-  const shouldShowAdminControls = showClientContent && isCeoMode && _hasHydrated;
+  const shouldShowAdminControls = isCeoMode && _hasHydrated;
   const visibleLinks = shouldShowAdminControls ? navLinks : navLinks.filter(link => !link.hidden);
+
+  const isLoading = isUserLoading || isProfileLoading;
+  if (isLoading) {
+    return (
+        <div className="flex h-screen w-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
+  // If user is present but onboarding isn't complete, show onboarding.
+  // This prevents the main dashboard from flashing before the redirect.
+  if (user && !userProfile?.onboardingCompleted && pathname !== '/onboarding') {
+      return (
+         <div className="flex h-screen w-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )
+  }
 
   return (
     <SidebarProvider>
@@ -131,7 +162,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </SidebarHeader>
             <SidebarContent>
               <SidebarMenu>
-                {showClientContent && visibleLinks.map((item) => {
+                {_hasHydrated && visibleLinks.map((item) => {
                    const Icon = (LucideIcons as any)[item.icon] || LucideIcons.PanelRight;
                    return (
                   <SidebarMenuItem key={item.href} className={cn(shouldShowAdminControls && item.hidden && "opacity-50 hover:opacity-100")}>

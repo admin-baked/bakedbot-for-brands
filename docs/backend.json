@@ -23,13 +23,20 @@
         "lastName": {
           "type": "string",
           "description": "User's last name."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role within their brand.",
+          "enum": ["owner", "marketer"]
+        },
+        "onboardingCompleted": {
+          "type": "boolean",
+          "description": "Flag to indicate if the user has completed the onboarding flow."
         }
       },
       "required": [
         "id",
-        "email",
-        "firstName",
-        "lastName"
+        "email"
       ]
     },
     "UserPrivate": {

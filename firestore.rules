@@ -47,7 +47,9 @@ service cloud.firestore {
           && (user.email is string || user.email == null)
           && (user.firstName is string || user.firstName == null)
           && (user.lastName is string || user.lastName == null)
-          && user.keys().hasOnly(['id', 'email', 'firstName', 'lastName']);
+          && (user.role is string || user.role == null)
+          && (user.onboardingCompleted is bool || user.onboardingCompleted == null)
+          && user.keys().hasOnly(['id', 'email', 'firstName', 'lastName', 'role', 'onboardingCompleted']);
     }
 
     // Schema validation for Review
@@ -91,9 +93,9 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isOwner(userId) || isCeo();
-      // A user can create their own profile document.
       allow create: if isOwner(userId);
       // User can update their own profile, but cannot change their ID.
+      // Allow updating the 'role' and 'onboardingCompleted' fields.
       allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isOwner(userId);
     }
@@ -133,15 +135,14 @@ service cloud.firestore {
         allow get, update: if isOwner(userId) || isCeo();
         allow delete: if isOwner(userId);
         
-        // Allow order creation only if it's a batch write with valid items.
+        // Allow order creation only if the user is authenticated (or a guest) and the data is valid.
         allow create: if isValidOrder(request.resource.data) &&
                        ((isAuthenticated() && isOwner(userId)) || userId == 'guest');
-                       // Batch write validation removed for simplicity for now
 
         // OrderItems rules
         match /orderItems/{orderItemId} {
              allow read: if isOwner(userId) || isCeo();
-             // Allow creation only if the parent order is also being created in the same request, and the item data is valid.
+             // Allow creation only if the user is authenticated (or a guest) and the item data is valid.
              allow create: if isValidOrderItem(request.resource.data) &&
                             ((isAuthenticated() && isOwner(userId)) || userId == 'guest');
              // Prevent direct updates or deletes of order items.

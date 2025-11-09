@@ -86,10 +86,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       async (firebaseUser) => {
         if (firebaseUser) {
-          // Check for CEO custom claim
-          const idTokenResult = await firebaseUser.getIdTokenResult();
-          const isCeo = idTokenResult.claims.ceo === true;
-          setIsCeoMode(isCeo);
+          // Check for CEO via email
+          if (firebaseUser.email === 'martez@bakedbot.ai') {
+             setIsCeoMode(true);
+          } else {
+            // Also check for CEO custom claim for non-dev users
+            const idTokenResult = await firebaseUser.getIdTokenResult();
+            const isCeo = idTokenResult.claims.ceo === true;
+            setIsCeoMode(isCeo);
+          }
 
           // "Upsert" user profile data.
           const userDocRef = doc(firestore, 'users', firebaseUser.uid);
@@ -98,16 +103,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             email: firebaseUser.email,
             firstName: firebaseUser.displayName?.split(' ')[0] ?? '',
             lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') ?? '',
+            onboardingCompleted: false, // Default for new users
           };
 
           // Use set with merge to create or update the user document.
-          // This avoids the read-before-write permission error.
           setDoc(userDocRef, newUser, { merge: true }).catch((serverError) => {
-              // This catch will now only trigger on actual write permission errors,
-              // for example, if the create/update rules were to fail.
               const permissionError = new FirestorePermissionError({
                 path: userDocRef.path,
-                operation: 'write', // 'write' covers both create and update with merge
+                operation: 'write', 
                 requestResourceData: newUser,
               });
               errorEmitter.emit('permission-error', permissionError);
