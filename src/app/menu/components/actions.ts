@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { collection, doc, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
 import type { CartItem, Product } from '@/lib/types';
+import { sendOrderEmail } from '@/ai/flows/send-order-email';
+import { demoLocations } from '@/lib/data'; // Import demo data as a fallback
 
 const CheckoutSchema = z.object({
   userId: z.string(),
@@ -14,7 +16,6 @@ const CheckoutSchema = z.object({
   customerBirthDate: z.string().min(1, 'Please enter your date of birth.'),
   locationId: z.string().min(1, 'Please select a pickup location.'),
   cartItems: z.string().min(1, 'Your cart is empty.'),
-  // totalAmount is removed - it will be calculated on the server.
   idImage: z.any().optional(),
 });
 
@@ -51,9 +52,18 @@ export async function submitOrder(prevState: any, formData: FormData) {
       return { message: 'Cannot submit an empty order.', error: true };
     }
 
-    // --- SERVER-SIDE PRICE CALCULATION ---
+    // --- SERVER-SIDE PRICE CALCULATION & LOCATION FETCH ---
     let serverCalculatedTotal = 0;
     const validatedCartItems: Omit<CartItem, 'description' | 'imageHint' | 'likes' | 'dislikes' | 'prices'>[] = [];
+
+    // Fetch location details to get the fulfillment email
+    const locationRef = doc(firestore, 'locations', orderData.locationId);
+    const locationSnap = await getDoc(locationRef);
+    const locationData = locationSnap.exists() ? locationSnap.data() : demoLocations.find(l => l.id === orderData.locationId);
+
+    if (!locationData || !locationData.email) {
+        throw new Error(`Fulfillment email for location ID ${orderData.locationId} not found.`);
+    }
 
     for (const item of clientCartItems) {
         const productRef = doc(firestore, 'products', item.id);
@@ -78,7 +88,6 @@ export async function submitOrder(prevState: any, formData: FormData) {
             quantity: item.quantity,
         });
     }
-    // Simple tax calculation on the server
     const taxes = serverCalculatedTotal * 0.15;
     const finalTotal = serverCalculatedTotal + taxes;
     // --- END SERVER-SIDE CALCULATION ---
@@ -92,7 +101,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
     
     const fullOrderData = {
       ...orderData,
-      totalAmount: finalTotal, // Use server-calculated total
+      totalAmount: finalTotal,
       orderDate: serverTimestamp(),
       status: 'pending' as const,
       idImageUrl: idImage.size > 0 ? 'placeholder/id_image.jpg' : '',
@@ -115,6 +124,19 @@ export async function submitOrder(prevState: any, formData: FormData) {
     console.log('🔥 Committing batch for order:', newOrderRef.id);
     await batch.commit();
     console.log('✅ SUCCESS! Order created:', newOrderRef.id);
+
+    // After successful order creation, send the email
+    console.log('📧 Sending order confirmation email to:', locationData.email);
+    await sendOrderEmail({
+        to: locationData.email,
+        orderId: newOrderRef.id,
+        customerName: orderData.customerName,
+        customerEmail: orderData.customerEmail,
+        pickupLocationName: locationData.name,
+        totalAmount: finalTotal,
+        cartItems: validatedCartItems,
+        orderPageUrl: `https://brands.bakedbot.ai/order-confirmation/${newOrderRef.id}?userId=${userId}`,
+    });
     
     return {
       message: 'Order submitted successfully!',

@@ -16,6 +16,8 @@ const CartItemSchema = z.object({
   name: z.string(),
   quantity: z.number(),
   price: z.number(),
+  category: z.string(),
+  imageUrl: z.string(),
 });
 
 const SendOrderEmailInputSchema = z.object({
