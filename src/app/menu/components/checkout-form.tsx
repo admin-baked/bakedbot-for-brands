@@ -2,13 +2,11 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import { useTransition, Suspense } from 'react';
+import { useTransition, Suspense, useState, useEffect } from 'react';
 import { Upload, CalendarIcon, Loader2 } from 'lucide-react';
 import { submitOrder } from './actions';
 import { useUser } from '@/firebase';
 import { useCart } from '@/hooks/use-cart';
-import { useStore } from '@/hooks/use-store';
-import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,6 +15,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { Location } from '@/lib/types';
 
 
 const initialState = {
@@ -26,10 +26,9 @@ const initialState = {
   orderId: null,
 };
 
-export function CheckoutForm({ onOrderSuccess }: { onOrderSuccess: (orderId: string) => void; }) {
+export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSuccess: (orderId: string) => void; selectedLocation: Location }) {
   const { user } = useUser();
   const { items: cart, getCartTotal } = useCart();
-  const { selectedLocationId, locations } = useStore();
   const [state, formAction] = useFormState(submitOrder, initialState);
   const [isPending, startTransition] = useTransition();
 
@@ -39,8 +38,6 @@ export function CheckoutForm({ onOrderSuccess }: { onOrderSuccess: (orderId: str
   const subtotal = getCartTotal();
   const taxes = subtotal * 0.15; // Example 15% tax rate
   const total = subtotal + taxes;
-
-  const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
 
   useEffect(() => {
     if (state) {
@@ -58,17 +55,6 @@ export function CheckoutForm({ onOrderSuccess }: { onOrderSuccess: (orderId: str
     setIdImageName(file ? file.name : null);
   };
   
-  if (!selectedLocationId || !selectedLocation) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>No Location Selected</AlertTitle>
-        <AlertDescription>
-          Please go back to the menu and select a pickup location before proceeding to checkout.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   if (cart.length === 0) {
     return (
       <Alert>
@@ -92,7 +78,7 @@ export function CheckoutForm({ onOrderSuccess }: { onOrderSuccess: (orderId: str
                     className="space-y-4"
                 >
                     <input type="hidden" name="userId" value={user?.uid || 'guest'} />
-                    <input type="hidden" name="locationId" value={selectedLocationId} />
+                    <input type="hidden" name="locationId" value={selectedLocation.id} />
                     <input type="hidden" name="locationName" value={selectedLocation.name} />
                     <input type="hidden" name="cartItems" value={JSON.stringify(cart)} />
                     <input type="hidden" name="totalAmount" value={String(total)} />
@@ -154,7 +140,7 @@ export function CheckoutForm({ onOrderSuccess }: { onOrderSuccess: (orderId: str
                             <Upload className="h-4 w-4" />
                             <span className='truncate flex-1'>{idImageName || 'Upload a photo of your ID'}</span>
                         </Label>
-                        <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" onChange={handleFileChange} required/>
+                        <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" required/>
                     </div>
                     
                     {state?.message && !state.success && (
@@ -174,4 +160,3 @@ export function CheckoutForm({ onOrderSuccess }: { onOrderSuccess: (orderId: str
     </div>
   );
 }
-

@@ -1,22 +1,24 @@
+
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { CheckoutForm } from '@/app/menu/components/checkout-form';
 import Header from '@/app/menu/components/header';
 import { useCart } from '@/hooks/use-cart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { useStore } from '@/hooks/use-store';
 
-export default function CheckoutPage() {
+function CheckoutPageClient() {
     const { items, getCartTotal } = useCart();
-    const { selectedLocationId } = useStore();
     const { locations } = useMenuData();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const selectedLocationId = searchParams.get('locationId');
 
     const selectedLocation = useMemo(() => {
         return locations?.find(loc => loc.id === selectedLocationId);
@@ -25,10 +27,26 @@ export default function CheckoutPage() {
     const totals = getCartTotal();
 
     const handleOrderSuccess = (orderId: string) => {
-        // Redirect to a success or order details page
         router.push(`/order/${orderId}?userId=guest`);
     };
 
+    if (!selectedLocationId || !selectedLocation) {
+         return (
+            <div className="flex flex-col items-center justify-center text-center py-20">
+                <h1 className="text-2xl font-bold">Location Not Selected</h1>
+                <p className="text-muted-foreground mt-2">
+                    Please return to the menu and select a pickup location to proceed.
+                </p>
+                <Button asChild className="mt-6">
+                    <Link href="/menu">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Menu
+                    </Link>
+                </Button>
+            </div>
+        );
+    }
+    
     return (
         <div className="min-h-screen bg-muted/20">
             <Header />
@@ -42,7 +60,7 @@ export default function CheckoutPage() {
                                 Back to Menu
                             </Link>
                         </Button>
-                        <CheckoutForm onOrderSuccess={handleOrderSuccess} />
+                        <CheckoutForm onOrderSuccess={handleOrderSuccess} selectedLocation={selectedLocation} />
                     </div>
 
                     {/* Right side - Summary */}
@@ -52,15 +70,11 @@ export default function CheckoutPage() {
                                 <CardTitle>Order Summary</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                {selectedLocation ? (
-                                     <div className="text-sm">
-                                        <p className="font-semibold text-muted-foreground">Pickup Location</p>
-                                        <p className='font-medium'>{selectedLocation.name}</p>
-                                        <p className='text-xs text-muted-foreground'>{selectedLocation.address}, {selectedLocation.city}</p>
-                                     </div>
-                                ) : (
-                                    <p className="text-sm text-destructive">Please select a pickup location from the menu.</p>
-                                )}
+                                 <div className="text-sm">
+                                    <p className="font-semibold text-muted-foreground">Pickup Location</p>
+                                    <p className='font-medium'>{selectedLocation.name}</p>
+                                    <p className='text-xs text-muted-foreground'>{selectedLocation.address}, {selectedLocation.city}</p>
+                                 </div>
                                
                                 <div className="space-y-2 border-t pt-4">
                                     {items.length > 0 ? items.map(item => (
@@ -98,5 +112,18 @@ export default function CheckoutPage() {
                 </div>
             </main>
         </div>
+    );
+}
+
+
+export default function CheckoutPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen w-screen items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        }>
+            <CheckoutPageClient />
+        </Suspense>
     );
 }

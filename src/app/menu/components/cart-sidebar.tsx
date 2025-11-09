@@ -67,6 +67,8 @@ export default function CartSidebar() {
   const subtotal = getCartTotal();
   const isCheckoutDisabled = items.length === 0 || !selectedLocationId;
   
+  const checkoutUrl = selectedLocationId ? `/checkout?locationId=${selectedLocationId}` : '/checkout';
+
   return (
     <Sheet open={isCartOpen} onOpenChange={toggleCart}>
       <SheetContent className="flex flex-col p-0">
@@ -135,7 +137,7 @@ export default function CartSidebar() {
                     asChild
                     onClick={toggleCart}
                 >
-                    <Link href="/checkout">Proceed to Checkout</Link>
+                    <Link href={checkoutUrl}>Proceed to Checkout</Link>
                 </Button>
             </div>
             </SheetFooter>
