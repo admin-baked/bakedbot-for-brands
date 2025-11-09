@@ -93,10 +93,8 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isOwner(userId) || isCeo();
-      allow create: if isOwner(userId);
-      // User can update their own profile, but cannot change their ID.
-      // Allow updating the 'role' and 'onboardingCompleted' fields.
-      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
       allow delete: if isOwner(userId);
     }
 
