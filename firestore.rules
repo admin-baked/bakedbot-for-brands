@@ -1,8 +1,50 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // CEO gets full access to everything - This is evaluated first.
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null && 
+        request.auth.token.email == 'martez@bakedbot.ai';
+    }
+    
+    // Users can create and manage their own profile.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // All users can read products. Only authenticated users can write.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // All users can read reviews. Only authenticated users can create them.
+    // Users can only update or delete their own reviews.
+    match /products/{productId}/reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Users can create their own orders and can only read their own orders.
+    match /users/{userId}/orders/{orderId} {
+      allow read, create: if request.auth != null && request.auth.uid == userId;
+      // Note: orderItems are covered by the users/userId security umbrella.
+      match /orderItems/{orderItemId} {
+        allow read, create: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Private user data is only accessible by the owner.
+    match /user-private/{userId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Categories are public, but only authenticated users can write.
+     match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
   }
 }
