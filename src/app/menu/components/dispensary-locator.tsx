@@ -65,27 +65,34 @@ export default function DispensaryLocator() {
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
     useEffect(() => {
-        // This effect ensures that the fetched locations are persisted in the Zustand store.
-        if (_hasHydrated && menuLocations && menuLocations.length > 0 && storeLocations.length === 0) {
-            setLocations(menuLocations);
-        }
-    }, [_hasHydrated, menuLocations, storeLocations.length, setLocations]);
-
-    useEffect(() => {
-        const locationsToUse = storeLocations.length > 0 ? storeLocations : menuLocations;
-
-        if (areLocationsLoading || !_hasHydrated) {
+        // Step 1: Wait for the store to be hydrated from cookies
+        if (!_hasHydrated) {
             setStatus('loading');
             return;
         }
 
+        // Step 2: Determine which locations to use (store has priority)
+        const locationsToUse = storeLocations.length > 0 ? storeLocations : menuLocations;
+
+        // Step 3: If menuLocations are still loading from Firestore and store is empty, wait.
+        if (areLocationsLoading && storeLocations.length === 0) {
+            setStatus('loading');
+            return;
+        }
+        
+        // Step 4: If we have locations from either source, persist them to the store if it's empty
+        if (locationsToUse && locationsToUse.length > 0 && storeLocations.length === 0) {
+             setLocations(locationsToUse);
+        }
+
+        // Step 5: Handle case with no locations at all
         if (!locationsToUse || locationsToUse.length === 0) {
             setStatus('success'); // No locations to show, but not an error
             setSortedLocations([]);
             return;
         }
-        
-        setStatus('loading');
+
+        // Step 6: Proceed with geolocation
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -123,10 +130,10 @@ export default function DispensaryLocator() {
             setSortedLocations(locationsToUse.slice(0, 3));
             setStatus('error');
         }
-    }, [menuLocations, areLocationsLoading, toast, storeLocations, _hasHydrated]);
+    }, [_hasHydrated, menuLocations, areLocationsLoading, storeLocations, setLocations, toast]);
 
 
-    if (status === 'loading' || areLocationsLoading) {
+    if (status === 'loading') {
          return (
              <div className="mb-12">
                 <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
