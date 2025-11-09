@@ -91,35 +91,27 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           const isCeo = idTokenResult.claims.ceo === true;
           setIsCeoMode(isCeo);
 
+          // "Upsert" user profile data.
           const userDocRef = doc(firestore, 'users', firebaseUser.uid);
-          
-          try {
-            const userDoc = await getDoc(userDocRef);
-            if (!userDoc.exists()) {
-              // Document doesn't exist, so create it.
-              const newUser = {
-                id: firebaseUser.uid,
-                email: firebaseUser.email,
-                firstName: firebaseUser.displayName?.split(' ')[0] ?? '',
-                lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') ?? '',
-              };
-              
-              setDoc(userDocRef, newUser).catch((serverError) => {
-                 const permissionError = new FirestorePermissionError({
-                    path: userDocRef.path,
-                    operation: 'create',
-                    requestResourceData: newUser,
-                  } satisfies SecurityRuleContext);
-                  errorEmitter.emit('permission-error', permissionError);
-              });
-            }
-          } catch (error) {
-             const permissionError = new FirestorePermissionError({
-                  path: userDocRef.path,
-                  operation: 'get',
+          const newUser = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email,
+            firstName: firebaseUser.displayName?.split(' ')[0] ?? '',
+            lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') ?? '',
+          };
+
+          // Use set with merge to create or update the user document.
+          // This avoids the read-before-write permission error.
+          setDoc(userDocRef, newUser, { merge: true }).catch((serverError) => {
+              // This catch will now only trigger on actual write permission errors,
+              // for example, if the create/update rules were to fail.
+              const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'write', // 'write' covers both create and update with merge
+                requestResourceData: newUser,
               });
               errorEmitter.emit('permission-error', permissionError);
-          }
+          });
 
         } else {
           // No user, ensure CEO mode is off
