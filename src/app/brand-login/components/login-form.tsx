@@ -188,9 +188,22 @@ export default function LoginForm() {
                         </Button>
                     </form>
                 </CardContent>
+                {process.env.NODE_ENV === 'development' && (
+                    <CardFooter className="flex-col gap-2">
+                        <div className="relative w-full">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-card px-2 text-muted-foreground">For Devs</span>
+                            </div>
+                        </div>
+                        <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')}>
+                           Dev Magic Button (martez@bakedbot.ai)
+                        </Button>
+                    </CardFooter>
+                )}
             </Card>
         </div>
     );
 }
-
-    

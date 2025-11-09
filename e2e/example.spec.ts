@@ -29,3 +29,5 @@ test('brand login flow', async ({ page }) => {
   // Expect the email address to be displayed
   await expect(page.locator('strong', { hasText: 'martez@bakedbot.ai' })).toBeVisible();
 });
+
+    
