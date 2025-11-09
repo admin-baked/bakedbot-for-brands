@@ -6,7 +6,7 @@ import { useCart } from '@/hooks/use-cart';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { Minus, Plus, Trash2, PartyPopper, MapPin, ExternalLink } from 'lucide-react';
+import { Minus, Plus, Trash2, PartyPopper, MapPin, ExternalLink, AlertTriangle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import CheckoutForm from './checkout-form';
 import { useStore } from '@/hooks/use-store';
@@ -14,6 +14,7 @@ import { useMenuData } from '@/hooks/use-menu-data';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const SelectedLocationHeader = () => {
     const { selectedLocationId } = useStore();
@@ -21,7 +22,16 @@ const SelectedLocationHeader = () => {
     const selectedLocation = locations?.find(loc => loc.id === selectedLocationId);
 
     if (!selectedLocation) {
-        return null;
+        return (
+             <div className="px-6 py-4 bg-destructive/10 border-b border-destructive/20">
+                <Alert variant="destructive" className="p-0 bg-transparent border-0">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <AlertDescription className="text-destructive/90 pl-2">
+                        Please select a dispensary from the menu to see final pricing and proceed to checkout.
+                    </AlertDescription>
+                </Alert>
+            </div>
+        );
     }
 
     const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedLocation.name}, ${selectedLocation.address}, ${selectedLocation.city}, ${selectedLocation.state} ${selectedLocation.zip}`)}`;
@@ -78,6 +88,7 @@ export default function CartSidebar() {
   }, [clearCart]);
 
   const subtotal = getCartTotal();
+  const isCheckoutDisabled = items.length === 0 || !selectedLocationId;
 
   const renderContent = () => {
     switch (step) {
@@ -175,18 +186,8 @@ export default function CartSidebar() {
                         </div>
                         <Button 
                             className="w-full" 
-                            onClick={() => {
-                                if (!selectedLocationId) {
-                                    toast({
-                                        variant: 'destructive',
-                                        title: 'No Location Selected',
-                                        description: 'Please select a pickup location from the menu before proceeding.',
-                                    });
-                                    return;
-                                }
-                                setStep('checkout');
-                            }}
-                            disabled={items.length === 0}
+                            onClick={() => setStep('checkout')}
+                            disabled={isCheckoutDisabled}
                         >
                             Proceed to Checkout
                         </Button>

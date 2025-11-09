@@ -22,7 +22,21 @@ const useCartStore = create<CartState>((set, get) => ({
   isCartOpen: false,
   addToCart: (product, locationId) => {
     const existingItem = get().items.find((i) => i.id === product.id);
-    const price = locationId && product.prices?.[locationId] ? product.prices[locationId] : product.price;
+    
+    let price: number;
+    // If a location is selected, use that price.
+    if (locationId && product.prices?.[locationId]) {
+        price = product.prices[locationId];
+    } 
+    // If no location, but there are multiple prices, use the lowest price for the initial cart add.
+    else if (product.prices && Object.keys(product.prices).length > 0) {
+        price = Math.min(...Object.values(product.prices));
+    } 
+    // Fallback to the base price.
+    else {
+        price = product.price;
+    }
+
 
     if (existingItem) {
       set((state) => ({

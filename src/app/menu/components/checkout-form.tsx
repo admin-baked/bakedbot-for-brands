@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCart } from '@/hooks/use-cart';
 import type { Location } from '@/lib/types';
-import { Loader2, Send, MapPin, Upload, CalendarIcon, FlaskConical } from 'lucide-react';
+import { Loader2, Send, MapPin, Upload, CalendarIcon, FlaskConical, AlertTriangle } from 'lucide-react';
 import { haversineDistance } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { submitOrder } from './actions';
@@ -22,6 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type LocationWithDistance = Location & { distance?: number };
 
@@ -248,6 +249,14 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
 
             <div>
               <h3 className="text-lg font-semibold">Pickup Location</h3>
+              {!selectedLocationId && (
+                 <Alert variant="destructive" className="mt-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                        You must select a pickup location to place an order.
+                    </AlertDescription>
+                </Alert>
+              )}
               <RadioGroup name="locationId" className="mt-4" value={selectedLocationId || ''} onValueChange={setSelectedLocationId}>
                   {isLocating && <div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin" /></div>}
                   
@@ -293,7 +302,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
                 </div>
             </div>
             <div className="space-y-2">
-                <SubmitButton disabled={isAgeInvalid || !birthDate} />
+                <SubmitButton disabled={isAgeInvalid || !birthDate || !selectedLocationId} />
                 <Button variant="outline" className="w-full" onClick={onBack}>
                     Back to Cart
                 </Button>
