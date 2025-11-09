@@ -65,34 +65,30 @@ export default function DispensaryLocator() {
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
     useEffect(() => {
-        // Step 1: Wait for the store to be hydrated from cookies
-        if (!_hasHydrated) {
+        // Step 1: Persist fetched locations to the global store if it's empty.
+        // This ensures the data is available on subsequent page loads.
+        if (_hasHydrated && menuLocations && menuLocations.length > 0 && storeLocations.length === 0) {
+            setLocations(menuLocations);
+        }
+    }, [_hasHydrated, menuLocations, storeLocations, setLocations]);
+
+
+    useEffect(() => {
+        // Step 2: Main logic for geolocation and sorting.
+        // Wait for hydration and for locations to be available in the store.
+        if (!_hasHydrated || (!areLocationsLoading && storeLocations.length === 0)) {
             setStatus('loading');
             return;
         }
 
-        // Step 2: Determine which locations to use (store has priority)
-        const locationsToUse = storeLocations.length > 0 ? storeLocations : menuLocations;
+        const locationsToUse = storeLocations;
 
-        // Step 3: If menuLocations are still loading from Firestore and store is empty, wait.
-        if (areLocationsLoading && storeLocations.length === 0) {
-            setStatus('loading');
-            return;
-        }
-        
-        // Step 4: If we have locations from either source, persist them to the store if it's empty
-        if (locationsToUse && locationsToUse.length > 0 && storeLocations.length === 0) {
-             setLocations(locationsToUse);
-        }
-
-        // Step 5: Handle case with no locations at all
-        if (!locationsToUse || locationsToUse.length === 0) {
+        if (locationsToUse.length === 0) {
             setStatus('success'); // No locations to show, but not an error
             setSortedLocations([]);
             return;
         }
 
-        // Step 6: Proceed with geolocation
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -130,7 +126,7 @@ export default function DispensaryLocator() {
             setSortedLocations(locationsToUse.slice(0, 3));
             setStatus('error');
         }
-    }, [_hasHydrated, menuLocations, areLocationsLoading, storeLocations, setLocations, toast]);
+    }, [_hasHydrated, areLocationsLoading, storeLocations, toast]);
 
 
     if (status === 'loading') {
@@ -169,3 +165,4 @@ export default function DispensaryLocator() {
         </div>
     );
 }
+

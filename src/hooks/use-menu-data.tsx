@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useStore } from './use-store';
 import { useProducts } from '@/firebase/firestore/use-products';
 import { useDemoData } from './use-demo-data';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import type { Product } from '@/lib/types';
 import type { Location } from '@/hooks/use-store';
 
@@ -14,16 +15,17 @@ import type { Location } from '@/hooks/use-store';
  * This ensures that both server and client renders are consistent, preventing hydration errors.
  */
 export function useMenuData() {
-  const { isUsingDemoData, _hasHydrated, locations: storeLocations } = useStore(state => ({
+  const { isUsingDemoData, _hasHydrated, locations: storeLocations, setLocations } = useStore(state => ({
     isUsingDemoData: state.isUsingDemoData,
     _hasHydrated: state._hasHydrated,
     locations: state.locations,
+    setLocations: state.setLocations,
   }));
 
   // Fetch both sets of data, but only one will be used.
   const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useProducts();
   const { products: demoProducts, locations: demoLocations } = useDemoData();
-
+  
   // Memoize the result to stabilize the array references
   const memoizedData = useMemo(() => {
     // Determine if we should use demo data.
@@ -44,14 +46,16 @@ export function useMenuData() {
     // Once hydrated and if not using demo data, switch to live data.
     // Fallback to demo if live data is empty AFTER loading.
     const finalProducts = !isFirestoreLoading && (!firestoreProducts || firestoreProducts.length === 0) ? demoProducts : firestoreProducts;
-    const finalLocations = !isFirestoreLoading && (!storeLocations || storeLocations.length === 0) ? demoLocations : storeLocations;
+    
+    // The store is the source of truth for locations once hydrated
+    const finalLocations = storeLocations.length > 0 ? storeLocations : demoLocations;
 
     return {
       products: finalProducts,
       locations: finalLocations,
       isLoading: isFirestoreLoading,
       error: error,
-      isUsingDemoData: !firestoreProducts || firestoreProducts.length === 0,
+      isUsingDemoData: !isFirestoreLoading && (!firestoreProducts || firestoreProducts.length === 0),
     };
   }, [isUsingDemoData, _hasHydrated, firestoreProducts, storeLocations, demoProducts, demoLocations, isFirestoreLoading, error]);
 
@@ -60,3 +64,4 @@ export function useMenuData() {
     isHydrated: _hasHydrated,
   };
 }
+
