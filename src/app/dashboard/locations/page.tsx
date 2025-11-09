@@ -12,10 +12,11 @@ import Link from 'next/link';
 import DeleteLocationDialog from './components/delete-location-dialog';
 import EditLocationDialog from './components/edit-location-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { demoLocations } from '@/lib/data';
+import * as Papa from 'papaparse';
+
 
 export default function LocationsPage() {
-  const { locations, addLocation, isCeoMode } = useStore();
+  const { locations, addLocation, setLocations, isCeoMode } = useStore();
   const formRef = React.useRef<HTMLFormElement>(null);
   const { toast } = useToast();
 
@@ -55,6 +56,42 @@ export default function LocationsPage() {
             title: 'Missing Fields',
             description: 'Please fill out all required location fields.',
         })
+    }
+  };
+
+  const handleCsvUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                const newLocations = results.data.map((row: any) => ({
+                    id: row.id || Date.now().toString(),
+                    name: row.name,
+                    address: row.address,
+                    city: row.city,
+                    state: row.state,
+                    zip: row.zip,
+                    phone: row.phone,
+                    email: row.email,
+                    lat: parseFloat(row.lat),
+                    lon: parseFloat(row.lon),
+                }));
+                setLocations(newLocations);
+                toast({
+                    title: 'Locations Imported',
+                    description: `Successfully imported ${newLocations.length} locations.`,
+                });
+            },
+            error: (error) => {
+                 toast({
+                    variant: 'destructive',
+                    title: 'CSV Import Failed',
+                    description: error.message,
+                });
+            }
+        });
     }
   };
 
@@ -140,7 +177,7 @@ export default function LocationsPage() {
                               <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                               <p className="text-xs text-muted-foreground">CSV file up to 5MB</p>
                           </div>
-                          <Input id="csv-upload" type="file" className="hidden" accept=".csv" />
+                          <Input id="csv-upload" type="file" className="hidden" accept=".csv" onChange={handleCsvUpload} />
                       </Label>
                   </CardContent>
                   <CardFooter className="flex-col items-start gap-2">

@@ -4,7 +4,7 @@
 import { useStore } from './use-store';
 import { useProducts } from '@/firebase/firestore/use-products';
 import { useDemoData } from './use-demo-data';
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import type { Product } from '@/lib/types';
 import type { Location } from '@/hooks/use-store';
 
@@ -15,9 +15,10 @@ import type { Location } from '@/hooks/use-store';
  * This ensures that both server and client renders are consistent, preventing hydration errors.
  */
 export function useMenuData() {
-  const { isUsingDemoData, _hasHydrated } = useStore(state => ({
+  const { isUsingDemoData, _hasHydrated, locations: storeLocations } = useStore(state => ({
     isUsingDemoData: state.isUsingDemoData,
     _hasHydrated: state._hasHydrated,
+    locations: state.locations,
   }));
 
   // Fetch both sets of data, but only one will be used based on conditions.
@@ -45,8 +46,8 @@ export function useMenuData() {
     // Fallback to demo data if live data is empty AFTER loading has completed.
     const finalProducts = !isFirestoreLoading && (!firestoreProducts || firestoreProducts.length === 0) ? demoProducts : firestoreProducts;
     
-    // For locations, we now rely on the persistent store, but the demoLocations serve as a fallback if the store is empty.
-    const finalLocations = demoLocations;
+    // The store is the source of truth for locations once hydrated, otherwise use demo
+    const finalLocations = _hasHydrated && storeLocations.length > 0 ? storeLocations : demoLocations;
 
     return {
       products: finalProducts,
@@ -55,7 +56,7 @@ export function useMenuData() {
       error: error,
       isUsingDemoData: !isFirestoreLoading && (!firestoreProducts || firestoreProducts.length === 0),
     };
-  }, [isUsingDemoData, _hasHydrated, firestoreProducts, demoProducts, demoLocations, isFirestoreLoading, error]);
+  }, [isUsingDemoData, _hasHydrated, firestoreProducts, demoProducts, demoLocations, isFirestoreLoading, error, storeLocations]);
 
   return {
     ...memoizedData,
