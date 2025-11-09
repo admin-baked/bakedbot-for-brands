@@ -53,23 +53,26 @@ export async function submitOrder(prevState: any, formData: FormData) {
     return { message: 'Cannot submit an empty order.', error: true };
   }
   
+  // This should be an environment variable in a real app
   const fulfillmentEmail = 'martezandco@gmail.com';
 
   try {
     const batch = writeBatch(firestore);
 
-    // CRITICAL: Ensure user document exists (especially for guest)
+    // CRITICAL: Path must be /users/{userId}/orders/{orderId}
     const userDocRef = doc(firestore, 'users', userId);
-    const userDoc = await getDoc(userDocRef);
-
-    if (!userDoc.exists() && userId === 'guest') {
-        console.log('📝 Creating user document for: guest');
-        // Create a placeholder document for the guest user
-        batch.set(userDocRef, { id: 'guest', role: 'guest' });
-        console.log('✅ Guest user document prepared');
+    
+    // For guest checkouts, we must ensure the parent `users/guest` doc exists
+    if (userId === 'guest') {
+        const guestDocSnap = await getDoc(userDocRef);
+        if (!guestDocSnap.exists()) {
+            console.log("📝 Guest user document doesn't exist. Creating it now.");
+            // We set it directly, not in the batch, to ensure it exists before the subcollection write
+            await setDoc(userDocRef, { id: 'guest', role: 'guest' });
+            console.log('✅ Guest user document created.');
+        }
     }
 
-    // Path: /users/{userId}/orders/{orderId}
     const ordersCollectionRef = collection(userDocRef, 'orders');
     const newOrderRef = doc(ordersCollectionRef); // Auto-generate ID
     console.log('📍 Order path:', newOrderRef.path);
@@ -84,10 +87,9 @@ export async function submitOrder(prevState: any, formData: FormData) {
     batch.set(newOrderRef, fullOrderData);
     console.log('📝 Order document prepared');
 
-    // Create order items in the correct subcollection
     const itemsCollectionRef = collection(newOrderRef, 'orderItems');
     cartItems.forEach((item, index) => {
-        const itemRef = doc(itemsCollectionRef); // Auto-generate ID for sub-collection item
+        const itemRef = doc(itemsCollectionRef);
         const itemData = {
             productId: item.id,
             productName: item.name,
@@ -104,7 +106,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
 
     // This part is for sending an email and can be adjusted
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const orderPageUrl = `${baseUrl}/order/${newOrderRef.id}?userId=${userId}`; // Pass userId for guest lookups
+    const orderPageUrl = `${baseUrl}/order/${newOrderRef.id}?userId=${userId}`;
     const brandOwners = ['jack@bakedbot.ai', 'martez@bakedbot.com', 'vip@bakedbot.ai'];
 
     await sendOrderEmail({
@@ -125,19 +127,16 @@ export async function submitOrder(prevState: any, formData: FormData) {
     };
   } catch (error: any) {
     console.error('❌ Order submission error:', error);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
     
-    // Provide more specific error messages
-    if (error.code === 'permission-denied') {
+    if (error.code === 'permission-denied' || error.code === 7) {
       return {
-        success: false,
+        error: true,
         message: 'Permission denied. Please check Firestore security rules.',
       };
     }
     
     return {
-      success: false,
+      error: true,
       message: `Server error: ${error.code || error.message}`,
     };
   }

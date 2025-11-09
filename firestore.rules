@@ -3,54 +3,58 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // CEO gets full access to everything - CHECK THIS FIRST
+    // CEO gets full access to everything
     match /{document=**} {
       allow read, write: if request.auth != null &&
         request.auth.uid == 'GrRRe2YR4zY0MT0PEfMPrPCsR5A3';
     }
 
-    // Regular users can read and write their own profile.
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-
-       // Authenticated users can create and read their own orders.
-      match /orders/{orderId} {
-        allow read, create: if request.auth != null && request.auth.uid == userId;
-
-        // This allows adding items to an order.
-        match /orderItems/{orderItemId} {
-          allow read, create: if request.auth != null && request.auth.uid == userId;
-        }
-      }
-    }
-    
-    // Guest users collection
-    match /users/guest {
-        // Allow creation of the guest user "document" container if needed
-        allow create: if request.auth == null; 
-        
-        // Guest users can create orders in their specific path
-        match /orders/{orderId} {
-            allow read, create: if request.auth == null;
-            // This allows adding items to a guest order.
-            match /orderItems/{orderItemId} {
-                allow read, create: if request.auth == null;
-            }
-        }
-    }
-
-
-    // Products - public read
+    // Public read for products
     match /products/{productId} {
       allow read: if true;
       // Writes are handled by the CEO rule.
       allow write: if false; 
     }
 
+    // Public read for product reviews
     match /products/{productId}/reviews/{reviewId} {
-        allow read: if true; // Publicly readable
-        allow create: if request.auth != null; // Any authenticated user can create a review
-        allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid; // Only the review author can update/delete
+        allow read: if true;
+        // Authenticated users can create reviews
+        allow create: if request.auth != null;
+        // Only the review author can update/delete
+        allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Authenticated users can read/write their own profile
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Allow guest user document to be created if it doesn't exist
+      allow create: if request.auth == null && userId == 'guest';
+
+      // Authenticated users can create and read their own orders
+      match /orders/{orderId} {
+        allow read, create: if request.auth != null && request.auth.uid == userId;
+
+        // This allows adding items to an authenticated user's order.
+        match /orderItems/{orderItemId} {
+          allow read, create: if request.auth != null && request.auth.uid == userId;
+        }
+      }
+    }
+    
+    // Guest users collection path
+    // This separate rule block correctly handles guest order creation
+    match /users/guest/orders/{orderId} {
+        // Allow creating orders and items for guests (unauthenticated users)
+        allow create: if request.auth == null;
+        // Allow reading guest orders (e.g., for the confirmation page)
+        allow read: if request.auth == null;
+
+        match /orderItems/{orderItemId} {
+            allow create, read: if request.auth == null;
+        }
     }
   }
 }
