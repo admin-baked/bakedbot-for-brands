@@ -62,7 +62,11 @@ export async function submitOrder(prevState: any, formData: FormData) {
   const batch = writeBatch(firestore);
 
   // 1. Create the main Order document
-  const orderRef = doc(collection(firestore, 'users', userId, 'orders'));
+  const orderCollectionRef = userId === 'guest' 
+    ? collection(firestore, 'users', 'guest', 'orders')
+    : collection(firestore, 'users', userId, 'orders');
+  const orderRef = doc(orderCollectionRef);
+  
   const fullOrderData = {
     ...orderData,
     userId: userId,

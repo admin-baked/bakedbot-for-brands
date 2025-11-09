@@ -1,3 +1,4 @@
+
 import { Timestamp } from 'firebase/firestore';
 
 export type Product = {
@@ -48,6 +49,7 @@ export type Review = {
 
 // Type for the Order document stored in Firestore
 export type OrderDoc = {
+  id: string; // Add id to the type
   userId: string;
   customerName: string;
   customerEmail: string;
@@ -62,6 +64,7 @@ export type OrderDoc = {
 
 // Type for the OrderItem sub-collection documents
 export type OrderItemDoc = {
+  id: string; // Add id to the type
   productId: string;
   productName: string;
   quantity: number;

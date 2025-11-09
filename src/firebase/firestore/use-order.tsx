@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useCollection, useFirebase, WithId } from '@/firebase';
@@ -9,10 +10,10 @@ import { useMemo } from 'react';
  * Hook to fetch a single order and its associated items from Firestore.
  *
  * @param {string | undefined} orderId - The ID of the order to fetch.
- * @param {string | undefined} userId - The ID of the user who owns the order.
+ * @param {string | undefined} userId - The ID of the user who owns the order. Defaults to 'guest'.
  * @returns An object containing the order data, its items, loading state, and any error.
  */
-export function useOrder(orderId: string | undefined, userId: string | undefined) {
+export function useOrder(orderId: string | undefined, userId: string | undefined = 'guest') {
   const { firestore } = useFirebase();
 
   // Memoize the reference to the order document

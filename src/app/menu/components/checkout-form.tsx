@@ -241,7 +241,7 @@ export default function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSucces
                             <Upload className="h-4 w-4" />
                             <span className='truncate flex-1'>{idImageName || 'Upload a photo of your ID'}</span>
                           </Label>
-                         <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" onChange={handleFileChange} required/>
+                         <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" required/>
                           {state.fieldErrors?.idImage && <p className="text-sm text-destructive">{state.fieldErrors.idImage[0]}</p>}
                     </div>
                 </div>
