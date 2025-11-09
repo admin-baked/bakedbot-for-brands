@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { collection, doc, writeBatch, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
 import type { CartItem } from '@/lib/types';
+import { sendOrderEmail } from '@/ai/flows/send-order-email';
 
 const CheckoutSchema = z.object({
   userId: z.string(),
@@ -91,6 +92,27 @@ export async function submitOrder(prevState: any, formData: FormData) {
     await batch.commit();
     console.log('✅ SUCCESS! Order created:', newOrderRef.id);
     
+    // Temporarily disabled until SendGrid is configured
+    // try {
+    //   const locationDoc = await getDoc(doc(firestore, 'locations', orderData.locationId));
+    //   const locationData = locationDoc.data();
+    //   if (locationData?.email) {
+    //      await sendOrderEmail({
+    //         to: locationData.email,
+    //         orderId: newOrderRef.id,
+    //         customerName: orderData.customerName,
+    //         customerEmail: orderData.customerEmail,
+    //         pickupLocationName: locationData.name,
+    //         totalAmount: orderData.totalAmount,
+    //         cartItems: cartItems,
+    //         orderPageUrl: `https://brands.bakedbot.ai/order/${newOrderRef.id}?userId=${userId}`
+    //      });
+    //   }
+    // } catch (emailError) {
+    //     console.error("📧 Failed to send order email, but order was saved:", emailError);
+    //     // Don't block the UI, just log the error.
+    // }
+
     return {
       message: 'Order submitted successfully!',
       error: false,

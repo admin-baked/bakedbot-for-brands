@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
@@ -153,7 +152,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                         </Alert>
                     )}
                      {state?.message && !state.error && state.orderId && (
-                        <Alert variant='default'>
+                        <Alert variant='default' className="bg-green-100 border-green-200 text-green-800">
                              <AlertTitle>Success!</AlertTitle>
                              <AlertDescription>{state.message}</AlertDescription>
                         </Alert>
