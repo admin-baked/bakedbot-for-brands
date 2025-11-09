@@ -1,14 +1,13 @@
 
-
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useTransition } from 'react';
 import { Upload } from 'lucide-react';
 import { submitOrder } from './actions';
 import { useUser } from '@/firebase';
 import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,21 +26,11 @@ const initialState = {
   orderId: null,
 };
 
-function SubmitButton({ disabled }: { disabled?: boolean }) {
-    const { pending } = useFormStatus();
-    return (
-        <Button type="submit" className="w-full" disabled={pending || disabled}>
-            {pending ? <Loader2 className="mr-2 animate-spin" /> : null}
-            Submit Order
-        </Button>
-    )
-}
-
 export function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: (orderId: string) => void; onBack: () => void; }) {
   const { user } = useUser();
-  const { items: cart, getCartTotal, clearCart } = useCart();
+  const { items: cart, getCartTotal } = useCart();
   const { selectedLocationId, locations } = useStore();
-  const [state, formAction] = useFormState(submitOrder, initialState);
+  const [state, formAction] = useActionState(submitOrder, initialState);
   const [isPending, startTransition] = useTransition();
 
   const [birthDate, setBirthDate] = useState<Date | undefined>();
@@ -54,13 +43,10 @@ export function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: (orde
   const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
 
   useEffect(() => {
-    console.log('🔄 Form state changed:', state);
     if (!isPending && state) {
       if (state.error === false && state.orderId) {
-        console.log('✅ Order successful! Clearing cart...');
         onOrderSuccess(state.orderId);
       } else if (state.error === true) {
-        console.log('❌ Order failed:', state.message);
         alert(`Error: ${state.message || 'An unknown error occurred.'}`);
       }
     }
@@ -88,22 +74,8 @@ export function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: (orde
     );
   }
 
-  console.log('🛒 Checkout render:', {
-    user: user?.uid || 'guest',
-    cart: cart.length,
-    location: selectedLocationId,
-    isPending,
-    state,
-  });
-
   return (
      <div className="space-y-6">
-        <div className="p-4 bg-green-50 rounded-lg">
-            <p className="font-semibold">📍 Pickup Location</p>
-            <p className="text-sm">{selectedLocation.name}</p>
-            <p className="text-sm text-gray-600">{selectedLocation.address}</p>
-        </div>
-      
         <div className="p-4 border rounded-lg">
             <h3 className="font-semibold mb-3">Order Summary</h3>
             {cart.map(item => (
@@ -141,16 +113,19 @@ export function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: (orde
             <div>
                 <Label htmlFor="customerName">Full Name</Label>
                 <Input id="customerName" name="customerName" required defaultValue={user?.displayName || ''} />
+                 {state?.fieldErrors?.customerName && <p className="text-sm text-destructive mt-1">{state.fieldErrors.customerName[0]}</p>}
             </div>
 
             <div>
                 <Label htmlFor="customerEmail">Email</Label>
                 <Input id="customerEmail" name="customerEmail" type="email" required defaultValue={user?.email || ''} />
+                {state?.fieldErrors?.customerEmail && <p className="text-sm text-destructive mt-1">{state.fieldErrors.customerEmail[0]}</p>}
             </div>
 
             <div>
                 <Label htmlFor="customerPhone">Phone Number</Label>
                 <Input id="customerPhone" name="customerPhone" type="tel" required defaultValue={user?.phoneNumber || ''} />
+                 {state?.fieldErrors?.customerPhone && <p className="text-sm text-destructive mt-1">{state.fieldErrors.customerPhone[0]}</p>}
             </div>
 
             <div className="space-y-1">
@@ -180,6 +155,7 @@ export function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: (orde
                         />
                     </PopoverContent>
                 </Popover>
+                 {state?.fieldErrors?.customerBirthDate && <p className="text-sm text-destructive mt-1">{state.fieldErrors.customerBirthDate[0]}</p>}
             </div>
 
             <div className="space-y-1">
@@ -191,7 +167,7 @@ export function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: (orde
                 <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" onChange={handleFileChange} required/>
             </div>
             
-            {state.message && !state.success && (
+            {state?.message && !state.success && (
                 <div className="p-4 rounded bg-red-100 text-red-800">
                     ❌ {state.message}
                 </div>
@@ -208,6 +184,3 @@ export function CheckoutForm({ onOrderSuccess, onBack }: { onOrderSuccess: (orde
     </div>
   );
 }
-
-
-
