@@ -12,17 +12,18 @@ const CheckoutSchema = z.object({
   customerPhone: z.string().min(1, 'Please enter your phone number.'),
   customerBirthDate: z.string().min(1, 'Please enter your date of birth.'),
   locationId: z.string().min(1, 'Please select a pickup location.'),
-  locationName: z.string().optional(),
   cartItems: z.string().min(1, 'Your cart is empty.'),
   totalAmount: z.coerce.number().positive('Total amount must be positive.'),
   idImage: z.any().optional(),
 });
 
 export async function submitOrder(prevState: any, formData: FormData) {
-  console.log('🚀 Server action: submitOrder called');
-  
+  console.log('🚀 START submitOrder');
+  console.log('📋 FormData:', Object.fromEntries(formData));
+
   const { firestore } = await createServerClient();
   const userId = (formData.get('userId') as string) || 'guest';
+  console.log('👤 User ID:', userId);
 
   try {
     const validatedFields = CheckoutSchema.safeParse({
@@ -32,7 +33,6 @@ export async function submitOrder(prevState: any, formData: FormData) {
       customerPhone: formData.get('customerPhone'),
       customerBirthDate: formData.get('customerBirthDate'),
       locationId: formData.get('locationId'),
-      locationName: formData.get('locationName'),
       cartItems: formData.get('cartItems'),
       totalAmount: formData.get('totalAmount'),
       idImage: formData.get('idImage'),
@@ -47,7 +47,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
       };
     }
     
-    const { cartItems: cartItemsJson, idImage, locationName, ...orderData } = validatedFields.data;
+    const { cartItems: cartItemsJson, idImage, ...orderData } = validatedFields.data;
     
     const cartItems: CartItem[] = JSON.parse(cartItemsJson);
     if (cartItems.length === 0) {
@@ -55,10 +55,11 @@ export async function submitOrder(prevState: any, formData: FormData) {
     }
 
     const userDocRef = doc(firestore, 'users', userId);
-    console.log('📍 User doc path:', userDocRef.path);
-
-    const batch = writeBatch(firestore);
+    console.log('📍 Will write to path:', userDocRef.path);
     
+    const batch = writeBatch(firestore);
+    console.log('💾 Creating batch...');
+
     const ordersCollectionRef = collection(userDocRef, 'orders');
     const newOrderRef = doc(ordersCollectionRef);
     console.log('📍 Order path:', newOrderRef.path);
@@ -69,10 +70,12 @@ export async function submitOrder(prevState: any, formData: FormData) {
       status: 'pending' as const,
       idImageUrl: idImage.size > 0 ? 'placeholder/id_image.jpg' : '',
     };
+    
+    console.log('📝 Adding order to batch');
     batch.set(newOrderRef, fullOrderData);
-    console.log('📝 Order document prepared');
 
     const itemsCollectionRef = collection(newOrderRef, 'orderItems');
+    console.log('📦 Adding items to batch');
     cartItems.forEach((item, index) => {
         const itemRef = doc(itemsCollectionRef);
         const itemData = {
@@ -82,27 +85,25 @@ export async function submitOrder(prevState: any, formData: FormData) {
             price: item.price,
         };
         batch.set(itemRef, itemData);
-        console.log(`📦 Item ${index + 1} prepared:`, item.name);
     });
 
-    console.log('💾 Committing batch write...');
+    console.log('🔥 About to commit batch');
     await batch.commit();
-    console.log('✅ Batch committed successfully! Order ID:', newOrderRef.id);
+    console.log('✅ SUCCESS! Order created:', newOrderRef.id);
     
-    // NOTE: Email sending disabled - configure SendGrid to enable
-    // await sendOrderEmail({ orderId: newOrderRef.id, ... });
-
     return {
       message: 'Order submitted successfully!',
       error: false,
       orderId: newOrderRef.id,
     };
   } catch (error: any) {
-    console.error('❌ Order submission error:', error);
+    console.error('❌ FAILED at:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Full error:', error);
     
     return {
       error: true,
-      message: error.message || 'Failed to submit order',
+      message: `${error.code || 'ERROR'}: ${error.message}`,
     };
   }
 }

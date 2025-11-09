@@ -1,56 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // CEO gets everything
+    // TEMPORARY TEST MODE - ALLOW EVERYTHING
     match /{document=**} {
-      allow read, write: if request.auth != null && 
-        request.auth.uid == 'GrRRe2YR4zY0MT0PEfMPrPCsR5A3';
-    }
-    
-    // CRITICAL: Guest user path - allow all operations
-    match /users/guest {
-      // Allow reading guest user doc
-      allow get: if true;
-      allow create: if true;
-      
-      // Guest orders - CRITICAL FIX
-      match /orders/{orderId} {
-        // Allow unauthenticated users to create and read orders
-        allow get, list: if true;  // Allows reading single order and listing orders
-        allow create: if true;      // Allows creating orders
-        
-        // Order items subcollection - CRITICAL FIX
-        match /orderItems/{itemId} {
-          allow get, list: if true;  // Allows reading items
-          allow create: if true;      // Allows creating items
-        }
-      }
-    }
-    
-    // Authenticated users
-    match /users/{userId} {
-      allow create: if request.auth != null;
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      // User orders
-      match /orders/{orderId} {
-        allow get, list, create: if request.auth != null && request.auth.uid == userId;
-        
-        match /orderItems/{itemId} {
-          allow get, list, create: if request.auth != null && request.auth.uid == userId;
-        }
-      }
-    }
-    
-    // Products - public read
-    match /products/{productId} {
-      allow read: if true;
-    }
-    
-    // Locations - public read
-    match /locations/{locationId} {
-      allow read: if true;
+      allow read, write: if true;
     }
   }
 }

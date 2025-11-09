@@ -1,14 +1,22 @@
-
 'use client';
 
 import * as React from 'react';
-import { useCallback } from 'react';
-import { type CartItem, type Product } from '@/lib/types';
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { type CartItem as AppCartItem, type Product } from '@/lib/types';
 
+
+// Define the type for items within the cart
+export type CartItem = AppCartItem;
+
+// Define the state of the cart
 interface CartState {
   items: CartItem[];
   isCartOpen: boolean;
+}
+
+// Define the actions that can be performed on the cart
+interface CartActions {
   addToCart: (product: Product, locationId?: string | null) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
@@ -19,181 +27,106 @@ interface CartState {
   getItemCount: () => number;
 }
 
-const useCartStore = create<CartState>((set, get) => ({
-  items: [],
-  isCartOpen: false,
-  addToCart: (product, locationId) => {
-    const { items } = get();
-    const existingItem = items.find((i) => i.id === product.id);
-    
-    let price: number;
-    if (locationId && product.prices?.[locationId]) {
-        price = product.prices[locationId];
-    } else {
-        price = product.price;
-    }
+// Combine state and actions for the full store type
+type CartStore = CartState & CartActions;
 
-    if (existingItem) {
-      set({
-        items: items.map((i) =>
-          i.id === product.id ? { ...i, quantity: i.quantity + 1, price } : i
-        ),
-      });
-    } else {
-      set({ items: [...items, { ...product, quantity: 1, price }] });
-    }
-  },
-  removeFromCart: (itemId) => {
-    set((state) => ({
-      items: state.items.filter((i) => i.id !== itemId),
-    }));
-  },
-  updateQuantity: (itemId, quantity) => {
-    if (quantity <= 0) {
-      get().removeFromCart(itemId);
-    } else {
-      set((state) => ({
-        items: state.items.map((i) => (i.id === itemId ? { ...i, quantity } : i)),
-      }));
-    }
-  },
-  updateItemPrices: (locationId, products) => {
-    set((state) => ({
-      items: state.items.map(cartItem => {
-        const fullProduct = products.find(p => p.id === cartItem.id);
-        if (!fullProduct) return cartItem; // Should not happen
+// Create the Zustand store with persistence
+export const useCartStore = create<CartStore>()(
+  persist(
+    (set, get) => ({
+      // Initial state
+      items: [],
+      isCartOpen: false,
 
-        const newPrice = (locationId && fullProduct.prices?.[locationId]) 
-          ? fullProduct.prices[locationId] 
-          : fullProduct.price;
+      // Actions
+      addToCart: (product, locationId) =>
+        set((state) => {
+          const existingItem = state.items.find((i) => i.id === product.id);
+          
+          // Determine the correct price based on location
+          let price = (locationId && product.prices?.[locationId])
+            ? product.prices[locationId]
+            : product.price;
+
+          if (existingItem) {
+            // If item exists, update its quantity and price
+            return {
+              items: state.items.map((i) =>
+                i.id === product.id ? { ...i, quantity: i.quantity + 1, price } : i
+              ),
+            };
+          }
+          // If item is new, add it to the cart
+          return { items: [...state.items, { ...product, quantity: 1, price }] };
+        }),
+
+      removeFromCart: (itemId) =>
+        set((state) => ({
+          items: state.items.filter((i) => i.id !== itemId),
+        })),
+
+      updateQuantity: (itemId, quantity) =>
+        set((state) => {
+          // If quantity is 0 or less, remove the item
+          if (quantity <= 0) {
+            return { items: state.items.filter((i) => i.id !== itemId) };
+          }
+          // Otherwise, update the quantity
+          return {
+            items: state.items.map((i) =>
+              i.id === itemId ? { ...i, quantity } : i
+            ),
+          };
+        }),
         
-        return { ...cartItem, price: newPrice };
-      })
-    }));
-  },
-  clearCart: () => set({ items: [] }),
-  toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
-  getCartTotal: () => {
-    const { items } = get();
-    return items.reduce((total, item) => total + item.price * item.quantity, 0);
-  },
-  getItemCount: () => {
-    return get().items.reduce((total, item) => total + item.quantity, 0);
-  },
-}));
+      updateItemPrices: (locationId, products) =>
+        set((state) => ({
+          items: state.items.map(cartItem => {
+            const fullProduct = products.find(p => p.id === cartItem.id);
+            if (!fullProduct) return cartItem; // Should not happen
+
+            // Determine the new price based on the selected location
+            const newPrice = (locationId && fullProduct.prices?.[locationId]) 
+              ? fullProduct.prices[locationId] 
+              : fullProduct.price;
+            
+            return { ...cartItem, price: newPrice };
+          })
+        })),
+
+      clearCart: () => set({ items: [], isCartOpen: false }),
+
+      toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
+
+      getCartTotal: () => {
+        return get().items.reduce((total, item) => total + item.price * item.quantity, 0);
+      },
+
+      getItemCount: () => {
+        return get().items.reduce((total, item) => total + item.quantity, 0);
+      },
+    }),
+    {
+      name: 'bakedbot-cart-storage', // The key for storing the cart in localStorage
+    }
+  )
+);
 
 
-// This is the new, memoized hook that consumers will use.
-const useStableCart = () => {
-  const store = useCartStore();
-
-  const addToCart = useCallback((product: Product, locationId?: string | null) => {
-    store.getState().addToCart(product, locationId);
-  }, []);
-
-  const removeFromCart = useCallback((itemId: string) => {
-    store.getState().removeFromCart(itemId);
-  }, []);
-
-  const updateQuantity = useCallback((itemId: string, quantity: number) => {
-    store.getState().updateQuantity(itemId, quantity);
-  }, []);
-  
-  const updateItemPrices = useCallback((locationId: string | null, products: Product[]) => {
-    store.getState().updateItemPrices(locationId, products);
-  }, []);
-
-  const clearCart = useCallback(() => {
-    store.getState().clearCart();
-  }, []);
-
-  const toggleCart = useCallback(() => {
-    store.getState().toggleCart();
-  }, []);
-  
-  const getCartTotal = useCallback(() => {
-    return store.getState().getCartTotal();
-  }, []);
-
-  const getItemCount = useCallback(() => {
-    return store.getState().getItemCount();
-  }, []);
-  
-  return {
-    items: store.items,
-    isCartOpen: store.isCartOpen,
-    addToCart,
-    removeFromCart,
-    updateQuantity,
-    updateItemPrices,
-    clearCart,
-    toggleCart,
-    getCartTotal,
-    getItemCount
-  };
-}
-
-
-// Context provider setup
-const CartContext = React.createContext<ReturnType<typeof useStableCart> | undefined>(undefined);
+// We create a provider to make the store available throughout the app
+const CartContext = React.createContext<CartStore | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
-    // We use the raw store state here, but the hook provides memoized functions
-    const items = useCartStore((state) => state.items);
-    const isCartOpen = useCartStore((state) => state.isCartOpen);
-
-    const addToCart = useCallback((product: Product, locationId?: string | null) => {
-        useCartStore.getState().addToCart(product, locationId);
-    }, []);
-
-    const removeFromCart = useCallback((itemId: string) => {
-        useCartStore.getState().removeFromCart(itemId);
-    }, []);
-
-    const updateQuantity = useCallback((itemId: string, quantity: number) => {
-        useCartStore.getState().updateQuantity(itemId, quantity);
-    }, []);
-
-    const updateItemPrices = useCallback((locationId: string | null, products: Product[]) => {
-        useCartStore.getState().updateItemPrices(locationId, products);
-    }, []);
-
-    const clearCart = useCallback(() => {
-        useCartStore.getState().clearCart();
-    }, []);
-
-    const toggleCart = useCallback(() => {
-        useCartStore.getState().toggleCart();
-    }, []);
-
-    const getCartTotal = useCallback(() => {
-        return useCartStore.getState().getCartTotal();
-    }, []);
-
-    const getItemCount = useCallback(() => {
-        return useCartStore.getState().getItemCount();
-    }, []);
-
-    const contextValue = {
-        items,
-        isCartOpen,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        updateItemPrices,
-        clearCart,
-        toggleCart,
-        getCartTotal,
-        getItemCount,
-    };
-
-    return <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>;
+  const store = useCartStore;
+  return <CartContext.Provider value={store()}>{children}</CartContext.Provider>;
 };
 
-export const useCart = () => {
-    const context = React.useContext(CartContext);
-    if (context === undefined) {
-        throw new Error('useCart must be used within a CartProvider');
-    }
-    return context;
+// The primary hook that components will use to interact with the cart
+export const useCart = (): CartStore => {
+  const store = React.useContext(CartContext);
+  if (!store) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  // We directly use the store selectors here. Zustand ensures components re-render only when the selected state changes.
+  return useCartStore();
 };
