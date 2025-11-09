@@ -31,7 +31,7 @@ export default function Header() {
         <nav className="hidden md:flex items-center gap-6 font-semibold text-sm">
             <Link href="/" className="text-muted-foreground hover:text-foreground">Home</Link>
             <Link href="/#about" className="text-muted-foreground hover:text-foreground">About Us</Link>
-            <Link href="/product-locator" className={isLocatorActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}>Product Locator</Link>
+            <Link href="/#locator" className="text-muted-foreground hover:text-foreground">Product Locator</Link>
             <Link href="/#partners" className="text-muted-foreground hover:text-foreground">Our Partners</Link>
             <Link href="/#careers" className="text-muted-foreground hover:text-foreground">Careers</Link>
         </nav>
