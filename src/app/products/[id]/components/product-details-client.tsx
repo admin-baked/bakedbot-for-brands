@@ -75,25 +75,30 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
     const { selectedLocationId } = useStore();
     
     const priceDisplay = useMemo(() => {
-        const priceValues = Object.values(product.prices || {});
-
-        if (selectedLocationId && product.prices?.[selectedLocationId]) {
+        const hasPricing = product.prices && Object.keys(product.prices).length > 0;
+        
+        // If a location is selected, show its specific price.
+        if (selectedLocationId && hasPricing && product.prices[selectedLocationId]) {
             return `$${product.prices[selectedLocationId].toFixed(2)}`;
         }
+        
+        // If no location is selected but there are multiple prices, show a range.
+        if (!selectedLocationId && hasPricing) {
+            const priceValues = Object.values(product.prices);
+            const minPrice = Math.min(...priceValues);
+            const maxPrice = Math.max(...priceValues);
 
-        if (priceValues.length === 0) {
-            return `$${product.price.toFixed(2)}`;
+            if (minPrice === maxPrice) {
+                return `$${minPrice.toFixed(2)}`;
+            }
+            return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
         }
-
-        const minPrice = Math.min(...priceValues);
-        const maxPrice = Math.max(...priceValues);
-
-        if (minPrice === maxPrice) {
-            return `$${minPrice.toFixed(2)}`;
-        }
-
-        return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
+        
+        // Fallback to the base price if no other conditions are met.
+        return `$${product.price.toFixed(2)}`;
     }, [product, selectedLocationId]);
+
+    const canAddToCart = !!selectedLocationId;
 
     return (
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start max-w-6xl mx-auto py-8 px-4">
@@ -135,7 +140,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                     <p>{product.description}</p>
                 </div>
 
-                <Button size="lg" className="w-full" onClick={() => addToCart(product, selectedLocationId)}>
+                <Button size="lg" className="w-full" onClick={() => addToCart(product, selectedLocationId)} disabled={!canAddToCart}>
                     <Plus className="mr-2 h-5 w-5" />
                     Add to Cart
                 </Button>

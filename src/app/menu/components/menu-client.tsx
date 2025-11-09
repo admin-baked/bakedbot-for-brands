@@ -59,23 +59,27 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
     const { selectedLocationId } = useStore();
     
     const priceDisplay = useMemo(() => {
-        if (selectedLocationId && product.prices?.[selectedLocationId]) {
+        const hasPricing = product.prices && Object.keys(product.prices).length > 0;
+        
+        // If a location is selected, show its specific price.
+        if (selectedLocationId && hasPricing && product.prices[selectedLocationId]) {
             return `$${product.prices[selectedLocationId].toFixed(2)}`;
         }
-        if (!product.prices || Object.keys(product.prices).length === 0) {
-            return `$${product.price.toFixed(2)}`;
+        
+        // If no location is selected but there are multiple prices, show a range.
+        if (!selectedLocationId && hasPricing) {
+            const priceValues = Object.values(product.prices);
+            const minPrice = Math.min(...priceValues);
+            const maxPrice = Math.max(...priceValues);
+
+            if (minPrice === maxPrice) {
+                return `$${minPrice.toFixed(2)}`;
+            }
+            return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
         }
-    
-        const priceValues = Object.values(product.prices);
-
-        const minPrice = Math.min(...priceValues);
-        const maxPrice = Math.max(...priceValues);
-
-        if (minPrice === maxPrice) {
-            return `$${minPrice.toFixed(2)}`;
-        }
-
-        return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
+        
+        // Fallback to the base price if no other conditions are met.
+        return `$${product.price.toFixed(2)}`;
     }, [product, selectedLocationId]);
 
     const handleAddToCart = (e: React.MouseEvent) => {
@@ -83,6 +87,8 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
         e.stopPropagation();
         addToCart(product, selectedLocationId);
     };
+    
+    const canAddToCart = !!selectedLocationId;
 
     if (layout === 'alt') {
         return (
@@ -110,7 +116,7 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
                 </Link>
                 <CardFooter className="flex justify-between items-center p-4 pt-0 bg-card">
                     <span className="text-lg font-bold">{priceDisplay}</span>
-                    <Button size="icon" onClick={handleAddToCart} disabled={!selectedLocationId && Object.keys(product.prices || {}).length > 0}>
+                    <Button size="icon" onClick={handleAddToCart} disabled={!canAddToCart}>
                         <Plus className="h-4 w-4"/>
                     </Button>
                 </CardFooter>
@@ -144,7 +150,7 @@ const ProductCard = ({ product, layout = 'default' }: { product: Product, layout
             </Link>
             <CardFooter className="flex justify-between items-center p-4 pt-0 bg-card">
                 <span className="text-xl font-bold">{priceDisplay}</span>
-                <Button size="icon" onClick={handleAddToCart} disabled={!selectedLocationId && Object.keys(product.prices || {}).length > 0}>
+                <Button size="icon" onClick={handleAddToCart} disabled={!canAddToCart}>
                     <Plus className="h-4 w-4"/>
                 </Button>
             </CardFooter>
