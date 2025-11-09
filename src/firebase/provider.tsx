@@ -104,6 +104,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             firstName: firebaseUser.displayName?.split(' ')[0] ?? '',
             lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') ?? '',
             onboardingCompleted: false, // Default for new users
+            role: null, // Add role to match schema
           };
 
           // Use set with merge to create or update the user document.
