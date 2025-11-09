@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -57,7 +56,7 @@ export default function CheckoutPage() {
     return () => clearTimeout(timer);
   }, [hasHydrated, selectedLocationId, cart.length, router]);
   
-  // Show loading during hydration
+  // Show loading during hydration or while checks are running
   if (!hasHydrated || !showContent) {
     return (
       <div className="flex flex-col h-screen items-center justify-center text-center py-20">
@@ -67,6 +66,17 @@ export default function CheckoutPage() {
     );
   }
 
+  // Final safety check before rendering - this prevents a crash if the location lookup fails
+  if (!selectedLocation) {
+     return (
+       <div className="flex flex-col h-screen items-center justify-center text-center py-20">
+         <Loader2 className="h-8 w-8 animate-spin text-destructive" />
+         <p className="text-destructive mt-4">Selected location not found. Redirecting...</p>
+       </div>
+     );
+  }
+
+
   // Render checkout
   return (
     <div className="min-h-screen bg-muted/20">
@@ -75,7 +85,7 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left side - Form */}
           <div>
-             <CheckoutForm onOrderSuccess={handleOrderSuccess} selectedLocation={selectedLocation!} />
+             <CheckoutForm onOrderSuccess={handleOrderSuccess} selectedLocation={selectedLocation} />
           </div>
 
           {/* Right side - Summary */}
@@ -88,8 +98,8 @@ export default function CheckoutPage() {
                     <div className='space-y-4'>
                         <div className="text-sm">
                             <p className="font-semibold text-muted-foreground flex items-center gap-2"><MapPin className='h-4 w-4'/> Pickup Location</p>
-                            <p className='font-medium mt-1'>{selectedLocation!.name}</p>
-                            <p className='text-xs text-muted-foreground'>{selectedLocation!.address}, {selectedLocation!.city}</p>
+                            <p className='font-medium mt-1'>{selectedLocation.name}</p>
+                            <p className='text-xs text-muted-foreground'>{selectedLocation.address}, {selectedLocation.city}</p>
                         </div>
                     
                         <Separator />
