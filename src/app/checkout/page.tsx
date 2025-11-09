@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useMemo, Suspense, useEffect, useRef } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckoutForm } from '@/app/menu/components/checkout-form';
 import Header from '@/app/menu/components/header';
 import { useCart } from '@/hooks/use-cart';
@@ -10,25 +10,37 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useMenuData } from '@/hooks/use-menu-data';
 
 function CheckoutPageClient() {
-    const { items, getCartTotal } = useCart();
+    const { items, getCartTotal, clearCart } = useCart();
     const { locations } = useMenuData();
     const router = useRouter();
     const searchParams = useSearchParams();
     const selectedLocationId = searchParams.get('locationId');
+    const processedOrderId = useRef<string | null>(null);
 
     const selectedLocation = useMemo(() => {
         return locations?.find(loc => loc.id === selectedLocationId);
     }, [locations, selectedLocationId]);
 
-    const totals = getCartTotal();
+    const { subtotal, taxes, total } = getCartTotal();
 
     const handleOrderSuccess = (orderId: string) => {
-        router.push(`/order/${orderId}?userId=guest`);
+        if (orderId && orderId !== processedOrderId.current) {
+            processedOrderId.current = orderId;
+            clearCart();
+            router.push(`/order/${orderId}?userId=guest`);
+        }
     };
+    
+    // Redirect if location not selected or cart is empty
+    useEffect(() => {
+        if (!selectedLocationId || items.length === 0) {
+            router.replace('/menu');
+        }
+    }, [selectedLocationId, items, router]);
+
 
     if (!selectedLocationId || !selectedLocation) {
          return (
@@ -94,15 +106,15 @@ function CheckoutPageClient() {
                                     <div className="space-y-1 border-t pt-4 text-sm">
                                         <div className="flex justify-between">
                                             <span>Subtotal</span>
-                                            <span>${totals.toFixed(2)}</span>
+                                            <span>${subtotal.toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span>Taxes (est.)</span>
-                                            <span>${(totals * 0.15).toFixed(2)}</span>
+                                            <span>${taxes.toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between font-bold text-base mt-2">
                                             <span>Total</span>
-                                            <span>${(totals * 1.15).toFixed(2)}</span>
+                                            <span>${total.toFixed(2)}</span>
                                         </div>
                                     </div>
                                 )}

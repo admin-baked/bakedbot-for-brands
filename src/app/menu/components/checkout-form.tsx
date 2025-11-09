@@ -1,8 +1,8 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import { useTransition, Suspense, useState, useEffect, useRef } from 'react';
-import { Upload, CalendarIcon, Loader2, PartyPopper } from 'lucide-react';
+import { Suspense, useState, useEffect } from 'react';
+import { Upload, CalendarIcon, Loader2 } from 'lucide-react';
 import { submitOrder } from './actions';
 import { useUser } from '@/firebase';
 import { useCart } from '@/hooks/use-cart';
@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Location } from '@/lib/types';
-import { useRouter } from 'next/navigation';
 
 
 const initialState = {
@@ -28,46 +27,27 @@ const initialState = {
 
 export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSuccess: (orderId: string) => void; selectedLocation: Location }) {
   const { user } = useUser();
-  const { items, getCartTotal, clearCart } = useCart();
+  const { items, getCartTotal } = useCart();
   const [state, formAction] = useFormState(submitOrder, initialState);
-  const [isPending, startTransition] = useTransition();
-  const router = useRouter();
-
+  
   const [birthDate, setBirthDate] = useState<Date | undefined>();
   const [idImageName, setIdImageName] = useState<string | null>(null);
 
-  const subtotal = getCartTotal();
-  const taxes = subtotal * 0.15; // Example 15% tax rate
-  const total = subtotal + taxes;
-
-  const processedOrderId = useRef<string | null>(null);
+  const { total } = getCartTotal();
 
   useEffect(() => {
-    if (state && !state.error && state.orderId && state.orderId !== processedOrderId.current) {
-      processedOrderId.current = state.orderId;
-      console.log('✅ Order successful, redirecting...');
-      clearCart();
+    if (state && !state.error && state.orderId) {
       onOrderSuccess(state.orderId);
     }
-  }, [state, onOrderSuccess, clearCart]);
-
+  }, [state, onOrderSuccess]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setIdImageName(file ? file.name : null);
   };
   
-  if (items.length === 0) {
-    return (
-      <Alert>
-         <AlertTitle>Your Cart is Empty</AlertTitle>
-        <AlertDescription>
-          You need to add items to your cart before you can check out.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
+  const { pending } = useFormStatus();
+  
   return (
      <div className="space-y-6">
         <Card>
@@ -75,10 +55,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                 <CardTitle>Your Information</CardTitle>
             </CardHeader>
             <CardContent>
-                <form 
-                    action={(formData) => startTransition(() => formAction(formData))} 
-                    className="space-y-4"
-                >
+                <form action={formAction} className="space-y-4">
                     <input type="hidden" name="userId" value={user?.uid || 'guest'} />
                     <input type="hidden" name="locationId" value={selectedLocation.id} />
                     <input type="hidden" name="locationName" value={selectedLocation.name} />
@@ -142,7 +119,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                             <Upload className="h-4 w-4" />
                             <span className='truncate flex-1'>{idImageName || 'Upload a photo of your ID'}</span>
                         </Label>
-                        <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" required/>
+                        <Input id="idImage" name="idImage" type="file" className="hidden" accept="image/*" onChange={handleFileChange} required/>
                     </div>
                     
                     {state?.message && state.error && (
@@ -151,15 +128,9 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                             <AlertDescription>{state.message}</AlertDescription>
                         </Alert>
                     )}
-                     {state?.message && !state.error && state.orderId && (
-                        <Alert variant='default' className="bg-green-100 border-green-200 text-green-800">
-                             <AlertTitle>Success!</AlertTitle>
-                             <AlertDescription>{state.message}</AlertDescription>
-                        </Alert>
-                    )}
                     
-                    <Button type="submit" className="w-full" disabled={isPending}>
-                        {isPending ? <Loader2 className="mr-2 animate-spin" /> : null}
+                    <Button type="submit" className="w-full" disabled={pending}>
+                        {pending ? <Loader2 className="mr-2 animate-spin" /> : null}
                         Submit Order
                     </Button>
                 </form>

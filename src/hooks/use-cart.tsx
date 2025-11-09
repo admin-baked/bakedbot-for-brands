@@ -3,11 +3,10 @@
 import * as React from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { type CartItem as AppCartItem, type Product } from '@/lib/types';
-
+import { type Product } from '@/lib/types';
 
 // Define the type for items within the cart
-export type CartItem = AppCartItem;
+export type CartItem = Product & { quantity: number };
 
 // Define the state of the cart
 interface CartState {
@@ -23,7 +22,7 @@ interface CartActions {
   updateItemPrices: (locationId: string | null, products: Product[]) => void;
   clearCart: () => void;
   toggleCart: () => void;
-  getCartTotal: () => number;
+  getCartTotal: () => { subtotal: number; taxes: number; total: number };
   getItemCount: () => number;
 }
 
@@ -31,7 +30,7 @@ interface CartActions {
 type CartStore = CartState & CartActions;
 
 // Create the Zustand store with persistence
-export const useCartStore = create<CartStore>()(
+const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       // Initial state
@@ -99,7 +98,10 @@ export const useCartStore = create<CartStore>()(
       toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
 
       getCartTotal: () => {
-        return get().items.reduce((total, item) => total + item.price * item.quantity, 0);
+        const subtotal = get().items.reduce((total, item) => total + item.price * item.quantity, 0);
+        const taxes = subtotal * 0.15; // Example 15% tax rate
+        const total = subtotal + taxes;
+        return { subtotal, taxes, total };
       },
 
       getItemCount: () => {
@@ -112,21 +114,4 @@ export const useCartStore = create<CartStore>()(
   )
 );
 
-
-// We create a provider to make the store available throughout the app
-const CartContext = React.createContext<CartStore | undefined>(undefined);
-
-export const CartProvider = ({ children }: { children: React.ReactNode }) => {
-  const store = useCartStore;
-  return <CartContext.Provider value={store()}>{children}</CartContext.Provider>;
-};
-
-// The primary hook that components will use to interact with the cart
-export const useCart = (): CartStore => {
-  const store = React.useContext(CartContext);
-  if (!store) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  // We directly use the store selectors here. Zustand ensures components re-render only when the selected state changes.
-  return useCartStore();
-};
+export const useCart = () => useCartStore();
