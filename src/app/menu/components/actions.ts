@@ -1,10 +1,8 @@
-
 'use server';
 
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { collection, doc, writeBatch, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
-import { sendOrderEmail } from '@/ai/flows/send-order-email';
 import type { CartItem } from '@/lib/types';
 
 const CheckoutSchema = z.object({
@@ -56,15 +54,13 @@ export async function submitOrder(prevState: any, formData: FormData) {
       return { message: 'Cannot submit an empty order.', error: true };
     }
 
-    // The user document path is now correctly determined for guests or logged-in users.
     const userDocRef = doc(firestore, 'users', userId);
     console.log('📍 User doc path:', userDocRef.path);
 
-    // The batch write will now create the order and its items under the correct user path.
     const batch = writeBatch(firestore);
     
     const ordersCollectionRef = collection(userDocRef, 'orders');
-    const newOrderRef = doc(ordersCollectionRef); // Auto-generate ID
+    const newOrderRef = doc(ordersCollectionRef);
     console.log('📍 Order path:', newOrderRef.path);
     
     const fullOrderData = {
@@ -93,26 +89,8 @@ export async function submitOrder(prevState: any, formData: FormData) {
     await batch.commit();
     console.log('✅ Batch committed successfully! Order ID:', newOrderRef.id);
     
-    /*
-    // Temporarily disable email sending to fix freezing issue.
-    // This can be re-enabled once SendGrid is configured properly.
-    const fulfillmentEmail = 'martezandco@gmail.com';
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const orderPageUrl = `${baseUrl}/order/${newOrderRef.id}?userId=${userId}`;
-    const brandOwners = ['jack@bakedbot.ai', 'martez@bakedbot.com', 'vip@bakedbot.ai'];
-
-    await sendOrderEmail({
-      to: fulfillmentEmail,
-      bcc: brandOwners,
-      orderId: newOrderRef.id,
-      customerName: orderData.customerName,
-      customerEmail: orderData.customerEmail,
-      pickupLocationName: locationName || 'Unknown',
-      totalAmount: orderData.totalAmount,
-      cartItems: cartItems,
-      orderPageUrl: orderPageUrl,
-    });
-    */
+    // NOTE: Email sending disabled - configure SendGrid to enable
+    // await sendOrderEmail({ orderId: newOrderRef.id, ... });
 
     return {
       message: 'Order submitted successfully!',
@@ -122,16 +100,9 @@ export async function submitOrder(prevState: any, formData: FormData) {
   } catch (error: any) {
     console.error('❌ Order submission error:', error);
     
-    if (error.code === 'permission-denied' || error.code === 7) {
-      return {
-        error: true,
-        message: 'Permission denied. Please check Firestore security rules.',
-      };
-    }
-    
     return {
       error: true,
-      message: `Server error: ${error.code || error.message}`,
+      message: error.message || 'Failed to submit order',
     };
   }
 }

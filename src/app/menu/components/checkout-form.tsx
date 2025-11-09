@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Location } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
 
 const initialState = {
@@ -31,6 +32,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
   const { items: cart, getCartTotal, clearCart } = useCart();
   const [state, formAction] = useFormState(submitOrder, initialState);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const [birthDate, setBirthDate] = useState<Date | undefined>();
   const [idImageName, setIdImageName] = useState<string | null>(null);
@@ -40,13 +42,13 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
   const total = subtotal + taxes;
 
   useEffect(() => {
-    if (state && state.message) {
-      if (state.error === false && state.orderId) {
-        onOrderSuccess(state.orderId);
-        clearCart();
-      }
+    if (state && !state.error && state.orderId) {
+      console.log('✅ Order successful, redirecting...');
+      clearCart();
+      onOrderSuccess(state.orderId);
+      router.push(`/order/${state.orderId}?userId=${user?.uid || 'guest'}`);
     }
-  }, [state, onOrderSuccess, clearCart]);
+  }, [state, onOrderSuccess, clearCart, router, user]);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,7 +146,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: { onOrderSucc
                     
                     {state?.message && (
                         <Alert variant={state.error ? 'destructive' : 'default'}>
-                             <PartyPopper className="h-4 w-4" />
+                             {state.error ? '❌' : '✅'}
                             <AlertTitle>{state.error ? 'Submission Error' : 'Success!'}</AlertTitle>
                             <AlertDescription>{state.message}</AlertDescription>
                         </Alert>
