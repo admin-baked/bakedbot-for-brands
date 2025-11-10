@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -58,6 +59,12 @@ service cloud.firestore {
           // Allow any authenticated user to create a review.
           allow create: if request.auth != null;
       }
+    }
+
+    // Allow querying the 'reviews' collection group if the query is filtered by productId.
+    // This is necessary for the getProductReviews tool to work securely.
+    match /products/{productId}/reviews/{reviewId} {
+       allow list: if request.query.get("productId") == productId;
     }
     
     match /locations/{locationId} {
