@@ -7,12 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Upload, Download, PlusCircle, MapPin, Trash2, Pencil, Mail } from 'lucide-react';
-import { useStore, type Location } from '@/hooks/use-store';
+import { useStore } from '@/hooks/use-store';
 import Link from 'next/link';
 import DeleteLocationDialog from './components/delete-location-dialog';
 import EditLocationDialog from './components/edit-location-dialog';
 import { useToast } from '@/hooks/use-toast';
 import * as Papa from 'papaparse';
+import type { Location } from '@/lib/types';
 
 
 export default function LocationsPage() {
@@ -219,11 +220,11 @@ export default function LocationsPage() {
                                   </div>
                               </div>
                               <div className="flex items-center gap-1">
-                                {isCeoMode && (
+                                
                                 <Button variant="ghost" size="icon" onClick={() => openEditDialog(loc)}>
                                     <Pencil className="h-4 w-4" />
                                 </Button>
-                                )}
+                                
                                 <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(loc)}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>

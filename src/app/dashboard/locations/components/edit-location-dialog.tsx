@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useStore, type Location } from '@/hooks/use-store';
+import { useStore } from '@/hooks/use-store';
+import type { Location } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface EditLocationDialogProps {

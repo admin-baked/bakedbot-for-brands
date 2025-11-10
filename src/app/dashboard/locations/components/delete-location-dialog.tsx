@@ -13,7 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useStore, type Location } from '@/hooks/use-store';
+import { useStore } from '@/hooks/use-store';
+import type { Location } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface DeleteLocationDialogProps {
