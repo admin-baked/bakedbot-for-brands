@@ -2,8 +2,8 @@
 
 import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
-import { type Product } from '@/lib/types';
 import { ShoppingCart } from 'lucide-react';
+import type { Product } from '@/lib/types';
 import Image from 'next/image';
 
 export function ProductCard({ product }: { product: Product }) {
