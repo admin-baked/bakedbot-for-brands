@@ -1,50 +1,37 @@
-'use client';
+'use server';
 
-import dynamic from 'next/dynamic';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { PenSquare } from 'lucide-react';
-import { useMenuData } from '@/hooks/use-menu-data';
-import Header from '@/app/components/header';
-import { DispensaryLocator } from '@/components/dispensary-locator';
-import { HeroSlider } from '@/components/hero-slider';
-import { ProductGrid } from '@/components/product-grid';
+import { createServerClient } from '@/firebase/server-client';
+import { collection, getDocs, query } from 'firebase/firestore';
+import type { Product } from '@/lib/types';
+import { demoProducts } from '@/lib/data';
+import HomePageClient from '@/app/components/home-page-client';
 
-// Dynamically import components that rely heavily on client-side state
-const FloatingCartPill = dynamic(() => import('@/app/components/floating-cart-pill').then(mod => mod.FloatingCartPill), {
-    ssr: false,
-});
+const getProducts = async (): Promise<Product[]> => {
+    try {
+        const { firestore } = await createServerClient();
+        const productsQuery = query(collection(firestore, 'products'));
+        const querySnapshot = await getDocs(productsQuery);
+        
+        if (querySnapshot.empty) {
+            console.log("No products found in Firestore, falling back to demo data.");
+            return demoProducts;
+        }
+        
+        const products = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        })) as Product[];
+        
+        return products;
+    } catch (error) {
+        console.error("Error fetching products from Firestore, falling back to demo data:", error);
+        return demoProducts;
+    }
+};
 
-const Chatbot = dynamic(() => import('@/components/chatbot'), {
-    ssr: false,
-});
 
+export default async function HomePage() {
+    const initialProducts = await getProducts();
 
-export default function HomePage() {
-    const { products, isLoading, isHydrated } = useMenuData();
-
-    return (
-        <div className="min-h-screen bg-background">
-            <Header />
-            <main className="container mx-auto px-4 py-8">
-               <HeroSlider products={products || []} />
-                <div className="text-center mb-12">
-                    <Button variant="outline" asChild>
-                        <Link href="/leave-a-review">
-                            <PenSquare className="mr-2 h-4 w-4" />
-                            Have Feedback? Leave a Review
-                        </Link>
-                    </Button>
-                </div>
-                <div id="locator">
-                    <DispensaryLocator />
-                </div>
-                <div className="space-y-12 mt-12">
-                   <ProductGrid products={products || []} isLoading={isLoading || !isHydrated} />
-                </div>
-            </main>
-            <FloatingCartPill />
-            <Chatbot />
-        </div>
-    );
+    return <HomePageClient initialProducts={initialProducts} />;
 }
