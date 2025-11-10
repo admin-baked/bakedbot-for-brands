@@ -1,12 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore';
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { useStore } from '@/hooks/use-store';
+import { auth, firestore, app } from './client';
 
 export interface FirebaseContextType {
   firebaseApp: FirebaseApp | null;
@@ -15,77 +15,19 @@ export interface FirebaseContextType {
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
+  isCeoMode: boolean;
 }
 
 export const FirebaseContext = createContext<FirebaseContextType | null>(null);
 
-export function FirebaseProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
   const [userError, setUserError] = useState<Error | null>(null);
-  const { setIsCeoMode } = useStore();
-
-  const firebaseServices = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return { firebaseApp: null, auth: null, firestore: null };
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-      // @ts-ignore
-      self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    }
-
-    const app = getApps().length === 0 ? initializeApp({
-        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    }) : getApp();
-
-    const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-    if (recaptchaSiteKey) {
-        try {
-            initializeAppCheck(app, {
-                provider: new ReCaptchaV3Provider(recaptchaSiteKey),
-                isTokenAutoRefreshEnabled: true
-            });
-        } catch (e) {
-            console.warn("App Check initialization failed", e);
-        }
-    } else {
-        console.warn("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set.");
-    }
-    
-    const auth = getAuth(app);
-    const firestore = getFirestore(app);
-
-    if (process.env.NODE_ENV === 'development') {
-        // @ts-ignore
-        if (!globalThis.emulatorConnected) {
-            try {
-                connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-                connectFirestoreEmulator(firestore, '127.0.0.1', 8080);
-                // @ts-ignore
-                globalThis.emulatorConnected = true;
-                console.log("Firebase connected to local emulators.");
-            } catch (error) {
-                console.error("Error connecting to Firebase emulators:", error);
-            }
-        }
-    }
-
-    return { firebaseApp: app, auth, firestore };
-  }, []);
+  const { setIsCeoMode, isCeoMode } = useStore();
 
   useEffect(() => {
-    if (!firebaseServices.auth) {
-      setIsUserLoading(false);
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(firebaseServices.auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       setIsUserLoading(true);
       setUserError(null);
@@ -110,14 +52,17 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [firebaseServices.auth, setIsCeoMode]);
+  }, [setIsCeoMode]);
 
-  const contextValue = useMemo(() => ({
-    ...firebaseServices,
+  const contextValue = React.useMemo(() => ({
+    firebaseApp: app,
+    auth,
+    firestore,
     user,
     isUserLoading,
     userError,
-  }), [firebaseServices, user, isUserLoading, userError]);
+    isCeoMode,
+  }), [user, isUserLoading, userError, isCeoMode]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -132,10 +77,4 @@ export const useFirebase = () => {
     throw new Error('useFirebase must be used within a FirebaseProvider.');
   }
   return context;
-};
-
-export type UserHookResult = {
-  user: User | null;
-  isUserLoading: boolean;
-  userError: Error | null;
 };

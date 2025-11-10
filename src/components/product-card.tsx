@@ -4,91 +4,75 @@ import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
 import { ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
+import type { Product } from '@/lib/types';
+import { Button } from './ui/button';
 
-interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  prices: { [locationId: string]: number };
-  image?: string;
-  imageUrl?: string;
-  category?: string;
-}
-
-export function ProductCard({ product }: { product: any }) {
+export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
   const { selectedLocationId } = useStore();
   
   const handleAddToCart = () => {
     if (!selectedLocationId) {
-      alert('Please select a location first');
+      // Find the locator section and scroll to it
+      const locator = document.getElementById('locator');
+      if (locator) {
+        locator.scrollIntoView({ behavior: 'smooth' });
+        alert('Please select a dispensary location first.');
+      } else {
+        alert('Please select a dispensary location at the top of the page.');
+      }
       return;
     }
     
-    console.log('🛒 Adding to cart:', product.name);
     addToCart(product, selectedLocationId);
   };
   
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col">
-      {/* Image */}
-      <div className="relative h-48 bg-gradient-to-br from-green-100 to-green-200">
-        {product.imageUrl ? (
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            className="object-cover"
-            onError={(e) => {
-              // Hide image if it fails to load
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-6xl">🌿</div>
-          </div>
-        )}
-      </div>
+    <div className="bg-card text-card-foreground rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col group border">
+      <Link href={`/products/${product.id}`} className="block">
+        <div className="relative h-48">
+            <Image
+                src={product.imageUrl}
+                alt={product.name}
+                fill
+                className="object-cover"
+                data-ai-hint={product.imageHint}
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+        </div>
+      </Link>
       
-      {/* Content */}
       <div className="p-4 flex-1 flex flex-col">
-        {/* Category Badge */}
         {product.category && (
-          <span className="inline-block px-2 py-1 text-xs font-semibold text-green-600 bg-green-100 rounded-full w-fit mb-2">
-            {product.category}
-          </span>
+          <span className="text-xs font-semibold uppercase text-primary tracking-wider">{product.category}</span>
         )}
         
-        {/* Name */}
-        <h3 className="text-lg font-bold mb-2 line-clamp-2">{product.name}</h3>
+        <h3 className="text-lg font-bold mt-1 mb-2 line-clamp-2">
+            <Link href={`/products/${product.id}`} className="hover:underline">
+             {product.name}
+            </Link>
+        </h3>
         
-        {/* Description */}
         {product.description && (
-          <p className="text-sm text-gray-600 mb-3 flex-1 line-clamp-2">
+          <p className="text-sm text-muted-foreground mb-3 flex-1 line-clamp-2">
             {product.description}
           </p>
         )}
         
-        {/* Price and Button */}
         <div className="flex items-center justify-between mt-auto pt-3 border-t">
-          <span className="text-2xl font-bold text-green-600">
+          <span className="text-2xl font-bold text-primary">
             ${product.price.toFixed(2)}
           </span>
-          <button
+          <Button
             onClick={handleAddToCart}
             disabled={!selectedLocationId}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-              selectedLocationId
-                ? 'bg-green-600 text-white hover:bg-green-700 hover:scale-105'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+            variant={selectedLocationId ? 'default' : 'secondary'}
             title={!selectedLocationId ? 'Select a location first' : 'Add to cart'}
           >
             <ShoppingCart className="h-4 w-4" />
-            <span className="hidden sm:inline">Add</span>
-          </button>
+            <span className="hidden sm:inline ml-2">Add</span>
+          </Button>
         </div>
       </div>
     </div>
