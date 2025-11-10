@@ -21,7 +21,6 @@ import { createServerClient } from '@/firebase/server-client';
 import { increment } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const FormSchema = z.object({
   productName: z.string().min(3, 'Product name must be at least 3 characters.'),
@@ -213,18 +212,13 @@ export async function updateProductFeedback(
   }
 
   const fieldToUpdate = feedbackType === 'like' ? 'likes' : 'dislikes';
-  
-  // Note: The 'increment' function for server actions must be imported from 'firebase-admin/firestore'
-  // However, the client-side 'increment' from 'firebase/firestore' is being used here for optimistic UI
-  // which causes an issue. For a server action, you should use the Admin SDK's increment.
-  // But since we are using a non-blocking update for the UI, we'll keep the client-side approach.
-  // This part of the code doesn't actually use the Admin SDK's increment.
   const updatePayload = { [fieldToUpdate]: increment(1) };
 
   try {
-    // This is a client-invoked server action, but for optimistic UI,
-    // we can use the non-blocking update.
-    updateDocumentNonBlocking(productRef, updatePayload);
+    // Fire-and-forget using Admin SDK; keeps types consistent
+    void productRef.update(updatePayload).catch((e) => {
+      console.error('non-blocking update failed', e);
+    });
     return { success: true, message: 'Feedback submitted successfully.' };
   } catch (serverError) {
     // This catch block might not be hit if the non-blocking one handles it,
