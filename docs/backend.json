@@ -1,56 +1,5 @@
-
 {
   "entities": {
-    "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
-      "type": "object",
-      "description": "Represents a user of the BakedBot AI Assistant plugin.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "User's email address.",
-          "format": "email"
-        },
-        "firstName": {
-          "type": "string",
-          "description": "User's first name."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "User's last name."
-        },
-        "role": {
-          "type": "string",
-          "description": "The user's role within their brand.",
-          "enum": ["owner", "marketer"]
-        },
-        "onboardingCompleted": {
-          "type": "boolean",
-          "description": "Flag to indicate if the user has completed the onboarding flow."
-        }
-      },
-      "required": [
-        "id",
-        "email"
-      ]
-    },
-    "UserPrivate": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserPrivate",
-      "type": "object",
-      "description": "Represents private user data, such as API keys.",
-      "properties": {
-        "bakedBotApiKey": {
-          "type": "string",
-          "description": "The user's API key for the BakedBot service."
-        }
-      }
-    },
     "Product": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
@@ -59,7 +8,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Product entity."
+          "description": "Unique identifier for the product."
         },
         "name": {
           "type": "string",
@@ -67,39 +16,20 @@
         },
         "description": {
           "type": "string",
-          "description": "Description of the product."
+          "description": "Detailed description of the product."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the product."
         },
         "imageUrl": {
           "type": "string",
           "description": "URL of the product image.",
           "format": "uri"
         },
-        "imageHint": {
-          "type": "string",
-          "description": "A hint for AI image generation, like 'cannabis edible'."
-        },
-        "price": {
-          "type": "number",
-          "description": "Base price of the product."
-        },
-        "prices": {
-          "type": "object",
-          "description": "A map of location IDs to specific prices for that location.",
-          "additionalProperties": {
-            "type": "number"
-          }
-        },
         "categoryId": {
           "type": "string",
           "description": "Reference to Category. (Relationship: Category 1:N Product)"
-        },
-        "likes": {
-          "type": "number",
-          "description": "The number of likes a product has received."
-        },
-        "dislikes": {
-          "type": "number",
-          "description": "The number of dislikes a product has received."
         }
       },
       "required": [
@@ -107,6 +37,7 @@
         "name",
         "description",
         "price",
+        "imageUrl",
         "categoryId"
       ]
     },
@@ -114,11 +45,11 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Category",
       "type": "object",
-      "description": "Represents a category of products in the menu.",
+      "description": "Represents a category of products.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Category entity."
+          "description": "Unique identifier for the category."
         },
         "name": {
           "type": "string",
@@ -127,11 +58,6 @@
         "description": {
           "type": "string",
           "description": "Description of the category."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL of the category image.",
-          "format": "uri"
         }
       },
       "required": [
@@ -140,68 +66,61 @@
         "description"
       ]
     },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the BakedBot AI Assistant.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "username": {
+          "type": "string",
+          "description": "Username of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email"
+      ]
+    },
     "Order": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Order",
       "type": "object",
-      "description": "Represents a customer order.",
+      "description": "Represents an order placed by a user.",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order."
+        },
         "userId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Order). Can be 'guest' for anonymous checkouts."
-        },
-        "customerName": {
-            "type": "string",
-            "description": "Full name of the customer placing the order."
-        },
-        "customerEmail": {
-          "type": "string",
-          "description": "Email address of the customer.",
-          "format": "email"
-        },
-        "customerPhone": {
-            "type": "string",
-            "description": "Phone number of the customer."
-        },
-        "customerBirthDate": {
-          "type": "string",
-          "description": "The customer's date of birth for age verification.",
-          "format": "date-time"
-        },
-        "idImageUrl": {
-          "type": "string",
-          "description": "URL of the uploaded ID image for verification.",
-          "format": "uri"
-        },
-        "locationId": {
-            "type": "string",
-            "description": "The ID of the dispensary location for pickup."
+          "description": "Reference to User. (Relationship: User 1:N Order)"
         },
         "orderDate": {
           "type": "string",
-          "description": "Date the order was placed.",
+          "description": "Date and time the order was placed.",
           "format": "date-time"
         },
         "totalAmount": {
           "type": "number",
           "description": "Total amount of the order."
-        },
-        "status": {
-            "type": "string",
-            "enum": ["pending", "confirmed", "ready", "completed", "cancelled"],
-            "description": "The current status of the order."
         }
       },
       "required": [
+        "id",
         "userId",
-        "customerName",
-        "customerEmail",
-        "customerPhone",
-        "customerBirthDate",
-        "locationId",
         "orderDate",
-        "totalAmount",
-        "status"
+        "totalAmount"
       ]
     },
     "OrderItem": {
@@ -210,13 +129,17 @@
       "type": "object",
       "description": "Represents an item within an order.",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order item."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to Order. (Relationship: Order 1:N OrderItem)"
+        },
         "productId": {
           "type": "string",
           "description": "Reference to Product. (Relationship: Product 1:N OrderItem)"
-        },
-        "productName": {
-            "type": "string",
-            "description": "Name of the product at the time of order."
         },
         "quantity": {
           "type": "number",
@@ -224,117 +147,229 @@
         },
         "price": {
           "type": "number",
-          "description": "Price of the item at the time of order."
-        }
-      },
-      "required": [
-        "productId",
-        "productName",
-        "quantity",
-        "price"
-      ]
-    },
-    "Review": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Review",
-      "type": "object",
-      "description": "Represents a product review from a customer.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Review."
-        },
-        "productId": {
-          "type": "string",
-          "description": "The ID of the product being reviewed."
-        },
-        "userId": {
-          "type": "string",
-          "description": "The ID of the user submitting the review."
-        },
-        "rating": {
-          "type": "number",
-          "description": "Star rating from 1 to 5."
-        },
-        "text": {
-          "type": "string",
-          "description": "The written content of the review."
-        },
-        "verificationImageUrl": {
-          "type": "string",
-          "description": "URL of the uploaded receipt or COA image for verification.",
-          "format": "uri"
-        },
-        "createdAt": {
-            "type": "string",
-            "description": "The timestamp when the review was created.",
-            "format": "date-time"
+          "description": "Price of the product in the order item."
         }
       },
       "required": [
         "id",
+        "orderId",
         "productId",
+        "quantity",
+        "price"
+      ]
+    },
+    "Content": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Content",
+      "type": "object",
+      "description": "Represents content created by the AI, such as blog posts or articles.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the content."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the content."
+        },
+        "body": {
+          "type": "string",
+          "description": "The actual content (e.g., blog post text)."
+        },
+        "contentType": {
+          "type": "string",
+          "description": "Type of content (e.g., 'blog post', 'article')."
+        },
+        "creationDate": {
+          "type": "string",
+          "description": "Date and time the content was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "body",
+        "contentType",
+        "creationDate"
+      ]
+    },
+    "UserInteraction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserInteraction",
+      "type": "object",
+      "description": "Represents a user interaction with the AI assistant, useful for recommendations.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user interaction."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N UserInteraction)"
+        },
+        "interactionDate": {
+          "type": "string",
+          "description": "Date and time of the interaction.",
+          "format": "date-time"
+        },
+        "query": {
+          "type": "string",
+          "description": "The user's query or input."
+        },
+        "recommendedProductIds": {
+          "type": "array",
+          "description": "References to Products recommended during this interaction. (Relationship: UserInteraction 1:N Product)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
         "userId",
-        "rating",
-        "text"
+        "interactionDate",
+        "query"
       ]
     }
   },
   "auth": {
     "providers": [
-      "google.com",
       "password",
-      "emailLink"
-    ],
-    "customClaims": {
-        "ceo": {
-            "type": "boolean",
-            "description": "Grants CEO-level administrative privileges across the application."
-        }
-    }
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": {
-        "$ref": "#/entities/User"
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. The {userId} is the Firebase Authentication UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user."
+            }
+          ]
+        }
       },
-      "description": "Stores user profiles. This path is readable by the owner or an administrator."
-    },
-    "/user-private/{userId}": {
-      "schema": {
-        "$ref": "#/entities/UserPrivate"
+      {
+        "path": "/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Stores product categories.",
+          "params": [
+            {
+              "name": "categoryId",
+              "description": "The unique identifier of the category."
+            }
+          ]
+        }
       },
-      "description": "Stores private user data, like API keys. Strictly owned by the user."
-    },
-    "/categories/{categoryId}": {
-      "schema": {
-        "$ref": "#/entities/Category"
+      {
+        "path": "/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores product information.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "The unique identifier of the product."
+            }
+          ]
+        }
       },
-      "description": "Stores product categories."
-    },
-    "/products/{productId}": {
-      "schema": {
-        "$ref": "#/entities/Product"
+      {
+        "path": "/users/{userId}/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores order information, nested under the user who placed the order.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user who placed the order."
+            },
+            {
+              "name": "orderId",
+              "description": "The unique identifier of the order."
+            }
+          ]
+        }
       },
-      "description": "Stores product information."
-    },
-    "/products/{productId}/reviews/{reviewId}": {
-      "schema": {
-        "$ref": "#/entities/Review"
+      {
+        "path": "/users/{userId}/orders/{orderId}/orderItems/{orderItemId}",
+        "definition": {
+          "entityName": "OrderItem",
+          "schema": {
+            "$ref": "#/backend/entities/OrderItem"
+          },
+          "description": "Stores individual items within an order, nested under the order. This enforces path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user who placed the order."
+            },
+            {
+              "name": "orderId",
+              "description": "The unique identifier of the order."
+            },
+            {
+              "name": "orderItemId",
+              "description": "The unique identifier of the order item."
+            }
+          ]
+        }
       },
-      "description": "Stores customer reviews for a specific product. The collection is queryable by authenticated users."
-    },
-    "/users/{userId}/orders/{orderId}": {
-      "schema": {
-        "$ref": "#/entities/Order"
+      {
+        "path": "/content/{contentId}",
+        "definition": {
+          "entityName": "Content",
+          "schema": {
+            "$ref": "#/backend/entities/Content"
+          },
+          "description": "Stores AI-generated content.",
+          "params": [
+            {
+              "name": "contentId",
+              "description": "The unique identifier of the content."
+            }
+          ]
+        }
       },
-      "description": "Stores user order history. This path ensures path-based ownership."
-    },
-    "/users/{userId}/orders/{orderId}/orderItems/{orderItemId}": {
-      "schema": {
-        "$ref": "#/entities/OrderItem"
-      },
-      "description": "Stores individual order items for an order. This path ensures path-based ownership."
-    }
+      {
+        "path": "/users/{userId}/interactions/{interactionId}",
+        "definition": {
+          "entityName": "UserInteraction",
+          "schema": {
+            "$ref": "#/backend/entities/UserInteraction"
+          },
+          "description": "Stores user interactions with the AI assistant, nested under the user. This supports personalized recommendations.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user who interacted with the AI assistant."
+            },
+            {
+              "name": "interactionId",
+              "description": "The unique identifier of the user interaction."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the BakedBot AI Assistant, a WordPress plugin that provides AI-powered product recommendations, menu generation, content creation, and order management integration. The structure emphasizes authorization independence, clarity, and scalability, following the principles of DBAC (Database-Based Access Control). It avoids hierarchical authorization dependencies by denormalizing data where necessary, ensuring that security rules can be simple and efficient.\n\nThe key structural decisions and their justifications are:\n\n*   **Users Collection (`/users/{userId}`):** Stores user profiles. This is the root for user-specific data.\n*   **Categories Collection (`/categories/{categoryId}`):** Stores product categories. No specific ownership required, so top-level collection.\n*   **Products Collection (`/products/{productId}`):** Stores product information. No specific ownership required, so top-level collection.  Includes a `categoryId` field to reference the category.\n*   **Orders Collection (`/users/{userId}/orders/{orderId}`):** Stores order information, nested under the user who placed the order.  This utilizes path-based ownership.\n*   **OrderItems Collection (`/users/{userId}/orders/{orderId}/orderItems/{orderItemId}`):** Stores individual items within an order, nested under the order.  This continues path-based ownership for nested data. This ensures that only the user who placed the order can access the order items.\n*   **Content Collection (`/content/{contentId}`):** Stores AI-generated content. No specific ownership required, so top-level collection.\n*   **UserInteractions Collection (`/users/{userId}/interactions/{interactionId}`):** Stores user interactions with the AI assistant, nested under the user. This supports personalized recommendations and utilizes path-based ownership.\n\nThis structure achieves **Authorization Independence** by:\n\n*   Using path-based ownership for user-specific data (orders, order items, and user interactions). This eliminates the need to `get()` parent documents to validate access, because security rules can rely solely on `request.auth.uid` and the path.\n\nThe structure supports the required **QAPs (Rules are not Filters)** by:\n\n*   Segregating data with different access needs into separate collections and subcollections.\n*   Utilizing path-based ownership for user-specific data, making it easy to secure list operations."
   }
 }
