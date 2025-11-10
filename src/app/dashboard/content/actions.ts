@@ -21,6 +21,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { doc, getDoc, increment, updateDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const FormSchema = z.object({
   productName: z.string().min(3, 'Product name must be at least 3 characters.'),
@@ -215,10 +216,13 @@ export async function updateProductFeedback(
   const updatePayload = { [fieldToUpdate]: increment(1) };
 
   try {
-    await updateDoc(productRef, updatePayload);
+    // This is a client-invoked server action, but for optimistic UI,
+    // we can use the non-blocking update.
+    updateDocumentNonBlocking(productRef, updatePayload);
     return { success: true, message: 'Feedback submitted successfully.' };
   } catch (serverError) {
-    // 3. Permission Error Handling: Provide clear error context on failure.
+    // This catch block might not be hit if the non-blocking one handles it,
+    // but it's good for safety.
     const permissionError = new FirestorePermissionError({
       path: productRef.path,
       operation: 'update',

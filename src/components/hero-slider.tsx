@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,7 +23,7 @@ export function HeroSlider({ products }: { products: Product[] }) {
             opts={{ loop: true }}
         >
             <CarouselContent>
-                {featuredProducts.map((product) => (
+                {featuredProducts.map((product, index) => (
                     <CarouselItem key={product.id}>
                         <div className="relative h-64 md:h-80 w-full">
                             <Image
@@ -33,7 +32,7 @@ export function HeroSlider({ products }: { products: Product[] }) {
                                 fill
                                 objectFit="cover"
                                 className="brightness-75"
-                                priority
+                                priority={index === 0}
                                 data-ai-hint={product.imageHint}
                             />
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 text-white">

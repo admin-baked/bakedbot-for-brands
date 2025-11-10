@@ -1,13 +1,10 @@
-
-
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useOrder } from '@/firebase/firestore/use-order';
-import { useUser } from '@/firebase';
+import { useUser } from '@/firebase/auth/use-user';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +16,9 @@ import { useMenuData } from '@/hooks/use-menu-data';
 import { Separator } from '@/components/ui/separator';
 import { QRDisplay } from './components/qr-display';
 import { cn } from '@/lib/utils';
+import { useFirebase } from '@/firebase/provider';
+import { doc, onSnapshot, collection, query } from 'firebase/firestore';
+import type { OrderDoc, OrderItemDoc } from '@/lib/types';
 
 
 function OrderPageClient() {
@@ -27,13 +27,56 @@ function OrderPageClient() {
     const orderId = typeof params.orderId === 'string' ? params.orderId : '';
     const { user } = useUser();
     const { locations } = useMenuData();
+    const { firestore } = useFirebase();
 
-    // For guest checkouts, the userId will be in the query params
+    const [order, setOrder] = useState<OrderDoc | null>(null);
+    const [items, setItems] = useState<OrderItemDoc[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
+
     const urlUserId = searchParams.get('userId');
     const finalUserId = user?.uid || urlUserId;
 
-    // The useOrder hook will need the userId to construct the path
-    const { data: order, items, isLoading, error } = useOrder(orderId, finalUserId);
+    useEffect(() => {
+        if (!firestore || !finalUserId || !orderId || finalUserId === 'guest') {
+            setIsLoading(false);
+            if (finalUserId === 'guest') {
+                // This is expected for guest checkouts
+                setOrder(null);
+            }
+            return;
+        }
+        
+        setIsLoading(true);
+        const orderRef = doc(firestore, 'users', finalUserId, 'orders', orderId);
+
+        const unsubscribeOrder = onSnapshot(orderRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setOrder({ id: docSnap.id, ...docSnap.data() } as OrderDoc);
+            } else {
+                setError(new Error("Order not found."));
+            }
+            // Handled items loading separately
+        }, (err) => {
+            setError(err);
+            setIsLoading(false);
+        });
+
+        const itemsQuery = query(collection(orderRef, 'orderItems'));
+        const unsubscribeItems = onSnapshot(itemsQuery, (querySnap) => {
+            setItems(querySnap.docs.map(d => ({ id: d.id, ...d.data() } as OrderItemDoc)));
+            setIsLoading(false); // Consider loading finished when items are also loaded
+        }, (err) => {
+            setError(err);
+            setIsLoading(false);
+        });
+
+        return () => {
+            unsubscribeOrder();
+            unsubscribeItems();
+        };
+
+    }, [firestore, orderId, finalUserId]);
     
     const pickupLocation = locations?.find(loc => loc.id === order?.locationId);
 
@@ -43,7 +86,7 @@ function OrderPageClient() {
         return <OrderPageSkeleton />;
     }
 
-    if (error || (!order && finalUserId !== 'guest')) {
+    if (error) {
         return (
             <div className="flex flex-col items-center justify-center text-center py-20">
                 <h1 className="text-2xl font-bold">Order Not Found</h1>
@@ -71,9 +114,6 @@ function OrderPageClient() {
         }
     };
 
-    // For guest users, we can't fetch the order data from the client due to security rules.
-    // In a real app, this page would be server-rendered with the data passed in, or the data
-    // would be fetched via a secure server action. For this demo, we'll show a generic message.
     if (!order && finalUserId === 'guest') {
          return (
             <div className="max-w-2xl mx-auto py-8 px-4">
@@ -112,6 +152,10 @@ function OrderPageClient() {
                 </Card>
             </div>
         );
+    }
+
+    if (!order) {
+        return <OrderPageSkeleton />;
     }
 
     return (
