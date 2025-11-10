@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 const slides = [
   {
@@ -36,9 +37,16 @@ export function HeroSlider() {
   return (
     <div 
       className="relative h-96 bg-gray-800 flex items-center justify-center text-white rounded-lg overflow-hidden"
-      style={{ backgroundImage: `url(${slide.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
-      <div className="absolute inset-0 bg-black/50" />
+      <Image 
+        src={slide.image} 
+        alt={slide.title} 
+        layout="fill" 
+        objectFit="cover" 
+        className="brightness-75"
+        priority
+      />
+      <div className="absolute inset-0 bg-black/30" />
       <div className="text-center z-10 p-4">
         <h1 className="text-5xl font-bold mb-4 drop-shadow-lg">{slide.title}</h1>
         <p className="text-2xl drop-shadow-md">{slide.subtitle}</p>

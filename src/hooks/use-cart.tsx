@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -116,37 +115,9 @@ const useCartStore = create<CartStore>()(
   )
 );
 
-// This function had incorrect parameters, I'm fixing it.
-const useBoundStore = <T>(selector: (state: CartStore) => T) => useCartStore(selector);
+// This hook can be used throughout the app
+export const useCart = () => useCartStore((state) => state);
 
-// This hook is now correctly typed and can be used throughout the app
-export const useCart = () => {
-    const { 
-        items,
-        isCartOpen,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        updateItemPrices,
-        clearCart,
-        toggleCart,
-        getCartTotal,
-        getItemCount
-    } = useBoundStore((state) => state);
-
-    return {
-        items,
-        isCartOpen,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        updateItemPrices,
-        clearCart,
-        toggleCart,
-        getCartTotal,
-        getItemCount
-    };
-};
 
 // Create and export the CartProvider component
 export function CartProvider({ children }: { children: React.ReactNode }) {
