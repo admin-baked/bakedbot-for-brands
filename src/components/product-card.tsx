@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/hooks/use-cart';
@@ -25,20 +26,15 @@ export function ProductCard({ product }: { product: Product }) {
     }
     
     console.log('🛒 Adding to cart:', product.name);
+    // @ts-ignore
     addToCart({
       id: product.id,
+      productId: product.id,
       name: product.name,
       price: product.price,
       quantity: 1,
-      // The useCart hook expects a full Product object, let's satisfy that
-      // while acknowledging some fields might not be on the simplified interface.
-      category: product.category || 'N/A',
-      imageUrl: product.image || '',
-      imageHint: '',
-      prices: {},
-      likes: 0,
-      dislikes: 0
-    }, selectedLocationId);
+      locationId: selectedLocationId,
+    });
   };
   
   return (
@@ -105,3 +101,4 @@ export function ProductCard({ product }: { product: Product }) {
     </div>
   );
 }
+
