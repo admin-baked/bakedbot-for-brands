@@ -1,15 +1,19 @@
+
 'use client';
 
 import { useCart } from '@/hooks/use-cart';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useStore } from '@/hooks/use-store';
 
 export function FloatingCartPill() {
-  const { isCartOpen, toggleCart, getItemCount } = useCart();
+  const { getItemCount } = useCart();
   const itemCount = getItemCount();
+  const { _hasHydrated } = useStore();
 
-  if (itemCount === 0) {
+
+  if (!_hasHydrated || itemCount === 0) {
     return null;
   }
 
