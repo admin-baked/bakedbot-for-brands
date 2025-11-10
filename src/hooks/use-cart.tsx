@@ -100,7 +100,8 @@ const useCartStore = create<CartStore>()(
 
       getCartTotal: () => {
         const subtotal = get().items.reduce((total, item) => total + item.price * item.quantity, 0);
-        const taxes = subtotal * 0.15; // Example 15% tax rate
+        // Using a fixed 15% tax rate for now
+        const taxes = subtotal * 0.15; 
         const total = subtotal + taxes;
         return { subtotal, taxes, total };
       },
@@ -115,7 +116,37 @@ const useCartStore = create<CartStore>()(
   )
 );
 
-export const useCart = useCartStore;
+// This function had incorrect parameters, I'm fixing it.
+const useBoundStore = <T>(selector: (state: CartStore) => T) => useCartStore(selector);
+
+// This hook is now correctly typed and can be used throughout the app
+export const useCart = () => {
+    const { 
+        items,
+        isCartOpen,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        updateItemPrices,
+        clearCart,
+        toggleCart,
+        getCartTotal,
+        getItemCount
+    } = useBoundStore((state) => state);
+
+    return {
+        items,
+        isCartOpen,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        updateItemPrices,
+        clearCart,
+        toggleCart,
+        getCartTotal,
+        getItemCount
+    };
+};
 
 // Create and export the CartProvider component
 export function CartProvider({ children }: { children: React.ReactNode }) {
