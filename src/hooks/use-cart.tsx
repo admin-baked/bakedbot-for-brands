@@ -11,10 +11,12 @@ export type CartItem = Product & { quantity: number };
 // Define the state of the cart
 interface CartState {
   items: CartItem[];
+  _hasHydrated: boolean;
 }
 
 // Define the actions that can be performed on the cart
 interface CartActions {
+  setHasHydrated: (hydrated: boolean) => void;
   addToCart: (product: Product, locationId?: string | null) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
@@ -32,8 +34,14 @@ const useCartStore = create<CartStore>()(
     (set, get) => ({
       // Initial state
       items: [],
+      _hasHydrated: false,
 
       // Actions
+      setHasHydrated: (hydrated) => {
+        set({
+          _hasHydrated: hydrated,
+        });
+      },
       addToCart: (product, locationId) =>
         set((state) => {
           const existingItem = state.items.find((i) => i.id === product.id);
@@ -90,6 +98,9 @@ const useCartStore = create<CartStore>()(
     }),
     {
       name: 'bakedbot-cart-storage', // The key for storing the cart in localStorage
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
