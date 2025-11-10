@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -25,7 +26,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useUser } from '@/firebase/auth/use-user';
-import { FirebaseContext } from '@/firebase/provider';
+import { FirebaseContext, useFirebase } from '@/firebase/provider';
 import { signOut } from 'firebase/auth';
 import { useStore, type NavLink } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
@@ -63,9 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   
-  const firebaseContext = React.useContext(FirebaseContext);
-  const auth = firebaseContext?.auth;
-  const firestore = firebaseContext?.firestore;
+  const { auth, firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
 
   const [userProfile, setUserProfile] = React.useState<any>(null);
