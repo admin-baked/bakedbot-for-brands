@@ -96,7 +96,6 @@ export default function LeaveReviewPage() {
         return;
     }
     formData.append('rating', String(rating));
-    formData.append('userId', user.uid);
     formAction(formData);
   };
   
