@@ -86,7 +86,7 @@ service cloud.firestore {
     // This is critical for securely fetching all reviews for a specific product without
     // exposing a way to list all reviews across all products.
     match /{path=**}/reviews/{reviewId} {
-      allow list: if "productId" in request.query.get("where", [])[0];
+      allow list: if "productId" in request.query.where;
     }
     
     // LOCATIONS: Publicly readable.
