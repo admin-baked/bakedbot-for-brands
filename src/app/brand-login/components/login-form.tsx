@@ -11,7 +11,7 @@ import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { sendMagicLink } from '../actions';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useAuth, useUser } from '@/firebase';
+import { useFirebase, useUser } from '@/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 const GoogleIcon = () => (
@@ -32,7 +32,7 @@ export default function LoginForm() {
     const [magicLinkSent, setMagicLinkSent] = useState(false);
     const { toast } = useToast();
     const searchParams = useSearchParams();
-    const auth = useAuth();
+    const { auth } = useFirebase();
     const { user } = useUser();
     const router = useRouter();
 
