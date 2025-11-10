@@ -30,7 +30,7 @@ export function HeroSlider({ products }: { products: Product[] }) {
                             <Image
                                 src={product.imageUrl}
                                 alt={product.name}
-                                layout="fill"
+                                fill
                                 objectFit="cover"
                                 className="brightness-75"
                                 priority
