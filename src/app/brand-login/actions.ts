@@ -12,9 +12,10 @@ export async function sendMagicLink(email: string) {
     
     // The URL must point to the page that will handle the sign-in.
     // It must also be whitelisted in the Firebase console.
+    const host = process.env.NEXT_PUBLIC_HOST || 'http://localhost:3000';
     const actionCodeSettings = {
         handleCodeInApp: true,
-        url: `https://brands.bakedbot.ai/auth/callback-client`,
+        url: `${host}/auth/callback-client`,
     };
 
     await sendSignInLinkToEmail(auth, email, actionCodeSettings);
