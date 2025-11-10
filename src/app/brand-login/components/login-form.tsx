@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -9,11 +8,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/logo';
-import { sendMagicLink } from '../actions';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail } from 'firebase/auth';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -99,14 +97,22 @@ export default function LoginForm() {
             return;
         }
 
+        if (!auth) {
+            toast({ variant: 'destructive', title: 'Initialization Error', description: 'Firebase not ready.' });
+            return;
+        }
+
         setIsMagicLinkLoading(true);
         try {
+            const host = window.location.origin;
+            const actionCodeSettings = {
+                handleCodeInApp: true,
+                url: `${host}/auth/callback-client`,
+            };
+
             window.localStorage.setItem('emailForSignIn', finalEmail);
-            const result = await sendMagicLink(finalEmail);
-            
-            if (result?.error) {
-                throw new Error(result.error);
-            }
+            await sendSignInLinkToEmail(auth, finalEmail, actionCodeSettings);
+
             setMagicLinkSent(true);
             setEmail(finalEmail);
             toast({
@@ -123,7 +129,7 @@ export default function LoginForm() {
         } finally {
             setIsMagicLinkLoading(false);
         }
-    }, [email, toast]);
+    }, [email, toast, auth]);
     
     if (magicLinkSent) {
         return (
