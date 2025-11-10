@@ -4,9 +4,12 @@
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useFirebase } from '@/firebase/provider';
-import { doc, collection, query } from 'firebase/firestore';
+import { doc, collection, query, DocumentReference, Query } from 'firebase/firestore';
 import type { OrderDoc, OrderItemDoc } from '@/lib/types';
 import { useMemo } from 'react';
+import { orderConverter } from '@/firebase/converters/order';
+import { orderItemConverter } from '@/firebase/converters/orderItem';
+
 
 /**
  * Hook to fetch a single order and its associated items from Firestore.
@@ -18,25 +21,18 @@ import { useMemo } from 'react';
 export function useOrder(orderId: string | undefined, userId: string | undefined) {
   const { firestore } = useFirebase();
 
-  // For guest users, the client does not have read access to the guest order path
-  // due to the tightened security rules. In a production app, this data would be fetched
-  // via a secure server action or the user would be encouraged to create an account.
-  // For this demo, we will gracefully handle the 'permission-denied' error on the client
-  // by not attempting to fetch if the user is a guest. The confirmation page will
-  // still need to handle the case where 'order' is null.
-  // A better long-term solution is using Firebase Anonymous Auth.
   const canFetch = !!firestore && !!userId && !!orderId && userId !== 'guest';
 
-  // Memoize the reference to the order document
-  const orderRef = useMemo(() => {
+  // Memoize the typed document reference for the order
+  const orderRef: DocumentReference<OrderDoc> | null = useMemo(() => {
     if (!canFetch) return null;
-    return doc(firestore!, 'users', userId!, 'orders', orderId!);
+    return doc(firestore!, 'users', userId!, 'orders', orderId!).withConverter(orderConverter);
   }, [firestore, userId, orderId, canFetch]);
 
-  // Memoize the query for the order items sub-collection
-  const itemsQuery = useMemo(() => {
+  // Memoize the typed query for the order items sub-collection
+  const itemsQuery: Query<OrderItemDoc> | null = useMemo(() => {
     if (!orderRef) return null;
-    return query(collection(orderRef, 'orderItems'));
+    return collection(orderRef, 'orderItems').withConverter(orderItemConverter);
   }, [orderRef]);
 
   const { data: orderData, isLoading: isOrderLoading, error: orderError } = useDoc<OrderDoc>(orderRef);
@@ -47,8 +43,6 @@ export function useOrder(orderId: string | undefined, userId: string | undefined
     return { ...orderData };
   }, [orderData]);
 
-  // If the user is a guest, we can't fetch data, so we'll simulate a loading state
-  // and then return null. The order confirmation page will need to rely on passed-in state or server-rendering.
   const isLoading = (userId === 'guest') ? false : (isOrderLoading || areItemsLoading);
   const data = (userId === 'guest') ? null : combinedData;
 
