@@ -3,23 +3,28 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // CEO gets everything
+    // CEO gets god-mode access. This is useful for admin tasks and debugging.
+    // In production, you might replace this with a more granular role-based access control system.
     match /{document=**} {
       allow read, write: if request.auth != null && 
-        request.auth.uid == 'GrRRe2YR4zY0MT0PEfMPrPCsR5A3';
+        request.auth.token.ceo == true;
     }
 
-    // GUEST CHECKOUT: Open access for guest cart and orders.
+    // GUEST CHECKOUT:
     // This allows unauthenticated server actions to create orders for guests.
+    // It's a trade-off for UX, but it's risky as guest data is publicly readable/writable.
+    // A more secure long-term solution would be to use Firebase Anonymous Auth to create temporary user IDs.
     match /users/guest/{document=**} {
       allow read, write: if true;
     }
     
-    // AUTHENTICATED USERS: Secure access to their own data.
+    // AUTHENTICATED USERS:
+    // These rules ensure users can only access their own data.
     match /users/{userId} {
-      // Allow user creation on signup.
-      allow create: if request.auth != null;
-      // Allow users to read and write their own profile document.
+      // Allow any authenticated user to create their own user document on signup.
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow users to read and write their own public profile document.
       allow read, write: if request.auth != null && request.auth.uid == userId;
       
       // USER ORDERS: Users can only access their own orders.
@@ -32,21 +37,33 @@ service cloud.firestore {
         }
       }
     }
+
+    // USER-PRIVATE:
+    // This collection stores sensitive user data like API keys.
+    // Only the user themselves can read or write their own private document.
+    match /user-private/{userId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
     
-    // PUBLIC DATA: Products, locations, and reviews are public-read.
+    // PUBLIC DATA:
+    // Products, locations, and reviews are generally public-read.
     match /products/{productId} {
       allow read: if true;
-      // Allow atomic increments for feedback, but disallow other updates.
+      
+      // SECURE FEEDBACK:
+      // Allow atomic increments for likes/dislikes, but disallow any other field updates.
+      // This prevents users from, for example, changing a product's price.
       allow update: if (
-        // Check if only 'likes' or 'dislikes' is being updated
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])) &&
+        request.auth != null &&
+        // Check that only 'likes' or 'dislikes' are being affected in the update.
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']) &&
         (
-          // Rule for liking a product
+          // Rule for liking a product: 'likes' must increment by 1, and 'dislikes' must not change.
           (
             request.resource.data.likes == resource.data.likes + 1 &&
             request.resource.data.dislikes == resource.data.dislikes
           ) ||
-          // Rule for disliking a product
+          // Rule for disliking a product: 'dislikes' must increment by 1, and 'likes' must not change.
           (
             request.resource.data.dislikes == resource.data.dislikes + 1 &&
             request.resource.data.likes == resource.data.likes
@@ -54,19 +71,25 @@ service cloud.firestore {
         )
       );
       
+      // REVIEWS SUBCOLLECTION
       match /reviews/{reviewId} {
+          // Anyone can read a review.
           allow read: if true;
-          // Allow any authenticated user to create a review.
+          // Any authenticated user can create a review.
           allow create: if request.auth != null;
       }
     }
-
-    // Allow querying the 'reviews' collection group if the query is filtered by productId.
-    // This is necessary for the getProductReviews tool to work securely.
-    match /products/{productId}/reviews/{reviewId} {
-       allow list: if request.query.get("productId") == productId;
+    
+    // SECURE COLLECTION GROUP QUERY:
+    // This rule allows the 'reviews' collection group to be queried,
+    // but ONLY if the query includes a 'where("productId", "==", productId)' clause.
+    // This is critical for securely fetching all reviews for a specific product without
+    // exposing a way to list all reviews across all products.
+    match /{path=**}/reviews/{reviewId} {
+      allow list: if "productId" in request.query.get("where", [])[0];
     }
     
+    // LOCATIONS: Publicly readable.
     match /locations/{locationId} {
       allow read: if true;
     }

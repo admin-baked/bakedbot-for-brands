@@ -179,6 +179,7 @@ export async function summarizeProductReviews(
 
 /**
  * Updates the like or dislike count for a product in Firestore.
+ * This action includes enhanced server-side validation for security.
  * @param productId The ID of the product to update.
  * @param feedbackType Whether to increment 'likes' or 'dislikes'.
  */
@@ -186,6 +187,11 @@ export async function updateProductFeedback(
   productId: string,
   feedbackType: 'like' | 'dislike'
 ): Promise<{ success: boolean; message: string }> {
+  // 1. Input Validation: Ensure feedbackType is one of the allowed values.
+  if (feedbackType !== 'like' && feedbackType !== 'dislike') {
+      return { success: false, message: 'Invalid feedback type.' };
+  }
+  
   const { firestore } = await createServerClient();
   
   if (!productId) {
@@ -194,13 +200,16 @@ export async function updateProductFeedback(
 
   const productRef = doc(firestore, 'products', productId);
   
-  // --- SERVER-SIDE VALIDATION ---
-  // First, verify the product actually exists before trying to update it.
-  const productSnap = await getDoc(productRef);
-  if (!productSnap.exists()) {
-      return { success: false, message: `Product with ID ${productId} not found.` };
+  // 2. Existence Check: Verify the product exists before trying to update it.
+  try {
+    const productSnap = await getDoc(productRef);
+    if (!productSnap.exists()) {
+        return { success: false, message: `Product with ID ${productId} not found.` };
+    }
+  } catch (error) {
+     console.error(`[updateProductFeedback] Error fetching product "${productId}":`, error);
+     return { success: false, message: 'Could not verify product existence.' };
   }
-  // --- END VALIDATION ---
 
   const fieldToUpdate = feedbackType === 'like' ? 'likes' : 'dislikes';
   const updatePayload = { [fieldToUpdate]: increment(1) };
@@ -209,15 +218,15 @@ export async function updateProductFeedback(
     await updateDoc(productRef, updatePayload);
     return { success: true, message: 'Feedback submitted successfully.' };
   } catch (serverError) {
+    // 3. Permission Error Handling: Provide clear error context on failure.
     const permissionError = new FirestorePermissionError({
       path: productRef.path,
       operation: 'update',
       requestResourceData: { [fieldToUpdate]: 'increment(1)' },
     });
-    // The server action can't emit a client event, but this would be where
-    // you log to a server-side logging service. The client will get a generic
-    // permission error from the failed updateDoc call if rules are enforced.
-    // For this demo, we return a clear message.
+    // This server-side error log is crucial for debugging security rule failures.
+    console.error('[updateProductFeedback] Firestore permission error:', permissionError.message);
+    
     return { success: false, message: 'Permission denied. Your security rules might be blocking this update.' };
   }
 }

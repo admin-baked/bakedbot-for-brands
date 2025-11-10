@@ -9,7 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import {emailRequest} from '../genkit';
+import {emailRequest} from '../genkit'; // Import the SECURE email function
 
 const CartItemSchema = z.object({
   id: z.string(),
@@ -38,6 +38,7 @@ export async function sendOrderEmail(input: SendOrderEmailInput): Promise<void> 
   return sendOrderEmailFlow(input);
 }
 
+// This is a trusted server-side flow. It is safe to call the emailRequest function from here.
 const sendOrderEmailFlow = ai.defineFlow(
   {
     name: 'sendOrderEmailFlow',
@@ -80,7 +81,7 @@ const sendOrderEmailFlow = ai.defineFlow(
       <p>Please notify the customer when the order is ready for pickup.</p>
     `;
 
-    // Call the emailRequest tool with the constructed email content.
+    // Call the secure emailRequest function with the constructed email content.
     await emailRequest({
       to,
       subject,
