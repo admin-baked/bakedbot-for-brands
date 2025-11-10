@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useDoc } from '@/firebase/hooks/use-doc';
-import { useCollection } from '@/firebase/hooks/use-collection';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useCollection } from '@/firebase/firestore/use-collection';
 import { useFirebase } from '@/firebase/provider';
 import { doc, collection, query } from 'firebase/firestore';
 import type { OrderDoc, OrderItemDoc } from '@/lib/types';
