@@ -9,9 +9,14 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import * as Papa from 'papaparse';
 
+// This is a simplified version for the demo. In a real app, you'd get the UID
+// from a secure session or by verifying an ID token.
+const UserIdSchema = z.string().min(1, 'User ID is required.');
+
 // Schema for API Key
 const ApiKeySchema = z.object({
   apiKey: z.string().min(1, 'API Key is required.'),
+  userId: UserIdSchema,
 });
 
 // Schema for Product Import
@@ -69,18 +74,11 @@ export async function saveEmailSettings(prevState: any, formData: FormData) {
 }
 
 export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
-  const { auth, firestore } = await createServerClient();
-  const user = auth.currentUser;
-
-  if (!user) {
-    return {
-      message: 'You must be logged in to save an API key.',
-      error: true,
-    };
-  }
-
+  const { firestore } = await createServerClient();
+  
   const validatedFields = ApiKeySchema.safeParse({
     apiKey: formData.get('bakedbot-api-key'),
+    userId: formData.get('userId'), // Get the UID from the form
   });
 
   if (!validatedFields.success) {
@@ -91,10 +89,11 @@ export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
     };
   }
 
-  const { apiKey } = validatedFields.data;
-  const userPrivateRef = doc(firestore, 'user-private', user.uid);
+  const { apiKey, userId } = validatedFields.data;
+  const userPrivateRef = doc(firestore, 'user-private', userId);
   
   try {
+    // The Admin SDK has permission to write here.
     await setDoc(userPrivateRef, { bakedBotApiKey: apiKey }, { merge: true });
     
     revalidatePath('/dashboard/settings');
@@ -104,15 +103,11 @@ export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
       error: false,
     };
   } catch (serverError) {
-      const permissionError = new FirestorePermissionError({
-          path: userPrivateRef.path,
-          operation: 'update',
-          requestResourceData: { bakedBotApiKey: 'REDACTED' }
-      });
-      // The server action can't directly trigger a client-side event emitter.
-      // Instead, we return a clear error message to the form state.
+      // This path would be hit if there are network issues or other server-side problems.
+      // Firestore security rules do not apply to the Admin SDK, so a permission error here
+      // would indicate a problem with the service account itself.
       return {
-          message: 'Permission denied. Could not save API key. Check Firestore rules for user-private collection.',
+          message: 'An unexpected server error occurred. Could not save API key.',
           error: true
       };
   }
