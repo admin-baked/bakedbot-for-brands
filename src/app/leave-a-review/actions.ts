@@ -10,6 +10,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 // Define the schema for review form validation
 const ReviewSchema = z.object({
+  userId: z.string().min(1, 'User ID is missing.'),
   productId: z.string().min(1, 'Please select a product.'),
   rating: z.coerce.number().min(1, 'Please provide a rating.').max(5),
   text: z.string().min(10, 'Review must be at least 10 characters long.'),
@@ -20,18 +21,10 @@ const ReviewSchema = z.object({
 
 
 export async function submitReview(prevState: any, formData: FormData) {
-  // We need to establish the server client here to handle both success and error paths.
-  const { auth, firestore } = await createServerClient();
-  const user = auth.currentUser;
-
-  if (!user) {
-    return {
-      message: 'Authentication required. Please sign in to leave a review.',
-      error: true,
-    };
-  }
+  const { firestore } = await createServerClient();
   
   const validatedFields = ReviewSchema.safeParse({
+    userId: formData.get('userId'),
     productId: formData.get('productId'),
     rating: formData.get('rating'),
     text: formData.get('text'),
@@ -46,7 +39,7 @@ export async function submitReview(prevState: any, formData: FormData) {
     };
   }
   
-  const { productId, ...reviewData } = validatedFields.data;
+  const { productId, userId, ...reviewData } = validatedFields.data;
 
   // TODO: Handle the actual image upload to Firebase Storage
   // For now, we'll store a placeholder or a marker that it exists.
@@ -59,12 +52,13 @@ export async function submitReview(prevState: any, formData: FormData) {
   const dataToSave = {
       productId: productId,
       ...reviewData,
-      userId: user.uid, // Use the secure, server-side user ID
+      userId: userId, // Use the UID passed from the client
       verificationImageUrl,
       createdAt: serverTimestamp(),
   };
 
   try {
+    // The Admin SDK has permission to write here.
     await addDoc(reviewCollectionRef, dataToSave);
 
     revalidatePath('/products'); // Revalidate product pages if they show reviews
@@ -76,16 +70,18 @@ export async function submitReview(prevState: any, formData: FormData) {
     };
 
   } catch (serverError: any) {
+    // This will likely not be a permission error with Admin SDK, but rather a server/network issue.
+    // However, if rules were ever applied to the Admin SDK (not default), this would be relevant.
     const permissionError = new FirestorePermissionError({
         path: reviewCollectionRef.path,
         operation: 'create',
-        requestResourceData: { ...dataToSave, createdAt: 'SERVER_TIMESTAMP' } // Use string placeholder for server value
+        requestResourceData: { ...dataToSave, createdAt: 'SERVER_TIMESTAMP' }
     });
     
-    // Server actions can't emit client events. Instead, we return a structured
-    // error that the client form can display.
+    console.error("Server Action Error (submitReview):", permissionError.message);
+    
     return {
-      message: `Submission failed: A permission error occurred. Please check your security rules.`,
+      message: `Submission failed: An unexpected server error occurred.`,
       error: true,
     }
   }

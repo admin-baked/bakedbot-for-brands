@@ -95,6 +95,7 @@ export default function LeaveReviewPage() {
         return;
     }
     formData.append('rating', String(rating));
+    // The userId is already appended via a hidden input, no need to add it here.
     formAction(formData);
   };
   
@@ -119,8 +120,8 @@ export default function LeaveReviewPage() {
                     <Button onClick={() => setShowSuccess(false)}>Leave Another Review</Button>
                     <div>
                         <Button variant="link" asChild>
-                            <Link href="/dashboard/products">
-                                &larr; Back to Dashboard
+                            <Link href="/">
+                                &larr; Back to Menu
                             </Link>
                         </Button>
                     </div>
@@ -157,6 +158,7 @@ export default function LeaveReviewPage() {
             </Alert>
           )}
           <form ref={formRef} action={handleSubmit} className="space-y-6">
+            <input type="hidden" name="userId" value={user?.uid || ''} />
             <div className="space-y-2">
               <Label htmlFor="productId">Which product are you reviewing?</Label>
               <Select name="productId" disabled={!user || areProductsLoading}>

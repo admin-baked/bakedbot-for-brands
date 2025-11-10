@@ -11,6 +11,7 @@ import { KeyRound, Loader2 } from "lucide-react";
 import { saveBakedBotApiKey } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useUser } from '@/firebase/auth/use-user';
 
 const initialState = {
   message: '',
@@ -29,6 +30,7 @@ function SubmitButton() {
 }
 
 export default function BakedBotSettings() {
+    const { user } = useUser();
     const [state, formAction] = useFormState(saveBakedBotApiKey, initialState);
     const { toast } = useToast();
 
@@ -45,6 +47,7 @@ export default function BakedBotSettings() {
     return (
         <Card>
             <form action={formAction}>
+                <input type="hidden" name="userId" value={user?.uid || ''} />
                 <CardHeader>
                     <CardTitle>API Credentials</CardTitle>
                     <CardDescription>
