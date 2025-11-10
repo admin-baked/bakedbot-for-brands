@@ -1,9 +1,16 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
+import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/firebase/provider';
+import { CartProvider } from '@/hooks/use-cart';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'BakedBot',
-  description: 'Cannabis ordering platform',
+  title: 'BakedBot - Headless Cannabis Commerce AI Agent',
+  description:
+    'A headless menu and AI-powered budtender for cannabis dispensaries.',
 };
 
 export default function RootLayout({
@@ -12,8 +19,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <AuthProvider>
+          <CartProvider>
+            {children}
+            <Toaster />
+          </CartProvider>
+        </AuthProvider>
+      </body>
     </html>
-  );
-}
