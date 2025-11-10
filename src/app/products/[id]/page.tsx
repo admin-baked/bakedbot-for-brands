@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { getReviewSummary } from './actions';
 import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { createServerClient } from '@/firebase/server-client';
-import { doc, getDoc } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
 import { demoProducts } from '@/lib/data';
 import { FloatingCartPill } from '@/app/components/floating-cart-pill';
@@ -26,10 +25,9 @@ type Props = {
 const getProduct = async (id: string): Promise<Product | null> => {
     try {
         const { firestore } = await createServerClient();
-        const productRef = doc(firestore, 'products', id);
-        const productSnap = await getDoc(productRef);
+        const productSnap = await firestore.collection('products').doc(id).get();
 
-        if (productSnap.exists()) {
+        if (productSnap.exists) {
             return { id: productSnap.id, ...productSnap.data() } as Product;
         }
         
