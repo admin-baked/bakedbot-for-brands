@@ -86,10 +86,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       async (user) => {
         if (user) {
-          const userDocRef = doc(firestore, 'users', user.uid);
-          const isCEO = user.uid === 'GrRRe2YR4zY0MT0PEfMPrPCsR5A3';
+          // Check for custom claims
+          const idTokenResult = await user.getIdTokenResult();
+          const isCEO = !!idTokenResult.claims.ceo;
           setIsCeoMode(isCEO);
 
+          const userDocRef = doc(firestore, 'users', user.uid);
+          
           // Check if the user document already exists
           const userDocSnap = await getDoc(userDocRef).catch(err => {
               console.error("Error fetching user document:", err);
@@ -106,7 +109,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
               firstName: displayNameParts[0] || '',
               lastName: displayNameParts.slice(1).join(' ') || '',
               onboardingCompleted: isCEO ? true : false, // Skip onboarding for CEO
-              role: isCEO ? 'ceo' : null, // Auto-assign CEO role
+              role: isCEO ? 'ceo' : null, // Auto-assign CEO role if claim is present
             };
 
             // Use set with merge to create or update the user document.

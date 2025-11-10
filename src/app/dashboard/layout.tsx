@@ -82,27 +82,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
   
   React.useEffect(() => {
+    // List of all auth-related pages.
     const isAuthPage = pathname === '/brand-login' || pathname.startsWith('/auth/callback');
 
-    // Wait until loading is false before making any decisions
+    // Wait until loading is false before making any decisions.
     if (isUserLoading || isProfileLoading) {
-        return;
+      return;
     }
 
     if (user) {
-        // User is logged in
-        if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
-            // User is logged in but hasn't completed onboarding, redirect them
-            router.replace('/onboarding');
-        } else if (userProfile?.onboardingCompleted && isAuthPage) {
-            // User is logged in, has completed onboarding, and is on an auth page, redirect to dashboard
-            router.replace('/dashboard');
-        }
+      // User is logged in.
+      if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
+        // User is logged in but hasn't completed onboarding, redirect them.
+        router.replace('/onboarding');
+      } else if (userProfile?.onboardingCompleted && isAuthPage) {
+        // User is logged in, onboarded, and on an auth page, redirect to dashboard.
+        router.replace('/dashboard');
+      }
     } else {
-        // User is not logged in, protect non-auth pages
-        if (!isAuthPage && pathname !== '/onboarding') { // Also allow access to onboarding page if not logged in
-             router.replace('/brand-login');
-        }
+      // User is not logged in.
+      // Protect all pages EXCEPT auth-related pages and the onboarding page.
+      if (!isAuthPage && pathname !== '/onboarding') {
+        router.replace('/brand-login');
+      }
     }
   }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router]);
 
@@ -146,7 +148,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const visibleLinks = shouldShowAdminControls ? navLinks : navLinks.filter(link => !link.hidden);
 
   const isLoading = isUserLoading || isProfileLoading;
-  if (isLoading) {
+
+  // Render a global loading indicator.
+  if (isLoading && pathname !== '/brand-login' && !pathname.startsWith('/auth/callback')) {
     return (
         <div className="flex h-screen w-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -154,14 +158,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // If user is present but onboarding isn't complete, show onboarding.
-  // This prevents the main dashboard from flashing before the redirect.
+  // If user is present but onboarding isn't complete, show a loading screen for that page
+  // to prevent the main dashboard from flashing before the redirect logic in useEffect runs.
   if (user && !userProfile?.onboardingCompleted && pathname !== '/onboarding') {
       return (
          <div className="flex h-screen w-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       )
+  }
+
+  // If not logged in and not on an auth page, don't render the layout.
+  // This prevents layout flash on initial load for unauthenticated users.
+  if (!user && pathname !== '/brand-login' && !pathname.startsWith('/auth/callback')) {
+      return null;
   }
 
   return (
@@ -329,5 +339,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
-    
