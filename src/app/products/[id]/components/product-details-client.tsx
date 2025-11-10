@@ -5,7 +5,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/hooks/use-cart';
-import { useMemo } from 'react';
+import { useMemo, useTransition } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { useStore } from '@/hooks/use-store';
+import { updateProductFeedback } from '@/app/dashboard/content/actions';
 
 
 function ReviewSummaryDisplay({ summary, isLoading }: { summary: SummarizeReviewsOutput | null, isLoading: boolean }) {
@@ -73,6 +75,8 @@ function ReviewSummaryDisplay({ summary, isLoading }: { summary: SummarizeReview
 export default function ProductDetailsClient({ product, summary }: { product: Product, summary: SummarizeReviewsOutput | null }) {
     const { addToCart } = useCart();
     const { selectedLocationId } = useStore();
+    const { toast } = useToast();
+    const [isFeedbackPending, startFeedbackTransition] = useTransition();
     
     const priceDisplay = useMemo(() => {
         const hasPricing = product.prices && Object.keys(product.prices).length > 0;
@@ -97,6 +101,24 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
         // Fallback to the base price if no other conditions are met.
         return `$${product.price.toFixed(2)}`;
     }, [product, selectedLocationId]);
+
+    const handleFeedback = (feedback: 'like' | 'dislike') => {
+        startFeedbackTransition(async () => {
+          const result = await updateProductFeedback(product.id, feedback);
+          if (result.success) {
+            toast({
+              title: 'Feedback Submitted!',
+              description: 'Thank you for your feedback.',
+            });
+          } else {
+            toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: result.message,
+            });
+          }
+        });
+      };
 
     const canAddToCart = !!selectedLocationId;
 
@@ -140,10 +162,18 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                     <p>{product.description}</p>
                 </div>
 
-                <Button size="lg" className="w-full" onClick={() => addToCart(product, selectedLocationId)} disabled={!canAddToCart}>
-                    <Plus className="mr-2 h-5 w-5" />
-                    Add to Cart
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button size="lg" className="w-full" onClick={() => addToCart(product, selectedLocationId)} disabled={!canAddToCart}>
+                        <Plus className="mr-2 h-5 w-5" />
+                        Add to Cart
+                    </Button>
+                    <Button variant="outline" size="lg" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending}>
+                        <ThumbsUp className="h-5 w-5 text-green-500"/>
+                    </Button>
+                    <Button variant="outline" size="lg" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending}>
+                        <ThumbsDown className="h-5 w-5 text-red-500"/>
+                    </Button>
+                </div>
 
                 <ReviewSummaryDisplay summary={summary} isLoading={!summary} />
             </div>
