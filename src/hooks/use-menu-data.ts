@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useStore } from './use-store';
@@ -9,10 +8,10 @@ import type { Product, Location } from '@/lib/types';
 
 /**
  * A unified hook to get menu data (products and locations).
- * It intelligently uses server-provided initial data, then switches to live Firestore data.
- * This ensures fast initial page loads without sacrificing real-time updates.
+ * It intelligently uses demo data as a fallback and then attempts to load
+ * live data from Firestore on the client side.
  */
-export function useMenuData(initialProducts: Product[] = []) {
+export function useMenuData() {
   const { _hasHydrated, locations: storeLocations } = useStore(state => ({
     _hasHydrated: state._hasHydrated,
     locations: state.locations,
@@ -26,12 +25,16 @@ export function useMenuData(initialProducts: Product[] = []) {
   const [products, setProducts] = useState<Product[]>(demoProducts);
 
   useEffect(() => {
-    if (firestoreProducts && firestoreProducts.length > 0) {
-        setProducts(firestoreProducts);
-    } else {
-        setProducts(demoProducts);
+    // Once Firestore has loaded, if it has data, use it.
+    // Otherwise, we stick with the demo data.
+    if (!isFirestoreLoading) {
+        if (firestoreProducts && firestoreProducts.length > 0) {
+            setProducts(firestoreProducts);
+        } else {
+            setProducts(demoProducts);
+        }
     }
-  }, [firestoreProducts, demoProducts]);
+  }, [firestoreProducts, isFirestoreLoading, demoProducts]);
 
   // Determine the final set of locations and loading state.
   const finalLocations = _hasHydrated && storeLocations.length > 0 ? storeLocations : demoLocations;
