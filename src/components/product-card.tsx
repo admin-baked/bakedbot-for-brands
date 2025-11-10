@@ -2,11 +2,17 @@
 
 import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
-import { ShoppingCart, Plus } from 'lucide-react';
-import type { Product } from '@/lib/types';
+import { ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
-import { Button } from './ui/button';
-import { useMemo } from 'react';
+
+interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  image?: string;
+  category?: string;
+}
 
 export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
@@ -17,63 +23,83 @@ export function ProductCard({ product }: { product: Product }) {
       alert('Please select a location first');
       return;
     }
-    addToCart(product, selectedLocationId);
+    
+    console.log('🛒 Adding to cart:', product.name);
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: 1,
+      // The useCart hook expects a full Product object, let's satisfy that
+      // while acknowledging some fields might not be on the simplified interface.
+      category: product.category || 'N/A',
+      imageUrl: product.image || '',
+      imageHint: '',
+      prices: {},
+      likes: 0,
+      dislikes: 0
+    }, selectedLocationId);
   };
-
-  const priceDisplay = useMemo(() => {
-    const hasPricing = product.prices && Object.keys(product.prices).length > 0;
-    
-    if (selectedLocationId && hasPricing && product.prices[selectedLocationId]) {
-        return `$${product.prices[selectedLocationId].toFixed(2)}`;
-    }
-    
-    if (!selectedLocationId && hasPricing) {
-        const priceValues = Object.values(product.prices);
-        const minPrice = Math.min(...priceValues);
-        const maxPrice = Math.max(...priceValues);
-
-        if (minPrice === maxPrice) {
-            return `$${minPrice.toFixed(2)}`;
-        }
-        return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
-    }
-    
-    return `$${product.price.toFixed(2)}`;
-  }, [product, selectedLocationId]);
   
-  const canAddToCart = !!selectedLocationId;
-
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+    <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col">
       {/* Image */}
-      <div className="relative h-48 bg-gray-200 flex items-center justify-center">
-        {product.imageUrl ? (
-          <Image src={product.imageUrl} alt={product.name} layout="fill" className="object-cover" data-ai-hint={product.imageHint} />
+      <div className="relative h-48 bg-gradient-to-br from-green-100 to-green-200">
+        {product.image ? (
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            className="object-cover"
+            onError={(e) => {
+              // Hide image if it fails to load
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         ) : (
-          <span className="text-gray-400">No image</span>
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-6xl">🌿</div>
+          </div>
         )}
       </div>
       
       {/* Content */}
-      <div className="p-4">
+      <div className="p-4 flex-1 flex flex-col">
+        {/* Category Badge */}
         {product.category && (
-          <span className="text-xs text-primary font-semibold uppercase">{product.category}</span>
-        )}
-        <h3 className="text-lg font-bold mt-1 mb-2">{product.name}</h3>
-        {product.description && (
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{product.description}</p>
+          <span className="inline-block px-2 py-1 text-xs font-semibold text-green-600 bg-green-100 rounded-full w-fit mb-2">
+            {product.category}
+          </span>
         )}
         
-        <div className="flex items-center justify-between">
-          <span className="text-xl font-bold text-primary">{priceDisplay}</span>
-          <Button
+        {/* Name */}
+        <h3 className="text-lg font-bold mb-2 line-clamp-2">{product.name}</h3>
+        
+        {/* Description */}
+        {product.description && (
+          <p className="text-sm text-gray-600 mb-3 flex-1 line-clamp-2">
+            {product.description}
+          </p>
+        )}
+        
+        {/* Price and Button */}
+        <div className="flex items-center justify-between mt-auto pt-3 border-t">
+          <span className="text-2xl font-bold text-green-600">
+            ${product.price.toFixed(2)}
+          </span>
+          <button
             onClick={handleAddToCart}
-            disabled={!canAddToCart}
-            className="flex items-center gap-2"
+            disabled={!selectedLocationId}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              selectedLocationId
+                ? 'bg-green-600 text-white hover:bg-green-700 hover:scale-105'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+            title={!selectedLocationId ? 'Select a location first' : 'Add to cart'}
           >
-            <Plus className="h-4 w-4" />
-            Add
-          </Button>
+            <ShoppingCart className="h-4 w-4" />
+            <span className="hidden sm:inline">Add</span>
+          </button>
         </div>
       </div>
     </div>
