@@ -6,7 +6,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { collectionGroup, getDocs, query, where } from 'firebase/firestore';
 import { createServerClient } from '@/firebase/server-client';
 
 const GetProductReviewsInputSchema = z.object({
@@ -29,12 +28,9 @@ export const getProductReviews = ai.defineTool(
 
       // To securely query a subcollection across all documents (a collection group),
       // we must use a 'where' clause that our security rules can validate.
-      const reviewsQuery = query(
-        collectionGroup(firestore, 'reviews'),
-        where('productId', '==', productId)
-      );
+      const reviewsQuery = firestore.collectionGroup('reviews').where('productId', '==', productId);
       
-      const querySnapshot = await getDocs(reviewsQuery);
+      const querySnapshot = await reviewsQuery.get();
 
       if (querySnapshot.empty) {
         return [];

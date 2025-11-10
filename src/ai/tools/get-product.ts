@@ -5,7 +5,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { doc, getDoc } from 'firebase/firestore';
 import { createServerClient } from '@/firebase/server-client';
 import type { Product } from '@/lib/types';
 
@@ -38,10 +37,10 @@ export const getProduct = ai.defineTool(
   async ({ productId }) => {
     try {
       const { firestore } = await createServerClient();
-      const productRef = doc(firestore, 'products', productId);
-      const productSnap = await getDoc(productRef);
+      const productRef = firestore.doc(`products/${productId}`);
+      const productSnap = await productRef.get();
 
-      if (!productSnap.exists()) {
+      if (!productSnap.exists) {
         console.warn(`[getProduct Tool] Product with ID "${productId}" not found.`);
         return null;
       }
