@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { ProductCard } from './product-card';
-import type { Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMenuData } from '@/hooks/use-menu-data';
 

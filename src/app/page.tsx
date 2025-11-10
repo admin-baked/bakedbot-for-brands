@@ -1,8 +1,11 @@
-export default function HomePage() {
+import { HomePageClient } from './components/home-page-client';
+import Chatbot from '@/components/chatbot';
+
+export default async function HomePage() {
   return (
-    <div className="min-h-screen p-8">
-      <h1 className="text-4xl font-bold mb-4">BakedBot</h1>
-      <p className="text-xl">A minimal, working application.</p>
-    </div>
+    <>
+      <HomePageClient />
+      <Chatbot />
+    </>
   );
 }
