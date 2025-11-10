@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -26,7 +27,8 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null): UseD
       ref,
       (docSnap) => {
         if (docSnap.exists()) {
-          setData({ id: docSnap.id, ...docSnap.data() } as T);
+          // The converter now handles adding the ID, so we can just use doc.data()
+          setData(docSnap.data());
         } else {
           setData(null);
         }
