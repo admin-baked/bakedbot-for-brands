@@ -4,7 +4,7 @@
       "id": "assets",
       "description": "Core application assets",
       "imageUrl": "https://storage.googleapis.com/stedi-assets/misc/bakedbot-logo.png",
-      "imageHint": "https://storage.googleapis.com/stedi-assets/misc/smokey-icon-1.png"
+      "imageHint": "https://storage.googleapis.com/stedi-assets/misc/smokey-icon.png"
     },
     {
       "id": "product1",
