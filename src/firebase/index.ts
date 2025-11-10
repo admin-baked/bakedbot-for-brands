@@ -3,8 +3,8 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
@@ -41,7 +41,27 @@ export function initializeFirebase() {
     console.warn("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. Firebase App Check will not be enabled.");
   }
   
-  return getSdks(app);
+  const sdks = getSdks(app);
+
+  // Connect to emulators in development
+  if (process.env.NODE_ENV === 'development') {
+    // Check if emulators are already running to avoid re-connecting
+    // This is a common pattern to prevent errors during React's StrictMode double-invokes
+    // @ts-ignore
+    if (!globalThis.emulatorConnected) {
+      try {
+        connectAuthEmulator(sdks.auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+        connectFirestoreEmulator(sdks.firestore, '127.0.0.1', 8080);
+        // @ts-ignore
+        globalThis.emulatorConnected = true;
+        console.log("Firebase SDKs connected to local emulators.");
+      } catch (error) {
+        console.error("Error connecting to Firebase emulators:", error);
+      }
+    }
+  }
+  
+  return sdks;
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
@@ -59,3 +79,4 @@ export * from './firestore/use-doc';
 export * from './auth/use-user';
 export * from './errors';
 export * from './error-emitter';
+
