@@ -4,7 +4,7 @@
 import { useStore } from './use-store';
 import { useProducts } from '@/firebase/firestore/use-products';
 import { useDemoData } from './use-demo-data';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import type { Product } from '@/lib/types';
 import type { Location } from '@/hooks/use-store';
 
@@ -15,17 +15,18 @@ import type { Location } from '@/hooks/use-store';
  * This ensures that both server and client renders are consistent, preventing hydration errors.
  */
 export function useMenuData() {
-  const { isUsingDemoData, _hasHydrated, locations: storeLocations } = useStore(state => ({
+  const { isUsingDemoData, _hasHydrated, locations: storeLocations, setLocations } = useStore(state => ({
     isUsingDemoData: state.isUsingDemoData,
     _hasHydrated: state._hasHydrated,
     locations: state.locations,
+    setLocations: state.setLocations,
   }));
 
-  // Fetch both sets of data, but only one will be used based on conditions.
+  // Fetch both sets of data, but only one will be used.
   const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useProducts();
   const { products: demoProducts, locations: demoLocations } = useDemoData();
   
-  // Memoize the result to stabilize the array references and prevent unnecessary re-renders.
+  // Memoize the result to stabilize the array references
   const memoizedData = useMemo(() => {
     // Determine if we should use demo data.
     // Use demo data if the store flag is set OR if the store hasn't hydrated yet.
@@ -43,11 +44,11 @@ export function useMenuData() {
     }
 
     // Once hydrated and if not using demo data, switch to live data.
-    // Fallback to demo data if live data is empty AFTER loading has completed.
+    // Fallback to demo if live data is empty AFTER loading.
     const finalProducts = !isFirestoreLoading && (!firestoreProducts || firestoreProducts.length === 0) ? demoProducts : firestoreProducts;
     
-    // The store is the source of truth for locations once hydrated, otherwise use demo
-    const finalLocations = _hasHydrated && storeLocations.length > 0 ? storeLocations : demoLocations;
+    // The store is the source of truth for locations once hydrated
+    const finalLocations = storeLocations.length > 0 ? storeLocations : demoLocations;
 
     return {
       products: finalProducts,
@@ -56,7 +57,7 @@ export function useMenuData() {
       error: error,
       isUsingDemoData: !isFirestoreLoading && (!firestoreProducts || firestoreProducts.length === 0),
     };
-  }, [isUsingDemoData, _hasHydrated, firestoreProducts, demoProducts, demoLocations, isFirestoreLoading, error, storeLocations]);
+  }, [isUsingDemoData, _hasHydrated, firestoreProducts, storeLocations, demoProducts, demoLocations, isFirestoreLoading, error]);
 
   return {
     ...memoizedData,
