@@ -17,7 +17,7 @@ const GetProductInputSchema = z.object({
 const ProductSchema = z.object({
     id: z.string(),
     name: z.string(),
-    category: z.string(),
+    categoryId: z.string(),
     price: z.number(),
     description: z.string(),
     likes: z.number().optional(),
