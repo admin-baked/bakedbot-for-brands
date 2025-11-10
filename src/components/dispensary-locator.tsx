@@ -37,7 +37,7 @@ export function DispensaryLocator() {
           }))
           .sort((a, b) => a.distance - b.distance);
         
-        setClosestLocations(sortedLocations.slice(0, 3));
+        setClosestLocations(sortedLocations);
         setIsLocating(false);
       },
       (error) => {
@@ -56,7 +56,7 @@ export function DispensaryLocator() {
     }
   }
   
-  const displayLocations = closestLocations.length > 0 ? closestLocations : locations.slice(0,3);
+  const displayLocations = closestLocations.length > 0 ? closestLocations : locations;
 
   return (
     <div className="py-12 bg-muted/40 rounded-lg" id="locator">
