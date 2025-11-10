@@ -39,39 +39,41 @@ import { doc, onSnapshot } from 'firebase/firestore';
 
 
 const SidebarAdminControls = ({ link, onEdit, onToggle, onDelete }: { link: NavLink, onEdit: (link: NavLink) => void, onToggle: (href: string) => void, onDelete: (link: NavLink) => void }) => {
-  return (
-    <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit(link)}>
-                    <Pencil/>
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent>Edit</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-           <TooltipTrigger asChild>
-                <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-muted-foreground"
-                onClick={() => onToggle(link.href)}
-                >
-                    {link.hidden ? <Eye /> : <EyeOff />}
-                </Button>
-           </TooltipTrigger>
-           <TooltipContent>{link.hidden ? 'Show' : 'Hide'}</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => onDelete(link)}>
-                    <Trash2/>
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent>Delete</TooltipContent>
-        </Tooltip>
-    </div>
-  );
+    return (
+        <TooltipProvider>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit(link)}>
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Edit</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                   <TooltipTrigger asChild>
+                        <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground"
+                        onClick={() => onToggle(link.href)}
+                        >
+                            {link.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                        </Button>
+                   </TooltipTrigger>
+                   <TooltipContent>{link.hidden ? 'Show' : 'Hide'}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => onDelete(link)}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Delete</TooltipContent>
+                </Tooltip>
+            </div>
+        </TooltipProvider>
+    );
 };
 
 
