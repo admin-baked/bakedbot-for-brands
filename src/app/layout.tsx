@@ -31,29 +31,27 @@ export default function RootLayout({
 
 
   return (
-    <StoreProvider>
-      <FirebaseClientProvider>
-          <html lang="en" suppressHydrationWarning>
-            <head>
-              <title>BakedBot AI Assistant</title>
-              <meta name="description" content="Headless Menu and AI Agent Budtender for Brands." />
-              <link rel="preconnect" href="https://fonts.googleapis.com" />
-              <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-              <link
-                href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-                rel="stylesheet"
-              />
-               <link
-                href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&display=swap"
-                rel="stylesheet"
-              />
-            </head>
-            <body className="font-body antialiased">
-                {children}
-                <Toaster />
-            </body>
-          </html>
-      </FirebaseClientProvider>
-    </StoreProvider>
+    <FirebaseClientProvider>
+        <html lang="en" suppressHydrationWarning>
+          <head>
+            <title>BakedBot AI Assistant</title>
+            <meta name="description" content="Headless Menu and AI Agent Budtender for Brands." />
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+            <link
+              href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+              rel="stylesheet"
+            />
+             <link
+              href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&display=swap"
+              rel="stylesheet"
+            />
+          </head>
+          <body className="font-body antialiased">
+              {children}
+              <Toaster />
+          </body>
+        </html>
+    </FirebaseClientProvider>
   );
 }

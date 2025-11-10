@@ -2,9 +2,11 @@
 
 import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Plus } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import Image from 'next/image';
+import { Button } from './ui/button';
+import { useMemo } from 'react';
 
 export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
@@ -17,10 +19,29 @@ export function ProductCard({ product }: { product: Product }) {
     }
     addToCart(product, selectedLocationId);
   };
+
+  const priceDisplay = useMemo(() => {
+    const hasPricing = product.prices && Object.keys(product.prices).length > 0;
+    
+    if (selectedLocationId && hasPricing && product.prices[selectedLocationId]) {
+        return `$${product.prices[selectedLocationId].toFixed(2)}`;
+    }
+    
+    if (!selectedLocationId && hasPricing) {
+        const priceValues = Object.values(product.prices);
+        const minPrice = Math.min(...priceValues);
+        const maxPrice = Math.max(...priceValues);
+
+        if (minPrice === maxPrice) {
+            return `$${minPrice.toFixed(2)}`;
+        }
+        return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
+    }
+    
+    return `$${product.price.toFixed(2)}`;
+  }, [product, selectedLocationId]);
   
-  const priceDisplay = (product.prices && selectedLocationId && product.prices[selectedLocationId]) 
-    ? product.prices[selectedLocationId] 
-    : product.price;
+  const canAddToCart = !!selectedLocationId;
 
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
@@ -44,19 +65,15 @@ export function ProductCard({ product }: { product: Product }) {
         )}
         
         <div className="flex items-center justify-between">
-          <span className="text-xl font-bold text-primary">${priceDisplay.toFixed(2)}</span>
-          <button
+          <span className="text-xl font-bold text-primary">{priceDisplay}</span>
+          <Button
             onClick={handleAddToCart}
-            disabled={!selectedLocationId}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-              selectedLocationId
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+            disabled={!canAddToCart}
+            className="flex items-center gap-2"
           >
-            <ShoppingCart className="h-4 w-4" />
-            Add to Cart
-          </button>
+            <Plus className="h-4 w-4" />
+            Add
+          </Button>
         </div>
       </div>
     </div>

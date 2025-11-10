@@ -12,7 +12,6 @@ export type CartItem = Product & { quantity: number };
 // Define the state of the cart
 interface CartState {
   items: CartItem[];
-  isCartOpen: boolean;
 }
 
 // Define the actions that can be performed on the cart
@@ -22,7 +21,6 @@ interface CartActions {
   updateQuantity: (itemId: string, quantity: number) => void;
   updateItemPrices: (locationId: string | null, products: Product[]) => void;
   clearCart: () => void;
-  toggleCart: () => void;
   getCartTotal: () => { subtotal: number; taxes: number; total: number };
   getItemCount: () => number;
 }
@@ -36,7 +34,6 @@ const useCartStore = create<CartStore>()(
     (set, get) => ({
       // Initial state
       items: [],
-      isCartOpen: false,
 
       // Actions
       addToCart: (product, locationId) =>
@@ -94,9 +91,7 @@ const useCartStore = create<CartStore>()(
           })
         })),
 
-      clearCart: () => set({ items: [], isCartOpen: false }),
-
-      toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
+      clearCart: () => set({ items: [] }),
 
       getCartTotal: () => {
         const subtotal = get().items.reduce((total, item) => total + item.price * item.quantity, 0);
