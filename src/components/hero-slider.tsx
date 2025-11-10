@@ -1,70 +1,60 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
+import { type Product } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
-const slides = [
-  {
-    title: 'Premium Cannabis Products',
-    subtitle: 'Shop the finest selection',
-    image: 'https://images.unsplash.com/photo-1556928045-16f7f50be0f3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW5uYWJpcyUyMHByb2R1Y3RzfGVufDB8fHx8MTc2MjM3MTI2M3ww&ixlib=rb-4.1.0&q=80&w=1080',
-  },
-  {
-    title: 'Fast & Reliable Pickup',
-    subtitle: 'Order online, pickup in-store',
-    image: 'https://images.unsplash.com/photo-1600880292210-f79b92641094?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW5uYWJpcyUyMHN0b3JlfGVufDB8fHx8MTc2MjM3MTI2M3ww&ixlib=rb-4.1.0&q=80&w=1080',
-  },
-  {
-    title: 'Exclusive Deals',
-    subtitle: 'Save on your favorite products',
-    image: 'https://images.unsplash.com/photo-1598406254238-015b3a654947?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjYW5uYWJpcyUyMHNhbGV8ZW58MHx8fHwxNzYyMzcxMjYzfDA&ixlib=rb-4.1.0&q=80&w=1080',
-  },
-];
+export function HeroSlider({ products }: { products: Product[] }) {
+    if (!products || products.length === 0) {
+        return null;
+    }
 
-export function HeroSlider() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    
-    return () => clearInterval(timer);
-  }, []);
-  
-  const slide = slides[currentSlide];
-  
-  return (
-    <div 
-      className="relative h-96 bg-gray-800 flex items-center justify-center text-white rounded-lg overflow-hidden"
-    >
-      <Image 
-        src={slide.image} 
-        alt={slide.title} 
-        layout="fill" 
-        objectFit="cover" 
-        className="brightness-75"
-        priority
-      />
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="text-center z-10 p-4">
-        <h1 className="text-5xl font-bold mb-4 drop-shadow-lg">{slide.title}</h1>
-        <p className="text-2xl drop-shadow-md">{slide.subtitle}</p>
-      </div>
-      
-      {/* Slide indicators */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentSlide(index)}
-            className={`w-3 h-3 rounded-full transition-colors ${
-              index === currentSlide ? 'bg-white' : 'bg-white/50'
-            }`}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
-      </div>
-    </div>
-  );
+    // Get 3 products with the most likes
+    const featuredProducts = [...products].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 3);
+
+    return (
+        <Carousel
+            plugins={[ Autoplay({ delay: 5000, stopOnInteraction: true }) ]}
+            className="w-full rounded-lg overflow-hidden mb-12"
+            opts={{ loop: true }}
+        >
+            <CarouselContent>
+                {featuredProducts.map((product) => (
+                    <CarouselItem key={product.id}>
+                        <div className="relative h-64 md:h-80 w-full">
+                            <Image
+                                src={product.imageUrl}
+                                alt={product.name}
+                                layout="fill"
+                                objectFit="cover"
+                                className="brightness-75"
+                                priority
+                                data-ai-hint={product.imageHint}
+                            />
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 text-white">
+                                <h1 className="text-4xl md:text-6xl font-bold font-teko tracking-wider uppercase drop-shadow-lg">
+                                    Find Your Bliss
+                                </h1>
+                                <p className="mt-2 text-lg md:text-xl font-light drop-shadow-md">
+                                    Discover our top-rated product: <span className="font-semibold">{product.name}</span>
+                                </p>
+                                <Button asChild className="mt-6" size="lg">
+                                    <Link href={`/products/${product.id}`}>
+                                        Shop Now
+                                    </Link>
+                                </Button>
+                            </div>
+                        </div>
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+            <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
+            <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />
+        </Carousel>
+    );
 }
