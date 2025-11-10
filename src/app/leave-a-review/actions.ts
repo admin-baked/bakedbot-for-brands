@@ -11,7 +11,6 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
 // Define the schema for review form validation
 const ReviewSchema = z.object({
   productId: z.string().min(1, 'Please select a product.'),
-  userId: z.string(),
   rating: z.coerce.number().min(1, 'Please provide a rating.').max(5),
   text: z.string().min(10, 'Review must be at least 10 characters long.'),
   // For now, we'll make the image optional on the server-side
@@ -21,9 +20,19 @@ const ReviewSchema = z.object({
 
 
 export async function submitReview(prevState: any, formData: FormData) {
+  // We need to establish the server client here to handle both success and error paths.
+  const { auth, firestore } = await createServerClient();
+  const user = auth.currentUser;
+
+  if (!user) {
+    return {
+      message: 'Authentication required. Please sign in to leave a review.',
+      error: true,
+    };
+  }
+  
   const validatedFields = ReviewSchema.safeParse({
     productId: formData.get('productId'),
-    userId: formData.get('userId'),
     rating: formData.get('rating'),
     text: formData.get('text'),
     verificationImage: formData.get('verificationImage'),
@@ -37,8 +46,6 @@ export async function submitReview(prevState: any, formData: FormData) {
     };
   }
   
-  // We need to establish the server client here to handle both success and error paths.
-  const { firestore } = await createServerClient();
   const { productId, ...reviewData } = validatedFields.data;
 
   // TODO: Handle the actual image upload to Firebase Storage
@@ -51,6 +58,7 @@ export async function submitReview(prevState: any, formData: FormData) {
   
   const dataToSave = {
       ...reviewData,
+      userId: user.uid, // Use the secure, server-side user ID
       verificationImageUrl,
       createdAt: serverTimestamp(),
   };
