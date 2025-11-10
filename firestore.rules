@@ -35,7 +35,23 @@ service cloud.firestore {
     // PUBLIC DATA: Products, locations, and reviews are public-read.
     match /products/{productId} {
       allow read: if true;
-      allow update: if true; // Allow feedback updates
+      // Allow atomic increments for feedback, but disallow other updates.
+      allow update: if (
+        // Check if only 'likes' or 'dislikes' is being updated
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])) &&
+        (
+          // Rule for liking a product
+          (
+            request.resource.data.likes == resource.data.likes + 1 &&
+            request.resource.data.dislikes == resource.data.dislikes
+          ) ||
+          // Rule for disliking a product
+          (
+            request.resource.data.dislikes == resource.data.dislikes + 1 &&
+            request.resource.data.likes == resource.data.likes
+          )
+        )
+      );
       
       match /reviews/{reviewId} {
           allow read: if true;
