@@ -8,7 +8,6 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import type { Product } from '@/lib/types';
-import { getDoc } from 'firebase-admin/firestore';
 
 const GetProductInputSchema = z.object({
   productId: z.string().describe('The unique ID of the product to retrieve.'),
