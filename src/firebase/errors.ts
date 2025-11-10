@@ -1,7 +1,7 @@
-
+'use client';
 import { getAuth, type User } from 'firebase/auth';
 
-export type SecurityRuleContext = {
+type SecurityRuleContext = {
   path: string;
   operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
   requestResourceData?: any;
@@ -40,7 +40,7 @@ interface SecurityRuleRequest {
  * @returns An object that mirrors request.auth in security rules, or null.
  */
 function buildAuthObject(currentUser: User | null): FirebaseAuthObject | null {
-  if (typeof window === 'undefined' || !currentUser) {
+  if (!currentUser) {
     return null;
   }
 
@@ -76,20 +76,17 @@ function buildAuthObject(currentUser: User | null): FirebaseAuthObject | null {
  */
 function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
   let authObject: FirebaseAuthObject | null = null;
-  if (typeof window !== 'undefined') {
-    try {
-      // Safely attempt to get the current user.
-      const firebaseAuth = getAuth();
-      const currentUser = firebaseAuth.currentUser;
-      if (currentUser) {
-        authObject = buildAuthObject(currentUser);
-      }
-    } catch {
-      // This will catch errors if the Firebase app is not yet initialized.
-      // In this case, we'll proceed without auth information.
+  try {
+    // Safely attempt to get the current user.
+    const firebaseAuth = getAuth();
+    const currentUser = firebaseAuth.currentUser;
+    if (currentUser) {
+      authObject = buildAuthObject(currentUser);
     }
+  } catch {
+    // This will catch errors if the Firebase app is not yet initialized.
+    // In this case, we'll proceed without auth information.
   }
-
 
   return {
     auth: authObject,
