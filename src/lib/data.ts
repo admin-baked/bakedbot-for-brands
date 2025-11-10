@@ -1,4 +1,3 @@
-
 import { PlaceHolderImages } from './placeholder-images';
 import type { Product, Location } from './types';
 
