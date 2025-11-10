@@ -1,15 +1,16 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { PenSquare } from 'lucide-react';
-import { useMenuData } from '@/hooks/use-menu-data';
 import Header from '@/app/components/header';
-import { DispensaryLocator } from '@/components/dispensary-locator';
 import { HeroSlider } from '@/components/hero-slider';
+import { DispensaryLocator } from '@/components/dispensary-locator';
 import { ProductGrid } from '@/components/product-grid';
+import { useMenuData } from '@/hooks/use-menu-data';
 import type { Product } from '@/lib/types';
+import { PenSquare } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+
 
 // Dynamically import components that rely heavily on client-side state
 const FloatingCartPill = dynamic(() => import('@/app/components/floating-cart-pill').then(mod => mod.FloatingCartPill), {
@@ -40,7 +41,7 @@ export default function HomePageClient({ initialProducts }: { initialProducts: P
                     <DispensaryLocator />
                 </div>
                 <div className="space-y-12 mt-12">
-                   <ProductGrid products={products || []} isLoading={isLoading || !isHydrated} />
+                   <ProductGrid initialProducts={products || []} isLoading={isLoading || !isHydrated} />
                 </div>
             </main>
             <FloatingCartPill />

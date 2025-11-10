@@ -1,4 +1,3 @@
-
 'use client';
 
 import { ProductCard } from './product-card';
@@ -24,7 +23,7 @@ const ProductSkeleton = () => (
 );
 
 
-export function ProductGrid({ products, isLoading }: { products: Product[], isLoading: boolean }) {
+export function ProductGrid({ initialProducts = [], isLoading }: { initialProducts: Product[], isLoading: boolean }) {
   
   if (isLoading) {
     return (
@@ -36,7 +35,7 @@ export function ProductGrid({ products, isLoading }: { products: Product[], isLo
     );
   }
   
-  if (!products || products.length === 0) {
+  if (!initialProducts || initialProducts.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600 text-lg">No products available</p>
@@ -46,7 +45,7 @@ export function ProductGrid({ products, isLoading }: { products: Product[], isLo
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {products.map(product => (
+      {initialProducts.map(product => (
         <ProductCard key={product.id} product={product} />
       ))}
     </div>
