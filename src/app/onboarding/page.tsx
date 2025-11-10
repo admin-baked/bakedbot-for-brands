@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useUser } from '@/firebase/hooks/use-user';
+import { useUser } from '@/firebase/auth/use-user';
 import { useFirebase } from '@/firebase/provider';
 import { useRouter } from 'next/navigation';
 import { doc, updateDoc } from 'firebase/firestore';

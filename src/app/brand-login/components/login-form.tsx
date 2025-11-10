@@ -12,7 +12,7 @@ import { Logo } from '@/components/logo';
 import { sendMagicLink } from '../actions';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
-import { useUser } from '@/firebase/hooks/use-user';
+import { useUser } from '@/firebase/auth/use-user';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 const GoogleIcon = () => (
