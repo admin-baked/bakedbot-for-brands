@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { firestore } from '@/firebase/client';
+import { useFirebase } from '@/firebase';
 import { ProductCard } from './product-card';
 
 interface Product {
@@ -34,9 +34,17 @@ function ProductSkeleton() {
 export function ProductGrid() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { firestore } = useFirebase();
   
   useEffect(() => {
     async function loadProducts() {
+      if (!firestore) {
+        console.log('Firestore not available, using demo data');
+        setProducts(getDemoProducts());
+        setLoading(false);
+        return;
+      }
+      
       try {
         console.log('🔍 Loading products from Firestore...');
         const productsRef = collection(firestore, 'products');
@@ -63,7 +71,7 @@ export function ProductGrid() {
     }
     
     loadProducts();
-  }, []);
+  }, [firestore]);
   
   if (loading) {
     return (
