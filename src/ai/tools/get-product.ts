@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import type { Product } from '@/lib/types';
 
+
 const GetProductInputSchema = z.object({
   productId: z.string().describe('The unique ID of the product to retrieve.'),
 });
@@ -51,7 +52,13 @@ export const getProduct = ai.defineTool(
       // Ensure the data matches the schema, especially for optional fields.
       return {
           id: productSnap.id,
-          ...productData,
+          name: productData.name,
+          description: productData.description,
+          price: productData.price,
+          prices: productData.prices,
+          imageUrl: productData.imageUrl,
+          imageHint: productData.imageHint,
+          categoryId: productData.category,
           likes: productData.likes ?? 0,
           dislikes: productData.dislikes ?? 0,
       };
