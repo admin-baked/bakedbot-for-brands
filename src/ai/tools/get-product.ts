@@ -46,7 +46,7 @@ export const getProduct = ai.defineTool(
         return null;
       }
       
-      const productData = productSnap.data() as Product;
+      const productData = productSnap.data() as Omit<Product, 'id'>;
 
       // Ensure the data matches the schema, especially for optional fields.
       return {
