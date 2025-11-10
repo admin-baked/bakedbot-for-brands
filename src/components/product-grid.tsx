@@ -1,8 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ProductCard } from './product-card';
 import type { Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMenuData } from '@/hooks/use-menu-data';
 
 const ProductSkeleton = () => (
     <div className="bg-card rounded-lg shadow-lg overflow-hidden border">
@@ -23,9 +25,10 @@ const ProductSkeleton = () => (
 );
 
 
-export function ProductGrid({ initialProducts = [], isLoading }: { initialProducts: Product[], isLoading: boolean }) {
+export function ProductGrid() {
+  const { products, isLoading, isHydrated } = useMenuData();
   
-  if (isLoading) {
+  if (isLoading || !isHydrated) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {[...Array(8)].map((_, i) => (
@@ -35,7 +38,7 @@ export function ProductGrid({ initialProducts = [], isLoading }: { initialProduc
     );
   }
   
-  if (!initialProducts || initialProducts.length === 0) {
+  if (!products || products.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600 text-lg">No products available</p>
@@ -45,7 +48,7 @@ export function ProductGrid({ initialProducts = [], isLoading }: { initialProduc
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {initialProducts.map(product => (
+      {products.map(product => (
         <ProductCard key={product.id} product={product} />
       ))}
     </div>
