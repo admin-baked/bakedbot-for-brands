@@ -1,13 +1,12 @@
-
 'use client';
 
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { StoreProvider, useStore } from '@/hooks/use-store';
+import { useStore } from '@/hooks/use-store';
 import { useEffect } from 'react';
 import { themes } from '@/lib/themes';
-import { FirebaseClientProvider } from '@/firebase';
+import { AuthProvider } from '@/firebase/provider';
 import { CartProvider } from '@/hooks/use-cart';
 
 export default function RootLayout({
@@ -15,43 +14,46 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const theme = useStore((state) => state.theme);
+  const { theme, _hasHydrated } = useStore();
 
   useEffect(() => {
-    const selectedTheme = themes.find((t) => t.name === theme);
-    if (selectedTheme) {
-      const root = document.documentElement;
-      Object.entries(selectedTheme.cssVars.light).forEach(([key, value]) => {
-        root.style.setProperty(`--${key}`, value);
-      });
-      document.body.classList.remove(...themes.map(t => `theme-${t.name}`));
-      document.body.classList.add(`theme-${theme}`);
+    if (_hasHydrated) {
+      const selectedTheme = themes.find((t) => t.name === theme);
+      if (selectedTheme) {
+        const root = document.documentElement;
+        Object.entries(selectedTheme.cssVars.light).forEach(([key, value]) => {
+          root.style.setProperty(`--${key}`, value);
+        });
+        document.body.classList.remove(...themes.map(t => `theme-${t.name}`));
+        document.body.classList.add(`theme-${theme}`);
+      }
     }
-  }, [theme]);
-
+  }, [theme, _hasHydrated]);
 
   return (
-    <FirebaseClientProvider>
-        <html lang="en" suppressHydrationWarning>
-          <head>
-            <title>BakedBot AI Assistant</title>
-            <meta name="description" content="Headless Menu and AI Agent Budtender for Brands." />
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-            <link
-              href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-              rel="stylesheet"
-            />
-             <link
-              href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&display=swap"
-              rel="stylesheet"
-            />
-          </head>
-          <body className="font-body antialiased">
-              {children}
-              <Toaster />
-          </body>
-        </html>
-    </FirebaseClientProvider>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <title>BakedBot AI Assistant</title>
+        <meta name="description" content="Headless Menu and AI Agent Budtender for Brands." />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+         <link
+          href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="font-body antialiased">
+        <AuthProvider>
+          <CartProvider>
+            {children}
+          </CartProvider>
+        </AuthProvider>
+        <Toaster />
+      </body>
+    </html>
   );
 }
