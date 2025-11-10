@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from 'react';
@@ -26,8 +24,9 @@ import Chatbot from '@/components/chatbot';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { FirebaseContext, useUser } from '@/firebase';
-import { signOut } from 'firebase/auth';
+import { useUser } from '@/firebase/auth/use-user';
+import { FirebaseContext } from '@/firebase/provider';
+import { signOut, onSnapshot } from 'firebase/auth';
 import { useStore, type NavLink } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
 import EditLinkDialog from './components/edit-link-dialog';
@@ -35,7 +34,6 @@ import DeleteLinkDialog from './components/delete-link-dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useDoc } from '@/firebase/firestore/use-doc';
 import { doc } from 'firebase/firestore';
 
 
@@ -70,9 +68,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const firestore = firebaseContext?.firestore;
   const { user, isUserLoading } = useUser();
 
-  // Fetch the user's profile from Firestore to check onboarding status
-  const userDocRef = React.useMemo(() => user && firestore ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+  const [userProfile, setUserProfile] = React.useState<any>(null);
+  const [isProfileLoading, setIsProfileLoading] = React.useState(true);
+  
+  React.useEffect(() => {
+    if (user && firestore) {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        setUserProfile(doc.data());
+        setIsProfileLoading(false);
+      }, () => setIsProfileLoading(false));
+      return () => unsubscribe();
+    } else if (!isUserLoading) {
+      setIsProfileLoading(false);
+    }
+  }, [user, firestore, isUserLoading]);
+
 
   const { isCeoMode, navLinks, toggleNavLinkVisibility, _hasHydrated } = useStore();
 
@@ -82,26 +93,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
   
   React.useEffect(() => {
-    // List of all auth-related pages.
     const isAuthPage = pathname === '/brand-login' || pathname.startsWith('/auth/callback');
-
-    // Wait until loading is false before making any decisions.
-    if (isUserLoading || isProfileLoading) {
-      return;
-    }
-
+    if (isUserLoading || isProfileLoading) return;
     if (user) {
-      // User is logged in.
       if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
-        // User is logged in but hasn't completed onboarding, redirect them.
         router.replace('/onboarding');
       } else if (userProfile?.onboardingCompleted && isAuthPage) {
-        // User is logged in, onboarded, and on an auth page, redirect to dashboard.
         router.replace('/dashboard');
       }
     } else {
-      // User is not logged in.
-      // Protect all pages EXCEPT auth-related pages and the onboarding page.
       if (!isAuthPage && pathname !== '/onboarding') {
         router.replace('/brand-login');
       }
@@ -149,7 +149,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isLoading = isUserLoading || isProfileLoading;
 
-  // Render a global loading indicator.
   if (isLoading && pathname !== '/brand-login' && !pathname.startsWith('/auth/callback')) {
     return (
         <div className="flex h-screen w-screen items-center justify-center">
@@ -158,8 +157,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // If user is present but onboarding isn't complete, show a loading screen for that page
-  // to prevent the main dashboard from flashing before the redirect logic in useEffect runs.
   if (user && !userProfile?.onboardingCompleted && pathname !== '/onboarding') {
       return (
          <div className="flex h-screen w-screen items-center justify-center">
@@ -168,8 +165,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )
   }
 
-  // If not logged in and not on an auth page, don't render the layout.
-  // This prevents layout flash on initial load for unauthenticated users.
   if (!user && pathname !== '/brand-login' && !pathname.startsWith('/auth/callback')) {
       return null;
   }

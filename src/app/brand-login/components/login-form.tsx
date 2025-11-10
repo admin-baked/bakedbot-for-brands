@@ -11,7 +11,8 @@ import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { sendMagicLink } from '../actions';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useFirebase, useUser } from '@/firebase';
+import { useFirebase } from '@/firebase/provider';
+import { useUser } from '@/firebase/hooks/use-user';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 const GoogleIcon = () => (

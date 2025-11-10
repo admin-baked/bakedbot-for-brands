@@ -65,7 +65,6 @@ export async function submitReview(prevState: any, formData: FormData) {
   };
 
   try {
-    // Use non-blocking addDoc and chain a .catch for error handling
     await addDoc(reviewCollectionRef, dataToSave);
 
     revalidatePath('/products'); // Revalidate product pages if they show reviews

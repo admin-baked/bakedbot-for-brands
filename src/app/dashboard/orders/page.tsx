@@ -1,47 +1,58 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
 import { OrdersTable } from "./components/orders-table";
-import { useUser } from "@/firebase";
+import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/hooks/use-store";
 import { useMenuData } from "@/hooks/use-menu-data";
-import { useOrders } from "@/firebase/firestore/use-orders";
+import { collectionGroup, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { useFirebase } from "@/firebase/provider";
 import type { OrderData } from "./components/orders-table";
+import type { OrderDoc } from "@/lib/types";
 
 
 export default function OrdersPage() {
   const { isUserLoading } = useUser();
   const { locations } = useMenuData();
   const { _hasHydrated } = useStore();
-  const { data: ordersData, isLoading: areOrdersLoading } = useOrders();
+  const { firestore } = useFirebase();
 
   const [orders, setOrders] = useState<OrderData[]>([]);
+  const [areOrdersLoading, setAreOrdersLoading] = useState(true);
 
   useEffect(() => {
-    if (areOrdersLoading || !_hasHydrated || !locations || !ordersData) {
-      setOrders([]);
-      return;
-    };
+    if (!firestore || !_hasHydrated || !locations) return;
 
-    const getLocationName = (id: string) => {
-        return locations.find(l => l.id === id)?.name || "Unknown Location";
-    };
-
-    const formattedOrders = ordersData.map((order) => {
-        return {
-            id: order.id,
-            customerName: order.customerName,
-            date: order.orderDate.toDate().toLocaleDateString(),
-            status: order.status,
-            total: `$${order.totalAmount.toFixed(2)}`,
-            location: getLocationName(order.locationId),
+    setAreOrdersLoading(true);
+    const ordersQuery = query(collectionGroup(firestore, 'orders'), orderBy("orderDate", "desc"));
+    
+    const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+        const ordersData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as OrderDoc[];
+        
+        const getLocationName = (id: string) => {
+            return locations.find(l => l.id === id)?.name || "Unknown Location";
         };
-    });
-    setOrders(formattedOrders);
 
-  }, [areOrdersLoading, ordersData, locations, _hasHydrated]);
+        const formattedOrders = ordersData.map((order) => {
+            return {
+                id: order.id,
+                customerName: order.customerName,
+                date: order.orderDate.toDate().toLocaleDateString(),
+                status: order.status,
+                total: `$${order.totalAmount.toFixed(2)}`,
+                location: getLocationName(order.locationId),
+            };
+        });
+        setOrders(formattedOrders);
+        setAreOrdersLoading(false);
+    }, (error) => {
+        console.error("Error fetching orders:", error);
+        setAreOrdersLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [firestore, _hasHydrated, locations]);
 
 
   if (areOrdersLoading || !_hasHydrated || isUserLoading) {

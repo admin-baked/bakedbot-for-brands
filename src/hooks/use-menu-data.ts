@@ -1,10 +1,11 @@
 'use client';
 
 import { useStore } from './use-store';
-import { useProducts } from '@/firebase/firestore/use-products';
 import { useDemoData } from './use-demo-data';
 import { useState, useEffect } from 'react';
 import type { Product, Location } from '@/lib/types';
+import { useFirebase } from '@/firebase/provider';
+import { collection, query, onSnapshot } from 'firebase/firestore';
 
 /**
  * A unified hook to get menu data (products and locations).
@@ -16,25 +17,33 @@ export function useMenuData() {
     _hasHydrated: state._hasHydrated,
     locations: state.locations,
   }));
-
+  const { firestore } = useFirebase();
   const { products: demoProducts, locations: demoLocations } = useDemoData();
-
-  // Fetch real-time data from Firestore on the client.
-  const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useProducts();
   
   const [products, setProducts] = useState<Product[]>(demoProducts);
+  const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
 
   useEffect(() => {
-    // Once Firestore has loaded, if it has data, use it.
-    // Otherwise, we stick with the demo data.
-    if (!isFirestoreLoading) {
-        if (firestoreProducts && firestoreProducts.length > 0) {
+    if (!firestore) {
+      // If firestore is not available, we stick with demo data and stop loading.
+      setIsFirestoreLoading(false);
+      return;
+    };
+    
+    const productsQuery = query(collection(firestore, 'products'));
+    const unsubscribe = onSnapshot(productsQuery, (snapshot) => {
+        if (!snapshot.empty) {
+            const firestoreProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
             setProducts(firestoreProducts);
-        } else {
-            setProducts(demoProducts);
         }
-    }
-  }, [firestoreProducts, isFirestoreLoading, demoProducts]);
+        setIsFirestoreLoading(false);
+    }, (error) => {
+        console.error("Error fetching products from Firestore:", error);
+        setIsFirestoreLoading(false); // Stop loading even on error
+    });
+
+    return () => unsubscribe();
+  }, [firestore]);
 
   // Determine the final set of locations and loading state.
   const finalLocations = _hasHydrated && storeLocations.length > 0 ? storeLocations : demoLocations;
@@ -44,7 +53,6 @@ export function useMenuData() {
     products,
     locations: finalLocations,
     isLoading,
-    error,
     isHydrated: _hasHydrated,
   };
 }

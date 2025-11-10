@@ -22,7 +22,7 @@ const OrderSchema = z.object({
 });
 
 export async function submitOrder(input: z.infer<typeof OrderSchema>) {
-  const { firestore, auth } = await createServerClient();
+  const { firestore } = await createServerClient();
 
   const validatedData = OrderSchema.safeParse(input);
 

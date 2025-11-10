@@ -1,7 +1,9 @@
 
 'use client';
 
-import { useDoc, useCollection, useFirebase, WithId } from '@/firebase';
+import { useDoc } from '@/firebase/hooks/use-doc';
+import { useCollection } from '@/firebase/hooks/use-collection';
+import { useFirebase } from '@/firebase/provider';
 import { doc, collection, query } from 'firebase/firestore';
 import type { OrderDoc, OrderItemDoc } from '@/lib/types';
 import { useMemo } from 'react';

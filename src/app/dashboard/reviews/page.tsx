@@ -1,45 +1,64 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
 import { ReviewsTable } from "./components/reviews-table";
-import { useUser } from "@/firebase";
+import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useProducts } from "@/firebase/firestore/use-products";
-import { useReviews } from "@/firebase/firestore/use-reviews";
 import type { ReviewData } from "./components/reviews-table";
+import { useFirebase } from "@/firebase/provider";
+import { collection, collectionGroup, onSnapshot, query, orderBy } from "firebase/firestore";
+import type { Product, Review } from "@/lib/types";
 
 
 export default function ReviewsPage() {
   const { isUserLoading } = useUser();
+  const { firestore } = useFirebase();
   const [reviews, setReviews] = useState<ReviewData[]>([]);
-  const { data: products, isLoading: areProductsLoading } = useProducts();
-  const { data: reviewsData, isLoading: areReviewsLoading } = useReviews();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (areReviewsLoading || areProductsLoading || !reviewsData || !products) {
-      setReviews([]);
-      return;
-    }
+    if (!firestore) return;
+    setIsLoading(true);
 
-    const formattedReviews = reviewsData.map((review) => {
-      const productName = products.find(p => p.id === review.productId)?.name ?? "Unknown Product";
-      return {
-        id: review.id,
-        productName: productName,
-        userEmail: "Anonymous", // The logic to fetch user email was complex and permission-dependent, simplifying for now.
-        rating: review.rating,
-        text: review.text,
-        date: review.createdAt.toDate().toLocaleDateString(),
-      };
+    const productsQuery = query(collection(firestore, 'products'));
+    const productsUnsubscribe = onSnapshot(productsQuery, (snapshot) => {
+        const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        setProducts(productsData);
+    });
+    
+    const reviewsQuery = query(collectionGroup(firestore, 'reviews'), orderBy("createdAt", "desc"));
+    const reviewsUnsubscribe = onSnapshot(reviewsQuery, (snapshot) => {
+        const reviewsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
+
+        const formattedReviews = reviewsData.map((review) => {
+            const productName = products.find(p => p.id === review.productId)?.name ?? "Unknown Product";
+            return {
+                id: review.id,
+                productName: productName,
+                userEmail: "Anonymous",
+                rating: review.rating,
+                text: review.text,
+                date: review.createdAt.toDate().toLocaleDateString(),
+            };
+        });
+
+        setReviews(formattedReviews);
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching reviews:", error);
+        setIsLoading(false);
     });
 
-    setReviews(formattedReviews);
+    return () => {
+        productsUnsubscribe();
+        reviewsUnsubscribe();
+    }
 
-  }, [reviewsData, products, areReviewsLoading, areProductsLoading]);
+  }, [firestore, products]);
 
 
-  if (areReviewsLoading || areProductsLoading || isUserLoading) {
+  if (isLoading || isUserLoading) {
     return (
       <div className="flex flex-col gap-8">
         <div>
