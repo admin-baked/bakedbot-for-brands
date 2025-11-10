@@ -18,6 +18,17 @@ import { useStore } from '@/hooks/use-store';
 import Header from '@/app/components/header';
 import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 
+// Dynamically import HeroSlider only on the client side.
+const HeroSlider = dynamic(() => import('@/components/hero-slider').then(mod => mod.HeroSlider), {
+    ssr: false,
+    loading: () => <HeroSliderSkeleton />,
+});
+
+const DispensaryLocator = dynamic(() => import('@/components/dispensary-locator').then(mod => mod.DispensaryLocator), {
+    ssr: false,
+    loading: () => <DispensaryLocatorSkeleton />,
+});
+
 const HeroSliderSkeleton = () => (
     <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12 bg-muted">
         <Skeleton className="h-full w-full" />
@@ -27,17 +38,6 @@ const HeroSliderSkeleton = () => (
         </div>
     </div>
 );
-
-// Dynamically import HeroSlider only on the client side.
-const HeroSlider = dynamic(() => import('@/app/menu/components/hero-slider'), {
-    ssr: false,
-    loading: () => <HeroSliderSkeleton />,
-});
-
-const DispensaryLocator = dynamic(() => import('@/app/menu/components/dispensary-locator'), {
-    ssr: false,
-    loading: () => <DispensaryLocatorSkeleton />,
-});
 
 const DispensaryLocatorSkeleton = () => (
      <div className="py-12" id="locator">
@@ -184,7 +184,7 @@ const groupProductsByCategory = (products: Product[]) => {
 
 const DefaultLayout = ({ products, groupedProducts, categories, showSkeletons, locations }: { products: Product[], groupedProducts: Record<string, Product[]>, categories: string[], showSkeletons: boolean, locations: Location[] }) => (
     <>
-        <HeroSlider products={products} />
+        <HeroSlider />
         <div className="text-center mb-12">
             <Button variant="outline" asChild>
                 <Link href="/leave-a-review">
