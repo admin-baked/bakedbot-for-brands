@@ -74,9 +74,20 @@
           "description": "URL of the product image.",
           "format": "uri"
         },
+        "imageHint": {
+          "type": "string",
+          "description": "A hint for AI image generation, like 'cannabis edible'."
+        },
         "price": {
           "type": "number",
-          "description": "Price of the product."
+          "description": "Base price of the product."
+        },
+        "prices": {
+          "type": "object",
+          "description": "A map of location IDs to specific prices for that location.",
+          "additionalProperties": {
+            "type": "number"
+          }
         },
         "categoryId": {
           "type": "string",
