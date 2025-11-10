@@ -1,4 +1,3 @@
-
 'use client';
 
 import { z } from 'zod';
@@ -17,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/use-cart';
 import { useUser } from '@/firebase';
 import { submitOrder } from './actions';
-import { useTransition } from 'react';
+import { useTransition, useEffect } from 'react';
 import { Loader2, Send } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import type { Location } from '@/lib/types';
@@ -59,16 +58,33 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormP
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      customerName: user?.displayName || '',
-      customerEmail: user?.email || '',
-      customerPhone: user?.phoneNumber || '',
+      customerName: '',
+      customerEmail: '',
+      customerPhone: '',
       customerBirthDate: '',
     },
   });
 
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        customerName: user.displayName || '',
+        customerEmail: user.email || '',
+        customerPhone: user.phoneNumber || '',
+        customerBirthDate: '',
+      });
+    }
+  }, [user, form]);
+
+
   const onSubmit = (data: CheckoutFormValues) => {
     if (cart.length === 0) {
       toast({ variant: 'destructive', title: 'Your cart is empty!' });
+      return;
+    }
+    
+    if (!selectedLocation.email) {
+      toast({ variant: 'destructive', title: 'Location Error', description: 'The selected location is missing a fulfillment email.' });
       return;
     }
 

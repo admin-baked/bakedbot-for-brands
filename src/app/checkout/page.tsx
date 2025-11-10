@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useStore } from '@/hooks/use-store';
@@ -78,7 +76,7 @@ export default function CheckoutPage() {
   const handleOrderSuccess = (orderId: string, userId?: string) => {
     if (orderId) {
         clearCart();
-        const confirmationUrl = userId
+        const confirmationUrl = userId && userId !== 'guest'
             ? `/order-confirmation/${orderId}?userId=${userId}`
             : `/order-confirmation/${orderId}`;
         router.push(confirmationUrl);
