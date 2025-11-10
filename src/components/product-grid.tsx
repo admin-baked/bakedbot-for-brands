@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ProductCard } from './product-card';
@@ -5,7 +6,7 @@ import type { Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const ProductSkeleton = () => (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="bg-card rounded-lg shadow-lg overflow-hidden border">
       <Skeleton className="h-48 w-full" />
       <div className="p-4 space-y-3">
         <Skeleton className="h-4 w-1/4" />
@@ -35,7 +36,7 @@ export function ProductGrid({ products, isLoading }: { products: Product[], isLo
     );
   }
   
-  if (products.length === 0) {
+  if (!products || products.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600 text-lg">No products available</p>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useFirebase } from '@/firebase';
