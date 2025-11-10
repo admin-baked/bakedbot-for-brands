@@ -1,22 +1,14 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
 import { ReviewsTable } from "./components/reviews-table";
-import { useFirebase, useUser } from "@/firebase";
+import { useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProducts } from "@/firebase/firestore/use-products";
-import type { Product, Review } from '@/lib/types';
 import { useReviews } from "@/firebase/firestore/use-reviews";
+import type { ReviewData } from "./components/reviews-table";
 
-// Define the shape of the data we'll pass to the table
-export type ReviewData = {
-  id: string;
-  productName: string;
-  userEmail: string;
-  rating: number;
-  text: string;
-  date: string;
-};
 
 export default function ReviewsPage() {
   const { user, isUserLoading } = useUser();

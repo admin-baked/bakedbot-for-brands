@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -6,19 +7,9 @@ import { useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/hooks/use-store";
 import { useMenuData } from "@/hooks/use-menu-data";
-import { OrderDoc } from "@/lib/types";
 import { useOrders } from "@/firebase/firestore/use-orders";
+import type { OrderData } from "./components/orders-table";
 
-
-// Define the shape of the data we'll pass to the table
-export type OrderData = {
-  id: string;
-  customerName: string;
-  date: string;
-  status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
-  total: string;
-  location: string;
-};
 
 export default function OrdersPage() {
   const { user, isUserLoading } = useUser();

@@ -4,9 +4,8 @@
 import { useStore } from './use-store';
 import { useProducts } from '@/firebase/firestore/use-products';
 import { useDemoData } from './use-demo-data';
-import { useMemo, useEffect } from 'react';
-import type { Product } from '@/lib/types';
-import type { Location } from '@/lib/types';
+import { useMemo } from 'react';
+import type { Product, Location } from '@/lib/types';
 
 /**
  * A unified hook to get menu data (products and locations).
@@ -15,11 +14,10 @@ import type { Location } from '@/lib/types';
  * This ensures that both server and client renders are consistent, preventing hydration errors.
  */
 export function useMenuData() {
-  const { isUsingDemoData, _hasHydrated, locations: storeLocations, setLocations } = useStore(state => ({
+  const { isUsingDemoData, _hasHydrated, locations: storeLocations } = useStore(state => ({
     isUsingDemoData: state.isUsingDemoData,
     _hasHydrated: state._hasHydrated,
     locations: state.locations,
-    setLocations: state.setLocations,
   }));
 
   // Fetch both sets of data, but only one will be used.

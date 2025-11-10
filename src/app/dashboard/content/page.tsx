@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormState } from 'react-dom';
@@ -8,6 +9,7 @@ import ProductDescriptionDisplay from './components/product-description-display'
 import ProductDescriptionForm from './components/product-description-form';
 import ReviewSummarizer from './components/review-summarizer';
 import { createProductDescription, createSocialMediaImage } from './actions';
+import { useMenuData } from '@/hooks/use-menu-data';
 
 export default function ProductDescriptionGeneratorPage() {
   const [generatedContent, setGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
@@ -15,6 +17,9 @@ export default function ProductDescriptionGeneratorPage() {
   // Get the pending states from the form actions
   const [descriptionState, descriptionFormAction] = useFormState(createProductDescription, { message: '', data: null, error: false });
   const [imageState, imageFormAction] = useFormState(createSocialMediaImage, { message: '', imageUrl: null, error: false });
+
+  // Get product data
+  const { products, isLoading: areProductsLoading } = useMenuData();
 
   const handleContentUpdate = (content: (GenerateProductDescriptionOutput & { productId?: string }) | null) => {
     setGeneratedContent(content);
@@ -46,6 +51,8 @@ export default function ProductDescriptionGeneratorPage() {
           imageFormAction={imageFormAction}
           descriptionState={descriptionState}
           imageState={imageState}
+          products={products}
+          areProductsLoading={areProductsLoading}
         />
         
         <div className="flex flex-col gap-8 xl:col-span-2">
@@ -57,7 +64,7 @@ export default function ProductDescriptionGeneratorPage() {
               />
               <BrandImageGenerator onImageGenerated={handleBrandImageGenerated} />
             </div>
-            <ReviewSummarizer />
+            <ReviewSummarizer products={products} areProductsLoading={areProductsLoading}/>
         </div>
       </div>
     </div>

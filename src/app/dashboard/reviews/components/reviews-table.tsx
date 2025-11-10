@@ -18,7 +18,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Star, MoreHorizontal, ArrowUpDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import type { ReviewData } from '../page';
+
+// Define the shape of the data we'll pass to the table
+export type ReviewData = {
+  id: string;
+  productName: string;
+  userEmail: string;
+  rating: number;
+  text: string;
+  date: string;
+};
 
 // Action menu for each row
 const ReviewActions = ({ reviewId }: { reviewId: string }) => {
