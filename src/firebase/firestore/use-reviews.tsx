@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useCollection, useFirebase, WithId } from '@/firebase';
+import { useCollection, useFirebase } from '@/firebase';
 import { collectionGroup, query, orderBy } from 'firebase/firestore';
 import type { Review } from '@/lib/types';
 import { useMemo } from 'react';

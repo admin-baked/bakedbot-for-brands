@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -11,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Wand2, Loader2, ThumbsUp, ThumbsDown, CheckCircle, XCircle, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useProducts } from '@/firebase/firestore/use-products';
+import type { Product } from '@/lib/types';
 
 const initialState: ReviewSummaryFormState = {
     message: '',
@@ -29,13 +30,17 @@ function SubmitButton() {
     );
 }
 
-export default function ReviewSummarizer() {
+interface ReviewSummarizerProps {
+    products: Product[] | null;
+    areProductsLoading: boolean;
+}
+
+export default function ReviewSummarizer({ products, areProductsLoading }: ReviewSummarizerProps) {
     const [state, formAction] = useFormState(summarizeProductReviews, initialState);
     const { pending } = useFormStatus();
     const { toast } = useToast();
     const formRef = useRef<HTMLFormElement>(null);
     const [selectedProductName, setSelectedProductName] = useState('');
-    const { data: products, isLoading: areProductsLoading } = useProducts();
 
     useEffect(() => {
         if (state.message && !pending) {

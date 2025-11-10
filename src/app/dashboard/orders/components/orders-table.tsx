@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -17,9 +18,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MoreHorizontal, ArrowUpDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import type { OrderData } from '../page';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+
+
+// Define the shape of the data we'll pass to the table
+export type OrderData = {
+  id: string;
+  customerName: string;
+  date: string;
+  status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+  total: string;
+  location: string;
+};
 
 // Action menu for each row
 const OrderActions = ({ orderId }: { orderId: string }) => {

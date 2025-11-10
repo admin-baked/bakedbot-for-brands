@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { useStore } from '@/hooks/use-store';
 import { useProducts } from '@/firebase/firestore/use-products';
+import type { Product } from '@/lib/types';
 
 
 interface SubmitButtonProps {
@@ -39,9 +40,11 @@ interface ProductDescriptionFormProps {
     imageFormAction: (payload: FormData) => void;
     descriptionState: DescriptionFormState;
     imageState: ImageFormState;
+    products: Product[] | null;
+    areProductsLoading: boolean;
 }
 
-export default function ProductDescriptionForm({ onContentUpdate, descriptionFormAction, imageFormAction, descriptionState, imageState }: ProductDescriptionFormProps) {
+export default function ProductDescriptionForm({ onContentUpdate, descriptionFormAction, imageFormAction, descriptionState, imageState, products, areProductsLoading }: ProductDescriptionFormProps) {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   
@@ -50,7 +53,6 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
   const [packagingImage, setPackagingImage] = useState<string>('');
   
   const { chatbotIcon } = useStore();
-  const { data: products, isLoading: areProductsLoading } = useProducts();
 
   // Effect for handling description generation results
   useEffect(() => {

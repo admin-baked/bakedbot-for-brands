@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
@@ -16,7 +15,7 @@ import { submitReview } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useProducts } from '@/firebase/firestore/use-products';
+import { useMenuData } from '@/hooks/use-menu-data';
 
 // This is the fix. By exporting this variable, we tell Next.js to always
 // render this page on the client and not to pre-render it during the build.
@@ -56,7 +55,7 @@ function SubmitButton() {
 
 export default function LeaveReviewPage() {
   const { user, isUserLoading } = useUser();
-  const { data: products, isLoading: areProductsLoading } = useProducts();
+  const { products, isLoading: areProductsLoading } = useMenuData();
   const [rating, setRating] = useState(0);
   const [fileName, setFileName] = useState<string | null>(null);
   const { toast } = useToast();
