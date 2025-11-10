@@ -5,7 +5,6 @@ import { notFound } from 'next/navigation';
 import type { Metadata, ResolvingMetadata } from 'next';
 import { Skeleton } from '@/components/ui/skeleton';
 import ProductDetailsClient from './components/product-details-client';
-import CartSidebar from '@/app/menu/components/cart-sidebar';
 import Chatbot from '@/components/chatbot';
 import Link from 'next/link';
 import { Search, User, ShoppingBag } from 'lucide-react';
@@ -16,8 +15,8 @@ import { createServerClient } from '@/firebase/server-client';
 import { doc, getDoc } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
 import { demoProducts } from '@/lib/data';
-import { FloatingCartPill } from '@/app/menu/components/floating-cart-pill';
-import Header from '@/app/menu/components/header';
+import { FloatingCartPill } from '@/app/components/floating-cart-pill';
+import Header from '@/app/components/header';
 
 type Props = {
   params: { id: string }
@@ -107,9 +106,10 @@ export default async function ProductPage({ params }: Props) {
                     <ProductDetailsClient product={product} summary={summary} />
                 </Suspense>
             </main>
-            <CartSidebar />
             <FloatingCartPill />
             <Chatbot />
         </div>
     )
 }
+
+    
