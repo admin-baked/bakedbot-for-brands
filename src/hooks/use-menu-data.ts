@@ -13,26 +13,25 @@ import type { Product, Location } from '@/lib/types';
  * This ensures fast initial page loads without sacrificing real-time updates.
  */
 export function useMenuData(initialProducts: Product[] = []) {
-  const { isUsingDemoData, _hasHydrated, locations: storeLocations } = useStore(state => ({
-    isUsingDemoData: state.isUsingDemoData,
+  const { _hasHydrated, locations: storeLocations } = useStore(state => ({
     _hasHydrated: state._hasHydrated,
     locations: state.locations,
   }));
 
-  // State to hold the products, initialized with server-fetched data.
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const { locations: demoLocations } = useDemoData();
+  const { products: demoProducts, locations: demoLocations } = useDemoData();
 
   // Fetch real-time data from Firestore on the client.
   const { data: firestoreProducts, isLoading: isFirestoreLoading, error } = useProducts();
+  
+  const [products, setProducts] = useState<Product[]>(demoProducts);
 
   useEffect(() => {
-    // Once Firestore data loads on the client, update the state.
-    // This allows for real-time updates after the initial server render.
     if (firestoreProducts && firestoreProducts.length > 0) {
-      setProducts(firestoreProducts);
+        setProducts(firestoreProducts);
+    } else {
+        setProducts(demoProducts);
     }
-  }, [firestoreProducts]);
+  }, [firestoreProducts, demoProducts]);
 
   // Determine the final set of locations and loading state.
   const finalLocations = _hasHydrated && storeLocations.length > 0 ? storeLocations : demoLocations;
@@ -43,7 +42,6 @@ export function useMenuData(initialProducts: Product[] = []) {
     locations: finalLocations,
     isLoading,
     error,
-    isUsingDemoData: products === demoLocations, // A simple check to see if we're on fallback data
     isHydrated: _hasHydrated,
   };
 }

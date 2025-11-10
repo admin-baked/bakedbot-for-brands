@@ -21,8 +21,8 @@ const Chatbot = dynamic(() => import('@/components/chatbot'), {
     ssr: false,
 });
 
-export default function HomePageClient({ initialProducts }: { initialProducts: Product[] }) {
-    const { products, isLoading, isHydrated } = useMenuData(initialProducts);
+export default function HomePageClient() {
+    const { products, isLoading, isHydrated } = useMenuData();
 
     return (
         <div className="min-h-screen bg-background">
@@ -41,7 +41,7 @@ export default function HomePageClient({ initialProducts }: { initialProducts: P
                     <DispensaryLocator />
                 </div>
                 <div className="space-y-12 mt-12">
-                   <ProductGrid initialProducts={products || []} isLoading={isLoading || !isHydrated} />
+                   <ProductGrid />
                 </div>
             </main>
             <FloatingCartPill />
