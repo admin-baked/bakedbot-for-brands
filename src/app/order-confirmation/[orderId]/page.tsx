@@ -43,7 +43,7 @@ function OrderPageClient() {
         return <OrderPageSkeleton />;
     }
 
-    if (error || !order) {
+    if (error || (!order && finalUserId !== 'guest')) {
         return (
             <div className="flex flex-col items-center justify-center text-center py-20">
                 <h1 className="text-2xl font-bold">Order Not Found</h1>
@@ -71,6 +71,48 @@ function OrderPageClient() {
         }
     };
 
+    // For guest users, we can't fetch the order data from the client due to security rules.
+    // In a real app, this page would be server-rendered with the data passed in, or the data
+    // would be fetched via a secure server action. For this demo, we'll show a generic message.
+    if (!order && finalUserId === 'guest') {
+         return (
+            <div className="max-w-2xl mx-auto py-8 px-4">
+                <Card className="shadow-lg">
+                    <CardHeader className="text-center space-y-4">
+                        <Logo />
+                        <CardTitle className="text-3xl">Order Confirmed!</CardTitle>
+                        <CardDescription>Thank you for your order! It is now being prepared.</CardDescription>
+                        <div className="flex items-center justify-center gap-2">
+                            <span className="text-sm text-muted-foreground">Order ID:</span>
+                            <span className="font-mono text-xs text-muted-foreground bg-muted rounded px-2 py-1">#{orderId}</span>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="flex flex-col items-center justify-center gap-4 border-y py-6">
+                            <Suspense fallback={<Skeleton className="h-48 w-48" />}>
+                                <QRDisplay text={orderUrl} />
+                            </Suspense>
+                            <div className='text-center'>
+                                <p className='font-semibold'>Show this QR code at the dispensary.</p>
+                                <p className='text-sm text-muted-foreground'>This will help us quickly locate your order.</p>
+                            </div>
+                        </div>
+                        <p className="text-center text-sm text-muted-foreground">You will receive an email confirmation with your full order details shortly.</p>
+                    </CardContent>
+                    <CardFooter className="flex-col gap-4">
+                        <p className="text-xs text-center text-muted-foreground">
+                            Please bring a valid, government-issued photo ID for pickup.
+                        </p>
+                        <Button asChild variant="outline">
+                            <Link href="/">
+                                <Home className="mr-2" /> Continue Shopping
+                            </Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-2xl mx-auto py-8 px-4">
@@ -78,7 +120,7 @@ function OrderPageClient() {
                 <CardHeader className="text-center space-y-4">
                     <Logo />
                     <CardTitle className="text-3xl">Order Confirmed</CardTitle>
-                    <CardDescription>Thank you, {order.customerName}! Your order is being prepared.</CardDescription>
+                    <CardDescription>Thank you, {order!.customerName}! Your order is being prepared.</CardDescription>
                      <div className="flex items-center justify-center gap-2">
                        <span className="text-sm text-muted-foreground">Order ID:</span>
                        <span className="font-mono text-xs text-muted-foreground bg-muted rounded px-2 py-1">#{orderId}</span>
@@ -98,11 +140,11 @@ function OrderPageClient() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="space-y-1">
                             <h3 className="font-semibold text-muted-foreground">Order Date</h3>
-                            <p>{order.orderDate.toDate().toLocaleDateString()}</p>
+                            <p>{order!.orderDate.toDate().toLocaleDateString()}</p>
                         </div>
                         <div className="space-y-1">
                             <h3 className="font-semibold text-muted-foreground">Status</h3>
-                             <Badge className={cn('capitalize', getStatusClass(order.status))}>{order.status}</Badge>
+                             <Badge className={cn('capitalize', getStatusClass(order!.status))}>{order!.status}</Badge>
                         </div>
                     </div>
                     
@@ -130,7 +172,7 @@ function OrderPageClient() {
                         <Separator className="my-4" />
                         <div className="flex justify-between font-bold text-lg">
                             <span>Total</span>
-                            <span>${order.totalAmount.toFixed(2)}</span>
+                            <span>${order!.totalAmount.toFixed(2)}</span>
                         </div>
                     </div>
 

@@ -12,10 +12,18 @@ service cloud.firestore {
 
     // GUEST CHECKOUT:
     // This allows unauthenticated server actions to create orders for guests.
-    // It's a trade-off for UX, but it's risky as guest data is publicly readable/writable.
-    // A more secure long-term solution would be to use Firebase Anonymous Auth to create temporary user IDs.
-    match /users/guest/{document=**} {
-      allow read, write: if true;
+    // It's a trade-off for UX. The rule is now restricted to only allow the 'create'
+    // operation, preventing anyone from reading, updating, or deleting guest orders.
+    // A more secure long-term solution is to use Firebase Anonymous Auth.
+    match /users/guest/orders/{orderId} {
+      allow create: if true;
+      // Deny all other operations
+      allow read, update, delete: if false;
+
+      match /orderItems/{itemId} {
+        allow create: if true;
+        allow read, update, delete: if false;
+      }
     }
     
     // AUTHENTICATED USERS:
