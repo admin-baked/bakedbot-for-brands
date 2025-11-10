@@ -9,6 +9,7 @@ import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { haversineDistance } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 export function DispensaryLocator() {
   const { locations, isLoading: areLocationsLoading } = useMenuData();
@@ -69,7 +70,9 @@ export function DispensaryLocator() {
         </Button>
         <div className="mt-8">
             <div className="flex gap-6 pb-4 -mx-4 px-4 overflow-x-auto">
-                {displayLocations.map(loc => (
+                {displayLocations.map(loc => {
+                    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.name}, ${loc.address}, ${loc.city}, ${loc.state} ${loc.zip}`)}`;
+                    return (
                     <Card 
                         key={loc.id} 
                         className={cn(
@@ -87,12 +90,17 @@ export function DispensaryLocator() {
                         <CardContent>
                             <p className="text-sm text-muted-foreground">{loc.address}</p>
                             <p className="text-sm text-muted-foreground">{loc.city}, {loc.state} {loc.zip}</p>
+                             <Button variant="link" asChild className="p-0 h-auto mt-2 text-sm">
+                                <Link href={mapUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                                    View on Map
+                                </Link>
+                            </Button>
                             {loc.distance && (
                                 <p className="text-sm font-semibold mt-2">{loc.distance.toFixed(1)} miles away</p>
                             )}
                         </CardContent>
                     </Card>
-                ))}
+                )})}
             </div>
         </div>
       </div>

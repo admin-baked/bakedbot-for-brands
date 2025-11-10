@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -33,6 +34,8 @@ export function CartSheet() {
     router.push('/checkout');
   };
 
+  const mapUrl = selectedLocation ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedLocation.name}, ${selectedLocation.address}, ${selectedLocation.city}, ${selectedLocation.state} ${selectedLocation.zip}`)}` : '';
+
   return (
     <Sheet open={isCartSheetOpen} onOpenChange={setCartSheetOpen}>
       <SheetContent className="flex flex-col">
@@ -41,7 +44,12 @@ export function CartSheet() {
           {selectedLocation && (
             <SheetDescription className="flex items-center gap-2 pt-2 text-xs">
                 <MapPin className="h-4 w-4 text-primary" /> 
-                <span>Pickup from: <strong>{selectedLocation.name}</strong></span>
+                <div className='flex flex-col items-start'>
+                    <span>Pickup from: <strong>{selectedLocation.name}</strong></span>
+                    <Link href={mapUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                        View on Map
+                    </Link>
+                </div>
             </SheetDescription>
           )}
         </SheetHeader>
