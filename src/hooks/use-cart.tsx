@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -117,9 +118,3 @@ const useCartStore = create<CartStore>()(
 
 // This hook can be used throughout the app
 export const useCart = () => useCartStore((state) => state);
-
-
-// Create and export the CartProvider component
-export function CartProvider({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
-}
