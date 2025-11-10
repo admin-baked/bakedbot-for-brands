@@ -43,29 +43,30 @@ const SidebarAdminControls = ({ link, onEdit, onToggle, onDelete }: { link: NavL
     <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
         <Tooltip>
             <TooltipTrigger asChild>
-                <SidebarMenuAction size="icon" className="h-6 w-6" onClick={() => onEdit(link)}>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit(link)}>
                     <Pencil/>
-                </SidebarMenuAction>
+                </Button>
             </TooltipTrigger>
             <TooltipContent>Edit</TooltipContent>
         </Tooltip>
         <Tooltip>
            <TooltipTrigger asChild>
-                <SidebarMenuAction
+                <Button
+                variant="ghost"
                 size="icon"
                 className="h-6 w-6 text-muted-foreground"
                 onClick={() => onToggle(link.href)}
                 >
                     {link.hidden ? <Eye /> : <EyeOff />}
-                </SidebarMenuAction>
+                </Button>
            </TooltipTrigger>
            <TooltipContent>{link.hidden ? 'Show' : 'Hide'}</TooltipContent>
         </Tooltip>
         <Tooltip>
             <TooltipTrigger asChild>
-                <SidebarMenuAction size="icon" className="h-6 w-6 text-destructive" onClick={() => onDelete(link)}>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => onDelete(link)}>
                     <Trash2/>
-                </SidebarMenuAction>
+                </Button>
             </TooltipTrigger>
             <TooltipContent>Delete</TooltipContent>
         </Tooltip>
@@ -347,3 +348,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
+
+    
