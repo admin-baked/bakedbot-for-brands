@@ -14,7 +14,6 @@ import { DollarSign, Loader2, Upload, Wand2, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { useStore } from '@/hooks/use-store';
-import { useProducts } from '@/firebase/firestore/use-products';
 import type { Product } from '@/lib/types';
 
 
