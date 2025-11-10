@@ -15,18 +15,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
 import Header from '@/app/components/header';
+import { DispensaryLocator } from '@/components/dispensary-locator';
+import { HeroSlider } from '@/components/hero-slider';
+
 
 // Dynamically import components that rely heavily on client-side state
-const HeroSlider = dynamic(() => import('@/components/hero-slider').then(mod => mod.HeroSlider), {
-    ssr: false,
-    loading: () => <HeroSliderSkeleton />,
-});
-
-const DispensaryLocator = dynamic(() => import('@/components/dispensary-locator').then(mod => mod.DispensaryLocator), {
-    ssr: false,
-    loading: () => <DispensaryLocatorSkeleton />,
-});
-
 const FloatingCartPill = dynamic(() => import('@/app/components/floating-cart-pill').then(mod => mod.FloatingCartPill), {
     ssr: false,
 });
@@ -35,27 +28,6 @@ const Chatbot = dynamic(() => import('@/components/chatbot'), {
     ssr: false,
 });
 
-
-const HeroSliderSkeleton = () => (
-    <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12 bg-muted">
-        <Skeleton className="h-full w-full" />
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-            <Skeleton className="h-10 w-3/4 mb-4" />
-            <Skeleton className="h-5 w-1/2" />
-        </div>
-    </div>
-);
-
-const DispensaryLocatorSkeleton = () => (
-     <div className="py-12" id="locator">
-        <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4 text-center">Find a Dispensary Near You</h2>
-        <div className="grid md:grid-cols-3 gap-4 max-w-6xl mx-auto">
-            <Card><CardContent className="p-4"><Skeleton className="h-24 w-full" /></CardContent></Card>
-            <Card><CardContent className="p-4"><Skeleton className="h-24 w-full" /></CardContent></Card>
-            <Card><CardContent className="p-4"><Skeleton className="h-24 w-full" /></CardContent></Card>
-        </div>
-    </div>
-);
 
 const SKELETON_CATEGORIES = ['Edibles', 'Flower', 'Vapes'];
 
@@ -191,7 +163,7 @@ const groupProductsByCategory = (products: Product[]) => {
 
 const DefaultLayout = ({ products, groupedProducts, categories, showSkeletons, locations }: { products: Product[], groupedProducts: Record<string, Product[]>, categories: string[], showSkeletons: boolean, locations: Location[] }) => (
     <>
-        <HeroSlider />
+        <HeroSlider products={products} />
         <div className="text-center mb-12">
             <Button variant="outline" asChild>
                 <Link href="/leave-a-review">
