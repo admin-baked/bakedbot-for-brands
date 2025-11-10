@@ -12,13 +12,11 @@ import { PenSquare, Plus, ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useCart } from '@/hooks/use-cart';
 import { type Product, type Location } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import Chatbot from '@/components/chatbot';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
 import Header from '@/app/components/header';
-import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 
-// Dynamically import HeroSlider only on the client side.
+// Dynamically import components that rely heavily on client-side state
 const HeroSlider = dynamic(() => import('@/components/hero-slider').then(mod => mod.HeroSlider), {
     ssr: false,
     loading: () => <HeroSliderSkeleton />,
@@ -28,6 +26,15 @@ const DispensaryLocator = dynamic(() => import('@/components/dispensary-locator'
     ssr: false,
     loading: () => <DispensaryLocatorSkeleton />,
 });
+
+const FloatingCartPill = dynamic(() => import('@/app/components/floating-cart-pill').then(mod => mod.FloatingCartPill), {
+    ssr: false,
+});
+
+const Chatbot = dynamic(() => import('@/components/chatbot'), {
+    ssr: false,
+});
+
 
 const HeroSliderSkeleton = () => (
     <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12 bg-muted">
@@ -307,5 +314,3 @@ export default function HomePage() {
         </div>
     );
 }
-
-    
