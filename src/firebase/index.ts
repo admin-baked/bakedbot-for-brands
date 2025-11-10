@@ -25,9 +25,10 @@ export function initializeFirebase() {
   const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
   const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-  // Only initialize App Check with reCAPTCHA in production.
-  // In development, the debug token set above will be used automatically.
-  if (process.env.NODE_ENV === 'production' && recaptchaSiteKey && recaptchaSiteKey !== 'YOUR_RECAPTCHA_V3_SITE_KEY_HERE') {
+  
+  // Initialize App Check with reCAPTCHA.
+  // The 'isTokenAutoRefreshEnabled: true' setting will handle token refreshes automatically.
+  if (recaptchaSiteKey) {
     try {
         initializeAppCheck(app, {
           provider: new ReCaptchaV3Provider(recaptchaSiteKey),
@@ -36,6 +37,8 @@ export function initializeFirebase() {
     } catch (error) {
         console.warn("Firebase App Check initialization failed. This may be due to an incorrect reCAPTCHA site key or network issues. The app will continue without App Check.", error);
     }
+  } else {
+    console.warn("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. Firebase App Check will not be enabled.");
   }
   
   return getSdks(app);
