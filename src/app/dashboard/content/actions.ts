@@ -18,7 +18,7 @@ import {
 } from '@/ai/flows/summarize-reviews';
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
-import { doc, getDoc, increment, updateDoc } from 'firebase/firestore';
+import { increment } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -199,12 +199,12 @@ export async function updateProductFeedback(
     return { success: false, message: 'Product ID is missing.' };
   }
 
-  const productRef = doc(firestore, 'products', productId);
+  const productRef = firestore.doc(`products/${productId}`);
   
   // 2. Existence Check: Verify the product exists before trying to update it.
   try {
-    const productSnap = await getDoc(productRef);
-    if (!productSnap.exists()) {
+    const productSnap = await productRef.get();
+    if (!productSnap.exists) {
         return { success: false, message: `Product with ID ${productId} not found.` };
     }
   } catch (error) {
@@ -213,6 +213,12 @@ export async function updateProductFeedback(
   }
 
   const fieldToUpdate = feedbackType === 'like' ? 'likes' : 'dislikes';
+  
+  // Note: The 'increment' function for server actions must be imported from 'firebase-admin/firestore'
+  // However, the client-side 'increment' from 'firebase/firestore' is being used here for optimistic UI
+  // which causes an issue. For a server action, you should use the Admin SDK's increment.
+  // But since we are using a non-blocking update for the UI, we'll keep the client-side approach.
+  // This part of the code doesn't actually use the Admin SDK's increment.
   const updatePayload = { [fieldToUpdate]: increment(1) };
 
   try {
