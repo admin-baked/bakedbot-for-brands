@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
-import { collection, addDoc, writeBatch, serverTimestamp, doc } from 'firebase/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import type { CartItem } from '@/hooks/use-cart';
 import { sendOrderEmail } from '@/ai/flows/send-order-email';
 
@@ -39,18 +39,20 @@ export async function submitOrder(input: z.infer<typeof OrderSchema>) {
   const orderPayload = {
     ...orderData,
     userId: finalUserId,
-    orderDate: serverTimestamp(),
+    orderDate: FieldValue.serverTimestamp(),
     status: 'pending' as const,
   };
   
   try {
-    const orderRef = await addDoc(collection(firestore, 'users', finalUserId, 'orders'), orderPayload);
+    const orderCollectionRef = firestore.collection('users').doc(finalUserId).collection('orders');
+    const orderRef = await orderCollectionRef.add(orderPayload);
     const orderId = orderRef.id;
 
     // Add order items to the subcollection
-    const batch = writeBatch(firestore);
+    const batch = firestore.batch();
+    const itemsCollectionRef = orderRef.collection('orderItems');
     cartItems.forEach((item: CartItem) => {
-      const itemRef = doc(collection(orderRef, 'orderItems'));
+      const itemRef = itemsCollectionRef.doc(); // Auto-generate ID
       batch.set(itemRef, {
         productId: item.id,
         productName: item.name,
