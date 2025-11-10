@@ -14,7 +14,7 @@ export const ai = genkit({
   model: 'googleai/gemini-2.5-flash',
 });
 
-// Define the schema for the email sending tool
+// Define the schema for the email sending function
 const EmailRequestSchema = z.object({
   to: z.string().email(),
   subject: z.string(),
@@ -23,18 +23,21 @@ const EmailRequestSchema = z.object({
 });
 
 /**
- * A Genkit tool that sends an email using SendGrid.
+ * Sends an email using SendGrid.
+ * IMPORTANT: This is a regular server function, NOT a Genkit tool.
+ * This prevents the AI model from being able to call it directly, which is a critical security measure.
+ * Only trusted server-side flows (like sendOrderEmail) should be able to call this function.
  */
-export const emailRequest = ai.defineTool(
-  {
-    name: 'emailRequest',
-    description: 'Sends an email to a specified recipient.',
-    inputSchema: EmailRequestSchema,
-    outputSchema: z.void(),
-  },
-  async (input) => {
+export async function emailRequest(input: z.infer<typeof EmailRequestSchema>): Promise<void> {
     // Set the SendGrid API key from environment variables just before use.
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY || '');
+    const apiKey = process.env.SENDGRID_API_KEY;
+    if (!apiKey) {
+      console.error('CRITICAL: SENDGRID_API_KEY is not set. Email will not be sent.');
+      // Do not throw an error in production, but log it.
+      // In a real app, you would have more robust monitoring here.
+      return;
+    }
+    sgMail.setApiKey(apiKey);
 
     const { to, subject, html, bcc } = input;
 
@@ -42,7 +45,8 @@ export const emailRequest = ai.defineTool(
     const fromName = process.env.SENDGRID_FROM_NAME;
 
     if (!fromEmail || !fromName) {
-      throw new Error('SENDGRID_FROM_EMAIL and SENDGRID_FROM_NAME must be set in environment variables.');
+      console.error('CRITICAL: SENDGRID_FROM_EMAIL and SENDGRID_FROM_NAME are not set. Email will not be sent.');
+      return;
     }
     
     const msg = {
@@ -60,10 +64,8 @@ export const emailRequest = ai.defineTool(
       await sgMail.send(msg);
       console.log(`Email sent to ${to}`);
     } catch (error) {
-      console.error('Error sending email:', error);
-      // In a production scenario, you might want to throw the error
-      // or handle it in a way that the flow can retry.
-      // For now, we'll log it.
+      console.error('Error sending email via SendGrid:', error);
+      // In a production scenario, you might want to have a retry mechanism
+      // or log to a dedicated monitoring service.
     }
-  }
-);
+}
