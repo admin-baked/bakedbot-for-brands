@@ -67,18 +67,23 @@ export default function LocationsPage() {
             header: true,
             skipEmptyLines: true,
             complete: (results) => {
-                const newLocations = results.data.map((row: any) => ({
-                    id: row.id || Date.now().toString(),
-                    name: row.name,
-                    address: row.address,
-                    city: row.city,
-                    state: row.state,
-                    zip: row.zip,
-                    phone: row.phone,
-                    email: row.email,
-                    lat: parseFloat(row.lat),
-                    lon: parseFloat(row.lon),
-                }));
+                const newLocations = results.data.map((row: any) => {
+                    const lat = parseFloat(row.lat);
+                    const lon = parseFloat(row.lon);
+
+                    return {
+                        id: row.id || Date.now().toString() + Math.random(),
+                        name: row.name,
+                        address: row.address,
+                        city: row.city,
+                        state: row.state,
+                        zip: row.zip,
+                        phone: row.phone,
+                        email: row.email,
+                        lat: isNaN(lat) ? undefined : lat,
+                        lon: isNaN(lon) ? undefined : lon,
+                    };
+                });
                 setLocations(newLocations);
                 toast({
                     title: 'Locations Imported',
