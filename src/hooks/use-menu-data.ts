@@ -6,7 +6,7 @@ import { useProducts } from '@/firebase/firestore/use-products';
 import { useDemoData } from './use-demo-data';
 import { useMemo, useEffect } from 'react';
 import type { Product } from '@/lib/types';
-import type { Location } from '@/hooks/use-store';
+import type { Location } from '@/lib/types';
 
 /**
  * A unified hook to get menu data (products and locations).

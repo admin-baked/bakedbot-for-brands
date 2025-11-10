@@ -6,26 +6,14 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { LucideIcon } from 'lucide-react';
 import { cookieStorage } from '@/lib/cookie-storage';
+import type { Location } from '@/lib/types';
+
 
 export type NavLink = {
   href: string;
   label: string;
   icon: keyof typeof import('lucide-react');
   hidden?: boolean;
-};
-
-export type Location = {
-    id: string;
-    name: string;
-    address: string;
-    city?: string;
-    state?: string;
-    zip?: string;
-    phone?: string;
-    email?: string;
-    lat?: number;
-    lon?: number;
-    distance?: number; // Add this for sorting
 };
 
 export interface StoreState {

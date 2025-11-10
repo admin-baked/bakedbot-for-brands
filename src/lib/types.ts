@@ -25,6 +25,7 @@ export type Location = {
     email?: string;
     lat?: number;
     lon?: number;
+    distance?: number; // Add this for sorting
 };
 
 export type Order = {
