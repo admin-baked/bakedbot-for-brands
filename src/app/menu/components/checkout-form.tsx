@@ -1,0 +1,169 @@
+
+'use client';
+
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useCart } from '@/hooks/use-cart';
+import { useUser } from '@/firebase';
+import { submitOrder } from './actions';
+import { useTransition } from 'react';
+import { Loader2, Send } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import type { Location } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+
+const phoneRegex = new RegExp(
+  /^([+]?[\s0-9]+)?(\d{3}|[(]\d{3}[)])?[\s-]?(\d{3})[\s-]?(\d{4})$/
+);
+
+const checkoutSchema = z.object({
+  customerName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  customerEmail: z.string().email({ message: 'Please enter a valid email.' }),
+  customerPhone: z.string().regex(phoneRegex, 'Invalid phone number'),
+  customerBirthDate: z.string().refine((date) => {
+    const today = new Date();
+    const birthDate = new Date(date);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age >= 21;
+  }, { message: 'You must be at least 21 years old.' }),
+});
+
+type CheckoutFormValues = z.infer<typeof checkoutSchema>;
+
+interface CheckoutFormProps {
+  onOrderSuccess: (orderId: string, userId?: string) => void;
+  selectedLocation: Location;
+}
+
+export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormProps) {
+  const { user } = useUser();
+  const { items: cart, getCartTotal } = useCart();
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+
+  const form = useForm<CheckoutFormValues>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      customerName: user?.displayName || '',
+      customerEmail: user?.email || '',
+      customerPhone: user?.phoneNumber || '',
+      customerBirthDate: '',
+    },
+  });
+
+  const onSubmit = (data: CheckoutFormValues) => {
+    if (cart.length === 0) {
+      toast({ variant: 'destructive', title: 'Your cart is empty!' });
+      return;
+    }
+
+    startTransition(async () => {
+      const { total } = getCartTotal();
+      const result = await submitOrder({
+        ...data,
+        userId: user?.uid, // Can be undefined for guest checkout
+        locationId: selectedLocation.id,
+        locationName: selectedLocation.name,
+        locationEmail: selectedLocation.email!,
+        cartItems: cart,
+        totalAmount: total,
+      });
+
+      if (result.error || !result.orderId) {
+        toast({ variant: 'destructive', title: 'Order Submission Failed', description: result.error });
+      } else {
+        onOrderSuccess(result.orderId, result.userId);
+      }
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Customer Information</CardTitle>
+      </CardHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent className="space-y-6">
+            <FormField
+              control={form.control}
+              name="customerName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Jane Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="customerEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="jane.doe@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="customerPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="(555) 123-4567" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="customerBirthDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date of Birth</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending ? <Loader2 className="animate-spin" /> : <Send className="mr-2" />}
+              Place Order
+            </Button>
+          </CardFooter>
+        </form>
+      </Form>
+    </Card>
+  );
+}

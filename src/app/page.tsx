@@ -10,14 +10,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { PenSquare, Plus, ArrowRight, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
-import CartSidebar from '@/app/menu/components/cart-sidebar';
 import { type Product, type Location } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Chatbot from '@/components/chatbot';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
-import Header from '@/app/menu/components/header';
-import { FloatingCartPill } from '@/app/menu/components/floating-cart-pill';
+import Header from '@/app/components/header';
+import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 
 const HeroSliderSkeleton = () => (
     <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden mb-12 bg-muted">
@@ -303,7 +302,6 @@ export default function HomePage() {
             <main className="container mx-auto px-4 py-8">
                  <LayoutComponent products={products || []} groupedProducts={groupedProducts} categories={categories} showSkeletons={showSkeletons} locations={locations || []} />
             </main>
-            <CartSidebar />
             <FloatingCartPill />
             <Chatbot />
         </div>
