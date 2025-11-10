@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/hooks/use-cart';
@@ -7,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { useStore } from '@/hooks/use-store';
 
 export function FloatingCartPill() {
-  const { getItemCount } = useCart();
+  const { getItemCount, _hasHydrated: isCartHydrated } = useCart();
   const itemCount = getItemCount();
-  const { _hasHydrated, setCartSheetOpen } = useStore();
+  const { _hasHydrated: isStoreHydrated, setCartSheetOpen } = useStore();
 
+  const isHydrated = isCartHydrated && isStoreHydrated;
 
-  if (!_hasHydrated || itemCount === 0) {
+  if (!isHydrated || itemCount === 0) {
     return null;
   }
 
