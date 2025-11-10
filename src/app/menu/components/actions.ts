@@ -126,6 +126,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
     console.log('✅ SUCCESS! Order created:', newOrderRef.id);
 
     // After successful order creation, send the email
+    const host = process.env.NEXT_PUBLIC_HOST || 'http://localhost:3000';
     console.log('📧 Sending order confirmation email to:', locationData.email);
     await sendOrderEmail({
         to: locationData.email,
@@ -135,7 +136,7 @@ export async function submitOrder(prevState: any, formData: FormData) {
         pickupLocationName: locationData.name,
         totalAmount: finalTotal,
         cartItems: validatedCartItems,
-        orderPageUrl: `https://brands.bakedbot.ai/order-confirmation/${newOrderRef.id}?userId=${userId}`,
+        orderPageUrl: `${host}/order-confirmation/${newOrderRef.id}?userId=${userId}`,
     });
     
     return {
