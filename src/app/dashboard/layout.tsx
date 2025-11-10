@@ -22,7 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Chatbot from '@/components/chatbot';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useUser } from '@/firebase/auth/use-user';
@@ -41,20 +41,34 @@ import { doc, onSnapshot } from 'firebase/firestore';
 const SidebarAdminControls = ({ link, onEdit, onToggle, onDelete }: { link: NavLink, onEdit: (link: NavLink) => void, onToggle: (href: string) => void, onDelete: (link: NavLink) => void }) => {
   return (
     <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
-        <SidebarMenuAction tooltip="Edit" size="icon" className="h-6 w-6" onClick={() => onEdit(link)}>
-            <Pencil/>
-        </SidebarMenuAction>
-        <SidebarMenuAction
-          tooltip={link.hidden ? 'Show' : 'Hide'}
-          size="icon"
-          className="h-6 w-6 text-muted-foreground"
-          onClick={() => onToggle(link.href)}
-        >
-            {link.hidden ? <Eye /> : <EyeOff />}
-        </SidebarMenuAction>
-        <SidebarMenuAction tooltip="Delete" size="icon" className="h-6 w-6 text-destructive" onClick={() => onDelete(link)}>
-            <Trash2/>
-        </SidebarMenuAction>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <SidebarMenuAction size="icon" className="h-6 w-6" onClick={() => onEdit(link)}>
+                    <Pencil/>
+                </SidebarMenuAction>
+            </TooltipTrigger>
+            <TooltipContent>Edit</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+           <TooltipTrigger asChild>
+                <SidebarMenuAction
+                size="icon"
+                className="h-6 w-6 text-muted-foreground"
+                onClick={() => onToggle(link.href)}
+                >
+                    {link.hidden ? <Eye /> : <EyeOff />}
+                </SidebarMenuAction>
+           </TooltipTrigger>
+           <TooltipContent>{link.hidden ? 'Show' : 'Hide'}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <SidebarMenuAction size="icon" className="h-6 w-6 text-destructive" onClick={() => onDelete(link)}>
+                    <Trash2/>
+                </SidebarMenuAction>
+            </TooltipTrigger>
+            <TooltipContent>Delete</TooltipContent>
+        </Tooltip>
     </div>
   );
 };
