@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/hooks/use-cart';
@@ -11,11 +10,13 @@ interface Product {
   name: string;
   description?: string;
   price: number;
+  prices: { [locationId: string]: number };
   image?: string;
+  imageUrl?: string;
   category?: string;
 }
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product }: { product: any }) {
   const { addToCart } = useCart();
   const { selectedLocationId } = useStore();
   
@@ -26,24 +27,16 @@ export function ProductCard({ product }: { product: Product }) {
     }
     
     console.log('🛒 Adding to cart:', product.name);
-    // @ts-ignore
-    addToCart({
-      id: product.id,
-      productId: product.id,
-      name: product.name,
-      price: product.price,
-      quantity: 1,
-      locationId: selectedLocationId,
-    });
+    addToCart(product, selectedLocationId);
   };
   
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col">
       {/* Image */}
       <div className="relative h-48 bg-gradient-to-br from-green-100 to-green-200">
-        {product.image ? (
+        {product.imageUrl ? (
           <Image
-            src={product.image}
+            src={product.imageUrl}
             alt={product.name}
             fill
             className="object-cover"
@@ -101,4 +94,3 @@ export function ProductCard({ product }: { product: Product }) {
     </div>
   );
 }
-

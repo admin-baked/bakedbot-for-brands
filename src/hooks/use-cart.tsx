@@ -18,7 +18,6 @@ interface CartActions {
   addToCart: (product: Product, locationId?: string | null) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
-  updateItemPrices: (locationId: string | null, products: Product[]) => void;
   clearCart: () => void;
   getCartTotal: () => { subtotal: number; taxes: number; total: number };
   getItemCount: () => number;
@@ -75,21 +74,6 @@ const useCartStore = create<CartStore>()(
           };
         }),
         
-      updateItemPrices: (locationId, products) =>
-        set((state) => ({
-          items: state.items.map(cartItem => {
-            const fullProduct = products.find(p => p.id === cartItem.id);
-            if (!fullProduct) return cartItem; // Should not happen
-
-            // Determine the new price based on the selected location
-            const newPrice = (locationId && fullProduct.prices?.[locationId]) 
-              ? fullProduct.prices[locationId] 
-              : fullProduct.price;
-            
-            return { ...cartItem, price: newPrice };
-          })
-        })),
-
       clearCart: () => set({ items: [] }),
 
       getCartTotal: () => {
@@ -112,3 +96,9 @@ const useCartStore = create<CartStore>()(
 
 // This hook can be used throughout the app
 export const useCart = () => useCartStore((state) => state);
+
+// The CartProvider is now a simple component that just renders its children,
+// as Zustand's persist middleware handles the state without a context provider.
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}

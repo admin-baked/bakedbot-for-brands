@@ -1,11 +1,10 @@
-
 'use client';
 
 import { ProductCard } from './product-card';
-import { Product } from '@/lib/types';
+import type { Product } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
-function ProductSkeleton() {
-  return (
+const ProductSkeleton = () => (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
       <div className="h-48 bg-gray-200"></div>
       <div className="p-4 space-y-3">
@@ -18,8 +17,8 @@ function ProductSkeleton() {
         </div>
       </div>
     </div>
-  );
-}
+);
+
 
 export function ProductGrid({ products, isLoading }: { products: Product[], isLoading: boolean }) {
   

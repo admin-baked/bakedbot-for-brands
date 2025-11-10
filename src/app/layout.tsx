@@ -3,9 +3,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { useStore } from '@/hooks/use-store';
-import { useEffect } from 'react';
-import { themes } from '@/lib/themes';
 import { AuthProvider } from '@/firebase/provider';
 import { CartProvider } from '@/hooks/use-cart';
 
@@ -14,21 +11,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { theme, _hasHydrated } = useStore();
-
-  useEffect(() => {
-    if (_hasHydrated) {
-      const selectedTheme = themes.find((t) => t.name === theme);
-      if (selectedTheme) {
-        const root = document.documentElement;
-        Object.entries(selectedTheme.cssVars.light).forEach(([key, value]) => {
-          root.style.setProperty(`--${key}`, value);
-        });
-        document.body.classList.remove(...themes.map(t => `theme-${t.name}`));
-        document.body.classList.add(`theme-${theme}`);
-      }
-    }
-  }, [theme, _hasHydrated]);
 
   return (
     <html lang="en" suppressHydrationWarning>
