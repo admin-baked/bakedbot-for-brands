@@ -17,38 +17,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Logo } from '@/components/logo';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { Separator } from '@/components/ui/separator';
-import QRCode from 'qrcode';
-import { useEffect, useState } from 'react';
+import { QRDisplay } from './components/qr-display';
 import { cn } from '@/lib/utils';
-
-const QRDisplay = ({ text }: { text: string }) => {
-    const [qrCodeUrl, setQrCodeUrl] = useState('');
-
-    useEffect(() => {
-        if (text) {
-            QRCode.toDataURL(text, {
-                width: 200,
-                margin: 2,
-                color: {
-                    dark: '#000000',
-                    light: '#FFFFFF'
-                }
-            })
-            .then(url => {
-                setQrCodeUrl(url);
-            })
-            .catch(err => {
-                console.error('Failed to generate QR code:', err);
-            });
-        }
-    }, [text]);
-
-    if (!qrCodeUrl) {
-        return <Skeleton className="h-48 w-48" />;
-    }
-
-    return <Image src={qrCodeUrl} alt="Order QR Code" width={192} height={192} className="rounded-lg" />;
-};
 
 
 function OrderPageClient() {
@@ -116,7 +86,9 @@ function OrderPageClient() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                    <div className="flex flex-col items-center justify-center gap-4 border-y py-6">
-                        <QRDisplay text={orderUrl} />
+                        <Suspense fallback={<Skeleton className="h-48 w-48" />}>
+                          <QRDisplay text={orderUrl} />
+                        </Suspense>
                         <div className='text-center'>
                            <p className='font-semibold'>Show this QR code at the dispensary.</p>
                            <p className='text-sm text-muted-foreground'>This will help us quickly locate your order.</p>
