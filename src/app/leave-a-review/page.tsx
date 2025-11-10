@@ -13,7 +13,7 @@ import { Star, Upload, Send, Loader2, PartyPopper } from 'lucide-react';
 import Link from 'next/link';
 import { submitReview } from './actions';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase/hooks/use-user';
+import { useUser } from '@/firebase/auth/use-user';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useMenuData } from '@/hooks/use-menu-data';
 
