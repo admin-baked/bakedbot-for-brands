@@ -12,7 +12,7 @@ import type { OrderData } from "./components/orders-table";
 
 
 export default function OrdersPage() {
-  const { user, isUserLoading } = useUser();
+  const { isUserLoading } = useUser();
   const { locations } = useMenuData();
   const { _hasHydrated } = useStore();
   const { data: ordersData, isLoading: areOrdersLoading } = useOrders();
