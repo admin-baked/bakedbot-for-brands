@@ -67,31 +67,33 @@ export function DispensaryLocator() {
           {isLocating ? <Loader2 className="mr-2 animate-spin" /> : <Navigation className="mr-2" />}
           Use My Current Location
         </Button>
-        <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto mt-8">
-            {displayLocations.map(loc => (
-                <Card 
-                    key={loc.id} 
-                    className={cn(
-                        "text-left cursor-pointer transition-all",
-                        selectedLocationId === loc.id ? 'border-primary ring-2 ring-primary' : 'border-border'
-                    )}
-                    onClick={() => handleSelectLocation(loc.id)}
-                >
-                    <CardHeader>
-                        <CardTitle className="flex items-start gap-2">
-                            <MapPin className="h-5 w-5 mt-1 text-primary shrink-0" />
-                            <span>{loc.name}</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground">{loc.address}</p>
-                        <p className="text-sm text-muted-foreground">{loc.city}, {loc.state} {loc.zip}</p>
-                        {loc.distance && (
-                            <p className="text-sm font-semibold mt-2">{loc.distance.toFixed(1)} miles away</p>
+        <div className="mt-8">
+            <div className="flex gap-6 pb-4 -mx-4 px-4 overflow-x-auto">
+                {displayLocations.map(loc => (
+                    <Card 
+                        key={loc.id} 
+                        className={cn(
+                            "text-left cursor-pointer transition-all w-80 shrink-0",
+                            selectedLocationId === loc.id ? 'border-primary ring-2 ring-primary' : 'border-border'
                         )}
-                    </CardContent>
-                </Card>
-            ))}
+                        onClick={() => handleSelectLocation(loc.id)}
+                    >
+                        <CardHeader>
+                            <CardTitle className="flex items-start gap-2">
+                                <MapPin className="h-5 w-5 mt-1 text-primary shrink-0" />
+                                <span>{loc.name}</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground">{loc.address}</p>
+                            <p className="text-sm text-muted-foreground">{loc.city}, {loc.state} {loc.zip}</p>
+                            {loc.distance && (
+                                <p className="text-sm font-semibold mt-2">{loc.distance.toFixed(1)} miles away</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
         </div>
       </div>
     </div>
