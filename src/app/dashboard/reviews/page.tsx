@@ -11,7 +11,7 @@ import type { ReviewData } from "./components/reviews-table";
 
 
 export default function ReviewsPage() {
-  const { user, isUserLoading } = useUser();
+  const { isUserLoading } = useUser();
   const [reviews, setReviews] = useState<ReviewData[]>([]);
   const { data: products, isLoading: areProductsLoading } = useProducts();
   const { data: reviewsData, isLoading: areReviewsLoading } = useReviews();
