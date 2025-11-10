@@ -191,7 +191,7 @@ export async function importProductsFromCsv(prevState: any, formData: FormData) 
         await batch.commit();
 
         revalidatePath('/dashboard/settings');
-        revalidatePath('/menu'); // Revalidate menu to show new products
+        revalidatePath('/'); // Revalidate menu to show new products
 
         return {
             message: `Successfully imported ${parseResult.data.length} products from ${productsFile.name}.`,

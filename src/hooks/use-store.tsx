@@ -66,8 +66,6 @@ export interface StoreState {
   removeNavLink: (href: string) => void;
   locations: Location[];
   setLocations: (locations: Location[]) => void;
-  isLoadingLocations: boolean;
-  setIsLoadingLocations: (loading: boolean) => void;
   addLocation: (location: Location) => void;
   updateLocation: (id: string, newLocation: Partial<Location>) => void;
   removeLocation: (id: string) => void;
@@ -103,7 +101,6 @@ const getDefaultInitialState = () => ({
   sendgridApiKey: null,
   navLinks: defaultNavLinks,
   locations: [],
-  isLoadingLocations: false,
   _hasHydrated: false,
 });
 
@@ -145,8 +142,7 @@ const createHydratableStore = (initialState: StoreState) => {
                     navLinks: state.navLinks.map((link) => link.href === href ? { ...link, hidden: !link.hidden } : link)
                 })),
                 removeNavLink: (href: string) => set(state => ({ navLinks: state.navLinks.filter(l => l.href !== href) })),
-                setLocations: (locations: Location[]) => set({ locations, isLoadingLocations: false }),
-                setIsLoadingLocations: (loading: boolean) => set({ isLoadingLocations: loading }),
+                setLocations: (locations: Location[]) => set({ locations }),
                 addLocation: (location: Location) => set((state) => ({ locations: [...state.locations, location] })),
                 updateLocation: (id: string, newLocation: Partial<Location>) => set((state) => ({
                     locations: state.locations.map((loc) => loc.id === id ? { ...loc, ...newLocation } : loc)
@@ -169,6 +165,8 @@ const createHydratableStore = (initialState: StoreState) => {
                     welcomeMessage: state.welcomeMessage,
                     navLinks: state.navLinks,
                     locations: state.locations,
+                    emailProvider: state.emailProvider,
+                    sendgridApiKey: state.sendgridApiKey,
                  }),
                 onRehydrateStorage: () => (state) => {
                     if (state) {
