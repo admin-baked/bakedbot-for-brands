@@ -6,7 +6,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 // Define the schema for review form validation
 const ReviewSchema = z.object({
@@ -57,6 +57,7 @@ export async function submitReview(prevState: any, formData: FormData) {
   const reviewCollectionRef = collection(firestore, 'products', productId, 'reviews');
   
   const dataToSave = {
+      productId: productId,
       ...reviewData,
       userId: user.uid, // Use the secure, server-side user ID
       verificationImageUrl,
@@ -80,7 +81,7 @@ export async function submitReview(prevState: any, formData: FormData) {
         path: reviewCollectionRef.path,
         operation: 'create',
         requestResourceData: { ...dataToSave, createdAt: 'SERVER_TIMESTAMP' } // Use string placeholder for server value
-    } satisfies SecurityRuleContext);
+    });
     
     // Server actions can't emit client events. Instead, we return a structured
     // error that the client form can display.
