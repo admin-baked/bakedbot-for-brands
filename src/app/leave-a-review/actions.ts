@@ -3,10 +3,8 @@
 
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 // Define the schema for review form validation
 const ReviewSchema = z.object({
@@ -47,19 +45,19 @@ export async function submitReview(prevState: any, formData: FormData) {
       ? 'placeholder/verification_image.jpg' 
       : '';
   
-  const reviewCollectionRef = collection(firestore, 'products', productId, 'reviews');
+  const reviewCollectionRef = firestore.collection('products').doc(productId).collection('reviews');
   
   const dataToSave = {
       productId: productId,
       ...reviewData,
       userId: userId, // Use the UID passed from the client
       verificationImageUrl,
-      createdAt: serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
   };
 
   try {
     // The Admin SDK has permission to write here.
-    await addDoc(reviewCollectionRef, dataToSave);
+    await reviewCollectionRef.add(dataToSave);
 
     revalidatePath('/products'); // Revalidate product pages if they show reviews
     revalidatePath('/dashboard/reviews'); // also revalidate the reviews dashboard
@@ -70,15 +68,7 @@ export async function submitReview(prevState: any, formData: FormData) {
     };
 
   } catch (serverError: any) {
-    // This will likely not be a permission error with Admin SDK, but rather a server/network issue.
-    // However, if rules were ever applied to the Admin SDK (not default), this would be relevant.
-    const permissionError = new FirestorePermissionError({
-        path: reviewCollectionRef.path,
-        operation: 'create',
-        requestResourceData: { ...dataToSave, createdAt: 'SERVER_TIMESTAMP' }
-    });
-    
-    console.error("Server Action Error (submitReview):", permissionError.message);
+    console.error("Server Action Error (submitReview):", serverError);
     
     return {
       message: `Submission failed: An unexpected server error occurred.`,

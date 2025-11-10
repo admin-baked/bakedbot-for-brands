@@ -4,10 +4,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/firebase/server-client';
-import { doc, setDoc, writeBatch } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import * as Papa from 'papaparse';
+import { FieldValue } from 'firebase-admin/firestore';
 
 // This is a simplified version for the demo. In a real app, you'd get the UID
 // from a secure session or by verifying an ID token.
@@ -90,11 +87,13 @@ export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
   }
 
   const { apiKey, userId } = validatedFields.data;
-  const userPrivateRef = doc(firestore, 'user-private', userId);
+  
+  // Use Admin SDK methods
+  const userPrivateRef = firestore.doc(`user-private/${userId}`);
   
   try {
     // The Admin SDK has permission to write here.
-    await setDoc(userPrivateRef, { bakedBotApiKey: apiKey }, { merge: true });
+    await userPrivateRef.set({ bakedBotApiKey: apiKey }, { merge: true });
     
     revalidatePath('/dashboard/settings');
 
@@ -104,8 +103,6 @@ export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
     };
   } catch (serverError) {
       // This path would be hit if there are network issues or other server-side problems.
-      // Firestore security rules do not apply to the Admin SDK, so a permission error here
-      // would indicate a problem with the service account itself.
       return {
           message: 'An unexpected server error occurred. Could not save API key.',
           error: true
@@ -129,6 +126,7 @@ export async function importProductsFromCsv(prevState: any, formData: FormData) 
 
     try {
         const fileContent = await productsFile.text();
+        const Papa = await import('papaparse');
         
         // Use Papaparse to parse the CSV content
         const parseResult = Papa.parse(fileContent, {
@@ -147,7 +145,7 @@ export async function importProductsFromCsv(prevState: any, formData: FormData) 
         }
 
         const { firestore } = await createServerClient();
-        const batch = writeBatch(firestore);
+        const batch = firestore.batch();
 
         parseResult.data.forEach((row: any) => {
             if (!row.id) {
@@ -179,7 +177,7 @@ export async function importProductsFromCsv(prevState: any, formData: FormData) 
                 dislikes: Number(row.dislikes) || 0,
             };
 
-            const productRef = doc(firestore, 'products', productData.id);
+            const productRef = firestore.collection('products').doc(productData.id);
             batch.set(productRef, productData);
         });
 
