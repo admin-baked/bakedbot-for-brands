@@ -1,11 +1,12 @@
 
 import Image from 'next/image';
+import { defaultLogo } from '@/lib/data';
 
 export function Logo() {
   return (
     <div className="flex items-center gap-2" aria-label="BakedBot AI Home">
       <Image
-        src="https://storage.googleapis.com/stedi-assets/misc/bakedbot-logo.png"
+        src={defaultLogo}
         alt="BakedBot AI Logo"
         width={140}
         height={40}
