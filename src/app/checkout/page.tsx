@@ -22,12 +22,12 @@ export default function CheckoutPage() {
   
   // Subscribe to state
   const { _hasHydrated, selectedLocationId } = useStore();
-  const { locations } = useMenuData();
+  const { locations, isLoading: isMenuLoading } = useMenuData();
   const { items: cart, getCartTotal, clearCart } = useCart();
   
   useEffect(() => {
-    // Wait for hydration
-    if (!_hasHydrated) {
+    // Wait for hydration and menu data
+    if (!_hasHydrated || isMenuLoading) {
       setStatus('loading');
       return;
     }
@@ -52,13 +52,6 @@ export default function CheckoutPage() {
         return;
       }
       
-      if (locations.length === 0) {
-        setErrorMessage('Locations not loaded. Redirecting...');
-        setStatus('error');
-        setTimeout(() => router.replace('/?error=no-locations'), 2000);
-        return;
-      }
-      
       const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
       if (!selectedLocation) {
         setErrorMessage('Selected location could not be found. Redirecting...');
@@ -71,7 +64,7 @@ export default function CheckoutPage() {
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [_hasHydrated, selectedLocationId, locations.length, cart.length, router]);
+  }, [_hasHydrated, selectedLocationId, locations, isMenuLoading, cart.length, router]);
   
   const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
   const { subtotal, taxes, total } = getCartTotal();

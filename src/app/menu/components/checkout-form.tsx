@@ -32,6 +32,7 @@ const checkoutSchema = z.object({
   customerEmail: z.string().email({ message: 'Please enter a valid email.' }),
   customerPhone: z.string().regex(phoneRegex, 'Invalid phone number'),
   customerBirthDate: z.string().refine((date) => {
+    if (!date) return false;
     const today = new Date();
     const birthDate = new Date(date);
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -112,7 +113,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormP
         if (result.ok && result.orderId) {
           onOrderSuccess(result.orderId, user?.uid);
         } else {
-          toast({ variant: 'destructive', title: 'Order Submission Failed', description: 'Could not submit order. Please try again.' });
+          toast({ variant: 'destructive', title: 'Order Submission Failed', description: result.error || 'Could not submit order. Please try again.' });
         }
       } catch (e) {
           console.error("submitOrder failed:", e);
