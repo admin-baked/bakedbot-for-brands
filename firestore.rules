@@ -19,13 +19,14 @@ service cloud.firestore {
     
     // Rules for user-specific data
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow create: if true;
+      allow read, update: if isOwner(userId);
     }
     
     // Rules for orders - created in a top-level collection now
     match /orders/{orderId} {
       allow create: if true; // In a real app, this would be locked down with AppCheck/auth
-      allow read, update, delete: if isOwner(request.resource.data.customer.userId); // Example if you add userId to customer object
+      allow read, update, delete: if false; // For demo, lock this down. A real app would check ownership.
     }
 
     // Rules for reviews
