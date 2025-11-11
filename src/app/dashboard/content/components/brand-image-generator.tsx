@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -20,6 +21,7 @@ import { useStore } from '@/hooks/use-store';
 import Image from 'next/image';
 import { createSocialMediaImage } from '../actions';
 import type { ImageFormState } from '../actions';
+import { defaultChatbotIcon } from '@/lib/data';
 
 const initialImageState: ImageFormState = {
   message: '',
@@ -33,7 +35,7 @@ export default function BrandImageGenerator({ onImageGenerated }: { onImageGener
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const { chatbotIcon, brandImageGenerations, lastBrandImageGeneration, recordBrandImageGeneration } = useStore();
+  const { brandImageGenerations, lastBrandImageGeneration, recordBrandImageGeneration } = useStore();
 
   const canGenerate = () => {
     if (!lastBrandImageGeneration) return true;
@@ -60,15 +62,6 @@ export default function BrandImageGenerator({ onImageGenerated }: { onImageGener
       return;
     }
 
-    if (!chatbotIcon) {
-        toast({
-            variant: 'destructive',
-            title: 'Brand Logo Missing',
-            description: 'Please upload a brand logo in the settings page first.',
-        });
-        return;
-    }
-
     if (!canGenerate()) {
         toast({
             variant: 'destructive',
@@ -87,7 +80,7 @@ export default function BrandImageGenerator({ onImageGenerated }: { onImageGener
     // We use the 'features' field to pass the freeform prompt
     formData.append('features', prompt); 
     formData.append('brandVoice', 'Creative');
-    formData.append('logoDataUri', chatbotIcon);
+    formData.append('logoDataUri', defaultChatbotIcon);
 
     startTransition(async () => {
       const result = await createSocialMediaImage(initialImageState, formData);
@@ -175,14 +168,6 @@ export default function BrandImageGenerator({ onImageGenerated }: { onImageGener
                                     <p className="mt-4 text-sm text-muted-foreground">Your generated image will appear here.</p>
                                 </div>
                             )}
-
-                             {!chatbotIcon && (
-                                <div className="flex items-center gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-700">
-                                    <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                                    <span>Please upload a brand logo in Settings to use the watermark feature.</span>
-                                </div>
-                             )}
-
                         </div>
                         <DialogFooter className='gap-2 sm:gap-0'>
                             {generatedImage && (
@@ -190,7 +175,7 @@ export default function BrandImageGenerator({ onImageGenerated }: { onImageGener
                                     <Download className="mr-2" /> Download
                                 </Button>
                             )}
-                            <Button onClick={handleGenerateClick} disabled={isPending || !canGenerate() || !chatbotIcon}>
+                            <Button onClick={handleGenerateClick} disabled={isPending || !canGenerate()}>
                                 {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Wand2 className="mr-2" />}
                                 Generate Image
                             </Button>

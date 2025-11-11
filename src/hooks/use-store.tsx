@@ -27,8 +27,6 @@ export interface StoreState {
   setSelectedLocationId: (id: string | null) => void;
   isCartSheetOpen: boolean;
   setCartSheetOpen: (isOpen: boolean) => void;
-  chatbotIcon: string | null;
-  setChatbotIcon: (icon: string | null) => void;
   chatExperience: 'default' | 'classic';
   setChatExperience: (experience: 'default' | 'classic') => void;
   brandImageGenerations: number;
@@ -81,7 +79,6 @@ export const useStore = create<StoreState>()(
       isUsingDemoData: true,
       selectedLocationId: null,
       isCartSheetOpen: false,
-      chatbotIcon: "https://storage.googleapis.com/stedi-assets/misc/smokey-icon-1.png",
       chatExperience: 'default' as 'default' | 'classic',
       brandImageGenerations: 0,
       lastBrandImageGeneration: null,
@@ -100,7 +97,6 @@ export const useStore = create<StoreState>()(
       setIsUsingDemoData: (isDemo: boolean) => set({ isUsingDemoData: isDemo }),
       setSelectedLocationId: (id: string | null) => set({ selectedLocationId: id }),
       setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
-      setChatbotIcon: (icon: string | null) => set({ chatbotIcon: icon }),
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
       setBrandColor: (color: string) => set({ brandColor: color }),
       setBrandUrl: (url: string) => set({ brandUrl: url }),
@@ -144,7 +140,6 @@ export const useStore = create<StoreState>()(
           selectedLocationId: state.selectedLocationId,
           theme: state.theme,
           menuStyle: state.menuStyle,
-          chatbotIcon: state.chatbotIcon,
           chatExperience: state.chatExperience,
           brandColor: state.brandColor,
           brandUrl: state.brandUrl,

@@ -22,6 +22,7 @@ import type { ImageFormState } from '@/app/dashboard/content/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { ChatbotIcon } from './chatbot-icon';
+import { defaultChatbotIcon } from '@/lib/data';
 
 
 type Message = {
@@ -440,7 +441,6 @@ export default function Chatbot() {
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { products } = useMenuData();
-  const { chatbotIcon: customIcon } = useStore();
 
 
   const scrollToBottom = () => {
@@ -595,23 +595,13 @@ export default function Chatbot() {
     setIsBotTyping(true);
 
     if (chatMode === 'image') {
-        const logo = customIcon;
-        if (!logo) {
-            const errorMessage: Message = {
-                id: Date.now() + 1,
-                text: "I can't generate a watermarked image without a brand logo. Please upload one in the Settings page on the dashboard.",
-                sender: 'bot',
-              };
-              setMessages((prev) => [...prev, errorMessage]);
-              setIsBotTyping(false);
-              return;
-        }
-
+        const logoDataUri = defaultChatbotIcon; // Use the reliable default icon URL
+        
         const formData = new FormData();
         formData.append('productName', 'Brand Image');
         formData.append('features', currentInput); 
         formData.append('brandVoice', 'Creative');
-        formData.append('logoDataUri', logo);
+        formData.append('logoDataUri', logoDataUri);
         
         const result = await createSocialMediaImage(initialImageState, formData);
 
@@ -680,7 +670,7 @@ export default function Chatbot() {
     } finally {
       setIsBotTyping(false);
     }
-  }, [inputValue, isBotTyping, hasStartedChat, chatMode, customIcon, products, handleOnboardingComplete]);
+  }, [inputValue, isBotTyping, hasStartedChat, chatMode, products, handleOnboardingComplete]);
 
   const handleFeedback = (productId: string, type: 'like' | 'dislike') => {
     startTransition(async () => {
