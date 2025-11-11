@@ -36,6 +36,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { doc, onSnapshot } from 'firebase/firestore';
 import Logo from '@/components/logo';
+import { useToast } from '@/hooks/use-toast';
 
 
 const SidebarAdminControls = ({ link, onEdit, onToggle, onDelete }: { link: NavLink, onEdit: (link: NavLink) => void, onToggle: (href: string) => void, onDelete: (link: NavLink) => void }) => {
@@ -83,6 +84,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const { auth, firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
 
   const { isCeoMode, navLinks, toggleNavLinkVisibility, _hasHydrated, setIsCeoMode } = useStore();
   const [userProfile, setUserProfile] = React.useState<any>(null);
@@ -141,7 +143,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             router.replace('/brand-login');
         }
     }
-}, [user, userProfile, isUserLoading, isProfileLoading, pathname, router]);
+}, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, toast]);
 
 
   const handleSignOut = async () => {
@@ -383,5 +385,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
-    
