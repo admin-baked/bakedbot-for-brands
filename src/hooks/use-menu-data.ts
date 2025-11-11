@@ -1,76 +1,75 @@
 
 'use client';
 
-import { useStore } from '@/hooks/use-store';
-import { useDemoData } from '@/hooks/use-demo-data';
-import { useState, useEffect } from 'react';
-import type { Product, Location } from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { getFirestore, collection, onSnapshot, query } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
-import { collection, query, onSnapshot } from 'firebase/firestore';
+import { demoProducts, demoLocations } from '@/lib/data';
+import type { Product, Location } from '@/lib/types';
+import { useStore } from './use-store';
 
-/**
- * A unified hook to get menu data (products and locations).
- * It intelligently uses demo data as a fallback and then attempts to load
- * live data from Firestore on the client side.
- */
-export function useMenuData() {
-  const { _hasHydrated, locations: storeLocations, isUsingDemoData } = useStore(state => ({
-    _hasHydrated: state._hasHydrated,
-    locations: state.locations,
-    isUsingDemoData: state.isUsingDemoData
-  }));
+type UseMenuOpts = { initialDemo: boolean };
+
+export function useMenuData({ initialDemo }: UseMenuOpts) {
   const { firestore } = useFirebase();
-  const { products: demoProducts, locations: demoLocations } = useDemoData();
-  
-  // Initialize with demo data to prevent hydration mismatch
+  const { locations: storeLocations, isUsingDemoData } = useStore();
+
+  // Initialize state with demo data to prevent hydration mismatch.
   const [products, setProducts] = useState<Product[]>(demoProducts);
-  const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
+  const [locations, setLocations] = useState<Location[]>(demoLocations);
+  
+  // Loading is only true if we are in live mode initially.
+  const [isLoading, setIsLoading] = useState(!initialDemo);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Only proceed if the store has hydrated and we are in "live" mode.
-    if (!_hasHydrated || isUsingDemoData) {
-      if(isUsingDemoData) {
-        setProducts(demoProducts); // Ensure demo products are set if mode is toggled
-      }
-      setIsFirestoreLoading(false);
+    // This effect runs on the client and syncs with the live store value.
+    if (isUsingDemoData) {
+      setProducts(demoProducts);
+      setLocations(demoLocations);
+      setIsLoading(false);
       return;
-    };
-    
+    }
+
+    // Live data mode
     if (!firestore) {
-      // If firestore is not available in live mode, show no products.
+      setIsLoading(false);
+      // Fallback to empty arrays if firestore is not available in live mode
       setProducts([]);
-      setIsFirestoreLoading(false);
+      setLocations([]);
       return;
-    };
+    }
+
+    setIsLoading(true);
     
-    setIsFirestoreLoading(true);
+    // Subscribe to products
     const productsQuery = query(collection(firestore, 'products'));
-    const unsubscribe = onSnapshot(productsQuery, (snapshot) => {
+    const productsUnsub = onSnapshot(productsQuery, 
+      (snapshot) => {
         if (!snapshot.empty) {
             const firestoreProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
             setProducts(firestoreProducts);
         } else {
-            // If live mode is on but the collection is empty, show no products.
+            // Live mode, but no products in the database. Return empty.
             setProducts([]);
         }
-        setIsFirestoreLoading(false);
-    }, (error) => {
-        console.error("Error fetching products from Firestore, showing no products in live mode:", error);
-        setProducts([]);
-        setIsFirestoreLoading(false);
-    });
+        setIsLoading(false);
+      }, 
+      (err) => {
+        console.error("Error fetching products:", err);
+        setError(err);
+        setProducts([]); // Fallback to empty on error
+        setIsLoading(false);
+      }
+    );
 
-    return () => unsubscribe();
-  }, [firestore, demoProducts, isUsingDemoData, _hasHydrated]);
+    // For locations, we continue to use the Zustand store as the source of truth in live mode
+    setLocations(storeLocations);
 
-  const finalProducts = isUsingDemoData ? demoProducts : products;
-  const finalLocations = _hasHydrated && !isUsingDemoData ? storeLocations : demoLocations;
-  const isLoading = !_hasHydrated || (isFirestoreLoading && !isUsingDemoData);
+    return () => {
+      productsUnsub();
+    };
+  }, [isUsingDemoData, firestore, storeLocations]);
 
-  return {
-    products: finalProducts,
-    locations: finalLocations,
-    isLoading,
-    isHydrated: _hasHydrated,
-  };
+  return { products, locations, isLoading, error };
 }

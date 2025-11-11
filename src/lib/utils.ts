@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -29,4 +30,19 @@ export function haversineDistance(
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   
   return R * c;
+}
+
+/**
+ * Sets a cookie to persist the demo mode state.
+ * @param on - Whether demo mode is enabled.
+ */
+export function setDemoCookie(on: boolean) {
+  if (typeof document === 'undefined') return;
+  const oneYear = 365 * 24 * 60 * 60;
+  document.cookie = [
+    `isUsingDemoData=${on ? "1" : "0"}`,
+    "Max-Age=" + oneYear,
+    "Path=/",
+    "SameSite=Lax",
+  ].join("; ");
 }

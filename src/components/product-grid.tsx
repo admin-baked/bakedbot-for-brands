@@ -7,6 +7,7 @@ import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
 import { Database } from 'lucide-react';
 import Link from 'next/link';
+import type { Product } from '@/lib/types';
 
 const ProductSkeleton = () => (
     <div className="bg-card rounded-lg shadow-lg overflow-hidden border">
@@ -27,11 +28,10 @@ const ProductSkeleton = () => (
 );
 
 
-export function ProductGrid() {
-  const { products, isLoading, isHydrated } = useMenuData();
+export function ProductGrid({ products, isLoading }: { products: Product[]; isLoading: boolean; }) {
   const { isUsingDemoData } = useStore();
   
-  if (isLoading || !isHydrated) {
+  if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {[...Array(8)].map((_, i) => (

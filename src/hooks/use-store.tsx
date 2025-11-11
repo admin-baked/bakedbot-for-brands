@@ -5,7 +5,7 @@ import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import * as LucideIcons from 'lucide-react';
-import { cookieStorage } from '@/lib/cookie-storage';
+import { setDemoCookie } from '@/lib/utils';
 import type { Location } from '@/lib/types';
 
 
@@ -94,7 +94,10 @@ export const useStore = create<StoreState>()(
       _hasHydrated: false,
       setTheme: (theme: Theme) => set({ theme }),
       setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
-      setIsUsingDemoData: (isDemo: boolean) => set({ isUsingDemoData: isDemo }),
+      setIsUsingDemoData: (isDemo: boolean) => {
+        setDemoCookie(isDemo);
+        set({ isUsingDemoData: isDemo });
+      },
       setSelectedLocationId: (id: string | null) => set({ selectedLocationId: id }),
       setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
@@ -134,23 +137,7 @@ export const useStore = create<StoreState>()(
       setHasHydrated: (hydrated: boolean) => set({ _hasHydrated: hydrated }),
     }),
     {
-      name: 'bakedbot-storage',
-      storage: createJSONStorage(() => cookieStorage),
-      partialize: (state) => ({ 
-          isUsingDemoData: state.isUsingDemoData,
-          selectedLocationId: state.selectedLocationId,
-          theme: state.theme,
-          menuStyle: state.menuStyle,
-          chatExperience: state.chatExperience,
-          brandColor: state.brandColor,
-          brandUrl: state.brandUrl,
-          basePrompt: state.basePrompt,
-          welcomeMessage: state.welcomeMessage,
-          navLinks: state.navLinks,
-          locations: state.locations,
-          emailProvider: state.emailProvider,
-          sendgridApiKey: state.sendgridApiKey,
-        }),
+      name: 'bakedbot-storage', // Keep a separate name for local storage
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);
