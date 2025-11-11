@@ -5,20 +5,19 @@ import { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useUser } from '@/firebase/auth/use-user';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Home, MapPin, QrCode } from 'lucide-react';
+import { ArrowLeft, Home, MapPin, CheckCircle, Clock, PackageCheck, Package, CircleX } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { Separator } from '@/components/ui/separator';
 import { QRDisplay } from './components/qr-display';
 import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase/provider';
-import { doc, onSnapshot, collection, query, getDoc } from 'firebase/firestore';
-import type { OrderDoc, OrderItemDoc } from '@/lib/types';
+import { doc, onSnapshot } from 'firebase/firestore';
+import type { OrderDoc } from '@/lib/types';
 import { Footer } from '@/app/components/footer';
 
 
@@ -43,7 +42,8 @@ function OrderPageClient() {
         setIsLoading(true);
         const orderRef = doc(firestore, 'orders', orderId);
 
-        const unsubscribeOrder = onSnapshot(orderRef, (docSnap) => {
+        // Real-time listener for the order
+        const unsubscribe = onSnapshot(orderRef, (docSnap) => {
             if (docSnap.exists()) {
                 setOrder({ id: docSnap.id, ...docSnap.data() } as OrderDoc);
             } else {
@@ -55,9 +55,7 @@ function OrderPageClient() {
             setIsLoading(false);
         });
 
-        return () => {
-            unsubscribeOrder();
-        };
+        return () => unsubscribe(); // Cleanup listener on unmount
 
     }, [firestore, orderId]);
     
@@ -84,20 +82,24 @@ function OrderPageClient() {
         );
     }
     
-     const getStatusClass = (status: string) => {
+    const getStatusStyles = (status: OrderDoc['status']) => {
         switch (status) {
-            case 'pending': return 'bg-yellow-500/20 text-yellow-700';
-            case 'confirmed': return 'bg-blue-500/20 text-blue-700';
-            case 'ready': return 'bg-teal-500/20 text-teal-700';
-            case 'completed': return 'bg-green-500/20 text-green-700';
-            case 'cancelled': return 'bg-red-500/20 text-red-700';
-            default: return 'bg-gray-500/20 text-gray-700';
+            case 'submitted': return { icon: Clock, className: 'bg-gray-500/20 text-gray-700' };
+            case 'pending': return { icon: Clock, className: 'bg-yellow-500/20 text-yellow-700' };
+            case 'confirmed': return { icon: CheckCircle, className: 'bg-blue-500/20 text-blue-700' };
+            case 'ready': return { icon: PackageCheck, className: 'bg-teal-500/20 text-teal-700' };
+            case 'completed': return { icon: Package, className: 'bg-green-500/20 text-green-700' };
+            case 'cancelled': return { icon: CircleX, className: 'bg-red-500/20 text-red-700' };
+            default: return { icon: Clock, className: 'bg-gray-500/20 text-gray-700' };
         }
     };
+
 
     if (!order) {
         return <OrderPageSkeleton />;
     }
+    
+    const { icon: StatusIcon, className: statusClassName } = getStatusStyles(order.status);
 
     return (
         <div className="max-w-2xl mx-auto py-8 px-4">
@@ -108,7 +110,7 @@ function OrderPageClient() {
                     <CardDescription>Thank you, {order.customer.name}! Your order is being prepared.</CardDescription>
                      <div className="flex items-center justify-center gap-2">
                        <span className="text-sm text-muted-foreground">Order ID:</span>
-                       <span className="font-mono text-xs text-muted-foreground bg-muted rounded px-2 py-1">#{orderId}</span>
+                       <span className="font-mono text-xs text-muted-foreground bg-muted rounded px-2 py-1">#{orderId.substring(0,7)}</span>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -129,7 +131,10 @@ function OrderPageClient() {
                         </div>
                         <div className="space-y-1">
                             <h3 className="font-semibold text-muted-foreground">Status</h3>
-                             <Badge className={cn('capitalize', getStatusClass(order.status))}>{order.status}</Badge>
+                             <Badge className={cn('capitalize', statusClassName)}>
+                                <StatusIcon className="mr-1 h-3 w-3" />
+                                {order.status}
+                             </Badge>
                         </div>
                     </div>
                     

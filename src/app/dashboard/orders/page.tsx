@@ -11,8 +11,9 @@ import { useCollectionGroup } from "@/hooks/use-collection-group";
 
 export default function OrdersPage() {
   const { isUserLoading } = useUser();
-  const { locations } = useMenuData(); // Use the standardized hook
+  const { locations } = useMenuData(); 
   
+  // Use the hook to listen to all orders in real-time
   const { data: orders, isLoading: areOrdersLoading } = useCollectionGroup<OrderDoc>('orders');
   
   const formattedOrders = useMemo(() => {
