@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/logo';
 import { useUser } from '@/firebase/auth/use-user';
+import { Separator } from '@/components/ui/separator';
 
 export default function Header() {
     const { getItemCount } = useCart();
