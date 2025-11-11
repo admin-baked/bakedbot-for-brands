@@ -1,11 +1,10 @@
 
-import { PlaceHolderImages } from './placeholder-images';
 import type { Product, Location } from './types';
+import { PlaceHolderImages } from './placeholder-images';
 
-// Extract asset URLs from the placeholder JSON
-const assets = PlaceHolderImages.find(p => p.id === 'assets');
-export const defaultLogo = assets?.imageUrl || 'https://storage.googleapis.com/stedi-assets/misc/bakedbot-logo.png';
-export const defaultChatbotIcon = assets?.imageHint || 'https://storage.googleapis.com/stedi-assets/misc/smokey-icon-1.png';
+// Direct export of default assets to prevent broken links.
+export const defaultLogo = 'https://storage.googleapis.com/stedi-assets/misc/bakedbot-logo.png';
+export const defaultChatbotIcon = 'https://storage.googleapis.com/stedi-assets/misc/smokey-icon-1.png';
 
 
 export const demoProducts: Product[] = [
