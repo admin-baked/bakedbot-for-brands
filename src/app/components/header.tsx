@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -45,8 +46,8 @@ export default function Header() {
                     </nav>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <div className="hidden md:flex items-center gap-2 mr-2 border-r pr-4">
+                <div className="flex items-center gap-4">
+                    <div className="hidden md:flex items-center gap-2">
                         <TestTube2 className="h-5 w-5 text-primary" />
                         <Label htmlFor="demo-mode-switch" className="text-sm font-medium">Demo Mode</Label>
                         <Switch
@@ -55,6 +56,7 @@ export default function Header() {
                             onCheckedChange={setIsUsingDemoData}
                         />
                     </div>
+                    <Separator orientation="vertical" className="h-6 hidden md:block" />
                     <Button variant="ghost" size="icon">
                         <Search className="h-5 w-5" />
                     </Button>
@@ -67,6 +69,8 @@ export default function Header() {
                            </span>
                        )}
                     </Button>
+                    
+                    <Separator orientation="vertical" className="h-6 hidden md:block"/>
 
                     <div className="hidden md:flex items-center gap-2">
                         {user ? (
