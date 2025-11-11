@@ -13,9 +13,10 @@ import CustomerOrderHistory from './components/customer-order-history';
 import CustomerUploads from './components/customer-uploads';
 import FavoriteLocation from './components/favorite-location';
 import { useStore } from '@/hooks/use-store';
-import { demoLocations } from '@/lib/data';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, where } from 'firebase/firestore';
+import { useUser } from '@/firebase/auth/use-user';
+import { useCollectionGroup } from '@/hooks/use-collection-group';
 
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; value: string | number; icon: React.ElementType; isLoading: boolean }) {
@@ -36,26 +37,26 @@ function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; va
     );
 }
 
-const demoCustomer = {
-    favoriteLocationId: '1',
-    orders: [
-        { id: 'demo1', createdAt: Timestamp.now(), status: 'completed', totals: { total: 47.50 } },
-        { id: 'demo2', createdAt: Timestamp.now(), status: 'ready', totals: { total: 88.00 } },
-    ] as OrderDoc[],
-    reviews: [
-        { id: 'rev1', productId: '1', rating: 5, text: 'Absolutely love the Cosmic Caramels! Perfect for relaxing.' },
-        { id: 'rev2', productId: '4', rating: 4, text: 'OG Galaxy is a classic. Great for winding down.' },
-    ] as Review[],
-    interactions: [
-        { recommendedProductIds: ['1', '2'] },
-        { recommendedProductIds: ['4'] }
-    ] as Partial<UserInteraction>[],
-};
-
-
 export default function CustomerDashboardPage() {
-    const { isUsingDemoData, isLoading } = useMenuData();
+    const { isUsingDemoData, isLoading: isMenuLoading } = useMenuData();
     const { favoriteLocationId, setFavoriteLocationId } = useStore();
+    const { user, isUserLoading } = useUser();
+
+    // Fetch data specifically for the logged-in user
+    const { data: interactions, isLoading: areInteractionsLoading } = useCollectionGroup<UserInteraction>(
+        'interactions', 
+        user ? where('userId', '==', user.uid) : undefined
+    );
+    const { data: reviews, isLoading: areReviewsLoading } = useCollectionGroup<Review>(
+        'reviews', 
+        user ? where('userId', '==', user.uid) : undefined
+    );
+    const { data: orders, isLoading: areOrdersLoading } = useCollectionGroup<OrderDoc>(
+        'orders', 
+        user ? where('userId', '==', user.uid) : undefined
+    );
+
+    const isLoading = isMenuLoading || isUserLoading || areInteractionsLoading || areReviewsLoading || areOrdersLoading;
 
     const handleSetFavorite = async (locationId: string | null) => {
         // In demo mode, this just updates the local state.
@@ -64,19 +65,14 @@ export default function CustomerDashboardPage() {
     };
 
     const stats = useMemo(() => {
-        if (!isUsingDemoData) {
-            // NOTE: Live data fetching logic would go here
-            return { chatbotInteractions: 0, productsRecommended: 0, reviewsSubmitted: 0 };
-        }
+        if (isLoading) return { chatbotInteractions: 0, productsRecommended: 0, reviewsSubmitted: 0 };
         
         return {
-            chatbotInteractions: demoCustomer.interactions.length,
-            productsRecommended: demoCustomer.interactions.reduce((acc, i) => acc + (i.recommendedProductIds?.length || 0), 0),
-            reviewsSubmitted: demoCustomer.reviews.length,
+            chatbotInteractions: interactions?.length || 0,
+            productsRecommended: interactions?.reduce((acc, i) => acc + (i.recommendedProductIds?.length || 0), 0) || 0,
+            reviewsSubmitted: reviews?.length || 0,
         };
-    }, [isUsingDemoData]);
-
-    const displayFavoriteId = isUsingDemoData ? (favoriteLocationId || demoCustomer.favoriteLocationId) : favoriteLocationId;
+    }, [isLoading, interactions, reviews]);
 
     return (
         <div className="flex min-h-screen flex-col">
@@ -92,7 +88,7 @@ export default function CustomerDashboardPage() {
 
                     <div className="mt-6">
                         <FavoriteLocation
-                            favoriteId={displayFavoriteId}
+                            favoriteId={favoriteLocationId}
                             onSetFavorite={handleSetFavorite}
                         />
                     </div>
@@ -105,10 +101,10 @@ export default function CustomerDashboardPage() {
 
                     <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
                         <div className="lg:col-span-2">
-                             <CustomerOrderHistory orders={isUsingDemoData ? demoCustomer.orders : []} isLoading={isLoading} />
+                             <CustomerOrderHistory orders={orders} isLoading={isLoading} />
                         </div>
                         <div className="space-y-8">
-                             <CustomerReviewHistory reviews={isUsingDemoData ? demoCustomer.reviews : []} isLoading={isLoading} />
+                             <CustomerReviewHistory reviews={reviews} isLoading={isLoading} />
                              <CustomerUploads />
                         </div>
                     </div>
@@ -118,3 +114,5 @@ export default function CustomerDashboardPage() {
         </div>
     );
 }
+
+    

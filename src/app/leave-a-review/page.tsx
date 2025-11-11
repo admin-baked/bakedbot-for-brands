@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useFormState } from 'react-dom';
+import { useFormState, useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { useUser } from '@/firebase/auth/use-user';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { Footer } from '../components/footer';
+import Header from '../components/header';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,7 +51,8 @@ export default function LeaveReviewPage() {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   
-  const [state, formAction, isPending] = useFormState(submitReview, initialState);
+  const [state, formAction] = useFormState(submitReview, initialState);
+  const { pending } = useFormStatus();
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
@@ -71,38 +73,36 @@ export default function LeaveReviewPage() {
   }, [state, toast]);
   
   useEffect(() => {
-    const attachIdToken = async () => {
-      if (user) {
+    // This effect runs the client-side logic to get the ID token
+    // and append it to the form. This is a secure way to pass user identity
+    // to a Server Action.
+    const attachIdTokenToForm = async () => {
+      if (user && formRef.current) {
         try {
           const token = await user.getIdToken();
-          const form = formRef.current;
-          if (form) {
-            let tokenInput = form.querySelector('input[name="idToken"]') as HTMLInputElement;
-            if (!tokenInput) {
-              tokenInput = document.createElement('input');
-              tokenInput.type = 'hidden';
-              tokenInput.name = 'idToken';
-              form.appendChild(tokenInput);
-            }
-            tokenInput.value = token;
-
-            // This is the insecure part we want to remove, but keep for the demo's functionality for now
-            let userIdInput = form.querySelector('input[name="userId"]') as HTMLInputElement;
-            if (!userIdInput) {
-              userIdInput = document.createElement('input');
-              userIdInput.type = 'hidden';
-              userIdInput.name = 'userId';
-              form.appendChild(userIdInput);
-            }
-            userIdInput.value = user.uid;
+          
+          let tokenInput = formRef.current.querySelector('input[name="idToken"]') as HTMLInputElement;
+          if (!tokenInput) {
+            tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = 'idToken';
+            formRef.current.appendChild(tokenInput);
           }
+          tokenInput.value = token;
+
         } catch (error) {
-          console.error("Error getting ID token:", error);
+          console.error("Error getting ID token for form:", error);
+          toast({
+            variant: 'destructive',
+            title: 'Authentication Error',
+            description: 'Could not verify your session. Please try logging in again.',
+          });
         }
       }
     };
-    attachIdToken();
-  }, [user]);
+    
+    attachIdTokenToForm();
+  }, [user, toast]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -148,16 +148,8 @@ export default function LeaveReviewPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
-      <div>
-        <div className="relative p-4">
-          <div className="absolute top-4 left-4">
-              <Button variant="outline" asChild>
-                  <Link href="/">
-                      &larr; Back to Menu
-                  </Link>
-              </Button>
-          </div>
-        </div>
+      <Header />
+      <main className="flex-1">
         <div className="flex flex-col items-center justify-center p-4 pt-16">
           <Card className="w-full max-w-2xl">
             <CardHeader>
@@ -185,7 +177,7 @@ export default function LeaveReviewPage() {
               >
                 <div className="space-y-2">
                   <Label htmlFor="productId">Which product are you reviewing?</Label>
-                  <Select name="productId" disabled={!user || areProductsLoading || isPending}>
+                  <Select name="productId" disabled={!user || areProductsLoading || pending}>
                     <SelectTrigger id="productId">
                       <SelectValue placeholder={areProductsLoading ? "Loading products..." : "Select a product"} />
                     </SelectTrigger>
@@ -202,7 +194,7 @@ export default function LeaveReviewPage() {
 
                 <div className="space-y-2">
                   <Label>Your Rating</Label>
-                  <StarRating rating={rating} setRating={setRating} disabled={!user || isPending} />
+                  <StarRating rating={rating} setRating={setRating} disabled={!user || pending} />
                   {state.fieldErrors?.rating && <p className="text-sm text-destructive">{state.fieldErrors.rating[0]}</p>}
                 </div>
 
@@ -213,7 +205,7 @@ export default function LeaveReviewPage() {
                     name="text"
                     placeholder="What did you like or dislike? How was your experience?"
                     rows={6}
-                    disabled={!user || isPending}
+                    disabled={!user || pending}
                   />
                   {state.fieldErrors?.text && <p className="text-sm text-destructive">{state.fieldErrors.text[0]}</p>}
                 </div>
@@ -233,20 +225,22 @@ export default function LeaveReviewPage() {
                                     </>
                                 )}
                             </div>
-                            <Input id="verificationImage" name="verificationImage" type="file" className="hidden" accept="image/png, image/jpeg, application/pdf" onChange={handleFileChange} disabled={!user || isPending} />
+                            <Input id="verificationImage" name="verificationImage" type="file" className="hidden" accept="image/png, image/jpeg, application/pdf" onChange={handleFileChange} disabled={!user || pending} />
                         </Label>
                     </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={isPending || !user}>
-                    {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+                <Button type="submit" className="w-full" disabled={pending || !user}>
+                    {pending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
                     Submit Review
                 </Button>
               </form>
             </CardContent>
           </Card>
         </div>
-      </div>
+      </main>
       <Footer />
     </div>
   );
 }
+
+    
