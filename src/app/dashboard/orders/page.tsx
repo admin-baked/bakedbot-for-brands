@@ -7,14 +7,21 @@ import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { OrderDoc } from "@/lib/types";
 import { useMenuData } from "@/hooks/use-menu-data";
-import { useCollectionGroup } from "@/hooks/use-collection-group";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collectionGroup, query, orderBy } from 'firebase/firestore';
+import { useFirebase } from "@/firebase/provider";
 
 export default function OrdersPage() {
+  const { firestore } = useFirebase();
   const { isUserLoading } = useUser();
   const { locations } = useMenuData(); 
   
-  // Use the hook to listen to all orders in real-time
-  const { data: orders, isLoading: areOrdersLoading } = useCollectionGroup<OrderDoc>('orders');
+  const ordersQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collectionGroup(firestore, 'orders'), orderBy('createdAt', 'desc'));
+  }, [firestore]);
+  
+  const { data: orders, isLoading: areOrdersLoading } = useCollection<OrderDoc>(ordersQuery, true);
   
   const formattedOrders = useMemo((): OrderData[] => {
     if (!orders) return [];

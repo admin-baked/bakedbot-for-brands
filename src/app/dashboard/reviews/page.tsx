@@ -7,13 +7,21 @@ import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Review } from "@/lib/types";
 import { useMenuData } from "@/hooks/use-menu-data";
-import { useCollectionGroup } from "@/hooks/use-collection-group";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collectionGroup, query, orderBy } from 'firebase/firestore';
+import { useFirebase } from "@/firebase/provider";
 
 export default function ReviewsPage() {
+  const { firestore } = useFirebase();
   const { isUserLoading } = useUser();
   const { products, isLoading: areProductsLoading } = useMenuData();
   
-  const { data: reviews, isLoading: areReviewsLoading } = useCollectionGroup<Review>('reviews');
+  const reviewsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collectionGroup(firestore, 'reviews'), orderBy('createdAt', 'desc'));
+  }, [firestore]);
+
+  const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery, true);
 
   const formattedReviews = useMemo(() => {
     if (!reviews || !products) return [];

@@ -14,11 +14,10 @@ import CustomerUploads from './components/customer-uploads';
 import FavoriteLocation from './components/favorite-location';
 import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { collection, query, where, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, onSnapshot, collectionGroup } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useFirebase } from '@/firebase/provider';
-import { demoCustomer } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -49,37 +48,35 @@ export default function CustomerDashboardPage() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
     
-    // Set local state from store or live user profile
     const [currentFavoriteId, setCurrentFavoriteId] = useState<string | null>(null);
 
-     // Fetch data specifically for the logged-in user in live mode
-    const interactionsQuery = useMemo(() => !isUsingDemoData && user && firestore ? query(collection(firestore, `users/${user.uid}/interactions`)) : null, [isUsingDemoData, user, firestore]);
-    const reviewsQuery = useMemo(() => !isUsingDemoData && user && firestore ? query(collection(firestore, 'reviews'), where('userId', '==', user.uid)) : null, [isUsingDemoData, user, firestore]);
-    const ordersQuery = useMemo(() => !isUsingDemoData && user && firestore ? query(collection(firestore, 'orders'), where('userId', '==', user.uid)) : null, [isUsingDemoData, user, firestore]);
+    // Set up queries for user-specific data
+    const ordersQuery = useMemo(() => user && firestore ? query(collection(firestore, 'orders'), where('userId', '==', user.uid)) : null, [user, firestore]);
+    const reviewsQuery = useMemo(() => user && firestore ? query(collectionGroup(firestore, 'reviews'), where('userId', '==', user.uid)) : null, [user, firestore]);
+    const interactionsQuery = useMemo(() => user && firestore ? query(collection(firestore, `users/${user.uid}/interactions`)) : null, [user, firestore]);
 
-    const { data: liveInteractions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery);
-    const { data: liveReviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery);
+    // Fetch live data using the queries
     const { data: liveOrders, isLoading: areOrdersLoading } = useCollection<OrderDoc>(ordersQuery);
+    const { data: liveReviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery, true); // Note: isCollectionGroup is true for reviews
+    const { data: liveInteractions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery);
 
-    // Determine which data to use
-    const isLoading = isMenuLoading || (isUserLoading && !isUsingDemoData) || areInteractionsLoading || areReviewsLoading || areOrdersLoading;
-    const interactions = isUsingDemoData ? demoCustomer.interactions : liveInteractions;
-    const reviews = isUsingDemoData ? demoCustomer.reviews : liveReviews;
-    const orders = isUsingDemoData ? demoCustomer.orders : liveOrders;
-    
+    const isLoading = isMenuLoading || isUserLoading || areOrdersLoading || areReviewsLoading || areInteractionsLoading;
+
      useEffect(() => {
-        if (isUsingDemoData) {
-            setCurrentFavoriteId(demoCustomer.favoriteLocationId);
-            setStoreFavoriteId(demoCustomer.favoriteLocationId);
-        } else if (user && firestore) {
+        if (!isUserLoading && !isUsingDemoData && user && firestore) {
             const unsub = onSnapshot(doc(firestore, 'users', user.uid), (doc) => {
                 const favId = doc.data()?.favoriteLocationId || null;
                 setCurrentFavoriteId(favId);
                 setStoreFavoriteId(favId);
             });
             return () => unsub();
+        } else if (!isUserLoading && isUsingDemoData) {
+            // In demo mode, we can just use a static ID or null
+            const demoFavoriteId = '1';
+            setCurrentFavoriteId(demoFavoriteId);
+            setStoreFavoriteId(demoFavoriteId);
         }
-    }, [isUsingDemoData, user, firestore, setStoreFavoriteId]);
+    }, [isUsingDemoData, user, firestore, setStoreFavoriteId, isUserLoading]);
 
 
     const handleSetFavorite = async (locationId: string | null) => {
@@ -117,12 +114,18 @@ export default function CustomerDashboardPage() {
     const stats = useMemo(() => {
         if (isLoading) return { chatbotInteractions: 0, productsRecommended: 0, reviewsSubmitted: 0 };
         
+        const interactions = isUsingDemoData ? [] : liveInteractions;
+        const reviews = isUsingDemoData ? [] : liveReviews;
+
         return {
             chatbotInteractions: interactions?.length || 0,
             productsRecommended: interactions?.reduce((acc, i) => acc + (i.recommendedProductIds?.length || 0), 0) || 0,
             reviewsSubmitted: reviews?.length || 0,
         };
-    }, [isLoading, interactions, reviews]);
+    }, [isLoading, isUsingDemoData, liveInteractions, liveReviews]);
+
+    const orders = isUsingDemoData ? [] : liveOrders;
+    const reviews = isUsingDemoData ? [] : liveReviews;
 
     return (
         <div className="flex min-h-screen flex-col">
@@ -150,10 +153,10 @@ export default function CustomerDashboardPage() {
 
                         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                             <div className="lg:col-span-2">
-                                <CustomerOrderHistory orders={orders as OrderDoc[] | null} isLoading={isLoading} />
+                                <CustomerOrderHistory orders={orders} isLoading={isLoading} />
                             </div>
                             <div className="space-y-8">
-                                <CustomerReviewHistory reviews={reviews as Review[] | null} isLoading={isLoading} />
+                                <CustomerReviewHistory reviews={reviews} isLoading={isLoading} />
                                 <CustomerUploads />
                             </div>
                         </div>
