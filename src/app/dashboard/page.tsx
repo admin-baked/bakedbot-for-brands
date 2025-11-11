@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -9,7 +10,7 @@ import { useCollection } from '@/firebase/firestore/use-collection';
 import type { Product } from '@/lib/types';
 import type { UserInteraction } from '@/firebase/converters';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, query, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, collectionGroup, DocumentData } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import TopProductsCard from './components/top-products-card';
 import BottomProductsCard from './components/bottom-products-card';
@@ -71,7 +72,7 @@ export default function DashboardPage() {
     { debugPath: `**/interactions?brandId=${currentBrandId}` }
   );
 
-  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery, { debugPath: '/products' });
+  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery as unknown as any, { debugPath: '/products' });
 
   const isLoading = isUserLoading || areInteractionsLoading || areProductsLoading;
 
