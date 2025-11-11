@@ -2,17 +2,22 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, ShoppingBag, TestTube2, User } from 'lucide-react';
+import { Search, ShoppingBag, TestTube2, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/logo';
 import { useUser } from '@/firebase/auth/use-user';
 import { Separator } from '@/components/ui/separator';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useFirebase } from '@/firebase/provider';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Header() {
     const { getItemCount } = useCart();
@@ -20,11 +25,40 @@ export default function Header() {
     const { _hasHydrated, setCartSheetOpen, isUsingDemoData, setIsUsingDemoData } = useStore();
     const pathname = usePathname();
     const { user } = useUser();
+    const { auth } = useFirebase();
+    const router = useRouter();
+    const { toast } = useToast();
 
     const navLinks = [
         { href: '/', label: 'Home' },
         { href: '/product-locator', label: 'Product Locator' },
     ];
+    
+     const handleSignOut = async () => {
+        try {
+          if(auth) {
+            await signOut(auth);
+          }
+          toast({
+            title: "Signed Out",
+            description: "You have been successfully logged out.",
+          });
+          router.push('/');
+        } catch (error) {
+          console.error('Sign out error', error);
+           toast({
+            variant: "destructive",
+            title: "Sign Out Error",
+            description: "Could not sign you out. Please try again.",
+          });
+        }
+    };
+    
+    const getInitials = (email?: string | null) => {
+        if (!email) return 'U';
+        return email.substring(0, 2).toUpperCase();
+    };
+
 
     return (
         <header className="sticky top-0 z-40 w-full border-b bg-background/90 backdrop-blur-sm">
@@ -75,11 +109,33 @@ export default function Header() {
 
                     <div className="hidden md:flex items-center gap-2">
                         {user ? (
-                             <Button variant="ghost" asChild>
-                                <Link href="/account">
-                                  <User className="mr-2"/> My Account
-                                </Link>
-                            </Button>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                     <Button variant="ghost" className="flex items-center gap-2">
+                                        <Avatar className="h-7 w-7">
+                                            <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                                        </Avatar>
+                                        My Account
+                                     </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => router.push('/account')}>
+                                        <User className="mr-2" />
+                                        Account Details
+                                    </DropdownMenuItem>
+                                     <DropdownMenuItem onClick={() => router.push('/account/dashboard')}>
+                                        <User className="mr-2" />
+                                        Dashboard
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={handleSignOut}>
+                                        <LogOut className="mr-2" />
+                                        Sign Out
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                             </DropdownMenu>
                         ) : (
                             <>
                                 <Button variant="ghost" asChild>
