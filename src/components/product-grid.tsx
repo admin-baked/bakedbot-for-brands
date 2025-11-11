@@ -7,7 +7,6 @@ import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
 import { Database } from 'lucide-react';
 import Link from 'next/link';
-import type { Product } from '@/lib/types';
 
 const ProductSkeleton = () => (
     <div className="bg-card rounded-lg shadow-lg overflow-hidden border">
@@ -28,7 +27,8 @@ const ProductSkeleton = () => (
 );
 
 
-export function ProductGrid({ products, isLoading }: { products: Product[]; isLoading: boolean; }) {
+export function ProductGrid() {
+  const { products, isLoading } = useMenuData();
   const { isUsingDemoData } = useStore();
   
   if (isLoading) {

@@ -8,9 +8,10 @@ import { demoProducts, demoLocations } from '@/lib/data';
 import type { Product, Location } from '@/lib/types';
 import { useStore } from './use-store';
 
-type UseMenuOpts = { initialDemo: boolean };
+type UseMenuOpts = { initialDemo?: boolean };
 
-export function useMenuData({ initialDemo }: UseMenuOpts) {
+export function useMenuData(opts: UseMenuOpts = {}) {
+  const { initialDemo = false } = opts;
   const { firestore } = useFirebase();
   const { locations: storeLocations, isUsingDemoData } = useStore();
 
@@ -69,7 +70,7 @@ export function useMenuData({ initialDemo }: UseMenuOpts) {
     return () => {
       productsUnsub();
     };
-  }, [isUsingDemoData, firestore, storeLocations]);
+  }, [isUsingDemoData, firestore, storeLocations, demoProducts, demoLocations]);
 
   return { products, locations, isLoading, error };
 }
