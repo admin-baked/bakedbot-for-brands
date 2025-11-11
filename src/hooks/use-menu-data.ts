@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useStore } from '@/hooks/use-store';
@@ -6,12 +7,11 @@ import { useState, useEffect } from 'react';
 import type { Product, Location } from '@/lib/types';
 import { useFirebase } from '@/firebase/provider';
 import { collection, query, onSnapshot } from 'firebase/firestore';
-import { demoLocations } from '@/lib/data';
 
 /**
  * A unified hook to get menu data (products and locations).
  * It intelligently uses demo data as a fallback and then attempts to load
- * live data from Firestore on the client side.
+ * live data from Firestore on the client side when not in demo mode.
  */
 export function useMenuData() {
   const { isUsingDemoData, locations: storeLocations, _hasHydrated } = useStore(state => ({
@@ -77,6 +77,7 @@ export function useMenuData() {
     locations, 
     isLoading, 
     error,
+    // This is the true source of demo status, considering hydration
     isUsingDemoData: !_hasHydrated || isUsingDemoData,
   };
 }
