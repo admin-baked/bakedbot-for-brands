@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -89,14 +88,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   React.useEffect(() => {
     if (user && firestore) {
+      setIsProfileLoading(true);
       const userDocRef = doc(firestore, 'users', user.uid);
       const unsubscribe = onSnapshot(userDocRef, (doc) => {
         setUserProfile(doc.data());
         setIsProfileLoading(false);
-      }, () => setIsProfileLoading(false));
+      }, () => {
+        // This might be a permission error if rules are strict.
+        // For now, we'll assume it's okay and stop loading.
+        setIsProfileLoading(false);
+      });
       return () => unsubscribe();
     } else if (!isUserLoading) {
       setIsProfileLoading(false);
+      setUserProfile(null);
     }
   }, [user, firestore, isUserLoading]);
 
@@ -109,20 +114,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
   
   React.useEffect(() => {
-    const isAuthPage = pathname === '/brand-login' || pathname.startsWith('/auth/callback');
-    if (isUserLoading || isProfileLoading) return;
+    const isAuthPage = pathname === '/brand-login' || pathname.startsWith('/auth/');
+    if (isUserLoading || isProfileLoading) return; // Wait until all loading is done
+
     if (user) {
-      if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
-        router.replace('/onboarding');
-      } else if (userProfile?.onboardingCompleted && isAuthPage) {
-        router.replace('/dashboard');
-      }
+        // User is logged in
+        if (isProfileLoading) return; // Still waiting for profile
+        if (userProfile === null) return; // Profile doesn't exist yet, wait for creation or next state
+
+        if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
+            router.replace('/onboarding');
+        } else if (userProfile?.onboardingCompleted && (isAuthPage || pathname === '/onboarding')) {
+            router.replace('/dashboard');
+        }
     } else {
-      if (!isAuthPage && pathname !== '/onboarding') {
-        router.replace('/brand-login');
-      }
+        // User is not logged in
+        if (!isAuthPage && pathname !== '/onboarding') {
+            router.replace('/brand-login');
+        }
     }
-  }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router]);
+}, [user, userProfile, isUserLoading, isProfileLoading, pathname, router]);
 
 
   const handleSignOut = async () => {
@@ -164,8 +175,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const visibleLinks = shouldShowAdminControls ? navLinks : navLinks.filter(link => !link.hidden);
 
   const isLoading = isUserLoading || isProfileLoading;
+  
+  // These are public or semi-public pages that shouldn't show the full-screen loader.
+  const isExcludedFromLoadingScreen = pathname === '/brand-login' || 
+                                      pathname.startsWith('/auth/') || 
+                                      pathname === '/onboarding';
 
-  if (isLoading && pathname !== '/brand-login' && !pathname.startsWith('/auth/callback')) {
+  if (isLoading && !isExcludedFromLoadingScreen) {
     return (
         <div className="flex h-screen w-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -173,7 +189,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (user && !userProfile?.onboardingCompleted && pathname !== '/onboarding') {
+  // If user is logged in but profile is still loading and we are on a protected page
+  if (user && isProfileLoading && !isExcludedFromLoadingScreen) {
       return (
          <div className="flex h-screen w-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -181,7 +198,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )
   }
 
-  if (!user && pathname !== '/brand-login' && !pathname.startsWith('/auth/callback')) {
+  // If user is not logged in and not on a public page
+  if (!user && !isExcludedFromLoadingScreen) {
+      // The useEffect above will handle the redirect, this prevents flicker.
       return null;
   }
 
@@ -350,5 +369,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
-    

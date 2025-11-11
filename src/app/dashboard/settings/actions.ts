@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 // This is a simplified version for the demo. In a real app, you'd get the UID
 // from a secure session or by verifying an ID token.
@@ -101,12 +102,13 @@ export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
       message: 'API Key saved successfully!',
       error: false,
     };
-  } catch (serverError) {
-      // This path would be hit if there are network issues or other server-side problems.
-      return {
-          message: 'An unexpected server error occurred. Could not save API key.',
-          error: true
-      };
+  } catch (serverError: any) {
+    // This catch block might not be hit if there are network issues or other server-side problems.
+    throw new FirestorePermissionError({
+      path: userPrivateRef.path,
+      operation: 'write',
+      requestResourceData: { bakedBotApiKey: '[redacted]' },
+    });
   }
 }
 
@@ -191,8 +193,8 @@ export async function importProductsFromCsv(prevState: any, formData: FormData) 
             error: false,
         };
 
-    } catch (e) {
-        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+    } catch (e: any) {
+        const errorMessage = e.message || 'An unknown error occurred.';
         console.error("Product import error:", errorMessage);
         return {
             message: `Failed to import products: ${errorMessage}`,
@@ -230,8 +232,8 @@ export async function trainOnBrandDocuments(prevState: any, formData: FormData) 
             error: false,
         };
 
-    } catch (e) {
-        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+    } catch (e: any) {
+        const errorMessage = e.message || 'An unknown error occurred.';
         console.error("Brand voice training error:", errorMessage);
         return {
             message: `Failed to upload document: ${errorMessage}`,

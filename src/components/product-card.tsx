@@ -7,25 +7,32 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Product } from '@/lib/types';
 import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
   const { selectedLocationId } = useStore();
+  const { toast } = useToast();
   
   const handleAddToCart = () => {
     if (!selectedLocationId) {
-      // Find the locator section and scroll to it
       const locator = document.getElementById('locator');
       if (locator) {
         locator.scrollIntoView({ behavior: 'smooth' });
-        alert('Please select a dispensary location first.');
-      } else {
-        alert('Please select a dispensary location at the top of the page.');
       }
+      toast({
+        variant: 'destructive',
+        title: 'No Location Selected',
+        description: 'Please select a dispensary location before adding items to your cart.',
+      });
       return;
     }
     
     addToCart(product, selectedLocationId);
+    toast({
+        title: 'Added to Cart',
+        description: `${product.name} has been added to your cart.`,
+    });
   };
   
   return (
