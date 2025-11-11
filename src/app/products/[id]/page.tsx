@@ -1,29 +1,30 @@
 
-
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata, ResolvingMetadata } from 'next';
 import { Skeleton } from '@/components/ui/skeleton';
 import ProductDetailsClient from './components/product-details-client';
 import Chatbot from '@/components/chatbot';
-import Link from 'next/link';
-import { Search, User, ShoppingBag } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { getReviewSummary } from './actions';
-import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { createServerClient } from '@/firebase/server-client';
 import type { Product } from '@/lib/types';
 import { demoProducts } from '@/lib/data';
 import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 import Header from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
+import { cookies } from 'next/headers';
 
 type Props = {
   params: { id: string }
 }
 
-// Fetch a single product from Firestore on the server, with a fallback to demo data
 const getProduct = async (id: string): Promise<Product | null> => {
+    const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
+
+    if (isDemo) {
+      return demoProducts.find(p => p.id === id) || null;
+    }
+
     try {
         const { firestore } = await createServerClient();
         const productSnap = await firestore.collection('products').doc(id).get();
@@ -32,14 +33,12 @@ const getProduct = async (id: string): Promise<Product | null> => {
             return { id: productSnap.id, ...productSnap.data() } as Product;
         }
         
-        // Fallback to demo data if not found in Firestore
-        const demoProduct = demoProducts.find(p => p.id === id);
-        return demoProduct || null;
+        // Fallback to demo data if not found in Firestore in live mode
+        return demoProducts.find(p => p.id === id) || null;
 
     } catch (error) {
         console.error("Error fetching product on server, falling back to demo data:", error);
-        const demoProduct = demoProducts.find(p => p.id === id);
-        return demoProduct || null;
+        return demoProducts.find(p => p.id === id) || null;
     }
 }
 

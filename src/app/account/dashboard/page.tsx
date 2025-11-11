@@ -1,11 +1,7 @@
 
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import { useUser } from '@/firebase/auth/use-user';
-import { useCollection } from '@/hooks/use-collection';
-import { collection, query, where, collectionGroup, doc, updateDoc } from 'firebase/firestore';
-import { useFirebase } from '@/firebase/provider';
+import { useMemo } from 'react';
 import type { Review, UserInteraction, OrderDoc } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare, Sparkles, Star } from 'lucide-react';
@@ -15,10 +11,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import CustomerReviewHistory from './components/customer-review-history';
 import CustomerOrderHistory from './components/customer-order-history';
 import CustomerUploads from './components/customer-uploads';
-import { useCollectionGroup } from '@/hooks/use-collection-group';
 import FavoriteLocation from './components/favorite-location';
 import { useStore } from '@/hooks/use-store';
-import { useDoc } from '@/firebase/firestore/use-doc';
+import { demoLocations } from '@/lib/data';
+import { useMenuData } from '@/hooks/use-menu-data';
+import { Timestamp } from 'firebase/firestore';
+
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; value: string | number; icon: React.ElementType; isLoading: boolean }) {
     return (
@@ -38,63 +36,47 @@ function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; va
     );
 }
 
+const demoCustomer = {
+    favoriteLocationId: '1',
+    orders: [
+        { id: 'demo1', createdAt: Timestamp.now(), status: 'completed', totals: { total: 47.50 } },
+        { id: 'demo2', createdAt: Timestamp.now(), status: 'ready', totals: { total: 88.00 } },
+    ] as OrderDoc[],
+    reviews: [
+        { id: 'rev1', productId: '1', rating: 5, text: 'Absolutely love the Cosmic Caramels! Perfect for relaxing.' },
+        { id: 'rev2', productId: '4', rating: 4, text: 'OG Galaxy is a classic. Great for winding down.' },
+    ] as Review[],
+    interactions: [
+        { recommendedProductIds: ['1', '2'] },
+        { recommendedProductIds: ['4'] }
+    ] as Partial<UserInteraction>[],
+};
+
+
 export default function CustomerDashboardPage() {
-    const { user, isUserLoading } = useUser();
-    const { firestore } = useFirebase();
+    const { isUsingDemoData, isLoading } = useMenuData();
     const { favoriteLocationId, setFavoriteLocationId } = useStore();
 
-    const userDocRef = useMemo(() => {
-        if (!firestore || !user) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [firestore, user]);
-
-    const { data: userData, isLoading: isUserDocLoading } = useDoc(userDocRef);
-
-    useEffect(() => {
-        if (userData && userData.favoriteLocationId && userData.favoriteLocationId !== favoriteLocationId) {
-            setFavoriteLocationId(userData.favoriteLocationId);
-        }
-    }, [userData, favoriteLocationId, setFavoriteLocationId]);
-
-    const interactionsQuery = useMemo(() => {
-        if (!firestore || !user) return null;
-        return query(collection(firestore, 'users', user.uid, 'interactions'));
-    }, [firestore, user]);
-    
-    const { data: interactions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery);
-    
-    const { data: reviews, isLoading: areReviewsLoading } = useCollectionGroup<Review>('reviews', 
-        user ? query(collectionGroup(firestore, 'reviews'), where('userId', '==', user.uid)) : undefined
-    );
-    
-    const { data: orders, isLoading: areOrdersLoading } = useCollectionGroup<OrderDoc>('orders', 
-        user ? query(collectionGroup(firestore, 'orders'), where('customer.email', '==', user.email)) : undefined
-    );
-
-    const isLoading = isUserLoading || areInteractionsLoading || areReviewsLoading || areOrdersLoading || isUserDocLoading;
+    const handleSetFavorite = async (locationId: string | null) => {
+        // In demo mode, this just updates the local state.
+        // In live mode, it would also update Firestore.
+        setFavoriteLocationId(locationId);
+    };
 
     const stats = useMemo(() => {
-        if (!interactions || !reviews) {
-            return {
-                chatbotInteractions: 0,
-                productsRecommended: 0,
-                reviewsSubmitted: 0,
-            };
+        if (!isUsingDemoData) {
+            // NOTE: Live data fetching logic would go here
+            return { chatbotInteractions: 0, productsRecommended: 0, reviewsSubmitted: 0 };
         }
-
+        
         return {
-            chatbotInteractions: interactions.length,
-            productsRecommended: interactions.reduce((acc, interaction) => acc + (interaction.recommendedProductIds?.length || 0), 0),
-            reviewsSubmitted: reviews.length,
+            chatbotInteractions: demoCustomer.interactions.length,
+            productsRecommended: demoCustomer.interactions.reduce((acc, i) => acc + (i.recommendedProductIds?.length || 0), 0),
+            reviewsSubmitted: demoCustomer.reviews.length,
         };
-    }, [interactions, reviews]);
-    
-    const handleSetFavorite = async (locationId: string | null) => {
-        if (userDocRef) {
-            await updateDoc(userDocRef, { favoriteLocationId: locationId });
-            setFavoriteLocationId(locationId);
-        }
-    };
+    }, [isUsingDemoData]);
+
+    const displayFavoriteId = isUsingDemoData ? (favoriteLocationId || demoCustomer.favoriteLocationId) : favoriteLocationId;
 
     return (
         <div className="flex min-h-screen flex-col">
@@ -110,7 +92,7 @@ export default function CustomerDashboardPage() {
 
                     <div className="mt-6">
                         <FavoriteLocation
-                            favoriteId={favoriteLocationId}
+                            favoriteId={displayFavoriteId}
                             onSetFavorite={handleSetFavorite}
                         />
                     </div>
@@ -123,10 +105,10 @@ export default function CustomerDashboardPage() {
 
                     <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
                         <div className="lg:col-span-2">
-                             <CustomerOrderHistory orders={orders} isLoading={isLoading} />
+                             <CustomerOrderHistory orders={isUsingDemoData ? demoCustomer.orders : []} isLoading={isLoading} />
                         </div>
                         <div className="space-y-8">
-                             <CustomerReviewHistory reviews={reviews} isLoading={isLoading} />
+                             <CustomerReviewHistory reviews={isUsingDemoData ? demoCustomer.reviews : []} isLoading={isLoading} />
                              <CustomerUploads />
                         </div>
                     </div>
@@ -136,5 +118,3 @@ export default function CustomerDashboardPage() {
         </div>
     );
 }
-
-    
