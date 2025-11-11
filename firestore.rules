@@ -43,10 +43,12 @@ service cloud.firestore {
     }
     
     // ---------- Interactions (collection-group) ----------
-    // Interactions are private to the user. This rule is for completeness,
-    // but primary access is through the user's subcollection path.
+    // Brand analytics only: brand/owner/dev can read their own brand’s interactions.
     match /{path=**}/interactions/{interactionId} {
-       allow read, write: if isOwner(path[1]); // Ensure user ID in path matches auth UID
+      allow get, list: if
+        brandRead(resource.data.brandId);
+      allow create, update, delete: if
+        brandWrite(resource.data.brandId);
     }
 
 

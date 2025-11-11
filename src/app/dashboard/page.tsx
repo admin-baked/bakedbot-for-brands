@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import type { Product, Review, UserInteraction } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, collectionGroup } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import TopProductsCard from './components/top-products-card';
 import BottomProductsCard from './components/bottom-products-card';
@@ -39,11 +39,24 @@ export default function DashboardPage() {
   const { firestore } = useFirebase();
   const { user } = useUser();
 
-  // Securely query only the interactions for the current user.
-  const interactionsQuery = useMemo(() => user ? query(collection(firestore, `users/${user.uid}/interactions`)) : null, [firestore, user]);
+  // The brand ID from the user's custom claims.
+  // In a real app, you'd get this from the ID token result.
+  const currentBrandId = 'acme';
+
+  // Correctly query the collection group for brand-level analytics.
+  const interactionsQuery = useMemo(() => {
+      if (!firestore || !currentBrandId) return null;
+      return query(collectionGroup(firestore, 'interactions'), where("brandId", "==", currentBrandId));
+  }, [firestore, currentBrandId]);
+
   const productsQuery = useMemo(() => firestore ? query(collection(firestore, 'products')) : null, [firestore]);
 
-  const { data: interactions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery, { debugPath: `users/${user?.uid}/interactions`});
+  // Pass a debugPath for better error messages
+  const { data: interactions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(
+    interactionsQuery,
+    { debugPath: `**/interactions?brandId=${currentBrandId}` }
+  );
+
   const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery, { debugPath: '/products' });
 
   const isLoading = areInteractionsLoading || areProductsLoading;
