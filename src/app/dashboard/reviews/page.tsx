@@ -5,11 +5,12 @@ import { useMemo } from "react";
 import { ReviewsTable } from "./components/reviews-table";
 import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Review } from "@/lib/types";
+import type { Review } from "@/firebase/converters";
 import { useMenuData } from "@/hooks/use-menu-data";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collectionGroup, query, orderBy } from 'firebase/firestore';
 import { useFirebase } from "@/firebase/provider";
+import { reviewConverter } from "@/firebase/converters";
 
 export default function ReviewsPage() {
   const { firestore } = useFirebase();
@@ -18,7 +19,8 @@ export default function ReviewsPage() {
   
   const reviewsQuery = useMemo(() => {
     if (!firestore) return null;
-    return query(collectionGroup(firestore, 'reviews'), orderBy('createdAt', 'desc'));
+    const baseQuery = collectionGroup(firestore, 'reviews').withConverter(reviewConverter);
+    return query(baseQuery, orderBy('createdAt', 'desc'));
   }, [firestore]);
 
   const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery);

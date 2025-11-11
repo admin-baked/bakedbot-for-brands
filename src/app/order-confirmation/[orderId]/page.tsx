@@ -17,7 +17,8 @@ import { QRDisplay } from './components/qr-display';
 import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase/provider';
 import { doc, onSnapshot } from 'firebase/firestore';
-import type { OrderDoc } from '@/lib/types';
+import type { OrderDoc } from '@/firebase/converters';
+import { orderConverter } from '@/firebase/converters';
 import { Footer } from '@/app/components/footer';
 
 
@@ -40,12 +41,12 @@ function OrderPageClient() {
         }
         
         setIsLoading(true);
-        const orderRef = doc(firestore, 'orders', orderId);
+        const orderRef = doc(firestore, 'orders', orderId).withConverter(orderConverter);
 
         // Real-time listener for the order
         const unsubscribe = onSnapshot(orderRef, (docSnap) => {
             if (docSnap.exists()) {
-                setOrder({ id: docSnap.id, ...docSnap.data() } as OrderDoc);
+                setOrder(docSnap.data());
             } else {
                 setError(new Error("Order not found."));
             }

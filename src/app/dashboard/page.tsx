@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -6,7 +7,8 @@ import { MessageSquare, Sparkles, ThumbsUp, ThumbsDown, ArrowRight } from 'lucid
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import type { Product, UserInteraction } from '@/lib/types';
+import type { Product } from '@/lib/types';
+import type { UserInteraction } from '@/firebase/converters';
 import { Skeleton } from '@/components/ui/skeleton';
 import { collection, query, where, collectionGroup } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
@@ -14,6 +16,7 @@ import TopProductsCard from './components/top-products-card';
 import BottomProductsCard from './components/bottom-products-card';
 import { formatNumber } from '@/lib/utils';
 import { useUser } from '@/firebase/auth/use-user';
+import { interactionConverter } from '@/firebase/converters';
 
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ElementType, isLoading: boolean }) {
@@ -52,11 +55,14 @@ export default function DashboardPage() {
   
   const interactionsQuery = useMemo(() => {
       if (!firestore || !currentBrandId) return null;
-      return query(collectionGroup(firestore, 'interactions'), where("brandId", "==", currentBrandId));
+      const baseQuery = collectionGroup(firestore, 'interactions').withConverter(interactionConverter);
+      return query(baseQuery, where("brandId", "==", currentBrandId));
   }, [firestore, currentBrandId]);
 
   const productsQuery = useMemo(() => {
     if (!firestore) return null;
+    // Note: Products collection is not using a converter here, assuming it's simpler
+    // or handled differently. If it needed one, you'd add `.withConverter(productConverter)`.
     return query(collection(firestore, 'products'));
   }, [firestore]);
 
