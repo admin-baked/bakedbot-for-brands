@@ -1,3 +1,4 @@
+
 'use client';
 
 import { z } from 'zod';
@@ -15,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/use-cart';
 import { useUser } from '@/firebase/auth/use-user';
-import { submitOrder } from '@/app/checkout/actions/submitOrder';
+import { submitOrder, type OrderInput } from '@/app/checkout/actions/submitOrder';
 import { useTransition, useEffect } from 'react';
 import { Loader2, Send } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -85,7 +86,8 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormP
     
     startTransition(async () => {
       const { subtotal, taxes, total } = getCartTotal();
-      const orderInput = {
+      
+      const orderInput: OrderInput = {
         items: cart.map(item => ({
             productId: item.id,
             name: item.name,
@@ -114,7 +116,8 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormP
         }
       } catch (e) {
           console.error("submitOrder failed:", e);
-          toast({ variant: 'destructive', title: 'Order Submission Failed', description: String(e) });
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          toast({ variant: 'destructive', title: 'Order Submission Failed', description: errorMessage });
       }
     });
   };
