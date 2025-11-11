@@ -45,8 +45,22 @@ service cloud.firestore {
     // ---------- Interactions (collection-group) ----------
     // Brand analytics only: brand/owner/dev can read their own brand’s interactions.
     match /{path=**}/interactions/{interactionId} {
-      allow get, list: if brandRead(resource.data.brandId);
-      allow create, update, delete: if brandWrite(resource.data.brandId);
+      allow get, list: if request.auth != null
+                      && (
+                            request.auth.token.role in ["owner","dev"]
+                            || (
+                              request.auth.token.role == "brand"
+                              && request.auth.token.brandId == resource.data.brandId
+                            )
+                          );
+      allow create, update, delete: if request.auth != null
+                                && (
+                                      request.auth.token.role in ["owner","dev"]
+                                      || (
+                                        request.auth.token.role == "brand"
+                                        && request.auth.token.brandId == resource.data.brandId
+                                      )
+                                    );
     }
 
 
