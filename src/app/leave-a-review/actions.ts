@@ -7,7 +7,6 @@ import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { reviewConverter } from '@/firebase/converters';
 
 
 const ReviewSchema = z.object({
@@ -61,7 +60,7 @@ export async function submitReview(
     }
 
     const userId = decodedToken.uid; // Use the UID from the verified token
-    const reviewCollectionRef = firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter);
+    const reviewCollectionRef = firestore.collection(`products/${productId}/reviews`);
     
     const dataToSave = {
         ...reviewData,
@@ -72,10 +71,8 @@ export async function submitReview(
 
     try {
         // This is a server-side admin write. It bypasses security rules.
-        // The contextual error system is primarily for client-side operations
-        // where rules are enforced.
-        // The `as any` is a temporary workaround for the converter type if it doesn't perfectly match
-        await reviewCollectionRef.add(dataToSave as any);
+        // We do not use the client-side converter here.
+        await reviewCollectionRef.add(dataToSave);
 
         revalidatePath(`/products/${productId}`);
         revalidatePath('/dashboard/reviews');
