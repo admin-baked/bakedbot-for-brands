@@ -1,11 +1,10 @@
 
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { onSnapshot, Query, DocumentData } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { useFirebase } from '../provider';
 
 type UseCollectionResult<T> = {
   data: T[] | null;
@@ -23,15 +22,9 @@ export function useCollection<T = DocumentData>(
   const [data, setData] = useState<T[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(!!query);
   const [error, setError] = useState<Error | null>(null);
-  const { firestore } = useFirebase();
-
-  const finalQuery = useMemo(() => {
-    if (!query || !firestore) return null;
-    return query;
-  }, [query, firestore]);
 
   useEffect(() => {
-    if (!finalQuery) {
+    if (!query) {
       setData([]);
       setIsLoading(false);
       return;
@@ -56,7 +49,7 @@ export function useCollection<T = DocumentData>(
     }
 
     const unsubscribe = onSnapshot(
-      finalQuery,
+      query,
       (querySnapshot) => {
         const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as T);
         setData(data);
@@ -69,7 +62,7 @@ export function useCollection<T = DocumentData>(
         setIsLoading(false);
 
         const permissionError = new FirestorePermissionError({
-            path: getPathFromQuery(finalQuery),
+            path: getPathFromQuery(query),
             operation: 'list',
         });
   
@@ -78,7 +71,7 @@ export function useCollection<T = DocumentData>(
     );
 
     return () => unsubscribe();
-  }, [finalQuery]);
+  }, [query]);
 
   return { data, isLoading, error };
 }
