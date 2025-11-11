@@ -10,6 +10,7 @@ import Chatbot from '@/components/chatbot';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
 import { useEffect } from 'react';
+import { Footer } from './components/footer';
 
 function MenuContent({ initialDemo }: { initialDemo: boolean }) {
   const { products, isLoading, error } = useMenuData({ initialDemo });
@@ -41,13 +42,14 @@ function MenuContent({ initialDemo }: { initialDemo: boolean }) {
 
 export default function MenuPage({ initialDemo }: { initialDemo: boolean }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main className="container mx-auto px-4">
+      <main className="container mx-auto px-4 flex-1">
         <MenuContent initialDemo={initialDemo} />
       </main>
       <FloatingCartPill />
       <Chatbot />
+      <Footer />
     </div>
   );
 }
