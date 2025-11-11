@@ -43,7 +43,9 @@ export default function OrdersPage() {
         return query(baseQuery);
     }
 
-    return null; // No query if user role is not right
+    // Default to a query that returns nothing if role isn't right
+    // This prevents accidental data leakage to customer roles on this page.
+    return query(baseQuery, where('userId', '==', 'nonexistent-user'));
   }, [firestore, userProfile]);
   
   const { data: orders, isLoading: areOrdersLoading } = useCollection<OrderDoc>(ordersQuery);
