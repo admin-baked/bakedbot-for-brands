@@ -11,6 +11,7 @@ import { usePathname } from 'next/navigation';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Image from 'next/image';
+import { defaultChatbotIcon } from '@/lib/data';
 
 export default function Header() {
     const { getItemCount } = useCart();
