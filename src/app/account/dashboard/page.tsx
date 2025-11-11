@@ -16,7 +16,7 @@ import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { collection, query, where, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
-import { useCollection } from '@/hooks/use-collection';
+import { useCollection } from '@/firebase/firestore/use-collection';
 import { useFirebase } from '@/firebase/provider';
 import { demoCustomer } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
