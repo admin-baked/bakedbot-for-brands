@@ -5,11 +5,12 @@ import { useMemo, useState, useEffect } from "react";
 import { OrdersTable, type OrderData } from "./components/orders-table";
 import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { OrderDoc } from "@/lib/types";
+import type { OrderDoc } from "@/firebase/converters";
 import { useMenuData } from "@/hooks/use-menu-data";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
 import { useFirebase } from "@/firebase/provider";
+import { orderConverter } from "@/firebase/converters";
 
 export default function OrdersPage() {
   const { firestore } = useFirebase();
@@ -30,14 +31,16 @@ export default function OrdersPage() {
   const ordersQuery = useMemo(() => {
     if (!firestore || !userProfile) return null;
     
+    const baseQuery = collection(firestore, 'orders').withConverter(orderConverter);
+
     // For dispensary managers, only show orders for their location
     if (userProfile.role === 'dispensary' && userProfile.locationId) {
-        return query(collection(firestore, 'orders'), where('locationId', '==', userProfile.locationId));
+        return query(baseQuery, where('locationId', '==', userProfile.locationId));
     }
     
     // For brand/owner, show all orders
     if (userProfile.role === 'brand' || userProfile.role === 'owner') {
-        return query(collection(firestore, 'orders'));
+        return query(baseQuery);
     }
 
     return null; // No query if user role is not right

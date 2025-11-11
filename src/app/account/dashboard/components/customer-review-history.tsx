@@ -1,8 +1,9 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star } from 'lucide-react';
-import type { Review } from '@/lib/types';
+import type { Review } from '@/firebase/converters';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useMenuData } from '@/hooks/use-menu-data';

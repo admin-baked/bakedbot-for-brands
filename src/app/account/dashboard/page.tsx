@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
-import type { Review, UserInteraction, OrderDoc } from '@/lib/types';
+import type { Review, UserInteraction, OrderDoc } from '@/firebase/converters';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare, Sparkles, Star } from 'lucide-react';
 import Header from '@/app/components/header';
@@ -21,6 +21,7 @@ import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { orderConverter, reviewConverter, interactionConverter } from '@/firebase/converters';
 
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; value: string | number; icon: React.ElementType; isLoading: boolean }) {
@@ -51,9 +52,23 @@ export default function CustomerDashboardPage() {
     const [currentFavoriteId, setCurrentFavoriteId] = useState<string | null>(null);
 
     // Set up queries for user-specific data
-    const ordersQuery = useMemo(() => user && firestore ? query(collection(firestore, 'orders'), where('userId', '==', user.uid)) : null, [user, firestore]);
-    const reviewsQuery = useMemo(() => user && firestore ? query(collectionGroup(firestore, 'reviews'), where('userId', '==', user.uid)) : null, [user, firestore]);
-    const interactionsQuery = useMemo(() => user && firestore ? query(collection(firestore, `users/${user.uid}/interactions`)) : null, [user, firestore]);
+    const ordersQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        const baseQuery = collection(firestore, 'orders').withConverter(orderConverter);
+        return query(baseQuery, where('userId', '==', user.uid));
+    }, [user, firestore]);
+    
+    const reviewsQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        const baseQuery = collectionGroup(firestore, 'reviews').withConverter(reviewConverter);
+        return query(baseQuery, where('userId', '==', user.uid));
+    }, [user, firestore]);
+
+    const interactionsQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        const baseQuery = collection(firestore, `users/${user.uid}/interactions`).withConverter(interactionConverter);
+        return query(baseQuery);
+    }, [user, firestore]);
 
     // Fetch live data using the queries
     const { data: liveOrders, isLoading: areOrdersLoading } = useCollection<OrderDoc>(ordersQuery);
