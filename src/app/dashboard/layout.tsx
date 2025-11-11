@@ -137,7 +137,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             router.replace('/onboarding');
         }
     } else if (!user) {
-        if (pathname.startsWith('/dashboard') || pathname.startsWith('/account')) {
+        if (pathname.startsWith('/dashboard') || pathname.startsWith('/account') || pathname === '/onboarding') {
             router.replace('/');
         }
     }
@@ -230,7 +230,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
   
   // Do not render the brand dashboard layout for certain pages
-  if (pathname.startsWith('/account') || pathname.startsWith('/brand-login') || pathname.startsWith('/dispensary-login')) {
+  if (pathname.startsWith('/account') || pathname.startsWith('/brand-login') || pathname.startsWith('/dispensary-login') || pathname === '/onboarding') {
       return children;
   }
 
