@@ -1,5 +1,8 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { useUser } from '@/firebase/auth/use-user';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -17,7 +20,8 @@ import { Separator } from '@/components/ui/separator';
 export default function AccountPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const { auth } = useFirebase();
+  const firebase = useFirebase();
+  const auth = firebase?.auth;
   const { toast } = useToast();
 
   useEffect(() => {
@@ -46,16 +50,12 @@ export default function AccountPage() {
     }
   };
 
-  if (isUserLoading) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (

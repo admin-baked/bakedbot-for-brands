@@ -1,5 +1,7 @@
-
 'use client';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,7 +40,8 @@ function MetricCard({ title, value, icon: Icon, isLoading }: { title: string, va
 }
 
 export default function DashboardPage() {
-  const { firestore } = useFirebase();
+  const firebase = useFirebase();
+  const firestore = firebase?.firestore;
   const { user, isUserLoading } = useUser();
   const [currentBrandId, setCurrentBrandId] = useState<string | null>(null);
 

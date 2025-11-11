@@ -1,5 +1,7 @@
-
 'use client';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 import { useMemo, useState, useEffect } from "react";
 import { OrdersTable, type OrderData } from "./components/orders-table";
@@ -13,7 +15,8 @@ import { useFirebase } from "@/firebase/provider";
 import { orderConverter } from "@/firebase/converters";
 
 export default function OrdersPage() {
-  const { firestore } = useFirebase();
+  const firebase = useFirebase();
+  const firestore = firebase?.firestore;
   const { user, isUserLoading } = useUser();
   const { locations } = useMenuData(); 
   

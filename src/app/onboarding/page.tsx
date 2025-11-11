@@ -1,5 +1,7 @@
-
 'use client';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 import { useState } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
@@ -28,7 +30,8 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
 
 export default function OnboardingPage() {
     const { user, isUserLoading } = useUser();
-    const { firestore } = useFirebase();
+    const firebase = useFirebase();
+    const firestore = firebase?.firestore;
     const router = useRouter();
     const { toast } = useToast();
 
@@ -78,7 +81,7 @@ export default function OnboardingPage() {
         }
     };
 
-    if (isUserLoading) {
+    if (isUserLoading || !firestore) {
         return (
             <div className="flex h-screen w-screen items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

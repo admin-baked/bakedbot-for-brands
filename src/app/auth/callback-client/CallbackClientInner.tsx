@@ -11,21 +11,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export function CallbackClientInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const { auth } = useFirebase();
+  const firebase = useFirebase();
+  const auth = firebase?.auth;
 
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [message, setMessage] = useState<string>('Verifying your sign-in…');
 
   useEffect(() => {
     const run = async () => {
-        // Strict client-only check
+        const href = window.location.href;
+
         if (!auth) {
             // This can happen on first render if Firebase isn't initialized yet.
             // The hook will re-run once auth is available.
+            // Or we could show a loading state until auth is ready.
             return;
         }
-        
-        const href = window.location.href;
         
         // Fast-fail if URL is missing required params
         const hasOob = !!params.get("oobCode");
@@ -39,6 +40,10 @@ export function CallbackClientInner() {
         }
         
         let email = window.localStorage.getItem('emailForSignIn') || '';
+        if (!email) {
+            // As a fallback, try getting it from the URL
+            email = params.get('email') || '';
+        }
         if (!email) {
             // Cross-device flow: prompt for email
             email = window.prompt('Please provide your email to complete the sign-in.') || '';

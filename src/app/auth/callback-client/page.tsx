@@ -6,9 +6,9 @@ import { CallbackClientInner } from './CallbackClientInner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 
-export const dynamic = 'force-dynamic';   // prevents SSG/SSR
-export const revalidate = 0;              // no caching; purely client
-export const dynamicParams = true;        // don't infer params at build
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 function Fallback() {
     return (
