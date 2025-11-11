@@ -7,6 +7,17 @@ service cloud.firestore {
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
+    
+    // Helper function to get user's role from their user document
+    function getRole(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    }
+    
+    // Helper function to check if user is a dispensary manager for a given location
+    function isDispensaryManager(userId, locationId) {
+        let userDoc = get(/databases/$(database)/documents/users/$(userId)).data;
+        return userDoc.role == 'dispensary' && userDoc.locationId == locationId;
+    }
 
     // Products are public, but shouldn't be writable from the client
     match /products/{productId} {
@@ -26,12 +37,14 @@ service cloud.firestore {
       allow read, update: if isOwner(userId);
     }
     
-    // Anyone can create an order (for guest checkout), but only the owner should
-    // be able to read it. No one can update/delete orders from the client.
+    // Anyone can create an order.
+    // Customers can read their own orders.
+    // Dispensary managers can read and update orders for their location.
     match /orders/{orderId} {
-      allow create: if true; // In a real app, this would be locked down further.
-      allow read: if isOwner(resource.data.userId);
-      allow update, delete: if false;
+      allow create: if true;
+      allow read: if isOwner(resource.data.userId) || isDispensaryManager(request.auth.uid, resource.data.locationId);
+      allow update: if isDispensaryManager(request.auth.uid, resource.data.locationId);
+      allow delete: if false;
     }
 
     // Rules for the 'reviews' collection group. This allows querying reviews

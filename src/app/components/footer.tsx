@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Logo from '@/components/logo';
 
 export function Footer() {
   return (
@@ -8,7 +9,7 @@ export function Footer() {
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            
+            <Logo />
             <p className="text-sm text-muted-foreground">
               Your AI-powered guide to cannabis.
             </p>
@@ -25,6 +26,7 @@ export function Footer() {
             <h3 className="font-semibold mb-4">For Business</h3>
             <ul className="space-y-2 text-sm">
               <li><Link href="/brand-login" className="text-muted-foreground hover:text-primary">Brand Login</Link></li>
+              <li><Link href="/dispensary-login" className="text-muted-foreground hover:text-primary">Dispensary Login</Link></li>
             </ul>
           </div>
           <div>
