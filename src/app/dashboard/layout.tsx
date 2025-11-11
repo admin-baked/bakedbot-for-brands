@@ -119,13 +119,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     if (user) {
         // User is logged in
-        if (isProfileLoading) return; // Still waiting for profile
-        if (userProfile === null) return; // Profile doesn't exist yet, wait for creation or next state
-
-        if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
-            router.replace('/onboarding');
-        } else if (userProfile?.onboardingCompleted && (isAuthPage || pathname === '/onboarding')) {
+        if (isAuthPage) {
             router.replace('/dashboard');
+        } else if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
+            router.replace('/onboarding');
         }
     } else {
         // User is not logged in
