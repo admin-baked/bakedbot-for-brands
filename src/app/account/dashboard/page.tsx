@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useMemo } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useCollection } from '@/hooks/use-collection';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, collectionGroup } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import type { Review, UserInteraction, OrderDoc } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
