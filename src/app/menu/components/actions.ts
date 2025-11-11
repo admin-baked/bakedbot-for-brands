@@ -6,6 +6,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { CartItem } from '@/hooks/use-cart';
 import { sendOrderEmail } from '@/ai/flows/send-order-email';
+import { cookies } from 'next/headers';
 
 // Schema for the input of the submitOrder action
 const OrderSchema = z.object({
@@ -16,7 +17,7 @@ const OrderSchema = z.object({
   customerBirthDate: z.string().min(1, 'Date of birth is required.'),
   locationId: z.string().min(1, 'Location is required.'),
   locationName: z.string().min(1, 'Location name is required.'),
-  locationEmail: z.string().email('Location email is invalid.'),
+  locationEmail: z.string().email('Location email is invalid.').optional(), // Make optional as we might override it
   cartItems: z.array(z.any()).min(1, 'Cart cannot be empty.'),
   totalAmount: z.number().positive('Total amount must be positive.'),
 });
@@ -64,9 +65,20 @@ export async function submitOrder(input: unknown) {
 
     const host = process.env.NEXT_PUBLIC_HOST || 'http://localhost:3000';
     
+    const isDemoMode = cookies().get('isUsingDemoData')?.value === '1';
+    
+    // For demo orders, always send to Martez. Otherwise, use the location's email.
+    const fulfillmentEmail = isDemoMode ? 'martez@bakedbot.ai' : orderData.locationEmail;
+
+    if (!fulfillmentEmail) {
+        console.error(`CRITICAL: No fulfillment email for order ${orderId}. Is demo mode: ${isDemoMode}`);
+        // The order is saved, but we can't notify. Return success to the user but log the error.
+        return { orderId, userId: finalUserId };
+    }
+
     // After successfully saving the order, trigger the email flow
     await sendOrderEmail({
-      to: orderData.locationEmail,
+      to: fulfillmentEmail,
       orderId: orderId,
       customerName: orderData.customerName,
       customerEmail: orderData.customerEmail,
