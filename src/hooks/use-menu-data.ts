@@ -21,8 +21,8 @@ export function useMenuData() {
   const { firestore } = useFirebase();
   const { products: demoProducts, locations: demoLocations } = useDemoData();
   
-  const [products, setProducts] = useState<Product[]>(demoProducts);
-  const [isFirestoreLoading, setIsFirestoreLoading] = useState(false);
+  const [products, setProducts] = useState<Product[]>(isUsingDemoData ? demoProducts : []);
+  const [isFirestoreLoading, setIsFirestoreLoading] = useState(!isUsingDemoData);
 
   useEffect(() => {
     // If we are in demo mode, ensure we are using demo data and do not fetch from Firestore.
@@ -34,8 +34,8 @@ export function useMenuData() {
     
     // Live data mode: fetch from Firestore
     if (!firestore) {
-      // Fallback to demo data if firestore is not available even in live mode
-      setProducts(demoProducts);
+      // If firestore is not available in live mode, return empty arrays.
+      setProducts([]);
       setIsFirestoreLoading(false);
       return;
     };
@@ -47,13 +47,13 @@ export function useMenuData() {
             const firestoreProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
             setProducts(firestoreProducts);
         } else {
-            // Fallback to demo products if the live collection is empty
-            setProducts(demoProducts);
+            // If live collection is empty, show no products.
+            setProducts([]);
         }
         setIsFirestoreLoading(false);
     }, (error) => {
-        console.error("Error fetching products from Firestore, falling back to demo data:", error);
-        setProducts(demoProducts);
+        console.error("Error fetching products from Firestore:", error);
+        setProducts([]); // Return empty array on error
         setIsFirestoreLoading(false);
     });
 
@@ -61,7 +61,7 @@ export function useMenuData() {
   }, [firestore, demoProducts, isUsingDemoData]);
 
   // Determine the final set of locations and loading state.
-  const finalLocations = (isUsingDemoData || !_hasHydrated || storeLocations.length === 0) ? demoLocations : storeLocations;
+  const finalLocations = isUsingDemoData ? demoLocations : storeLocations;
   const isLoading = !_hasHydrated || (isFirestoreLoading && !isUsingDemoData);
 
   return {
