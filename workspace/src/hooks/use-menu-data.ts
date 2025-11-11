@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useStore } from './use-store';
-import { useDemoData } from './use-demo-data';
+import { useStore } from '@/hooks/use-store';
+import { useDemoData } from '@/hooks/use-demo-data';
 import { useState, useEffect } from 'react';
 import type { Product, Location } from '@/lib/types';
 import { useFirebase } from '@/firebase/provider';
@@ -21,7 +21,7 @@ export function useMenuData() {
   const { firestore } = useFirebase();
   const { products: demoProducts, locations: demoLocations } = useDemoData();
   
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(demoProducts);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
 
   useEffect(() => {
