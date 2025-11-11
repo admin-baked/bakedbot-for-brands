@@ -14,9 +14,10 @@ import CustomerUploads from './components/customer-uploads';
 import FavoriteLocation from './components/favorite-location';
 import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { Timestamp, where } from 'firebase/firestore';
+import { collectionGroup, query, where } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
 import { useCollectionGroup } from '@/hooks/use-collection-group';
+import { useFirebase } from '@/firebase/provider';
 
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; value: string | number; icon: React.ElementType; isLoading: boolean }) {
@@ -41,19 +42,20 @@ export default function CustomerDashboardPage() {
     const { isUsingDemoData, isLoading: isMenuLoading } = useMenuData();
     const { favoriteLocationId, setFavoriteLocationId } = useStore();
     const { user, isUserLoading } = useUser();
+    const { firestore } = useFirebase();
 
     // Fetch data specifically for the logged-in user
     const { data: interactions, isLoading: areInteractionsLoading } = useCollectionGroup<UserInteraction>(
         'interactions', 
-        user ? where('userId', '==', user.uid) : undefined
+        user && firestore ? query(collectionGroup(firestore, 'interactions'), where('userId', '==', user.uid)) : undefined
     );
     const { data: reviews, isLoading: areReviewsLoading } = useCollectionGroup<Review>(
         'reviews', 
-        user ? where('userId', '==', user.uid) : undefined
+        user && firestore ? query(collectionGroup(firestore, 'reviews'), where('userId', '==', user.uid)) : undefined
     );
     const { data: orders, isLoading: areOrdersLoading } = useCollectionGroup<OrderDoc>(
         'orders', 
-        user ? where('userId', '==', user.uid) : undefined
+        user && firestore ? query(collectionGroup(firestore, 'orders'), where('userId', '==', user.uid)) : undefined
     );
 
     const isLoading = isMenuLoading || isUserLoading || areInteractionsLoading || areReviewsLoading || areOrdersLoading;
@@ -114,5 +116,3 @@ export default function CustomerDashboardPage() {
         </div>
     );
 }
-
-    
