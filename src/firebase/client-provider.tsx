@@ -18,19 +18,13 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     return null;
   }, []);
 
-  if (!firebaseServices) {
-    // During SSR, render children without the provider.
-    // The client will re-render with the provider once hydrated.
-    return <>{children}</>;
-  }
-  
-  const { firebaseApp, auth, firestore } = firebaseServices;
-
+  // During SSR, or if initialization fails, firebaseServices will be null.
+  // The FirebaseProvider will handle this gracefully.
   return (
     <FirebaseProvider
-      firebaseApp={firebaseApp}
-      auth={auth}
-      firestore={firestore}
+      firebaseApp={firebaseServices?.firebaseApp || null}
+      auth={firebaseServices?.auth || null}
+      firestore={firebaseServices?.firestore || null}
     >
       {children}
     </FirebaseProvider>

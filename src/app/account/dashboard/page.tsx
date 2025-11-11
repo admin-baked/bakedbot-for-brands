@@ -1,5 +1,7 @@
-
 'use client';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 import { useMemo, useEffect, useState } from 'react';
 import type { Review, UserInteraction, OrderDoc } from '@/firebase/converters';
@@ -46,7 +48,8 @@ export default function CustomerDashboardPage() {
     const { isUsingDemoData, isLoading: isMenuLoading } = useMenuData();
     const { favoriteLocationId, setFavoriteLocationId: setStoreFavoriteId } = useStore();
     const { user, isUserLoading } = useUser();
-    const { firestore } = useFirebase();
+    const firebase = useFirebase();
+    const firestore = firebase?.firestore;
     const { toast } = useToast();
     
     const [currentFavoriteId, setCurrentFavoriteId] = useState<string | null>(null);

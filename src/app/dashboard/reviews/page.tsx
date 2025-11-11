@@ -1,5 +1,7 @@
-
 'use client';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 import { useMemo } from "react";
 import { ReviewsTable } from "./components/reviews-table";
@@ -13,7 +15,8 @@ import { useFirebase } from "@/firebase/provider";
 import { reviewConverter } from "@/firebase/converters";
 
 export default function ReviewsPage() {
-  const { firestore } = useFirebase();
+  const firebase = useFirebase();
+  const firestore = firebase?.firestore;
   const { isUserLoading } = useUser();
   const { products, isLoading: areProductsLoading } = useMenuData();
   

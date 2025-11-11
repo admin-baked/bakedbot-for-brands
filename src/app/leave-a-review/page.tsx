@@ -1,5 +1,7 @@
-
 'use client';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 import { useEffect, useState, useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
@@ -18,8 +20,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { Footer } from '../components/footer';
 import Header from '../components/header';
-
-export const dynamic = 'force-dynamic';
 
 const initialState: ReviewFormState = {
   message: '',
@@ -242,5 +242,3 @@ export default function LeaveReviewPage() {
     </div>
   );
 }
-
-    

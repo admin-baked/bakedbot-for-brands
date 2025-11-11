@@ -1,5 +1,7 @@
-
 'use client';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 import { useStore } from '@/hooks/use-store';
 import { useCart } from '@/hooks/use-cart';
@@ -9,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription }
 import Header from '@/app/components/header';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, MapPin } from 'lucide-react';
-import { CheckoutForm } from '@/app/menu/components/checkout-form';
+import { CheckoutForm } from '@/app/checkout/components/checkout-form';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useMenuData } from '@/hooks/use-menu-data';
