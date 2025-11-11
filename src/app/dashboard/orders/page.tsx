@@ -1,25 +1,47 @@
 
 'use client';
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { OrdersTable, type OrderData } from "./components/orders-table";
 import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { OrderDoc } from "@/lib/types";
 import { useMenuData } from "@/hooks/use-menu-data";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collectionGroup, query, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useFirebase } from "@/firebase/provider";
 
 export default function OrdersPage() {
   const { firestore } = useFirebase();
-  const { isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   const { locations } = useMenuData(); 
   
+  const [userProfile, setUserProfile] = useState<any>(null);
+  
+  useEffect(() => {
+    if (user && firestore) {
+      const unsub = onSnapshot(doc(firestore, 'users', user.uid), (doc) => {
+        setUserProfile(doc.data());
+      });
+      return () => unsub();
+    }
+  }, [user, firestore]);
+
   const ordersQuery = useMemo(() => {
-    if (!firestore) return null;
-    return query(collectionGroup(firestore, 'orders'), orderBy('createdAt', 'desc'));
-  }, [firestore]);
+    if (!firestore || !userProfile) return null;
+    
+    // For dispensary managers, only show orders for their location
+    if (userProfile.role === 'dispensary' && userProfile.locationId) {
+        return query(collection(firestore, 'orders'), where('locationId', '==', userProfile.locationId));
+    }
+    
+    // For brand/owner, show all orders
+    if (userProfile.role === 'brand' || userProfile.role === 'owner') {
+        return query(collection(firestore, 'orders'));
+    }
+
+    return null; // No query if user role is not right
+  }, [firestore, userProfile]);
   
   const { data: orders, isLoading: areOrdersLoading } = useCollection<OrderDoc>(ordersQuery);
   
@@ -41,7 +63,9 @@ export default function OrdersPage() {
     }));
   }, [orders, locations]);
 
-  if (areOrdersLoading || isUserLoading) {
+  const isLoading = areOrdersLoading || isUserLoading || !userProfile;
+
+  if (isLoading) {
     return (
       <div className="flex flex-col gap-8">
         <div>
