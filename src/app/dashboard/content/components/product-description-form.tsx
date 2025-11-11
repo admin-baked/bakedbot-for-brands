@@ -13,8 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { DollarSign, Loader2, Upload, Wand2, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
-import { useStore } from '@/hooks/use-store';
 import type { Product } from '@/lib/types';
+import { defaultChatbotIcon } from '@/lib/data';
 
 
 interface SubmitButtonProps {
@@ -51,8 +51,6 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
   const [localGeneratedContent, setLocalGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
   const [packagingImage, setPackagingImage] = useState<string>('');
   
-  const { chatbotIcon } = useStore();
-
   // Effect for handling description generation results
   useEffect(() => {
     if (descriptionState.message) {
@@ -125,7 +123,7 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
           <CardDescription>Fill in the details below to generate content. The same details will be used for both image and text generation.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-           <input type="hidden" name="logoDataUri" value={chatbotIcon || ''} />
+           <input type="hidden" name="logoDataUri" value={defaultChatbotIcon} />
            <input type="hidden" name="imageUrl" value={packagingImage || ''} />
            
           <div className="space-y-2">

@@ -10,11 +10,10 @@ import { useStore } from "@/hooks/use-store";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import * as React from "react";
+import { defaultChatbotIcon } from "@/lib/data";
 
 export default function BrandSettings() {
     const { 
-        chatbotIcon: storedIcon, 
-        setChatbotIcon, 
         brandColor: storedColor, 
         setBrandColor, 
         brandUrl: storedUrl, 
@@ -26,7 +25,7 @@ export default function BrandSettings() {
     // Local state for form inputs, initialized from the store
     const [brandColor, localSetBrandColor] = React.useState(storedColor);
     const [brandUrl, localSetBrandUrl] = React.useState(storedUrl);
-    const [iconPreview, setIconPreview] = React.useState<string | null>(storedIcon);
+    const [iconPreview, setIconPreview] = React.useState<string | null>(defaultChatbotIcon);
 
     const handleIconUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -45,9 +44,7 @@ export default function BrandSettings() {
         // Save all local state values to the global store
         setBrandColor(brandColor);
         setBrandUrl(brandUrl);
-        if (iconPreview) {
-            setChatbotIcon(iconPreview);
-        }
+        // The icon is handled locally in this component now, not saved to the store.
 
         toast({
             title: "Branding Saved!",
@@ -57,10 +54,9 @@ export default function BrandSettings() {
 
     // Effect to sync local state if the global store changes from another source
     React.useEffect(() => {
-        setIconPreview(storedIcon);
         localSetBrandColor(storedColor);
         localSetBrandUrl(storedUrl);
-    }, [storedIcon, storedColor, storedUrl]);
+    }, [storedColor, storedUrl]);
 
     return (
         <Card>
