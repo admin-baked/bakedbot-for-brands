@@ -1,10 +1,9 @@
-
 'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/hooks/use-cart';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useTransition } from 'react';
 import { useFormState } from 'react-dom';
 import { useToast } from '@/hooks/use-toast';
 
@@ -80,7 +79,8 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
     const { toast } = useToast();
     const { user, isUserLoading } = useUser();
     
-    const [feedbackState, submitFeedback, isFeedbackPending] = useFormState(updateProductFeedback, initialFeedbackState);
+    const [feedbackState, submitFeedback] = useFormState(updateProductFeedback, initialFeedbackState);
+    const [isFeedbackPending, startTransition] = useTransition();
 
     useEffect(() => {
         if (feedbackState.message) {
@@ -116,7 +116,6 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
     }, [product, selectedLocationId]);
 
     const handleFeedback = (feedbackType: 'like' | 'dislike') => {
-        // The server action now handles the auth check, but we can provide quicker feedback on the client.
         if (!user) {
             toast({
                 variant: 'destructive',
@@ -125,10 +124,15 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
             });
             return;
         }
-        const formData = new FormData();
-        formData.append('productId', product.id);
-        formData.append('feedbackType', feedbackType);
-        submitFeedback(formData);
+
+        startTransition(async () => {
+            const idToken = await user.getIdToken();
+            const formData = new FormData();
+            formData.append('productId', product.id);
+            formData.append('feedbackType', feedbackType);
+            formData.append('idToken', idToken);
+            submitFeedback(formData);
+        });
     };
 
     const handleAddToCart = () => {
