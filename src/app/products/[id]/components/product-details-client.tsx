@@ -89,13 +89,15 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
         // If no location is selected but there are multiple prices, show a range.
         if (!selectedLocationId && hasPricing) {
             const priceValues = Object.values(product.prices);
-            const minPrice = Math.min(...priceValues);
-            const maxPrice = Math.max(...priceValues);
+            if (priceValues.length > 0) {
+                const minPrice = Math.min(...priceValues);
+                const maxPrice = Math.max(...priceValues);
 
-            if (minPrice === maxPrice) {
-                return `$${minPrice.toFixed(2)}`;
+                if (minPrice === maxPrice) {
+                    return `$${minPrice.toFixed(2)}`;
+                }
+                return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
             }
-            return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
         }
         
         // Fallback to the base price if no other conditions are met.
@@ -120,7 +122,30 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
         });
       };
 
-    const canAddToCart = !!selectedLocationId;
+    const handleAddToCart = () => {
+        if (!selectedLocationId) {
+            const locator = document.getElementById('locator');
+            if (locator) {
+                locator.scrollIntoView({ behavior: 'smooth' });
+                // Add a visual cue to the locator section
+                locator.classList.add('animate-pulse', 'ring-2', 'ring-primary', 'rounded-lg');
+                setTimeout(() => {
+                    locator.classList.remove('animate-pulse', 'ring-2', 'ring-primary', 'rounded-lg');
+                }, 2000);
+            }
+            toast({
+                variant: 'destructive',
+                title: 'No Location Selected',
+                description: 'Please select a dispensary location before adding items to your cart.',
+            });
+            return;
+        }
+        addToCart(product, selectedLocationId);
+        toast({
+            title: 'Added to Cart!',
+            description: `${product.name} has been added to your cart.`
+        });
+    };
 
     return (
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start max-w-6xl mx-auto py-8 px-4">
@@ -155,7 +180,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                             <span>{product.dislikes} Dislikes</span>
                         </div>
                     </div>
-                    <p className="text-2xl font-bold">{priceDisplay}</p>
+                    <p className="text-3xl font-bold">{priceDisplay}</p>
                 </div>
                 
                 <div className="prose text-muted-foreground">
@@ -163,7 +188,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button size="lg" className="w-full" onClick={() => addToCart(product, selectedLocationId)} disabled={!canAddToCart}>
+                    <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={!selectedLocationId}>
                         <Plus className="mr-2 h-5 w-5" />
                         Add to Cart
                     </Button>
@@ -174,6 +199,9 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                         <ThumbsDown className="h-5 w-5 text-red-500"/>
                     </Button>
                 </div>
+                {!selectedLocationId && (
+                    <p className="text-sm text-center text-destructive">Please select a location to add items to your cart.</p>
+                )}
 
                 <ReviewSummaryDisplay summary={summary} isLoading={!summary} />
             </div>
