@@ -1,38 +1,34 @@
 
 'use client';
 
-import { useFormState } from 'react-dom';
+import { useFormState, useFormStatus } from 'react-dom';
 import { useState } from 'react';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
-import BrandImageGenerator from './components/brand-image-generator';
 import ProductDescriptionDisplay from './components/product-description-display';
 import ProductDescriptionForm from './components/product-description-form';
 import ReviewSummarizer from './components/review-summarizer';
-import { createProductDescription, createSocialMediaImage } from './actions';
+import { createProductDescription, createSocialMediaImage, type DescriptionFormState, type ImageFormState } from './actions';
 import { useMenuData } from '@/hooks/use-menu-data';
 
-export default function ProductDescriptionGeneratorPage() {
+const initialDescriptionState: DescriptionFormState = { message: '', data: null, error: false };
+const initialImageState: ImageFormState = { message: '', imageUrl: null, error: false };
+
+
+export default function ProductContentGeneratorPage() {
   const [generatedContent, setGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
   
-  // Get the pending states from the form actions
-  const [descriptionState, descriptionFormAction] = useFormState(createProductDescription, { message: '', data: null, error: false });
-  const [imageState, imageFormAction] = useFormState(createSocialMediaImage, { message: '', imageUrl: null, error: false });
+  const [descriptionState, descriptionFormAction] = useFormState(createProductDescription, initialDescriptionState);
+  const [imageState, imageFormAction] = useFormState(createSocialMediaImage, initialImageState);
+  
+  const { pending: isDescriptionPending } = useFormStatus();
+  const { pending: isImagePending } = useFormStatus();
+
 
   // Get product data
   const { products, isLoading: areProductsLoading } = useMenuData();
 
   const handleContentUpdate = (content: (GenerateProductDescriptionOutput & { productId?: string }) | null) => {
     setGeneratedContent(content);
-  }
-
-  const handleBrandImageGenerated = (imageUrl: string | null) => {
-     setGeneratedContent(prev => ({
-        ...(prev ?? { productName: 'Brand Image', description: '' }),
-        productName: 'Brand Image',
-        description: prev?.description || 'AI-generated image for your brand.',
-        imageUrl: imageUrl,
-        productId: undefined, // Brand images aren't associated with a product
-    } as GenerateProductDescriptionOutput & { productId?: string }));
   }
 
   return (
@@ -43,7 +39,7 @@ export default function ProductDescriptionGeneratorPage() {
           Generate compelling product descriptions, social media images, and more with the power of AI.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-8 @container lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 @container lg:grid-cols-2">
         
         <ProductDescriptionForm 
           onContentUpdate={handleContentUpdate}
@@ -55,15 +51,12 @@ export default function ProductDescriptionGeneratorPage() {
           areProductsLoading={areProductsLoading}
         />
         
-        <div className="flex flex-col gap-8 xl:col-span-2">
-            <div className="grid grid-cols-1 @lg:grid-cols-2 gap-8">
-              <ProductDescriptionDisplay 
+        <div className="flex flex-col gap-8">
+             <ProductDescriptionDisplay 
                   productDescription={generatedContent}
-                  isDescriptionPending={false}
-                  isImagePending={false}
+                  isDescriptionPending={isDescriptionPending}
+                  isImagePending={isImagePending}
               />
-              <BrandImageGenerator onImageGenerated={handleBrandImageGenerated} />
-            </div>
             <ReviewSummarizer products={products} areProductsLoading={areProductsLoading}/>
         </div>
       </div>

@@ -102,10 +102,11 @@ export async function createSocialMediaImage(
   formData: FormData
 ): Promise<ImageFormState> {
 
-  const validatedFields = FormSchema.pick({ productName: true, features: true, brandVoice: true }).safeParse({
+  const validatedFields = FormSchema.pick({ productName: true, features: true, brandVoice: true, imageUrl: true }).safeParse({
     productName: formData.get('productName'),
     features: formData.get('features'),
     brandVoice: formData.get('brandVoice'),
+    imageUrl: formData.get('imageUrl'),
   });
 
   if (!validatedFields.success) {
