@@ -5,6 +5,8 @@ import { summarizeReviews, type SummarizeReviewsOutput } from '@/ai/flows/summar
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 // Add idToken to the schema
@@ -55,8 +57,7 @@ export async function updateProductFeedback(
   }
 
   const { productId, feedbackType, idToken } = validatedFields.data;
-
-  // Securely verify the ID token on the server
+  
   try {
     await adminAuth.verifyIdToken(idToken);
   } catch (authError) {
@@ -65,17 +66,8 @@ export async function updateProductFeedback(
   }
   
   const productRef = firestore.doc(`products/${productId}`);
-  
-  try {
-    const doc = await productRef.get();
-    if (!doc.exists) {
-      return { error: true, message: 'Product not found.' };
-    }
-  } catch (e) {
-    return { error: true, message: 'Failed to verify product.' };
-  }
-
   const fieldToUpdate = feedbackType === 'like' ? 'likes' : 'dislikes';
+
   try {
     await productRef.update({
       [fieldToUpdate]: FieldValue.increment(1),
@@ -87,6 +79,8 @@ export async function updateProductFeedback(
     return { error: false, message: 'Feedback submitted successfully!' };
   } catch (error) {
     console.error(`[updateProductFeedback] Firestore error:`, error);
+     // In a real app, this is where you would emit a contextual error
+    // For this example, we return a generic server error message.
     return { error: true, message: 'Could not submit feedback due to a database error.' };
   }
 }

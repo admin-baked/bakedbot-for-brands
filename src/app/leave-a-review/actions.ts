@@ -5,7 +5,8 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
-import { headers } from 'next/headers';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 const ReviewSchema = z.object({
@@ -59,16 +60,17 @@ export async function submitReview(
     }
 
     const userId = decodedToken.uid; // Use the UID from the verified token
+    const reviewCollectionRef = firestore.collection(`products/${productId}/reviews`);
+    
+    const dataToSave = {
+        ...reviewData,
+        userId, // Use the secure, server-verified user ID
+        productId, // Add the product ID for collection group queries
+        createdAt: FieldValue.serverTimestamp(),
+    };
 
     try {
-        const reviewCollectionRef = firestore.collection(`products/${productId}/reviews`);
-        
-        await reviewCollectionRef.add({
-            ...reviewData,
-            userId, // Use the secure, server-verified user ID
-            productId, // Add the product ID for collection group queries
-            createdAt: FieldValue.serverTimestamp(),
-        });
+        await reviewCollectionRef.add(dataToSave);
 
         revalidatePath(`/products/${productId}`);
         revalidatePath('/dashboard/reviews');
@@ -80,6 +82,8 @@ export async function submitReview(
         };
 
     } catch (serverError: any) {
+        // This is a placeholder for a more robust error handling system
+        // that would ideally create and emit a contextual error.
         console.error("Server Action Error (submitReview):", serverError);
         return {
             message: 'Submission failed: An unexpected server error occurred.',
@@ -87,5 +91,3 @@ export async function submitReview(
         };
     }
 }
-
-    

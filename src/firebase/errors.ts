@@ -1,7 +1,7 @@
 'use client';
 import { getAuth, type User } from 'firebase/auth';
 
-type SecurityRuleContext = {
+export type SecurityRuleContext = {
   path: string;
   operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
   requestResourceData?: any;
@@ -14,7 +14,7 @@ interface FirebaseAuthToken {
   phone_number: string | null;
   sub: string;
   firebase: {
-    identities: Record<string, string[]>;
+    identities: Record<string, any>;
     sign_in_provider: string;
     tenant: string | null;
   };
@@ -44,6 +44,7 @@ function buildAuthObject(currentUser: User | null): FirebaseAuthObject | null {
     return null;
   }
 
+  // A simplified token payload for client-side representation.
   const token: FirebaseAuthToken = {
     name: currentUser.displayName,
     email: currentUser.email,
@@ -56,7 +57,7 @@ function buildAuthObject(currentUser: User | null): FirebaseAuthObject | null {
           acc[p.providerId] = [p.uid];
         }
         return acc;
-      }, {} as Record<string, string[]>),
+      }, {} as Record<string, any>),
       sign_in_provider: currentUser.providerData[0]?.providerId || 'custom',
       tenant: currentUser.tenantId,
     },
@@ -67,6 +68,7 @@ function buildAuthObject(currentUser: User | null): FirebaseAuthObject | null {
     token: token,
   };
 }
+
 
 /**
  * Builds the complete, simulated request object for the error message.
@@ -80,9 +82,7 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
     // Safely attempt to get the current user.
     const firebaseAuth = getAuth();
     const currentUser = firebaseAuth.currentUser;
-    if (currentUser) {
-      authObject = buildAuthObject(currentUser);
-    }
+    authObject = buildAuthObject(currentUser);
   } catch {
     // This will catch errors if the Firebase app is not yet initialized.
     // In this case, we'll proceed without auth information.
@@ -92,9 +92,10 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
     auth: authObject,
     method: context.operation,
     path: `/databases/(default)/documents/${context.path}`,
-    resource: context.requestResourceData ? { data: context.requestResourceData } : undefined,
+    ...(context.requestResourceData && { resource: { data: context.requestResourceData } }),
   };
 }
+
 
 /**
  * Builds the final, formatted error message for the LLM.
@@ -117,7 +118,7 @@ export class FirestorePermissionError extends Error {
   constructor(context: SecurityRuleContext) {
     const requestObject = buildRequestObject(context);
     super(buildErrorMessage(requestObject));
-    this.name = 'FirebaseError';
+    this.name = 'FirebaseError'; // To match Next.js overlay expectations for Firebase errors
     this.request = requestObject;
   }
 }
