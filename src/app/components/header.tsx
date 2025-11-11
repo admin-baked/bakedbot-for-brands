@@ -2,18 +2,20 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, ShoppingBag } from 'lucide-react';
+import { Search, ShoppingBag, TestTube2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 export default function Header() {
     const { getItemCount } = useCart();
     const itemCount = getItemCount();
-    const { _hasHydrated, setCartSheetOpen } = useStore();
+    const { _hasHydrated, setCartSheetOpen, isUsingDemoData, setIsUsingDemoData } = useStore();
     const pathname = usePathname();
 
     const navLinks = [
@@ -45,6 +47,15 @@ export default function Header() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <div className="hidden md:flex items-center gap-2 mr-2 border-r pr-4">
+                        <TestTube2 className="h-5 w-5 text-primary" />
+                        <Label htmlFor="demo-mode-switch" className="text-sm font-medium">Demo Mode</Label>
+                        <Switch
+                            id="demo-mode-switch"
+                            checked={isUsingDemoData}
+                            onCheckedChange={setIsUsingDemoData}
+                        />
+                    </div>
                     <Button variant="ghost" size="icon">
                         <Search className="h-5 w-5" />
                     </Button>

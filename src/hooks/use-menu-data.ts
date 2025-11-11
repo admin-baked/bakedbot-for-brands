@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useStore } from './use-store';
-import { useDemoData } from './use-demo-data';
+import { useStore } from '@/hooks/use-store';
+import { useDemoData } from '@/hooks/use-demo-data';
 import { useState, useEffect } from 'react';
 import type { Product, Location } from '@/lib/types';
 import { useFirebase } from '@/firebase/provider';
@@ -61,8 +61,8 @@ export function useMenuData() {
   }, [firestore, demoProducts, isUsingDemoData]);
 
   // Determine the final set of locations and loading state.
-  const finalLocations = (_hasHydrated && storeLocations.length > 0) ? storeLocations : demoLocations;
-  const isLoading = !_hasHydrated || isFirestoreLoading;
+  const finalLocations = (isUsingDemoData || !_hasHydrated || storeLocations.length === 0) ? demoLocations : storeLocations;
+  const isLoading = !_hasHydrated || (isFirestoreLoading && !isUsingDemoData);
 
   return {
     products,
