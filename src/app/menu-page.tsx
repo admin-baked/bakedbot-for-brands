@@ -8,6 +8,7 @@ import { ProductGrid } from '@/components/product-grid';
 import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { Footer } from './components/footer';
+import RecentReviewsFeed from './components/recent-reviews-feed';
 
 export default function MenuPage() {
   return (
@@ -16,6 +17,7 @@ export default function MenuPage() {
       <main className="container mx-auto px-4 flex-1">
         <HeroSlider />
         <DispensaryLocator />
+        <RecentReviewsFeed />
         <div className="py-12">
             <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-8 text-center">
             Browse the Menu
