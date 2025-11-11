@@ -1,4 +1,3 @@
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -36,7 +35,8 @@ export async function getReviewSummary(productId: string, productName: string): 
 
 /**
  * SECURELY updates the like or dislike count for a product in Firestore.
- * This action is now protected and requires an authenticated user.
+ * This is a server-side action that uses the Admin SDK, so it bypasses client-side rules.
+ * The contextual error system is primarily for client-side operations.
  */
 export async function updateProductFeedback(
   prevState: { message: string; error: boolean } | null,
@@ -58,6 +58,7 @@ export async function updateProductFeedback(
   const fieldToUpdate = feedbackType === 'like' ? 'likes' : 'dislikes';
 
   try {
+    // Admin SDK call, bypasses security rules.
     await productRef.update({
       [fieldToUpdate]: FieldValue.increment(1),
     });
@@ -68,10 +69,6 @@ export async function updateProductFeedback(
     return { error: false, message: 'Feedback submitted successfully!' };
   } catch (error) {
     console.error(`[updateProductFeedback] Firestore error:`, error);
-     // In a real app, this is where you would emit a contextual error
-    // For this example, we return a generic server error message.
     return { error: true, message: 'Could not submit feedback due to a database error.' };
   }
 }
-
-    

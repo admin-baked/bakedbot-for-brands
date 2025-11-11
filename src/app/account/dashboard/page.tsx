@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
@@ -20,6 +19,8 @@ import { useCollection } from '@/firebase/firestore/use-collection';
 import { useFirebase } from '@/firebase/provider';
 import { demoCustomer } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; value: string | number; icon: React.ElementType; isLoading: boolean }) {
@@ -89,16 +90,26 @@ export default function CustomerDashboardPage() {
         
         if (user && firestore) {
             const userDocRef = doc(firestore, 'users', user.uid);
-            try {
-                await updateDoc(userDocRef, { favoriteLocationId: locationId });
-                setStoreFavoriteId(locationId);
-                toast({ title: 'Favorite location updated!' });
-            } catch (error) {
-                console.error('Failed to update favorite location:', error);
-                toast({ variant: 'destructive', title: 'Error saving favorite.' });
-                // Revert on failure by re-fetching from the store
-                setCurrentFavoriteId(favoriteLocationId); 
-            }
+            const favoriteData = { favoriteLocationId: locationId };
+            
+            updateDoc(userDocRef, favoriteData)
+                .then(() => {
+                    setStoreFavoriteId(locationId);
+                    toast({ title: 'Favorite location updated!' });
+                })
+                .catch(async (serverError) => {
+                    console.error('Failed to update favorite location:', serverError);
+                    toast({ variant: 'destructive', title: 'Error saving favorite.' });
+                    setCurrentFavoriteId(favoriteLocationId); // Revert on failure
+                    
+                    const permissionError = new FirestorePermissionError({
+                        path: userDocRef.path,
+                        operation: 'update',
+                        requestResourceData: favoriteData,
+                      });
+              
+                      errorEmitter.emit('permission-error', permissionError);
+                });
         }
     };
 

@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -70,6 +69,9 @@ export async function submitReview(
     };
 
     try {
+        // This is a server-side admin write. It bypasses security rules.
+        // The contextual error system is primarily for client-side operations
+        // where rules are enforced.
         await reviewCollectionRef.add(dataToSave);
 
         revalidatePath(`/products/${productId}`);

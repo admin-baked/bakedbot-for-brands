@@ -1,4 +1,3 @@
-
 'use server';
 
 import { revalidatePath } from "next/cache";
@@ -30,7 +29,8 @@ export async function updateOrderStatus(orderId: string, status: z.infer<typeof 
         const userDoc = await firestore.collection('users').doc(decodedToken.uid).get();
         const userRole = userDoc.data()?.role;
 
-        // Only allow users with 'dispensary' or 'owner' (CEO) role to update orders
+        // This is a server-side admin write, so it bypasses security rules.
+        // We still check for role here as a server-side authorization check.
         if (userRole !== 'dispensary' && userRole !== 'owner') {
             return { error: true, message: 'You do not have permission to update orders.' };
         }
