@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useActionState, useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useFormState } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -40,17 +41,6 @@ const StarRating = ({ rating, setRating, disabled }: { rating: number; setRating
   );
 };
 
-function SubmitButton({ disabled }: { disabled?: boolean }) {
-    const [state, formAction, isPending] = useActionState(submitReview, initialState);
-    
-    return (
-        <Button type="submit" className="w-full" disabled={disabled || isPending}>
-            {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
-            Submit Review
-        </Button>
-    );
-}
-
 export default function LeaveReviewPage() {
   const { user, isUserLoading } = useUser();
   const { products, isLoading: areProductsLoading } = useMenuData();
@@ -59,7 +49,7 @@ export default function LeaveReviewPage() {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   
-  const [state, formAction, isPending] = useActionState(submitReview, initialState);
+  const [state, formAction, isPending] = useFormState(submitReview, initialState);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {

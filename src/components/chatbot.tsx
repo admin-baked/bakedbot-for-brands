@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState, useRef, useEffect, type FormEvent, useTransition, useActionState, useCallback } from 'react';
+import { useState, useRef, useEffect, type FormEvent, useTransition, useCallback } from 'react';
+import { useFormState } from 'react-dom';
 import Image from 'next/image';
 import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown, ChevronDown, Wand2, Sparkles, Loader2, Download, Share2, HelpCircle, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { recommendProducts, type RecommendProductsOutput } from '@/ai/ai-powered-product-recommendations';
 import { summarizeReviews } from '@/ai/flows/summarize-reviews';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { createSocialMediaImage, updateProductFeedback } from '@/app/dashboard/content/actions';
+import { createSocialMediaImage } from '@/app/dashboard/content/actions';
+import { updateProductFeedback } from '@/app/products/[id]/actions';
 import type { ImageFormState } from '@/app/dashboard/content/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useMenuData } from '@/hooks/use-menu-data';
@@ -674,9 +676,11 @@ export default function Chatbot() {
 
   const handleFeedback = (productId: string, type: 'like' | 'dislike') => {
     startTransition(async () => {
-        if (!productId) return;
-        const result = await updateProductFeedback(productId, type);
-        if (result.success) {
+        const formData = new FormData();
+        formData.append('productId', productId);
+        formData.append('feedbackType', type);
+        const result = await updateProductFeedback(null as any, formData);
+        if (!result.error) {
             toast({
                 title: 'Feedback Submitted!',
                 description: `Thanks for letting us know you ${type}d the product.`,

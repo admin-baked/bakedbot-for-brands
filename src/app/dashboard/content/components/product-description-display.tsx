@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
-import { useActionState, useEffect } from 'react';
+import { useFormState } from 'react-dom';
+import { useEffect } from 'react';
 import { updateProductFeedback } from '@/app/products/[id]/actions';
 import { useUser } from '@/firebase/auth/use-user';
 
@@ -23,7 +24,7 @@ const initialFeedbackState = { message: '', error: false };
 export default function ProductDescriptionDisplay({ productDescription, isImagePending, isDescriptionPending }: ProductDescriptionDisplayProps) {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
-  const [feedbackState, submitFeedback, isFeedbackPending] = useActionState(updateProductFeedback, initialFeedbackState);
+  const [feedbackState, submitFeedback, isFeedbackPending] = useFormState(updateProductFeedback, initialFeedbackState);
 
 
   useEffect(() => {
