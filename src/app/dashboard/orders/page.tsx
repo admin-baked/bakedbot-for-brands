@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo } from "react";
-import { OrdersTable } from "./components/orders-table";
+import { OrdersTable, type OrderData } from "./components/orders-table";
 import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { OrderDoc } from "@/lib/types";
@@ -16,7 +16,7 @@ export default function OrdersPage() {
   // Use the hook to listen to all orders in real-time
   const { data: orders, isLoading: areOrdersLoading } = useCollectionGroup<OrderDoc>('orders');
   
-  const formattedOrders = useMemo(() => {
+  const formattedOrders = useMemo((): OrderData[] => {
     if (!orders) return [];
 
     const getLocationName = (id: string) => {
@@ -30,6 +30,7 @@ export default function OrdersPage() {
         status: order.status,
         total: `$${order.totals.total.toFixed(2)}`,
         location: getLocationName(order.locationId),
+        locationId: order.locationId,
     }));
   }, [orders, locations]);
 

@@ -7,10 +7,14 @@ import { z } from "zod";
 
 const StatusSchema = z.enum(['submitted', 'pending', 'confirmed', 'ready', 'completed', 'cancelled']);
 
-export async function updateOrderStatus(orderId: string, status: z.infer<typeof StatusSchema>) {
+export async function updateOrderStatus(orderId: string, status: z.infer<typeof StatusSchema>, idToken: string) {
     
     if (!orderId || !status) {
         return { error: true, message: 'Order ID and status are required.' };
+    }
+    
+    if (!idToken) {
+        return { error: true, message: 'Authentication is required.' };
     }
 
     const validation = StatusSchema.safeParse(status);
@@ -19,7 +23,18 @@ export async function updateOrderStatus(orderId: string, status: z.infer<typeof 
     }
 
     try {
-        const { firestore } = await createServerClient();
+        const { firestore, auth } = await createServerClient();
+        
+        // Securely verify the user's token and check their role
+        const decodedToken = await auth.verifyIdToken(idToken);
+        const userDoc = await firestore.collection('users').doc(decodedToken.uid).get();
+        const userRole = userDoc.data()?.role;
+
+        // Only allow users with 'dispensary' or 'owner' (CEO) role to update orders
+        if (userRole !== 'dispensary' && userRole !== 'owner') {
+            return { error: true, message: 'You do not have permission to update orders.' };
+        }
+
         const orderRef = firestore.collection('orders').doc(orderId);
         
         await orderRef.update({ status: validation.data });
@@ -32,6 +47,9 @@ export async function updateOrderStatus(orderId: string, status: z.infer<typeof 
 
     } catch (e: any) {
         console.error("Failed to update order status:", e);
+        if (e.code === 'auth/id-token-expired' || e.code === 'auth/argument-error') {
+            return { error: true, message: 'Authentication session has expired. Please log in again.' };
+        }
         return { error: true, message: e.message || "A server error occurred." };
     }
 }

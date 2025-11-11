@@ -25,14 +25,12 @@ import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/comp
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useUser } from '@/firebase/auth/use-user';
-import { FirebaseContext, useFirebase } from '@/firebase/provider';
+import { useFirebase } from '@/firebase/provider';
 import { signOut } from 'firebase/auth';
 import { useStore, type NavLink } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
 import EditLinkDialog from './components/edit-link-dialog';
 import DeleteLinkDialog from './components/delete-link-dialog';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { doc, onSnapshot } from 'firebase/firestore';
 import Logo from '@/components/logo';
@@ -97,7 +95,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const unsubscribe = onSnapshot(userDocRef, (doc) => {
         const data = doc.data();
         setUserProfile(data);
-        // This is a simplified check. A real app might have more robust roles.
         if (data?.role === 'owner' || data?.isCeo) {
             setIsCeoMode(true);
         } else {
@@ -123,24 +120,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
   
   React.useEffect(() => {
-    const isAuthPage = pathname === '/brand-login' || pathname.startsWith('/auth/');
-    if (isUserLoading || isProfileLoading) return; // Wait until all loading is done
+    const isBrandAuthPage = pathname === '/brand-login' || pathname.startsWith('/auth/');
+    const isDispensaryAuthPage = pathname === '/dispensary-login';
+    const isAuthPage = isBrandAuthPage || isDispensaryAuthPage;
 
-    if (user) {
-        // User is logged in
+    if (isUserLoading || isProfileLoading) return;
+
+    if (user && userProfile) {
         if (isAuthPage) {
-            router.replace('/dashboard');
-        } else if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
+            if (userProfile.role === 'dispensary') {
+                router.replace('/dashboard/orders');
+            } else {
+                router.replace('/dashboard');
+            }
+        } else if (!userProfile.onboardingCompleted && pathname !== '/onboarding') {
             router.replace('/onboarding');
-        } else if (pathname.startsWith('/dashboard') && userProfile?.role !== 'owner') {
-             // If user is not an owner/brand and tries to access brand dashboard
-             toast({ variant: 'destructive', title: 'Access Denied', description: "You don't have permission to view this page." });
-             router.replace('/account'); // Redirect to customer account page
         }
-    } else {
-        // User is not logged in
-        if (!isAuthPage && !pathname.startsWith('/account')) {
-            router.replace('/brand-login');
+    } else if (!user) {
+        if (pathname.startsWith('/dashboard') || pathname.startsWith('/account')) {
+            router.replace('/');
         }
     }
 }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, toast]);
@@ -151,7 +149,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if(auth) {
         await signOut(auth);
       }
-      router.push('/brand-login');
+      router.push('/');
     } catch (error) {
       console.error('Sign out error', error);
     }
@@ -182,15 +180,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
   
   const shouldShowAdminControls = isCeoMode && _hasHydrated;
-  const visibleLinks = shouldShowAdminControls ? navLinks : navLinks.filter(link => !link.hidden);
+  
+  // Filter links based on user role
+  const visibleLinks = React.useMemo(() => {
+    let links = navLinks;
+    if (userProfile?.role === 'dispensary') {
+        links = navLinks.filter(link => link.href === '/dashboard/orders' || link.href === '/dashboard/settings');
+    } else if (userProfile?.role === 'brand') {
+        links = navLinks.filter(link => link.href !== '/dashboard/orders');
+    }
+    
+    if (shouldShowAdminControls) {
+      return links; // Show all (including hidden) for admin
+    }
+    return links.filter(link => !link.hidden);
+
+  }, [navLinks, userProfile, shouldShowAdminControls]);
+
 
   const isLoading = isUserLoading || isProfileLoading;
   
-  // These are public or semi-public pages that shouldn't show the full-screen loader.
-  const isExcludedFromLoadingScreen = pathname === '/brand-login' || 
-                                      pathname.startsWith('/auth/') || 
-                                      pathname.startsWith('/account') ||
-                                      pathname === '/onboarding';
+  const isExcludedFromLoadingScreen = 
+    pathname.startsWith('/brand-login') || 
+    pathname.startsWith('/dispensary-login') ||
+    pathname.startsWith('/auth/') || 
+    pathname.startsWith('/account') ||
+    pathname === '/onboarding';
 
   if (isLoading && !isExcludedFromLoadingScreen) {
     return (
@@ -209,14 +224,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )
   }
 
-  // If user is not logged in and not on a public page
-  if (!user && !isExcludedFromLoadingScreen) {
-      // The useEffect above will handle the redirect, this prevents flicker.
+  // If user is not logged in and not on a public/auth page, don't render layout
+  if (!user && !(isExcludedFromLoadingScreen || pathname === '/')) {
       return null;
   }
   
-  // Do not render the brand dashboard layout for customer account pages
-  if (pathname.startsWith('/account')) {
+  // Do not render the brand dashboard layout for certain pages
+  if (pathname.startsWith('/account') || pathname.startsWith('/brand-login') || pathname.startsWith('/dispensary-login')) {
       return children;
   }
 

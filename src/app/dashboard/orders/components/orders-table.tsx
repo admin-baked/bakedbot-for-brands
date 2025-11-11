@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils';
 import { updateOrderStatus } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/firebase/auth/use-user';
+import { useStore } from '@/hooks/use-store';
 
 
 // Define the shape of the data we'll pass to the table
@@ -33,6 +35,7 @@ export type OrderData = {
   status: 'submitted' | 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
   total: string;
   location: string;
+  locationId: string;
 };
 
 const getStatusStyles = (status: OrderData['status']) => {
@@ -51,22 +54,32 @@ const getStatusStyles = (status: OrderData['status']) => {
 // Action menu for each row
 const OrderActions = ({ orderId }: { orderId: string }) => {
   const { toast } = useToast();
-  const router = useRouter();
+  const { user } = useUser();
+  const [isPending, setIsPending] = React.useState(false);
 
   const handleStatusChange = async (status: OrderData['status']) => {
-    const result = await updateOrderStatus(orderId, status);
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Not Authenticated' });
+        return;
+    }
+    
+    setIsPending(true);
+    const idToken = await user.getIdToken();
+    const result = await updateOrderStatus(orderId, status, idToken);
+    
     if (result.error) {
       toast({ variant: 'destructive', title: 'Error', description: result.message });
     } else {
       toast({ title: 'Success', description: result.message });
       // The table will update automatically due to real-time listener
     }
+    setIsPending(false);
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0">
+        <Button variant="ghost" className="h-8 w-8 p-0" disabled={isPending}>
           <span className="sr-only">Open menu</span>
           <MoreHorizontal className="h-4 w-4" />
         </Button>
