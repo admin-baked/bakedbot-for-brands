@@ -2,18 +2,23 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, MapPin, Navigation } from 'lucide-react';
+import { Loader2, MapPin, Navigation, Star } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { haversineDistance } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
+import { useFirebase } from '@/firebase/provider';
+import { doc, updateDoc } from 'firebase/firestore';
 
 export function DispensaryLocator() {
   const { locations, isLoading: areLocationsLoading } = useMenuData();
-  const { selectedLocationId, setSelectedLocationId, _hasHydrated } = useStore();
+  const { selectedLocationId, setSelectedLocationId, favoriteLocationId, setFavoriteLocationId, _hasHydrated } = useStore();
+  const { user, firestore } = useFirebase();
+  const { toast } = useToast();
   
   const [isLocating, setIsLocating] = useState(false);
   const [sortedLocations, setSortedLocations] = useState<typeof locations>([]);
@@ -39,7 +44,6 @@ export function DispensaryLocator() {
         
         setSortedLocations(newSortedLocations);
         setIsLocating(false);
-        // Automatically select the closest one
         if (newSortedLocations.length > 0) {
             setSelectedLocationId(newSortedLocations[0].id);
         }
@@ -55,6 +59,23 @@ export function DispensaryLocator() {
   const handleSelectLocation = (id: string) => {
     setSelectedLocationId(id);
   }
+
+  const handleSetFavorite = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!user || !firestore) {
+        toast({ variant: 'destructive', title: 'Please log in to set a favorite location.' });
+        return;
+    }
+    const userDocRef = doc(firestore, 'users', user.uid);
+    try {
+        await updateDoc(userDocRef, { favoriteLocationId: id });
+        setFavoriteLocationId(id);
+        toast({ title: 'Favorite location saved!' });
+    } catch (error) {
+        console.error('Failed to set favorite location', error);
+        toast({ variant: 'destructive', title: 'Could not save favorite location.' });
+    }
+  };
   
   const displayLocations = sortedLocations.length > 0 ? sortedLocations : locations;
 
@@ -72,6 +93,7 @@ export function DispensaryLocator() {
             <div className="flex gap-6 pb-4 -mx-4 px-4 overflow-x-auto">
                 {displayLocations.map(loc => {
                     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.name}, ${loc.address}, ${loc.city}, ${loc.state} ${loc.zip}`)}`;
+                    const isFavorite = _hasHydrated && favoriteLocationId === loc.id;
                     return (
                     <Card 
                         key={loc.id} 
@@ -82,9 +104,19 @@ export function DispensaryLocator() {
                         onClick={() => handleSelectLocation(loc.id)}
                     >
                         <CardHeader>
-                            <CardTitle className="flex items-start gap-2">
-                                <MapPin className="h-5 w-5 mt-1 text-primary shrink-0" />
-                                <span>{loc.name}</span>
+                            <CardTitle className="flex items-start justify-between">
+                                <div className="flex items-start gap-2">
+                                    <MapPin className="h-5 w-5 mt-1 text-primary shrink-0" />
+                                    <span>{loc.name}</span>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 shrink-0"
+                                    onClick={(e) => handleSetFavorite(e, loc.id)}
+                                >
+                                    <Star className={cn("h-5 w-5 text-muted-foreground", isFavorite && "fill-yellow-400 text-yellow-400")} />
+                                </Button>
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -107,3 +139,5 @@ export function DispensaryLocator() {
     </div>
   );
 }
+
+    
