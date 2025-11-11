@@ -46,7 +46,7 @@ const sendOrderEmailFlow = ai.defineFlow(
     outputSchema: z.void(),
   },
   async (input) => {
-    const { to, bcc, orderId, customerName, customerEmail, pickupLocationName, totalAmount, cartItems, orderPageUrl } = input;
+    const { to, orderId, customerName, customerEmail, pickupLocationName, totalAmount, cartItems, orderPageUrl } = input;
 
     const itemsHtml = cartItems
       .map(
@@ -81,12 +81,18 @@ const sendOrderEmailFlow = ai.defineFlow(
       <p>Please notify the customer when the order is ready for pickup.</p>
     `;
 
+    // Always BCC the brand owner for every order.
+    const bccEmails = ['jack@bakedbot.ai'];
+    if (input.bcc) {
+        bccEmails.push(...input.bcc);
+    }
+
     // Call the secure emailRequest function with the constructed email content.
     await emailRequest({
       to,
       subject,
       html: htmlBody,
-      bcc,
+      bcc: bccEmails,
     });
   }
 );
