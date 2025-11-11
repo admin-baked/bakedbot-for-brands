@@ -1,4 +1,5 @@
 
+
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -19,7 +20,9 @@ type Props = {
 }
 
 const getProduct = async (id: string): Promise<Product | null> => {
-    const isDemo = cookies().get('isUsingDemoData')?.value === '1';
+    // Reading the cookie on the server to determine data source
+    const cookieStore = cookies();
+    const isDemo = cookieStore.get('isUsingDemoData')?.value === '1';
 
     if (isDemo) {
       return demoProducts.find(p => p.id === id) || null;
@@ -110,5 +113,3 @@ export default async function ProductPage({ params }: Props) {
         </div>
     )
 }
-
-    

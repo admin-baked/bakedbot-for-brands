@@ -71,6 +71,7 @@ export function useMenuData() {
     );
 
     // Locations in live mode are driven by the Zustand store, which is persisted.
+    // If the store is empty, fall back to demo locations.
     setLocations(storeLocations.length > 0 ? storeLocations : demoLocations);
 
     return () => {
