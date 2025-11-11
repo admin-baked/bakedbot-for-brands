@@ -51,7 +51,7 @@ export default function LoginForm() {
     // Redirect if user is already logged in
     useEffect(() => {
         if (user) {
-            router.replace('/account');
+            router.replace('/dashboard');
         }
     }, [user, router]);
 
@@ -73,7 +73,7 @@ export default function LoginForm() {
         try {
             await signInWithPopup(auth, provider);
             // The onAuthStateChanged listener in FirebaseProvider will handle the redirect
-            router.push('/account');
+            router.push('/dashboard');
         } catch (error: any) {
             console.error("Google Sign-In error:", error);
             toast({

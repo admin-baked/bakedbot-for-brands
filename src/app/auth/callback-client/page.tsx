@@ -1,3 +1,4 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +49,7 @@ export default function CallbackClient() {
         window.localStorage.removeItem('emailForSignIn');
         setStatus('success');
         setMessage('Signed in! Redirecting…');
-        router.replace('/account');
+        router.replace('/dashboard');
       } catch (err: any) {
         const code = (err?.code || err?.message || '').toString();
 
