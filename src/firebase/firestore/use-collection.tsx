@@ -50,7 +50,13 @@ export function useCollection<T = DocumentData>(
         try {
             // This is an internal property, but it's the most reliable way to get the path
             const path = (q as any)._query?.path?.segments?.join('/');
-            return path || 'unknown/path'; // Fallback for safety
+            if (path) return path;
+
+            // Fallback for collection group queries
+            const collectionId = (q as any)._query?.collectionGroup;
+            if (collectionId) return `**/${collectionId}`;
+            
+            return 'unknown/path'; // Final fallback
         } catch (e) {
             return 'unknown/path';
         }
