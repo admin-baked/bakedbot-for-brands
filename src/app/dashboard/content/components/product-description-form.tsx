@@ -197,8 +197,12 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
             </div>
         </CardContent>
          <CardFooter className="flex-col sm:flex-row gap-2">
-            <SubmitButton formAction={descriptionFormAction} type="description" />
-            <SubmitButton formAction={imageFormAction} type="image" />
+            <Button onClick={(e) => { e.preventDefault(); descriptionFormAction(new FormData(formRef.current!)); }}>
+                <FileText className="mr-2 h-4 w-4" /> Generate Description
+            </Button>
+            <Button onClick={(e) => { e.preventDefault(); imageFormAction(new FormData(formRef.current!)); }} variant="outline">
+                <Wand2 className="mr-2 h-4 w-4" /> Generate Image
+            </Button>
          </CardFooter>
       </form>
     </Card>

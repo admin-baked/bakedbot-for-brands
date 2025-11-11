@@ -1,3 +1,4 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -9,11 +10,9 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 
-// Add idToken to the schema
 const FeedbackSchema = z.object({
   productId: z.string().min(1),
   feedbackType: z.enum(['like', 'dislike']),
-  idToken: z.string().min(1, 'Authentication token is missing.'),
 });
 
 
@@ -44,27 +43,17 @@ export async function updateProductFeedback(
   formData: FormData
 ): Promise<{ message:string; error: boolean }> {
   
-  const { auth: adminAuth, firestore } = await createServerClient();
-  
   const validatedFields = FeedbackSchema.safeParse({
     productId: formData.get('productId'),
     feedbackType: formData.get('feedbackType'),
-    idToken: formData.get('idToken'),
   });
 
   if (!validatedFields.success) {
     return { error: true, message: 'Invalid input provided.' };
   }
 
-  const { productId, feedbackType, idToken } = validatedFields.data;
-  
-  try {
-    await adminAuth.verifyIdToken(idToken);
-  } catch (authError) {
-    console.error("Server Action Auth Error (updateProductFeedback):", authError);
-    return { error: true, message: 'Authentication failed. Please sign in again.' };
-  }
-  
+  const { productId, feedbackType } = validatedFields.data;
+  const { firestore } = await createServerClient();
   const productRef = firestore.doc(`products/${productId}`);
   const fieldToUpdate = feedbackType === 'like' ? 'likes' : 'dislikes';
 
