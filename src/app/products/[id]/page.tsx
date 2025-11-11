@@ -22,7 +22,7 @@ type Props = {
 const getProduct = async (id: string): Promise<Product | null> => {
     // Reading the cookie on the server to determine data source
     const cookieStore = cookies();
-    const isDemo = cookieStore.get('isUsingDemoData')?.value === '1';
+    const isDemo = cookieStore.get('isUsingDemoData')?.value === 'true';
 
     if (isDemo) {
       return demoProducts.find(p => p.id === id) || null;
