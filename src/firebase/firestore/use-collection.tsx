@@ -13,21 +13,37 @@ type UseCollectionResult<T> = {
   error: Error | null;
 };
 
+type AnyQuery =
+  | import("firebase/firestore").Query<unknown>
+  | import("firebase/firestore").CollectionReference<unknown>
+  | import("firebase/firestore").DocumentReference<unknown>
+  | { _query?: any; _aggregateQuery?: any; path?: any; _path?: any };
+
 function getPathFromQuery(input: unknown): string {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const q: any = input;
+    const q = input as AnyQuery;
 
-    // Collection-group query? Return helpful wildcard
-    const group = q?._query?.collectionGroup;
-    if (group) return `**/${group}`;
+    // 1) AggregationQuery (count(), avg(), etc.)
+    // Firestore uses a different internal slot for these
+    const ag = (q as any)?._aggregateQuery;
+    if (ag?.query?.collectionGroup) return `**/${ag.query.collectionGroup}`;
+    const agCanon = ag?.query?.path?.canonicalString;
+    if (typeof agCanon === "string" && agCanon) return agCanon;
 
-    // Regular collection/query: try to read canonicalString
-    const p = q?._query?.path?.canonicalString
-      ?? q?._path?.canonicalString
-      ?? q?.path?.canonicalString;
-    if (typeof p === "string" && p.length > 0) return p;
-  } catch {}
+    // 2) Normal Query
+    const qq = (q as any)?._query;
+    if (qq?.collectionGroup) return `**/${qq.collectionGroup}`;
+    const qCanon = qq?.path?.canonicalString;
+    if (typeof qCanon === "string" && qCanon) return qCanon;
+
+    // 3) Collection/Doc references
+    const pCanon =
+      (q as any)?._path?.canonicalString ??
+      (q as any)?.path?.canonicalString;
+    if (typeof pCanon === "string" && pCanon) return pCanon;
+  } catch {
+    // ignore
+  }
   return "unknown/path";
 }
 
