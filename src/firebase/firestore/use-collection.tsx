@@ -49,9 +49,10 @@ export function useCollection<T = DocumentData>(
     const getPathFromQuery = (q: Query) => {
         try {
             // This is an internal property, but it's the most reliable way to get the path
-            return (q as any)._query.path.segments.join('/');
+            const path = (q as any)._query?.path?.segments?.join('/');
+            return path || 'unknown/path'; // Fallback for safety
         } catch (e) {
-            return 'unknown path';
+            return 'unknown/path';
         }
     }
 
