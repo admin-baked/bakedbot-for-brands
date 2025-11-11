@@ -1,10 +1,11 @@
+
 import { test, expect } from '@playwright/test';
 
 test('has title', async ({ page }) => {
   await page.goto('/');
 
   // Expect a title to contain a substring.
-  await expect(page).toHaveTitle(/BakedBot AI Assistant/);
+  await expect(page).toHaveTitle(/BakedBot - Headless Cannabis Commerce AI Agent/);
 });
 
 test('get started link', async ({ page }) => {
@@ -29,5 +30,3 @@ test('brand login flow', async ({ page }) => {
   // Expect the email address to be displayed
   await expect(page.locator('strong', { hasText: 'martez@bakedbot.ai' })).toBeVisible();
 });
-
-    
