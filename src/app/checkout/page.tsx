@@ -5,7 +5,7 @@ import { useStore } from '@/hooks/use-store';
 import { useCart } from '@/hooks/use-cart';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import Header from '@/app/components/header';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, MapPin } from 'lucide-react';

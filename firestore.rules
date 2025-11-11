@@ -24,23 +24,24 @@ service cloud.firestore {
     match /products/{productId} {
       allow read: if true;
       allow write: if false; // Managed by server actions
+    }
 
-      // This rule handles specific document reads/writes within the 'reviews' subcollection.
-      match /reviews/{reviewId} {
-          // Anyone can read any review. This is required for the collection group query to work.
-          allow get: if true;
-          
-          // Allow create if user is logged in, the review belongs to them,
-          // and the rating is valid.
-          allow create: if request.auth != null
-                        && request.resource.data.userId == request.auth.uid
-                        && request.resource.data.rating is number
-                        && request.resource.data.rating >= 1
-                        && request.resource.data.rating <= 5;
-                        
-          // Only the owner of a review can update or delete it.
-          allow update, delete: if isOwner(resource.data.userId);
-      }
+    // This rule handles specific document reads/writes within the 'reviews' subcollection.
+    // It is REQUIRED for the collection group query on 'reviews' to work.
+    match /products/{productId}/reviews/{reviewId} {
+        // Anyone can read any review.
+        allow get, list: if true;
+        
+        // Allow create if user is logged in, the review belongs to them,
+        // and the rating is valid.
+        allow create: if request.auth != null
+                      && request.resource.data.userId == request.auth.uid
+                      && request.resource.data.rating is number
+                      && request.resource.data.rating >= 1
+                      && request.resource.data.rating <= 5;
+                      
+        // Only the owner of a review can update or delete it.
+        allow update, delete: if isOwner(resource.data.userId);
     }
 
     // Categories are public, but shouldn't be writable from the client
@@ -75,8 +76,6 @@ service cloud.firestore {
     // It's essential for features like "Recent Reviews Feed" or admin dashboards
     // that query across all products or all users.
     match /{path=**}/{collectionId} {
-      // Allow reading 'reviews' from any product, or 'orders' and 'products'
-      // for authenticated users (typically admins/dispensary managers with server-side logic).
       allow list: if collectionId == 'reviews'
                  || (collectionId == 'orders' && request.auth != null)
                  || (collectionId == 'products' && request.auth != null)
