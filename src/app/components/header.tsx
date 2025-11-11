@@ -1,8 +1,7 @@
-
 'use client';
 
 import Link from 'next/link';
-import { Search, ShoppingBag, TestTube2 } from 'lucide-react';
+import { Search, ShoppingBag, TestTube2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
@@ -11,12 +10,14 @@ import { usePathname } from 'next/navigation';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/logo';
+import { useUser } from '@/firebase/auth/use-user';
 
 export default function Header() {
     const { getItemCount } = useCart();
     const itemCount = getItemCount();
     const { _hasHydrated, setCartSheetOpen, isUsingDemoData, setIsUsingDemoData } = useStore();
     const pathname = usePathname();
+    const { user } = useUser();
 
     const navLinks = [
         { href: '/', label: 'Home' },
@@ -68,16 +69,26 @@ export default function Header() {
                     </Button>
 
                     <div className="hidden md:flex items-center gap-2">
-                        <Button variant="ghost" asChild>
-                            <Link href="/brand-login">
-                              Login
-                            </Link>
-                        </Button>
-                        <Button asChild>
-                            <Link href="/brand-login">
-                              Get Started
-                            </Link>
-                        </Button>
+                        {user ? (
+                             <Button variant="ghost" asChild>
+                                <Link href="/account">
+                                  <User className="mr-2"/> My Account
+                                </Link>
+                            </Button>
+                        ) : (
+                            <>
+                                <Button variant="ghost" asChild>
+                                    <Link href="/brand-login">
+                                    Login
+                                    </Link>
+                                </Button>
+                                <Button asChild>
+                                    <Link href="/brand-login">
+                                    Get Started
+                                    </Link>
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

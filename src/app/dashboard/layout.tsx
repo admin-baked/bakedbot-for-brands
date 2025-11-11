@@ -82,6 +82,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { auth, firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
 
+  const { isCeoMode, navLinks, toggleNavLinkVisibility, _hasHydrated, setIsCeoMode } = useStore();
   const [userProfile, setUserProfile] = React.useState<any>(null);
   const [isProfileLoading, setIsProfileLoading] = React.useState(true);
   
@@ -90,22 +91,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setIsProfileLoading(true);
       const userDocRef = doc(firestore, 'users', user.uid);
       const unsubscribe = onSnapshot(userDocRef, (doc) => {
-        setUserProfile(doc.data());
+        const data = doc.data();
+        setUserProfile(data);
+        // This is a simplified check. A real app might have more robust roles.
+        if (data?.role === 'owner' || data?.isCeo) {
+            setIsCeoMode(true);
+        } else {
+            setIsCeoMode(false);
+        }
         setIsProfileLoading(false);
       }, () => {
-        // This might be a permission error if rules are strict.
-        // For now, we'll assume it's okay and stop loading.
         setIsProfileLoading(false);
+        setIsCeoMode(false);
       });
       return () => unsubscribe();
     } else if (!isUserLoading) {
       setIsProfileLoading(false);
       setUserProfile(null);
+      setIsCeoMode(false);
     }
-  }, [user, firestore, isUserLoading]);
+  }, [user, firestore, isUserLoading, setIsCeoMode]);
 
-
-  const { isCeoMode, navLinks, toggleNavLinkVisibility, _hasHydrated } = useStore();
 
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [isAddOpen, setIsAddOpen] = React.useState(false);
@@ -122,10 +128,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             router.replace('/dashboard');
         } else if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
             router.replace('/onboarding');
+        } else if (pathname.startsWith('/dashboard') && userProfile?.role !== 'owner') {
+             // If user is not an owner/brand and tries to access brand dashboard
+             toast({ variant: 'destructive', title: 'Access Denied', description: "You don't have permission to view this page." });
+             router.replace('/account'); // Redirect to customer account page
         }
     } else {
         // User is not logged in
-        if (!isAuthPage && pathname !== '/onboarding') {
+        if (!isAuthPage && !pathname.startsWith('/account')) {
             router.replace('/brand-login');
         }
     }
@@ -175,6 +185,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // These are public or semi-public pages that shouldn't show the full-screen loader.
   const isExcludedFromLoadingScreen = pathname === '/brand-login' || 
                                       pathname.startsWith('/auth/') || 
+                                      pathname.startsWith('/account') ||
                                       pathname === '/onboarding';
 
   if (isLoading && !isExcludedFromLoadingScreen) {
@@ -199,6 +210,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       // The useEffect above will handle the redirect, this prevents flicker.
       return null;
   }
+  
+  // Do not render the brand dashboard layout for customer account pages
+  if (pathname.startsWith('/account')) {
+      return children;
+  }
 
   return (
     <SidebarProvider>
@@ -206,7 +222,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex min-h-screen bg-background">
           <Sidebar collapsible="icon">
             <SidebarHeader>
-              <span className="font-bold text-lg">BakedBot AI</span>
+              <Logo />
             </SidebarHeader>
             <SidebarContent>
               <SidebarMenu>
