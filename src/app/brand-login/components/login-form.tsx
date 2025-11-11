@@ -107,7 +107,7 @@ export default function LoginForm() {
             const host = window.location.origin;
             const actionCodeSettings = {
                 handleCodeInApp: true,
-                url: `${host}/auth/callback-client`,
+                url: `${host}/auth/callback`,
             };
 
             window.localStorage.setItem('emailForSignIn', finalEmail);
