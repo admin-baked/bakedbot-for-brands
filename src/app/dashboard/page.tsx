@@ -9,11 +9,12 @@ import { Button } from '@/components/ui/button';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import type { Product, Review, UserInteraction } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, collectionGroup, query } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import TopProductsCard from './components/top-products-card';
 import BottomProductsCard from './components/bottom-products-card';
 import { formatNumber } from '@/lib/utils';
+import { useUser } from '@/firebase/auth/use-user';
 
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ElementType, isLoading: boolean }) {
@@ -36,8 +37,10 @@ function MetricCard({ title, value, icon: Icon, isLoading }: { title: string, va
 
 export default function DashboardPage() {
   const { firestore } = useFirebase();
+  const { user } = useUser();
 
-  const interactionsQuery = useMemo(() => firestore ? query(collectionGroup(firestore, 'interactions')) : null, [firestore]);
+  // Securely query only the interactions for the current user.
+  const interactionsQuery = useMemo(() => user ? query(collection(firestore, `users/${user.uid}/interactions`)) : null, [firestore, user]);
   const productsQuery = useMemo(() => firestore ? query(collection(firestore, 'products')) : null, [firestore]);
 
   const { data: interactions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery);
