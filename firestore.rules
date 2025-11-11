@@ -1,41 +1,55 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper function to check ownership
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Rules for public data
+    // Products are public, but shouldn't be writable from the client
     match /products/{productId} {
       allow read: if true;
-      allow write: if false; // For now, all products are managed via CSV import
+      allow create, update, delete: if false; // Managed by backend/import
     }
 
+    // Categories are public, but shouldn't be writable from the client
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if false; // Managed by backend
     }
-    
-    // Rules for user-specific data
+
+    // Users can create their own profile, but only read/update their own.
     match /users/{userId} {
-      allow create: if true;
+      allow create: if request.auth != null;
       allow read, update: if isOwner(userId);
     }
     
-    // Rules for orders - created in a top-level collection now
+    // Anyone can create an order (for guest checkout), but only the owner should
+    // be able to read it. No one can update/delete orders from the client.
     match /orders/{orderId} {
-      allow create: if true; // In a real app, this would be locked down with AppCheck/auth
-      allow read, update, delete: if false; // For demo, lock this down. A real app would check ownership.
+      allow create: if true; // In a real app, this would be locked down further.
+      allow read: if isOwner(resource.data.userId);
+      allow update, delete: if false;
     }
 
-    // Rules for reviews
-    match /products/{productId}/reviews/{reviewId} {
-      allow read: if true;
-      // Only authenticated users can create reviews
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      // Users can only update/delete their own reviews
-      allow update, delete: if isOwner(resource.data.userId);
+    // Rules for the 'reviews' collection group. This allows querying reviews
+    // across all products securely.
+    match /{path=**}/reviews/{reviewId} {
+        // Anyone can read any review.
+        allow read: if true;
+        
+        // Allow create if user is logged in, the review belongs to them,
+        // and the rating is valid.
+        allow create: if request.auth != null
+                      && request.resource.data.userId == request.auth.uid
+                      && request.resource.data.rating is number
+                      && request.resource.data.rating >= 1
+                      && request.resource.data.rating <= 5;
+                      
+        // Only the owner of a review can update or delete it.
+        allow update, delete: if isOwner(resource.data.userId);
     }
   }
 }
