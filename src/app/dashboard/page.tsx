@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import type { Product, Review, UserInteraction } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collectionGroup, query } from 'firebase/firestore';
+import { collection, collectionGroup, query } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import TopProductsCard from './components/top-products-card';
 import BottomProductsCard from './components/bottom-products-card';
@@ -37,7 +38,7 @@ export default function DashboardPage() {
   const { firestore } = useFirebase();
 
   const interactionsQuery = useMemo(() => firestore ? query(collectionGroup(firestore, 'interactions')) : null, [firestore]);
-  const productsQuery = useMemo(() => firestore ? query(collectionGroup(firestore, 'products')) : null, [firestore]);
+  const productsQuery = useMemo(() => firestore ? query(collection(firestore, 'products')) : null, [firestore]);
 
   const { data: interactions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery);
   const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
