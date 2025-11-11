@@ -1,59 +1,59 @@
 
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ReviewsTable } from "./components/reviews-table";
 import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ReviewData } from "./components/reviews-table";
 import { useFirebase } from "@/firebase/provider";
-import { collection, collectionGroup, onSnapshot, query, orderBy } from "firebase/firestore";
-import type { Product, Review } from "@/lib/types";
+import { collectionGroup, onSnapshot, query, orderBy } from "firebase/firestore";
+import type { Review } from "@/lib/types";
 import { useMenuData } from "@/hooks/use-menu-data";
-
 
 export default function ReviewsPage() {
   const { isUserLoading } = useUser();
   const { firestore } = useFirebase();
   const { products, isLoading: areProductsLoading } = useMenuData();
-  const [reviews, setReviews] = useState<ReviewData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [areReviewsLoading, setAreReviewsLoading] = useState(true);
 
   useEffect(() => {
-    if (!firestore || areProductsLoading) return;
-    setIsLoading(true);
-    
+    if (!firestore) return;
+
+    setAreReviewsLoading(true);
     const reviewsQuery = query(collectionGroup(firestore, 'reviews'), orderBy("createdAt", "desc"));
-    const reviewsUnsubscribe = onSnapshot(reviewsQuery, (snapshot) => {
+    
+    const unsubscribe = onSnapshot(reviewsQuery, (snapshot) => {
         const reviewsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
-
-        const formattedReviews = reviewsData.map((review) => {
-            const productName = products.find(p => p.id === review.productId)?.name ?? "Unknown Product";
-            return {
-                id: review.id,
-                productName: productName,
-                userEmail: "Anonymous", // User data is not denormalized on reviews for this demo
-                rating: review.rating,
-                text: review.text,
-                date: review.createdAt.toDate().toLocaleDateString(),
-            };
-        });
-
-        setReviews(formattedReviews);
-        setIsLoading(false);
+        setReviews(reviewsData);
+        setAreReviewsLoading(false);
     }, (error) => {
         console.error("Error fetching reviews:", error);
-        setIsLoading(false);
+        setAreReviewsLoading(false);
     });
 
-    return () => {
-        reviewsUnsubscribe();
-    }
+    return () => unsubscribe();
+  }, [firestore]);
 
-  }, [firestore, products, areProductsLoading]);
+  const formattedReviews = useMemo(() => {
+    return reviews.map((review) => {
+        const productName = products.find(p => p.id === review.productId)?.name ?? "Unknown Product";
+        return {
+            id: review.id,
+            productName: productName,
+            userEmail: "Anonymous", // User data is not denormalized on reviews for this demo
+            rating: review.rating,
+            text: review.text,
+            date: review.createdAt.toDate().toLocaleDateString(),
+        };
+    });
+  }, [reviews, products]);
 
 
-  if (isLoading || isUserLoading || areProductsLoading) {
+  const isLoading = areReviewsLoading || isUserLoading || areProductsLoading;
+
+  if (isLoading) {
     return (
       <div className="flex flex-col gap-8">
         <div>
@@ -83,7 +83,7 @@ export default function ReviewsPage() {
           Here's what your customers are saying about your products.
         </p>
       </div>
-      <ReviewsTable data={reviews} />
+      <ReviewsTable data={formattedReviews} />
     </div>
   );
 }

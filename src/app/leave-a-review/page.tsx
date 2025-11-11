@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
-import { useEffect, useState, useRef } from 'react';
+import { useActionState, useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,17 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Star, Upload, Send, Loader2, PartyPopper } from 'lucide-react';
 import Link from 'next/link';
-import { submitReview } from './actions';
+import { submitReview, type ReviewFormState } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase/auth/use-user';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useMenuData } from '@/hooks/use-menu-data';
 
-// This is the fix. By exporting this variable, we tell Next.js to always
-// render this page on the client and not to pre-render it during the build.
 export const dynamic = 'force-dynamic';
 
-const initialState = {
+const initialState: ReviewFormState = {
   message: '',
   error: false,
   fieldErrors: {},
@@ -43,11 +40,11 @@ const StarRating = ({ rating, setRating, disabled }: { rating: number; setRating
   );
 };
 
-function SubmitButton() {
-    const { pending } = useFormStatus();
+function SubmitButton({ disabled }: { disabled?: boolean }) {
+    // We can't use useFormStatus here because it's not a direct child of the form.
     return (
-        <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+        <Button type="submit" className="w-full" disabled={disabled}>
+            {disabled ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
             Submit Review
         </Button>
     );
@@ -60,7 +57,9 @@ export default function LeaveReviewPage() {
   const [fileName, setFileName] = useState<string | null>(null);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction] = useFormState(submitReview, initialState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [state, formAction, isPending] = useActionState(submitReview, initialState);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
@@ -95,7 +94,8 @@ export default function LeaveReviewPage() {
         return;
     }
     formData.append('rating', String(rating));
-    // The userId is already appended via a hidden input, no need to add it here.
+    // Pass the user ID securely with the form data
+    formData.append('userId', user.uid);
     formAction(formData);
   };
   
@@ -158,10 +158,9 @@ export default function LeaveReviewPage() {
             </Alert>
           )}
           <form ref={formRef} action={handleSubmit} className="space-y-6">
-            <input type="hidden" name="userId" value={user?.uid || ''} />
             <div className="space-y-2">
               <Label htmlFor="productId">Which product are you reviewing?</Label>
-              <Select name="productId" disabled={!user || areProductsLoading}>
+              <Select name="productId" disabled={!user || areProductsLoading || isPending}>
                 <SelectTrigger id="productId">
                   <SelectValue placeholder={areProductsLoading ? "Loading products..." : "Select a product"} />
                 </SelectTrigger>
@@ -178,7 +177,7 @@ export default function LeaveReviewPage() {
 
             <div className="space-y-2">
               <Label>Your Rating</Label>
-              <StarRating rating={rating} setRating={setRating} disabled={!user} />
+              <StarRating rating={rating} setRating={setRating} disabled={!user || isPending} />
               {state.fieldErrors?.rating && <p className="text-sm text-destructive">{state.fieldErrors.rating[0]}</p>}
             </div>
 
@@ -189,7 +188,7 @@ export default function LeaveReviewPage() {
                 name="text"
                 placeholder="What did you like or dislike? How was your experience?"
                 rows={6}
-                disabled={!user}
+                disabled={!user || isPending}
               />
               {state.fieldErrors?.text && <p className="text-sm text-destructive">{state.fieldErrors.text[0]}</p>}
             </div>
@@ -209,12 +208,11 @@ export default function LeaveReviewPage() {
                                 </>
                             )}
                         </div>
-                        <Input id="verificationImage" name="verificationImage" type="file" className="hidden" accept="image/png, image/jpeg, application/pdf" onChange={handleFileChange} disabled={!user} />
+                        <Input id="verificationImage" name="verificationImage" type="file" className="hidden" accept="image/png, image/jpeg, application/pdf" onChange={handleFileChange} disabled={!user || isPending} />
                     </Label>
                 </div>
-                 {state.fieldErrors?.verificationImage && <p className="text-sm text-destructive">{state.fieldErrors.verificationImage[0]}</p>}
             </div>
-            <SubmitButton />
+            <SubmitButton disabled={isPending || !user} />
           </form>
         </CardContent>
       </Card>
