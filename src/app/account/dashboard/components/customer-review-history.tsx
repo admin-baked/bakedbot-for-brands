@@ -5,6 +5,7 @@ import { Star } from 'lucide-react';
 import type { Review } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+import { useMenuData } from '@/hooks/use-menu-data';
 
 interface CustomerReviewHistoryProps {
   reviews: Review[] | null;
@@ -23,6 +24,12 @@ const StarRating = ({ rating }: { rating: number }) => (
   );
 
 export default function CustomerReviewHistory({ reviews, isLoading }: CustomerReviewHistoryProps) {
+  const { products } = useMenuData();
+
+  const getProductName = (productId: string) => {
+    return products.find(p => p.id === productId)?.name || 'Unknown Product';
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -47,7 +54,7 @@ export default function CustomerReviewHistory({ reviews, isLoading }: CustomerRe
                  <div className="flex-1">
                     <div className="flex items-center justify-between">
                          <Link href={`/products/${review.productId}`} className="font-medium hover:underline text-sm">
-                            Review for Product
+                            {getProductName(review.productId)}
                         </Link>
                         <StarRating rating={review.rating} />
                     </div>
