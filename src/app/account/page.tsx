@@ -31,10 +31,9 @@ export default function AccountPage() {
   }, [user, isUserLoading, router]);
   
   const handleSignOut = async () => {
+    if (!auth) return;
     try {
-      if(auth) {
-        await signOut(auth);
-      }
+      await signOut(auth);
       toast({
         title: "Signed Out",
         description: "You have been successfully logged out.",

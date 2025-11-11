@@ -78,6 +78,6 @@ export function useMenuData() {
     isLoading, 
     error,
     // This is the true source of demo status, considering hydration
-    isUsingDemoData: !_hasHydrated || isUsingDemoData,
+    isUsingDemoData: !_hasHydrated ? true : isUsingDemoData,
   };
 }
