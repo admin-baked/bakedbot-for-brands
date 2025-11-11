@@ -4,7 +4,7 @@
 import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { LucideIcon } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { cookieStorage } from '@/lib/cookie-storage';
 import type { Location } from '@/lib/types';
 
@@ -12,7 +12,7 @@ import type { Location } from '@/lib/types';
 export type NavLink = {
   href: string;
   label: string;
-  icon: keyof typeof import('lucide-react');
+  icon: keyof typeof LucideIcons;
   hidden?: boolean;
 };
 
@@ -137,6 +137,7 @@ export const useStore = create<StoreState>()(
       name: 'bakedbot-storage',
       storage: createJSONStorage(() => cookieStorage),
       partialize: (state) => ({ 
+          isUsingDemoData: state.isUsingDemoData,
           selectedLocationId: state.selectedLocationId,
           theme: state.theme,
           menuStyle: state.menuStyle,

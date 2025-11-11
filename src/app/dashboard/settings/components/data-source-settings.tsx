@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
@@ -6,11 +7,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Upload, Download, Loader2, Database } from "lucide-react";
+import { Upload, Download, Loader2, Database, TestTube2 } from "lucide-react";
 import Link from "next/link";
 import { importProductsFromCsv } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
+import { useStore } from '@/hooks/use-store';
 
 const initialState = {
   message: '',
@@ -32,6 +35,7 @@ export default function DataSourceSettings() {
     const { toast } = useToast();
     const [fileName, setFileName] = useState<string | null>(null);
     const formRef = useRef<HTMLFormElement>(null);
+    const { isUsingDemoData, setIsUsingDemoData } = useStore();
 
     useEffect(() => {
         if (state.message) {
@@ -58,21 +62,46 @@ export default function DataSourceSettings() {
 
     return (
         <Card>
+            <CardHeader>
+                <CardTitle>Data Management</CardTitle>
+                <CardDescription>
+                    Manage the data source for your application's menu and products.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <Alert variant={isUsingDemoData ? "default" : "destructive"}>
+                    {isUsingDemoData ? <TestTube2 className="h-4 w-4" /> : <Database className="h-4 w-4" />}
+                    <AlertTitle>{isUsingDemoData ? "Demo Mode Active" : "Live Data Mode Active"}</AlertTitle>
+                    <AlertDescription>
+                         {isUsingDemoData 
+                            ? "The application is currently using static demo data. Toggle this off to connect to your live Firestore database."
+                            : "The application is connected to your live Firestore product catalog. If the catalog is empty, it will fall back to demo data."
+                        }
+                    </AlertDescription>
+                </Alert>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="demo-mode-switch" className="text-base">Use Demo Data</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Enable to use built-in sample products and locations.
+                    </p>
+                  </div>
+                  <Switch
+                    id="demo-mode-switch"
+                    checked={isUsingDemoData}
+                    onCheckedChange={setIsUsingDemoData}
+                  />
+                </div>
+            </CardContent>
+
             <form action={formAction} ref={formRef}>
-                <CardHeader>
-                    <CardTitle>Data Management</CardTitle>
+                <CardHeader className="border-t pt-6">
+                    <CardTitle className="text-lg">Import Live Data</CardTitle>
                     <CardDescription>
-                        Import your products from a CSV file to make them available to the AI chatbot and public menu.
+                        Import your products from a CSV file to make them available to the AI chatbot and public menu when live mode is active.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <Alert>
-                        <Database className="h-4 w-4" />
-                        <AlertTitle>Live Data Mode Active</AlertTitle>
-                        <AlertDescription>
-                            The application is connected to your live Firestore product catalog. If the catalog is empty, it will automatically fall back to demo data.
-                        </AlertDescription>
-                    </Alert>
                     <div className="space-y-2">
                         <Label>Upload Product Catalog (CSV)</Label>
                         <div className="flex items-center justify-center w-full">
