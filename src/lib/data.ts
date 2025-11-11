@@ -2,7 +2,7 @@ import type { Product, Location } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
 // Direct export of default assets to prevent broken links.
-export const defaultLogo = 'https://storage.googleapis.com/stedi-assets/misc/bakedbot-logo.png';
+export const defaultLogo = 'https://storage.googleapis.com/stedi-assets/misc/bakedbot-logo-horizontal.png';
 export const defaultChatbotIcon = 'https://storage.googleapis.com/stedi-assets/misc/smokey-icon-1.png';
 
 
