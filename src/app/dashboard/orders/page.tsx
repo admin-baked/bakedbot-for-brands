@@ -1,43 +1,23 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { OrdersTable } from "./components/orders-table";
 import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFirebase } from "@/firebase/provider";
-import { collectionGroup, query, onSnapshot, orderBy, DocumentData } from 'firebase/firestore';
-import type { OrderData } from "./components/orders-table";
 import type { OrderDoc } from "@/lib/types";
 import { useMenuData } from "@/hooks/use-menu-data";
+import { useCollectionGroup } from "@/hooks/use-collection-group";
 
 export default function OrdersPage() {
   const { isUserLoading } = useUser();
-  const { firestore } = useFirebase();
   const { locations } = useMenuData(); // Use the standardized hook
   
-  const [orders, setOrders] = useState<OrderDoc[]>([]);
-  const [areOrdersLoading, setAreOrdersLoading] = useState(true);
-
-  useEffect(() => {
-    if (!firestore) return;
-
-    setAreOrdersLoading(true);
-    const ordersQuery = query(collectionGroup(firestore, 'orders'), orderBy("orderDate", "desc"));
-    
-    const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
-        const ordersData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as OrderDoc[];
-        setOrders(ordersData);
-        setAreOrdersLoading(false);
-    }, (error) => {
-        console.error("Error fetching orders:", error);
-        setAreOrdersLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [firestore]);
-
+  const { data: orders, isLoading: areOrdersLoading } = useCollectionGroup<OrderDoc>('orders');
+  
   const formattedOrders = useMemo(() => {
+    if (!orders) return [];
+
     const getLocationName = (id: string) => {
         return locations.find(l => l.id === id)?.name || "Unknown Location";
     };

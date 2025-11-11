@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -6,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
-import { useTransition } from 'react';
-import { updateProductFeedback } from '@/app/dashboard/content/actions';
+import { useActionState, useEffect } from 'react';
+import { updateProductFeedback } from '@/app/products/[id]/actions';
+import { useUser } from '@/firebase/auth/use-user';
 
 interface ProductDescriptionDisplayProps {
   productDescription: (GenerateProductDescriptionOutput & { productId?: string }) | null;
@@ -15,9 +17,24 @@ interface ProductDescriptionDisplayProps {
   isDescriptionPending?: boolean;
 }
 
+const initialFeedbackState = { message: '', error: false };
+
+
 export default function ProductDescriptionDisplay({ productDescription, isImagePending, isDescriptionPending }: ProductDescriptionDisplayProps) {
   const { toast } = useToast();
-  const [isFeedbackPending, startFeedbackTransition] = useTransition();
+  const { user, isUserLoading } = useUser();
+  const [feedbackState, submitFeedback, isFeedbackPending] = useActionState(updateProductFeedback, initialFeedbackState);
+
+
+  useEffect(() => {
+    if (feedbackState.message) {
+      toast({
+        title: feedbackState.error ? 'Error' : 'Success',
+        description: feedbackState.message,
+        variant: feedbackState.error ? 'destructive' : 'default',
+      });
+    }
+  }, [feedbackState, toast]);
 
   const handleCopy = () => {
     if (productDescription?.description) {
@@ -76,21 +93,18 @@ export default function ProductDescriptionDisplay({ productDescription, isImageP
       });
       return;
     }
-    startFeedbackTransition(async () => {
-      const result = await updateProductFeedback(productDescription.productId!, feedback);
-      if (result.success) {
-        toast({
-          title: 'Feedback Submitted!',
-          description: 'Thank you for your feedback.',
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: result.message,
-        });
-      }
-    });
+    if (!user) {
+         toast({
+            variant: 'destructive',
+            title: 'Authentication Required',
+            description: 'You must be logged in to provide feedback.',
+         });
+         return;
+    }
+    const formData = new FormData();
+    formData.append('productId', productDescription.productId);
+    formData.append('feedbackType', feedback);
+    submitFeedback(formData);
   };
   
   const isGenerating = isDescriptionPending || isImagePending;
@@ -151,10 +165,10 @@ export default function ProductDescriptionDisplay({ productDescription, isImageP
          <CardFooter className="border-t pt-4">
              <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending || isGenerating || !productDescription?.productId}>
+                    <Button variant="outline" size="icon" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending || isGenerating || !productDescription?.productId || isUserLoading}>
                         <ThumbsUp className="h-4 w-4 text-green-500"/>
                     </Button>
-                    <Button variant="outline" size="icon" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending || isGenerating || !productDescription?.productId}>
+                    <Button variant="outline" size="icon" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending || isGenerating || !productDescription?.productId || isUserLoading}>
                         <ThumbsDown className="h-4 w-4 text-red-500"/>
                     </Button>
                 </div>

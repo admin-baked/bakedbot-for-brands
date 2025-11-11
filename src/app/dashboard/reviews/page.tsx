@@ -1,42 +1,23 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { ReviewsTable } from "./components/reviews-table";
 import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFirebase } from "@/firebase/provider";
-import { collectionGroup, onSnapshot, query, orderBy } from "firebase/firestore";
 import type { Review } from "@/lib/types";
 import { useMenuData } from "@/hooks/use-menu-data";
+import { useCollectionGroup } from "@/hooks/use-collection-group";
 
 export default function ReviewsPage() {
   const { isUserLoading } = useUser();
-  const { firestore } = useFirebase();
   const { products, isLoading: areProductsLoading } = useMenuData();
   
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [areReviewsLoading, setAreReviewsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!firestore) return;
-
-    setAreReviewsLoading(true);
-    const reviewsQuery = query(collectionGroup(firestore, 'reviews'), orderBy("createdAt", "desc"));
-    
-    const unsubscribe = onSnapshot(reviewsQuery, (snapshot) => {
-        const reviewsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
-        setReviews(reviewsData);
-        setAreReviewsLoading(false);
-    }, (error) => {
-        console.error("Error fetching reviews:", error);
-        setAreReviewsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [firestore]);
+  const { data: reviews, isLoading: areReviewsLoading } = useCollectionGroup<Review>('reviews');
 
   const formattedReviews = useMemo(() => {
+    if (!reviews || !products) return [];
+    
     return reviews.map((review) => {
         const productName = products.find(p => p.id === review.productId)?.name ?? "Unknown Product";
         return {
