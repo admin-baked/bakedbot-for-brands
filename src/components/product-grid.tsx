@@ -5,6 +5,8 @@ import { ProductCard } from './product-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useStore } from '@/hooks/use-store';
+import { Database } from 'lucide-react';
+import Link from 'next/link';
 
 const ProductSkeleton = () => (
     <div className="bg-card rounded-lg shadow-lg overflow-hidden border">
@@ -29,8 +31,7 @@ export function ProductGrid() {
   const { products, isLoading, isHydrated } = useMenuData();
   const { isUsingDemoData } = useStore();
   
-  // Show loading skeleton only when fetching live data, not when in demo mode.
-  if ((isLoading && !isUsingDemoData) || !isHydrated) {
+  if (isLoading || !isHydrated) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {[...Array(8)].map((_, i) => (
@@ -42,8 +43,21 @@ export function ProductGrid() {
   
   if (!products || products.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-600 text-lg">No products available</p>
+      <div className="text-center py-20 my-8 bg-muted/40 rounded-lg">
+        <Database className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h3 className="mt-4 text-lg font-semibold">No Products Found</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+            {isUsingDemoData 
+                ? "There are no products in the demo data set."
+                : "Your live product catalog is empty."
+            }
+        </p>
+         <p className="mt-1 text-sm text-muted-foreground">
+             {isUsingDemoData
+                ? "Check your demo data source."
+                : <>You can switch to Demo Mode or <Link href="/dashboard/settings" className="text-primary underline">import your products</Link> in the dashboard.</>
+            }
+        </p>
       </div>
     );
   }
