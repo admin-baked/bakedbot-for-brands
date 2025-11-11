@@ -1,13 +1,12 @@
-
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageSquare, Sparkles, ThumbsUp, ThumbsDown, ArrowRight, Database } from 'lucide-react';
+import { MessageSquare, Sparkles, ThumbsUp, ThumbsDown, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import type { Product, Review, UserInteraction } from '@/lib/types';
+import type { Product, UserInteraction } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { collection, query, where, collectionGroup } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
@@ -37,13 +36,20 @@ function MetricCard({ title, value, icon: Icon, isLoading }: { title: string, va
 
 export default function DashboardPage() {
   const { firestore } = useFirebase();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
+  const [currentBrandId, setCurrentBrandId] = useState<string | null>(null);
 
-  // In a real app, you'd get this from the ID token result.
-  // We'll use a hardcoded value for the demo, assuming the dev user has this claim.
-  const currentBrandId = 'acme';
-
-  // Correctly query the collection group for brand-level analytics.
+  useEffect(() => {
+    if (user) {
+      user.getIdTokenResult().then((idTokenResult) => {
+        const claims = idTokenResult.claims;
+        if (claims.brandId) {
+          setCurrentBrandId(claims.brandId as string);
+        }
+      });
+    }
+  }, [user]);
+  
   const interactionsQuery = useMemo(() => {
       if (!firestore || !currentBrandId) return null;
       return query(collectionGroup(firestore, 'interactions'), where("brandId", "==", currentBrandId));
@@ -62,7 +68,7 @@ export default function DashboardPage() {
 
   const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery, { debugPath: '/products' });
 
-  const isLoading = areInteractionsLoading || areProductsLoading;
+  const isLoading = isUserLoading || areInteractionsLoading || areProductsLoading;
 
   const { stats, topProducts, bottomProducts } = useMemo(() => {
     if (!interactions || !products) {
