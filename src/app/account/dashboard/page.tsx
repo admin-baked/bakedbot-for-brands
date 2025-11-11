@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
@@ -128,33 +129,33 @@ export default function CustomerDashboardPage() {
             <Header />
             <main className="flex-1 bg-muted/20">
                 <div className="container mx-auto px-4 py-8">
-                     <div>
+                     <div className="mb-8">
                         <h1 className="text-3xl font-bold tracking-tight">My Dashboard</h1>
                         <p className="text-muted-foreground">
                             {isUsingDemoData ? "Here's a sample of your activity and contributions." : "Here's a summary of your activity and contributions."}
                         </p>
                     </div>
 
-                    <div className="mt-6">
+                    <div className="space-y-8">
                         <FavoriteLocation
                             favoriteId={currentFavoriteId}
                             onSetFavorite={handleSetFavorite}
                         />
-                    </div>
                     
-                    <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        <MetricCard title="Chatbot Interactions" value={stats.chatbotInteractions} icon={MessageSquare} isLoading={isLoading} />
-                        <MetricCard title="Products Recommended" value={stats.productsRecommended} icon={Sparkles} isLoading={isLoading} />
-                        <MetricCard title="Reviews Submitted" value={stats.reviewsSubmitted} icon={Star} isLoading={isLoading} />
-                    </div>
-
-                    <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-                        <div className="lg:col-span-2">
-                             <CustomerOrderHistory orders={orders as OrderDoc[] | null} isLoading={isLoading} />
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            <MetricCard title="Chatbot Interactions" value={stats.chatbotInteractions} icon={MessageSquare} isLoading={isLoading} />
+                            <MetricCard title="Products Recommended" value={stats.productsRecommended} icon={Sparkles} isLoading={isLoading} />
+                            <MetricCard title="Reviews Submitted" value={stats.reviewsSubmitted} icon={Star} isLoading={isLoading} />
                         </div>
-                        <div className="space-y-8">
-                             <CustomerReviewHistory reviews={reviews as Review[] | null} isLoading={isLoading} />
-                             <CustomerUploads />
+
+                        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                            <div className="lg:col-span-2">
+                                <CustomerOrderHistory orders={orders as OrderDoc[] | null} isLoading={isLoading} />
+                            </div>
+                            <div className="space-y-8">
+                                <CustomerReviewHistory reviews={reviews as Review[] | null} isLoading={isLoading} />
+                                <CustomerUploads />
+                            </div>
                         </div>
                     </div>
                 </div>
