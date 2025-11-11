@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, User, ShoppingBag } from 'lucide-react';
+import { Search, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { useCart } from '@/hooks/use-cart';
@@ -23,11 +23,7 @@ export default function Header() {
                     <Button variant="ghost" size="icon">
                         <Search className="h-5 w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon" asChild>
-                        <Link href="/brand-login">
-                          <User className="h-5 w-5" />
-                        </Link>
-                    </Button>
+                    
                     <Button variant="ghost" size="icon" className="relative" onClick={() => setCartSheetOpen(true)}>
                        <ShoppingBag className="h-5 w-5" />
                        {_hasHydrated && itemCount > 0 && (
@@ -36,6 +32,19 @@ export default function Header() {
                            </span>
                        )}
                     </Button>
+
+                    <div className="hidden md:flex items-center gap-2">
+                        <Button variant="ghost" asChild>
+                            <Link href="/brand-login">
+                              Login
+                            </Link>
+                        </Button>
+                        <Button asChild>
+                            <Link href="/brand-login">
+                              Get Started
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
             </div>
         </header>
