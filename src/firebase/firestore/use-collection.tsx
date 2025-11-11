@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { onSnapshot, Query, DocumentData } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { FirebaseError } from 'firebase/app';
 
 type UseCollectionResult<T> = {
   data: T[] | null;
@@ -16,12 +17,16 @@ function getPathFromQuery(input: unknown): string {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const q: any = input;
+
+    // Collection-group query? Return helpful wildcard
     const group = q?._query?.collectionGroup;
     if (group) return `**/${group}`;
+
+    // Regular collection/query: try to read canonicalString
     const p = q?._query?.path?.canonicalString
-             ?? q?._path?.canonicalString
-             ?? q?.path?.canonicalString;
-    if (typeof p === "string" && p) return p;
+      ?? q?._path?.canonicalString
+      ?? q?.path?.canonicalString;
+    if (typeof p === "string" && p.length > 0) return p;
   } catch {}
   return "unknown/path";
 }
@@ -56,16 +61,20 @@ export function useCollection<T = DocumentData>(
         setError(null);
       },
       (err) => {
-        console.error(`Error fetching collection`, err);
-        setError(err);
         setIsLoading(false);
-
-        const permissionError = new FirestorePermissionError({
-            path: getPathFromQuery(query),
-            operation: 'list',
-        });
-  
-        errorEmitter.emit('permission-error', permissionError);
+        // Special handling for permission errors to avoid crashing the page
+        if (err instanceof FirebaseError && err.code === "permission-denied") {
+          const permissionError = new FirestorePermissionError({
+              path: getPathFromQuery(query),
+              operation: 'list',
+          });
+          setError(permissionError); // Set error state for the component to handle
+          errorEmitter.emit('permission-error', permissionError); // Also emit for global listeners
+          return; // Stop further execution
+        }
+        // For other errors, re-throw to be caught by a higher-level boundary if needed
+        console.error(`Unhandled error fetching collection:`, err);
+        setError(err);
       }
     );
 

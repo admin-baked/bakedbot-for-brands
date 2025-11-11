@@ -20,21 +20,17 @@ service cloud.firestore {
         return userDoc.role == 'dispensary' && userDoc.locationId == locationId;
     }
 
-    // This rule allows collection group queries on 'reviews'.
-    // It is REQUIRED for features like "Recent Reviews Feed" to work.
-    // It allows anyone to read reviews, but write access is still controlled below.
+    // Public read of all reviews across the project (collectionGroup("reviews"))
     match /{path=**}/reviews/{reviewId} {
+      // Collection-group queries require BOTH of these:
       allow get, list: if true;
 
-      // Allow create if user is logged in, the review belongs to them,
-      // and the rating is valid.
+      // Writes locked to the author
       allow create: if request.auth != null
-                    && request.resource.data.userId == request.auth.uid
+                    && request.auth.uid == request.resource.data.userId
                     && request.resource.data.rating is number
                     && request.resource.data.rating >= 1
                     && request.resource.data.rating <= 5;
-
-      // Only the owner of a review can update or delete it.
       allow update, delete: if isOwner(resource.data.userId);
     }
     
