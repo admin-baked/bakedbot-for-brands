@@ -21,8 +21,11 @@ test('get started link', async ({ page }) => {
 test('martez login flow', async ({ page }) => {
   await page.goto('/brand-login');
 
-  // Click the "Dev Magic Button" for martez@bakedbot.ai
-  await page.locator('button', { hasText: 'Dev Magic Button (martez@bakedbot.ai)' }).click();
+  // Click the "Dev Magic Login" dropdown trigger
+  await page.locator('button', { hasText: 'Dev Magic Login' }).click();
+
+  // Click the menu item for martez@bakedbot.ai
+  await page.locator('div[role="menuitem"]', { hasText: 'Login as martez@bakedbot.ai' }).click();
 
   // Expect the "Check Your Inbox!" card to be visible
   await expect(page.locator('h2', { hasText: 'Check Your Inbox!' })).toBeVisible();
@@ -34,8 +37,11 @@ test('martez login flow', async ({ page }) => {
 test('rishabh login flow', async ({ page }) => {
   await page.goto('/brand-login');
 
-  // Click the "Dev Magic Button" for rishabh@bakedbot.ai
-  await page.locator('button', { hasText: 'Dev Magic Button (rishabh@bakedbot.ai)' }).click();
+  // Click the "Dev Magic Login" dropdown trigger
+  await page.locator('button', { hasText: 'Dev Magic Login' }).click();
+
+  // Click the menu item for rishabh@bakedbot.ai
+  await page.locator('div[role="menuitem"]', { hasText: 'Login as rishabh@bakedbot.ai' }).click();
 
   // Expect the "Check Your Inbox!" card to be visible
   await expect(page.locator('h2', { hasText: 'Check Your Inbox!' })).toBeVisible();
@@ -43,5 +49,3 @@ test('rishabh login flow', async ({ page }) => {
   // Expect the email address to be displayed
   await expect(page.locator('strong', { hasText: 'rishabh@bakedbot.ai' })).toBeVisible();
 });
-
-    

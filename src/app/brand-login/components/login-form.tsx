@@ -7,12 +7,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, KeyRound, Sparkles } from 'lucide-react';
+import { Loader2, KeyRound, Sparkles, ChevronDown } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
 import { GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail } from 'firebase/auth';
 import Logo from '@/components/logo';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -206,19 +207,24 @@ export default function LoginForm() {
                                 <span className="bg-card px-2 text-muted-foreground">For Devs</span>
                             </div>
                         </div>
-                        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')}>
-                                Dev Magic Button (martez@bakedbot.ai)
-                            </Button>
-                            <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'rishabh@bakedbot.ai')}>
-                                Dev Magic Button (rishabh@bakedbot.ai)
-                            </Button>
-                        </div>
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="secondary" className="w-full">
+                                    Dev Magic Login <ChevronDown className="ml-2 h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-80">
+                                <DropdownMenuItem onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')}>
+                                    Login as martez@bakedbot.ai
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => handleMagicLinkSignIn(e, 'rishabh@bakedbot.ai')}>
+                                    Login as rishabh@bakedbot.ai
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </CardFooter>
                 )}
             </Card>
         </div>
     );
 }
-
-    
