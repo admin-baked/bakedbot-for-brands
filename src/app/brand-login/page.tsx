@@ -10,7 +10,7 @@ function LoginPageFallback() {
         <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
              <Card className="w-full max-w-md">
                 <CardHeader className="items-center space-y-4 text-center">
-                    <Image src="https://storage.googleapis.com/production-assets/project-gated/project-stud-io/user-uploads/6250785/BakedBot%20AI.png" alt="BakedBot AI Logo" width={64} height={64} />
+                    <Image src="https://storage.googleapis.com/stedi-assets/misc/bakedbot-logo-horizontal.png" alt="BakedBot AI Logo" width={128} height={32} />
                      <div className="space-y-1">
                         <CardTitle className="text-2xl">Welcome Back</CardTitle>
                         <CardDescription>Sign in to manage your BakedBot AI</CardDescription>
