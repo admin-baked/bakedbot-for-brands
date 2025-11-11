@@ -26,13 +26,10 @@ service cloud.firestore {
     match /{path=**}/reviews/{reviewId} {
       allow get, list: if true;
 
-      // Allow create if user is logged in, the review belongs to them,
-      // and the rating is valid.
+      // Allow create if user is logged in and the review belongs to them.
+      // The `authorId` should match the field name used in your review documents.
       allow create: if request.auth != null
-                    && request.resource.data.userId == request.auth.uid
-                    && request.resource.data.rating is number
-                    && request.resource.data.rating >= 1
-                    && request.resource.data.rating <= 5;
+                    && request.auth.uid == request.resource.data.userId;
 
       // Only the owner of a review can update or delete it.
       allow update, delete: if isOwner(resource.data.userId);
