@@ -21,27 +21,6 @@ service cloud.firestore {
     function brandRead(bid) { return canSeeBrand(bid) || isOwner() || isDev(); }
     function brandWrite(bid){ return canSeeBrand(bid) || isOwner() || isDev(); }
 
-    // ---------- Public menu (anonymous read) ----------
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if false; // Managed by server actions
-    }
-
-    // Categories are public, but shouldn't be writable from the client
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if false; // Managed by backend
-    }
-    
-    // ---------- Reviews (collection-group) ----------
-    // Public read so collectionGroup("reviews") works for everyone.
-    match /{path=**}/reviews/{reviewId} {
-      allow get, list: if true;
-      // Writes are locked to the author of the review.
-      allow create: if authed() && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if authed() && request.auth.uid == resource.data.userId;
-    }
-    
     // ---------- Interactions (collection-group) ----------
     // Brand analytics only: brand/owner/dev can read their own brand’s interactions.
     match /{path=**}/interactions/{interactionId} {
@@ -61,6 +40,27 @@ service cloud.firestore {
                                         && request.auth.token.brandId == resource.data.brandId
                                       )
                                     );
+    }
+
+    // ---------- Public menu (anonymous read) ----------
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if false; // Managed by server actions
+    }
+
+    // Categories are public, but shouldn't be writable from the client
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if false; // Managed by backend
+    }
+    
+    // ---------- Reviews (collection-group) ----------
+    // Public read so collectionGroup("reviews") works for everyone.
+    match /{path=**}/reviews/{reviewId} {
+      allow get, list: if true;
+      // Writes are locked to the author of the review.
+      allow create: if authed() && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if authed() && request.auth.uid == resource.data.userId;
     }
 
 
