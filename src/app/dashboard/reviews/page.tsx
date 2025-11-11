@@ -21,7 +21,7 @@ export default function ReviewsPage() {
     return query(collectionGroup(firestore, 'reviews'), orderBy('createdAt', 'desc'));
   }, [firestore]);
 
-  const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery, true);
+  const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery);
 
   const formattedReviews = useMemo(() => {
     if (!reviews || !products) return [];

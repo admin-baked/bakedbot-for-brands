@@ -57,7 +57,7 @@ export default function CustomerDashboardPage() {
 
     // Fetch live data using the queries
     const { data: liveOrders, isLoading: areOrdersLoading } = useCollection<OrderDoc>(ordersQuery);
-    const { data: liveReviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery, true); // Note: isCollectionGroup is true for reviews
+    const { data: liveReviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery); 
     const { data: liveInteractions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery);
 
     const isLoading = isMenuLoading || isUserLoading || areOrdersLoading || areReviewsLoading || areInteractionsLoading;
