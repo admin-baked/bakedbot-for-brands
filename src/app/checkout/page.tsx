@@ -30,11 +30,19 @@ export default function CheckoutPage() {
       return;
     }
     
+    // If the cart is already empty when the user lands here,
+    // they probably just finished an order or came here by mistake.
+    // Don't run the redirect logic, just show an empty checkout state.
+    if (cart.length === 0) {
+        setStatus('ready');
+        return;
+    }
+    
     setStatus('checking');
     
     // Small delay to ensure state is fully updated
     const timer = setTimeout(() => {
-      // Check prerequisites
+      // Check prerequisites for a NEW checkout attempt
       if (!selectedLocationId) {
         setErrorMessage('No location selected. Redirecting...');
         setStatus('error');
@@ -57,18 +65,11 @@ export default function CheckoutPage() {
         return;
       }
       
-      if (cart.length === 0) {
-        setErrorMessage('Your cart is empty. Redirecting...');
-        setStatus('error');
-        setTimeout(() => router.replace('/?error=empty-cart'), 2000);
-        return;
-      }
-      
       setStatus('ready');
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [_hasHydrated, selectedLocationId, locations, cart.length, router]);
+  }, [_hasHydrated, selectedLocationId, locations.length, cart.length, router]);
   
   const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
   const { subtotal, taxes, total } = getCartTotal();
@@ -114,13 +115,36 @@ export default function CheckoutPage() {
   }
 
   // Final safety check before rendering - this prevents a crash if the location lookup fails
-  if (status === 'ready' && !selectedLocation) {
+  if (status === 'ready' && !selectedLocation && cart.length > 0) {
      return (
        <div className="flex flex-col h-screen items-center justify-center text-center py-20">
          <Loader2 className="h-8 w-8 animate-spin text-destructive" />
          <p className="text-destructive mt-4">Selected location not found. Redirecting...</p>
        </div>
      );
+  }
+
+  if (cart.length === 0) {
+      return (
+          <div className="min-h-screen bg-muted/20">
+              <Header />
+              <main className="container mx-auto px-4 py-8 text-center">
+                  <Card className="max-w-md mx-auto">
+                      <CardHeader>
+                          <CardTitle>Your Cart is Empty</CardTitle>
+                          <CardDescription>Add some products to your cart to get started.</CardDescription>
+                      </CardHeader>
+                      <CardFooter>
+                          <Button asChild className="w-full">
+                              <Link href="/">
+                                  Return to Menu
+                              </Link>
+                          </Button>
+                      </CardFooter>
+                  </Card>
+              </main>
+          </div>
+      )
   }
 
 
