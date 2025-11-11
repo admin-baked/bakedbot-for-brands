@@ -5,6 +5,8 @@ import {
   SnapshotOptions,
   Timestamp,
 } from "firebase/firestore";
+import type { Product } from '@/lib/types';
+
 
 // ---- Domain types (adjust fields to your actual schema) ----
 export type OrderDoc = {
@@ -52,67 +54,19 @@ export type UserInteraction = {
 };
 
 // ---- Generic helpers ----
-function withId<T extends object>(snap: QueryDocumentSnapshot, data: any): T {
-  return { id: snap.id, ...(data as object) } as T;
-}
+const makeConverter = <T extends { id: string }>() =>
+  ({
+    toFirestore: (modelObject: T) => {
+      const { id, ...rest } = modelObject as any;
+      return rest; // don't store id in doc body
+    },
+    fromFirestore: (snap: QueryDocumentSnapshot, options: SnapshotOptions) => {
+      const data = snap.data(options) as Omit<T, "id">;
+      return { id: snap.id, ...(data as any) } as T;
+    },
+  }) as FirestoreDataConverter<T>;
 
-// ---- Converters ----
-export const orderConverter: FirestoreDataConverter<OrderDoc> = {
-  toFirestore: (order: OrderDoc) => {
-    const { id, ...rest } = order;
-    return rest;
-  },
-  fromFirestore: (snap: QueryDocumentSnapshot, _opts: SnapshotOptions): OrderDoc => {
-    const data = snap.data(_opts);
-    // Ensure nested objects and arrays have default values if they are missing
-    return {
-      id: snap.id,
-      userId: data.userId || '',
-      customer: data.customer || { name: 'Unknown', email: '' },
-      items: data.items || [],
-      totals: data.totals || { subtotal: 0, tax: 0, total: 0 },
-      locationId: data.locationId || '',
-      status: data.status || 'submitted',
-      createdAt: data.createdAt || Timestamp.now(),
-      mode: data.mode || 'live',
-      brandId: data.brandId,
-    };
-  },
-};
-
-export const reviewConverter: FirestoreDataConverter<Review> = {
-  toFirestore: (doc: Review) => {
-    const { id, ...rest } = doc;
-    return rest;
-  },
-  fromFirestore: (snap: QueryDocumentSnapshot): Review => {
-    const data = snap.data();
-    return {
-        id: snap.id,
-        productId: data.productId || '',
-        userId: data.userId || '',
-        rating: data.rating || 0,
-        text: data.text || '',
-        createdAt: data.createdAt || Timestamp.now(),
-        brandId: data.brandId,
-    }
-  },
-};
-
-export const interactionConverter: FirestoreDataConverter<UserInteraction> = {
-  toFirestore: (doc: UserInteraction) => {
-    const { id, ...rest } = doc;
-    return rest;
-  },
-  fromFirestore: (snap: QueryDocumentSnapshot): UserInteraction => {
-     const data = snap.data();
-     return {
-        id: snap.id,
-        userId: data.userId || '',
-        interactionDate: data.interactionDate || Timestamp.now(),
-        query: data.query || '',
-        recommendedProductIds: data.recommendedProductIds || [],
-        brandId: data.brandId,
-     }
-  },
-};
+export const productConverter = makeConverter<Product>();
+export const orderConverter = makeConverter<OrderDoc>();
+export const reviewConverter = makeConverter<Review>();
+export const interactionConverter = makeConverter<UserInteraction>();
