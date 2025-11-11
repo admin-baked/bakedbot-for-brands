@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,8 +31,7 @@ export function HeroSlider({ products }: { products: Product[] }) {
                                 src={product.imageUrl}
                                 alt={product.name}
                                 fill
-                                objectFit="cover"
-                                className="brightness-75"
+                                className="object-cover brightness-75"
                                 priority={index === 0}
                                 data-ai-hint={product.imageHint}
                             />
