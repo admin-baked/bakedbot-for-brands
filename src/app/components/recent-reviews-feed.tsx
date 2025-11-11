@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, MessageSquare } from 'lucide-react';
-import type { Review } from '@/lib/types';
+import type { Review } from '@/firebase/converters';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMenuData } from '@/hooks/use-menu-data';
@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { collectionGroup, query, orderBy } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
+import { reviewConverter } from '@/firebase/converters';
 
 const ReviewItemSkeleton = () => (
     <Card className="w-80 shrink-0">
@@ -49,7 +50,8 @@ export default function RecentReviewsFeed() {
   const { firestore } = useFirebase();
   const reviewsQuery = useMemo(() => {
     if (!firestore) return null;
-    return query(collectionGroup(firestore, 'reviews'), orderBy('createdAt', 'desc'));
+    const baseQuery = collectionGroup(firestore, 'reviews').withConverter(reviewConverter);
+    return query(baseQuery, orderBy('createdAt', 'desc'));
   }, [firestore]);
 
   const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery);
