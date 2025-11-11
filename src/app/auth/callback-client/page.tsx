@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -38,9 +39,9 @@ export default function AuthCallbackClientPage() {
       .then((result) => {
         window.localStorage.removeItem('emailForSignIn');
         // The onAuthStateChanged listener in FirebaseProvider will detect the user
-        // and the layout will redirect to /dashboard.
-        // We can just redirect to the dashboard optimistically.
-        router.replace('/dashboard');
+        // and the layout will redirect to /account.
+        // We can just redirect to the account page optimistically.
+        router.replace('/account');
       })
       .catch((err) => {
         console.error('Magic Link sign-in error:', err);
