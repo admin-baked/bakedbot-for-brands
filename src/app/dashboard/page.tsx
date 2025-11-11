@@ -18,7 +18,7 @@ import TopProductsCard from './components/top-products-card';
 import BottomProductsCard from './components/bottom-products-card';
 import { formatNumber } from '@/lib/utils';
 import { useUser } from '@/firebase/auth/use-user';
-import { interactionConverter } from '@/firebase/converters';
+import { interactionConverter, productConverter } from '@/firebase/converters';
 
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ElementType, isLoading: boolean }) {
@@ -64,9 +64,7 @@ export default function DashboardPage() {
 
   const productsQuery = useMemo(() => {
     if (!firestore) return null;
-    // Note: Products collection is not using a converter here, assuming it's simpler
-    // or handled differently. If it needed one, you'd add `.withConverter(productConverter)`.
-    return query(collection(firestore, 'products'));
+    return query(collection(firestore, 'products').withConverter(productConverter));
   }, [firestore]);
 
 
@@ -75,7 +73,7 @@ export default function DashboardPage() {
     { debugPath: `**/interactions?brandId=${currentBrandId}` }
   );
 
-  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery as unknown as any, { debugPath: '/products' });
+  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery, { debugPath: '/products' });
 
   const isLoading = isUserLoading || areInteractionsLoading || areProductsLoading;
 
