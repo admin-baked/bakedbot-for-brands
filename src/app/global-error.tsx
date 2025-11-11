@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, FileJson } from 'lucide-react';
-import { Logo } from '@/components/logo';
 
 export default function GlobalError({
   error,

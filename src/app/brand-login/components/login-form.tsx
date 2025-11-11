@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, KeyRound, Sparkles } from 'lucide-react';
-import { Logo } from '@/components/logo';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
@@ -154,7 +153,7 @@ export default function LoginForm() {
         <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
             <Card className="w-full max-w-md">
                 <CardHeader className="items-center space-y-4 text-center">
-                    <Logo />
+                    
                     <div className="space-y-1">
                         <CardTitle className="text-2xl">Welcome Back</CardTitle>
                         <CardDescription>Sign in to manage your BakedBot AI</CardDescription>
