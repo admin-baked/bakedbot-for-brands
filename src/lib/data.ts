@@ -1,7 +1,9 @@
+
 import type { Product, Location } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
 // Direct export of default assets to prevent broken links.
+// These URLs point to publicly accessible files in a Google Cloud Storage bucket.
 export const defaultLogo = 'https://storage.googleapis.com/stedi-assets/misc/bakedbot-logo-horizontal.png';
 export const defaultChatbotIcon = 'https://storage.googleapis.com/stedi-assets/misc/smokey-icon-1.png';
 
