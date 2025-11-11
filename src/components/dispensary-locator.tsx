@@ -13,10 +13,10 @@ import Link from 'next/link';
 
 export function DispensaryLocator() {
   const { locations, isLoading: areLocationsLoading } = useMenuData();
-  const { selectedLocationId, setSelectedLocationId } = useStore();
+  const { selectedLocationId, setSelectedLocationId, _hasHydrated } = useStore();
   
   const [isLocating, setIsLocating] = useState(false);
-  const [closestLocations, setClosestLocations] = useState<typeof locations>([]);
+  const [sortedLocations, setSortedLocations] = useState<typeof locations>([]);
 
   const handleFindClosest = () => {
     if (!navigator.geolocation) {
@@ -30,15 +30,19 @@ export function DispensaryLocator() {
         const { latitude, longitude } = position.coords;
         const userCoords = { lat: latitude, lon: longitude };
 
-        const sortedLocations = [...locations]
+        const newSortedLocations = [...locations]
           .map((loc) => ({
             ...loc,
             distance: haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! }),
           }))
           .sort((a, b) => a.distance - b.distance);
         
-        setClosestLocations(sortedLocations);
+        setSortedLocations(newSortedLocations);
         setIsLocating(false);
+        // Automatically select the closest one
+        if (newSortedLocations.length > 0) {
+            setSelectedLocationId(newSortedLocations[0].id);
+        }
       },
       (error) => {
         console.error('Error getting location:', error);
@@ -50,13 +54,9 @@ export function DispensaryLocator() {
   
   const handleSelectLocation = (id: string) => {
     setSelectedLocationId(id);
-    const element = document.getElementById('locator');
-    if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-    }
   }
   
-  const displayLocations = closestLocations.length > 0 ? closestLocations : locations;
+  const displayLocations = sortedLocations.length > 0 ? sortedLocations : locations;
 
   return (
     <div className="py-12 bg-muted/40 rounded-lg" id="locator">
@@ -77,7 +77,7 @@ export function DispensaryLocator() {
                         key={loc.id} 
                         className={cn(
                             "text-left cursor-pointer transition-all w-80 shrink-0",
-                            selectedLocationId === loc.id ? 'border-primary ring-2 ring-primary' : 'border-border'
+                            _hasHydrated && selectedLocationId === loc.id ? 'border-primary ring-2 ring-primary' : 'border-border'
                         )}
                         onClick={() => handleSelectLocation(loc.id)}
                     >
