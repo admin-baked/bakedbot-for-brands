@@ -1,94 +1,93 @@
 'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
-import { useFirebase } from '@/firebase/provider';
-import { Loader2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
-// This is the fix. By exporting this variable, we tell Next.js to always
-// render this page on the client and not to pre-render it during the build.
 export const dynamic = 'force-dynamic';
 
-export default function AuthCallbackClientPage() {
+import { useEffect, useState } from 'react';
+import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
+import { useFirebase } from '@/firebase/provider';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+export default function CallbackClient() {
   const { auth } = useFirebase();
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const search = useSearchParams();
+  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
+  const [message, setMessage] = useState<string>('Verifying your sign-in…');
 
   useEffect(() => {
-    // This effect should only run once on component mount.
-    // Ensure auth is initialized on the client before proceeding.
-    if (!auth || typeof window === 'undefined') {
-      return;
+    if (!auth) {
+        // Firebase auth might not be initialized on first render.
+        return;
     }
+    
+    const run = async () => {
+      try {
+        const href = window.location.href;
 
-    const href = window.location.href;
-    const email = window.localStorage.getItem('emailForSignIn');
-
-    // If the link is not a valid sign-in link, or if the email is missing,
-    // redirect to login with an error.
-    if (!isSignInWithEmailLink(auth, href) || !email) {
-      router.replace('/brand-login?error=' + encodeURIComponent('Invalid or expired sign-in link. Please try again.'));
-      return;
-    }
-
-    // Now we can complete the sign-in.
-    signInWithEmailLink(auth, email, href)
-      .then((result) => {
-        window.localStorage.removeItem('emailForSignIn');
-        // The onAuthStateChanged listener in FirebaseProvider will detect the user
-        // and the layout will redirect to /account.
-        // We can just redirect to the account page optimistically.
-        router.replace('/account');
-      })
-      .catch((err) => {
-        console.error('Magic Link sign-in error:', err);
-        // Map common Firebase errors to user-friendly messages.
-        let errorMessage = 'An unknown error occurred. Please try again.';
-        if (err.code === 'auth/invalid-email') {
-          errorMessage = 'The email address is not valid.';
-        } else if (err.code === 'auth/user-disabled') {
-          errorMessage = 'This user account has been disabled.';
-        } else if (err.code === 'auth/invalid-action-code') {
-           errorMessage = 'The sign-in link is invalid or has expired. Please request a new one.';
+        const hasOob = !!search.get('oobCode');
+        const hasMode = !!search.get('mode');
+        if (!hasOob || !hasMode) {
+          throw new Error('missing-params');
         }
-        
-        setError(errorMessage);
-        // For a better UX, redirect back to login with the error message
-        // instead of just showing it on a blank page.
-        router.replace('/brand-login?error=' + encodeURIComponent(errorMessage));
-      });
 
-  }, [auth, router]);
+        if (!isSignInWithEmailLink(auth, href)) {
+          throw new Error('not-email-link');
+        }
 
-  // Display a loading state while the sign-in process is in progress.
-  if (!auth) {
-    // Render a loading state if auth is not available yet (e.g., during initial render)
-    return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-           <Card className="w-full max-w-md text-center">
-                <CardHeader>
-                    <CardTitle>Authenticating...</CardTitle>
-                    <CardDescription>Finalizing your secure sign-in.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                     <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-                </CardContent>
-            </Card>
-        </div>
-    );
-  }
+        let email = window.localStorage.getItem('emailForSignIn') || '';
+        if (!email) {
+          email = window.prompt('Confirm your email to finish sign-in') || '';
+        }
+        if (!email) {
+          throw new Error('email-required');
+        }
+
+        await signInWithEmailLink(auth, email, href);
+
+        window.localStorage.removeItem('emailForSignIn');
+        setStatus('success');
+        setMessage('Signed in! Redirecting…');
+        router.replace('/account');
+      } catch (err: any) {
+        const code = (err?.code || err?.message || '').toString();
+
+        let friendly = 'Invalid or expired sign-in link. Please request a new one.';
+        if (code.includes('expired') || code.includes('invalid-action-code')) {
+          friendly = 'This sign-in link has expired or was already used. Request a new link.';
+        } else if (code.includes('missing-params') || code.includes('not-email-link')) {
+          friendly = 'This URL is missing required information. Try the newest email you received.';
+        } else if (code.includes('email-required')) {
+          friendly = 'Email confirmation is required to finish sign-in.';
+        } else if (code.includes('auth/tenant-id-mismatch')) {
+          friendly = 'This link belongs to a different environment. Use the latest email from this site.';
+        }
+
+        setStatus('error');
+        setMessage(friendly);
+        setTimeout(() => router.replace('/brand-login?error=' + encodeURIComponent(friendly)), 2500);
+      }
+    };
+
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth]); // Rerun when auth is available
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-       <Card className="w-full max-w-md text-center">
+        <Card className="w-full max-w-md text-center">
             <CardHeader>
-                <CardTitle>Signing In...</CardTitle>
-                <CardDescription>Please wait while we securely sign you in.</CardDescription>
+                <CardTitle>
+                    {status === 'verifying' && 'Authenticating...'}
+                    {status === 'success' && 'Success!'}
+                    {status === 'error' && 'Authentication Failed'}
+                </CardTitle>
+                 <CardDescription>{message}</CardDescription>
             </CardHeader>
             <CardContent>
-                 <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+                {status === 'verifying' && <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />}
+                {status === 'success' && <CheckCircle className="mx-auto h-12 w-12 text-green-500" />}
+                {status === 'error' && <AlertCircle className="mx-auto h-12 w-12 text-destructive" />}
             </CardContent>
         </Card>
     </div>
