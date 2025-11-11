@@ -86,13 +86,20 @@ const sendOrderEmailFlow = ai.defineFlow(
     if (input.bcc) {
         bccEmails.push(...input.bcc);
     }
-
-    // Call the secure emailRequest function with the constructed email content.
-    await emailRequest({
-      to,
-      subject,
-      html: htmlBody,
-      bcc: bccEmails,
-    });
+    
+    try {
+        // Call the secure emailRequest function with the constructed email content.
+        await emailRequest({
+          to,
+          subject,
+          html: htmlBody,
+          bcc: bccEmails,
+        });
+    } catch (error) {
+        console.error(`[sendOrderEmailFlow] Failed to send email for order ${orderId}:`, error);
+        // If email fails, log it and re-throw so the calling action is aware.
+        // This is important for transactional integrity.
+        throw new Error(`Failed to send order notification email. Reason: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 );

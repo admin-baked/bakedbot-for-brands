@@ -27,15 +27,15 @@ const EmailRequestSchema = z.object({
  * IMPORTANT: This is a regular server function, NOT a Genkit tool.
  * This prevents the AI model from being able to call it directly, which is a critical security measure.
  * Only trusted server-side flows (like sendOrderEmail) should be able to call this function.
+ * @throws {Error} If SendGrid environment variables are not configured.
  */
 export async function emailRequest(input: z.infer<typeof EmailRequestSchema>): Promise<void> {
     // Set the SendGrid API key from environment variables just before use.
     const apiKey = process.env.SENDGRID_API_KEY;
     if (!apiKey) {
       console.error('CRITICAL: SENDGRID_API_KEY is not set. Email will not be sent.');
-      // Do not throw an error in production, but log it.
-      // In a real app, you would have more robust monitoring here.
-      return;
+      // THROW an error to ensure the calling flow is aware of the configuration issue.
+      throw new Error('Email service is not configured. Missing API Key.');
     }
     sgMail.setApiKey(apiKey);
 
@@ -46,7 +46,8 @@ export async function emailRequest(input: z.infer<typeof EmailRequestSchema>): P
 
     if (!fromEmail || !fromName) {
       console.error('CRITICAL: SENDGRID_FROM_EMAIL and SENDGRID_FROM_NAME are not set. Email will not be sent.');
-      return;
+      // THROW an error for missing sender details.
+      throw new Error('Email service is not configured. Missing sender details.');
     }
     
     const msg = {
@@ -65,7 +66,7 @@ export async function emailRequest(input: z.infer<typeof EmailRequestSchema>): P
       console.log(`Email sent to ${to}`);
     } catch (error) {
       console.error('Error sending email via SendGrid:', error);
-      // In a production scenario, you might want to have a retry mechanism
-      // or log to a dedicated monitoring service.
+      // Re-throw the SendGrid-specific error to be caught by the calling flow.
+      throw error;
     }
 }
