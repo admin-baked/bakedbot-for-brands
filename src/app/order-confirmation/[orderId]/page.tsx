@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Home, MapPin, QrCode } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Logo } from '@/components/logo';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { Separator } from '@/components/ui/separator';
 import { QRDisplay } from './components/qr-display';
@@ -104,7 +103,7 @@ function OrderPageClient() {
         <div className="max-w-2xl mx-auto py-8 px-4">
              <Card className="shadow-lg">
                 <CardHeader className="text-center space-y-4">
-                    <Logo />
+                    <span className="font-bold text-lg">BakedBot AI</span>
                     <CardTitle className="text-3xl">Order Confirmed</CardTitle>
                     <CardDescription>Thank you, {order.customer.name}! Your order is being prepared.</CardDescription>
                      <div className="flex items-center justify-center gap-2">

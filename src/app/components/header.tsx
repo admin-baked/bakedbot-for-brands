@@ -4,7 +4,6 @@
 import Link from 'next/link';
 import { Search, ShoppingBag, TestTube2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Logo } from '@/components/logo';
 import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
@@ -28,7 +27,7 @@ export default function Header() {
             <div className="container mx-auto flex h-16 items-center justify-between px-4">
                 <div className="flex items-center gap-6">
                     <Link href="/" className="flex items-center">
-                        <Logo />
+                        <span className="font-bold text-lg">BakedBot AI</span>
                     </Link>
                     <nav className="hidden md:flex items-center gap-4">
                         {navLinks.map((link) => (

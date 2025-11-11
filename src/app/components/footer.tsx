@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { Logo } from '@/components/logo';
 
 export function Footer() {
   return (
@@ -9,7 +8,7 @@ export function Footer() {
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <Logo />
+            
             <p className="text-sm text-muted-foreground">
               Your AI-powered guide to cannabis.
             </p>

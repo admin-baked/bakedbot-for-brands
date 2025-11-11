@@ -19,7 +19,6 @@ import {
   SidebarMenuAction,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Logo } from '@/components/logo';
 import Chatbot from '@/components/chatbot';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -207,7 +206,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex min-h-screen bg-background">
           <Sidebar collapsible="icon">
             <SidebarHeader>
-              <Logo />
+              <span className="font-bold text-lg">BakedBot AI</span>
             </SidebarHeader>
             <SidebarContent>
               <SidebarMenu>
