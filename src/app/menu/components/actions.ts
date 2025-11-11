@@ -10,40 +10,40 @@ import { sendOrderEmail } from '@/ai/flows/send-order-email';
 // Schema for the input of the submitOrder action
 const OrderSchema = z.object({
   userId: z.string().optional(), // User's UID, optional for guest checkout
-  customerName: z.string(),
-  customerEmail: z.string().email(),
-  customerPhone: z.string(),
-  customerBirthDate: z.string(),
-  locationId: z.string(),
-  locationName: z.string(),
-  locationEmail: z.string().email(),
-  cartItems: z.array(z.any()), // We trust the client on cart items for this demo
-  totalAmount: z.number(),
+  customerName: z.string().min(1, 'Customer name is required.'),
+  customerEmail: z.string().email('Invalid email address.'),
+  customerPhone: z.string().min(1, 'Phone number is required.'),
+  customerBirthDate: z.string().min(1, 'Date of birth is required.'),
+  locationId: z.string().min(1, 'Location is required.'),
+  locationName: z.string().min(1, 'Location name is required.'),
+  locationEmail: z.string().email('Location email is invalid.'),
+  cartItems: z.array(z.any()).min(1, 'Cart cannot be empty.'),
+  totalAmount: z.number().positive('Total amount must be positive.'),
 });
 
-export async function submitOrder(input: z.infer<typeof OrderSchema>) {
-  const { firestore } = await createServerClient();
-
+export async function submitOrder(input: unknown) {
   const validatedData = OrderSchema.safeParse(input);
 
   if (!validatedData.success) {
-    console.error('Order submission failed validation:', validatedData.error);
-    return { error: 'Invalid order data.' };
+    console.error('Order submission failed validation:', validatedData.error.flatten());
+    return { error: 'Invalid order data provided.' };
   }
   
   const { cartItems, userId: authenticatedUserId, ...orderData } = validatedData.data;
 
   // Use the authenticated user's ID if available, otherwise mark as a 'guest' order.
   const finalUserId = authenticatedUserId || 'guest';
-
-  const orderPayload = {
-    ...orderData,
-    userId: finalUserId,
-    orderDate: FieldValue.serverTimestamp(),
-    status: 'pending' as const,
-  };
   
   try {
+    const { firestore } = await createServerClient();
+
+    const orderPayload = {
+      ...orderData,
+      userId: finalUserId,
+      orderDate: FieldValue.serverTimestamp(),
+      status: 'pending' as const,
+    };
+
     const orderCollectionRef = firestore.collection('users').doc(finalUserId).collection('orders');
     const orderRef = await orderCollectionRef.add(orderPayload);
     const orderId = orderRef.id;

@@ -18,8 +18,7 @@ import {
 } from '@/ai/flows/summarize-reviews';
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
-import { increment } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
+import { FieldValue } from 'firebase-admin/firestore';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 const FormSchema = z.object({
@@ -187,47 +186,26 @@ export async function updateProductFeedback(
   productId: string,
   feedbackType: 'like' | 'dislike'
 ): Promise<{ success: boolean; message: string }> {
-  // 1. Input Validation: Ensure feedbackType is one of the allowed values.
   if (feedbackType !== 'like' && feedbackType !== 'dislike') {
-      return { success: false, message: 'Invalid feedback type.' };
+    return { success: false, message: 'Invalid feedback type.' };
   }
-  
-  const { firestore } = await createServerClient();
   
   if (!productId) {
     return { success: false, message: 'Product ID is missing.' };
   }
 
-  const productRef = firestore.doc(`products/${productId}`);
-  
-  // 2. Existence Check: Verify the product exists before trying to update it.
   try {
-    const productSnap = await productRef.get();
-    if (!productSnap.exists) {
-        return { success: false, message: `Product with ID ${productId} not found.` };
-    }
-  } catch (error) {
-     console.error(`[updateProductFeedback] Error fetching product "${productId}":`, error);
-     return { success: false, message: 'Could not verify product existence.' };
-  }
-
-  const fieldToUpdate = feedbackType === 'like' ? 'likes' : 'dislikes';
-  const updatePayload = { [fieldToUpdate]: increment(1) };
-
-  try {
-    // Use the Admin SDK's update method directly.
-    await productRef.update(updatePayload);
-    return { success: true, message: 'Feedback submitted successfully.' };
-  } catch (serverError) {
-    // This catch block will handle potential permission errors from Firestore rules.
-    const permissionError = new FirestorePermissionError({
-      path: productRef.path,
-      operation: 'update',
-      requestResourceData: { [fieldToUpdate]: 'increment(1)' },
-    });
-    // This server-side error log is crucial for debugging security rule failures.
-    console.error('[updateProductFeedback] Firestore permission error:', permissionError.message);
+    const { firestore } = await createServerClient();
+    const productRef = firestore.doc(`products/${productId}`);
     
-    return { success: false, message: 'Permission denied. Your security rules might be blocking this update.' };
+    const fieldToUpdate = feedbackType === 'like' ? 'likes' : 'dislikes';
+    const updatePayload = { [fieldToUpdate]: FieldValue.increment(1) };
+    
+    await productRef.update(updatePayload);
+
+    return { success: true, message: 'Feedback submitted successfully.' };
+  } catch (error) {
+     console.error(`[updateProductFeedback] Error:`, error);
+     return { success: false, message: 'Could not submit feedback.' };
   }
 }

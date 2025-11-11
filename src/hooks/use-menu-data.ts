@@ -25,16 +25,15 @@ export function useMenuData() {
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(!isUsingDemoData);
 
   useEffect(() => {
-    // If we are in demo mode, ensure we are using demo data and do not fetch from Firestore.
+    if (!_hasHydrated) return;
+
     if (isUsingDemoData) {
       setProducts(demoProducts);
       setIsFirestoreLoading(false);
       return;
     }
     
-    // Live data mode: fetch from Firestore
     if (!firestore) {
-      // If firestore is not available in live mode, return empty arrays.
       setProducts([]);
       setIsFirestoreLoading(false);
       return;
@@ -43,29 +42,24 @@ export function useMenuData() {
     setIsFirestoreLoading(true);
     const productsQuery = query(collection(firestore, 'products'));
     const unsubscribe = onSnapshot(productsQuery, (snapshot) => {
-        if (!snapshot.empty) {
-            const firestoreProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-            setProducts(firestoreProducts);
-        } else {
-            // If live collection is empty, show no products.
-            setProducts([]);
-        }
+        const firestoreProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        setProducts(firestoreProducts);
         setIsFirestoreLoading(false);
     }, (error) => {
         console.error("Error fetching products from Firestore:", error);
-        setProducts([]); // Return empty array on error
+        setProducts([]);
         setIsFirestoreLoading(false);
     });
 
     return () => unsubscribe();
-  }, [firestore, demoProducts, isUsingDemoData]);
+  }, [firestore, demoProducts, isUsingDemoData, _hasHydrated]);
 
-  // Determine the final set of locations and loading state.
+  const finalProducts = isUsingDemoData ? demoProducts : products;
   const finalLocations = isUsingDemoData ? demoLocations : storeLocations;
   const isLoading = !_hasHydrated || (isFirestoreLoading && !isUsingDemoData);
 
   return {
-    products,
+    products: finalProducts,
     locations: finalLocations,
     isLoading,
     isHydrated: _hasHydrated,
