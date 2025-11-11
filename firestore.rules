@@ -1,15 +1,40 @@
-/**
- * @fileoverview Firestore Security Rules for the BakedBot AI Assistant application.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for user-specific data
- * (orders, order items, and user interactions), while allowing public read access to
- * product catalogs and AI-generated content.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profiles, secured via ownership.
- * - /categories/{categoryId}: Stores product categories, publicly readable.
- * - /products/{productId}: Stores product information, publicly readable.
- * - /users/{userId}/orders/{orderId}: Stores user orders, secured via ownership.
- * - /users/{userId}/orders/{orderId}/orderItems/{orderItemId}: Stores order items, secured via ownership.
- * - /content/{contentId}: Stores AI-generated content, publicly readable
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Rules for public data
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if false; // For now, all products are managed via CSV import
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Rules for user-specific data
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Rules for orders - created in a top-level collection now
+    match /orders/{orderId} {
+      allow create: if true; // In a real app, this would be locked down with AppCheck/auth
+      allow read, update, delete: if isOwner(request.resource.data.customer.userId); // Example if you add userId to customer object
+    }
+
+    // Rules for reviews
+    match /products/{productId}/reviews/{reviewId} {
+      allow read: if true;
+      // Only authenticated users can create reviews
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Users can only update/delete their own reviews
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+  }
+}

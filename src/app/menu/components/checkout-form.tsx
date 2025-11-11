@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/use-cart';
 import { useUser } from '@/firebase/auth/use-user';
-import { submitOrder } from './actions';
+import { submitOrder } from '@/app/checkout/actions/submitOrder';
 import { useTransition, useEffect } from 'react';
 import { Loader2, Send } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -83,27 +83,38 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormP
       return;
     }
     
-    if (!selectedLocation.email) {
-      toast({ variant: 'destructive', title: 'Location Error', description: 'The selected location is missing a fulfillment email.' });
-      return;
-    }
-
     startTransition(async () => {
-      const { total } = getCartTotal();
-      const result = await submitOrder({
-        ...data,
-        userId: user?.uid, // Can be undefined for guest checkout
+      const { subtotal, taxes, total } = getCartTotal();
+      const orderInput = {
+        items: cart.map(item => ({
+            productId: item.id,
+            name: item.name,
+            qty: item.quantity,
+            price: item.price
+        })),
+        totals: {
+            subtotal,
+            tax: taxes,
+            total
+        },
+        customer: {
+            name: data.customerName,
+            email: data.customerEmail
+        },
         locationId: selectedLocation.id,
-        locationName: selectedLocation.name,
-        locationEmail: selectedLocation.email!,
-        cartItems: cart,
-        totalAmount: total,
-      });
+      };
 
-      if (result.error || !result.orderId) {
-        toast({ variant: 'destructive', title: 'Order Submission Failed', description: result.error });
-      } else {
-        onOrderSuccess(result.orderId, result.userId);
+      try {
+        const result = await submitOrder(orderInput);
+
+        if (result.ok && result.orderId) {
+          onOrderSuccess(result.orderId, user?.uid);
+        } else {
+          toast({ variant: 'destructive', title: 'Order Submission Failed', description: 'Could not submit order. Please try again.' });
+        }
+      } catch (e) {
+          console.error("submitOrder failed:", e);
+          toast({ variant: 'destructive', title: 'Order Submission Failed', description: String(e) });
       }
     });
   };
