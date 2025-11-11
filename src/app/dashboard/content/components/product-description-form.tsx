@@ -115,6 +115,13 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
     }
   };
 
+  const handleFormSubmit = (e: React.FormEvent, action: (payload: FormData) => void) => {
+    e.preventDefault();
+    if(formRef.current) {
+        action(new FormData(formRef.current));
+    }
+  }
+
   return (
     <Card>
       <form ref={formRef}>
@@ -197,10 +204,10 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
             </div>
         </CardContent>
          <CardFooter className="flex-col sm:flex-row gap-2">
-            <Button onClick={(e) => { e.preventDefault(); descriptionFormAction(new FormData(formRef.current!)); }}>
+            <Button onClick={(e) => handleFormSubmit(e, descriptionFormAction)}>
                 <FileText className="mr-2 h-4 w-4" /> Generate Description
             </Button>
-            <Button onClick={(e) => { e.preventDefault(); imageFormAction(new FormData(formRef.current!)); }} variant="outline">
+            <Button onClick={(e) => handleFormSubmit(e, imageFormAction)} variant="outline">
                 <Wand2 className="mr-2 h-4 w-4" /> Generate Image
             </Button>
          </CardFooter>

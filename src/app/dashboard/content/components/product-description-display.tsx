@@ -8,7 +8,7 @@ import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon, Loader2 } from 'luc
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { useFormState } from 'react-dom';
-import { useEffect } from 'react';
+import { useEffect, useTransition } from 'react';
 import { updateProductFeedback } from '@/app/products/[id]/actions';
 import { useUser } from '@/firebase/auth/use-user';
 
@@ -24,7 +24,8 @@ const initialFeedbackState = { message: '', error: false };
 export default function ProductDescriptionDisplay({ productDescription, isImagePending, isDescriptionPending }: ProductDescriptionDisplayProps) {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
-  const [feedbackState, submitFeedback] = useFormState(updateProductFeedback, initialFeedbackState);
+  const [feedbackState, submitFeedbackAction] = useFormState(updateProductFeedback, initialFeedbackState);
+  const [isFeedbackPending, startTransition] = useTransition();
 
 
   useEffect(() => {
@@ -106,11 +107,10 @@ export default function ProductDescriptionDisplay({ productDescription, isImageP
     formData.append('productId', productDescription.productId);
     formData.append('feedbackType', feedback);
     startTransition(() => {
-        submitFeedback(formData)
+        submitFeedbackAction(formData)
     });
   };
   
-  const [isFeedbackPending, startTransition] = useFormState(updateProductFeedback, initialFeedbackState);
   const isGenerating = isDescriptionPending || isImagePending;
   const hasContent = productDescription && (productDescription.description || productDescription.imageUrl);
 
