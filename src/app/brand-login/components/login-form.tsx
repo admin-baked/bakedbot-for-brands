@@ -12,7 +12,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
 import { GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail } from 'firebase/auth';
-import Image from 'next/image';
+import Logo from '@/components/logo';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -155,7 +155,7 @@ export default function LoginForm() {
         <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
             <Card className="w-full max-w-md">
                 <CardHeader className="items-center space-y-4 text-center">
-                    <Image src="https://storage.googleapis.com/stedi-assets/misc/bakedbot-logo-horizontal.png" alt="BakedBot AI Logo" width={128} height={32} />
+                    <Logo height={32} />
                     <div className="space-y-1">
                         <CardTitle className="text-2xl">Welcome Back</CardTitle>
                         <CardDescription>Sign in to manage your BakedBot AI</CardDescription>

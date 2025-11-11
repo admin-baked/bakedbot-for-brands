@@ -23,6 +23,7 @@ export function ChatbotIcon() {
       fill 
       className="object-cover"
       onError={() => setIconSrc(defaultChatbotIcon)}
+      unoptimized
     />
   );
 }
