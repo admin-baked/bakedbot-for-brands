@@ -173,11 +173,11 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                             <ThumbsUp className="h-4 w-4 text-green-500" />
-                            <span>{product.likes} Likes</span>
+                            <span>{product.likes ?? 0} Likes</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <ThumbsDown className="h-4 w-4 text-red-500" />
-                            <span>{product.dislikes} Dislikes</span>
+                            <span>{product.dislikes ?? 0} Dislikes</span>
                         </div>
                     </div>
                     <p className="text-3xl font-bold">{priceDisplay}</p>
@@ -188,7 +188,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={!selectedLocationId}>
+                    <Button size="lg" className="w-full" onClick={handleAddToCart}>
                         <Plus className="mr-2 h-5 w-5" />
                         Add to Cart
                     </Button>
