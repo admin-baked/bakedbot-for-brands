@@ -2,11 +2,9 @@
 'use server';
 
 import { z } from 'zod';
-import { createServerClient } from '@/firebase/server-client';
-import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, collection } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 
 
@@ -58,7 +56,7 @@ export async function submitReview(prevState: any, formData: FormData) {
 
   try {
     const { firestore } = initializeFirebase();
-    const reviewCollectionRef = getFirestore().collection(`products/${productId}/reviews`);
+    const reviewCollectionRef = collection(firestore, `products/${productId}/reviews`);
     
     // Use the non-blocking utility
     addDocumentNonBlocking(reviewCollectionRef, dataToSave);
