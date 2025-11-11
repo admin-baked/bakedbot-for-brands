@@ -17,9 +17,6 @@ import {
   type SummarizeReviewsOutput,
 } from '@/ai/flows/summarize-reviews';
 import { z } from 'zod';
-import { createServerClient } from '@/firebase/server-client';
-import { FieldValue } from 'firebase-admin/firestore';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 const FormSchema = z.object({
   productName: z.string().min(3, 'Product name must be at least 3 characters.'),
@@ -173,39 +170,5 @@ export async function summarizeProductReviews(
       data: null,
       error: true,
     };
-  }
-}
-
-/**
- * Updates the like or dislike count for a product in Firestore.
- * This action includes enhanced server-side validation for security.
- * @param productId The ID of the product to update.
- * @param feedbackType Whether to increment 'likes' or 'dislikes'.
- */
-export async function updateProductFeedback(
-  productId: string,
-  feedbackType: 'like' | 'dislike'
-): Promise<{ success: boolean; message: string }> {
-  if (feedbackType !== 'like' && feedbackType !== 'dislike') {
-    return { success: false, message: 'Invalid feedback type.' };
-  }
-  
-  if (!productId) {
-    return { success: false, message: 'Product ID is missing.' };
-  }
-
-  try {
-    const { firestore } = await createServerClient();
-    const productRef = firestore.doc(`products/${productId}`);
-    
-    const fieldToUpdate = feedbackType === 'like' ? 'likes' : 'dislikes';
-    const updatePayload = { [fieldToUpdate]: FieldValue.increment(1) };
-    
-    await productRef.update(updatePayload);
-
-    return { success: true, message: 'Feedback submitted successfully.' };
-  } catch (error) {
-     console.error(`[updateProductFeedback] Error:`, error);
-     return { success: false, message: 'Could not submit feedback.' };
   }
 }

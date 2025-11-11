@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/hooks/use-cart';
-import { useMemo, useTransition } from 'react';
+import { useMemo, useActionState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { useStore } from '@/hooks/use-store';
-import { updateProductFeedback } from '@/app/dashboard/content/actions';
+import { updateProductFeedback } from '../actions';
+import { useUser } from '@/firebase/auth/use-user';
 
 
 function ReviewSummaryDisplay({ summary, isLoading }: { summary: SummarizeReviewsOutput | null, isLoading: boolean }) {
@@ -71,22 +71,33 @@ function ReviewSummaryDisplay({ summary, isLoading }: { summary: SummarizeReview
     );
 }
 
+const initialFeedbackState = { message: '', error: false };
 
 export default function ProductDetailsClient({ product, summary }: { product: Product, summary: SummarizeReviewsOutput | null }) {
     const { addToCart } = useCart();
     const { selectedLocationId } = useStore();
     const { toast } = useToast();
-    const [isFeedbackPending, startFeedbackTransition] = useTransition();
+    const { user } = useUser();
+    
+    const [feedbackState, submitFeedback, isFeedbackPending] = useActionState(updateProductFeedback, initialFeedbackState);
+
+    useEffect(() => {
+        if (feedbackState.message) {
+            toast({
+                title: feedbackState.error ? 'Error' : 'Feedback Submitted!',
+                description: feedbackState.message,
+                variant: feedbackState.error ? 'destructive' : 'default',
+            });
+        }
+    }, [feedbackState, toast]);
     
     const priceDisplay = useMemo(() => {
         const hasPricing = product.prices && Object.keys(product.prices).length > 0;
         
-        // If a location is selected, show its specific price.
         if (selectedLocationId && hasPricing && product.prices[selectedLocationId]) {
             return `$${product.prices[selectedLocationId].toFixed(2)}`;
         }
         
-        // If no location is selected but there are multiple prices, show a range.
         if (!selectedLocationId && hasPricing) {
             const priceValues = Object.values(product.prices);
             if (priceValues.length > 0) {
@@ -100,34 +111,29 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
             }
         }
         
-        // Fallback to the base price if no other conditions are met.
         return `$${product.price.toFixed(2)}`;
     }, [product, selectedLocationId]);
 
-    const handleFeedback = (feedback: 'like' | 'dislike') => {
-        startFeedbackTransition(async () => {
-          const result = await updateProductFeedback(product.id, feedback);
-          if (result.success) {
+    const handleFeedback = (feedbackType: 'like' | 'dislike') => {
+        if (!user) {
             toast({
-              title: 'Feedback Submitted!',
-              description: 'Thank you for your feedback.',
+                variant: 'destructive',
+                title: 'Authentication Required',
+                description: 'You must be logged in to leave feedback.',
             });
-          } else {
-            toast({
-              variant: 'destructive',
-              title: 'Error',
-              description: result.message,
-            });
-          }
-        });
-      };
+            return;
+        }
+        const formData = new FormData();
+        formData.append('productId', product.id);
+        formData.append('feedbackType', feedbackType);
+        submitFeedback(formData);
+    };
 
     const handleAddToCart = () => {
         if (!selectedLocationId) {
             const locator = document.getElementById('locator');
             if (locator) {
                 locator.scrollIntoView({ behavior: 'smooth' });
-                // Add a visual cue to the locator section
                 locator.classList.add('animate-pulse', 'ring-2', 'ring-primary', 'rounded-lg');
                 setTimeout(() => {
                     locator.classList.remove('animate-pulse', 'ring-2', 'ring-primary', 'rounded-lg');
@@ -192,10 +198,10 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                         <Plus className="mr-2 h-5 w-5" />
                         Add to Cart
                     </Button>
-                    <Button variant="outline" size="lg" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending}>
+                    <Button variant="outline" size="lg" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending || !user}>
                         <ThumbsUp className="h-5 w-5 text-green-500"/>
                     </Button>
-                    <Button variant="outline" size="lg" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending}>
+                    <Button variant="outline" size="lg" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending || !user}>
                         <ThumbsDown className="h-5 w-5 text-red-500"/>
                     </Button>
                 </div>
