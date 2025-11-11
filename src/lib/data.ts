@@ -1,6 +1,7 @@
 
-import type { Product, Location } from './types';
+import type { Product, Location, Review, UserInteraction, OrderDoc } from './types';
 import { PlaceHolderImages } from './placeholder-images';
+import { Timestamp } from 'firebase/firestore';
 
 // Direct export of default assets to prevent broken links.
 // These URLs point to publicly accessible files in a Google Cloud Storage bucket.
@@ -169,3 +170,21 @@ export const demoLocations: Location[] = [
         lon: -105.5217,
     }
 ];
+
+export const demoCustomer = {
+    favoriteLocationId: '1',
+    orders: [
+        { id: 'demo1', createdAt: Timestamp.now(), status: 'completed', totals: { total: 47.50 } },
+        { id: 'demo2', createdAt: Timestamp.now(), status: 'ready', totals: { total: 88.00 } },
+    ] as Partial<OrderDoc>[],
+    reviews: [
+        { id: 'rev1', productId: '1', rating: 5, text: 'Absolutely love the Cosmic Caramels! Perfect for relaxing.' },
+        { id: 'rev2', productId: '4', rating: 4, text: 'OG Galaxy is a classic. Great for winding down.' },
+    ] as Partial<Review>[],
+    interactions: [
+        { recommendedProductIds: ['1', '2'] },
+        { recommendedProductIds: ['4'] }
+    ] as Partial<UserInteraction>[],
+};
+
+    

@@ -8,8 +8,16 @@ import Image from 'next/image';
 import { type Product } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useMenuData } from '@/hooks/use-menu-data';
+import { Skeleton } from './ui/skeleton';
 
-export function HeroSlider({ products }: { products: Product[] }) {
+export function HeroSlider() {
+    const { products, isLoading } = useMenuData();
+
+    if (isLoading) {
+        return <Skeleton className="w-full h-80 rounded-lg mb-12" />;
+    }
+
     if (!products || products.length === 0) {
         return null;
     }
@@ -57,3 +65,5 @@ export function HeroSlider({ products }: { products: Product[] }) {
         </Carousel>
     );
 }
+
+    

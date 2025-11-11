@@ -12,6 +12,8 @@ const ReviewSchema = z.object({
   productId: z.string().min(1, 'Please select a product.'),
   rating: z.coerce.number().min(1, 'Please provide a rating.').max(5),
   text: z.string().min(10, 'Review must be at least 10 characters long.'),
+  // The ID token is now a required part of the schema for validation
+  idToken: z.string().min(1, 'Authentication token is missing.'),
 });
 
 export type ReviewFormState = {
@@ -26,43 +28,11 @@ export async function submitReview(
 ): Promise<ReviewFormState> {
     const { auth: adminAuth, firestore } = await createServerClient();
     
-    // In a real app, you'd get the ID token from the request headers
-    // and verify it to get the user's UID.
-    const authorization = headers().get('Authorization');
-    // For this demo, we're simulating a failure if the header isn't present,
-    // which it won't be from the client code. A real app would pass the token.
-    if (!authorization) {
-        return {
-            message: 'Authentication required. Please sign in to submit a review.',
-            error: true,
-        };
-    }
-    
-    // let decodedToken;
-    // try {
-    //     decodedToken = await adminAuth.verifyIdToken(authorization.replace('Bearer ', ''));
-    // } catch (authError) {
-    //     return {
-    //         message: 'Authentication failed. Please sign in again.',
-    //         error: true,
-    //     };
-    // }
-
-    // const userId = decodedToken.uid;
-    // For the demo, we will get the userId from form data but know this is insecure.
-    const userId = formData.get('userId') as string;
-    if (!userId) {
-        return {
-            message: 'Authentication failed. You must be signed in to leave a review.',
-            error: true,
-        };
-    }
-
-
     const validatedFields = ReviewSchema.safeParse({
         productId: formData.get('productId'),
         rating: formData.get('rating'),
         text: formData.get('text'),
+        idToken: formData.get('idToken'), // Get the token from the form
     });
 
     if (!validatedFields.success) {
@@ -72,21 +42,37 @@ export async function submitReview(
             fieldErrors: validatedFields.error.flatten().fieldErrors,
         };
     }
+    
+    // Destructure after successful validation
+    const { productId, idToken, ...reviewData } = validatedFields.data;
+    
+    let decodedToken;
+    try {
+        // Securely verify the ID token on the server
+        decodedToken = await adminAuth.verifyIdToken(idToken);
+    } catch (authError) {
+        console.error("Server Action Auth Error:", authError);
+        return {
+            message: 'Authentication failed. Please sign in again.',
+            error: true,
+        };
+    }
 
-    const { productId, ...reviewData } = validatedFields.data;
+    const userId = decodedToken.uid; // Use the UID from the verified token
 
     try {
         const reviewCollectionRef = firestore.collection(`products/${productId}/reviews`);
         
         await reviewCollectionRef.add({
             ...reviewData,
-            userId, // Securely use the server-verified user ID
+            userId, // Use the secure, server-verified user ID
             productId, // Add the product ID for collection group queries
             createdAt: FieldValue.serverTimestamp(),
         });
 
-        revalidatePath('/products');
+        revalidatePath(`/products/${productId}`);
         revalidatePath('/dashboard/reviews');
+        revalidatePath('/account/dashboard');
 
         return {
             message: 'Thank you! Your review has been submitted successfully.',
@@ -101,3 +87,5 @@ export async function submitReview(
         };
     }
 }
+
+    

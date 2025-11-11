@@ -19,7 +19,7 @@ type Props = {
 }
 
 const getProduct = async (id: string): Promise<Product | null> => {
-    const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
+    const isDemo = cookies().get('isUsingDemoData')?.value === '1';
 
     if (isDemo) {
       return demoProducts.find(p => p.id === id) || null;
@@ -110,3 +110,5 @@ export default async function ProductPage({ params }: Props) {
         </div>
     )
 }
+
+    
