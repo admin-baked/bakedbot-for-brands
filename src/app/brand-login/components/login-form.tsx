@@ -206,12 +206,19 @@ export default function LoginForm() {
                                 <span className="bg-card px-2 text-muted-foreground">For Devs</span>
                             </div>
                         </div>
-                        <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')}>
-                           Dev Magic Button (martez@bakedbot.ai)
-                        </Button>
+                        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')}>
+                                Dev Magic Button (martez@bakedbot.ai)
+                            </Button>
+                            <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'rishabh@bakedbot.ai')}>
+                                Dev Magic Button (rishabh@bakedbot.ai)
+                            </Button>
+                        </div>
                     </CardFooter>
                 )}
             </Card>
         </div>
     );
 }
+
+    

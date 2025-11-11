@@ -18,7 +18,7 @@ test('get started link', async ({ page }) => {
   await expect(heading).toBeVisible();
 });
 
-test('brand login flow', async ({ page }) => {
+test('martez login flow', async ({ page }) => {
   await page.goto('/brand-login');
 
   // Click the "Dev Magic Button" for martez@bakedbot.ai
@@ -30,3 +30,18 @@ test('brand login flow', async ({ page }) => {
   // Expect the email address to be displayed
   await expect(page.locator('strong', { hasText: 'martez@bakedbot.ai' })).toBeVisible();
 });
+
+test('rishabh login flow', async ({ page }) => {
+  await page.goto('/brand-login');
+
+  // Click the "Dev Magic Button" for rishabh@bakedbot.ai
+  await page.locator('button', { hasText: 'Dev Magic Button (rishabh@bakedbot.ai)' }).click();
+
+  // Expect the "Check Your Inbox!" card to be visible
+  await expect(page.locator('h2', { hasText: 'Check Your Inbox!' })).toBeVisible();
+
+  // Expect the email address to be displayed
+  await expect(page.locator('strong', { hasText: 'rishabh@bakedbot.ai' })).toBeVisible();
+});
+
+    
