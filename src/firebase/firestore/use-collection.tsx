@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { onSnapshot, Query, DocumentData } from 'firebase/firestore';
+import { onSnapshot, Query, DocumentData, CollectionReference } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -11,6 +11,21 @@ type UseCollectionResult<T> = {
   isLoading: boolean;
   error: Error | null;
 };
+
+function getPathFromQuery(input: unknown): string {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const q: any = input;
+    const group = q?._query?.collectionGroup;
+    if (group) return `**/${group}`;
+    const p = q?._query?.path?.canonicalString
+             ?? q?._path?.canonicalString
+             ?? q?.path?.canonicalString;
+    if (typeof p === "string" && p) return p;
+  } catch {}
+  return "unknown/path";
+}
+
 
 /**
  * A hook to fetch a Firestore collection or collection group in real-time.
@@ -32,22 +47,6 @@ export function useCollection<T = DocumentData>(
 
     setIsLoading(true);
 
-    const getPathFromQuery = (q: Query) => {
-        try {
-            // This is an internal property, but it's the most reliable way to get the path
-            const path = (q as any)._query?.path?.segments?.join('/');
-            if (path) return path;
-
-            // Fallback for collection group queries
-            const collectionId = (q as any)._query?.collectionGroup;
-            if (collectionId) return `**/${collectionId}`;
-            
-            return 'unknown/path'; // Final fallback
-        } catch (e) {
-            return 'unknown/path';
-        }
-    }
-
     const unsubscribe = onSnapshot(
       query,
       (querySnapshot) => {
@@ -56,7 +55,7 @@ export function useCollection<T = DocumentData>(
         setIsLoading(false);
         setError(null);
       },
-      async (err) => {
+      (err) => {
         console.error(`Error fetching collection`, err);
         setError(err);
         setIsLoading(false);
