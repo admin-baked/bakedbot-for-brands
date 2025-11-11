@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/hooks/use-cart';
@@ -8,12 +9,39 @@ import Link from 'next/link';
 import type { Product } from '@/lib/types';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useMemo } from 'react';
 
 export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
   const { selectedLocationId } = useStore();
   const { toast } = useToast();
-  
+
+  const priceDisplay = useMemo(() => {
+    const hasPricing = product.prices && Object.keys(product.prices).length > 0;
+    
+    // If a location is selected, show its specific price.
+    if (selectedLocationId && hasPricing && product.prices[selectedLocationId]) {
+        return `$${product.prices[selectedLocationId].toFixed(2)}`;
+    }
+    
+    // If no location is selected but there are multiple prices, show a range.
+    if (!selectedLocationId && hasPricing) {
+        const priceValues = Object.values(product.prices);
+        if (priceValues.length > 0) {
+            const minPrice = Math.min(...priceValues);
+            const maxPrice = Math.max(...priceValues);
+
+            if (minPrice === maxPrice) {
+                return `$${minPrice.toFixed(2)}`;
+            }
+            return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
+        }
+    }
+    
+    // Fallback to the base price if no other conditions are met.
+    return `$${product.price.toFixed(2)}`;
+  }, [product, selectedLocationId]);
+
   const handleAddToCart = () => {
     if (!selectedLocationId) {
       const locator = document.getElementById('locator');
@@ -68,8 +96,8 @@ export function ProductCard({ product }: { product: Product }) {
         )}
         
         <div className="flex items-center justify-between mt-auto pt-3 border-t">
-          <span className="text-2xl font-bold text-primary">
-            ${product.price.toFixed(2)}
+          <span className="text-xl font-bold text-primary">
+            {priceDisplay}
           </span>
           <Button
             onClick={handleAddToCart}
