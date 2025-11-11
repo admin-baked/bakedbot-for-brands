@@ -10,12 +10,12 @@ type Props = {
 }
 
 export default function Logo({ height = 28, priority = true, className }: Props) {
-  const width = Math.round(height * 4); // Adjusted ratio for the asset
+  const width = Math.round(height * 5); // Adjust ratio as needed for your asset
 
   return (
     <Link href="/" aria-label="BakedBot AI — Home" className={className}>
       <Image
-        src="https://storage.googleapis.com/stedi-assets/misc/bakedbot-logo-horizontal.png"
+        src="/logo-bakedbot-horizontal.png"
         alt="BakedBot AI"
         width={width}
         height={height}
