@@ -127,21 +127,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (isUserLoading || isProfileLoading) return;
 
     if (user && userProfile) {
+        // User is logged in and we have their profile data
         if (isAuthPage) {
+            // If they are on a login page, redirect them to their respective dashboard
             if (userProfile.role === 'dispensary') {
                 router.replace('/dashboard/orders');
             } else {
                 router.replace('/dashboard');
             }
+        } else if (userProfile.role === 'dispensary' && !pathname.startsWith('/dashboard/orders')) {
+            // If a dispensary user is not on the orders page, redirect them there.
+            router.replace('/dashboard/orders');
         } else if (!userProfile.onboardingCompleted && pathname !== '/onboarding') {
+            // Handle onboarding if it's not completed
             router.replace('/onboarding');
         }
     } else if (!user) {
+        // User is not logged in
         if (pathname.startsWith('/dashboard') || pathname.startsWith('/account') || pathname === '/onboarding') {
+            // If they try to access a protected route, send them to the homepage
             router.replace('/');
         }
     }
-}, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, toast]);
+}, [user, userProfile, isUserLoading, isProfileLoading, pathname, router]);
 
 
   const handleSignOut = async () => {
@@ -195,8 +203,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     let links = navLinks;
     if (userProfile?.role === 'dispensary') {
         links = navLinks.filter(link => link.href === '/dashboard/orders' || link.href === '/dashboard/settings');
-    } else if (userProfile?.role === 'brand') {
+    } else if (userProfile?.role === 'brand' || userProfile?.role === 'owner') {
         links = navLinks.filter(link => link.href !== '/dashboard/orders');
+    } else if (userProfile) { // Default to customer view
+        links = []; 
     }
     
     if (shouldShowAdminControls) {
