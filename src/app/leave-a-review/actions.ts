@@ -5,6 +5,10 @@ import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { getFirestore } from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase';
+
 
 // Define the schema for review form validation
 const ReviewSchema = z.object({
@@ -19,7 +23,6 @@ const ReviewSchema = z.object({
 
 
 export async function submitReview(prevState: any, formData: FormData) {
-  const { firestore } = await createServerClient();
   
   const validatedFields = ReviewSchema.safeParse({
     userId: formData.get('userId'),
@@ -45,20 +48,21 @@ export async function submitReview(prevState: any, formData: FormData) {
       ? 'placeholder/verification_image.jpg' 
       : '';
   
-  const reviewCollectionRef = firestore.collection('products').doc(productId).collection('reviews');
-  
   const dataToSave = {
       productId: productId,
       ...reviewData,
       userId: userId, // Use the UID passed from the client
       verificationImageUrl,
-      createdAt: FieldValue.serverTimestamp(),
+      createdAt: new Date(), // Use client-side date for non-blocking
   };
 
   try {
-    // The Admin SDK has permission to write here.
-    await reviewCollectionRef.add(dataToSave);
-
+    const { firestore } = initializeFirebase();
+    const reviewCollectionRef = getFirestore().collection(`products/${productId}/reviews`);
+    
+    // Use the non-blocking utility
+    addDocumentNonBlocking(reviewCollectionRef, dataToSave);
+    
     revalidatePath('/products'); // Revalidate product pages if they show reviews
     revalidatePath('/dashboard/reviews'); // also revalidate the reviews dashboard
 
