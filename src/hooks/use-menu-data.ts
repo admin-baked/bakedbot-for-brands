@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useStore } from './use-store';
@@ -22,7 +23,8 @@ export function useMenuData() {
   
   // Initialize state with demoProducts to prevent hydration mismatch.
   const [products, setProducts] = useState<Product[]>(demoProducts);
-  const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
+  // Only set loading to true if we expect to fetch from Firestore.
+  const [isFirestoreLoading, setIsFirestoreLoading] = useState(!!firestore);
 
   useEffect(() => {
     if (!firestore) {
