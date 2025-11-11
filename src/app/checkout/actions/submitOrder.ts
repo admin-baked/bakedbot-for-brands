@@ -116,7 +116,6 @@ export async function submitOrder(input: OrderInput) {
   } catch (err) {
     console.error(`sendOrderEmail failed for order ${orderId} (non-blocking):`, err);
     // Optionally mark order with an emailError flag
-    const orderRef = firestore.doc(`orders/${orderId}`);
     // Do not re-throw, as the order was successfully created.
   }
 
