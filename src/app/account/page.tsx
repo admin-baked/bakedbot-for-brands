@@ -3,22 +3,48 @@
 import { useUser } from '@/firebase/auth/use-user';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Loader2, User } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, User, LogOut } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Header from '../components/header';
 import { Footer } from '../components/footer';
+import { useFirebase } from '@/firebase/provider';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
+import { Separator } from '@/components/ui/separator';
 
 export default function AccountPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const { auth } = useFirebase();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/brand-login');
     }
   }, [user, isUserLoading, router]);
+  
+  const handleSignOut = async () => {
+    try {
+      if(auth) {
+        await signOut(auth);
+      }
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully logged out.",
+      });
+      router.push('/');
+    } catch (error) {
+      console.error('Sign out error', error);
+       toast({
+        variant: "destructive",
+        title: "Sign Out Error",
+        description: "Could not sign you out. Please try again.",
+      });
+    }
+  };
 
   if (isUserLoading) {
     return (
@@ -58,6 +84,13 @@ export default function AccountPage() {
                                  </Link>
                              </Button>
                         </CardContent>
+                         <CardFooter className="flex-col gap-4 px-6 pt-4">
+                            <Separator className="mb-2"/>
+                             <Button variant="ghost" className="w-full text-muted-foreground" onClick={handleSignOut}>
+                                <LogOut className="mr-2" />
+                                Sign Out
+                             </Button>
+                        </CardFooter>
                     </Card>
                 </div>
             </div>
