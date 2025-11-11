@@ -14,9 +14,9 @@ import CustomerUploads from './components/customer-uploads';
 import FavoriteLocation from './components/favorite-location';
 import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { collectionGroup, query, where, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
-import { useCollectionGroup } from '@/hooks/use-collection-group';
+import { useCollection } from '@/hooks/use-collection';
 import { useFirebase } from '@/firebase/provider';
 import { demoCustomer } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -47,25 +47,20 @@ export default function CustomerDashboardPage() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
     
-    // Set local state from store, which might be from demo data or user's preference
-    const [currentFavoriteId, setCurrentFavoriteId] = useState(favoriteLocationId);
+    // Set local state from store or live user profile
+    const [currentFavoriteId, setCurrentFavoriteId] = useState<string | null>(null);
 
      // Fetch data specifically for the logged-in user in live mode
-    const { data: liveInteractions, isLoading: areInteractionsLoading } = useCollectionGroup<UserInteraction>(
-        'interactions', 
-        !isUsingDemoData && user && firestore ? query(collectionGroup(firestore, 'interactions'), where('userId', '==', user.uid)) : undefined
-    );
-    const { data: liveReviews, isLoading: areReviewsLoading } = useCollectionGroup<Review>(
-        'reviews', 
-        !isUsingDemoData && user && firestore ? query(collectionGroup(firestore, 'reviews'), where('userId', '==', user.uid)) : undefined
-    );
-    const { data: liveOrders, isLoading: areOrdersLoading } = useCollectionGroup<OrderDoc>(
-        'orders', 
-        !isUsingDemoData && user && firestore ? query(collectionGroup(firestore, 'orders'), where('userId', '==', user.uid)) : undefined
-    );
+    const interactionsQuery = useMemo(() => !isUsingDemoData && user && firestore ? query(collection(firestore, `users/${user.uid}/interactions`)) : null, [isUsingDemoData, user, firestore]);
+    const reviewsQuery = useMemo(() => !isUsingDemoData && user && firestore ? query(collection(firestore, 'reviews'), where('userId', '==', user.uid)) : null, [isUsingDemoData, user, firestore]);
+    const ordersQuery = useMemo(() => !isUsingDemoData && user && firestore ? query(collection(firestore, 'orders'), where('userId', '==', user.uid)) : null, [isUsingDemoData, user, firestore]);
+
+    const { data: liveInteractions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery);
+    const { data: liveReviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery);
+    const { data: liveOrders, isLoading: areOrdersLoading } = useCollection<OrderDoc>(ordersQuery);
 
     // Determine which data to use
-    const isLoading = isMenuLoading || (isUserLoading && !isUsingDemoData);
+    const isLoading = isMenuLoading || (isUserLoading && !isUsingDemoData) || areInteractionsLoading || areReviewsLoading || areOrdersLoading;
     const interactions = isUsingDemoData ? demoCustomer.interactions : liveInteractions;
     const reviews = isUsingDemoData ? demoCustomer.reviews : liveReviews;
     const orders = isUsingDemoData ? demoCustomer.orders : liveOrders;
@@ -73,10 +68,17 @@ export default function CustomerDashboardPage() {
      useEffect(() => {
         if (isUsingDemoData) {
             setCurrentFavoriteId(demoCustomer.favoriteLocationId);
-        } else {
-            setCurrentFavoriteId(favoriteLocationId);
+            setStoreFavoriteId(demoCustomer.favoriteLocationId);
+        } else if (user && firestore) {
+            const unsub = onSnapshot(doc(firestore, 'users', user.uid), (doc) => {
+                const favId = doc.data()?.favoriteLocationId || null;
+                setCurrentFavoriteId(favId);
+                setStoreFavoriteId(favId);
+            });
+            return () => unsub();
         }
-    }, [isUsingDemoData, favoriteLocationId]);
+    }, [isUsingDemoData, user, firestore, setStoreFavoriteId]);
+
 
     const handleSetFavorite = async (locationId: string | null) => {
         setCurrentFavoriteId(locationId); // Optimistic UI update
@@ -94,7 +96,8 @@ export default function CustomerDashboardPage() {
             } catch (error) {
                 console.error('Failed to update favorite location:', error);
                 toast({ variant: 'destructive', title: 'Error saving favorite.' });
-                setCurrentFavoriteId(favoriteLocationId); // Revert on failure
+                // Revert on failure by re-fetching from the store
+                setCurrentFavoriteId(favoriteLocationId); 
             }
         }
     };

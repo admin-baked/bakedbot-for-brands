@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface FavoriteLocationProps {
     favoriteId: string | null;
@@ -15,9 +16,23 @@ interface FavoriteLocationProps {
 }
 
 export default function FavoriteLocation({ favoriteId, onSetFavorite }: FavoriteLocationProps) {
-    const { locations, products } = useMenuData();
+    const { locations, products, isLoading } = useMenuData();
 
     const favoriteLocation = locations.find(loc => loc.id === favoriteId);
+
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-4 w-64" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-24 w-full" />
+                </CardContent>
+            </Card>
+        )
+    }
 
     if (!favoriteLocation) {
         return (
@@ -88,5 +103,3 @@ export default function FavoriteLocation({ favoriteId, onSetFavorite }: Favorite
         </Card>
     )
 }
-
-    
