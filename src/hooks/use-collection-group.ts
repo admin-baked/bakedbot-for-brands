@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useFirebase } from '@/firebase/provider';
-import { collectionGroup, query, onSnapshot, DocumentData, orderBy } from 'firebase/firestore';
+import { collectionGroup, query, onSnapshot, DocumentData, orderBy, Query, where } from 'firebase/firestore';
 
 type UseCollectionGroupResult<T> = {
   data: T[] | null;
@@ -11,28 +11,36 @@ type UseCollectionGroupResult<T> = {
   error: Error | null;
 };
 
+// A stable, empty array to avoid re-renders
+const EMPTY_ARRAY: any[] = [];
+
 /**
  * A reusable hook to subscribe to a Firestore collection group in real-time.
  * @param collectionId The ID of the collection group to query (e.g., 'reviews').
  * @returns An object containing the data, loading state, and any errors.
  */
-export function useCollectionGroup<T = DocumentData>(collectionId: string): UseCollectionGroupResult<T> {
+export function useCollectionGroup<T = DocumentData>(collectionId: string, q?: Query): UseCollectionGroupResult<T> {
   const { firestore } = useFirebase();
   const [data, setData] = useState<T[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const groupQuery = useMemo(() => {
+    if (!firestore || !collectionId) return null;
+
+    // If an external query is provided, use it. Otherwise, create a default one.
+    return q || query(collectionGroup(firestore, collectionId), orderBy('createdAt', 'desc'));
+  }, [firestore, collectionId, q]);
+
+
   useEffect(() => {
-    if (!firestore || !collectionId) {
+    if (!groupQuery) {
+      setData(EMPTY_ARRAY);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
-    
-    // Create a query against the collection group.
-    // Ordering by a field (like a timestamp) is a common pattern.
-    const groupQuery = query(collectionGroup(firestore, collectionId), orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(groupQuery, 
       (snapshot) => {
@@ -48,7 +56,7 @@ export function useCollectionGroup<T = DocumentData>(collectionId: string): UseC
     );
 
     return () => unsubscribe();
-  }, [firestore, collectionId]);
+  }, [groupQuery, collectionId]);
 
   return { data, isLoading, error };
 }

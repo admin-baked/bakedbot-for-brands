@@ -1,4 +1,3 @@
-
 import { Timestamp } from 'firebase/firestore';
 
 export type Product = {
@@ -52,16 +51,27 @@ export type Review = {
 export type OrderDoc = {
   id: string; // Add id to the type
   userId: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  customerBirthDate: string; // Stored as ISO string
+  customer: {
+      name: string;
+      email: string;
+  };
+  items: Array<{
+      productId: string;
+      name: string;
+      qty: number;
+      price: number;
+  }>;
+  totals: {
+      subtotal: number;
+      tax: number;
+      total: number;
+  };
   locationId: string;
-  orderDate: Timestamp;
-  totalAmount: number;
-  status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
-  idImageUrl?: string;
+  createdAt: Timestamp;
+  status: 'submitted' | 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+  mode: 'demo' | 'live';
 };
+
 
 // Type for the OrderItem sub-collection documents
 export type OrderItemDoc = {
@@ -70,4 +80,12 @@ export type OrderItemDoc = {
   productName: string;
   quantity: number;
   price: number;
+};
+
+export type UserInteraction = {
+  id: string;
+  userId: string;
+  interactionDate: Timestamp;
+  query: string;
+  recommendedProductIds?: string[];
 };
