@@ -68,7 +68,7 @@ export default function CustomerDashboardPage() {
     const isLoading = isMenuLoading || (isUserLoading && !isUsingDemoData);
     const interactions = isUsingDemoData ? demoCustomer.interactions : liveInteractions;
     const reviews = isUsingDemoData ? demoCustomer.reviews : liveReviews;
-    const orders = isUsingDemoa-zA-Z0-9_.-/]) ? demoCustomer.orders : liveOrders;
+    const orders = isUsingDemoData ? demoCustomer.orders : liveOrders;
     
      useEffect(() => {
         if (isUsingDemoData) {
