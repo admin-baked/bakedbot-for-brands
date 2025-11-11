@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -5,10 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { MessageSquare, Sparkles, ThumbsUp, ThumbsDown, ArrowRight, Loader2, Database } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useCollectionGroup } from '@/hooks/use-collection-group';
+import { useCollection } from '@/firebase/firestore/use-collection';
 import type { Product, Review, UserInteraction } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import RecentReviews from './components/recent-reviews';
+import { collectionGroup, query } from 'firebase/firestore';
+import { useFirebase } from '@/firebase/provider';
 
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number, icon: React.ElementType, isLoading: boolean }) {
@@ -30,9 +33,15 @@ function MetricCard({ title, value, icon: Icon, isLoading }: { title: string, va
 }
 
 export default function DashboardPage() {
-  const { data: interactions, isLoading: areInteractionsLoading } = useCollectionGroup<UserInteraction>('interactions');
-  const { data: products, isLoading: areProductsLoading } = useCollectionGroup<Product>('products');
-  const { data: reviews, isLoading: areReviewsLoading } = useCollectionGroup<Review>('reviews');
+  const { firestore } = useFirebase();
+
+  const interactionsQuery = useMemo(() => firestore ? query(collectionGroup(firestore, 'interactions')) : null, [firestore]);
+  const productsQuery = useMemo(() => firestore ? query(collectionGroup(firestore, 'products')) : null, [firestore]);
+  const reviewsQuery = useMemo(() => firestore ? query(collectionGroup(firestore, 'reviews')) : null, [firestore]);
+
+  const { data: interactions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery, true);
+  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery, true);
+  const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery, true);
 
   const isLoading = areInteractionsLoading || areProductsLoading || areReviewsLoading;
 

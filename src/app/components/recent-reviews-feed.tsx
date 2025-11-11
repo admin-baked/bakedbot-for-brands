@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -5,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Star, MessageSquare } from 'lucide-react';
 import type { Review } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCollectionGroup } from '@/hooks/use-collection-group';
+import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMenuData } from '@/hooks/use-menu-data';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { collectionGroup, query, orderBy } from 'firebase/firestore';
+import { useFirebase } from '@/firebase/provider';
 
 const ReviewItemSkeleton = () => (
     <Card className="w-80 shrink-0">
@@ -43,7 +46,13 @@ const StarRating = ({ rating }: { rating: number }) => (
 );
 
 export default function RecentReviewsFeed() {
-  const { data: reviews, isLoading: areReviewsLoading } = useCollectionGroup<Review>('reviews');
+  const { firestore } = useFirebase();
+  const reviewsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collectionGroup(firestore, 'reviews'), orderBy('createdAt', 'desc'));
+  }, [firestore]);
+
+  const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery, true);
   const { products, isLoading: areProductsLoading } = useMenuData();
 
   const isLoading = areReviewsLoading || areProductsLoading;
