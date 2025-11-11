@@ -11,7 +11,6 @@ import { usePathname } from 'next/navigation';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Image from 'next/image';
-import { defaultChatbotIcon } from '@/lib/data';
 
 export default function Header() {
     const { getItemCount } = useCart();
@@ -29,8 +28,7 @@ export default function Header() {
             <div className="container mx-auto flex h-16 items-center justify-between px-4">
                 <div className="flex items-center gap-6">
                     <Link href="/" className="flex items-center gap-2">
-                        <Image src="https://storage.googleapis.com/production-assets/project-gated/project-stud-io/user-uploads/6250785/BakedBot%20AI.png" alt="BakedBot AI Logo" width={32} height={32} />
-                        <span className="font-bold text-lg">BakedBot AI</span>
+                        <Image src="https://storage.googleapis.com/production-assets/project-gated/project-stud-io/user-uploads/6250785/BakedBot%20AI.png" alt="BakedBot AI Logo" width={128} height={32} />
                     </Link>
                     <nav className="hidden md:flex items-center gap-4">
                         {navLinks.map((link) => (
