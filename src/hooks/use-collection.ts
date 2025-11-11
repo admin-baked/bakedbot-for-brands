@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -8,6 +9,9 @@ type UseCollectionResult<T> = {
   isLoading: boolean;
   error: Error | null;
 };
+
+// Stable empty array to prevent unnecessary re-renders
+const EMPTY_ARRAY: any[] = [];
 
 export function useCollection<T = DocumentData>(query: Query<T> | null): UseCollectionResult<T> {
   const [data, setData] = useState<T[] | null>(null);
@@ -20,12 +24,13 @@ export function useCollection<T = DocumentData>(query: Query<T> | null): UseColl
     return query ? JSON.stringify({
       path: 'path' in query ? query.path : '',
       // Add other query properties you might use, like filters or limits
+      // This is a simplified example; a robust solution might involve deep-serializing the query.
     }) : null;
   }, [query]);
 
   useEffect(() => {
     if (!query) {
-      setData([]);
+      setData(EMPTY_ARRAY);
       setIsLoading(false);
       return;
     }
