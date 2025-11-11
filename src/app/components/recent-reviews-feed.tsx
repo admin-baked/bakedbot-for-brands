@@ -52,7 +52,7 @@ export default function RecentReviewsFeed() {
     return query(collectionGroup(firestore, 'reviews'), orderBy('createdAt', 'desc'));
   }, [firestore]);
 
-  const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery, true);
+  const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery);
   const { products, isLoading: areProductsLoading } = useMenuData();
 
   const isLoading = areReviewsLoading || areProductsLoading;

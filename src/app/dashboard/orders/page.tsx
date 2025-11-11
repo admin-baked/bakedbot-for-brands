@@ -21,7 +21,7 @@ export default function OrdersPage() {
     return query(collectionGroup(firestore, 'orders'), orderBy('createdAt', 'desc'));
   }, [firestore]);
   
-  const { data: orders, isLoading: areOrdersLoading } = useCollection<OrderDoc>(ordersQuery, true);
+  const { data: orders, isLoading: areOrdersLoading } = useCollection<OrderDoc>(ordersQuery);
   
   const formattedOrders = useMemo((): OrderData[] => {
     if (!orders) return [];

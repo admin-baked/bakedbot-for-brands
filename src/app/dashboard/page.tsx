@@ -39,9 +39,9 @@ export default function DashboardPage() {
   const productsQuery = useMemo(() => firestore ? query(collectionGroup(firestore, 'products')) : null, [firestore]);
   const reviewsQuery = useMemo(() => firestore ? query(collectionGroup(firestore, 'reviews')) : null, [firestore]);
 
-  const { data: interactions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery, true);
-  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery, true);
-  const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery, true);
+  const { data: interactions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery);
+  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
+  const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery);
 
   const isLoading = areInteractionsLoading || areProductsLoading || areReviewsLoading;
 
