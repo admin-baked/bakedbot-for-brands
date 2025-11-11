@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import type { Review, UserInteraction, OrderDoc } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare, Sparkles, Star } from 'lucide-react';
@@ -14,10 +14,12 @@ import CustomerUploads from './components/customer-uploads';
 import FavoriteLocation from './components/favorite-location';
 import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { collectionGroup, query, where } from 'firebase/firestore';
+import { collectionGroup, query, where, doc, updateDoc } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
 import { useCollectionGroup } from '@/hooks/use-collection-group';
 import { useFirebase } from '@/firebase/provider';
+import { demoCustomer } from '@/lib/data';
+import { useToast } from '@/hooks/use-toast';
 
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; value: string | number; icon: React.ElementType; isLoading: boolean }) {
@@ -40,30 +42,61 @@ function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; va
 
 export default function CustomerDashboardPage() {
     const { isUsingDemoData, isLoading: isMenuLoading } = useMenuData();
-    const { favoriteLocationId, setFavoriteLocationId } = useStore();
+    const { favoriteLocationId, setFavoriteLocationId: setStoreFavoriteId } = useStore();
     const { user, isUserLoading } = useUser();
     const { firestore } = useFirebase();
+    const { toast } = useToast();
+    
+    // Set local state from store, which might be from demo data or user's preference
+    const [currentFavoriteId, setCurrentFavoriteId] = useState(favoriteLocationId);
 
-    // Fetch data specifically for the logged-in user
-    const { data: interactions, isLoading: areInteractionsLoading } = useCollectionGroup<UserInteraction>(
+     // Fetch data specifically for the logged-in user in live mode
+    const { data: liveInteractions, isLoading: areInteractionsLoading } = useCollectionGroup<UserInteraction>(
         'interactions', 
-        user && firestore ? query(collectionGroup(firestore, 'interactions'), where('userId', '==', user.uid)) : undefined
+        !isUsingDemoData && user && firestore ? query(collectionGroup(firestore, 'interactions'), where('userId', '==', user.uid)) : undefined
     );
-    const { data: reviews, isLoading: areReviewsLoading } = useCollectionGroup<Review>(
+    const { data: liveReviews, isLoading: areReviewsLoading } = useCollectionGroup<Review>(
         'reviews', 
-        user && firestore ? query(collectionGroup(firestore, 'reviews'), where('userId', '==', user.uid)) : undefined
+        !isUsingDemoData && user && firestore ? query(collectionGroup(firestore, 'reviews'), where('userId', '==', user.uid)) : undefined
     );
-    const { data: orders, isLoading: areOrdersLoading } = useCollectionGroup<OrderDoc>(
+    const { data: liveOrders, isLoading: areOrdersLoading } = useCollectionGroup<OrderDoc>(
         'orders', 
-        user && firestore ? query(collectionGroup(firestore, 'orders'), where('userId', '==', user.uid)) : undefined
+        !isUsingDemoData && user && firestore ? query(collectionGroup(firestore, 'orders'), where('userId', '==', user.uid)) : undefined
     );
 
-    const isLoading = isMenuLoading || isUserLoading || areInteractionsLoading || areReviewsLoading || areOrdersLoading;
+    // Determine which data to use
+    const isLoading = isMenuLoading || (isUserLoading && !isUsingDemoData);
+    const interactions = isUsingDemoData ? demoCustomer.interactions : liveInteractions;
+    const reviews = isUsingDemoData ? demoCustomer.reviews : liveReviews;
+    const orders = isUsingDemoa-zA-Z0-9_.-/]) ? demoCustomer.orders : liveOrders;
+    
+     useEffect(() => {
+        if (isUsingDemoData) {
+            setCurrentFavoriteId(demoCustomer.favoriteLocationId);
+        } else {
+            setCurrentFavoriteId(favoriteLocationId);
+        }
+    }, [isUsingDemoData, favoriteLocationId]);
 
     const handleSetFavorite = async (locationId: string | null) => {
-        // In demo mode, this just updates the local state.
-        // In live mode, it would also update Firestore.
-        setFavoriteLocationId(locationId);
+        setCurrentFavoriteId(locationId); // Optimistic UI update
+        if (isUsingDemoData) {
+             toast({ title: "Favorites are disabled in Demo Mode."});
+             return;
+        }
+        
+        if (user && firestore) {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            try {
+                await updateDoc(userDocRef, { favoriteLocationId: locationId });
+                setStoreFavoriteId(locationId);
+                toast({ title: 'Favorite location updated!' });
+            } catch (error) {
+                console.error('Failed to update favorite location:', error);
+                toast({ variant: 'destructive', title: 'Error saving favorite.' });
+                setCurrentFavoriteId(favoriteLocationId); // Revert on failure
+            }
+        }
     };
 
     const stats = useMemo(() => {
@@ -84,13 +117,13 @@ export default function CustomerDashboardPage() {
                      <div>
                         <h1 className="text-3xl font-bold tracking-tight">My Dashboard</h1>
                         <p className="text-muted-foreground">
-                            Here's a summary of your activity and contributions.
+                            {isUsingDemoData ? "Here's a sample of your activity and contributions." : "Here's a summary of your activity and contributions."}
                         </p>
                     </div>
 
                     <div className="mt-6">
                         <FavoriteLocation
-                            favoriteId={favoriteLocationId}
+                            favoriteId={currentFavoriteId}
                             onSetFavorite={handleSetFavorite}
                         />
                     </div>
@@ -103,10 +136,10 @@ export default function CustomerDashboardPage() {
 
                     <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
                         <div className="lg:col-span-2">
-                             <CustomerOrderHistory orders={orders} isLoading={isLoading} />
+                             <CustomerOrderHistory orders={orders as OrderDoc[] | null} isLoading={isLoading} />
                         </div>
                         <div className="space-y-8">
-                             <CustomerReviewHistory reviews={reviews} isLoading={isLoading} />
+                             <CustomerReviewHistory reviews={reviews as Review[] | null} isLoading={isLoading} />
                              <CustomerUploads />
                         </div>
                     </div>
