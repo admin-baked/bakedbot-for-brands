@@ -22,7 +22,6 @@ export function ChatbotIcon() {
       alt="Chatbot Icon" 
       fill 
       className="object-cover"
-      unoptimized
       onError={() => setIconSrc(defaultChatbotIcon)}
     />
   );
