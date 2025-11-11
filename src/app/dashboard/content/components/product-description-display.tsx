@@ -24,7 +24,7 @@ const initialFeedbackState = { message: '', error: false };
 export default function ProductDescriptionDisplay({ productDescription, isImagePending, isDescriptionPending }: ProductDescriptionDisplayProps) {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
-  const [feedbackState, submitFeedback, isFeedbackPending] = useFormState(updateProductFeedback, initialFeedbackState);
+  const [feedbackState, submitFeedback] = useFormState(updateProductFeedback, initialFeedbackState);
 
 
   useEffect(() => {
@@ -105,9 +105,12 @@ export default function ProductDescriptionDisplay({ productDescription, isImageP
     const formData = new FormData();
     formData.append('productId', productDescription.productId);
     formData.append('feedbackType', feedback);
-    submitFeedback(formData);
+    startTransition(() => {
+        submitFeedback(formData)
+    });
   };
   
+  const [isFeedbackPending, startTransition] = useFormState(updateProductFeedback, initialFeedbackState);
   const isGenerating = isDescriptionPending || isImagePending;
   const hasContent = productDescription && (productDescription.description || productDescription.imageUrl);
 
