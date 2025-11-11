@@ -12,6 +12,7 @@ export const ai = genkit({
     googleAI(),
   ],
   model: 'googleai/gemini-2.5-flash',
+  telemetry: 'none',
 });
 
 // Define the schema for the email sending function
