@@ -215,14 +215,11 @@ export async function updateProductFeedback(
   const updatePayload = { [fieldToUpdate]: increment(1) };
 
   try {
-    // Fire-and-forget using Admin SDK; keeps types consistent
-    void productRef.update(updatePayload).catch((e) => {
-      console.error('non-blocking update failed', e);
-    });
+    // Use the Admin SDK's update method directly.
+    await productRef.update(updatePayload);
     return { success: true, message: 'Feedback submitted successfully.' };
   } catch (serverError) {
-    // This catch block might not be hit if the non-blocking one handles it,
-    // but it's good for safety.
+    // This catch block will handle potential permission errors from Firestore rules.
     const permissionError = new FirestorePermissionError({
       path: productRef.path,
       operation: 'update',

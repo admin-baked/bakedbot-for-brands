@@ -21,7 +21,7 @@ export function useMenuData() {
   const { firestore } = useFirebase();
   const { products: demoProducts, locations: demoLocations } = useDemoData();
   
-  const [products, setProducts] = useState<Product[]>(isUsingDemoData ? demoProducts : []);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(!isUsingDemoData);
 
   useEffect(() => {
