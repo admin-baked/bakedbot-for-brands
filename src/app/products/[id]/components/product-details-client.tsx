@@ -77,7 +77,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
     const { addToCart } = useCart();
     const { selectedLocationId } = useStore();
     const { toast } = useToast();
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     
     const [feedbackState, submitFeedback, isFeedbackPending] = useActionState(updateProductFeedback, initialFeedbackState);
 
@@ -115,11 +115,12 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
     }, [product, selectedLocationId]);
 
     const handleFeedback = (feedbackType: 'like' | 'dislike') => {
+        // The server action now handles the auth check, but we can provide quicker feedback on the client.
         if (!user) {
             toast({
                 variant: 'destructive',
                 title: 'Authentication Required',
-                description: 'You must be logged in to leave feedback.',
+                description: 'You must be signed in to leave feedback.',
             });
             return;
         }
@@ -198,10 +199,10 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                         <Plus className="mr-2 h-5 w-5" />
                         Add to Cart
                     </Button>
-                    <Button variant="outline" size="lg" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending || !user}>
+                    <Button variant="outline" size="lg" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending || isUserLoading}>
                         <ThumbsUp className="h-5 w-5 text-green-500"/>
                     </Button>
-                    <Button variant="outline" size="lg" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending || !user}>
+                    <Button variant="outline" size="lg" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending || isUserLoading}>
                         <ThumbsDown className="h-5 w-5 text-red-500"/>
                     </Button>
                 </div>

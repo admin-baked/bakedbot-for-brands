@@ -17,6 +17,11 @@ import {
   type SummarizeReviewsOutput,
 } from '@/ai/flows/summarize-reviews';
 import { z } from 'zod';
+import { createServerClient } from '@/firebase/server-client';
+import { FieldValue } from 'firebase-admin/firestore';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { headers } from 'next/headers';
+
 
 const FormSchema = z.object({
   productName: z.string().min(3, 'Product name must be at least 3 characters.'),

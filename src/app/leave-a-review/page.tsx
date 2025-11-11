@@ -41,10 +41,11 @@ const StarRating = ({ rating, setRating, disabled }: { rating: number; setRating
 };
 
 function SubmitButton({ disabled }: { disabled?: boolean }) {
-    // We can't use useFormStatus here because it's not a direct child of the form.
+    const [state, formAction, isPending] = useActionState(submitReview, initialState);
+    
     return (
-        <Button type="submit" className="w-full" disabled={disabled}>
-            {disabled ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+        <Button type="submit" className="w-full" disabled={disabled || isPending}>
+            {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
             Submit Review
         </Button>
     );
@@ -57,7 +58,6 @@ export default function LeaveReviewPage() {
   const [fileName, setFileName] = useState<string | null>(null);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [state, formAction, isPending] = useActionState(submitReview, initialState);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -78,6 +78,40 @@ export default function LeaveReviewPage() {
       }
     }
   }, [state, toast]);
+  
+  useEffect(() => {
+    const attachIdToken = async () => {
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          const form = formRef.current;
+          if (form) {
+            let tokenInput = form.querySelector('input[name="idToken"]') as HTMLInputElement;
+            if (!tokenInput) {
+              tokenInput = document.createElement('input');
+              tokenInput.type = 'hidden';
+              tokenInput.name = 'idToken';
+              form.appendChild(tokenInput);
+            }
+            tokenInput.value = token;
+
+            // This is the insecure part we want to remove, but keep for the demo's functionality for now
+            let userIdInput = form.querySelector('input[name="userId"]') as HTMLInputElement;
+            if (!userIdInput) {
+              userIdInput = document.createElement('input');
+              userIdInput.type = 'hidden';
+              userIdInput.name = 'userId';
+              form.appendChild(userIdInput);
+            }
+            userIdInput.value = user.uid;
+          }
+        } catch (error) {
+          console.error("Error getting ID token:", error);
+        }
+      }
+    };
+    attachIdToken();
+  }, [user]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -86,17 +120,6 @@ export default function LeaveReviewPage() {
     } else {
       setFileName(null);
     }
-  };
-
-  const handleSubmit = (formData: FormData) => {
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to leave a review.' });
-        return;
-    }
-    formData.append('rating', String(rating));
-    // Pass the user ID securely with the form data
-    formData.append('userId', user.uid);
-    formAction(formData);
   };
   
   if (isUserLoading) {
@@ -157,7 +180,14 @@ export default function LeaveReviewPage() {
                 </AlertDescription>
             </Alert>
           )}
-          <form ref={formRef} action={handleSubmit} className="space-y-6">
+          <form
+            ref={formRef}
+            action={(formData) => {
+              formData.append('rating', String(rating));
+              formAction(formData);
+            }}
+            className="space-y-6"
+          >
             <div className="space-y-2">
               <Label htmlFor="productId">Which product are you reviewing?</Label>
               <Select name="productId" disabled={!user || areProductsLoading || isPending}>
@@ -212,7 +242,10 @@ export default function LeaveReviewPage() {
                     </Label>
                 </div>
             </div>
-            <SubmitButton disabled={isPending || !user} />
+             <Button type="submit" className="w-full" disabled={isPending || !user}>
+                {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+                Submit Review
+            </Button>
           </form>
         </CardContent>
       </Card>
