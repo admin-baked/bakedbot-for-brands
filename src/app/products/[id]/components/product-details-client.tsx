@@ -153,8 +153,8 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                 <Image
                     src={product.imageUrl}
                     alt={product.name}
-                    layout="fill"
-                    objectFit="cover"
+                    fill
+                    className="object-cover"
                     data-ai-hint={product.imageHint}
                 />
             </div>
