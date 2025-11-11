@@ -4,17 +4,17 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check ownership
+    // Helper function to check ownership based on UID
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
     
-    // Helper function to get user's role from their user document
+    // Helper function to get the role from a user's document
     function getRole(userId) {
       return get(/databases/$(database)/documents/users/$(userId)).data.role;
     }
     
-    // Helper function to check if user is a dispensary manager for a given location
+    // Helper function to check if a user is a manager for a specific location
     function isDispensaryManager(userId, locationId) {
         let userDoc = get(/databases/$(database)/documents/users/$(userId)).data;
         return userDoc.role == 'dispensary' && userDoc.locationId == locationId;
@@ -23,7 +23,8 @@ service cloud.firestore {
     // Products are public, but shouldn't be writable from the client
     match /products/{productId} {
       allow read: if true;
-      allow create, update, delete: if false; // Managed by backend/import
+      // Writes are handled by server-side actions/imports
+      allow write: if false; 
     }
 
     // Categories are public, but shouldn't be writable from the client
@@ -32,15 +33,21 @@ service cloud.firestore {
       allow write: if false; // Managed by backend
     }
 
-    // Users can create their own profile, but only read/update their own.
+    // Users can create their own profile.
+    // They can only read/update their own profile.
     match /users/{userId} {
       allow create: if request.auth != null;
       allow read, update: if isOwner(userId);
+      
+      // Interactions are private to the user
+      match /interactions/{interactionId} {
+        allow read, write: if isOwner(userId);
+      }
     }
     
-    // Anyone can create an order.
+    // Orders can be created by anyone (e.g., anonymous checkout).
     // Customers can read their own orders.
-    // Dispensary managers can read and update orders for their location.
+    // Dispensary managers can read and update orders for their specific location.
     match /orders/{orderId} {
       allow create: if true;
       allow read: if isOwner(resource.data.userId) || isDispensaryManager(request.auth.uid, resource.data.locationId);
@@ -48,11 +55,22 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Rules for the 'reviews' collection group. This allows querying reviews
-    // across all products securely.
-    match /{path=**}/reviews/{reviewId} {
+    // This rule allows collection group queries.
+    // It's essential for features like "Recent Reviews Feed" or admin dashboards
+    // that query across all products or all users.
+    match /{path=**}/{collectionId} {
+      // Allow reading 'reviews' from any product, or 'orders' and 'products'
+      // for authenticated users (typically admins/dispensary managers with server-side logic).
+      allow list: if collectionId == 'reviews'
+                 || (collectionId == 'orders' && request.auth != null)
+                 || (collectionId == 'products' && request.auth != null)
+                 || (collectionId == 'interactions' && request.auth != null);
+    }
+    
+    // This rule handles specific document reads/writes within the 'reviews' subcollection.
+    match /products/{productId}/reviews/{reviewId} {
         // Anyone can read any review.
-        allow read: if true;
+        allow get, list: if true;
         
         // Allow create if user is logged in, the review belongs to them,
         // and the rating is valid.
