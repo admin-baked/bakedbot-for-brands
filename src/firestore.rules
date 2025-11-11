@@ -68,10 +68,9 @@ service cloud.firestore {
     }
     
     // This rule handles specific document reads/writes within the 'reviews' subcollection.
-    // A 'get' rule is required here for collection group queries to work.
     match /products/{productId}/reviews/{reviewId} {
-        // Anyone can read any review.
-        allow get, list: if true;
+        // Anyone can read any review. This is required for the collection group query to work.
+        allow get: if true;
         
         // Allow create if user is logged in, the review belongs to them,
         // and the rating is valid.
