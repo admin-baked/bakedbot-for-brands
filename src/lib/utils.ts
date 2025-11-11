@@ -46,3 +46,18 @@ export function setDemoCookie(on: boolean) {
     "SameSite=Lax",
   ].join("; ");
 }
+
+/**
+ * Formats a number into a compact, readable string (e.g., 1200 -> 1.2k).
+ * @param num - The number to format.
+ * @returns A formatted string.
+ */
+export function formatNumber(num: number): string {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (num >= 1000) {
+        return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    }
+    return num.toString();
+}
