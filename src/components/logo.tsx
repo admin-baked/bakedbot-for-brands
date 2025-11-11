@@ -9,9 +9,10 @@ export function Logo() {
         src={defaultLogo}
         alt="BakedBot AI Logo"
         width={140}
-        height={40}
-        className="h-10 w-auto"
+        height={28}
+        className="h-7 w-auto"
         priority
+        unoptimized
       />
     </div>
   );
