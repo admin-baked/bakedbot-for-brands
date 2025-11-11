@@ -4,12 +4,13 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, FileJson } from 'lucide-react';
+import type { FirestorePermissionError } from '@/firebase/errors';
 
 export default function GlobalError({
   error,
   reset,
 }: {
-  error: Error & { digest?: string };
+  error: (Error & { digest?: string }) | FirestorePermissionError;
   reset: () => void;
 }) {
   useEffect(() => {
@@ -17,7 +18,9 @@ export default function GlobalError({
     console.error(error);
   }, [error]);
 
-  const isPermissionError = error.name === 'FirebaseError';
+  // Check if it's our custom Firestore permission error
+  const isPermissionError = 'request' in error && typeof error.request === 'object';
+  const permissionError = isPermissionError ? (error as FirestorePermissionError) : null;
 
   return (
     <html>
@@ -36,16 +39,22 @@ export default function GlobalError({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {isPermissionError && (
+              {permissionError && (
                 <div className="space-y-4 rounded-md border bg-muted/50 p-4">
                   <div className="flex items-center gap-2 font-semibold">
                     <FileJson className="h-5 w-5" />
                     Denied Request Details
                   </div>
                   <pre className="text-xs whitespace-pre-wrap rounded-md bg-background p-4 font-mono text-foreground overflow-auto">
-                    <code>{error.message.replace('Missing or insufficient permissions: The following request was denied by Firestore Security Rules:', '')}</code>
+                    <code>{JSON.stringify(permissionError.request, null, 2)}</code>
                   </pre>
                 </div>
+              )}
+              {!isPermissionError && (
+                 <pre className="text-xs whitespace-pre-wrap rounded-md bg-muted p-4 font-mono text-destructive-foreground overflow-auto">
+                    <code>{error.message}</code>
+                    {error.stack && <div className="mt-4">{error.stack}</div>}
+                  </pre>
               )}
               <div className="flex justify-center gap-2">
                 <Button onClick={() => reset()}>Try Again</Button>

@@ -25,7 +25,7 @@ interface FirebaseAuthObject {
   token: FirebaseAuthToken;
 }
 
-interface SecurityRuleRequest {
+export interface SecurityRuleRequest {
   auth: FirebaseAuthObject | null;
   method: string;
   path: string;
@@ -98,16 +98,6 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
 
 
 /**
- * Builds the final, formatted error message for the LLM.
- * @param requestObject The simulated request object.
- * @returns A string containing the error message and the JSON payload.
- */
-function buildErrorMessage(requestObject: SecurityRuleRequest): string {
-  return `Missing or insufficient permissions: The following request was denied by Firestore Security Rules:
-${JSON.stringify(requestObject, null, 2)}`;
-}
-
-/**
  * A custom error class designed to be consumed by an LLM for debugging.
  * It structures the error information to mimic the request object
  * available in Firestore Security Rules.
@@ -117,8 +107,9 @@ export class FirestorePermissionError extends Error {
 
   constructor(context: SecurityRuleContext) {
     const requestObject = buildRequestObject(context);
-    super(buildErrorMessage(requestObject));
-    this.name = 'FirebaseError'; // To match Next.js overlay expectations for Firebase errors
+    // The message is constructed but the primary consumption is the `request` object.
+    super(`Firestore Permission Denied on path: ${context.path}`);
+    this.name = 'FirestorePermissionError';
     this.request = requestObject;
   }
 }
