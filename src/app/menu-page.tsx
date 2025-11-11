@@ -33,7 +33,7 @@ function MenuContent({ initialDemo }: { initialDemo: boolean }) {
         <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-8 text-center">
           Browse the Menu
         </h2>
-        <ProductGrid products={products} isLoading={isLoading} />
+        <ProductGrid />
       </div>
     </>
   );
