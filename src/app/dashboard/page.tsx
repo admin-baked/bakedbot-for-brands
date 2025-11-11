@@ -39,8 +39,8 @@ export default function DashboardPage() {
   const { firestore } = useFirebase();
   const { user } = useUser();
 
-  // The brand ID from the user's custom claims.
   // In a real app, you'd get this from the ID token result.
+  // We'll use a hardcoded value for the demo, assuming the dev user has this claim.
   const currentBrandId = 'acme';
 
   // Correctly query the collection group for brand-level analytics.
@@ -49,9 +49,12 @@ export default function DashboardPage() {
       return query(collectionGroup(firestore, 'interactions'), where("brandId", "==", currentBrandId));
   }, [firestore, currentBrandId]);
 
-  const productsQuery = useMemo(() => firestore ? query(collection(firestore, 'products')) : null, [firestore]);
+  const productsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'products'));
+  }, [firestore]);
 
-  // Pass a debugPath for better error messages
+
   const { data: interactions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(
     interactionsQuery,
     { debugPath: `**/interactions?brandId=${currentBrandId}` }
