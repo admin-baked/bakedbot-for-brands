@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useStore } from '@/hooks/use-store';
@@ -12,6 +13,7 @@ import { CheckoutForm } from '@/app/menu/components/checkout-form';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useMenuData } from '@/hooks/use-menu-data';
+import { Footer } from '../components/footer';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -77,9 +79,7 @@ export default function CheckoutPage() {
   const handleOrderSuccess = (orderId: string, userId?: string) => {
     if (orderId) {
         clearCart();
-        const confirmationUrl = userId && userId !== 'guest'
-            ? `/order-confirmation/${orderId}?userId=${userId}`
-            : `/order-confirmation/${orderId}`;
+        const confirmationUrl = `/order-confirmation/${orderId}`;
         router.push(confirmationUrl);
     }
   };
@@ -126,9 +126,9 @@ export default function CheckoutPage() {
 
   if (cart.length === 0) {
       return (
-          <div className="min-h-screen bg-muted/20">
+          <div className="min-h-screen bg-muted/20 flex flex-col">
               <Header />
-              <main className="container mx-auto px-4 py-8 text-center">
+              <main className="container mx-auto px-4 py-8 text-center flex-1">
                   <Card className="max-w-md mx-auto">
                       <CardHeader>
                           <CardTitle>Your Cart is Empty</CardTitle>
@@ -143,6 +143,7 @@ export default function CheckoutPage() {
                       </CardFooter>
                   </Card>
               </main>
+              <Footer />
           </div>
       )
   }
@@ -150,9 +151,9 @@ export default function CheckoutPage() {
 
   // Render checkout
   return (
-    <div className="min-h-screen bg-muted/20">
+    <div className="min-h-screen bg-muted/20 flex flex-col">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 flex-1">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left side - Form */}
           <div>
@@ -221,6 +222,7 @@ export default function CheckoutPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

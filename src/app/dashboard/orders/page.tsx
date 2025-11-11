@@ -24,10 +24,10 @@ export default function OrdersPage() {
 
     return orders.map((order) => ({
         id: order.id,
-        customerName: order.customerName,
-        date: order.orderDate.toDate().toLocaleDateString(),
+        customerName: order.customer.name,
+        date: order.createdAt.toDate().toLocaleDateString(),
         status: order.status,
-        total: `$${order.totalAmount.toFixed(2)}`,
+        total: `$${order.totals.total.toFixed(2)}`,
         location: getLocationName(order.locationId),
     }));
   }, [orders, locations]);

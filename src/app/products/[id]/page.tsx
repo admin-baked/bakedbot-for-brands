@@ -16,6 +16,7 @@ import type { Product } from '@/lib/types';
 import { demoProducts } from '@/lib/data';
 import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 import Header from '@/app/components/header';
+import { Footer } from '@/app/components/footer';
 
 type Props = {
   params: { id: string }
@@ -97,15 +98,16 @@ export default async function ProductPage({ params }: Props) {
     const summary = await getReviewSummary(product.id, product.name);
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background flex flex-col">
             <Header />
-            <main className="container mx-auto">
+            <main className="container mx-auto flex-1">
                 <Suspense fallback={<ProductPageSkeleton />}>
                     <ProductDetailsClient product={product} summary={summary} />
                 </Suspense>
             </main>
             <FloatingCartPill />
             <Chatbot />
+            <Footer />
         </div>
     )
 }
