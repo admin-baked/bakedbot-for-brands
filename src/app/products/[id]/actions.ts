@@ -39,7 +39,7 @@ export async function getReviewSummary(productId: string, productName: string): 
  * This action is now protected and requires an authenticated user.
  */
 export async function updateProductFeedback(
-  prevState: { message: string; error: boolean },
+  prevState: { message: string; error: boolean } | null,
   formData: FormData
 ): Promise<{ message:string; error: boolean }> {
   
@@ -73,3 +73,5 @@ export async function updateProductFeedback(
     return { error: true, message: 'Could not submit feedback due to a database error.' };
   }
 }
+
+    
