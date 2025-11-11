@@ -107,9 +107,12 @@ export default function LoginForm() {
         setIsMagicLinkLoading(true);
         try {
             const host = window.location.origin;
+            const callbackUrl = new URL('/auth/callback-client', host);
+            callbackUrl.searchParams.set('email', finalEmail); // Pass email as fallback
+
             const actionCodeSettings = {
                 handleCodeInApp: true,
-                url: `${host}/auth/callback`,
+                url: callbackUrl.toString(),
             };
 
             window.localStorage.setItem('emailForSignIn', finalEmail);
