@@ -1,11 +1,19 @@
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { summarizeReviews, type SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
-import { headers } from 'next/headers';
+import { z } from 'zod';
+
+
+// Add idToken to the schema
+const FeedbackSchema = z.object({
+  productId: z.string().min(1),
+  feedbackType: z.enum(['like', 'dislike']),
+  idToken: z.string().min(1, 'Authentication token is missing.'),
+});
+
 
 /**
  * A server action to safely call the summarizeReviews AI flow from the server.
@@ -35,28 +43,29 @@ export async function updateProductFeedback(
 ): Promise<{ message:string; error: boolean }> {
   
   const { auth: adminAuth, firestore } = await createServerClient();
-  const productId = formData.get('productId') as string;
-  const feedbackType = formData.get('feedbackType') as 'like' | 'dislike';
   
-  // In a real production app, you'd get the ID token from the header
-  // and verify it to get the user's UID. For this demo, we simulate a check.
-  const authorization = headers().get('Authorization');
-  // A real check would look like: const decodedToken = await adminAuth.verifyIdToken(authorization.split('Bearer ')[1]);
-  // And you'd use `decodedToken.uid`.
-  // For now, we'll proceed, but this is where the check MUST happen.
-  if (!authorization) {
-    // This is a simplified check. A real app needs token verification.
-    return { error: true, message: 'Authentication required. Please sign in to leave feedback.' };
-  }
-  
-  // 1. Input Validation
-  if (!productId || (feedbackType !== 'like' && feedbackType !== 'dislike')) {
+  const validatedFields = FeedbackSchema.safeParse({
+    productId: formData.get('productId'),
+    feedbackType: formData.get('feedbackType'),
+    idToken: formData.get('idToken'),
+  });
+
+  if (!validatedFields.success) {
     return { error: true, message: 'Invalid input provided.' };
   }
 
+  const { productId, feedbackType, idToken } = validatedFields.data;
+
+  // Securely verify the ID token on the server
+  try {
+    await adminAuth.verifyIdToken(idToken);
+  } catch (authError) {
+    console.error("Server Action Auth Error (updateProductFeedback):", authError);
+    return { error: true, message: 'Authentication failed. Please sign in again.' };
+  }
+  
   const productRef = firestore.doc(`products/${productId}`);
   
-  // 2. Existence Check (Best Practice)
   try {
     const doc = await productRef.get();
     if (!doc.exists) {
@@ -66,16 +75,14 @@ export async function updateProductFeedback(
     return { error: true, message: 'Failed to verify product.' };
   }
 
-  // 3. Perform the update
   const fieldToUpdate = feedbackType === 'like' ? 'likes' : 'dislikes';
   try {
-    // Use the ADMIN SDK's FieldValue.increment
     await productRef.update({
       [fieldToUpdate]: FieldValue.increment(1),
     });
     
-    // Revalidate the product page to show the updated count
     revalidatePath(`/products/${productId}`);
+    revalidatePath('/dashboard');
     
     return { error: false, message: 'Feedback submitted successfully!' };
   } catch (error) {
