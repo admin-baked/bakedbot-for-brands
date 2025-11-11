@@ -27,7 +27,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null): UseColl
       query,
       (querySnapshot) => {
         // The converter now handles adding the ID, so we can just use doc.data()
-        const data = querySnapshot.docs.map(doc => doc.data());
+        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as T);
         setData(data);
         setIsLoading(false);
       },
