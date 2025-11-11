@@ -45,7 +45,7 @@ service cloud.firestore {
     // ---------- Public menu (anonymous read) ----------
     match /products/{productId} {
       allow read: if true;
-      allow write: if false; // Managed by server actions
+      allow write: if brandRead(resource.data.brandId) || request.auth.token.role in ["owner", "dev"];
     }
 
     // Categories are public, but shouldn't be writable from the client
