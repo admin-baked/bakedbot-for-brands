@@ -3,13 +3,13 @@
 
 import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageSquare, Sparkles, ThumbsUp, ThumbsDown, ArrowRight, Loader2, Database } from 'lucide-react';
+import { MessageSquare, Sparkles, ThumbsUp, ThumbsDown, ArrowRight, Database } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import type { Product, Review, UserInteraction } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import TopProductsCard from './components/top-products-card';
 import BottomProductsCard from './components/bottom-products-card';
@@ -43,8 +43,8 @@ export default function DashboardPage() {
   const interactionsQuery = useMemo(() => user ? query(collection(firestore, `users/${user.uid}/interactions`)) : null, [firestore, user]);
   const productsQuery = useMemo(() => firestore ? query(collection(firestore, 'products')) : null, [firestore]);
 
-  const { data: interactions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery);
-  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
+  const { data: interactions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery, { debugPath: `users/${user?.uid}/interactions`});
+  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery, { debugPath: '/products' });
 
   const isLoading = areInteractionsLoading || areProductsLoading;
 
