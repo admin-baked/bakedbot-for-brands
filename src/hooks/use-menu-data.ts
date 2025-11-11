@@ -10,52 +10,58 @@ import { collection, query, onSnapshot } from 'firebase/firestore';
 
 /**
  * A unified hook to get menu data (products and locations).
- * It intelligently uses demo data as a fallback and then attempts to load
- * live data from Firestore on the client side, preventing hydration mismatches.
+ * It uses a demo/live data mode flag from the global store to determine which data source to use.
  */
 export function useMenuData() {
-  const { _hasHydrated, locations: storeLocations } = useStore(state => ({
+  const { _hasHydrated, locations: storeLocations, isUsingDemoData } = useStore(state => ({
     _hasHydrated: state._hasHydrated,
     locations: state.locations,
+    isUsingDemoData: state.isUsingDemoData,
   }));
   const { firestore } = useFirebase();
   const { products: demoProducts, locations: demoLocations } = useDemoData();
   
-  // Initialize state with demoProducts to prevent hydration mismatch.
   const [products, setProducts] = useState<Product[]>(demoProducts);
-  // Only set loading to true if we expect to fetch from Firestore.
-  const [isFirestoreLoading, setIsFirestoreLoading] = useState(!!firestore);
+  const [isFirestoreLoading, setIsFirestoreLoading] = useState(false);
 
   useEffect(() => {
+    // If we are in demo mode, ensure we are using demo data and do not fetch from Firestore.
+    if (isUsingDemoData) {
+      setProducts(demoProducts);
+      setIsFirestoreLoading(false);
+      return;
+    }
+    
+    // Live data mode: fetch from Firestore
     if (!firestore) {
-      // If firestore is not available, we stick with the initial demo data.
+      // Fallback to demo data if firestore is not available even in live mode
+      setProducts(demoProducts);
       setIsFirestoreLoading(false);
       return;
     };
     
-    // Firestore is available, so we start listening for live data.
+    setIsFirestoreLoading(true);
     const productsQuery = query(collection(firestore, 'products'));
     const unsubscribe = onSnapshot(productsQuery, (snapshot) => {
         if (!snapshot.empty) {
-            // If live data exists, update the state.
             const firestoreProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
             setProducts(firestoreProducts);
         } else {
-            // If the collection is empty, the state remains as demoProducts.
-            // No need to set it again.
+            // Fallback to demo products if the live collection is empty
+            setProducts(demoProducts);
         }
         setIsFirestoreLoading(false);
     }, (error) => {
-        console.error("Error fetching products from Firestore, using demo data:", error);
-        // On error, the state remains as demoProducts.
+        console.error("Error fetching products from Firestore, falling back to demo data:", error);
+        setProducts(demoProducts);
         setIsFirestoreLoading(false);
     });
 
     return () => unsubscribe();
-  }, [firestore, demoProducts]); // demoProducts is stable, firestore is key dependency.
+  }, [firestore, demoProducts, isUsingDemoData]);
 
   // Determine the final set of locations and loading state.
-  const finalLocations = _hasHydrated && storeLocations.length > 0 ? storeLocations : demoLocations;
+  const finalLocations = (_hasHydrated && storeLocations.length > 0) ? storeLocations : demoLocations;
   const isLoading = !_hasHydrated || isFirestoreLoading;
 
   return {

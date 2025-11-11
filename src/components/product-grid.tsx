@@ -1,8 +1,10 @@
+
 'use client';
 
 import { ProductCard } from './product-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMenuData } from '@/hooks/use-menu-data';
+import { useStore } from '@/hooks/use-store';
 
 const ProductSkeleton = () => (
     <div className="bg-card rounded-lg shadow-lg overflow-hidden border">
@@ -25,8 +27,10 @@ const ProductSkeleton = () => (
 
 export function ProductGrid() {
   const { products, isLoading, isHydrated } = useMenuData();
+  const { isUsingDemoData } = useStore();
   
-  if (isLoading || !isHydrated) {
+  // Show loading skeleton only when fetching live data, not when in demo mode.
+  if ((isLoading && !isUsingDemoData) || !isHydrated) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {[...Array(8)].map((_, i) => (
