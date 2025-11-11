@@ -1,14 +1,14 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useCollection } from '@/hooks/use-collection';
-import { collection, query, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, collectionGroup, doc, updateDoc } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import type { Review, UserInteraction, OrderDoc } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageSquare, Sparkles, Star, Package, FileUp } from 'lucide-react';
+import { MessageSquare, Sparkles, Star } from 'lucide-react';
 import Header from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,6 +16,9 @@ import CustomerReviewHistory from './components/customer-review-history';
 import CustomerOrderHistory from './components/customer-order-history';
 import CustomerUploads from './components/customer-uploads';
 import { useCollectionGroup } from '@/hooks/use-collection-group';
+import FavoriteLocation from './components/favorite-location';
+import { useStore } from '@/hooks/use-store';
+import { useDoc } from '@/firebase/firestore/use-doc';
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; value: string | number; icon: React.ElementType; isLoading: boolean }) {
     return (
@@ -38,6 +41,20 @@ function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; va
 export default function CustomerDashboardPage() {
     const { user, isUserLoading } = useUser();
     const { firestore } = useFirebase();
+    const { favoriteLocationId, setFavoriteLocationId } = useStore();
+
+    const userDocRef = useMemo(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user]);
+
+    const { data: userData, isLoading: isUserDocLoading } = useDoc(userDocRef);
+
+    useEffect(() => {
+        if (userData && userData.favoriteLocationId && userData.favoriteLocationId !== favoriteLocationId) {
+            setFavoriteLocationId(userData.favoriteLocationId);
+        }
+    }, [userData, favoriteLocationId, setFavoriteLocationId]);
 
     const interactionsQuery = useMemo(() => {
         if (!firestore || !user) return null;
@@ -54,7 +71,7 @@ export default function CustomerDashboardPage() {
         user ? query(collectionGroup(firestore, 'orders'), where('customer.email', '==', user.email)) : undefined
     );
 
-    const isLoading = isUserLoading || areInteractionsLoading || areReviewsLoading || areOrdersLoading;
+    const isLoading = isUserLoading || areInteractionsLoading || areReviewsLoading || areOrdersLoading || isUserDocLoading;
 
     const stats = useMemo(() => {
         if (!interactions || !reviews) {
@@ -72,6 +89,12 @@ export default function CustomerDashboardPage() {
         };
     }, [interactions, reviews]);
     
+    const handleSetFavorite = async (locationId: string | null) => {
+        if (userDocRef) {
+            await updateDoc(userDocRef, { favoriteLocationId: locationId });
+            setFavoriteLocationId(locationId);
+        }
+    };
 
     return (
         <div className="flex min-h-screen flex-col">
@@ -85,7 +108,14 @@ export default function CustomerDashboardPage() {
                         </p>
                     </div>
 
-                    <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="mt-6">
+                        <FavoriteLocation
+                            favoriteId={favoriteLocationId}
+                            onSetFavorite={handleSetFavorite}
+                        />
+                    </div>
+                    
+                    <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         <MetricCard title="Chatbot Interactions" value={stats.chatbotInteractions} icon={MessageSquare} isLoading={isLoading} />
                         <MetricCard title="Products Recommended" value={stats.productsRecommended} icon={Sparkles} isLoading={isLoading} />
                         <MetricCard title="Reviews Submitted" value={stats.reviewsSubmitted} icon={Star} isLoading={isLoading} />
@@ -106,3 +136,5 @@ export default function CustomerDashboardPage() {
         </div>
     );
 }
+
+    

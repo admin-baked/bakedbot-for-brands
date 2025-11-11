@@ -25,6 +25,8 @@ export interface StoreState {
   setIsUsingDemoData: (isDemo: boolean) => void;
   selectedLocationId: string | null;
   setSelectedLocationId: (id: string | null) => void;
+  favoriteLocationId: string | null;
+  setFavoriteLocationId: (id: string | null) => void;
   isCartSheetOpen: boolean;
   setCartSheetOpen: (isOpen: boolean) => void;
   chatExperience: 'default' | 'classic';
@@ -78,6 +80,7 @@ export const useStore = create<StoreState>()(
       menuStyle: 'default' as 'default' | 'alt',
       isUsingDemoData: true,
       selectedLocationId: null,
+      favoriteLocationId: null,
       isCartSheetOpen: false,
       chatExperience: 'default' as 'default' | 'classic',
       brandImageGenerations: 0,
@@ -99,6 +102,7 @@ export const useStore = create<StoreState>()(
         set({ isUsingDemoData: isDemo });
       },
       setSelectedLocationId: (id: string | null) => set({ selectedLocationId: id }),
+      setFavoriteLocationId: (id: string | null) => set({ favoriteLocationId: id }),
       setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
       setBrandColor: (color: string) => set({ brandColor: color }),
@@ -149,3 +153,5 @@ export const useStore = create<StoreState>()(
     }
   )
 );
+
+    

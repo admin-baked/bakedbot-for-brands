@@ -84,6 +84,10 @@
           "type": "string",
           "description": "Email address of the user.",
           "format": "email"
+        },
+        "favoriteLocationId": {
+          "type": "string",
+          "description": "The ID of the user's favorite dispensary location."
         }
       },
       "required": [
@@ -373,3 +377,4 @@
     "reasoning": "The Firestore data structure is designed to support the BakedBot AI Assistant, a WordPress plugin that provides AI-powered product recommendations, menu generation, content creation, and order management integration. The structure emphasizes authorization independence, clarity, and scalability, following the principles of DBAC (Database-Based Access Control). It avoids hierarchical authorization dependencies by denormalizing data where necessary, ensuring that security rules can be simple and efficient.\n\nThe key structural decisions and their justifications are:\n\n*   **Users Collection (`/users/{userId}`):** Stores user profiles. This is the root for user-specific data.\n*   **Categories Collection (`/categories/{categoryId}`):** Stores product categories. No specific ownership required, so top-level collection.\n*   **Products Collection (`/products/{productId}`):** Stores product information. No specific ownership required, so top-level collection.  Includes a `categoryId` field to reference the category.\n*   **Orders Collection (`/users/{userId}/orders/{orderId}`):** Stores order information, nested under the user who placed the order.  This utilizes path-based ownership.\n*   **OrderItems Collection (`/users/{userId}/orders/{orderId}/orderItems/{orderItemId}`):** Stores individual items within an order, nested under the order.  This continues path-based ownership for nested data. This ensures that only the user who placed the order can access the order items.\n*   **Content Collection (`/content/{contentId}`):** Stores AI-generated content. No specific ownership required, so top-level collection.\n*   **UserInteractions Collection (`/users/{userId}/interactions/{interactionId}`):** Stores user interactions with the AI assistant, nested under the user. This supports personalized recommendations and utilizes path-based ownership.\n\nThis structure achieves **Authorization Independence** by:\n\n*   Using path-based ownership for user-specific data (orders, order items, and user interactions). This eliminates the need to `get()` parent documents to validate access, because security rules can rely solely on `request.auth.uid` and the path.\n\nThe structure supports the required **QAPs (Rules are not Filters)** by:\n\n*   Segregating data with different access needs into separate collections and subcollections.\n*   Utilizing path-based ownership for user-specific data, making it easy to secure list operations."
   }
 }
+    
