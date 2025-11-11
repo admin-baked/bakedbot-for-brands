@@ -20,28 +20,28 @@ service cloud.firestore {
         return userDoc.role == 'dispensary' && userDoc.locationId == locationId;
     }
 
+    // This rule allows collection group queries on 'reviews'.
+    // It is REQUIRED for features like "Recent Reviews Feed" to work.
+    // It allows anyone to read reviews, but write access is still controlled below.
+    match /{path=**}/reviews/{reviewId} {
+      allow get, list: if true;
+
+      // Allow create if user is logged in, the review belongs to them,
+      // and the rating is valid.
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.rating is number
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5;
+
+      // Only the owner of a review can update or delete it.
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+    
     // Products are public, but shouldn't be writable from the client
     match /products/{productId} {
       allow read: if true;
       allow write: if false; // Managed by server actions
-    }
-
-    // This rule handles specific document reads/writes within the 'reviews' subcollection.
-    // It is REQUIRED for the collection group query on 'reviews' to work.
-    match /products/{productId}/reviews/{reviewId} {
-        // Anyone can read any review.
-        allow get, list: if true;
-        
-        // Allow create if user is logged in, the review belongs to them,
-        // and the rating is valid.
-        allow create: if request.auth != null
-                      && request.resource.data.userId == request.auth.uid
-                      && request.resource.data.rating is number
-                      && request.resource.data.rating >= 1
-                      && request.resource.data.rating <= 5;
-                      
-        // Only the owner of a review can update or delete it.
-        allow update, delete: if isOwner(resource.data.userId);
     }
 
     // Categories are public, but shouldn't be writable from the client
@@ -70,16 +70,6 @@ service cloud.firestore {
       allow read: if isOwner(resource.data.userId) || isDispensaryManager(request.auth.uid, resource.data.locationId);
       allow update: if isDispensaryManager(request.auth.uid, resource.data.locationId);
       allow delete: if false;
-    }
-
-    // This rule allows collection group queries.
-    // It's essential for features like "Recent Reviews Feed" or admin dashboards
-    // that query across all products or all users.
-    match /{path=**}/{collectionId} {
-      allow list: if collectionId == 'reviews'
-                 || (collectionId == 'orders' && request.auth != null)
-                 || (collectionId == 'products' && request.auth != null)
-                 || (collectionId == 'interactions' && request.auth != null);
     }
   }
 }
