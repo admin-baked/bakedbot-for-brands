@@ -1,7 +1,7 @@
 "use server";
 
 import { createServerClient } from '@/firebase/server-client';
-import { collection, doc, addDoc, serverTimestamp } from "firebase/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import { cookies } from "next/headers";
 import { sendOrderEmail } from "@/lib/email/send-order-email";
 
@@ -19,11 +19,11 @@ export async function submitOrder(input: OrderInput) {
   const { firestore } = await createServerClient();
 
   // 2) Create the order doc first (authoritative write)
-  const ordersRef = collection(firestore, "orders");
-  const orderDoc = await addDoc(ordersRef, {
+  const ordersRef = firestore.collection("orders");
+  const orderDoc = await ordersRef.add({
     ...input,
     status: "submitted",
-    createdAt: serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
     mode: isDemo ? "demo" : "live",
   });
 
@@ -43,7 +43,7 @@ export async function submitOrder(input: OrderInput) {
   } catch (err) {
     console.error("sendOrderEmail failed (non-blocking):", err);
     // Optionally mark order with an emailError flag
-    const orderRef = doc(firestore, "orders", orderDoc.id);
+    const orderRef = firestore.doc(`orders/${orderDoc.id}`);
     // do not throw
   }
 

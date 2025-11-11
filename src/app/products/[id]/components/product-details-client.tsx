@@ -4,7 +4,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/hooks/use-cart';
-import { useMemo, useActionState, useEffect } from 'react';
+import { useMemo, useEffect } from 'react';
+import { useFormState } from 'react-dom';
 import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
@@ -79,7 +80,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
     const { toast } = useToast();
     const { user, isUserLoading } = useUser();
     
-    const [feedbackState, submitFeedback, isFeedbackPending] = useActionState(updateProductFeedback, initialFeedbackState);
+    const [feedbackState, submitFeedback, isFeedbackPending] = useFormState(updateProductFeedback, initialFeedbackState);
 
     useEffect(() => {
         if (feedbackState.message) {
