@@ -2,15 +2,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { summarizeReviews, type SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
+import { summarizeReviews, type SummarizeReviewsOutput, SummarizeReviewsInputSchema } from '@/ai/flows/summarize-reviews';
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { makeProductRepo } from '@/server/repos/productRepo';
 
-export type ReviewSummaryInput = {
-  productId: string;
-};
 
 /**
  * A server action to safely call the summarizeReviews AI flow from the server.
@@ -18,18 +15,8 @@ export type ReviewSummaryInput = {
  * @param input An object containing the productId.
  * @returns The AI-generated summary or null if an error occurs.
  */
-export async function getReviewSummary(input: ReviewSummaryInput): Promise<SummarizeReviewsOutput | null> {
-  const ReviewSummaryInputSchema = z.object({
-    productId: z.string().min(1),
-  });
-
-  const validatedInput = ReviewSummaryInputSchema.safeParse(input);
-  if (!validatedInput.success) {
-    console.error("Invalid input for getReviewSummary:", validatedInput.error);
-    return null;
-  }
-  
-  const { productId } = validatedInput.data;
+export async function getReviewSummary(input: { productId: string }): Promise<SummarizeReviewsOutput | null> {
+  const { productId } = input;
 
   try {
     const { firestore } = await createServerClient();
@@ -41,8 +28,6 @@ export async function getReviewSummary(input: ReviewSummaryInput): Promise<Summa
         return null;
     }
 
-    // The `brandId` is not currently on the product data model.
-    // In a real application, it would be a required field. We will use a placeholder.
     const brandId = product.brandId || 'bakedbot-brand-id'; 
 
     const summary = await summarizeReviews({ productId, brandId });
