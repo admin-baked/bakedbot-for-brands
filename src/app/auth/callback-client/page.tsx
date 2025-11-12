@@ -5,7 +5,6 @@ import { Loader2 } from 'lucide-react';
 import { CallbackClientInner } from './CallbackClientInner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
