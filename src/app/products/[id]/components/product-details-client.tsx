@@ -125,12 +125,11 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
             return;
         }
 
-        startTransition(async () => {
-            const idToken = await user.getIdToken();
-            const formData = new FormData();
-            formData.append('productId', product.id);
-            formData.append('feedbackType', feedbackType);
-            formData.append('idToken', idToken);
+        const formData = new FormData();
+        formData.append('productId', product.id);
+        formData.append('feedbackType', feedbackType);
+        
+        startTransition(() => {
             submitFeedback(formData);
         });
     };

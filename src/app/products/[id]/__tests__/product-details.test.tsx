@@ -14,7 +14,7 @@ import React from 'react';
 jest.mock('@/hooks/use-cart');
 jest.mock('@/hooks/use-store');
 jest.mock('@/hooks/use-toast');
-jest.mock('@/hooks/use-user');
+jest.mock('@/firebase/auth/use-user');
 jest.mock('../actions', () => ({
   ...jest.requireActual('../actions'), // import and retain all actual exports
   updateProductFeedback: jest.fn(), // mock this specific export
