@@ -33,7 +33,6 @@ export async function getReviewSummary(productId: string): Promise<SummarizeRevi
         return null;
     }
 
-    const productData = productSnap.data();
     // The `brandId` is not currently on the product data model.
     // In a real application, it would be a required field. We will use a placeholder.
     const brandId = 'bakedbot-brand-id'; 
