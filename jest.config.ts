@@ -19,6 +19,7 @@ const config: Config = {
     '^@/firebase$': '<rootDir>/src/firebase/index.ts',
     '^@/firebase/(.*)$': '<rootDir>/src/firebase/$1',
     '^@/ai/(.*)$': '<rootDir>/src/ai/$1',
+    '^@/context/(.*)$': '<rootDir>/src/context/$1',
   },
 };
 
