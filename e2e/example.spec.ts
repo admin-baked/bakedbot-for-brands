@@ -284,3 +284,5 @@ test('AI image generation flow', async ({ page }) => {
     const src = await generatedImage.getAttribute('src');
     expect(src).toContain('data:image');
 });
+
+    
