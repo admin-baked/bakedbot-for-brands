@@ -191,3 +191,32 @@ test('review submission flow', async ({ page }) => {
   // 7. Verify the success message
   await expect(page.locator('h1:has-text("Thank You!")')).toBeVisible();
 });
+
+test('review appears on dashboard', async ({ page }) => {
+  // 1. Log in
+  await page.goto('/brand-login');
+  await page.locator('button:has-text("Dev Magic Login")').click();
+  await page.locator('div[role="menuitem"]:has-text("Login as martez@bakedbot.ai")').click();
+
+  // 2. Go to the review page and submit a unique review
+  await page.goto('/leave-a-review');
+  await page.locator('button[role="combobox"]').click();
+  await page.locator('div[role="option"]:has-text("Giggle Gummies")').click();
+  await page.locator('.flex.items-center.gap-1 > svg').nth(4).click(); // 5 stars
+  const reviewText = `This is a test review for Giggle Gummies at ${Date.now()}`;
+  await page.locator('textarea[name="text"]').fill(reviewText);
+  await page.locator('button:has-text("Submit Review")').click();
+  await expect(page.locator('h1:has-text("Thank You!")')).toBeVisible();
+
+  // 3. Go to the dashboard
+  await page.goto('/account/dashboard');
+
+  // 4. Verify the "Your Reviews" card is visible
+  await expect(page.locator('h2:has-text("Your Reviews")')).toBeVisible();
+
+  // 5. Verify the submitted review is present
+  // We check for the product name and a snippet of the review text.
+  const reviewHistoryCard = page.locator('div:has(h2:has-text("Your Reviews"))');
+  await expect(reviewHistoryCard.locator('a:has-text("Giggle Gummies")')).toBeVisible();
+  await expect(reviewHistoryCard.locator(`p:has-text("${reviewText}")`)).toBeVisible();
+});
