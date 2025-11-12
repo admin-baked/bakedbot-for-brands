@@ -139,5 +139,3 @@ export function DispensaryLocator() {
     </div>
   );
 }
-
-    

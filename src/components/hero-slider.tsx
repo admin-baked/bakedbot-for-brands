@@ -26,9 +26,10 @@ export function HeroSlider() {
     const featuredProducts = [...products].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 3);
 
     return (
+        <div className="w-full rounded-lg overflow-hidden mb-12">
         <Carousel
             plugins={[ Autoplay({ delay: 5000, stopOnInteraction: true }) ]}
-            className="w-full rounded-lg overflow-hidden mb-12"
+            className="w-full"
             opts={{ loop: true }}
         >
             <CarouselContent>
@@ -60,10 +61,9 @@ export function HeroSlider() {
                     </CarouselItem>
                 ))}
             </CarouselContent>
-            <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
-            <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />
+            <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10" />
+            <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10" />
         </Carousel>
+        </div>
     );
 }
-
-    

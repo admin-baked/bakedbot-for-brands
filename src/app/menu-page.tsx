@@ -14,8 +14,8 @@ export default function MenuPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
       <main className="flex-1">
-        <HeroSlider />
         <div className="container mx-auto px-4">
+          <HeroSlider />
           <DispensaryLocator />
           <RecentReviewsFeed />
           <div className="py-12">
