@@ -155,3 +155,20 @@ test('full checkout flow', async ({ page }) => {
     await expect(page.locator('h1', { hasText: 'Order Confirmed' })).toBeVisible();
     await expect(page.getByText('Thank you, Test Customer!')).toBeVisible();
 });
+
+
+test('account page renders', async ({ page }) => {
+  // Login first
+  await page.goto('/brand-login');
+  await page.locator('button', { hasText: 'Dev Magic Login' }).click();
+  await page.locator('div[role="menuitem"]', { hasText: 'Login as martez@bakedbot.ai' }).click();
+
+  // Navigate to the account page
+  await page.goto('/account');
+
+  // Verify the main account card is visible
+  await expect(page.locator('h2', { hasText: 'My Account' })).toBeVisible();
+  
+  // Verify the dashboard button is present
+  await expect(page.getByRole('link', { name: 'Go to My Dashboard' })).toBeVisible();
+});
