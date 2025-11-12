@@ -64,8 +64,7 @@ const OrderActions = ({ orderId }: { orderId: string }) => {
     }
     
     setIsPending(true);
-    const idToken = await user.getIdToken();
-    const result = await updateOrderStatus(orderId, status, idToken);
+    const result = await updateOrderStatus(orderId, status);
     
     if (result.error) {
       toast({ variant: 'destructive', title: 'Error', description: result.message });

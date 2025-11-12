@@ -1,21 +1,20 @@
+
 'use server';
 
 import { revalidatePath } from "next/cache";
 import { createServerClient } from "@/firebase/server-client";
 import { z } from "zod";
+import { cookies } from "next/headers";
+import { getAuth } from "firebase-admin/auth";
 
 const StatusSchema = z.enum(['submitted', 'pending', 'confirmed', 'ready', 'completed', 'cancelled']);
 
-export async function updateOrderStatus(orderId: string, status: z.infer<typeof StatusSchema>, idToken: string) {
+export async function updateOrderStatus(orderId: string, status: z.infer<typeof StatusSchema>) {
     
     if (!orderId || !status) {
         return { error: true, message: 'Order ID and status are required.' };
     }
     
-    if (!idToken) {
-        return { error: true, message: 'Authentication is required.' };
-    }
-
     const validation = StatusSchema.safeParse(status);
     if (!validation.success) {
         return { error: true, message: 'Invalid status provided.' };
@@ -23,9 +22,12 @@ export async function updateOrderStatus(orderId: string, status: z.infer<typeof 
 
     try {
         const { firestore, auth } = await createServerClient();
+        const sessionCookie = cookies().get('__session')?.value;
+        if (!sessionCookie) {
+           return { error: true, message: 'You must be logged in to perform this action.' };
+        }
         
-        // Securely verify the user's token and check their role
-        const decodedToken = await auth.verifyIdToken(idToken);
+        const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
         const userDoc = await firestore.collection('users').doc(decodedToken.uid).get();
         const userRole = userDoc.data()?.role;
 
@@ -47,7 +49,7 @@ export async function updateOrderStatus(orderId: string, status: z.infer<typeof 
 
     } catch (e: any) {
         console.error("Failed to update order status:", e);
-        if (e.code === 'auth/id-token-expired' || e.code === 'auth/argument-error') {
+        if (e.code === 'auth/session-cookie-expired' || e.code === 'auth/argument-error') {
             return { error: true, message: 'Authentication session has expired. Please log in again.' };
         }
         return { error: true, message: e.message || "A server error occurred." };
