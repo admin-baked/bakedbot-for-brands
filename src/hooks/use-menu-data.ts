@@ -33,7 +33,7 @@ export function useMenuData(): UseMenuDataResult {
   );
   
   const { data: liveLocations, isLoading: areLocationsLoading } = useCollection<Location>(
-      firestore ? query(collection(firestore, 'locations')) : null
+      firestore ? query(collection(firestore, 'dispensaries')) : null
   );
 
   // IMPORTANT: keep SSR and initial CSR consistent to avoid hydration warnings.
