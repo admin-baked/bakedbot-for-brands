@@ -16,14 +16,25 @@ const FeedbackSchema = z.object({
   feedbackType: z.enum(['like', 'dislike']),
 });
 
+const ReviewSummaryInputSchema = z.object({
+  productId: z.string().min(1),
+});
 
 /**
  * A server action to safely call the summarizeReviews AI flow from the server.
  * This prevents server-side code from being bundled with the client.
- * @param productId The ID of the product to summarize.
+ * @param input An object containing the productId.
  * @returns The AI-generated summary or null if an error occurs.
  */
-export async function getReviewSummary(productId: string): Promise<SummarizeReviewsOutput | null> {
+export async function getReviewSummary(input: { productId: string }): Promise<SummarizeReviewsOutput | null> {
+  const validatedInput = ReviewSummaryInputSchema.safeParse(input);
+  if (!validatedInput.success) {
+    console.error("Invalid input for getReviewSummary:", validatedInput.error);
+    return null;
+  }
+  
+  const { productId } = validatedInput.data;
+
   try {
     const { firestore } = await createServerClient();
     const productRepo = makeProductRepo(firestore);
