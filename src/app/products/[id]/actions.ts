@@ -1,3 +1,4 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -7,6 +8,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { productConverter } from '@/firebase/converters';
 
 
 const FeedbackSchema = z.object({
@@ -19,12 +21,30 @@ const FeedbackSchema = z.object({
  * A server action to safely call the summarizeReviews AI flow from the server.
  * This prevents server-side code from being bundled with the client.
  * @param productId The ID of the product to summarize.
- * @param productName The name of the product.
  * @returns The AI-generated summary or null if an error occurs.
  */
-export async function getReviewSummary(productId: string, productName: string): Promise<SummarizeReviewsOutput | null> {
+export async function getReviewSummary(productId: string): Promise<SummarizeReviewsOutput | null> {
   try {
-    const summary = await summarizeReviews({ productId, productName });
+    const { firestore } = await createServerClient();
+    const productRef = firestore.collection('products').doc(productId).withConverter(productConverter);
+    const productSnap = await productRef.get();
+
+    if (!productSnap.exists) {
+        console.error(`Product with ID ${productId} not found for review summary.`);
+        return null;
+    }
+
+    const productData = productSnap.data();
+    // The `brandId` is not currently on the product data model.
+    // In a real application, it would be a required field. We will use a placeholder.
+    const brandId = 'bakedbot-brand-id'; 
+
+    if (!brandId) {
+        console.error(`brandId missing on product ${productId}.`);
+        return null;
+    }
+
+    const summary = await summarizeReviews({ productId, brandId });
     return summary;
   } catch (error) {
     console.error(`Failed to get review summary for product ${productId}:`, error);
