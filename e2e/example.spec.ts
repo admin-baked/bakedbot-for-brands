@@ -74,3 +74,35 @@ test('demo mode toggle', async ({ page }) => {
   await expect(page.locator('h3', { hasText: 'Cosmic Caramels' })).toBeVisible();
   await expect(page.locator('h3', { hasText: 'OG Galaxy' })).not.toBeVisible();
 });
+
+
+test('favorite location flow', async ({ page }) => {
+  // Use demo mode for predictable data
+  await page.goto('/?demo=true');
+  
+  // Login first
+  await page.goto('/brand-login');
+  await page.locator('button', { hasText: 'Dev Magic Login' }).click();
+  await page.locator('div[role="menuitem"]', { hasText: 'Login as martez@bakedbot.ai' }).click();
+
+  // Navigate to the dashboard
+  await page.goto('/account/dashboard');
+
+  // Ensure we start in the "Set Favorite" state
+  await expect(page.getByText('Set Your Favorite Location')).toBeVisible();
+
+  // Select a location from the dropdown
+  await page.getByRole('button', { name: 'Choose a location...' }).click();
+  await page.getByLabel('The Green Spot').click();
+
+  // Verify the new favorite is displayed
+  await expect(page.getByText('Your Favorite')).toBeVisible();
+  await expect(page.getByText('The Green Spot')).toBeVisible();
+
+  // Click the 'Change' button
+  await page.getByRole('button', { name: 'Change' }).click();
+
+  // Verify it goes back to the initial selection state
+  await expect(page.getByText('Set Your Favorite Location')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Choose a location...' })).toBeVisible();
+});
