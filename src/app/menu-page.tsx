@@ -16,15 +16,17 @@ export default function MenuPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main className="container mx-auto px-4 flex-1">
+      <main className="flex-1">
         <HeroSlider />
-        <DispensaryLocator />
-        <RecentReviewsFeed />
-        <div className="py-12">
-            <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-8 text-center">
-            Browse the Menu
-            </h2>
-            <ProductGrid />
+        <div className="container mx-auto px-4">
+          <DispensaryLocator />
+          <RecentReviewsFeed />
+          <div className="py-12">
+              <h2 className="text-3xl font-bold font-teko tracking-wider uppercase mb-8 text-center">
+              Browse the Menu
+              </h2>
+              <ProductGrid />
+          </div>
         </div>
       </main>
       <FloatingCartPill />

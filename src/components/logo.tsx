@@ -22,6 +22,7 @@ export default function Logo({ height = 28, priority = true, className }: Props)
         height={height}
         priority={priority}
         sizes={`${width}px`}
+        unoptimized
       />
     </Link>
   )
