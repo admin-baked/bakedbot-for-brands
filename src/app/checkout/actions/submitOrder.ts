@@ -39,9 +39,7 @@ export type OrderInput = z.infer<typeof OrderInputSchema>;
 async function getLocationData(locationId: string): Promise<Location | undefined> {
     try {
         const { firestore } = await createServerClient();
-        // This is a placeholder. In a real app, locations would be in Firestore.
-        // For now, we find it from the demo data.
-        const locationsSnap = await firestore.collection('locations').get();
+        const locationsSnap = await firestore.collection('dispensaries').get();
         if (!locationsSnap.empty) {
             const liveLocations = locationsSnap.docs.map(d => ({id: d.id, ...d.data()})) as Location[];
             return liveLocations.find(l => l.id === locationId);
