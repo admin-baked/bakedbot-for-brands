@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Search, ShoppingBag, TestTube2, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/use-cart';
-import { useStore } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import { Switch } from '@/components/ui/switch';
@@ -18,16 +17,20 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useFirebase } from '@/firebase/provider';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { useStore } from '@/hooks/use-store';
+import { useDemoMode } from '@/context/demo-mode';
+
 
 export default function Header() {
     const { getItemCount } = useCart();
     const itemCount = getItemCount();
-    const { _hasHydrated, setCartSheetOpen, isUsingDemoData, setIsUsingDemoData } = useStore();
+    const { setCartSheetOpen } = useStore();
     const pathname = usePathname();
     const { user } = useUser();
     const { auth } = useFirebase();
     const router = useRouter();
     const { toast } = useToast();
+    const { isDemo, setIsDemo } = useDemoMode();
 
     const navLinks = [
         { href: '/', label: 'Home' },
@@ -87,8 +90,8 @@ export default function Header() {
                         <Label htmlFor="demo-mode-switch" className="text-sm font-medium">Demo Mode</Label>
                         <Switch
                             id="demo-mode-switch"
-                            checked={isUsingDemoData}
-                            onCheckedChange={setIsUsingDemoData}
+                            checked={isDemo}
+                            onCheckedChange={setIsDemo}
                         />
                     </div>
                     <Separator orientation="vertical" className="h-6 hidden md:block" />
@@ -98,7 +101,7 @@ export default function Header() {
                     
                     <Button variant="ghost" size="icon" className="relative" onClick={() => setCartSheetOpen(true)}>
                        <ShoppingBag className="h-5 w-5" />
-                       {_hasHydrated && itemCount > 0 && (
+                       {itemCount > 0 && (
                            <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
                                {itemCount}
                            </span>
