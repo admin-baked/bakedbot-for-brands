@@ -44,7 +44,7 @@ test('martez login flow', async ({ page }) => {
 test('dispensary login flow', async ({ page }) => {
     await page.goto('/dispensary-login');
 
-    // Click the "Dev Magic Button"
+    // Click the "Dev Magic Button" to log in
     await page.locator('button', { hasText: 'Dev Magic Button (dispensary@bakedbot.ai)' }).click();
 
     // Expect the "Check Your Inbox!" card to be visible
@@ -196,21 +196,3 @@ test('review submission flow', async ({ page }) => {
   // 7. Verify the success message
   await expect(page.locator('h1:has-text("Thank You!")')).toBeVisible();
 });
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
