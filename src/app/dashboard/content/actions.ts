@@ -152,9 +152,8 @@ export async function summarizeProductReviews(
   formData: FormData
 ): Promise<ReviewSummaryFormState> {
   const productId = formData.get('productId') as string;
-  const productName = formData.get('productName') as string;
 
-  if (!productId || !productName) {
+  if (!productId) {
     return {
       message: 'Please select a product to summarize.',
       data: null,
@@ -163,7 +162,20 @@ export async function summarizeProductReviews(
   }
 
   try {
-    const result = await summarizeReviews({ productId, productName });
+    // To securely call the tool, we need the brandId.
+    // Fetch the product doc on the server to get it.
+    const { firestore } = await createServerClient();
+    const productSnap = await firestore.collection('products').doc(productId).get();
+
+    if (!productSnap.exists) {
+        throw new Error(`Product with ID ${productId} not found.`);
+    }
+
+    // This is a placeholder as brandId is not on the product model.
+    // In a real app, this would be a required field on the product.
+    const brandId = 'bakedbot-brand-id';
+    
+    const result = await summarizeReviews({ productId, brandId });
     return {
       message: 'Review summary generated successfully.',
       data: result,
