@@ -13,10 +13,10 @@ import { z } from 'zod';
 import { getProductReviews } from '../tools/get-product-reviews';
 import { getProduct } from '../tools/get-product';
 
-const SummarizeReviewsInputSchema = z.object({
+export const SummarizeReviewsInputSchema = z.object({
   productId: z.string().describe('The unique ID of the product whose reviews should be summarized.'),
   brandId: z.string().describe('The unique ID of the brand that owns the product.'),
-});
+}).strict();
 export type SummarizeReviewsInput = z.infer<typeof SummarizeReviewsInputSchema>;
 
 const SummarizeReviewsOutputSchema = z.object({
@@ -27,8 +27,10 @@ const SummarizeReviewsOutputSchema = z.object({
 });
 export type SummarizeReviewsOutput = z.infer<typeof SummarizeReviewsOutputSchema>;
 
-export async function summarizeReviews(input: SummarizeReviewsInput): Promise<SummarizeReviewsOutput> {
-  return summarizeReviewsFlow(input);
+export async function summarizeReviews(input: SummarizeReviewsInput): Promise<SummarizeReviewsOutput | null> {
+  const result = await summarizeReviewsFlow(input);
+  // Ensure we return null if the output is nullish, matching the updated return type
+  return result ?? null;
 }
 
 const prompt = ai.definePrompt(
@@ -63,9 +65,12 @@ const summarizeReviewsFlow = ai.defineFlow(
   {
     name: 'summarizeReviewsFlow',
     inputSchema: SummarizeReviewsInputSchema,
-    outputSchema: SummarizeReviewsOutputSchema,
+    outputSchema: SummarizeReviewsOutputSchema.nullable(),
   },
-  async ({ productId, brandId }) => {
+  async (input) => {
+    // Validate input at the start of the flow
+    const { productId, brandId } = SummarizeReviewsInputSchema.parse(input);
+
     // Step 1: Call the tool to get the raw review data.
     const reviews = await getProductReviews({ productId, brandId });
     const product = await getProduct({ productId });
@@ -86,6 +91,6 @@ const summarizeReviewsFlow = ai.defineFlow(
         reviews: reviews,
     });
     
-    return output!;
+    return output;
   }
 );

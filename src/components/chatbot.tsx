@@ -493,8 +493,14 @@ export default function Chatbot() {
     setIsBotTyping(true);
   
     try {
-      const summaryResult = await summarizeReviews({ productId: product.id, productName: product.name });
+      // In a real app, product.brandId would be a required property.
+      const brandId = (product as any).brandId || 'bakedbot-brand-id';
+      const summaryResult = await summarizeReviews({ productId: product.id, brandId });
       
+      if (!summaryResult) {
+          throw new Error('Summary result was null.');
+      }
+
       let botResponseText = `Here's what people are saying about **${product.name}**:\n\n`;
       botResponseText += `${summaryResult.summary}\n\n`;
   

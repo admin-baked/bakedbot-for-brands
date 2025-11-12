@@ -11,6 +11,7 @@ export type Product = {
   description: string;
   likes?: number;
   dislikes?: number;
+  brandId?: string;
 };
 
 export type Location = {
