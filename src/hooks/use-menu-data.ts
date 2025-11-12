@@ -20,6 +20,9 @@ export function useMenuData() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [brandId, setBrandId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
 
   // keep brandId in lockstep with auth claims
   useEffect(() => {
@@ -37,6 +40,10 @@ export function useMenuData() {
   }, [user]);
 
   useEffect(() => {
+    if (!mounted) {
+      // on the very first hydration pass, do nothing; wait one tick
+      return;
+    }
     // whenever demo flag OR brandId flips, resubscribe/serve demo
     if (!db) return;
     let unsubProducts: (() => void) | null = null;
@@ -82,7 +89,7 @@ export function useMenuData() {
       unsubProducts?.();
       unsubLocations?.();
     };
-  }, [db, isDemo, brandId]);
+  }, [db, isDemo, brandId, mounted]);
 
   return useMemo(
     () => ({ products, locations, isLoading: loading, isDemo }),
