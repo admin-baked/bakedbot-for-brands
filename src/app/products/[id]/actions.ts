@@ -8,7 +8,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { productConverter } from '@/firebase/converters';
+import type { Product } from '@/lib/types';
 
 
 const FeedbackSchema = z.object({
@@ -26,8 +26,7 @@ const FeedbackSchema = z.object({
 export async function getReviewSummary(productId: string): Promise<SummarizeReviewsOutput | null> {
   try {
     const { firestore } = await createServerClient();
-    const productRef = firestore.collection('products').doc(productId).withConverter(productConverter);
-    const productSnap = await productRef.get();
+    const productSnap = await firestore.collection('products').doc(productId).get();
 
     if (!productSnap.exists) {
         console.error(`Product with ID ${productId} not found for review summary.`);
