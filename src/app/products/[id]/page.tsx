@@ -14,6 +14,7 @@ import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 import Header from '@/app/components/header';
 import { Footer } from '@/app/components/footer';
 import { cookies } from 'next/headers';
+import { makeProductRepo } from '@/server/repos/productRepo';
 
 type Props = {
   params: { id: string }
@@ -30,10 +31,11 @@ const getProduct = async (id: string): Promise<Product | null> => {
 
     try {
         const { firestore } = await createServerClient();
-        const productSnap = await firestore.collection('products').doc(id).get();
+        const productRepo = makeProductRepo(firestore);
+        const product = await productRepo.getById(id);
 
-        if (productSnap.exists) {
-            return { id: productSnap.id, ...productSnap.data() } as Product;
+        if (product) {
+            return product;
         }
         
         // Fallback to demo data if not found in Firestore in live mode
