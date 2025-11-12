@@ -14,7 +14,7 @@ jest.mock('../use-has-mounted');
 
 const mockUseDemoMode = useDemoMode as jest.Mock;
 const mockUseCollection = useCollection as jest.Mock;
-const mockUseHasMounted = useHasMounted as jestMock;
+const mockUseHasMounted = useHasMounted as jest.Mock;
 
 const mockLiveProducts: Product[] = [
   { id: 'live-1', name: 'Live Product 1', category: 'Live', price: 10, prices: {}, imageUrl: '', imageHint: '', description: '' },
@@ -33,9 +33,10 @@ describe('useMenuData', () => {
     // Default mock implementations
     mockUseHasMounted.mockReturnValue(true);
     mockUseDemoMode.mockReturnValue({ isDemo: false, setIsDemo: jest.fn() });
-    mockUseCollection.mockImplementation((query, opts) => {
+    mockUseCollection.mockImplementation((query) => {
         // Distinguish between products and locations queries
-        const path = opts?.debugPath || (query ? query._query.path.canonicalString : '');
+        if (!query) return { data: [], isLoading: false };
+        const path = query._query.path.canonicalString;
         if (path.includes('products')) {
             return { data: mockLiveProducts, isLoading: false };
         }
@@ -76,16 +77,18 @@ describe('useMenuData', () => {
   });
   
   it('should transition from loading to loaded state', () => {
-    const { result, rerender } = renderHook(() => useMenuData(), {
-        initialProps: mockUseCollection.mockReturnValue({ data: null, isLoading: true })
-    });
+    
+    mockUseCollection.mockReturnValue({ data: null, isLoading: true });
+    
+    const { result, rerender } = renderHook(() => useMenuData());
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.products).toEqual([]); // Should be empty array while loading
 
     // Simulate data fetching completion
-    mockUseCollection.mockImplementation((query, opts) => {
-        const path = opts?.debugPath || (query ? query._query.path.canonicalString : '');
+    mockUseCollection.mockImplementation((query) => {
+        if (!query) return { data: [], isLoading: false };
+        const path = query._query.path.canonicalString;
         if (path.includes('products')) {
             return { data: mockLiveProducts, isLoading: false };
         }
