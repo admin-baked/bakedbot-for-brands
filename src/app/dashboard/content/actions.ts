@@ -12,7 +12,7 @@ import {
   type GenerateSocialMediaImageOutput
 } from '@/ai/flows/generate-social-image';
 import {
-  summarizeReviews,
+  runSummarizeReviews as summarizeReviews,
   type SummarizeReviewsInput,
   type SummarizeReviewsOutput,
 } from '@/ai/flows/summarize-reviews';
@@ -171,9 +171,10 @@ export async function summarizeProductReviews(
         throw new Error(`Product with ID ${productId} not found.`);
     }
 
-    // This is a placeholder as brandId is not on the product model.
-    // In a real app, this would be a required field on the product.
-    const brandId = 'bakedbot-brand-id';
+    const productData = productSnap.data();
+
+    // Use the brandId from the product if it exists, otherwise use a placeholder.
+    const brandId = productData?.brandId || 'bakedbot-brand-id'; 
     
     const result = await summarizeReviews({ productId, brandId });
     return {
