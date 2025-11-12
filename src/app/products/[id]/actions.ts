@@ -8,15 +8,6 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { makeProductRepo } from '@/server/repos/productRepo';
 
-const FeedbackSchema = z.object({
-  productId: z.string().min(1),
-  feedbackType: z.enum(['like', 'dislike']),
-});
-
-const ReviewSummaryInputSchema = z.object({
-  productId: z.string().min(1),
-});
-
 /**
  * A server action to safely call the summarizeReviews AI flow from the server.
  * This prevents server-side code from being bundled with the client.
@@ -24,6 +15,10 @@ const ReviewSummaryInputSchema = z.object({
  * @returns The AI-generated summary or null if an error occurs.
  */
 export async function getReviewSummary(input: { productId: string }): Promise<SummarizeReviewsOutput | null> {
+  const ReviewSummaryInputSchema = z.object({
+    productId: z.string().min(1),
+  });
+
   const validatedInput = ReviewSummaryInputSchema.safeParse(input);
   if (!validatedInput.success) {
     console.error("Invalid input for getReviewSummary:", validatedInput.error);
@@ -64,6 +59,11 @@ export async function updateProductFeedback(
   prevState: { message: string; error: boolean } | null,
   formData: FormData
 ): Promise<{ message:string; error: boolean }> {
+  
+  const FeedbackSchema = z.object({
+    productId: z.string().min(1),
+    feedbackType: z.enum(['like', 'dislike']),
+  });
   
   const validatedFields = FeedbackSchema.safeParse({
     productId: formData.get('productId'),
