@@ -8,6 +8,8 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import type { Product } from '@/lib/types';
+import { cookies } from 'next/headers';
+import { demoProducts } from '@/lib/data';
 
 
 const GetProductInputSchema = z.object({
@@ -38,6 +40,30 @@ export const getProduct = ai.defineTool(
   },
   async ({ productId }) => {
     try {
+      const cookieStore = cookies();
+      const isDemo = cookieStore.get('isUsingDemoData')?.value === 'true';
+
+      if (isDemo) {
+        const demoProduct = demoProducts.find(p => p.id === productId) || null;
+        if (!demoProduct) {
+          return null;
+        }
+        // Adapt demo product to the schema
+        return {
+          id: demoProduct.id,
+          name: demoProduct.name,
+          categoryId: demoProduct.category,
+          price: demoProduct.price,
+          description: demoProduct.description,
+          likes: demoProduct.likes ?? 0,
+          dislikes: demoProduct.dislikes ?? 0,
+          imageUrl: demoProduct.imageUrl,
+          imageHint: demoProduct.imageHint,
+          prices: demoProduct.prices,
+        };
+      }
+
+
       const { firestore } = await createServerClient();
       const productRef = firestore.doc(`products/${productId}`);
       const productSnap = await productRef.get();
