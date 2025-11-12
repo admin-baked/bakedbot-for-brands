@@ -1,4 +1,6 @@
 
+'use server';
+
 /**
  * @fileOverview An AI flow that summarizes customer reviews for a product.
  *
@@ -18,7 +20,7 @@ export const SummarizeReviewsInputSchema = z.object({
 }).strict();
 export type SummarizeReviewsInput = z.infer<typeof SummarizeReviewsInputSchema>;
 
-const SummarizeReviewsOutputSchema = z.object({
+export const SummarizeReviewsOutputSchema = z.object({
   summary: z.string().describe('A concise, engaging summary of the customer reviews.'),
   pros: z.array(z.string()).describe('A list of common positive points mentioned in the reviews.'),
   cons: z.array(z.string()).describe('A list of common negative points mentioned in the reviews.'),
