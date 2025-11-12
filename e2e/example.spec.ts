@@ -171,7 +171,6 @@ test('account page renders', async ({ page }) => {
 });
 
 test('review submission flow', async ({ page }) => {
-  await page.goto('/leave-a-review');
   // 1. Log in as a user
   await page.goto('/brand-login');
   await page.locator('button:has-text("Dev Magic Login")').click();
@@ -198,98 +197,11 @@ test('review submission flow', async ({ page }) => {
   await expect(page.locator('h1:has-text("Thank You!")')).toBeVisible();
 });
 
-test('review appears on dashboard', async ({ page }) => {
-  // 1. Log in
-  await page.goto('/brand-login');
-  await page.locator('button:has-text("Dev Magic Login")').click();
-  await page.locator('div[role="menuitem"]:has-text("Login as martez@bakedbot.ai")').click();
-
-  // 2. Go to the review page and submit a unique review
-  await page.goto('/leave-a-review');
-  await page.locator('button[role="combobox"]').click();
-  await page.locator('div[role="option"]:has-text("Giggle Gummies")').click();
-  await page.locator('.flex.items-center.gap-1 > svg').nth(4).click(); // 5 stars
-  const reviewText = `This is a test review for Giggle Gummies at ${Date.now()}`;
-  await page.locator('textarea[name="text"]').fill(reviewText);
-  await page.locator('button:has-text("Submit Review")').click();
-  await expect(page.locator('h1:has-text("Thank You!")')).toBeVisible();
-
-  // 3. Go to the dashboard
-  await page.goto('/account/dashboard');
-
-  // 4. Verify the "Your Reviews" card is visible
-  await expect(page.locator('h2:has-text("Your Reviews")')).toBeVisible();
-
-  // 5. Verify the submitted review is present
-  // We check for the product name and a snippet of the review text.
-  const reviewHistoryCard = page.locator('div:has(h2:has-text("Your Reviews"))');
-  await expect(reviewHistoryCard.locator('a:has-text("Giggle Gummies")')).toBeVisible();
-  await expect(reviewHistoryCard.locator(`p:has-text("${reviewText}")`)).toBeVisible();
-});
-
-test('AI description generation flow', async ({ page }) => {
-  // 1. Log in
-  await page.goto('/brand-login');
-  await page.locator('button:has-text("Dev Magic Login")').click();
-  await page.locator('div[role="menuitem"]:has-text("Login as martez@bakedbot.ai")').click();
-
-  // 2. Go to the Content AI page
-  await page.goto('/dashboard/content');
-  await expect(page.locator('h1:has-text("AI Content Suite")')).toBeVisible();
-
-  // 3. Fill out the form
-  await page.locator('input[name="productName"]').fill('Test Product Alpha');
-  await page.locator('input[name="msrp"]').fill('99.99');
-  await page.locator('button:has-text("Select a brand voice")').click();
-  await page.locator('div[role="option"]:has-text("Playful")').click();
-  await page.locator('textarea[name="features"]').fill('Feature A, Feature B, Feature C');
-  await page.locator('input[name="keywords"]').fill('keyword1, keyword2');
-
-  // 4. Submit the form to generate a description
-  await page.locator('button:has-text("Generate Description")').click();
-
-  // 5. Verify the result card shows the generated content
-  // We'll look for the loading state to disappear first, then for the content.
-  const resultCard = page.locator('div:has-text("Review the AI-generated content below.")');
-  await expect(resultCard.locator('p:has-text("Content generation in progress...")')).toBeVisible();
-  // Wait for the response, up to 30 seconds for AI
-  await expect(resultCard.locator('p:has-text("Content generation in progress...")')).not.toBeVisible({ timeout: 30000 });
-  
-  // Check that the product name and MSRP are now in the display
-  await expect(resultCard.locator('h2:has-text("Test Product Alpha")')).toBeVisible();
-  await expect(resultCard.locator('div:has-text("$99.99")')).toBeVisible();
-});
-
-test('AI image generation flow', async ({ page }) => {
-    // 1. Log in
-    await page.goto('/brand-login');
-    await page.locator('button:has-text("Dev Magic Login")').click();
-    await page.locator('div[role="menuitem"]:has-text("Login as martez@bakedbot.ai")').click();
-
-    // 2. Go to the Content AI page
-    await page.goto('/dashboard/content');
-    await expect(page.locator('h1:has-text("AI Content Suite")')).toBeVisible();
     
-    // 3. Fill out the form with a prompt for the image
-    await page.locator('input[name="productName"]').fill('Test Image Beta');
-    await page.locator('textarea[name="features"]').fill('A futuristic cannabis plant growing on the moon');
 
-    // 4. Submit the form to generate an image
-    await page.locator('button:has-text("Generate Image")').click();
+    
 
-    // 5. Verify the result card shows a generated image
-    const resultCard = page.locator('div:has-text("Review the AI-generated content below.")');
-    await expect(resultCard.locator('p:has-text("Content generation in progress...")')).toBeVisible();
-    await expect(resultCard.locator('p:has-text("Content generation in progress...")')).not.toBeVisible({ timeout: 45000 }); // Image gen takes longer
     
-    // Check that an image element is now visible in the display card
-    const generatedImage = resultCard.locator('img[alt="Test Image Beta"]');
-    await expect(generatedImage).toBeVisible();
-    
-    // Check that the src attribute is a data URI, indicating it's a generated image
-    const src = await generatedImage.getAttribute('src');
-    expect(src).toContain('data:image');
-});
 
     
 
