@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
@@ -22,6 +21,8 @@ import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { orderConverter, reviewConverter, interactionConverter } from '@/firebase/converters';
+import { useDemoMode } from '@/context/demo-mode';
+import { demoCustomer } from '@/lib/data';
 
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; value: string | number; icon: React.ElementType; isLoading: boolean }) {
@@ -43,7 +44,7 @@ function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; va
 }
 
 export default function DashboardClient() {
-    const { isDemo, isLoading: isMenuLoading } = useMenuData();
+    const { isDemo, setIsDemo } = useDemoMode();
     const { favoriteLocationId, setFavoriteLocationId: setStoreFavoriteId } = useStore();
     const { user, isUserLoading } = useUser();
     const firebase = useFirebase();
@@ -54,43 +55,45 @@ export default function DashboardClient() {
 
     // Set up queries for user-specific data
     const ordersQuery = useMemo(() => {
-        if (!user || !firestore) return null;
+        if (isDemo || !user || !firestore) return null;
         const baseQuery = collection(firestore, 'orders').withConverter(orderConverter);
         return query(baseQuery, where('userId', '==', user.uid));
-    }, [user, firestore]);
+    }, [isDemo, user, firestore]);
     
     const reviewsQuery = useMemo(() => {
-        if (!user || !firestore) return null;
+        if (isDemo || !user || !firestore) return null;
         const baseQuery = collectionGroup(firestore, 'reviews').withConverter(reviewConverter);
         return query(baseQuery, where('userId', '==', user.uid));
-    }, [user, firestore]);
+    }, [isDemo, user, firestore]);
 
     const interactionsQuery = useMemo(() => {
-        if (!user || !firestore) return null;
+        if (isDemo || !user || !firestore) return null;
         const baseQuery = collection(firestore, `users/${user.uid}/interactions`).withConverter(interactionConverter);
         return query(baseQuery);
-    }, [user, firestore]);
+    }, [isDemo, user, firestore]);
 
     // Fetch live data using the queries
     const { data: liveOrders, isLoading: areOrdersLoading } = useCollection<OrderDoc>(ordersQuery);
     const { data: liveReviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery); 
     const { data: liveInteractions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(interactionsQuery);
 
-    const isLoading = isMenuLoading || isUserLoading || areOrdersLoading || areReviewsLoading || areInteractionsLoading;
+    const isLoading = isUserLoading || (!isDemo && (areOrdersLoading || areReviewsLoading || areInteractionsLoading));
 
      useEffect(() => {
-        if (!isUserLoading && !isDemo && user && firestore) {
+        if (isDemo) {
+            const demoFavoriteId = demoCustomer.favoriteLocationId;
+            setCurrentFavoriteId(demoFavoriteId);
+            setStoreFavoriteId(demoFavoriteId);
+            return;
+        }
+
+        if (!isUserLoading && user && firestore) {
             const unsub = onSnapshot(doc(firestore, 'users', user.uid), (doc) => {
                 const favId = doc.data()?.favoriteLocationId || null;
                 setCurrentFavoriteId(favId);
                 setStoreFavoriteId(favId);
             });
             return () => unsub();
-        } else if (!isUserLoading && isDemo) {
-            // In demo mode, we can just use a static ID or null
-            const demoFavoriteId = '1';
-            setCurrentFavoriteId(demoFavoriteId);
-            setStoreFavoriteId(demoFavoriteId);
         }
     }, [isDemo, user, firestore, setStoreFavoriteId, isUserLoading]);
 
@@ -129,10 +132,10 @@ export default function DashboardClient() {
     };
 
     const stats = useMemo(() => {
-        if (isLoading) return { chatbotInteractions: 0, productsRecommended: 0, reviewsSubmitted: 0 };
+        if (isLoading && !isDemo) return { chatbotInteractions: 0, productsRecommended: 0, reviewsSubmitted: 0 };
         
-        const interactions = isDemo ? [] : liveInteractions;
-        const reviews = isDemo ? [] : liveReviews;
+        const interactions = isDemo ? demoCustomer.interactions : liveInteractions;
+        const reviews = isDemo ? demoCustomer.reviews : liveReviews;
 
         return {
             chatbotInteractions: interactions?.length || 0,
@@ -141,8 +144,9 @@ export default function DashboardClient() {
         };
     }, [isLoading, isDemo, liveInteractions, liveReviews]);
 
-    const orders = isDemo ? [] : liveOrders;
-    const reviews = isDemo ? [] : liveReviews;
+    const orders = (isDemo ? demoCustomer.orders : liveOrders) as OrderDoc[] | null;
+    const reviews = (isDemo ? demoCustomer.reviews : liveReviews) as Review[] | null;
+
 
     return (
         <div className="flex min-h-screen flex-col">
@@ -152,7 +156,7 @@ export default function DashboardClient() {
                      <div className="mb-8">
                         <h1 className="text-3xl font-bold tracking-tight">My Dashboard</h1>
                         <p className="text-muted-foreground">
-                            {isDemo ? "Here's a sample of your activity and contributions." : "Here's a summary of your activity and contributions."}
+                            Here's a summary of your activity and contributions.
                         </p>
                     </div>
 

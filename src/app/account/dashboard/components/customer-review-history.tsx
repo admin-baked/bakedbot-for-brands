@@ -3,13 +3,13 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star } from 'lucide-react';
-import type { Review } from '@/firebase/converters';
+import type { Review } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useMenuData } from '@/hooks/use-menu-data';
 
 interface CustomerReviewHistoryProps {
-  reviews: Review[] | null;
+  reviews: Partial<Review>[] | null;
   isLoading: boolean;
 }
 
@@ -27,7 +27,8 @@ const StarRating = ({ rating }: { rating: number }) => (
 export default function CustomerReviewHistory({ reviews, isLoading }: CustomerReviewHistoryProps) {
   const { products } = useMenuData();
 
-  const getProductName = (productId: string) => {
+  const getProductName = (productId?: string) => {
+    if (!productId) return 'Unknown Product';
     return products.find(p => p.id === productId)?.name || 'Unknown Product';
   }
 
@@ -57,7 +58,7 @@ export default function CustomerReviewHistory({ reviews, isLoading }: CustomerRe
                          <Link href={`/products/${review.productId}`} className="font-medium hover:underline text-sm">
                             {getProductName(review.productId)}
                         </Link>
-                        <StarRating rating={review.rating} />
+                        <StarRating rating={review.rating || 0} />
                     </div>
                     <p className="text-sm text-muted-foreground truncate">"{review.text}"</p>
                  </div>

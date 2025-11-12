@@ -6,17 +6,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Package } from 'lucide-react';
-import type { OrderDoc } from '@/firebase/converters';
+import type { OrderDoc } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Timestamp } from 'firebase/firestore';
+
 
 interface CustomerOrderHistoryProps {
-  orders: OrderDoc[] | null;
+  orders: Partial<OrderDoc>[] | null;
   isLoading: boolean;
 }
 
-const getStatusClass = (status: string) => {
+const getStatusClass = (status?: string) => {
+    if (!status) return 'bg-gray-500/20 text-gray-700';
     switch (status) {
         case 'pending': return 'bg-yellow-500/20 text-yellow-700';
         case 'confirmed': return 'bg-blue-500/20 text-blue-700';
@@ -62,12 +65,12 @@ export default function CustomerOrderHistory({ orders, isLoading }: CustomerOrde
                   <TableRow key={order.id}>
                     <TableCell>
                         <Link href={`/order-confirmation/${order.id}`} className="font-mono text-xs text-primary hover:underline">
-                            #{order.id.substring(0, 7)}...
+                            #{order.id?.substring(0, 7)}...
                         </Link>
                     </TableCell>
-                    <TableCell>{order.createdAt.toDate().toLocaleDateString()}</TableCell>
-                    <TableCell><Badge className={cn("capitalize", getStatusClass(order.status))}>{order.status}</Badge></TableCell>
-                    <TableCell className="text-right">${order.totals.total.toFixed(2)}</TableCell>
+                    <TableCell>{order.createdAt instanceof Timestamp ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell><Badge className={cn("capitalize", getStatusClass(order.status))}>{order.status || 'Unknown'}</Badge></TableCell>
+                    <TableCell className="text-right">${order.totals?.total.toFixed(2) || '0.00'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
