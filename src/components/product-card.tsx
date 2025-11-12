@@ -47,6 +47,10 @@ export function ProductCard({ product }: { product: Product }) {
       const locator = document.getElementById('locator');
       if (locator) {
         locator.scrollIntoView({ behavior: 'smooth' });
+        locator.classList.add('animate-pulse', 'ring-2', 'ring-primary', 'rounded-lg');
+        setTimeout(() => {
+            locator.classList.remove('animate-pulse', 'ring-2', 'ring-primary', 'rounded-lg');
+        }, 2000);
       }
       toast({
         variant: 'destructive',
@@ -101,8 +105,7 @@ export function ProductCard({ product }: { product: Product }) {
           </span>
           <Button
             onClick={handleAddToCart}
-            disabled={!selectedLocationId}
-            variant={selectedLocationId ? 'default' : 'secondary'}
+            size="sm"
             title={!selectedLocationId ? 'Select a location first' : 'Add to cart'}
           >
             Add
