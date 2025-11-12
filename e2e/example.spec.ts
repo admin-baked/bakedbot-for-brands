@@ -50,6 +50,20 @@ test('rishabh login flow', async ({ page }) => {
   await expect(page.locator('strong', { hasText: 'rishabh@bakedbot.ai' })).toBeVisible();
 });
 
+test('dispensary login flow', async ({ page }) => {
+    await page.goto('/dispensary-login');
+
+    // Click the "Dev Magic Login" button
+    await page.locator('button', { hasText: 'Dev Magic Button (dispensary@bakedbot.ai)' }).click();
+
+    // Expect the "Check Your Inbox!" card to be visible
+    await expect(page.locator('h2', { hasText: 'Check Your Inbox!' })).toBeVisible();
+
+    // Expect the email address to be displayed
+    await expect(page.locator('strong', { hasText: 'dispensary@bakedbot.ai' })).toBeVisible();
+});
+
+
 test('demo mode toggle', async ({ page }) => {
   await page.goto('/');
 
