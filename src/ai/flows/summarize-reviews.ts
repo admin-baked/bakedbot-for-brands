@@ -1,5 +1,4 @@
 
-'use server';
 /**
  * @fileOverview An AI flow that summarizes customer reviews for a product.
  *
@@ -26,12 +25,6 @@ const SummarizeReviewsOutputSchema = z.object({
   reviewCount: z.number().describe('The total number of reviews analyzed.'),
 });
 export type SummarizeReviewsOutput = z.infer<typeof SummarizeReviewsOutputSchema>;
-
-export async function summarizeReviews(input: SummarizeReviewsInput): Promise<SummarizeReviewsOutput | null> {
-  const result = await summarizeReviewsFlow(input);
-  // Ensure we return null if the output is nullish, matching the updated return type
-  return result ?? null;
-}
 
 const prompt = ai.definePrompt(
   {
@@ -94,3 +87,9 @@ const summarizeReviewsFlow = ai.defineFlow(
     return output;
   }
 );
+
+export async function summarizeReviews(input: SummarizeReviewsInput): Promise<SummarizeReviewsOutput | null> {
+  const result = await summarizeReviewsFlow(input);
+  // Ensure we return null if the output is nullish, matching the updated return type
+  return result ?? null;
+}
