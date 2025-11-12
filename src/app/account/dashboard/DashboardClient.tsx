@@ -14,7 +14,7 @@ import CustomerUploads from './components/customer-uploads';
 import FavoriteLocation from './components/favorite-location';
 import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { collection, query, where, doc, updateDoc, onSnapshot, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, doc, setDoc, onSnapshot, collectionGroup } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useFirebase } from '@/firebase/provider';
@@ -106,7 +106,8 @@ export default function DashboardClient() {
             const userDocRef = doc(firestore, 'users', user.uid);
             const favoriteData = { favoriteLocationId: locationId };
             
-            updateDoc(userDocRef, favoriteData)
+            // Use setDoc with merge: true to handle both creation and updates
+            setDoc(userDocRef, favoriteData, { merge: true })
                 .then(() => {
                     setStoreFavoriteId(locationId);
                     toast({ title: 'Favorite location updated!' });
@@ -118,7 +119,7 @@ export default function DashboardClient() {
                     
                     const permissionError = new FirestorePermissionError({
                         path: userDocRef.path,
-                        operation: 'update',
+                        operation: 'write', // Use 'write' for set with merge
                         requestResourceData: favoriteData,
                       });
               
