@@ -49,3 +49,28 @@ test('rishabh login flow', async ({ page }) => {
   // Expect the email address to be displayed
   await expect(page.locator('strong', { hasText: 'rishabh@bakedbot.ai' })).toBeVisible();
 });
+
+test('demo mode toggle', async ({ page }) => {
+  await page.goto('/');
+
+  // 1. Initial state check (Live data: Cosmic Caramels)
+  await expect(page.locator('h3', { hasText: 'Cosmic Caramels' })).toBeVisible();
+  await expect(page.locator('h3', { hasText: 'OG Galaxy' })).not.toBeVisible();
+
+  // 2. Find and click the demo mode switch
+  const demoModeSwitch = page.locator('#demo-mode-switch');
+  await demoModeSwitch.click();
+
+  // 3. Verify demo product is now visible
+  await expect(page.locator('h3', { hasText: 'OG Galaxy' })).toBeVisible();
+
+  // 4. Verify live product is now hidden
+  await expect(page.locator('h3', { hasText: 'Cosmic Caramels' })).not.toBeVisible();
+
+  // 5. Toggle back to live mode
+  await demoModeSwitch.click();
+
+  // 6. Verify live data is back
+  await expect(page.locator('h3', { hasText: 'Cosmic Caramels' })).toBeVisible();
+  await expect(page.locator('h3', { hasText: 'OG Galaxy' })).not.toBeVisible();
+});

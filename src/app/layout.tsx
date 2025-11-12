@@ -7,6 +7,7 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { CartProvider } from '@/hooks/use-cart';
 import { ThemeProvider } from '@/components/theme-provider';
 import { CartSheet } from '@/components/cart-sheet';
+import { DemoModeProvider } from '@/context/demo-mode';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -25,13 +26,15 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider>
-          <FirebaseClientProvider>
-            <CartProvider>
-              {children}
-              <CartSheet />
-              <Toaster />
-            </CartProvider>
-          </FirebaseClientProvider>
+          <DemoModeProvider>
+            <FirebaseClientProvider>
+              <CartProvider>
+                {children}
+                <CartSheet />
+                <Toaster />
+              </CartProvider>
+            </FirebaseClientProvider>
+          </DemoModeProvider>
         </ThemeProvider>
       </body>
     </html>
