@@ -4,7 +4,6 @@
 import { ProductCard } from './product-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { useStore } from '@/hooks/use-store';
 import { Database } from 'lucide-react';
 import Link from 'next/link';
 
@@ -28,8 +27,7 @@ const ProductSkeleton = () => (
 
 
 export function ProductGrid() {
-  const { products, isLoading } = useMenuData();
-  const { isUsingDemoData } = useStore();
+  const { products, isLoading, isDemo } = useMenuData();
   
   if (isLoading) {
     return (
@@ -47,13 +45,13 @@ export function ProductGrid() {
         <Database className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No Products Found</h3>
         <p className="mt-2 text-sm text-muted-foreground">
-            {isUsingDemoData 
+            {isDemo 
                 ? "There are no products in the demo data set."
                 : "Your live product catalog is empty."
             }
         </p>
          <p className="mt-1 text-sm text-muted-foreground">
-             {isUsingDemoData
+             {isDemo
                 ? "Check your demo data source."
                 : <>You can switch to Demo Mode or <Link href="/dashboard/settings" className="text-primary underline">import your products</Link> in the dashboard.</>
             }
