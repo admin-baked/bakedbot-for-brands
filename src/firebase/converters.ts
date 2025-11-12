@@ -5,7 +5,7 @@ import {
   SnapshotOptions,
   Timestamp,
 } from "firebase/firestore";
-import type { Product } from '@/lib/types';
+import type { Product, Location } from '@/lib/types';
 
 
 // ---- Domain types (adjust fields to your actual schema) ----
@@ -70,3 +70,24 @@ export const productConverter = makeConverter<Product>();
 export const orderConverter = makeConverter<OrderDoc>();
 export const reviewConverter = makeConverter<Review>();
 export const interactionConverter = makeConverter<UserInteraction>();
+export const locationConverter: FirestoreDataConverter<Location> = {
+  toFirestore(loc: Location) {
+    const { id, ...rest } = loc;
+    return rest;
+  },
+  fromFirestore(snapshot: QueryDocumentSnapshot, _opts: SnapshotOptions): Location {
+    const d = snapshot.data();
+    return {
+      id: snapshot.id,
+      name: d.name ?? '',
+      address: d.address ?? '',
+      city: d.city ?? '',
+      state: d.state ?? '',
+      zip: d.zip ?? '',
+      phone: d.phone,
+      email: d.email,
+      lat: d.lat,
+      lon: d.lon,
+    };
+  },
+};
