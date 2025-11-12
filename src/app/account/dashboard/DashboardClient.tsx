@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
@@ -23,6 +24,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { orderConverter, reviewConverter, interactionConverter } from '@/firebase/converters';
 import { useDemoMode } from '@/context/demo-mode';
 import { demoCustomer } from '@/lib/data';
+import type { DeepPartial } from '@/types/utils';
 
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; value: string | number; icon: React.ElementType; isLoading: boolean }) {
@@ -144,7 +146,7 @@ export default function DashboardClient() {
         };
     }, [isLoading, isDemo, liveInteractions, liveReviews]);
 
-    const orders = (isDemo ? demoCustomer.orders : liveOrders) as OrderDoc[] | null;
+    const orders = (isDemo ? demoCustomer.orders : liveOrders) as DeepPartial<OrderDoc>[] | null;
     const reviews = (isDemo ? demoCustomer.reviews : liveReviews) as Review[] | null;
 
 
