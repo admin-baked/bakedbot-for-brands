@@ -105,8 +105,7 @@ export function ProductCard({ product }: { product: Product }) {
             variant={selectedLocationId ? 'default' : 'secondary'}
             title={!selectedLocationId ? 'Select a location first' : 'Add to cart'}
           >
-            <ShoppingCart className="h-4 w-4" />
-            <span className="hidden sm:inline ml-2">Add</span>
+            Add
           </Button>
         </div>
       </div>
