@@ -12,7 +12,7 @@ import {
   type GenerateSocialMediaImageOutput
 } from '@/ai/flows/generate-social-image';
 import {
-  runSummarizeReviews as summarizeReviews,
+  summarizeReviews,
   type SummarizeReviewsInput,
   type SummarizeReviewsOutput,
 } from '@/ai/flows/summarize-reviews';

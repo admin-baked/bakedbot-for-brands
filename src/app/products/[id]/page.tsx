@@ -1,5 +1,6 @@
 
 
+
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -99,7 +100,7 @@ export default async function ProductPage({ params }: Props) {
     }
     
     // Fetch the review summary using the new server action
-    const summary = await getReviewSummary(product.id);
+    const summary = await getReviewSummary({ productId: product.id });
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
