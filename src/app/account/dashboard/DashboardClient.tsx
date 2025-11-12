@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
@@ -42,7 +43,7 @@ function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; va
 }
 
 export default function DashboardClient() {
-    const { isUsingDemoData, isLoading: isMenuLoading } = useMenuData();
+    const { isDemo, isLoading: isMenuLoading } = useMenuData();
     const { favoriteLocationId, setFavoriteLocationId: setStoreFavoriteId } = useStore();
     const { user, isUserLoading } = useUser();
     const firebase = useFirebase();
@@ -78,25 +79,25 @@ export default function DashboardClient() {
     const isLoading = isMenuLoading || isUserLoading || areOrdersLoading || areReviewsLoading || areInteractionsLoading;
 
      useEffect(() => {
-        if (!isUserLoading && !isUsingDemoData && user && firestore) {
+        if (!isUserLoading && !isDemo && user && firestore) {
             const unsub = onSnapshot(doc(firestore, 'users', user.uid), (doc) => {
                 const favId = doc.data()?.favoriteLocationId || null;
                 setCurrentFavoriteId(favId);
                 setStoreFavoriteId(favId);
             });
             return () => unsub();
-        } else if (!isUserLoading && isUsingDemoData) {
+        } else if (!isUserLoading && isDemo) {
             // In demo mode, we can just use a static ID or null
             const demoFavoriteId = '1';
             setCurrentFavoriteId(demoFavoriteId);
             setStoreFavoriteId(demoFavoriteId);
         }
-    }, [isUsingDemoData, user, firestore, setStoreFavoriteId, isUserLoading]);
+    }, [isDemo, user, firestore, setStoreFavoriteId, isUserLoading]);
 
 
     const handleSetFavorite = async (locationId: string | null) => {
         setCurrentFavoriteId(locationId); // Optimistic UI update
-        if (isUsingDemoData) {
+        if (isDemo) {
              toast({ title: "Favorites are disabled in Demo Mode."});
              return;
         }
@@ -129,18 +130,18 @@ export default function DashboardClient() {
     const stats = useMemo(() => {
         if (isLoading) return { chatbotInteractions: 0, productsRecommended: 0, reviewsSubmitted: 0 };
         
-        const interactions = isUsingDemoData ? [] : liveInteractions;
-        const reviews = isUsingDemoData ? [] : liveReviews;
+        const interactions = isDemo ? [] : liveInteractions;
+        const reviews = isDemo ? [] : liveReviews;
 
         return {
             chatbotInteractions: interactions?.length || 0,
             productsRecommended: interactions?.reduce((acc, i) => acc + (i.recommendedProductIds?.length || 0), 0) || 0,
             reviewsSubmitted: reviews?.length || 0,
         };
-    }, [isLoading, isUsingDemoData, liveInteractions, liveReviews]);
+    }, [isLoading, isDemo, liveInteractions, liveReviews]);
 
-    const orders = isUsingDemoData ? [] : liveOrders;
-    const reviews = isUsingDemoData ? [] : liveReviews;
+    const orders = isDemo ? [] : liveOrders;
+    const reviews = isDemo ? [] : liveReviews;
 
     return (
         <div className="flex min-h-screen flex-col">
@@ -150,7 +151,7 @@ export default function DashboardClient() {
                      <div className="mb-8">
                         <h1 className="text-3xl font-bold tracking-tight">My Dashboard</h1>
                         <p className="text-muted-foreground">
-                            {isUsingDemoData ? "Here's a sample of your activity and contributions." : "Here's a summary of your activity and contributions."}
+                            {isDemo ? "Here's a sample of your activity and contributions." : "Here's a summary of your activity and contributions."}
                         </p>
                     </div>
 

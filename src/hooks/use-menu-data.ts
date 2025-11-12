@@ -10,8 +10,15 @@ import { useUser } from '@/firebase/auth/use-user';
 import { useDemoMode } from '@/context/demo-mode';
 import { DEMO_PRODUCTS, DEMO_LOCATIONS } from '@/demo/demo-data';
 
-export function useMenuData() {
-  const { isDemo } = useDemoMode();
+export type UseMenuDataResult = {
+  products: Product[];
+  locations: Location[];
+  isLoading: boolean;
+  isDemo: boolean;
+};
+
+export function useMenuData(): UseMenuDataResult {
+  const { isDemo, mounted } = useDemoMode();
   const { user } = useUser();
   const fb = useFirebase();
   const db = fb?.firestore;
@@ -20,9 +27,6 @@ export function useMenuData() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [brandId, setBrandId] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
 
   // keep brandId in lockstep with auth claims
   useEffect(() => {
