@@ -1,7 +1,8 @@
+
 'use client';
 
 import Link from 'next/link';
-import { Search, ShoppingBag, TestTube2, User, LogOut } from 'lucide-react';
+import { Search, ShoppingBag, TestTube2, User, LogOut, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/use-cart';
 import { cn } from '@/lib/utils';
@@ -156,6 +157,49 @@ export default function Header() {
                                 </Button>
                             </>
                         ) : null}
+                    </div>
+
+                    {/* Mobile Menu */}
+                    <div className="md:hidden">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                    <Menu className="h-5 w-5" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                {navLinks.map(link => (
+                                     <DropdownMenuItem key={link.href} onClick={() => router.push(link.href)}>
+                                        {link.label}
+                                     </DropdownMenuItem>
+                                ))}
+                                <DropdownMenuSeparator />
+                                {hydrated && user ? (
+                                    <>
+                                        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                                        <DropdownMenuItem onClick={() => router.push('/account/dashboard')}>Dashboard</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push('/account')}>Account Details</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
+                                    </>
+                                ) : hydrated && !user ? (
+                                    <>
+                                        <DropdownMenuItem onClick={() => router.push('/brand-login')}>Login</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push('/onboarding')}>Get Started</DropdownMenuItem>
+                                    </>
+                                ) : null}
+                                <DropdownMenuSeparator />
+                                <div className="p-2">
+                                     <div className="flex items-center justify-between gap-2">
+                                        <Label htmlFor="demo-mode-switch-mobile" className="text-sm font-medium">Demo</Label>
+                                        <Switch
+                                            id="demo-mode-switch-mobile"
+                                            checked={isDemo}
+                                            onCheckedChange={setIsDemo}
+                                        />
+                                    </div>
+                                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
             </div>
