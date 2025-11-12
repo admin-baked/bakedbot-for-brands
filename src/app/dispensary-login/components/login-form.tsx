@@ -177,11 +177,12 @@ export default function DispensaryLoginForm() {
                             <span className="bg-background px-2 text-muted-foreground">Or with magic link</span>
                         </div>
                     </div>
-                    <form onSubmit={(e) => handleMagicLinkSignIn(e, email)} className="space-y-4">
+                    <form name="dispensary-login-form" onSubmit={(e) => handleMagicLinkSignIn(e, email)} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Email Address</Label>
                             <Input
                                 id="email"
+                                name="email"
                                 type="email"
                                 placeholder="name@dispensary.com"
                                 value={email}
@@ -206,7 +207,7 @@ export default function DispensaryLoginForm() {
                             </div>
                         </div>
                         <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'dispensary@bakedbot.ai')}>
-                           Dev Magic Button (dispensary@bakedbot.ai)
+                           Login as dispensary@bakedbot.ai
                         </Button>
                     </CardFooter>
                 )}

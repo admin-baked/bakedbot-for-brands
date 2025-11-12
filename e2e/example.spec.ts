@@ -44,8 +44,9 @@ test('martez login flow', async ({ page }) => {
 test('dispensary login flow', async ({ page }) => {
     await page.goto('/dispensary-login');
 
-    // Click the "Dev Magic Button" to log in
-    await page.locator('button', { hasText: 'Dev Magic Button (dispensary@bakedbot.ai)' }).click();
+    // Fill in the email and click the magic link button
+    await page.fill('input[name="email"]', 'dispensary@bakedbot.ai');
+    await page.locator('button', { hasText: 'Send Magic Link' }).click();
 
     // Expect the "Check Your Inbox!" card to be visible
     await expect(page.locator('h2', { hasText: 'Check Your Inbox!' })).toBeVisible();
