@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI flow that summarizes customer reviews for a product.
@@ -10,10 +11,11 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getProductReviews } from '../tools/get-product-reviews';
+import { getProduct } from '../tools/get-product';
 
 const SummarizeReviewsInputSchema = z.object({
   productId: z.string().describe('The unique ID of the product whose reviews should be summarized.'),
-  productName: z.string().describe('The name of the product.'),
+  brandId: z.string().describe('The unique ID of the brand that owns the product.'),
 });
 export type SummarizeReviewsInput = z.infer<typeof SummarizeReviewsInputSchema>;
 
@@ -63,14 +65,15 @@ const summarizeReviewsFlow = ai.defineFlow(
     inputSchema: SummarizeReviewsInputSchema,
     outputSchema: SummarizeReviewsOutputSchema,
   },
-  async (input) => {
+  async ({ productId, brandId }) => {
     // Step 1: Call the tool to get the raw review data.
-    const reviews = await getProductReviews(input);
+    const reviews = await getProductReviews({ productId, brandId });
+    const product = await getProduct({ productId });
     
     // Step 2: If there are no reviews, return a default response.
     if (reviews.length === 0) {
       return {
-        summary: `There are no reviews for ${input.productName} yet. You could be the first to share your experience!`,
+        summary: `There are no reviews for ${product?.name || 'this product'} yet. You could be the first to share your experience!`,
         pros: [],
         cons: [],
         reviewCount: 0,
@@ -79,7 +82,7 @@ const summarizeReviewsFlow = ai.defineFlow(
     
     // Step 3: Pass the reviews to the AI prompt for summarization.
     const { output } = await prompt({
-        productName: input.productName,
+        productName: product?.name || 'this product',
         reviews: reviews,
     });
     
