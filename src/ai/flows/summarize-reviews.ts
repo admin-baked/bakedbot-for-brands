@@ -1,6 +1,3 @@
-
-'use server';
-
 /**
  * @fileOverview An AI flow that summarizes customer reviews for a product.
  *
@@ -83,14 +80,14 @@ const summarizeReviewsFlow = ai.defineFlow(
     // Step 3: Pass the reviews to the AI prompt for summarization.
     const { output } = await prompt({
         productName: product?.name || 'this product',
-        reviews: reviews,
+        reviews: reviews.map(r => r.text),
     });
     
     return output;
   }
 );
 
-export async function summarizeReviews(input: SummarizeReviewsInput): Promise<SummarizeReviewsOutput | null> {
+export async function runSummarizeReviews(input: SummarizeReviewsInput): Promise<SummarizeReviewsOutput | null> {
   const result = await summarizeReviewsFlow(input);
   // Ensure we return null if the output is nullish, matching the updated return type
   return result ?? null;

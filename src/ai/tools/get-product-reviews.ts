@@ -7,14 +7,21 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
+import type { Review } from '@/firebase/converters';
 
 const GetProductReviewsInputSchema = z.object({
   productId: z.string().describe('The unique ID of the product for which to retrieve reviews.'),
   brandId: z.string().describe('The unique ID of the brand that owns the product.'),
 });
 
+// Define a schema for the review text and rating
+const ReviewSchema = z.object({
+  text: z.string(),
+  rating: z.number(),
+});
+
 // We'll return a simple array of strings for the LLM to process easily.
-const GetProductReviewsOutputSchema = z.array(z.string());
+const GetProductReviewsOutputSchema = z.array(ReviewSchema);
 
 export const getProductReviews = ai.defineTool(
   {
@@ -40,13 +47,16 @@ export const getProductReviews = ai.defineTool(
         return [];
       }
 
-      const reviewTexts = querySnapshot.docs.map(doc => {
+      const reviews = querySnapshot.docs.map(doc => {
         const data = doc.data();
         // Assuming 'text' and 'rating' fields exist on the review document.
-        return `Rating: ${data.rating}/5 - "${data.text}"`;
+        return {
+            text: data.text,
+            rating: data.rating
+        };
       });
       
-      return reviewTexts;
+      return reviews;
 
     } catch (error) {
       console.error('Error fetching product reviews:', error);
