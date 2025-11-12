@@ -2,11 +2,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import { productConverter } from '@/firebase/converters';
 import type { Product, Location } from '@/lib/types';
-import { useUser } from '@/firebase/auth/use-user';
 import { useDemoMode } from '@/context/demo-mode';
 import { demoProducts, demoLocations } from '@/lib/data';
 import { useHasMounted } from './use-has-mounted';
@@ -18,7 +17,6 @@ export type UseMenuDataResult = {
   locations: Location[];
   isLoading: boolean;
   isDemo: boolean;
-  isUsingDemoData: boolean; // Alias for backward compatibility
 };
 
 export function useMenuData(): UseMenuDataResult {
@@ -55,6 +53,5 @@ export function useMenuData(): UseMenuDataResult {
     locations,
     isLoading,
     isDemo,
-    isUsingDemoData: isDemo, // Alias for backward compatibility
   };
 }
