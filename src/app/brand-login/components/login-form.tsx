@@ -108,12 +108,9 @@ function LoginFormContent() {
         setIsMagicLinkLoading(true);
         try {
             const host = window.location.origin;
-            const callbackUrl = new URL('/auth/callback-client', host);
-            callbackUrl.searchParams.set('email', finalEmail); // Pass email as fallback
-
             const actionCodeSettings = {
                 handleCodeInApp: true,
-                url: callbackUrl.toString(),
+                url: `${host}/auth/callback`,
             };
 
             window.localStorage.setItem('emailForSignIn', finalEmail);
@@ -261,3 +258,5 @@ function LoginPageFallback() {
         </div>
     )
 }
+
+    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,13 +7,13 @@ import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { useFirebase } from '@/firebase/provider';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { doc, getDoc } from 'firebase/firestore';
 
 
 export function CallbackClientInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const firebase = useFirebase();
-  const auth = firebase?.auth;
+  const { auth, firestore } = useFirebase();
 
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [message, setMessage] = useState<string>('Verifying your sign-in…');
@@ -21,10 +22,9 @@ export function CallbackClientInner() {
     const run = async () => {
         const href = window.location.href;
 
-        if (!auth) {
+        if (!auth || !firestore) {
             // This can happen on first render if Firebase isn't initialized yet.
             // The hook will re-run once auth is available.
-            // Or we could show a loading state until auth is ready.
             return;
         }
         
@@ -53,11 +53,21 @@ export function CallbackClientInner() {
         }
 
         try {
-            await signInWithEmailLink(auth, email, href);
+            const userCredential = await signInWithEmailLink(auth, email, href);
             window.localStorage.removeItem('emailForSignIn');
             setStatus('success');
             setMessage('Signed in successfully! Redirecting...');
-            router.replace('/dashboard');
+            
+            // Check user role and redirect accordingly
+            const userDocRef = doc(firestore, 'users', userCredential.user.uid);
+            const userDoc = await getDoc(userDocRef);
+            
+            if (userDoc.exists() && userDoc.data().role === 'dispensary') {
+                router.replace('/dashboard/orders');
+            } else {
+                router.replace('/dashboard');
+            }
+
         } catch (error) {
             // This catch is for signInWithEmailLink specific errors (e.g. expired link)
             throw error;
@@ -81,7 +91,7 @@ export function CallbackClientInner() {
         setTimeout(() => router.replace('/brand-login?error=' + encodeURIComponent(friendly)), 2500);
     });
 
-  }, [auth, params, router]);
+  }, [auth, firestore, params, router]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
@@ -103,3 +113,5 @@ export function CallbackClientInner() {
     </div>
   );
 }
+
+    
