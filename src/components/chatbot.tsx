@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { useStore } from '@/hooks/use-store';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { recommendProducts, type RecommendProductsOutput } from '@/ai/ai-powered-product-recommendations';
-import { summarizeReviews } from '@/ai/flows/summarize-reviews';
+import { getReviewSummary, type ReviewSummaryInput } from '@/app/products/[id]/actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { createSocialMediaImage } from '@/app/dashboard/content/actions';
 import { updateProductFeedback } from '@/app/products/[id]/actions';
@@ -493,9 +493,7 @@ export default function Chatbot() {
     setIsBotTyping(true);
   
     try {
-      // In a real app, product.brandId would be a required property.
-      const brandId = (product as any).brandId || 'bakedbot-brand-id';
-      const summaryResult = await summarizeReviews({ productId: product.id, brandId });
+      const summaryResult = await getReviewSummary({ productId: product.id });
       
       if (!summaryResult) {
           throw new Error('Summary result was null.');
@@ -752,5 +750,7 @@ export default function Chatbot() {
         </>
       );
 }
+
+    
 
     

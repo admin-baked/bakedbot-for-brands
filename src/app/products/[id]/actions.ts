@@ -8,13 +8,17 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { makeProductRepo } from '@/server/repos/productRepo';
 
+export type ReviewSummaryInput = {
+  productId: string;
+};
+
 /**
  * A server action to safely call the summarizeReviews AI flow from the server.
  * This prevents server-side code from being bundled with the client.
  * @param input An object containing the productId.
  * @returns The AI-generated summary or null if an error occurs.
  */
-export async function getReviewSummary(input: { productId: string }): Promise<SummarizeReviewsOutput | null> {
+export async function getReviewSummary(input: ReviewSummaryInput): Promise<SummarizeReviewsOutput | null> {
   const ReviewSummaryInputSchema = z.object({
     productId: z.string().min(1),
   });
@@ -94,3 +98,5 @@ export async function updateProductFeedback(
     return { error: true, message: 'Could not submit feedback due to a database error.' };
   }
 }
+
+    
