@@ -43,7 +43,6 @@ export type Review = {
   userId: string;
   rating: number;
   text: string;
-  verificationImageUrl: string;
   createdAt: Timestamp;
 };
 

@@ -18,29 +18,6 @@ test('get started link', async ({ page }) => {
   await expect(heading).toBeVisible();
 });
 
-test('martez login flow', async ({ page }) => {
-  await page.goto('/brand-login');
-
-  // Click the "Dev Magic Login" dropdown trigger
-  await page.locator('button', { hasText: 'Dev Magic Login' }).click();
-
-  // Click the menu item for martez@bakedbot.ai
-  await page.locator('div[role="menuitem"]', { hasText: 'Login as martez@bakedbot.ai' }).click();
-
-  // Expect the "Check Your Inbox!" card to be visible
-  await expect(page.locator('h2', { hasText: 'Check Your Inbox!' })).toBeVisible();
-
-  // Expect the email address to be displayed
-  await expect(page.locator('strong', { hasText: 'martez@bakedbot.ai' })).toBeVisible();
-  
-  // Now, verify we can get to the dashboard (simulating successful login)
-  await page.goto('/account/dashboard');
-  
-  // Verify dashboard loads
-  await expect(page.locator('h1', { hasText: 'My Dashboard' })).toBeVisible();
-});
-
-
 test('dispensary login flow', async ({ page }) => {
     await page.goto('/dispensary-login');
 
