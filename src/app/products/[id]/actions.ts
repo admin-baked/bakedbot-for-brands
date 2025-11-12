@@ -8,7 +8,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import type { Product } from '@/lib/types';
+import { makeProductRepo } from '@/server/repos/productRepo';
 
 
 const FeedbackSchema = z.object({
@@ -26,9 +26,10 @@ const FeedbackSchema = z.object({
 export async function getReviewSummary(productId: string): Promise<SummarizeReviewsOutput | null> {
   try {
     const { firestore } = await createServerClient();
-    const productSnap = await firestore.collection('products').doc(productId).get();
+    const productRepo = makeProductRepo(firestore);
+    const product = await productRepo.getById(productId);
 
-    if (!productSnap.exists) {
+    if (!product) {
         console.error(`Product with ID ${productId} not found for review summary.`);
         return null;
     }
@@ -36,11 +37,6 @@ export async function getReviewSummary(productId: string): Promise<SummarizeRevi
     // The `brandId` is not currently on the product data model.
     // In a real application, it would be a required field. We will use a placeholder.
     const brandId = 'bakedbot-brand-id'; 
-
-    if (!brandId) {
-        console.error(`brandId missing on product ${productId}.`);
-        return null;
-    }
 
     const summary = await summarizeReviews({ productId, brandId });
     return summary;
