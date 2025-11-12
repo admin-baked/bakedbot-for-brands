@@ -6,10 +6,7 @@ import { summarizeReviews, type SummarizeReviewsOutput } from '@/ai/flows/summar
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { makeProductRepo } from '@/server/repos/productRepo';
-
 
 const FeedbackSchema = z.object({
   productId: z.string().min(1),
@@ -47,7 +44,7 @@ export async function getReviewSummary(input: { productId: string }): Promise<Su
 
     // The `brandId` is not currently on the product data model.
     // In a real application, it would be a required field. We will use a placeholder.
-    const brandId = 'bakedbot-brand-id'; 
+    const brandId = product.brandId || 'bakedbot-brand-id'; 
 
     const summary = await summarizeReviews({ productId, brandId });
     return summary;
