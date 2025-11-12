@@ -52,6 +52,12 @@ test('dispensary login flow', async ({ page }) => {
 
     // Expect the email address to be displayed
     await expect(page.locator('strong', { hasText: 'dispensary@bakedbot.ai' })).toBeVisible();
+    
+    // Now, verify we can get to the dispensary order dashboard (simulating successful login)
+    await page.goto('/dashboard/orders');
+    
+    // Verify dashboard loads
+    await expect(page.locator('h1', { hasText: 'Customer Orders' })).toBeVisible();
 });
 
 
@@ -284,5 +290,7 @@ test('AI image generation flow', async ({ page }) => {
     const src = await generatedImage.getAttribute('src');
     expect(src).toContain('data:image');
 });
+
+    
 
     
