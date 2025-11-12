@@ -13,7 +13,7 @@ import { importProductsFromCsv } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
-import { useStore } from '@/hooks/use-store';
+import { useDemoMode } from '@/context/demo-mode';
 
 const initialState = {
   message: '',
@@ -35,7 +35,7 @@ export default function DataSourceSettings() {
     const { toast } = useToast();
     const [fileName, setFileName] = useState<string | null>(null);
     const formRef = useRef<HTMLFormElement>(null);
-    const { isUsingDemoData, setIsUsingDemoData } = useStore();
+    const { isDemo, setIsDemo } = useDemoMode();
 
     useEffect(() => {
         if (state.message) {
@@ -69,11 +69,11 @@ export default function DataSourceSettings() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <Alert variant={isUsingDemoData ? "default" : "destructive"}>
-                    {isUsingDemoData ? <TestTube2 className="h-4 w-4" /> : <Database className="h-4 w-4" />}
-                    <AlertTitle>{isUsingDemoData ? "Demo Mode Active" : "Live Data Mode Active"}</AlertTitle>
+                <Alert variant={isDemo ? "default" : "destructive"}>
+                    {isDemo ? <TestTube2 className="h-4 w-4" /> : <Database className="h-4 w-4" />}
+                    <AlertTitle>{isDemo ? "Demo Mode Active" : "Live Data Mode Active"}</AlertTitle>
                     <AlertDescription>
-                         {isUsingDemoData 
+                         {isDemo 
                             ? "The application is currently using static demo data. Toggle this off to connect to your live Firestore database."
                             : "The application is connected to your live Firestore product catalog. If the catalog is empty, it will fall back to demo data."
                         }
@@ -88,8 +88,8 @@ export default function DataSourceSettings() {
                   </div>
                   <Switch
                     id="demo-mode-switch"
-                    checked={isUsingDemoData}
-                    onCheckedChange={setIsUsingDemoData}
+                    checked={isDemo}
+                    onCheckedChange={setIsDemo}
                   />
                 </div>
             </CardContent>

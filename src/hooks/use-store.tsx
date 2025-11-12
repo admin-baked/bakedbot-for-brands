@@ -5,7 +5,6 @@ import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import * as LucideIcons from 'lucide-react';
-import { setDemoCookie } from '@/lib/utils';
 import type { Location } from '@/lib/types';
 
 
@@ -21,8 +20,6 @@ export interface StoreState {
   setTheme: (theme: Theme) => void;
   menuStyle: 'default' | 'alt';
   setMenuStyle: (style: 'default' | 'alt') => void;
-  isUsingDemoData: boolean;
-  setIsUsingDemoData: (isDemo: boolean) => void;
   selectedLocationId: string | null;
   setSelectedLocationId: (id: string | null) => void;
   favoriteLocationId: string | null;
@@ -78,7 +75,6 @@ export const useStore = create<StoreState>()(
     (set, get) => ({
       theme: 'green' as Theme,
       menuStyle: 'default' as 'default' | 'alt',
-      isUsingDemoData: true,
       selectedLocationId: null,
       favoriteLocationId: null,
       isCartSheetOpen: false,
@@ -97,10 +93,6 @@ export const useStore = create<StoreState>()(
       _hasHydrated: false,
       setTheme: (theme: Theme) => set({ theme }),
       setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
-      setIsUsingDemoData: (isDemo: boolean) => {
-        setDemoCookie(isDemo);
-        set({ isUsingDemoData: isDemo });
-      },
       setSelectedLocationId: (id: string | null) => set({ selectedLocationId: id }),
       setFavoriteLocationId: (id: string | null) => set({ favoriteLocationId: id }),
       setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
