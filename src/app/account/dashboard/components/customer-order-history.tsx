@@ -11,10 +11,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
+import type { DeepPartial } from '@/types/utils';
 
 
 interface CustomerOrderHistoryProps {
-  orders: Partial<OrderDoc>[] | null;
+  orders: DeepPartial<OrderDoc>[] | null;
   isLoading: boolean;
 }
 
@@ -70,7 +71,7 @@ export default function CustomerOrderHistory({ orders, isLoading }: CustomerOrde
                     </TableCell>
                     <TableCell>{order.createdAt instanceof Timestamp ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}</TableCell>
                     <TableCell><Badge className={cn("capitalize", getStatusClass(order.status))}>{order.status || 'Unknown'}</Badge></TableCell>
-                    <TableCell className="text-right">${order.totals?.total.toFixed(2) || '0.00'}</TableCell>
+                    <TableCell className="text-right">${order.totals?.total?.toFixed(2) || '0.00'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
