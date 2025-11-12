@@ -52,7 +52,7 @@ function LoginFormContent() {
     // Redirect if user is already logged in
     useEffect(() => {
         if (user) {
-            router.replace('/dashboard');
+            router.replace('/account');
         }
     }, [user, router]);
 
@@ -74,7 +74,7 @@ function LoginFormContent() {
         try {
             await signInWithPopup(auth, provider);
             // The onAuthStateChanged listener in FirebaseProvider will handle the redirect
-            router.push('/dashboard');
+            router.push('/account');
         } catch (error: any) {
             console.error("Google Sign-In error:", error);
             toast({
@@ -159,8 +159,8 @@ function LoginFormContent() {
                 <CardHeader className="items-center space-y-4 text-center">
                     <Logo height={32} />
                     <div className="space-y-1">
-                        <CardTitle className="text-2xl">Welcome Back</CardTitle>
-                        <CardDescription>Sign in to manage your BakedBot AI</CardDescription>
+                        <CardTitle className="text-2xl">Customer Login</CardTitle>
+                        <CardDescription>Sign in or create an account to get started.</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -258,5 +258,7 @@ function LoginPageFallback() {
         </div>
     )
 }
+
+    
 
     
