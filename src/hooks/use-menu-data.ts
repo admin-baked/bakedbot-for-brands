@@ -14,16 +14,15 @@ import { collection, query, onSnapshot } from 'firebase/firestore';
  * live data from Firestore on the client side when not in demo mode.
  */
 export function useMenuData() {
-  const { isUsingDemoData, locations: storeLocations, _hasHydrated } = useStore(state => ({
+  const { isUsingDemoData, _hasHydrated } = useStore(state => ({
     isUsingDemoData: state.isUsingDemoData,
-    locations: state.locations,
     _hasHydrated: state._hasHydrated,
   }));
   const { firestore } = useFirebase();
-  const { products: demoProducts, locations: demoLocationsData } = useDemoData();
+  const { products: demoProducts, locations: demoLocations } = useDemoData();
   
   const [products, setProducts] = useState<Product[]>(demoProducts);
-  const [locations, setLocations] = useState<Location[]>(storeLocations.length > 0 ? storeLocations : demoLocationsData);
+  const [locations, setLocations] = useState<Location[]>(demoLocations);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -32,7 +31,7 @@ export function useMenuData() {
 
     if (isUsingDemoData) {
       setProducts(demoProducts);
-      setLocations(demoLocationsData);
+      setLocations(demoLocations);
       setIsFirestoreLoading(false);
       return;
     }
@@ -40,7 +39,7 @@ export function useMenuData() {
     if (!firestore) {
       console.warn("Firestore not available in live mode, falling back to demo data.");
       setProducts(demoProducts);
-      setLocations(storeLocations.length > 0 ? storeLocations : demoLocationsData);
+      setLocations(demoLocations);
       setIsFirestoreLoading(false);
       return;
     }
@@ -54,21 +53,33 @@ export function useMenuData() {
         } else {
             setProducts(demoProducts); // Fallback if live is empty
         }
-        setIsFirestoreLoading(false);
     }, (err) => {
         console.error("Error fetching products, falling back to demo:", err);
         setError(err);
         setProducts(demoProducts);
+    });
+
+    const locationsQuery = query(collection(firestore, 'locations'));
+    const locationsUnsub = onSnapshot(locationsQuery, (snapshot) => {
+        if (!snapshot.empty) {
+            const firestoreLocations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
+            setLocations(firestoreLocations);
+        } else {
+            setLocations(demoLocations); // Fallback if live is empty
+        }
+        setIsFirestoreLoading(false);
+    }, (err) => {
+        console.error("Error fetching locations, falling back to demo:", err);
+        setError(err);
+        setLocations(demoLocations);
         setIsFirestoreLoading(false);
     });
     
-    // For locations, we trust the persisted store in live mode, falling back to demo data if empty
-    setLocations(storeLocations.length > 0 ? storeLocations : demoLocationsData);
-
     return () => {
       productsUnsub();
+      locationsUnsub();
     };
-  }, [isUsingDemoData, firestore, _hasHydrated, demoProducts, demoLocationsData, storeLocations]);
+  }, [isUsingDemoData, firestore, _hasHydrated, demoProducts, demoLocations]);
   
   const isLoading = !_hasHydrated || isFirestoreLoading;
 
@@ -77,7 +88,6 @@ export function useMenuData() {
     locations, 
     isLoading, 
     error,
-    // This is the true source of demo status, considering hydration
     isUsingDemoData: !_hasHydrated ? true : isUsingDemoData,
   };
 }

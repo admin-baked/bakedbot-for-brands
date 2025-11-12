@@ -144,7 +144,7 @@ export default function Header() {
                                     </Link>
                                 </Button>
                                 <Button asChild>
-                                    <Link href="/brand-login">
+                                    <Link href="/onboarding">
                                     Get Started
                                     </Link>
                                 </Button>
