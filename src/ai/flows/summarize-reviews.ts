@@ -92,3 +92,10 @@ export async function runSummarizeReviews(input: SummarizeReviewsInput): Promise
   // Ensure we return null if the output is nullish, matching the updated return type
   return result ?? null;
 }
+
+// Alias so older imports like { summarizeReviews } still work
+export async function summarizeReviews(
+  input: SummarizeReviewsInput,
+): Promise<SummarizeReviewsOutput | null> {
+  return runSummarizeReviews(input);
+}
