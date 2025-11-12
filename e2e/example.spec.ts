@@ -44,7 +44,7 @@ test('martez login flow', async ({ page }) => {
 test('dispensary login flow', async ({ page }) => {
     await page.goto('/dispensary-login');
 
-    // Click the "Dev Magic Login" button
+    // Click the "Dev Magic Button"
     await page.locator('button', { hasText: 'Dev Magic Button (dispensary@bakedbot.ai)' }).click();
 
     // Expect the "Check Your Inbox!" card to be visible
@@ -162,4 +162,32 @@ test('account page renders', async ({ page }) => {
   
   // Verify the dashboard button is present
   await expect(page.getByRole('link', { name: 'Go to My Dashboard' })).toBeVisible();
+});
+
+test('review submission flow', async ({ page }) => {
+  await page.goto('/leave-a-review');
+  // 1. Log in as a user
+  await page.goto('/brand-login');
+  await page.locator('button:has-text("Dev Magic Login")').click();
+  await page.locator('div[role="menuitem"]:has-text("Login as martez@bakedbot.ai")').click();
+
+  // 2. Go to the review page
+  await page.goto('/leave-a-review');
+  await expect(page.locator('h1:has-text("Leave a Review")')).toBeVisible();
+
+  // 3. Select a product
+  await page.locator('button[role="combobox"]').click();
+  await page.locator('div[role="option"]:has-text("Cosmic Caramels")').click();
+
+  // 4. Set a rating (click the 4th star)
+  await page.locator('.flex.items-center.gap-1 > svg').nth(3).click();
+
+  // 5. Fill in the review text
+  await page.locator('textarea[name="text"]').fill('This is a test review from an automated test. It was great!');
+
+  // 6. Submit the form
+  await page.locator('button:has-text("Submit Review")').click();
+
+  // 7. Verify the success message
+  await expect(page.locator('h1:has-text("Thank You!")')).toBeVisible();
 });
