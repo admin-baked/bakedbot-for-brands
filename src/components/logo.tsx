@@ -1,8 +1,8 @@
-
-'use client'
+'use client';
 
 import Image from "next/image"
 import Link from "next/link"
+import { defaultLogo } from "@/lib/data"
 
 type Props = {
   height?: number
@@ -16,7 +16,7 @@ export default function Logo({ height = 28, priority = true, className }: Props)
   return (
     <Link href="/" aria-label="BakedBot AI — Home" className={className}>
       <Image
-        src="/bakedbot-logo-horizontal.png"
+        src={defaultLogo}
         alt="BakedBot AI"
         width={width}
         height={height}

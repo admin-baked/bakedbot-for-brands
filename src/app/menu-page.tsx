@@ -1,8 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 import Header from '@/app/components/header';
 import { HeroSlider } from '@/components/hero-slider';
 import { DispensaryLocator } from '@/components/dispensary-locator';
