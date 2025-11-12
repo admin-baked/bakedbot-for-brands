@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { summarizeReviews, type SummarizeReviewsOutput, SummarizeReviewsInputSchema } from '@/ai/flows/summarize-reviews';
+import { summarizeReviews, type SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
