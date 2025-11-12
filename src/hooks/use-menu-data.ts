@@ -81,7 +81,7 @@ export function useMenuData() {
     };
   }, [isUsingDemoData, firestore, _hasHydrated, demoProducts, demoLocations]);
   
-  const isLoading = !_hasHydrated || isFirestoreLoading;
+  const isLoading = !_hasHydrated || (isFirestoreLoading && !isUsingDemoData);
 
   return { 
     products, 
