@@ -20,6 +20,7 @@ export function makeProductRepo(db: Firestore) {
           description: data.description,
           likes: data.likes,
           dislikes: data.dislikes,
+          brandId: data.brandId,
         } as Product;
     },
   };

@@ -8,7 +8,7 @@ import ProductDetailsClient from './components/product-details-client';
 import Chatbot from '@/components/chatbot';
 import { getReviewSummary } from './actions';
 import { createServerClient } from '@/firebase/server-client';
-import type { Product } from '@/lib/types';
+import type { Product } from '@/types/domain';
 import { demoProducts } from '@/lib/data';
 import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 import Header from '@/app/components/header';
