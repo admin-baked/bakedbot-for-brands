@@ -134,7 +134,7 @@ function LoginFormContent() {
         setIsMagicLinkLoading(true);
         setIsLoading(true);
         try {
-            const host = window.location.origin;
+            const host = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : window.location.origin;
             const actionCodeSettings = {
                 handleCodeInApp: true,
                 url: `${host}/auth/callback`,
