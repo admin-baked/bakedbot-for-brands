@@ -63,7 +63,6 @@ export default function LoginForm() {
                         title: 'Welcome!',
                         description: `Signed in as ${result.user.email}`,
                     });
-                    // The user redirect useEffect below will handle navigation
                 } else {
                     console.log('ℹ️ No redirect result found (user did not just complete Google sign-in)');
                 }
@@ -71,7 +70,6 @@ export default function LoginForm() {
             .catch((error) => {
                 console.error('❌ Google redirect result error:', error);
                 
-                // Provide user-friendly error messages
                 let errorMessage = 'An error occurred during sign-in.';
                 
                 if (error.code === 'auth/account-exists-with-different-credential') {
@@ -112,7 +110,6 @@ export default function LoginForm() {
                     }
                 }).catch(error => {
                     console.error('Error fetching user doc:', error);
-                    // Fallback redirect
                     router.replace('/account/dashboard');
                 });
             } else {
@@ -153,10 +150,10 @@ export default function LoginForm() {
         }
     };
 
-    const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent) => {
+    const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
         e.preventDefault();
-        
-        if (!email) {
+        const finalEmail = targetEmail || email;
+        if (!finalEmail) {
             toast({
                 variant: 'destructive',
                 title: 'Email is required',
@@ -185,13 +182,14 @@ export default function LoginForm() {
                 url: `${host}/auth/callback`,
             };
 
-            window.localStorage.setItem('emailForSignIn', email);
-            await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+            window.localStorage.setItem('emailForSignIn', finalEmail);
+            await sendSignInLinkToEmail(auth, finalEmail, actionCodeSettings);
 
             setMagicLinkSent(true);
+            setEmail(finalEmail);
             toast({
                 title: 'Magic Link Sent!',
-                description: `A sign-in link has been sent to ${email}. Check your inbox!`,
+                description: `A sign-in link has been sent to ${finalEmail}. Check your inbox!`,
             });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
@@ -282,7 +280,7 @@ export default function LoginForm() {
                         </div>
                     </div>
                     
-                    <form onSubmit={handleMagicLinkSignIn} className="space-y-4">
+                    <form onSubmit={(e) => handleMagicLinkSignIn(e)} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Email Address</Label>
                             <Input
@@ -314,6 +312,21 @@ export default function LoginForm() {
                         </Button>
                     </form>
                 </CardContent>
+                 {process.env.NODE_ENV === 'development' && (
+                    <CardFooter className="flex-col gap-2">
+                        <div className="relative w-full">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-card px-2 text-muted-foreground">For Devs</span>
+                            </div>
+                        </div>
+                        <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, `dev-customer-${Math.random().toString(36).substring(7)}@bakedbot.ai`)}>
+                           Test Onboarding Flow
+                        </Button>
+                    </CardFooter>
+                )}
             </Card>
         </div>
     );
