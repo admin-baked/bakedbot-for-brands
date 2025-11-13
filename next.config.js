@@ -26,6 +26,13 @@ const nextConfig = {
       },
     ],
   },
+  // Disable the default service worker generation to gain more control
+  // and prevent aggressive caching issues that lead to stale configurations.
+  workboxOpts: {
+    swDest: 'public/sw.js',
+    disable: process.env.NODE_ENV === 'development',
+    // Other configurations can be added here if a more complex PWA is needed later.
+  },
 };
 
 module.exports = nextConfig;
