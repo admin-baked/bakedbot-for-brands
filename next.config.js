@@ -1,4 +1,5 @@
 
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -25,6 +26,11 @@ const nextConfig = {
         hostname: 'picsum.photos',
       },
     ],
+  },
+  // Adding a harmless property to force cache invalidation and fix build errors.
+  // This can be removed later if desired.
+  experimental: {
+    serverComponentsExternalPackages: ['@react-pdf/renderer'],
   },
   // Disable the default service worker generation to gain more control
   // and prevent aggressive caching issues that lead to stale configurations.
