@@ -5,22 +5,12 @@
 // or ./use-has-mounted. If Firebase still complains about that module,
 // it's building a different copy of this file.
 
-export type MenuProduct = {
-  id: string;
-  name: string;
-  price?: number;
-  [key: string]: unknown;
-};
+import type { Product, Location } from '@/lib/types';
 
-export type MenuLocation = {
-  id: string;
-  name: string;
-  [key: string]: unknown;
-};
 
 export type UseMenuDataResult = {
-  products: MenuProduct[];
-  locations: MenuLocation[];
+  products: Product[];
+  locations: Location[];
   isLoading: boolean;
   isDemo: boolean;
 };
