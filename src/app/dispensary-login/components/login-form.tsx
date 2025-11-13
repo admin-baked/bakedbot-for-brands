@@ -11,7 +11,7 @@ import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
-import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendSignInLinkToEmail } from 'firebase/auth';
+import { sendSignInLinkToEmail } from 'firebase/auth';
 import Logo from '@/components/logo';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -26,7 +26,7 @@ const GoogleIcon = () => (
 
 
 export default function DispensaryLoginForm() {
-    const [isLoading, setIsLoading] = useState(true); // Start true to handle redirect
+    const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
     const [email, setEmail] = useState('');
@@ -37,48 +37,6 @@ export default function DispensaryLoginForm() {
     const { user } = useUser();
     const router = useRouter();
 
-    const handleRedirectResult = useCallback(async (result: any) => {
-        if (!result || !firestore) return;
-    
-        toast({
-            title: 'Signed In!',
-            description: `Welcome back, ${result.user.email}!`,
-        });
-    
-        const userDocRef = doc(firestore, 'users', result.user.uid);
-        const userDoc = await getDoc(userDocRef);
-    
-        if (userDoc.exists() && userDoc.data().role === 'dispensary') {
-            router.replace('/dashboard/orders');
-        } else {
-            // If they login via the dispensary page but don't have the right role,
-            // send them to the customer onboarding/dashboard as a fallback.
-             if (userDoc.exists() && userDoc.data().onboardingCompleted) {
-                router.replace('/dashboard');
-            } else {
-                router.replace('/onboarding');
-            }
-        }
-    }, [firestore, router, toast]);
-
-     useEffect(() => {
-        if (!auth) return;
-
-        getRedirectResult(auth)
-            .then((result) => {
-                if (result) {
-                    handleRedirectResult(result);
-                }
-            })
-            .catch((error) => {
-                console.error("Google Redirect error:", error);
-                toast({ variant: 'destructive', title: 'Google Sign-In Failed', description: error.message });
-            })
-            .finally(() => {
-                setIsLoading(false);
-            });
-
-    }, [auth, handleRedirectResult, toast]);
 
     useEffect(() => {
         const error = searchParams.get('error');
@@ -105,30 +63,7 @@ export default function DispensaryLoginForm() {
 
     const handleGoogleSignIn = async () => {
         setIsGoogleLoading(true);
-        setIsLoading(true);
-        if (!auth) {
-            toast({
-                variant: 'destructive',
-                title: 'Initialization Error',
-                description: 'Firebase is not ready. Please try again in a moment.',
-            });
-            setIsLoading(false);
-            setIsGoogleLoading(false);
-            return;
-        }
-        const provider = new GoogleAuthProvider();
-        try {
-            await signInWithRedirect(auth, provider);
-        } catch (error: any) {
-            console.error("Google Sign-In error:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Google Sign-In Failed',
-                description: error.message || 'Could not complete Google Sign-In.',
-            });
-            setIsLoading(false);
-            setIsGoogleLoading(false);
-        }
+        window.location.href = '/api/auth/google/login';
     };
 
 
@@ -201,7 +136,7 @@ export default function DispensaryLoginForm() {
         );
     }
     
-    if (isLoading) {
+    if (isLoading && !user) {
         return (
              <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
