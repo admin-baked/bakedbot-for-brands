@@ -123,7 +123,9 @@ export default function DispensaryLoginForm() {
         setIsMagicLinkLoading(true);
         setIsLoading(true);
         try {
-            const host = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : window.location.origin;
+            const host = process.env.NODE_ENV === 'development'
+                ? 'http://localhost:3000'
+                : 'https://brands.bakedbot.ai';
             const actionCodeSettings = {
                 handleCodeInApp: true,
                 url: `${host}/auth/callback`,
@@ -243,3 +245,5 @@ export default function DispensaryLoginForm() {
         </div>
     );
 }
+
+    
