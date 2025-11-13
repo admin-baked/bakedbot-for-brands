@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,10 +11,9 @@ import { Loader2, KeyRound, Sparkles, ChevronDown } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
-import { sendSignInLinkToEmail } from 'firebase/auth';
+import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import Logo from '@/components/logo';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Suspense } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 
 const GoogleIcon = () => (
@@ -72,8 +71,40 @@ function LoginFormContent() {
 
 
     const handleGoogleSignIn = async () => {
+        if (!auth) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Firebase not initialized.' });
+            return;
+        }
+
         setIsGoogleLoading(true);
-        window.location.href = '/auth/google';
+        try {
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            
+            toast({
+                title: 'Success!',
+                description: `Signed in as ${result.user.email}`,
+            });
+            // The existing useEffect for `user` will handle the redirect
+        } catch (error: any) {
+            console.error('Google sign-in error:', error);
+            
+            if (error.code === 'auth/popup-blocked') {
+                toast({
+                    variant: 'destructive',
+                    title: 'Popup Blocked',
+                    description: 'Please allow popups for this site and try again.',
+                });
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Google Sign-In Failed',
+                    description: error.message,
+                });
+            }
+        } finally {
+            setIsGoogleLoading(false);
+        }
     };
 
     const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
