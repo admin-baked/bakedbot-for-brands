@@ -110,8 +110,8 @@ export default function CheckoutClient() {
   if (status === 'ready' && !selectedLocation && cart.length > 0) {
      return (
        <div className="flex flex-col h-screen items-center justify-center text-center py-20">
-         <Loader2 className="h-8 w-8 animate-spin text-destructive" />
-         <p className="text-destructive mt-4">Selected location not found. Redirecting...</p>
+         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+         <p className="text-muted-foreground mt-4">Validating location...</p>
        </div>
      );
   }
