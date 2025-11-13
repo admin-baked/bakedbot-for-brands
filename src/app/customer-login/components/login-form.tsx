@@ -11,7 +11,7 @@ import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
-import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendSignInLinkToEmail } from 'firebase/auth';
 import Logo from '@/components/logo';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -23,7 +23,6 @@ const GoogleIcon = () => (
         <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.011 36.686 44 32.68 44 28c0-2.782-.488-5.4-1.35-7.892l-1.039-3.025z" />
     </svg>
 );
-
 
 export default function LoginForm() {
     const [isLoading, setIsLoading] = useState(false);
@@ -37,7 +36,7 @@ export default function LoginForm() {
     const { user } = useUser();
     const router = useRouter();
 
-
+    // Handle URL error parameters
     useEffect(() => {
         const error = searchParams.get('error');
         if (error) {
@@ -49,66 +48,114 @@ export default function LoginForm() {
         }
     }, [searchParams, toast]);
 
+    // Handle Google redirect result
+    useEffect(() => {
+        if (!auth) return;
+        
+        console.log('🔍 Checking for Google redirect result...');
+        setIsLoading(true);
+        
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    console.log('✅ Google sign-in successful:', result.user.email);
+                    toast({
+                        title: 'Welcome!',
+                        description: `Signed in as ${result.user.email}`,
+                    });
+                    // The user redirect useEffect below will handle navigation
+                } else {
+                    console.log('ℹ️ No redirect result found (user did not just complete Google sign-in)');
+                }
+            })
+            .catch((error) => {
+                console.error('❌ Google redirect result error:', error);
+                
+                // Provide user-friendly error messages
+                let errorMessage = 'An error occurred during sign-in.';
+                
+                if (error.code === 'auth/account-exists-with-different-credential') {
+                    errorMessage = 'An account already exists with the same email but different sign-in method.';
+                } else if (error.code === 'auth/popup-closed-by-user') {
+                    errorMessage = 'Sign-in was cancelled.';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                toast({
+                    variant: 'destructive',
+                    title: 'Authentication Failed',
+                    description: errorMessage,
+                });
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
+    }, [auth, toast]);
+
     // Redirect if user is already logged in
     useEffect(() => {
         if (user) {
-             if (firestore) {
+            console.log('👤 User logged in, checking role for redirect...');
+            if (firestore) {
                 const userDocRef = doc(firestore, 'users', user.uid);
                 getDoc(userDocRef).then(userDoc => {
-                     if (userDoc.exists() && userDoc.data().role === 'dispensary') {
+                    if (userDoc.exists() && userDoc.data().onboardingCompleted === false) {
+                        console.log('🚀 Redirecting to onboarding');
+                        router.replace('/onboarding');
+                    } else if (userDoc.exists() && userDoc.data().role === 'dispensary') {
+                        console.log('🏪 Redirecting to dispensary dashboard');
                         router.replace('/dashboard/orders');
                     } else {
-                        // Default redirect for customers and brands
+                        console.log('👥 Redirecting to customer dashboard');
                         router.replace('/account/dashboard');
                     }
-                })
-             } else {
+                }).catch(error => {
+                    console.error('Error fetching user doc:', error);
+                    // Fallback redirect
+                    router.replace('/account/dashboard');
+                });
+            } else {
+                console.log('📄 Firestore not ready, redirecting to default account page');
                 router.replace('/account');
-             }
+            }
         }
     }, [user, router, firestore]);
 
-
     const handleGoogleSignIn = async () => {
         if (!auth) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Firebase not initialized.' });
+            toast({ 
+                variant: 'destructive', 
+                title: 'Initialization Error', 
+                description: 'Firebase not ready. Please refresh the page.' 
+            });
             return;
         }
 
+        console.log('🚀 Initiating Google sign-in redirect...');
         setIsGoogleLoading(true);
+        setIsLoading(true);
+        
+        const provider = new GoogleAuthProvider();
+        
         try {
-            const provider = new GoogleAuthProvider();
-            const result = await signInWithPopup(auth, provider);
-            
+            await signInWithRedirect(auth, provider);
+            console.log('🔄 Redirecting to Google...');
+        } catch (error) {
+            console.error('❌ Google sign-in error:', error);
             toast({
-                title: 'Success!',
-                description: `Signed in as ${result.user.email}`,
+                variant: 'destructive',
+                title: 'Failed to start sign-in',
+                description: error instanceof Error ? error.message : 'Unknown error occurred',
             });
-            // The existing useEffect for `user` will handle the redirect
-        } catch (error: any) {
-            console.error('Google sign-in error:', error);
-            
-            if (error.code === 'auth/popup-blocked') {
-                toast({
-                    variant: 'destructive',
-                    title: 'Popup Blocked',
-                    description: 'Please allow popups for this site and try again.',
-                });
-            } else {
-                toast({
-                    variant: 'destructive',
-                    title: 'Google Sign-In Failed',
-                    description: error.message,
-                });
-            }
-        } finally {
             setIsGoogleLoading(false);
+            setIsLoading(false);
         }
     };
 
-
     const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
+        
         if (!email) {
             toast({
                 variant: 'destructive',
@@ -119,12 +166,17 @@ export default function LoginForm() {
         }
 
         if (!auth) {
-            toast({ variant: 'destructive', title: 'Initialization Error', description: 'Firebase not ready.' });
+            toast({ 
+                variant: 'destructive', 
+                title: 'Initialization Error', 
+                description: 'Firebase not ready.' 
+            });
             return;
         }
 
         setIsMagicLinkLoading(true);
         setIsLoading(true);
+        
         try {
             const isDevelopment = process.env.NODE_ENV === 'development';
             const host = isDevelopment ? 'http://localhost:3000' : 'https://brands.bakedbot.ai';
@@ -143,6 +195,7 @@ export default function LoginForm() {
             });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+            console.error('❌ Magic link error:', errorMessage);
             toast({
                 variant: 'destructive',
                 title: 'Failed to send link',
@@ -166,7 +219,13 @@ export default function LoginForm() {
                         </CardDescription>
                     </CardHeader>
                     <CardFooter>
-                         <Button variant="link" className="w-full" onClick={() => setMagicLinkSent(false)}>Back to Login</Button>
+                        <Button 
+                            variant="link" 
+                            className="w-full" 
+                            onClick={() => setMagicLinkSent(false)}
+                        >
+                            Back to Login
+                        </Button>
                     </CardFooter>
                 </Card>
             </div>
@@ -175,9 +234,12 @@ export default function LoginForm() {
     
     if (isLoading && !user) {
         return (
-             <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+            <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
-             </div>
+                <p className="mt-4 text-sm text-muted-foreground">
+                    {isGoogleLoading ? 'Completing sign-in...' : 'Loading...'}
+                </p>
+            </div>
         );
     }
 
@@ -198,8 +260,19 @@ export default function LoginForm() {
                         onClick={handleGoogleSignIn}
                         disabled={isGoogleLoading || isMagicLinkLoading}
                     >
-                        {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon /> Continue with Google</>}
+                        {isGoogleLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Redirecting to Google...
+                            </>
+                        ) : (
+                            <>
+                                <GoogleIcon />
+                                Continue with Google
+                            </>
+                        )}
                     </Button>
+                    
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t" />
@@ -208,6 +281,7 @@ export default function LoginForm() {
                             <span className="bg-background px-2 text-muted-foreground">Or with magic link</span>
                         </div>
                     </div>
+                    
                     <form onSubmit={handleMagicLinkSignIn} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Email Address</Label>
@@ -221,8 +295,22 @@ export default function LoginForm() {
                                 required
                             />
                         </div>
-                        <Button type="submit" className="w-full" disabled={isGoogleLoading || isMagicLinkLoading || !email}>
-                            {isMagicLinkLoading ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2" /> Send Magic Link</>}
+                        <Button 
+                            type="submit" 
+                            className="w-full" 
+                            disabled={isGoogleLoading || isMagicLinkLoading || !email}
+                        >
+                            {isMagicLinkLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Sending...
+                                </>
+                            ) : (
+                                <>
+                                    <KeyRound className="mr-2 h-4 w-4" />
+                                    Send Magic Link
+                                </>
+                            )}
                         </Button>
                     </form>
                 </CardContent>

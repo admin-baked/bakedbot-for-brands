@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -7,15 +6,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, KeyRound, Sparkles, ChevronDown } from 'lucide-react';
+import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
 import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendSignInLinkToEmail } from 'firebase/auth';
 import Logo from '@/components/logo';
 import { doc, getDoc } from 'firebase/firestore';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -26,7 +23,7 @@ const GoogleIcon = () => (
     </svg>
 );
 
-export default function LoginForm() {
+export default function DispensaryLoginForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
@@ -66,7 +63,7 @@ export default function LoginForm() {
                         description: `Signed in as ${result.user.email}`,
                     });
                 } else {
-                    console.log('ℹ️ No redirect result found (user did not just complete Google sign-in)');
+                    console.log('ℹ️ No redirect result found.');
                 }
             })
             .catch((error) => {
@@ -74,8 +71,6 @@ export default function LoginForm() {
                 let errorMessage = 'An error occurred during sign-in.';
                 if (error.code === 'auth/account-exists-with-different-credential') {
                     errorMessage = 'An account already exists with the same email but different sign-in method.';
-                } else if (error.code === 'auth/popup-closed-by-user') {
-                    errorMessage = 'Sign-in was cancelled.';
                 } else if (error.message) {
                     errorMessage = error.message;
                 }
@@ -97,34 +92,29 @@ export default function LoginForm() {
             if (firestore) {
                 const userDocRef = doc(firestore, 'users', user.uid);
                 getDoc(userDocRef).then(userDoc => {
-                    if (userDoc.exists() && userDoc.data().onboardingCompleted === false) {
-                        console.log('🚀 Redirecting to onboarding');
-                        router.replace('/onboarding');
-                    } else if (userDoc.exists() && userDoc.data().role === 'dispensary') {
+                    if (userDoc.exists() && userDoc.data().role === 'dispensary') {
                         console.log('🏪 Redirecting to dispensary dashboard');
                         router.replace('/dashboard/orders');
                     } else {
-                        console.log('👥 Redirecting to brand dashboard');
-                        router.replace('/dashboard');
+                        // If not a dispensary user, they shouldn't be on this login page.
+                        // Redirect to customer dashboard as a fallback.
+                        console.log('👥 Not a dispensary user, redirecting to customer dashboard');
+                        router.replace('/account/dashboard');
                     }
                 }).catch(error => {
                     console.error('Error fetching user doc:', error);
-                    router.replace('/dashboard');
+                    router.replace('/account/dashboard');
                 });
             } else {
-                console.log('📄 Firestore not ready, redirecting to default dashboard page');
-                router.replace('/dashboard');
+                console.log('📄 Firestore not ready, redirecting to default account page');
+                router.replace('/account');
             }
         }
     }, [user, router, firestore]);
 
     const handleGoogleSignIn = async () => {
         if (!auth) {
-            toast({ 
-                variant: 'destructive', 
-                title: 'Initialization Error', 
-                description: 'Firebase not ready. Please refresh the page.' 
-            });
+            toast({ variant: 'destructive', title: 'Initialization Error', description: 'Firebase not ready. Please refresh.' });
             return;
         }
 
@@ -162,11 +152,7 @@ export default function LoginForm() {
         }
 
         if (!auth) {
-            toast({ 
-                variant: 'destructive', 
-                title: 'Initialization Error', 
-                description: 'Firebase not ready.' 
-            });
+            toast({ variant: 'destructive', title: 'Initialization Error', description: 'Firebase not ready.' });
             return;
         }
 
@@ -246,12 +232,12 @@ export default function LoginForm() {
                 <CardHeader className="items-center space-y-4 text-center">
                     <Logo height={32} />
                     <div className="space-y-1">
-                        <CardTitle className="text-2xl">Brand Portal</CardTitle>
-                        <CardDescription>Sign in to your brand account.</CardDescription>
+                        <CardTitle className="text-2xl">Dispensary Portal</CardTitle>
+                        <CardDescription>Sign in to manage your orders</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <Button
+                     <Button
                         variant="outline"
                         className="w-full"
                         onClick={handleGoogleSignIn}
@@ -279,13 +265,14 @@ export default function LoginForm() {
                         </div>
                     </div>
                     
-                    <form onSubmit={(e) => handleMagicLinkSignIn(e)} className="space-y-4">
+                    <form name="dispensary-login-form" onSubmit={(e) => handleMagicLinkSignIn(e)} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Email Address</Label>
                             <Input
                                 id="email"
+                                name="email"
                                 type="email"
-                                placeholder="name@example.com"
+                                placeholder="name@dispensary.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 disabled={isGoogleLoading || isMagicLinkLoading}
@@ -311,7 +298,7 @@ export default function LoginForm() {
                         </Button>
                     </form>
                 </CardContent>
-                {process.env.NODE_ENV === 'development' && (
+                 {process.env.NODE_ENV === 'development' && (
                     <CardFooter className="flex-col gap-2">
                         <div className="relative w-full">
                             <div className="absolute inset-0 flex items-center">
@@ -321,21 +308,9 @@ export default function LoginForm() {
                                 <span className="bg-card px-2 text-muted-foreground">For Devs</span>
                             </div>
                         </div>
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="secondary" className="w-full">
-                                    Dev Magic Login <ChevronDown className="ml-2 h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-80">
-                                <DropdownMenuItem onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')}>
-                                    Login as martez@bakedbot.ai (Brand)
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => handleMagicLinkSignIn(e, 'rishabh@bakedbot.ai')}>
-                                    Login as rishabh@bakedbot.ai (Brand)
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, 'dispensary@bakedbot.ai')}>
+                           Login as dispensary@bakedbot.ai
+                        </Button>
                     </CardFooter>
                 )}
             </Card>
