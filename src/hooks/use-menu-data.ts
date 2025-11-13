@@ -9,7 +9,7 @@ import type { Product, Location } from '@/lib/types';
 import { useDemoMode } from '@/context/demo-mode';
 import { demoProducts, demoLocations } from '@/lib/data';
 import { useCollection } from '@/firebase/firestore/use-collection';
-
+import { useHydrated } from './useHydrated';
 
 export type UseMenuDataResult = {
   products: Product[];
@@ -20,8 +20,7 @@ export type UseMenuDataResult = {
 
 export function useMenuData(): UseMenuDataResult {
   const { isDemo } = useDemoMode();
-  // TEMPORARY FIX: Assume the component is always mounted on the client to avoid the 'use-has-mounted' import error.
-  const hasMounted = true; 
+  const hydrated = useHydrated();
 
   const { firestore } = useFirebase();
 
@@ -37,22 +36,21 @@ export function useMenuData(): UseMenuDataResult {
 
   // Use our existing live data hooks
   const { data: liveProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
-  
   const { data: liveLocations, isLoading: areLocationsLoading } = useCollection<Location>(locationsQuery);
 
   // IMPORTANT: keep SSR and initial CSR consistent to avoid hydration warnings.
   // Until mounted, prefer a stable, conservative initial UI.
   const products = useMemo<Product[]>(
-    () => (isDemo ? demoProducts : (hasMounted && liveProducts ? liveProducts : [])),
-    [isDemo, hasMounted, liveProducts]
+    () => (isDemo ? demoProducts : (hydrated && liveProducts ? liveProducts : [])),
+    [isDemo, hydrated, liveProducts]
   );
 
   const locations = useMemo<Location[]>(
-    () => (isDemo ? demoLocations : (hasMounted && liveLocations ? liveLocations : [])),
-    [isDemo, hasMounted, liveLocations]
+    () => (isDemo ? demoLocations : (hydrated && liveLocations ? liveLocations : [])),
+    [isDemo, hydrated, liveLocations]
   );
 
-  const isLoading = isDemo ? false : (!hasMounted || areProductsLoading || areLocationsLoading);
+  const isLoading = isDemo ? false : (!hydrated || areProductsLoading || areLocationsLoading);
 
   return {
     products,
