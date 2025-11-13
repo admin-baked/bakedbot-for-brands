@@ -8,7 +8,6 @@ import { productConverter, locationConverter } from '@/firebase/converters';
 import type { Product, Location } from '@/lib/types';
 import { useDemoMode } from '@/context/demo-mode';
 import { demoProducts, demoLocations } from '@/lib/data';
-import { useHasMounted } from './use-has-mounted';
 import { useCollection } from '@/firebase/firestore/use-collection';
 
 
@@ -21,7 +20,8 @@ export type UseMenuDataResult = {
 
 export function useMenuData(): UseMenuDataResult {
   const { isDemo } = useDemoMode();
-  const hasMounted = useHasMounted();
+  // TEMPORARY FIX: Assume the component is always mounted on the client to avoid the 'use-has-mounted' import error.
+  const hasMounted = true; 
 
   const { firestore } = useFirebase();
 
