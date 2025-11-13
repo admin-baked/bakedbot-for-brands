@@ -1,11 +1,15 @@
-// workspace/src/hooks/use-menu-data.ts
 
-// TEMP DIAGNOSTIC STUB:
-// This file intentionally has no imports and no references to useHasMounted
-// or ./use-has-mounted. If Firebase still complains about that module,
-// it's building a different copy of this file.
+'use client';
 
+import { useMemo } from 'react';
+import { collection, query } from 'firebase/firestore';
+import { useFirebase } from '@/firebase/provider';
+import { productConverter, locationConverter } from '@/firebase/converters';
 import type { Product, Location } from '@/lib/types';
+import { useDemoMode } from '@/context/demo-mode';
+import { demoProducts, demoLocations } from '@/lib/data';
+import useHasMounted from './use-has-mounted';
+import { useCollection } from '@/firebase/firestore/use-collection';
 
 
 export type UseMenuDataResult = {
@@ -16,11 +20,44 @@ export type UseMenuDataResult = {
 };
 
 export function useMenuData(): UseMenuDataResult {
-  // Return totally safe default values.
+  const { isDemo } = useDemoMode();
+  const hasMounted = useHasMounted();
+
+  const { firestore } = useFirebase();
+
+  const productsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'products').withConverter(productConverter));
+  }, [firestore]);
+
+  const locationsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'dispensaries').withConverter(locationConverter));
+  }, [firestore]);
+
+  // Use our existing live data hooks
+  const { data: liveProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
+  
+  const { data: liveLocations, isLoading: areLocationsLoadingFirestore } = useCollection<Location>(locationsQuery);
+
+  // IMPORTANT: keep SSR and initial CSR consistent to avoid hydration warnings.
+  // Until mounted, prefer a stable, conservative initial UI.
+  const products = useMemo<Product[]>(
+    () => (isDemo ? demoProducts : (hasMounted && liveProducts ? liveProducts : [])),
+    [isDemo, hasMounted, liveProducts]
+  );
+
+  const locations = useMemo<Location[]>(
+    () => (isDemo ? demoLocations : (hasMounted && liveLocations ? liveLocations : [])),
+    [isDemo, hasMounted, liveLocations]
+  );
+
+  const isLoading = isDemo ? false : (!hasMounted || areProductsLoading || areLocationsLoadingFirestore);
+
   return {
-    products: [],
-    locations: [],
-    isLoading: false,
-    isDemo: true, // Defaulting to true to avoid other potential issues
+    products,
+    locations,
+    isLoading,
+    isDemo,
   };
 }
