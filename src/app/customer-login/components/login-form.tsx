@@ -7,14 +7,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, KeyRound, Sparkles, ChevronDown } from 'lucide-react';
+import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
 import { sendSignInLinkToEmail } from 'firebase/auth';
 import Logo from '@/components/logo';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Suspense } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 
 const GoogleIcon = () => (
@@ -27,7 +25,7 @@ const GoogleIcon = () => (
 );
 
 
-function LoginFormContent() {
+export default function LoginForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
@@ -76,10 +74,9 @@ function LoginFormContent() {
         window.location.href = '/auth/google';
     };
 
-    const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
+    const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
-        const finalEmail = targetEmail || email;
-        if (!finalEmail) {
+        if (!email) {
             toast({
                 variant: 'destructive',
                 title: 'Email is required',
@@ -103,14 +100,13 @@ function LoginFormContent() {
                 url: `${host}/auth/callback`,
             };
 
-            window.localStorage.setItem('emailForSignIn', finalEmail);
-            await sendSignInLinkToEmail(auth, finalEmail, actionCodeSettings);
+            window.localStorage.setItem('emailForSignIn', email);
+            await sendSignInLinkToEmail(auth, email, actionCodeSettings);
 
             setMagicLinkSent(true);
-            setEmail(finalEmail);
             toast({
                 title: 'Magic Link Sent!',
-                description: `A sign-in link has been sent to ${finalEmail}. Check your inbox!`,
+                description: `A sign-in link has been sent to ${email}. Check your inbox!`,
             });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
@@ -143,9 +139,13 @@ function LoginFormContent() {
             </div>
         );
     }
-
-    if (isLoading) {
-        return <LoginPageFallback />;
+    
+    if (isLoading && !user) {
+        return (
+             <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+             </div>
+        );
     }
 
     return (
@@ -154,8 +154,8 @@ function LoginFormContent() {
                 <CardHeader className="items-center space-y-4 text-center">
                     <Logo height={32} />
                     <div className="space-y-1">
-                        <CardTitle className="text-2xl">Brand Portal</CardTitle>
-                        <CardDescription>Sign in to your brand account.</CardDescription>
+                        <CardTitle className="text-2xl">Customer Login</CardTitle>
+                        <CardDescription>Sign in or create an account to get started.</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -175,7 +175,7 @@ function LoginFormContent() {
                             <span className="bg-background px-2 text-muted-foreground">Or with magic link</span>
                         </div>
                     </div>
-                    <form onSubmit={(e) => handleMagicLinkSignIn(e, email)} className="space-y-4">
+                    <form onSubmit={handleMagicLinkSignIn} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Email Address</Label>
                             <Input
@@ -193,63 +193,7 @@ function LoginFormContent() {
                         </Button>
                     </form>
                 </CardContent>
-                {process.env.NODE_ENV === 'development' && (
-                    <CardFooter className="flex-col gap-2">
-                        <div className="relative w-full">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-card px-2 text-muted-foreground">For Devs</span>
-                            </div>
-                        </div>
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="secondary" className="w-full">
-                                    Dev Magic Login <ChevronDown className="ml-2 h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-80">
-                                <DropdownMenuItem onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')}>
-                                    Login as martez@bakedbot.ai (Brand)
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => handleMagicLinkSignIn(e, 'rishabh@bakedbot.ai')}>
-                                    Login as rishabh@bakedbot.ai (Brand)
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </CardFooter>
-                )}
             </Card>
         </div>
     );
-}
-
-
-export default function LoginForm() {
-    return (
-        <Suspense fallback={<LoginPageFallback />}>
-            <LoginFormContent />
-        </Suspense>
-    );
-}
-
-function LoginPageFallback() {
-    return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-             <Card className="w-full max-w-md">
-                <CardHeader className="items-center space-y-4 text-center">
-                    <Logo height={32} />
-                     <div className="space-y-1">
-                        <CardTitle className="text-2xl">Brand Portal</CardTitle>
-                        <CardDescription>Sign in to manage your BakedBot AI</CardDescription>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4 text-center">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-                    <p className="text-muted-foreground">Loading...</p>
-                </CardContent>
-            </Card>
-        </div>
-    )
 }

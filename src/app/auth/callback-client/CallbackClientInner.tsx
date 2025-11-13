@@ -64,10 +64,11 @@ export function CallbackClientInner() {
             
             if (userDoc.exists() && userDoc.data().role === 'dispensary') {
                 router.replace('/dashboard/orders');
-            } else if (userDoc.exists() && userDoc.data().onboardingCompleted) {
-                router.replace('/dashboard');
+            } else if (userDoc.exists() && userDoc.data().role === 'brand') {
+                 router.replace('/dashboard');
             } else {
-                router.replace('/onboarding');
+                // Default redirect for customers or users without a specific role yet
+                router.replace('/account/dashboard');
             }
 
         } catch (error) {
@@ -90,7 +91,7 @@ export function CallbackClientInner() {
         
         setStatus('error');
         setMessage(friendly);
-        setTimeout(() => router.replace('/brand-login?error=' + encodeURIComponent(friendly)), 2500);
+        setTimeout(() => router.replace('/customer-login?error=' + encodeURIComponent(friendly)), 2500);
     });
 
   }, [auth, firestore, params, router]);

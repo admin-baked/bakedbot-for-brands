@@ -146,7 +146,7 @@ export default function Header() {
                         ) : hydrated && !user ? (
                             <>
                                 <Button variant="ghost" asChild>
-                                    <Link href="/brand-login">
+                                    <Link href="/customer-login">
                                     Login
                                     </Link>
                                 </Button>
@@ -185,7 +185,7 @@ export default function Header() {
                                     </>
                                 ) : hydrated && !user ? (
                                     <>
-                                        <DropdownMenuItem onClick={() => router.push('/brand-login')}>Login</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push('/customer-login')}>Login</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push('/onboarding')}>Get Started</DropdownMenuItem>
                                     </>
                                 ) : null}
