@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -8,7 +7,7 @@ import { productConverter, locationConverter } from '@/firebase/converters';
 import type { Product, Location } from '@/lib/types';
 import { useDemoMode } from '@/context/demo-mode';
 import { demoProducts, demoLocations } from '@/lib/data';
-import useHasMounted from './use-has-mounted';
+import useHasMounted from '@/hooks/use-has-mounted';
 import { useCollection } from '@/firebase/firestore/use-collection';
 
 
