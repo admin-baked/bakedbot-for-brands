@@ -11,7 +11,7 @@ import { Loader2, KeyRound, Sparkles, ChevronDown } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
-import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendSignInLinkToEmail } from 'firebase/auth';
+import { sendSignInLinkToEmail } from 'firebase/auth';
 import Logo from '@/components/logo';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Suspense } from 'react';
@@ -28,7 +28,7 @@ const GoogleIcon = () => (
 
 
 function LoginFormContent() {
-    const [isLoading, setIsLoading] = useState(true); // Start true to handle redirect
+    const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
     const [email, setEmail] = useState('');
@@ -39,48 +39,6 @@ function LoginFormContent() {
     const { user } = useUser();
     const router = useRouter();
 
-    const handleRedirectResult = useCallback(async (result: any) => {
-        if (!result || !firestore) return;
-    
-        toast({
-            title: 'Signed In!',
-            description: `Welcome back, ${result.user.email}!`,
-        });
-    
-        const userDocRef = doc(firestore, 'users', result.user.uid);
-        const userDoc = await getDoc(userDocRef);
-    
-        if (userDoc.exists() && userDoc.data().role === 'dispensary') {
-            router.replace('/dashboard/orders');
-        } else if (userDoc.exists() && userDoc.data().onboardingCompleted) {
-            router.replace('/dashboard');
-        } else {
-            router.replace('/onboarding');
-        }
-    }, [firestore, router, toast]);
-
-    useEffect(() => {
-        if (!auth) return;
-
-        getRedirectResult(auth)
-            .then((result) => {
-                if (result) {
-                    handleRedirectResult(result);
-                }
-            })
-            .catch((error) => {
-                console.error("Google Redirect error:", error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Google Sign-In Failed',
-                    description: error.message || 'Could not complete Google Sign-In.',
-                });
-            })
-            .finally(() => {
-                setIsLoading(false); // Finished checking for redirect result
-            });
-
-    }, [auth, handleRedirectResult, toast]);
 
     useEffect(() => {
         const error = searchParams.get('error');
@@ -117,31 +75,7 @@ function LoginFormContent() {
 
     const handleGoogleSignIn = async () => {
         setIsGoogleLoading(true);
-        setIsLoading(true);
-        if (!auth) {
-            toast({
-                variant: 'destructive',
-                title: 'Initialization Error',
-                description: 'Firebase is not ready. Please try again in a moment.',
-            });
-            setIsLoading(false);
-            setIsGoogleLoading(false);
-            return;
-        }
-        const provider = new GoogleAuthProvider();
-        try {
-            // Use signInWithRedirect instead of signInWithPopup
-            await signInWithRedirect(auth, provider);
-        } catch (error: any) {
-            console.error("Google Sign-In error:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Google Sign-In Failed',
-                description: error.message || 'Could not start Google Sign-In.',
-            });
-            setIsLoading(false);
-            setIsGoogleLoading(false);
-        }
+        window.location.href = '/api/auth/google/login';
     };
 
     const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
