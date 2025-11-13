@@ -27,7 +27,7 @@ export default function Header() {
     const itemCount = getItemCount();
     const { setCartSheetOpen } = useStore();
     const pathname = usePathname();
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const { auth } = useFirebase();
     const router = useRouter();
     const { toast } = useToast();
@@ -156,7 +156,9 @@ export default function Header() {
                                     </Link>
                                 </Button>
                             </>
-                        ) : null}
+                        ) : (
+                            <div className="h-10 w-44" /> // Placeholder to prevent layout shift
+                        )}
                     </div>
 
                     {/* Mobile Menu */}
