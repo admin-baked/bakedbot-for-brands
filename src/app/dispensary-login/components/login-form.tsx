@@ -63,7 +63,7 @@ export default function DispensaryLoginForm() {
 
     const handleGoogleSignIn = async () => {
         setIsGoogleLoading(true);
-        window.location.href = '/api/auth/google/login';
+        window.location.href = '/auth/google';
     };
 
 
