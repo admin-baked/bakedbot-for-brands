@@ -1,65 +1,63 @@
 
 'use client';
 
-import { useStore } from '@/hooks/use-store';
-import { useDemoData } from '@/hooks/use-demo-data';
-import { useState, useEffect } from 'react';
-import type { Product, Location } from '@/lib/types';
+import { useMemo } from 'react';
+import { collection, query } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
-import { collection, query, onSnapshot } from 'firebase/firestore';
+import { productConverter, locationConverter } from '@/firebase/converters';
+import type { Product, Location } from '@/lib/types';
+import { useDemoMode } from '@/context/demo-mode';
+import { demoProducts, demoLocations } from '@/lib/data';
+import { useHasMounted } from './use-has-mounted';
+import { useCollection } from '@/firebase/firestore/use-collection';
 
-/**
- * A unified hook to get menu data (products and locations).
- * It intelligently uses demo data as a fallback and then attempts to load
- * live data from Firestore on the client side.
- */
-export function useMenuData() {
-  const { _hasHydrated, locations: storeLocations } = useStore(state => ({
-    _hasHydrated: state._hasHydrated,
-    locations: state.locations,
-  }));
+
+export type UseMenuDataResult = {
+  products: Product[];
+  locations: Location[];
+  isLoading: boolean;
+  isDemo: boolean;
+};
+
+export function useMenuData(): UseMenuDataResult {
+  const { isDemo } = useDemoMode();
+  const hasMounted = useHasMounted();
+
   const { firestore } = useFirebase();
-  const { products: demoProducts, locations: demoLocations } = useDemoData();
+
+  const productsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'products').withConverter(productConverter));
+  }, [firestore]);
+
+  const locationsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'dispensaries').withConverter(locationConverter));
+  }, [firestore]);
+
+  // Use our existing live data hooks
+  const { data: liveProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
   
-  const [products, setProducts] = useState<Product[]>(demoProducts);
-  const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
+  const { data: liveLocations, isLoading: areLocationsLoading } = useCollection<Location>(locationsQuery);
 
-  useEffect(() => {
-    if (!firestore) {
-      // If firestore is not available, use demo data and stop loading.
-      setProducts(demoProducts);
-      setIsFirestoreLoading(false);
-      return;
-    };
-    
-    setIsFirestoreLoading(true);
-    const productsQuery = query(collection(firestore, 'products'));
-    const unsubscribe = onSnapshot(productsQuery, (snapshot) => {
-        if (!snapshot.empty) {
-            const firestoreProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-            setProducts(firestoreProducts);
-        } else {
-            // Fallback to demo products if the collection is empty
-            setProducts(demoProducts);
-        }
-        setIsFirestoreLoading(false);
-    }, (error) => {
-        console.error("Error fetching products from Firestore, falling back to demo data:", error);
-        setProducts(demoProducts);
-        setIsFirestoreLoading(false);
-    });
+  // IMPORTANT: keep SSR and initial CSR consistent to avoid hydration warnings.
+  // Until mounted, prefer a stable, conservative initial UI.
+  const products = useMemo<Product[]>(
+    () => (isDemo ? demoProducts : (hasMounted && liveProducts ? liveProducts : [])),
+    [isDemo, hasMounted, liveProducts]
+  );
 
-    return () => unsubscribe();
-  }, [firestore, demoProducts]);
+  const locations = useMemo<Location[]>(
+    () => (isDemo ? demoLocations : (hasMounted && liveLocations ? liveLocations : [])),
+    [isDemo, hasMounted, liveLocations]
+  );
 
-  // Determine the final set of locations and loading state.
-  const finalLocations = _hasHydrated && storeLocations.length > 0 ? storeLocations : demoLocations;
-  const isLoading = !_hasHydrated || isFirestoreLoading;
+  const isLoading = isDemo ? false : (!hasMounted || areProductsLoading || areLocationsLoading);
 
   return {
     products,
-    locations: finalLocations,
+    locations,
     isLoading,
-    isHydrated: _hasHydrated,
+    isDemo,
   };
 }
