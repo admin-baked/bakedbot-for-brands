@@ -11,7 +11,7 @@ import { Loader2, KeyRound, Sparkles, ChevronDown } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
-import { GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendSignInLinkToEmail } from 'firebase/auth';
 import Logo from '@/components/logo';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Suspense } from 'react';
@@ -27,7 +27,7 @@ const GoogleIcon = () => (
 
 
 function LoginFormContent() {
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true); // Start true to handle redirect
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
     const [email, setEmail] = useState('');
@@ -37,6 +37,34 @@ function LoginFormContent() {
     const { auth } = useFirebase();
     const { user } = useUser();
     const router = useRouter();
+
+    useEffect(() => {
+        if (!auth) return;
+
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    // This is the return from a Google redirect
+                    toast({
+                        title: 'Signed In!',
+                        description: `Welcome back, ${result.user.email}!`,
+                    });
+                    router.push('/account');
+                }
+            })
+            .catch((error) => {
+                console.error("Google Redirect error:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Google Sign-In Failed',
+                    description: error.message || 'Could not complete Google Sign-In.',
+                });
+            })
+            .finally(() => {
+                setIsLoading(false); // Finished checking for redirect result
+            });
+
+    }, [auth, router, toast]);
 
     useEffect(() => {
         const error = searchParams.get('error');
@@ -72,17 +100,15 @@ function LoginFormContent() {
         }
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
-            // The onAuthStateChanged listener in FirebaseProvider will handle the redirect
-            router.push('/account');
+            // Use signInWithRedirect instead of signInWithPopup
+            await signInWithRedirect(auth, provider);
         } catch (error: any) {
             console.error("Google Sign-In error:", error);
             toast({
                 variant: 'destructive',
                 title: 'Google Sign-In Failed',
-                description: error.message || 'Could not complete Google Sign-In.',
+                description: error.message || 'Could not start Google Sign-In.',
             });
-        } finally {
             setIsLoading(false);
             setIsGoogleLoading(false);
         }
@@ -106,6 +132,7 @@ function LoginFormContent() {
         }
 
         setIsMagicLinkLoading(true);
+        setIsLoading(true);
         try {
             const host = window.location.origin;
             const actionCodeSettings = {
@@ -130,6 +157,7 @@ function LoginFormContent() {
                 description: errorMessage,
             });
         } finally {
+            setIsLoading(false);
             setIsMagicLinkLoading(false);
         }
     }, [email, toast, auth]);
@@ -153,6 +181,10 @@ function LoginFormContent() {
         );
     }
 
+    if (isLoading) {
+        return <LoginPageFallback />;
+    }
+
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
             <Card className="w-full max-w-md">
@@ -168,7 +200,7 @@ function LoginFormContent() {
                         variant="outline"
                         className="w-full"
                         onClick={handleGoogleSignIn}
-                        disabled={isLoading || isGoogleLoading || isMagicLinkLoading}
+                        disabled={isGoogleLoading || isMagicLinkLoading}
                     >
                         {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon /> Continue with Google</>}
                     </Button>
@@ -189,11 +221,11 @@ function LoginFormContent() {
                                 placeholder="name@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                disabled={isLoading || isGoogleLoading || isMagicLinkLoading}
+                                disabled={isGoogleLoading || isMagicLinkLoading}
                                 required
                             />
                         </div>
-                        <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading || isMagicLinkLoading || !email}>
+                        <Button type="submit" className="w-full" disabled={isGoogleLoading || isMagicLinkLoading || !email}>
                             {isMagicLinkLoading ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2" /> Send Magic Link</>}
                         </Button>
                     </form>
@@ -258,7 +290,3 @@ function LoginPageFallback() {
         </div>
     )
 }
-
-    
-
-    

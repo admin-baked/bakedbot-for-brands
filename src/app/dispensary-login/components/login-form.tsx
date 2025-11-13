@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,7 +11,7 @@ import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
-import { GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendSignInLinkToEmail } from 'firebase/auth';
 import Logo from '@/components/logo';
 
 const GoogleIcon = () => (
@@ -24,7 +25,7 @@ const GoogleIcon = () => (
 
 
 export default function DispensaryLoginForm() {
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true); // Start true to handle redirect
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
     const [email, setEmail] = useState('');
@@ -34,6 +35,26 @@ export default function DispensaryLoginForm() {
     const { auth } = useFirebase();
     const { user } = useUser();
     const router = useRouter();
+
+     useEffect(() => {
+        if (!auth) return;
+
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    toast({ title: 'Signed In!', description: `Welcome back, ${result.user.email}!` });
+                    router.push('/dashboard/orders');
+                }
+            })
+            .catch((error) => {
+                console.error("Google Redirect error:", error);
+                toast({ variant: 'destructive', title: 'Google Sign-In Failed', description: error.message });
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
+
+    }, [auth, router, toast]);
 
     useEffect(() => {
         const error = searchParams.get('error');
@@ -68,9 +89,7 @@ export default function DispensaryLoginForm() {
         }
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
-            // The onAuthStateChanged listener in FirebaseProvider will handle the redirect
-            router.push('/dashboard/orders');
+            await signInWithRedirect(auth, provider);
         } catch (error: any) {
             console.error("Google Sign-In error:", error);
             toast({
@@ -78,7 +97,6 @@ export default function DispensaryLoginForm() {
                 title: 'Google Sign-In Failed',
                 description: error.message || 'Could not complete Google Sign-In.',
             });
-        } finally {
             setIsLoading(false);
             setIsGoogleLoading(false);
         }
@@ -103,6 +121,7 @@ export default function DispensaryLoginForm() {
         }
 
         setIsMagicLinkLoading(true);
+        setIsLoading(true);
         try {
             const host = window.location.origin;
             const actionCodeSettings = {
@@ -127,6 +146,7 @@ export default function DispensaryLoginForm() {
                 description: errorMessage,
             });
         } finally {
+            setIsLoading(false);
             setIsMagicLinkLoading(false);
         }
     }, [email, toast, auth]);
@@ -149,6 +169,14 @@ export default function DispensaryLoginForm() {
             </div>
         );
     }
+    
+    if (isLoading) {
+        return (
+             <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+             </div>
+        );
+    }
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
@@ -165,7 +193,7 @@ export default function DispensaryLoginForm() {
                         variant="outline"
                         className="w-full"
                         onClick={handleGoogleSignIn}
-                        disabled={isLoading || isGoogleLoading || isMagicLinkLoading}
+                        disabled={isGoogleLoading || isMagicLinkLoading}
                     >
                         {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon /> Continue with Google</>}
                     </Button>
@@ -187,11 +215,11 @@ export default function DispensaryLoginForm() {
                                 placeholder="name@dispensary.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                disabled={isLoading || isMagicLinkLoading}
+                                disabled={isMagicLinkLoading}
                                 required
                             />
                         </div>
-                        <Button type="submit" className="w-full" disabled={isLoading || isMagicLinkLoading || !email}>
+                        <Button type="submit" className="w-full" disabled={isMagicLinkLoading || !email}>
                             {isMagicLinkLoading ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2" /> Send Magic Link</>}
                         </Button>
                     </form>
