@@ -13,6 +13,7 @@ import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
 import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendSignInLinkToEmail } from 'firebase/auth';
 import Logo from '@/components/logo';
+import { doc, getDoc } from 'firebase/firestore';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -32,9 +33,33 @@ export default function DispensaryLoginForm() {
     const [magicLinkSent, setMagicLinkSent] = useState(false);
     const { toast } = useToast();
     const searchParams = useSearchParams();
-    const { auth } = useFirebase();
+    const { auth, firestore } = useFirebase();
     const { user } = useUser();
     const router = useRouter();
+
+    const handleRedirectResult = useCallback(async (result: any) => {
+        if (!result || !firestore) return;
+    
+        toast({
+            title: 'Signed In!',
+            description: `Welcome back, ${result.user.email}!`,
+        });
+    
+        const userDocRef = doc(firestore, 'users', result.user.uid);
+        const userDoc = await getDoc(userDocRef);
+    
+        if (userDoc.exists() && userDoc.data().role === 'dispensary') {
+            router.replace('/dashboard/orders');
+        } else {
+            // If they login via the dispensary page but don't have the right role,
+            // send them to the customer onboarding/dashboard as a fallback.
+             if (userDoc.exists() && userDoc.data().onboardingCompleted) {
+                router.replace('/dashboard');
+            } else {
+                router.replace('/onboarding');
+            }
+        }
+    }, [firestore, router, toast]);
 
      useEffect(() => {
         if (!auth) return;
@@ -42,8 +67,7 @@ export default function DispensaryLoginForm() {
         getRedirectResult(auth)
             .then((result) => {
                 if (result) {
-                    toast({ title: 'Signed In!', description: `Welcome back, ${result.user.email}!` });
-                    router.push('/dashboard/orders');
+                    handleRedirectResult(result);
                 }
             })
             .catch((error) => {
@@ -54,7 +78,7 @@ export default function DispensaryLoginForm() {
                 setIsLoading(false);
             });
 
-    }, [auth, router, toast]);
+    }, [auth, handleRedirectResult, toast]);
 
     useEffect(() => {
         const error = searchParams.get('error');
@@ -68,10 +92,15 @@ export default function DispensaryLoginForm() {
     }, [searchParams, toast]);
 
     useEffect(() => {
-        if (user) {
-            router.replace('/dashboard/orders');
+        if (user && firestore) {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            getDoc(userDocRef).then(userDoc => {
+                 if (userDoc.exists() && userDoc.data().role === 'dispensary') {
+                    router.replace('/dashboard/orders');
+                }
+            })
         }
-    }, [user, router]);
+    }, [user, router, firestore]);
 
 
     const handleGoogleSignIn = async () => {
@@ -245,5 +274,3 @@ export default function DispensaryLoginForm() {
         </div>
     );
 }
-
-    

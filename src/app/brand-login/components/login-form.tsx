@@ -15,6 +15,7 @@ import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendSignInLi
 import Logo from '@/components/logo';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Suspense } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -34,9 +35,29 @@ function LoginFormContent() {
     const [magicLinkSent, setMagicLinkSent] = useState(false);
     const { toast } = useToast();
     const searchParams = useSearchParams();
-    const { auth } = useFirebase();
+    const { auth, firestore } = useFirebase();
     const { user } = useUser();
     const router = useRouter();
+
+    const handleRedirectResult = useCallback(async (result: any) => {
+        if (!result || !firestore) return;
+    
+        toast({
+            title: 'Signed In!',
+            description: `Welcome back, ${result.user.email}!`,
+        });
+    
+        const userDocRef = doc(firestore, 'users', result.user.uid);
+        const userDoc = await getDoc(userDocRef);
+    
+        if (userDoc.exists() && userDoc.data().role === 'dispensary') {
+            router.replace('/dashboard/orders');
+        } else if (userDoc.exists() && userDoc.data().onboardingCompleted) {
+            router.replace('/dashboard');
+        } else {
+            router.replace('/onboarding');
+        }
+    }, [firestore, router, toast]);
 
     useEffect(() => {
         if (!auth) return;
@@ -44,12 +65,7 @@ function LoginFormContent() {
         getRedirectResult(auth)
             .then((result) => {
                 if (result) {
-                    // This is the return from a Google redirect
-                    toast({
-                        title: 'Signed In!',
-                        description: `Welcome back, ${result.user.email}!`,
-                    });
-                    router.push('/account');
+                    handleRedirectResult(result);
                 }
             })
             .catch((error) => {
@@ -64,7 +80,7 @@ function LoginFormContent() {
                 setIsLoading(false); // Finished checking for redirect result
             });
 
-    }, [auth, router, toast]);
+    }, [auth, handleRedirectResult, toast]);
 
     useEffect(() => {
         const error = searchParams.get('error');
@@ -80,9 +96,23 @@ function LoginFormContent() {
     // Redirect if user is already logged in
     useEffect(() => {
         if (user) {
-            router.replace('/account');
+             if (firestore) {
+                const userDocRef = doc(firestore, 'users', user.uid);
+                getDoc(userDocRef).then(userDoc => {
+                     if (userDoc.exists() && userDoc.data().role === 'dispensary') {
+                        router.replace('/dashboard/orders');
+                    } else if (userDoc.exists() && userDoc.data().onboardingCompleted) {
+                        router.replace('/dashboard');
+                    } else {
+                        // User exists but hasn't completed onboarding or has no role yet
+                        router.replace('/onboarding');
+                    }
+                })
+             } else {
+                router.replace('/account');
+             }
         }
-    }, [user, router]);
+    }, [user, router, firestore]);
 
 
     const handleGoogleSignIn = async () => {
@@ -292,5 +322,3 @@ function LoginPageFallback() {
         </div>
     )
 }
-
-    
