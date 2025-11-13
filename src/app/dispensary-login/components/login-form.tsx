@@ -11,7 +11,7 @@ import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
-import { sendSignInLinkToEmail } from 'firebase/auth';
+import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import Logo from '@/components/logo';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -62,8 +62,40 @@ export default function DispensaryLoginForm() {
 
 
     const handleGoogleSignIn = async () => {
+        if (!auth) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Firebase not initialized.' });
+            return;
+        }
+
         setIsGoogleLoading(true);
-        window.location.href = '/auth/google';
+        try {
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            
+            toast({
+                title: 'Success!',
+                description: `Signed in as ${result.user.email}`,
+            });
+            // The existing useEffect for `user` will handle the redirect
+        } catch (error: any) {
+            console.error('Google sign-in error:', error);
+            
+            if (error.code === 'auth/popup-blocked') {
+                toast({
+                    variant: 'destructive',
+                    title: 'Popup Blocked',
+                    description: 'Please allow popups for this site and try again.',
+                });
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Google Sign-In Failed',
+                    description: error.message,
+                });
+            }
+        } finally {
+            setIsGoogleLoading(false);
+        }
     };
 
 
