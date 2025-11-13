@@ -4,7 +4,7 @@ export const revalidate = 0;
 
 import LoginForm from './components/login-form';
 
-export default function BrandLoginPage() {
+export default function CustomerLoginPage() {
     return (
         <LoginForm />
     );

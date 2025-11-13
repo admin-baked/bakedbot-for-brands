@@ -120,19 +120,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
   
   React.useEffect(() => {
-    const isAuthPage = pathname.startsWith('/brand-login') || pathname.startsWith('/dispensary-login') || pathname.startsWith('/auth/');
+    const isLoginPage = pathname.startsWith('/customer-login') || pathname.startsWith('/brand-login') || pathname.startsWith('/dispensary-login');
+    const isAuthCallback = pathname.startsWith('/auth/');
     
     if (isUserLoading || isProfileLoading) return;
 
     if (user) {
-        if (isAuthPage) {
+        if (isLoginPage || isAuthCallback) {
             // User is logged in and on an auth page, redirect them.
             if (userProfile?.role === 'dispensary') {
                 router.replace('/dashboard/orders');
-            } else if (userProfile?.onboardingCompleted) {
-                router.replace('/dashboard');
-            } else {
-                router.replace('/onboarding');
+            } else { // Default for brand and customer
+                router.replace('/account/dashboard');
             }
         } else if (userProfile?.role === 'dispensary' && !pathname.startsWith('/dashboard/orders')) {
             // Dispensary user is logged in but not on their dedicated page.
@@ -145,7 +144,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         // User is not logged in.
         if (pathname.startsWith('/dashboard') || pathname.startsWith('/account') || pathname === '/onboarding') {
             // They are trying to access a protected route.
-            router.replace('/brand-login');
+            router.replace('/customer-login');
         }
     }
 }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router]);
@@ -204,7 +203,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         links = navLinks.filter(link => link.href === '/dashboard/orders' || link.href === '/dashboard/settings');
     } else if (userProfile?.role === 'brand' || userProfile?.role === 'owner') {
         links = navLinks.filter(link => link.href !== '/dashboard/orders');
-    } else if (userProfile) { // Default to customer view
+    } else if (userProfile) { // Default to customer view (customers don't see brand dashboard)
         links = []; 
     }
     
@@ -218,14 +217,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isLoading = isUserLoading || isProfileLoading;
   
-  const isExcludedFromLoadingScreen = 
+  const isExcludedFromLayout = 
+    pathname.startsWith('/customer-login') || 
     pathname.startsWith('/brand-login') || 
     pathname.startsWith('/dispensary-login') ||
     pathname.startsWith('/auth/') || 
     pathname.startsWith('/account') ||
     pathname === '/onboarding';
 
-  if (isLoading && !isExcludedFromLoadingScreen) {
+  if (isLoading && !isExcludedFromLayout) {
     return (
         <div className="flex h-screen w-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -234,7 +234,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   // If user is logged in but profile is still loading and we are on a protected page
-  if (user && isProfileLoading && !isExcludedFromLoadingScreen) {
+  if (user && isProfileLoading && !isExcludedFromLayout) {
       return (
          <div className="flex h-screen w-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -243,12 +243,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   // If user is not logged in and not on a public/auth page, don't render layout
-  if (!user && !(isExcludedFromLoadingScreen || pathname === '/')) {
+  if (!user && !isExcludedFromLayout && pathname !== '/') {
       return null;
   }
   
   // Do not render the brand dashboard layout for certain pages
-  if (pathname.startsWith('/account') || pathname.startsWith('/brand-login') || pathname.startsWith('/dispensary-login') || pathname === '/onboarding' || pathname.startsWith('/auth/')) {
+  if (isExcludedFromLayout) {
       return children;
   }
 
