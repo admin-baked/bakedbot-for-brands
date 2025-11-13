@@ -10,3 +10,5 @@ export function useHasMounted() {
   }, []);
   return hasMounted;
 }
+
+export default useHasMounted;
