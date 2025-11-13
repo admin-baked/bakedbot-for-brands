@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus, ThumbsUp, ThumbsDown, MessageSquare, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import type { Product } from '@/lib/types';
+import type { Product } from '@/types/domain';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';

@@ -1,18 +1,8 @@
 // This file is deprecated and will be removed once all types are moved to src/types/domain.ts
 import { Timestamp } from 'firebase/firestore';
+import type { Product } from '@/types/domain';
 
-export type Product = {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  prices: { [locationId: string]: number };
-  imageUrl: string;
-  imageHint: string;
-  description: string;
-  likes?: number;
-  dislikes?: number;
-};
+
 
 export type Location = {
     id: string;
