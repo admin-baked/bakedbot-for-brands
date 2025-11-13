@@ -1,10 +1,11 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useFirebase } from '@/firebase/provider';
 import { useRouter } from 'next/navigation';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,8 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Building, Upload, User, PenSquare } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 type OnboardingStep = 'role' | 'location' | 'products' | 'complete';
@@ -36,7 +36,7 @@ export default function OnboardingClient() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     // State for user role
-    const [role, setRole] = useState<'owner' | 'marketer' | null>(null);
+    const [role, setRole] = useState<'owner' | 'marketer' | 'customer' | null>(null);
 
     // State for location
     const [location, setLocation] = useState({ name: '', address: '', city: '', state: '', zip: '' });
@@ -58,15 +58,21 @@ export default function OnboardingClient() {
                     setIsSubmitting(false);
                     return;
                 }
-                await updateDoc(userDocRef, { role: role });
-                setStep('location');
+                // setDoc with merge will create or update the user document
+                await setDoc(userDocRef, { role: role }, { merge: true });
+                if (role === 'customer') {
+                    // Customers can skip directly to the end
+                    setStep('products');
+                } else {
+                    setStep('location');
+                }
             } else if (step === 'location') {
                  // In a real app, we'd save this location to a 'locations' collection
                 console.log("Location data:", location);
                 setStep('products');
             } else if (step === 'products') {
                 // Final step, mark onboarding as complete
-                await updateDoc(userDocRef, { onboardingCompleted: true });
+                await setDoc(userDocRef, { onboardingCompleted: true }, { merge: true });
                 toast({ title: "Onboarding Complete!", description: "Welcome! You're now being redirected to the dashboard." });
                 router.replace('/dashboard');
             }
@@ -77,6 +83,12 @@ export default function OnboardingClient() {
             setIsSubmitting(false);
         }
     };
+    
+    useEffect(() => {
+        if (!isUserLoading && !user) {
+            router.replace('/brand-login');
+        }
+    }, [isUserLoading, user, router]);
 
     if (isUserLoading || !firestore) {
         return (
@@ -91,7 +103,7 @@ export default function OnboardingClient() {
             <Card className="w-full max-w-lg shadow-lg">
                  <CardHeader>
                     <CardTitle className="text-2xl">Welcome to BakedBot!</CardTitle>
-                    <CardDescription>Let's get your brand set up in just a few steps.</CardDescription>
+                    <CardDescription>Let's get your account set up in just a few steps.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-8">
                    <StepIndicator currentStep={step === 'role' ? 1 : step === 'location' ? 2 : 3} />
@@ -99,19 +111,26 @@ export default function OnboardingClient() {
                    {step === 'role' && (
                        <div className="space-y-4 animate-in fade-in-50">
                             <h3 className="font-semibold">Step 1: What is your role?</h3>
-                            <RadioGroup value={role || ""} onValueChange={(value) => setRole(value as 'owner' | 'marketer')}>
+                            <RadioGroup value={role || ""} onValueChange={(value) => setRole(value as 'owner' | 'marketer' | 'customer')}>
                                 <Label htmlFor="owner" className="flex items-start gap-4 rounded-md border p-4 cursor-pointer hover:bg-accent has-[:checked]:border-primary">
                                     <RadioGroupItem value="owner" id="owner" />
                                     <div>
-                                        <h4 className="font-semibold">Owner</h4>
-                                        <p className="text-sm text-muted-foreground">I have full permissions, including billing and user management.</p>
+                                        <h4 className="font-semibold">Brand Owner / Manager</h4>
+                                        <p className="text-sm text-muted-foreground">I manage a brand and need access to dashboards and content tools.</p>
                                     </div>
                                 </Label>
                                 <Label htmlFor="marketer" className="flex items-start gap-4 rounded-md border p-4 cursor-pointer hover:bg-accent has-[:checked]:border-primary">
                                     <RadioGroupItem value="marketer" id="marketer" />
                                     <div>
-                                        <h4 className="font-semibold">Marketer</h4>
+                                        <h4 className="font-semibold">Brand Marketer</h4>
                                         <p className="text-sm text-muted-foreground">I'm focused on creating content and managing product information.</p>
+                                    </div>
+                                </Label>
+                                 <Label htmlFor="customer" className="flex items-start gap-4 rounded-md border p-4 cursor-pointer hover:bg-accent has-[:checked]:border-primary">
+                                    <RadioGroupItem value="customer" id="customer" />
+                                    <div>
+                                        <h4 className="font-semibold">Customer</h4>
+                                        <p className="text-sm text-muted-foreground">I'm here to browse products and get recommendations.</p>
                                     </div>
                                 </Label>
                             </RadioGroup>
@@ -134,23 +153,16 @@ export default function OnboardingClient() {
                                 <Input placeholder="State" value={location.state} onChange={(e) => setLocation({...location, state: e.target.value})} />
                                 <Input placeholder="Zip" value={location.zip} onChange={(e) => setLocation({...location, zip: e.target.value})} />
                             </div>
-                            <Button variant="link" className="p-0">I'll do this later</Button>
+                            <Button variant="link" className="p-0" onClick={() => setStep('products')}>I'll do this later</Button>
                        </div>
                    )}
 
                    {step === 'products' && (
                        <div className="space-y-4 text-center animate-in fade-in-50">
-                            <h3 className="font-semibold">Step 3: Import your products.</h3>
+                            <h3 className="font-semibold">Step 3: All Set!</h3>
                             <p className="text-sm text-muted-foreground">
-                                The AI needs your product catalog to make recommendations. You can upload a CSV file in the dashboard settings.
+                                You can manage your brand information, locations, and product catalog in the dashboard settings at any time.
                             </p>
-                            <div className="flex items-center justify-center w-full">
-                                <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg">
-                                    <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                                    <p className="text-sm text-muted-foreground">Upload a product CSV</p>
-                                    <p className="text-xs text-muted-foreground">(You can do this later in Settings)</p>
-                                </div>
-                            </div>
                        </div>
                    )}
 

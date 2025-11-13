@@ -64,8 +64,10 @@ export function CallbackClientInner() {
             
             if (userDoc.exists() && userDoc.data().role === 'dispensary') {
                 router.replace('/dashboard/orders');
-            } else {
+            } else if (userDoc.exists() && userDoc.data().onboardingCompleted) {
                 router.replace('/dashboard');
+            } else {
+                router.replace('/onboarding');
             }
 
         } catch (error) {
@@ -113,5 +115,3 @@ export function CallbackClientInner() {
     </div>
   );
 }
-
-    

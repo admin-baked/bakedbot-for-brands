@@ -120,33 +120,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
   
   React.useEffect(() => {
-    const isBrandAuthPage = pathname === '/brand-login' || pathname.startsWith('/auth/');
-    const isDispensaryAuthPage = pathname === '/dispensary-login';
-    const isAuthPage = isBrandAuthPage || isDispensaryAuthPage;
-
+    const isAuthPage = pathname.startsWith('/brand-login') || pathname.startsWith('/dispensary-login') || pathname.startsWith('/auth/');
+    
     if (isUserLoading || isProfileLoading) return;
 
-    if (user && userProfile) {
-        // User is logged in and we have their profile data
+    if (user) {
         if (isAuthPage) {
-            // If they are on a login page, redirect them to their respective dashboard
-            if (userProfile.role === 'dispensary') {
+            // User is logged in and on an auth page, redirect them.
+            if (userProfile?.role === 'dispensary') {
                 router.replace('/dashboard/orders');
-            } else {
+            } else if (userProfile?.onboardingCompleted) {
                 router.replace('/dashboard');
+            } else {
+                router.replace('/onboarding');
             }
-        } else if (userProfile.role === 'dispensary' && !pathname.startsWith('/dashboard/orders')) {
-            // If a dispensary user is not on the orders page, redirect them there.
+        } else if (userProfile?.role === 'dispensary' && !pathname.startsWith('/dashboard/orders')) {
+            // Dispensary user is logged in but not on their dedicated page.
             router.replace('/dashboard/orders');
-        } else if (!userProfile.onboardingCompleted && pathname !== '/onboarding') {
-            // Handle onboarding if it's not completed
+        } else if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
+            // User is logged in but hasn't completed onboarding.
             router.replace('/onboarding');
         }
-    } else if (!user) {
-        // User is not logged in
+    } else {
+        // User is not logged in.
         if (pathname.startsWith('/dashboard') || pathname.startsWith('/account') || pathname === '/onboarding') {
-            // If they try to access a protected route, send them to the homepage
-            router.replace('/');
+            // They are trying to access a protected route.
+            router.replace('/brand-login');
         }
     }
 }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router]);
@@ -249,7 +248,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
   
   // Do not render the brand dashboard layout for certain pages
-  if (pathname.startsWith('/account') || pathname.startsWith('/brand-login') || pathname.startsWith('/dispensary-login') || pathname === '/onboarding') {
+  if (pathname.startsWith('/account') || pathname.startsWith('/brand-login') || pathname.startsWith('/dispensary-login') || pathname === '/onboarding' || pathname.startsWith('/auth/')) {
       return children;
   }
 
