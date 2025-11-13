@@ -1,9 +1,12 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 
 export function useHasMounted() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  return mounted;
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  return hasMounted;
 }
