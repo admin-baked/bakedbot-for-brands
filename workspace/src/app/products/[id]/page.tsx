@@ -6,39 +6,44 @@ import type { Metadata, ResolvingMetadata } from 'next';
 import { Skeleton } from '@/components/ui/skeleton';
 import ProductDetailsClient from '@/app/products/[id]/components/product-details-client';
 import Chatbot from '@/components/chatbot';
-import Link from 'next/link';
-import { Search, User, ShoppingBag } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { getReviewSummary } from '@/app/products/[id]/actions';
-import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { createServerClient } from '@/firebase/server-client';
 import type { Product } from '@/lib/types';
 import { demoProducts } from '@/lib/data';
 import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 import Header from '@/app/components/header';
+import { Footer } from '@/app/components/footer';
+import { cookies } from 'next/headers';
+import { makeProductRepo } from '@/server/repos/productRepo';
 
 type Props = {
   params: { id: string }
 }
 
-// Fetch a single product from Firestore on the server, with a fallback to demo data
 const getProduct = async (id: string): Promise<Product | null> => {
+    // Reading the cookie on the server to determine data source
+    const cookieStore = cookies();
+    const isDemo = cookieStore.get('isUsingDemoData')?.value === 'true';
+
+    if (isDemo) {
+      return demoProducts.find(p => p.id === id) || null;
+    }
+
     try {
         const { firestore } = await createServerClient();
-        const productSnap = await firestore.collection('products').doc(id).get();
+        const productRepo = makeProductRepo(firestore);
+        const product = await productRepo.getById(id);
 
-        if (productSnap.exists) {
-            return { id: productSnap.id, ...productSnap.data() } as Product;
+        if (product) {
+            return product;
         }
         
-        // Fallback to demo data if not found in Firestore
-        const demoProduct = demoProducts.find(p => p.id === id);
-        return demoProduct || null;
+        // Fallback to demo data if not found in Firestore in live mode
+        return demoProducts.find(p => p.id === id) || null;
 
     } catch (error) {
         console.error("Error fetching product on server, falling back to demo data:", error);
-        const demoProduct = demoProducts.find(p => p.id === id);
-        return demoProduct || null;
+        return demoProducts.find(p => p.id === id) || null;
     }
 }
 
@@ -94,18 +99,19 @@ export default async function ProductPage({ params }: Props) {
     }
     
     // Fetch the review summary using the new server action
-    const summary = await getReviewSummary(product.id, product.name);
+    const summary = await getReviewSummary({ productId: product.id });
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background flex flex-col">
             <Header />
-            <main className="container mx-auto">
+            <main className="container mx-auto flex-1">
                 <Suspense fallback={<ProductPageSkeleton />}>
                     <ProductDetailsClient product={product} summary={summary} />
                 </Suspense>
             </main>
             <FloatingCartPill />
             <Chatbot />
+            <Footer />
         </div>
     )
 }
