@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -69,22 +68,47 @@ export default function AuthCallbackPage() {
                     description: `Successfully signed in as ${result.user.email}`,
                 });
 
+                // ✅ Wait a moment for auth state to propagate
+                await new Promise(resolve => setTimeout(resolve, 500));
+
                 // Check user role and redirect accordingly
                 if (!firestore) {
-                    setTimeout(() => router.replace('/account/dashboard'), 1500);
+                    console.log('📄 Firestore not ready, using default redirect');
+                    router.replace('/account/dashboard');
                     return;
                 }
-                const userDocRef = doc(firestore, 'users', result.user.uid);
-                const userDoc = await getDoc(userDocRef);
 
-                if (userDoc.exists() && userDoc.data().onboardingCompleted === false) {
-                     setTimeout(() => router.replace('/onboarding'), 1500);
-                } else if (userDoc.exists() && userDoc.data().role === 'dispensary') {
-                    setTimeout(() => router.replace('/dashboard/orders'), 1500);
-                } else if (userDoc.exists() && userDoc.data().role === 'brand') {
-                     setTimeout(() => router.replace('/dashboard'), 1500);
-                } else {
-                    setTimeout(() => router.replace('/account/dashboard'), 1500);
+                try {
+                    const userDocRef = doc(firestore, 'users', result.user.uid);
+                    const userDoc = await getDoc(userDocRef);
+
+                    console.log('👤 User document:', userDoc.exists() ? userDoc.data() : 'not found');
+
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        
+                        if (userData.onboardingCompleted === false) {
+                            console.log('📝 Redirecting to onboarding');
+                            router.replace('/onboarding');
+                        } else if (userData.role === 'dispensary') {
+                            console.log('🏪 Redirecting to dispensary dashboard');
+                            router.replace('/dashboard/orders');
+                        } else if (userData.role === 'brand' || userData.role === 'owner') {
+                            console.log('🏢 Redirecting to brand dashboard');
+                            router.replace('/dashboard');
+                        } else {
+                            console.log('👥 Redirecting to customer dashboard');
+                            router.replace('/account/dashboard');
+                        }
+                    } else {
+                        // New user - no document yet
+                        console.log('🆕 New user detected, redirecting to onboarding');
+                        router.replace('/onboarding');
+                    }
+                } catch (firestoreError) {
+                    console.error('❌ Error fetching user document:', firestoreError);
+                    // Fallback to default
+                    router.replace('/account/dashboard');
                 }
 
             } catch (error: any) {
@@ -133,9 +157,36 @@ export default function AuthCallbackPage() {
                 description: `Successfully signed in as ${result.user.email}`,
             });
 
-            setTimeout(() => {
-                router.push('/account/dashboard');
-            }, 1500);
+            // Wait for auth state to propagate
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Check role and redirect
+            if (firestore) {
+                try {
+                    const userDocRef = doc(firestore, 'users', result.user.uid);
+                    const userDoc = await getDoc(userDocRef);
+
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        
+                        if (userData.onboardingCompleted === false) {
+                            router.replace('/onboarding');
+                        } else if (userData.role === 'dispensary') {
+                            router.replace('/dashboard/orders');
+                        } else if (userData.role === 'brand' || userData.role === 'owner') {
+                            router.replace('/dashboard');
+                        } else {
+                            router.replace('/account/dashboard');
+                        }
+                    } else {
+                        router.replace('/onboarding');
+                    }
+                } catch {
+                    router.replace('/account/dashboard');
+                }
+            } else {
+                router.replace('/account/dashboard');
+            }
 
         } catch (error: any) {
             console.error('❌ Sign-in error:', error);
@@ -233,7 +284,7 @@ export default function AuthCallbackPage() {
                         <CheckCircle2 className="h-12 w-12 text-green-500" />
                         <CardTitle className="mt-4">Sign-in Successful!</CardTitle>
                         <CardDescription>
-                            Redirecting you to your dashboard...
+                            Redirecting you now...
                         </CardDescription>
                     </CardHeader>
                 </Card>
