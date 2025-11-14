@@ -7,9 +7,6 @@ import { useStore } from '@/hooks/use-store';
 import { useHydrated } from '@/hooks/useHydrated';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 export default function Page() {
   const { menuStyle } = useStore();
   const hydrated = useHydrated();
