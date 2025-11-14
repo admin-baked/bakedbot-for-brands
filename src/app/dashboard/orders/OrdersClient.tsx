@@ -30,6 +30,7 @@ export default function OrdersClient() {
   }, [user, firestore]);
 
   const ordersQuery = useMemo(() => {
+    // CRITICAL FIX: Do not build the query until the user profile is loaded.
     if (!firestore || !userProfile) return null;
     
     const baseQuery = collection(firestore, 'orders').withConverter(orderConverter);
