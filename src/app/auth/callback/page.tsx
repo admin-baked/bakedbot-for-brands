@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -12,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/logo';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function AuthCallbackPage() {
     const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'need-email'>('loading');
@@ -21,7 +21,6 @@ export default function AuthCallbackPage() {
     const router = useRouter();
     const { auth, firestore } = useFirebase();
     const { toast } = useToast();
-    const { doc, getDoc } = require("firebase/firestore");
 
     useEffect(() => {
         if (!auth) {
@@ -70,6 +69,10 @@ export default function AuthCallbackPage() {
                 });
 
                 // Check user role and redirect accordingly
+                if (!firestore) {
+                    setTimeout(() => router.replace('/account/dashboard'), 1500);
+                    return;
+                }
                 const userDocRef = doc(firestore, 'users', result.user.uid);
                 const userDoc = await getDoc(userDocRef);
 
@@ -104,7 +107,7 @@ export default function AuthCallbackPage() {
         };
 
         handleMagicLinkSignIn();
-    }, [auth, router, toast, firestore, doc, getDoc]);
+    }, [auth, router, toast, firestore, errorMessage]);
 
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
