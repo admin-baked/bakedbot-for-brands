@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -28,6 +27,7 @@ export function useMenuData(): UseMenuDataResult {
   const { firestore } = useFirebase();
   
   const isAuthOrDashboardPage = useMemo(() => {
+    if (!pathname) return false;
     return pathname.startsWith('/dashboard') || 
            pathname.startsWith('/account') ||
            pathname.startsWith('/onboarding') ||
