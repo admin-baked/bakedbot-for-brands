@@ -32,7 +32,7 @@ export default function DispensaryLoginForm() {
     const { toast } = useToast();
     const searchParams = useSearchParams();
     const { auth, firestore } = useFirebase();
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const router = useRouter();
 
     // Handle URL error parameters
@@ -54,8 +54,6 @@ export default function DispensaryLoginForm() {
         getRedirectResult(auth)
             .then((result) => {
                 if (result) {
-                    // ✅ Set the flag
-                    window.localStorage.setItem('justSignedIn', 'true');
                     toast({
                         title: 'Welcome!',
                         description: `Signed in as ${result.user.email}`,
@@ -76,17 +74,28 @@ export default function DispensaryLoginForm() {
 
     // Redirect if user is already logged in
     useEffect(() => {
-        if (user && firestore) {
+        if (user && firestore && !isUserLoading) {
             const userDocRef = doc(firestore, 'users', user.uid);
             getDoc(userDocRef).then(userDoc => {
-                if (userDoc.exists() && userDoc.data().role === 'dispensary') {
-                    router.replace('/dashboard/orders');
+                 if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                     if (userData.onboardingCompleted === false) {
+                        router.replace('/onboarding');
+                    } else if (userData.role === 'dispensary') {
+                        router.replace('/dashboard/orders');
+                    } else if (userData.role === 'brand' || userData.role === 'owner') {
+                        router.replace('/dashboard');
+                    } else {
+                        router.replace('/account/dashboard');
+                    }
                 } else {
-                    router.replace('/account/dashboard');
+                    router.replace('/onboarding');
                 }
             });
+        } else if (!isUserLoading) {
+            setIsLoading(false);
         }
-    }, [user, router, firestore]);
+    }, [user, router, firestore, isUserLoading]);
 
     const handleGoogleSignIn = async () => {
         if (!auth) {

@@ -61,9 +61,6 @@ export default function AuthCallbackPage() {
                 
                 window.localStorage.removeItem('emailForSignIn');
                 
-                // ✅ Set flag to prevent layout from redirecting during auth propagation
-                window.localStorage.setItem('justSignedIn', 'true');
-                
                 setStatus('success');
                 
                 toast({
@@ -71,48 +68,12 @@ export default function AuthCallbackPage() {
                     description: `Successfully signed in as ${result.user.email}`,
                 });
 
-                // Wait for auth state to propagate
-                await new Promise(resolve => setTimeout(resolve, 1000)); // ← Increased to 1 second
-
-                // Check user role and redirect accordingly
-                if (!firestore) {
-                    console.log('📄 Firestore not ready, using default redirect');
-                    router.replace('/account/dashboard');
-                    return;
-                }
-
-                try {
-                    const userDocRef = doc(firestore, 'users', result.user.uid);
-                    const userDoc = await getDoc(userDocRef);
-
-                    console.log('👤 User document:', userDoc.exists() ? userDoc.data() : 'not found');
-
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        
-                        if (userData.onboardingCompleted === false) {
-                            console.log('📝 Redirecting to onboarding');
-                            router.replace('/onboarding');
-                        } else if (userData.role === 'dispensary') {
-                            console.log('🏪 Redirecting to dispensary dashboard');
-                            router.replace('/dashboard/orders');
-                        } else if (userData.role === 'brand' || userData.role === 'owner') {
-                            console.log('🏢 Redirecting to brand dashboard');
-                            router.replace('/dashboard');
-                        } else {
-                            console.log('👥 Redirecting to customer dashboard');
-                            router.replace('/account/dashboard');
-                        }
-                    } else {
-                        // New user - no document yet, go to onboarding
-                        console.log('🆕 New user detected, redirecting to onboarding');
-                        router.replace('/onboarding');
-                    }
-                } catch (firestoreError) {
-                    console.error('❌ Error fetching user document:', firestoreError);
-                    // Fallback to default
-                    router.replace('/account/dashboard');
-                }
+                // ✅ Wait for auth state to propagate, then go back to login page
+                // The LoginForm will detect the user and redirect appropriately
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                console.log('🔄 Redirecting to login page for final redirect...');
+                router.replace('/customer-login');
 
             } catch (error: any) {
                 console.error('❌ Sign-in error:', error);
@@ -135,7 +96,7 @@ export default function AuthCallbackPage() {
         };
 
         handleMagicLinkSignIn();
-    }, [auth, router, toast, firestore, errorMessage]);
+    }, [auth, router, toast, errorMessage]);
 
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -153,9 +114,6 @@ export default function AuthCallbackPage() {
             
             window.localStorage.setItem('emailForSignIn', email);
             
-            // ✅ Set flag to prevent layout from redirecting
-            window.localStorage.setItem('justSignedIn', 'true');
-            
             setStatus('success');
             
             toast({
@@ -163,36 +121,9 @@ export default function AuthCallbackPage() {
                 description: `Successfully signed in as ${result.user.email}`,
             });
 
-            // Wait for auth state to propagate
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Check role and redirect
-            if (firestore) {
-                try {
-                    const userDocRef = doc(firestore, 'users', result.user.uid);
-                    const userDoc = await getDoc(userDocRef);
-
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        
-                        if (userData.onboardingCompleted === false) {
-                            router.replace('/onboarding');
-                        } else if (userData.role === 'dispensary') {
-                            router.replace('/dashboard/orders');
-                        } else if (userData.role === 'brand' || userData.role === 'owner') {
-                            router.replace('/dashboard');
-                        } else {
-                            router.replace('/account/dashboard');
-                        }
-                    } else {
-                        router.replace('/onboarding');
-                    }
-                } catch {
-                    router.replace('/account/dashboard');
-                }
-            } else {
-                router.replace('/account/dashboard');
-            }
+            // ✅ Wait then redirect to login page
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            router.replace('/customer-login');
 
         } catch (error: any) {
             console.error('❌ Sign-in error:', error);

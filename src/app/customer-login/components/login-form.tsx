@@ -32,7 +32,7 @@ export default function LoginForm() {
     const { toast } = useToast();
     const searchParams = useSearchParams();
     const { auth, firestore } = useFirebase();
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const router = useRouter();
 
     // Handle URL error parameters
@@ -51,28 +51,16 @@ export default function LoginForm() {
     useEffect(() => {
         if (!auth) return;
         
-        console.log('🔍 Checking for Google redirect result...');
-        setIsLoading(true);
-        
         getRedirectResult(auth)
             .then((result) => {
                 if (result) {
-                    console.log('✅ Google sign-in successful:', result.user.email);
-                    
-                    // ✅ Set the flag
-                    window.localStorage.setItem('justSignedIn', 'true');
-                    
                     toast({
                         title: 'Welcome!',
                         description: `Signed in as ${result.user.email}`,
                     });
-                    // The user redirect useEffect will handle navigation
-                } else {
-                    console.log('ℹ️ No redirect result found');
                 }
             })
             .catch((error) => {
-                console.error('❌ Google redirect result error:', error);
                 toast({
                     variant: 'destructive',
                     title: 'Authentication Failed',
@@ -86,17 +74,43 @@ export default function LoginForm() {
 
     // Redirect if user is already logged in
     useEffect(() => {
-        if (user && firestore) {
+        if (user && firestore && !isUserLoading) {
+            console.log('👤 LoginForm: User detected, checking role for redirect...');
             const userDocRef = doc(firestore, 'users', user.uid);
             getDoc(userDocRef).then(userDoc => {
-                if (userDoc.exists() && userDoc.data().onboardingCompleted === false) {
-                    router.replace('/onboarding');
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    
+                    // ✅ Check onboarding first
+                    if (userData.onboardingCompleted === false) {
+                        console.log('📝 LoginForm: Redirecting to onboarding');
+                        router.replace('/onboarding');
+                    }
+                    // Then check role
+                    else if (userData.role === 'dispensary') {
+                        console.log('🏪 LoginForm: Redirecting to dispensary dashboard');
+                        router.replace('/dashboard/orders');
+                    } else if (userData.role === 'brand' || userData.role === 'owner') {
+                        console.log('🏢 LoginForm: Redirecting to brand dashboard');
+                        router.replace('/dashboard');
+                    } else {
+                        // Customer or no specific role
+                        console.log('👥 LoginForm: Redirecting to customer dashboard');
+                        router.replace('/account/dashboard');
+                    }
                 } else {
-                    router.replace('/account/dashboard');
+                    // New user - no document yet
+                    console.log('🆕 LoginForm: New user, redirecting to onboarding');
+                    router.replace('/onboarding');
                 }
+            }).catch(error => {
+                console.error('Error fetching user doc:', error);
+                router.replace('/account/dashboard');
             });
+        } else if (!isUserLoading) {
+            setIsLoading(false);
         }
-    }, [user, router, firestore]);
+    }, [user, router, firestore, isUserLoading]);
 
     const handleGoogleSignIn = async () => {
         if (!auth) {
