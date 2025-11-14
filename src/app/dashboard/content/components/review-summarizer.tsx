@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Wand2, Loader2, ThumbsUp, ThumbsDown, CheckCircle, XCircle, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import type { Product } from '@/lib/types';
+import type { Product } from '@/firebase/converters';
 
 const initialState: ReviewSummaryFormState = {
     message: '',

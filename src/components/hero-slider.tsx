@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
-import { type Product } from '@/lib/types';
+import { type Product } from '@/firebase/converters';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useMenuData } from '@/hooks/use-menu-data';

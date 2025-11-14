@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThumbsUp } from 'lucide-react';
-import type { Product } from '@/lib/types';
+import type { Product } from '@/firebase/converters';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import Image from 'next/image';

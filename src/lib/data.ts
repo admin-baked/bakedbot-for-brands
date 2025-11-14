@@ -1,5 +1,5 @@
 
-import type { Product, Location, Review, UserInteraction, OrderDoc } from './types';
+import type { Product, Location, Review, UserInteraction, OrderDoc } from '@/types/domain';
 import { PlaceHolderImages } from './placeholder-images';
 import { Timestamp } from 'firebase/firestore';
 
