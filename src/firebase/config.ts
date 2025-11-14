@@ -2,20 +2,32 @@
 // src/firebase/config.ts
 
 const getCurrentAuthDomain = () => {
-  // Server-side rendering: use Firebase default
+  // Server-side rendering: use default Firebase domain
   if (typeof window === 'undefined') {
     return 'studio-567050101-bc6e8.firebaseapp.com';
   }
 
   const hostname = window.location.hostname;
 
-  // Production only: use custom domain
+  // Cloud Workstation (Firebase Studio) - use the actual hostname
+  if (hostname.includes('cloudworkstations.dev')) {
+    console.log('🔧 Firebase Config: Using Cloud Workstation hostname for auth');
+    return hostname;
+  }
+
+  // Localhost
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log('🔧 Firebase Config: Using Firebase default for localhost');
+    return 'studio-567050101-bc6e8.firebaseapp.com';
+  }
+
+  // Production
   if (hostname === 'brands.bakedbot.ai') {
+    console.log('🔧 Firebase Config: Using custom domain for production');
     return 'brands.bakedbot.ai';
   }
 
-  // All dev environments: use Firebase default domain
-  // (Cloud Workstation, localhost, preview URLs, etc.)
+  // Fallback to Firebase default
   return 'studio-567050101-bc6e8.firebaseapp.com';
 };
 
@@ -27,9 +39,3 @@ export const firebaseConfig = {
   measurementId: "G-B4FT9QTWD1",
   messagingSenderId: "1016399212569"
 };
-
-// Optional: Debug logging (you can remove this after confirming it works)
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  console.log('🔧 Firebase Auth Domain:', firebaseConfig.authDomain);
-  console.log('🌐 Current Hostname:', window.location.hostname);
-}
