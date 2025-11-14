@@ -109,6 +109,9 @@ export default function DispensaryLoginForm() {
         setIsGoogleLoading(true);
         
         const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
 
         try {
             const result = await signInWithPopup(auth, provider);
@@ -145,9 +148,6 @@ export default function DispensaryLoginForm() {
                     console.error('⚠️ Error creating user document:', firestoreError);
                 }
             }
-
-            hasRedirected.current = true;
-            await redirectUserBasedOnRole(result.user.uid);
             
         } catch (error: any) {
             console.error('❌ Google sign-in error:', error);
