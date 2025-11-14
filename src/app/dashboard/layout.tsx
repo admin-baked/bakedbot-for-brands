@@ -124,19 +124,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                        pathname.startsWith('/dispensary-login');
     const isAuthCallback = pathname.startsWith('/auth/');
     
+    // ✅ Don't interfere with login pages or auth callbacks at all
     if (isUserLoading || isProfileLoading || isAuthCallback || isLoginPage) {
         return;
     }
 
     if (user && userProfile) {
+        // User is authenticated - enforce role-based access on protected routes only
         if (userProfile.onboardingCompleted === false && pathname !== '/onboarding') {
             console.log('📝 Layout: User needs onboarding');
             router.replace('/onboarding');
-        } else if (userProfile.role === 'dispensary' && !pathname.startsWith('/dashboard/orders')) {
+        } else if (userProfile.role === 'dispensary' && !pathname.startsWith('/dashboard/orders') && !pathname.startsWith('/dashboard/settings')) {
             console.log('🏪 Layout: Dispensary user on wrong page, redirecting');
             router.replace('/dashboard/orders');
         }
     } else if (!user) {
+        // User is NOT authenticated
         const isProtectedRoute = pathname.startsWith('/dashboard') || 
                                 pathname.startsWith('/account') || 
                                 pathname === '/onboarding';
@@ -411,5 +414,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
-    
