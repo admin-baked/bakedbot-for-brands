@@ -71,6 +71,7 @@ export default function EditLinkDialog({ isOpen, setIsOpen, link }: EditLinkDial
             description: `The "${label}" link was successfully added.`,
         });
     } else {
+        if (!link) return;
         updateNavLink(link.href, { label, href, icon });
         toast({
             title: 'Link Updated',
