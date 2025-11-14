@@ -68,12 +68,35 @@ export default function AuthCallbackPage() {
                     description: `Successfully signed in as ${result.user.email}`,
                 });
 
-                // ✅ Wait for auth state to propagate, then go back to login page
-                // The LoginForm will detect the user and redirect appropriately
+                console.log('🎉 Magic link sign-in complete. Redirecting to dashboard...');
+                
                 await new Promise(resolve => setTimeout(resolve, 1500));
                 
-                console.log('🔄 Redirecting to login page for final redirect...');
-                router.replace('/customer-login');
+                if (firestore) {
+                    try {
+                        const userDocRef = doc(firestore, 'users', result.user.uid);
+                        const userDoc = await getDoc(userDocRef);
+                        
+                        if (userDoc.exists()) {
+                            const userData = userDoc.data();
+                            if (userData.onboardingCompleted === false) {
+                                router.replace('/onboarding');
+                            } else if (userData.role === 'dispensary') {
+                                router.replace('/dashboard/orders');
+                            } else if (userData.role === 'brand' || userData.role === 'owner') {
+                                router.replace('/dashboard');
+                            } else {
+                                router.replace('/account/dashboard');
+                            }
+                        } else {
+                            router.replace('/onboarding');
+                        }
+                    } catch {
+                        router.replace('/account/dashboard');
+                    }
+                } else {
+                    router.replace('/account/dashboard');
+                }
 
             } catch (error: any) {
                 console.error('❌ Sign-in error:', error);
@@ -96,7 +119,7 @@ export default function AuthCallbackPage() {
         };
 
         handleMagicLinkSignIn();
-    }, [auth, router, toast, errorMessage]);
+    }, [auth, router, toast, firestore, errorMessage]);
 
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -121,9 +144,35 @@ export default function AuthCallbackPage() {
                 description: `Successfully signed in as ${result.user.email}`,
             });
 
-            // ✅ Wait then redirect to login page
+            console.log('🎉 Magic link sign-in complete. Redirecting to dashboard...');
+    
             await new Promise(resolve => setTimeout(resolve, 1500));
-            router.replace('/customer-login');
+            
+            if (firestore) {
+                try {
+                    const userDocRef = doc(firestore, 'users', result.user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        if (userData.onboardingCompleted === false) {
+                            router.replace('/onboarding');
+                        } else if (userData.role === 'dispensary') {
+                            router.replace('/dashboard/orders');
+                        } else if (userData.role === 'brand' || userData.role === 'owner') {
+                            router.replace('/dashboard');
+                        } else {
+                            router.replace('/account/dashboard');
+                        }
+                    } else {
+                        router.replace('/onboarding');
+                    }
+                } catch {
+                    router.replace('/account/dashboard');
+                }
+            } else {
+                router.replace('/account/dashboard');
+            }
 
         } catch (error: any) {
             console.error('❌ Sign-in error:', error);
@@ -255,3 +304,5 @@ export default function AuthCallbackPage() {
 
     return null;
 }
+
+    
