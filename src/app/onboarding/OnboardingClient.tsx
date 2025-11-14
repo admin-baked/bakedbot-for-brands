@@ -36,7 +36,7 @@ export default function OnboardingClient() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     // State for user role
-    const [role, setRole] = useState<'owner' | 'marketer' | 'customer' | null>(null);
+    const [role, setRole] = useState<'owner' | 'dispensary' | 'customer' | null>(null);
 
     // State for location
     const [location, setLocation] = useState({ name: '', address: '', city: '', state: '', zip: '' });
@@ -111,7 +111,7 @@ export default function OnboardingClient() {
                    {step === 'role' && (
                        <div className="space-y-4 animate-in fade-in-50">
                             <h3 className="font-semibold">Step 1: What is your role?</h3>
-                            <RadioGroup value={role || ""} onValueChange={(value) => setRole(value as 'owner' | 'marketer' | 'customer')}>
+                            <RadioGroup value={role || ""} onValueChange={(value) => setRole(value as 'owner' | 'dispensary' | 'customer')}>
                                 <Label htmlFor="owner" className="flex items-start gap-4 rounded-md border p-4 cursor-pointer hover:bg-accent has-[:checked]:border-primary">
                                     <RadioGroupItem value="owner" id="owner" />
                                     <div>
@@ -119,11 +119,11 @@ export default function OnboardingClient() {
                                         <p className="text-sm text-muted-foreground">I manage a brand and need access to dashboards and content tools.</p>
                                     </div>
                                 </Label>
-                                <Label htmlFor="marketer" className="flex items-start gap-4 rounded-md border p-4 cursor-pointer hover:bg-accent has-[:checked]:border-primary">
-                                    <RadioGroupItem value="marketer" id="marketer" />
+                                <Label htmlFor="dispensary" className="flex items-start gap-4 rounded-md border p-4 cursor-pointer hover:bg-accent has-[:checked]:border-primary">
+                                    <RadioGroupItem value="dispensary" id="dispensary" />
                                     <div>
-                                        <h4 className="font-semibold">Brand Marketer</h4>
-                                        <p className="text-sm text-muted-foreground">I'm focused on creating content and managing product information.</p>
+                                        <h4 className="font-semibold">Dispensary Owner / Manager</h4>
+                                        <p className="text-sm text-muted-foreground">I'm responsible for fulfilling orders at a dispensary.</p>
                                     </div>
                                 </Label>
                                  <Label htmlFor="customer" className="flex items-start gap-4 rounded-md border p-4 cursor-pointer hover:bg-accent has-[:checked]:border-primary">
