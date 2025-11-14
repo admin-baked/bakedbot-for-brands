@@ -80,6 +80,7 @@
     "tailwindcss-animate": "^1.0.7",
     "ts-jest": "^29.1.5",
     "ts-prune": "^0.10.3",
+    "tsx": "^4.16.2",
     "typescript": "^5"
   }
 }
