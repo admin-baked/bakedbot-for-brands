@@ -52,54 +52,134 @@ export default function LoginForm() {
 
     // Handle Google redirect result
     useEffect(() => {
-        if (!auth) return;
+        if (!auth || !firestore) return;
+        
+        console.log('🔍 Checking for Google redirect result...');
+        setIsLoading(true);
         
         getRedirectResult(auth)
-            .then((result) => {
+            .then(async (result) => {
                 if (result) {
+                    console.log('✅ Google sign-in successful:', result.user.email);
+                    
+                    // ✅ Immediately set redirecting state
+                    setIsRedirecting(true);
+                    
                     toast({
                         title: 'Welcome!',
-                        description: `Signed in as ${result.user.email}`,
+                        description: `Successfully signed in as ${result.user.email}`,
                     });
+    
+                    // ✅ Perform redirect logic RIGHT HERE, don't wait for another useEffect
+                    try {
+                        const userDocRef = doc(firestore, 'users', result.user.uid);
+                        const userDoc = await getDoc(userDocRef);
+    
+                        if (userDoc.exists()) {
+                            const userData = userDoc.data();
+                            console.log('👤 Google sign-in: User role:', userData.role, 'Onboarding:', userData.onboardingCompleted);
+                            
+                            // Check onboarding first
+                            if (userData.onboardingCompleted === false) {
+                                console.log('📝 Google sign-in: Redirecting to onboarding');
+                                router.replace('/onboarding');
+                            }
+                            // Then check role
+                            else if (userData.role === 'dispensary') {
+                                console.log('🏪 Google sign-in: Redirecting to dispensary dashboard');
+                                router.replace('/dashboard/orders');
+                            } else if (userData.role === 'brand' || userData.role === 'owner') {
+                                console.log('🏢 Google sign-in: Redirecting to brand dashboard');
+                                router.replace('/dashboard');
+                            } else {
+                                console.log('👥 Google sign-in: Redirecting to customer dashboard');
+                                router.replace('/account/dashboard');
+                            }
+                        } else {
+                            // New user - no document yet
+                            console.log('🆕 Google sign-in: New user, redirecting to onboarding');
+                            router.replace('/onboarding');
+                        }
+                    } catch (firestoreError) {
+                        console.error('❌ Google sign-in: Error fetching user doc:', firestoreError);
+                        // Fallback
+                        router.replace('/dashboard');
+                    }
+                } else {
+                    console.log('ℹ️ No redirect result found');
+                    setIsLoading(false);
                 }
             })
             .catch((error) => {
+                console.error('❌ Google redirect result error:', error);
+                
+                let errorMessage = 'An error occurred during sign-in.';
+                
+                if (error.code === 'auth/account-exists-with-different-credential') {
+                    errorMessage = 'An account already exists with the same email but different sign-in method.';
+                } else if (error.code === 'auth/popup-closed-by-user') {
+                    errorMessage = 'Sign-in was cancelled.';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
                 toast({
                     variant: 'destructive',
                     title: 'Authentication Failed',
-                    description: error.message || 'An error occurred during sign-in.',
+                    description: errorMessage,
                 });
-            })
-            .finally(() => {
+                
                 setIsLoading(false);
             });
-    }, [auth, toast]);
+    }, [auth, firestore, toast, router]);
 
-    // Redirect if user is already logged in
+    // ✅ Redirect if user is already logged in (for page reload scenarios)
     useEffect(() => {
-        if (user && firestore && !isUserLoading && !isRedirecting) {
-            setIsRedirecting(true);
-            const userDocRef = doc(firestore, 'users', user.uid);
-            getDoc(userDocRef).then(userDoc => {
+        // Don't run if no user, already redirecting, or if firestore isn't ready
+        if (!user || isRedirecting || !firestore || isUserLoading) return;
+        
+        console.log('👤 LoginForm: User detected on page load, preparing to redirect...');
+        setIsRedirecting(true);
+        
+        const performRedirect = async () => {
+            try {
+                const userDocRef = doc(firestore, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+    
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
-                     if (userData.onboardingCompleted === false) {
+                    console.log('👤 LoginForm: User role:', userData.role, 'Onboarding:', userData.onboardingCompleted);
+                    
+                    // Check onboarding first
+                    if (userData.onboardingCompleted === false) {
+                        console.log('📝 LoginForm: Redirecting to onboarding');
                         router.replace('/onboarding');
-                    } else if (userData.role === 'brand' || userData.role === 'owner') {
-                        router.replace('/dashboard');
-                    } else if (userData.role === 'dispensary') {
+                    }
+                    // Then check role
+                    else if (userData.role === 'dispensary') {
+                        console.log('🏪 LoginForm: Redirecting to dispensary dashboard');
                         router.replace('/dashboard/orders');
+                    } else if (userData.role === 'brand' || userData.role === 'owner') {
+                        console.log('🏢 LoginForm: Redirecting to brand dashboard');
+                        router.replace('/dashboard');
                     } else {
+                        console.log('👥 LoginForm: Redirecting to customer dashboard');
                         router.replace('/account/dashboard');
                     }
                 } else {
+                    // New user - no document yet
+                    console.log('🆕 LoginForm: New user, redirecting to onboarding');
                     router.replace('/onboarding');
                 }
-            });
-        } else if (!isUserLoading) {
-            setIsLoading(false);
-        }
-    }, [user, router, firestore, isUserLoading, isRedirecting]);
+            } catch (error) {
+                console.error('❌ LoginForm: Error fetching user doc:', error);
+                // Fallback
+                router.replace('/dashboard');
+            }
+        };
+    
+        performRedirect();
+    }, [user, router, firestore, isRedirecting, isUserLoading]);
 
     const handleGoogleSignIn = async () => {
         if (!auth) {
@@ -111,10 +191,25 @@ export default function LoginForm() {
             return;
         }
 
+        console.log('🚀 Initiating Google sign-in redirect...');
         setIsGoogleLoading(true);
         setIsLoading(true);
+        
         const provider = new GoogleAuthProvider();
-        await signInWithRedirect(auth, provider);
+        
+        try {
+            await signInWithRedirect(auth, provider);
+            console.log('🔄 Redirecting to Google...');
+        } catch (error) {
+            console.error('❌ Google sign-in error:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Failed to start sign-in',
+                description: error instanceof Error ? error.message : 'Unknown error occurred',
+            });
+            setIsGoogleLoading(false);
+            setIsLoading(false);
+        }
     };
 
     const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
@@ -191,12 +286,12 @@ export default function LoginForm() {
         );
     }
     
-    if (isRedirecting || (isLoading && !user)) {
+    if ((isLoading && !user) || isRedirecting) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 <p className="mt-4 text-sm text-muted-foreground">
-                    {isRedirecting ? 'Redirecting to your dashboard...' : (isGoogleLoading ? 'Completing sign-in...' : 'Loading...')}
+                    {isGoogleLoading ? 'Completing sign-in...' : isRedirecting ? 'Redirecting to your dashboard...' : 'Loading...'}
                 </p>
             </div>
         );
@@ -304,4 +399,3 @@ export default function LoginForm() {
         </div>
     );
 }
-    
