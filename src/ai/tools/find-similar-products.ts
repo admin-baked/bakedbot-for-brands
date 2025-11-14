@@ -83,7 +83,7 @@ export const findSimilarProducts = ai.defineTool(
 
       return similarProducts;
 
-    } catch (error) => {
+    } catch (error) {
       console.error('Error finding similar products with vector search:', error);
       // Return an empty array to prevent the entire flow from breaking.
       return [];
