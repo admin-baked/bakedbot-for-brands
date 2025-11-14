@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -78,6 +79,17 @@ const SidebarAdminControls = ({ link, onEdit, onToggle, onDelete }: { link: NavL
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+
+  // --- Early return for non-dashboard pages ---
+  const isAuthPage = pathname.startsWith('/customer-login') ||
+                   pathname.startsWith('/brand-login') ||
+                   pathname.startsWith('/dispensary-login') ||
+                   pathname.startsWith('/onboarding') ||
+                   pathname.startsWith('/auth/callback');
+
+  if (isAuthPage) {
+    return <>{children}</>;
+  }
   
   const { auth, firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
