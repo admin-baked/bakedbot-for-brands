@@ -66,6 +66,7 @@ const defaultNavLinks: NavLink[] = [
     { href: '/dashboard/content', label: 'Content AI', icon: 'PenSquare', hidden: false },
     { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star', hidden: false },
     { href: '/dashboard/locations', label: 'Locations', icon: 'MapPin', hidden: false },
+    { href: '/dashboard/settings#data', label: 'Catalog', icon: 'BookMarked', hidden: false },
     { href: '/checkout', label: 'Checkout', icon: 'CreditCard', hidden: true },
     { href: '/dashboard/settings', label: 'Settings', icon: 'Settings', hidden: false },
 ];
