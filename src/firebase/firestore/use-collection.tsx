@@ -65,7 +65,9 @@ export function useCollection<T = DocumentData>(
               debugPath,
               isAuthenticated: !!auth?.currentUser,
               userId: auth?.currentUser?.uid,
-              error: err.code
+              email: auth?.currentUser?.email,
+              errorCode: err.code,
+              errorMessage: err.message
             });
           } catch(e) {
             console.error("Could not get auth instance for debug logging", e);
