@@ -15,14 +15,15 @@ import { reviewConverter } from "@/firebase/converters";
 export default function ReviewsClient() {
   const firebase = useFirebase();
   const firestore = firebase?.firestore;
-  const { isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   const { products, isLoading: areProductsLoading } = useMenuData();
   
   const reviewsQuery = useMemo(() => {
-    if (!firestore) return null;
+    // DO NOT run the query until both firestore and the user are available.
+    if (!firestore || !user) return null;
     const baseQuery = collectionGroup(firestore, 'reviews').withConverter(reviewConverter);
     return query(baseQuery, orderBy('createdAt', 'desc'));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery, { debugPath: '**/reviews' });
 
