@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { demoProducts, demoLocations } from '@/lib/data';
-import type { Product, Location } from '@/lib/types';
+import type { Product, Location } from '@/firebase/converters';
 
 /**
  * Hook that provides static demo data for products and locations.
