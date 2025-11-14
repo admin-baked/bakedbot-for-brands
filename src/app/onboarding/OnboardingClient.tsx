@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -15,6 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useMenuData } from '@/hooks/use-menu-data';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type OnboardingStep = 'role' | 'location' | 'products' | 'complete';
 
@@ -31,6 +32,7 @@ export default function OnboardingClient() {
     const firestore = firebase?.firestore;
     const router = useRouter();
     const { toast } = useToast();
+    const { locations: allLocations, isLoading: areLocationsLoading } = useMenuData();
 
     const [step, setStep] = useState<OnboardingStep>('role');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,8 +40,10 @@ export default function OnboardingClient() {
     // State for user role
     const [role, setRole] = useState<'owner' | 'dispensary' | 'customer' | null>(null);
 
-    // State for location
-    const [location, setLocation] = useState({ name: '', address: '', city: '', state: '', zip: '' });
+    // State for location step
+    const [locationView, setLocationView] = useState<'claim' | 'create'>('claim');
+    const [claimedLocationId, setClaimedLocationId] = useState<string | null>(null);
+    const [newLocation, setNewLocation] = useState({ name: '', address: '', city: '', state: '', zip: '' });
     
     const handleNextStep = async () => {
         setIsSubmitting(true);
@@ -58,23 +62,43 @@ export default function OnboardingClient() {
                     setIsSubmitting(false);
                     return;
                 }
-                // setDoc with merge will create or update the user document
-                await setDoc(userDocRef, { role: role }, { merge: true });
+                await setDoc(userDocRef, { role: role, email: user.email }, { merge: true });
+                
                 if (role === 'customer') {
-                    // Customers can skip directly to the end
                     setStep('products');
                 } else {
                     setStep('location');
                 }
             } else if (step === 'location') {
-                 // In a real app, we'd save this location to a 'locations' collection
-                console.log("Location data:", location);
-                setStep('products');
+                 let locationIdToSave: string | null = null;
+                 if (locationView === 'claim') {
+                    if (!claimedLocationId) {
+                         toast({ variant: "destructive", title: "Please claim a location or create a new one." });
+                         setIsSubmitting(false);
+                         return;
+                    }
+                    locationIdToSave = claimedLocationId;
+                 } else {
+                    // In a real app, we'd save this new location to a 'dispensaries' collection
+                    // and get its new ID. For this demo, we'll just log it and use a placeholder ID.
+                    console.log("Creating new location:", newLocation);
+                    toast({ title: "New Location Created (Simulated)", description: "In a real app, this would be saved to the database." });
+                    locationIdToSave = `new-${Date.now()}`;
+                 }
+                
+                 await setDoc(userDocRef, { locationId: locationIdToSave }, { merge: true });
+                 setStep('products');
+
             } else if (step === 'products') {
-                // Final step, mark onboarding as complete
                 await setDoc(userDocRef, { onboardingCompleted: true }, { merge: true });
-                toast({ title: "Onboarding Complete!", description: "Welcome! You're now being redirected to the dashboard." });
-                router.replace('/dashboard');
+                toast({ title: "Onboarding Complete!", description: "Welcome! You're now being redirected." });
+
+                // Redirect based on role after onboarding is fully complete
+                if (role === 'dispensary') {
+                    router.replace('/dashboard/orders');
+                } else {
+                    router.replace('/dashboard');
+                }
             }
         } catch (error) {
             console.error("Onboarding error:", error);
@@ -139,21 +163,54 @@ export default function OnboardingClient() {
 
                     {step === 'location' && (
                        <div className="space-y-4 animate-in fade-in-50">
-                            <h3 className="font-semibold">Step 2: Add your first dispensary location.</h3>
-                            <div className="space-y-2">
-                                <Label htmlFor="loc-name">Location Name</Label>
-                                <Input id="loc-name" placeholder="e.g., Green Leaf Central" value={location.name} onChange={(e) => setLocation({...location, name: e.target.value})} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="loc-address">Street Address</Label>
-                                <Input id="loc-address" placeholder="123 Main St" value={location.address} onChange={(e) => setLocation({...location, address: e.target.value})} />
-                            </div>
-                            <div className="grid grid-cols-3 gap-2">
-                                <Input placeholder="City" value={location.city} onChange={(e) => setLocation({...location, city: e.target.value})} />
-                                <Input placeholder="State" value={location.state} onChange={(e) => setLocation({...location, state: e.target.value})} />
-                                <Input placeholder="Zip" value={location.zip} onChange={(e) => setLocation({...location, zip: e.target.value})} />
-                            </div>
-                            <Button variant="link" className="p-0" onClick={() => setStep('products')}>I'll do this later</Button>
+                            <h3 className="font-semibold">Step 2: Link Your Dispensary</h3>
+                            
+                            <RadioGroup value={locationView} onValueChange={(v) => setLocationView(v as 'claim' | 'create')} className="grid grid-cols-2">
+                                <Label htmlFor="claim" className="flex items-center justify-center rounded-l-md border py-2 cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:checked]:border-primary">
+                                    <RadioGroupItem value="claim" id="claim" className="sr-only" />
+                                    Claim Location
+                                </Label>
+                                 <Label htmlFor="create" className="flex items-center justify-center rounded-r-md border py-2 cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:checked]:border-primary">
+                                    <RadioGroupItem value="create" id="create" className="sr-only" />
+                                    Create New
+                                </Label>
+                            </RadioGroup>
+
+                            {locationView === 'claim' && (
+                                <div className="space-y-2 pt-2">
+                                    <Label htmlFor="location-select">Select Your Dispensary</Label>
+                                    <Select onValueChange={setClaimedLocationId} disabled={areLocationsLoading}>
+                                        <SelectTrigger id="location-select">
+                                            <SelectValue placeholder={areLocationsLoading ? "Loading..." : "Choose your location..."} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {allLocations.map(loc => (
+                                                <SelectItem key={loc.id} value={loc.id}>{loc.name} - {loc.city}, {loc.state}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">Select your dispensary from the list of locations created by our brand partners.</p>
+                                </div>
+                            )}
+                             
+                            {locationView === 'create' && (
+                               <div className="space-y-4 pt-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="loc-name">Location Name</Label>
+                                        <Input id="loc-name" placeholder="e.g., Green Leaf Central" value={newLocation.name} onChange={(e) => setNewLocation({...newLocation, name: e.target.value})} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="loc-address">Street Address</Label>
+                                        <Input id="loc-address" placeholder="123 Main St" value={newLocation.address} onChange={(e) => setNewLocation({...newLocation, address: e.target.value})} />
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <Input placeholder="City" value={newLocation.city} onChange={(e) => setNewLocation({...newLocation, city: e.target.value})} />
+                                        <Input placeholder="State" value={newLocation.state} onChange={(e) => setNewLocation({...newLocation, state: e.target.value})} />
+                                        <Input placeholder="Zip" value={newLocation.zip} onChange={(e) => setNewLocation({...newLocation, zip: e.target.value})} />
+                                    </div>
+                               </div>
+                            )}
+
                        </div>
                    )}
 
@@ -167,7 +224,10 @@ export default function OnboardingClient() {
                    )}
 
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="justify-between">
+                     <Button variant="ghost" onClick={() => role === 'dispensary' ? setStep('role') : {}} disabled={step === 'role'}>
+                        Back
+                    </Button>
                     <Button onClick={handleNextStep} disabled={isSubmitting || (step === 'role' && !role)}>
                          {isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : null}
                          {step === 'products' ? "Finish & Go to Dashboard" : "Continue"}
