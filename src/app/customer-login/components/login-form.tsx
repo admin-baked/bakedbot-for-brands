@@ -29,6 +29,7 @@ export default function LoginForm() {
     const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [magicLinkSent, setMagicLinkSent] = useState(false);
+    const [isRedirecting, setIsRedirecting] = useState(false);
     const { toast } = useToast();
     const searchParams = useSearchParams();
     const { auth, firestore } = useFirebase();
@@ -74,19 +75,18 @@ export default function LoginForm() {
 
     // Redirect if user is already logged in
     useEffect(() => {
-        if (user && firestore && !isUserLoading) {
+        if (user && firestore && !isUserLoading && !isRedirecting) {
+            setIsRedirecting(true);
             console.log('👤 LoginForm: User detected, checking role for redirect...');
             const userDocRef = doc(firestore, 'users', user.uid);
             getDoc(userDocRef).then(userDoc => {
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
                     
-                    // ✅ Check onboarding first
                     if (userData.onboardingCompleted === false) {
                         console.log('📝 LoginForm: Redirecting to onboarding');
                         router.replace('/onboarding');
                     }
-                    // Then check role
                     else if (userData.role === 'dispensary') {
                         console.log('🏪 LoginForm: Redirecting to dispensary dashboard');
                         router.replace('/dashboard/orders');
@@ -94,12 +94,10 @@ export default function LoginForm() {
                         console.log('🏢 LoginForm: Redirecting to brand dashboard');
                         router.replace('/dashboard');
                     } else {
-                        // Customer or no specific role
                         console.log('👥 LoginForm: Redirecting to customer dashboard');
                         router.replace('/account/dashboard');
                     }
                 } else {
-                    // New user - no document yet
                     console.log('🆕 LoginForm: New user, redirecting to onboarding');
                     router.replace('/onboarding');
                 }
@@ -110,7 +108,7 @@ export default function LoginForm() {
         } else if (!isUserLoading) {
             setIsLoading(false);
         }
-    }, [user, router, firestore, isUserLoading]);
+    }, [user, router, firestore, isUserLoading, isRedirecting]);
 
     const handleGoogleSignIn = async () => {
         if (!auth) {
@@ -202,12 +200,12 @@ export default function LoginForm() {
         );
     }
     
-    if (isLoading && !user) {
+    if (isRedirecting || (isLoading && !user)) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 <p className="mt-4 text-sm text-muted-foreground">
-                    {isGoogleLoading ? 'Completing sign-in...' : 'Loading...'}
+                    {isRedirecting ? 'Redirecting to your dashboard...' : (isGoogleLoading ? 'Completing sign-in...' : 'Loading...')}
                 </p>
             </div>
         );
@@ -303,3 +301,4 @@ export default function LoginForm() {
         </div>
     );
 }
+    
