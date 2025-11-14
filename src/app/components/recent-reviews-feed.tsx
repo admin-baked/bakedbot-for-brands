@@ -11,7 +11,7 @@ import { useMenuData } from '@/hooks/use-menu-data';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { collectionGroup, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collectionGroup, query, orderBy, Timestamp, limit } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import { reviewConverter } from '@/firebase/converters';
 import { useDemoMode } from '@/context/demo-mode';
@@ -55,7 +55,8 @@ export default function RecentReviewsFeed() {
   const reviewsQuery = useMemo(() => {
     if (isDemo || !firestore) return null;
     const baseQuery = collectionGroup(firestore, 'reviews').withConverter(reviewConverter);
-    return query(baseQuery, orderBy('createdAt', 'desc'));
+    // **FIX**: Added orderBy and limit to make the query more efficient and specific.
+    return query(baseQuery, orderBy('createdAt', 'desc'), limit(10));
   }, [firestore, isDemo]);
 
   const { data: liveReviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery);
