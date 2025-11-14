@@ -1,14 +1,37 @@
+
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import * as React from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useStore } from "@/hooks/use-store";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 export default function MenuSettings() {
-    const { menuStyle, setMenuStyle } = useStore();
+    const { menuStyle: globalMenuStyle, setMenuStyle } = useStore();
+    const { toast } = useToast();
+    
+    // Local state to manage selection before saving
+    const [selectedStyle, setSelectedStyle] = React.useState(globalMenuStyle);
+
+    // Sync local state if global state changes
+    React.useEffect(() => {
+        setSelectedStyle(globalMenuStyle);
+    }, [globalMenuStyle]);
+
+    const handleSave = () => {
+        setMenuStyle(selectedStyle);
+        toast({
+            title: "Settings Saved",
+            description: "Your public menu layout has been updated.",
+        });
+    };
+    
+    const hasChanges = selectedStyle !== globalMenuStyle;
 
     return (
         <Card>
@@ -20,8 +43,8 @@ export default function MenuSettings() {
             </CardHeader>
             <CardContent>
                 <RadioGroup
-                    value={menuStyle}
-                    onValueChange={(value: 'default' | 'alt') => setMenuStyle(value)}
+                    value={selectedStyle}
+                    onValueChange={(value: 'default' | 'alt') => setSelectedStyle(value)}
                     className="grid grid-cols-1 gap-4 sm:grid-cols-2"
                 >
                     <div>
@@ -58,6 +81,11 @@ export default function MenuSettings() {
                     </div>
                 </RadioGroup>
             </CardContent>
+            <CardFooter>
+                <Button onClick={handleSave} disabled={!hasChanges}>
+                    Save Changes
+                </Button>
+            </CardFooter>
         </Card>
     )
 }
