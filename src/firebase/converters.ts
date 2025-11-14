@@ -6,6 +6,9 @@ import {
 } from "firebase/firestore";
 import type { Product, Location, OrderDoc, Review, UserInteraction } from '@/types/domain';
 
+// Re-export the types so they can be imported from this module
+export type { Product, Location, OrderDoc, Review, UserInteraction };
+
 
 // ---- Generic helpers ----
 const makeConverter = <T extends { id: string }>() =>
