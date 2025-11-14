@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -29,14 +29,14 @@ export default function DispensaryLoginForm() {
     const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [magicLinkSent, setMagicLinkSent] = useState(false);
-    const [isRedirecting, setIsRedirecting] = useState(false);
     const { toast } = useToast();
     const searchParams = useSearchParams();
     const { auth, firestore } = useFirebase();
-    const { user, isUserLoading } = useUser();
+    const { user, isUserLoading: isAuthLoading } = useUser();
     const router = useRouter();
+    
+    const hasRedirected = useRef(false);
 
-    // Handle URL error parameters
     useEffect(() => {
         const error = searchParams.get('error');
         if (error) {
@@ -48,136 +48,102 @@ export default function DispensaryLoginForm() {
         }
     }, [searchParams, toast]);
 
-    // Handle Google redirect result
     useEffect(() => {
-        if (!auth || !firestore) return;
-        
-        console.log('🔍 Checking for Google redirect result...');
-        setIsLoading(true);
-        
-        getRedirectResult(auth)
-            .then(async (result) => {
+        if (!auth || isAuthLoading) {
+            console.log('⏳ Waiting for Firebase auth...');
+            return;
+        }
+
+        if (hasRedirected.current) {
+            console.log('✅ Already redirected, skipping');
+            return;
+        }
+
+        const handleAuthAndRedirect = async () => {
+            console.log('🔍 Checking authentication state...');
+
+            try {
+                const result = await getRedirectResult(auth);
                 if (result) {
-                    console.log('✅ Google sign-in successful:', result.user.email);
-                    
-                    // ✅ Immediately set redirecting state
-                    setIsRedirecting(true);
+                    console.log('✅ Google sign-in result found:', result.user.email);
+                    hasRedirected.current = true;
                     
                     toast({
                         title: 'Welcome!',
-                        description: `Successfully signed in as ${result.user.email}`,
+                        description: `Signed in as ${result.user.email}`,
                     });
-    
-                    // ✅ Perform redirect logic RIGHT HERE, don't wait for another useEffect
-                    try {
-                        const userDocRef = doc(firestore, 'users', result.user.uid);
-                        const userDoc = await getDoc(userDocRef);
-    
-                        if (userDoc.exists()) {
-                            const userData = userDoc.data();
-                            console.log('👤 Google sign-in: User role:', userData.role, 'Onboarding:', userData.onboardingCompleted);
-                            
-                            // Check onboarding first
-                            if (userData.onboardingCompleted === false) {
-                                console.log('📝 Google sign-in: Redirecting to onboarding');
-                                router.replace('/onboarding');
-                            }
-                            // Then check role
-                            else if (userData.role === 'dispensary') {
-                                console.log('🏪 Google sign-in: Redirecting to dispensary dashboard');
-                                router.replace('/dashboard/orders');
-                            } else if (userData.role === 'brand' || userData.role === 'owner') {
-                                console.log('🏢 Google sign-in: Redirecting to brand dashboard');
-                                router.replace('/dashboard');
-                            } else {
-                                console.log('👥 Google sign-in: Redirecting to customer dashboard');
-                                router.replace('/account/dashboard');
-                            }
-                        } else {
-                            // New user - no document yet
-                            console.log('🆕 Google sign-in: New user, redirecting to onboarding');
-                            router.replace('/onboarding');
-                        }
-                    } catch (firestoreError) {
-                        console.error('❌ Google sign-in: Error fetching user doc:', firestoreError);
-                        // Fallback
-                        router.replace('/dashboard/orders');
-                    }
-                } else {
-                    console.log('ℹ️ No redirect result found');
-                    setIsLoading(false);
-                }
-            })
-            .catch((error) => {
-                console.error('❌ Google redirect result error:', error);
-                
-                let errorMessage = 'An error occurred during sign-in.';
-                
-                if (error.code === 'auth/account-exists-with-different-credential') {
-                    errorMessage = 'An account already exists with the same email but different sign-in method.';
-                } else if (error.code === 'auth/popup-closed-by-user') {
-                    errorMessage = 'Sign-in was cancelled.';
-                } else if (error.message) {
-                    errorMessage = error.message;
-                }
-                
-                toast({
-                    variant: 'destructive',
-                    title: 'Authentication Failed',
-                    description: errorMessage,
-                });
-                
-                setIsLoading(false);
-            });
-    }, [auth, firestore, toast, router]);
 
-    // ✅ Redirect if user is already logged in (for page reload scenarios)
-    useEffect(() => {
-        // Don't run if no user, already redirecting, or if firestore isn't ready
-        if (!user || isRedirecting || !firestore || isUserLoading) return;
-        
-        console.log('👤 LoginForm: User detected on page load, preparing to redirect...');
-        setIsRedirecting(true);
-        
-        const performRedirect = async () => {
+                    await redirectUserBasedOnRole(result.user.uid);
+                    return;
+                }
+            } catch (error: any) {
+                console.error('❌ Google redirect error:', error);
+                if (error.code !== 'auth/no-redirect-result') {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Authentication Failed',
+                        description: error.message || 'An error occurred during sign-in.',
+                    });
+                }
+                setIsLoading(false);
+                return;
+            }
+
+            if (user) {
+                console.log('👤 User already signed in:', user.email);
+                hasRedirected.current = true;
+                await redirectUserBasedOnRole(user.uid);
+                return;
+            }
+
+            console.log('📝 No user found, showing login form');
+            setIsLoading(false);
+        };
+
+        const redirectUserBasedOnRole = async (uid: string) => {
+            if (!firestore) {
+                console.log('⚠️ Firestore not ready, waiting...');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                if (!firestore) {
+                    console.log('⚠️ Firestore still not ready, using fallback redirect');
+                    router.replace('/dashboard/orders');
+                    return;
+                }
+            }
+
             try {
-                const userDocRef = doc(firestore, 'users', user.uid);
+                const userDocRef = doc(firestore, 'users', uid);
                 const userDoc = await getDoc(userDocRef);
-    
+
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
-                    console.log('👤 LoginForm: User role:', userData.role, 'Onboarding:', userData.onboardingCompleted);
-                    
-                    // Check onboarding first
+                    console.log('👤 User data:', { role: userData.role, onboarding: userData.onboardingCompleted });
+
                     if (userData.onboardingCompleted === false) {
-                        console.log('📝 LoginForm: Redirecting to onboarding');
+                        console.log('📝 Redirecting to onboarding');
                         router.replace('/onboarding');
-                    }
-                    // Then check role
-                    else if (userData.role === 'dispensary') {
-                        console.log('🏪 LoginForm: Redirecting to dispensary dashboard');
+                    } else if (userData.role === 'dispensary') {
+                        console.log('🏪 Redirecting to dispensary dashboard');
                         router.replace('/dashboard/orders');
                     } else if (userData.role === 'brand' || userData.role === 'owner') {
-                        console.log('🏢 LoginForm: Redirecting to brand dashboard');
+                        console.log('🏢 Redirecting to brand dashboard');
                         router.replace('/dashboard');
                     } else {
-                        console.log('👥 LoginForm: Redirecting to customer dashboard');
+                        console.log('👥 Redirecting to customer dashboard');
                         router.replace('/account/dashboard');
                     }
                 } else {
-                    // New user - no document yet
-                    console.log('🆕 LoginForm: New user, redirecting to onboarding');
+                    console.log('🆕 New user, redirecting to onboarding');
                     router.replace('/onboarding');
                 }
             } catch (error) {
-                console.error('❌ LoginForm: Error fetching user doc:', error);
-                // Fallback
+                console.error('❌ Error fetching user document:', error);
                 router.replace('/dashboard/orders');
             }
         };
-    
-        performRedirect();
-    }, [user, router, firestore, isRedirecting, isUserLoading]);
+
+        handleAuthAndRedirect();
+    }, [auth, user, firestore, router, toast, isAuthLoading]);
 
     const handleGoogleSignIn = async () => {
         if (!auth) {
@@ -187,7 +153,6 @@ export default function DispensaryLoginForm() {
 
         console.log('🚀 Initiating Google sign-in redirect...');
         setIsGoogleLoading(true);
-        setIsLoading(true);
         const provider = new GoogleAuthProvider();
         await signInWithRedirect(auth, provider);
     };
@@ -262,12 +227,12 @@ export default function DispensaryLoginForm() {
         );
     }
     
-    if ((isLoading && !user) || isRedirecting) {
+    if (isLoading) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 <p className="mt-4 text-sm text-muted-foreground">
-                    {isGoogleLoading ? 'Completing sign-in...' : isRedirecting ? 'Redirecting to your dashboard...' : 'Loading...'}
+                    {isGoogleLoading ? 'Completing sign-in...' : 'Checking authentication...'}
                 </p>
             </div>
         );
