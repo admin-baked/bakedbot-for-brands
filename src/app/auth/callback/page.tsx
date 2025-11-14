@@ -24,7 +24,7 @@ export default function AuthCallbackPage() {
 
     useEffect(() => {
         if (!auth) {
-            console.log('⏳ Waiting for Firebase auth to initialize...');
+            console.log('⏳ Callback: Waiting for Firebase auth to initialize...');
             return;
         }
 
@@ -70,8 +70,9 @@ export default function AuthCallbackPage() {
 
                 console.log('🎉 Magic link sign-in complete. Redirecting to dashboard...');
                 
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 
+                // Redirect based on role
                 if (firestore) {
                     try {
                         const userDocRef = doc(firestore, 'users', result.user.uid);
@@ -144,17 +145,16 @@ export default function AuthCallbackPage() {
                 description: `Successfully signed in as ${result.user.email}`,
             });
 
-            console.log('🎉 Magic link sign-in complete. Redirecting to dashboard...');
-    
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
             if (firestore) {
                 try {
                     const userDocRef = doc(firestore, 'users', result.user.uid);
                     const userDoc = await getDoc(userDocRef);
-                    
+
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
+                        
                         if (userData.onboardingCompleted === false) {
                             router.replace('/onboarding');
                         } else if (userData.role === 'dispensary') {
@@ -304,5 +304,3 @@ export default function AuthCallbackPage() {
 
     return null;
 }
-
-    
