@@ -120,30 +120,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
   
   React.useEffect(() => {
-    const isLoginPage = pathname.startsWith('/customer-login') || pathname.startsWith('/brand-login') || pathname.startsWith('/dispensary-login');
+    const isLoginPage = pathname.startsWith('/customer-login') || 
+                       pathname.startsWith('/brand-login') || 
+                       pathname.startsWith('/dispensary-login');
     const isAuthCallback = pathname.startsWith('/auth/');
     
-    if (isUserLoading || isProfileLoading) return;
+    // ✅ Don't redirect if still loading OR on callback page
+    if (isUserLoading || isProfileLoading || isAuthCallback) return;
 
     if (user) {
-        if (isLoginPage || isAuthCallback) {
-            // User is logged in and on an auth page, redirect them.
+        // User is authenticated
+        if (isLoginPage) {
+            // User is logged in but on login page - redirect based on role
             if (userProfile?.role === 'dispensary') {
                 router.replace('/dashboard/orders');
-            } else { // Default for brand and customer
+            } else if (userProfile?.role === 'brand' || userProfile?.role === 'owner') {
+                router.replace('/dashboard');
+            } else {
                 router.replace('/account/dashboard');
             }
         } else if (userProfile?.role === 'dispensary' && !pathname.startsWith('/dashboard/orders')) {
-            // Dispensary user is logged in but not on their dedicated page.
+            // Dispensary user not on their page
             router.replace('/dashboard/orders');
-        } else if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
-            // User is logged in but hasn't completed onboarding.
+        } else if (userProfile && userProfile.onboardingCompleted === false && pathname !== '/onboarding') {
+            // User hasn't completed onboarding
             router.replace('/onboarding');
         }
     } else {
-        // User is not logged in.
-        if (pathname.startsWith('/dashboard') || pathname.startsWith('/account') || pathname === '/onboarding') {
-            // They are trying to access a protected route.
+        // User is NOT authenticated
+        const isProtectedRoute = pathname.startsWith('/dashboard') || 
+                                pathname.startsWith('/account') || 
+                                pathname === '/onboarding';
+        
+        if (isProtectedRoute) {
+            // Trying to access protected route - send to login
             router.replace('/customer-login');
         }
     }
