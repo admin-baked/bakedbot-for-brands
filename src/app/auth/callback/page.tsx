@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -11,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/logo';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function AuthCallbackPage() {
     const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'need-email'>('loading');
@@ -61,6 +62,35 @@ export default function AuthCallbackPage() {
                 
                 window.localStorage.removeItem('emailForSignIn');
                 
+                // ✅ CREATE USER DOCUMENT IF IT DOESN'T EXIST
+                if (firestore) {
+                    try {
+                        const userDocRef = doc(firestore, 'users', result.user.uid);
+                        const userDoc = await getDoc(userDocRef);
+                        
+                        if (!userDoc.exists()) {
+                            console.log('🆕 Creating new user document...');
+                            
+                            // Create new user document with default values
+                            await setDoc(userDocRef, {
+                                uid: result.user.uid,
+                                email: result.user.email,
+                                displayName: result.user.displayName || result.user.email?.split('@')[0] || 'User',
+                                photoURL: result.user.photoURL || null,
+                                role: 'customer', // Default role
+                                onboardingCompleted: false, // Start the onboarding flow
+                            });
+                            
+                            console.log('✅ User document created successfully');
+                        } else {
+                            console.log('✅ User document already exists');
+                        }
+                    } catch (firestoreError) {
+                        console.error('⚠️ Error creating user document:', firestoreError);
+                        // Don't block login if user doc creation fails
+                    }
+                }
+
                 setStatus('success');
                 
                 toast({
@@ -137,6 +167,33 @@ export default function AuthCallbackPage() {
             console.log('✅ Sign-in successful!', result.user.email);
             
             window.localStorage.setItem('emailForSignIn', email);
+
+             // ✅ CREATE USER DOCUMENT IF IT DOESN'T EXIST
+            if (firestore) {
+                try {
+                    const userDocRef = doc(firestore, 'users', result.user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    
+                    if (!userDoc.exists()) {
+                        console.log('🆕 Creating new user document...');
+                        
+                        await setDoc(userDocRef, {
+                            uid: result.user.uid,
+                            email: result.user.email,
+                            displayName: result.user.displayName || result.user.email?.split('@')[0] || 'User',
+                            photoURL: result.user.photoURL || null,
+                            role: 'customer', // Default role
+                            onboardingCompleted: false, // Start the onboarding flow
+                        });
+                        
+                        console.log('✅ User document created successfully');
+                    } else {
+                        console.log('✅ User document already exists');
+                    }
+                } catch (firestoreError) {
+                    console.error('⚠️ Error creating user document:', firestoreError);
+                }
+            }
             
             setStatus('success');
             
@@ -304,3 +361,5 @@ export default function AuthCallbackPage() {
 
     return null;
 }
+
+    
