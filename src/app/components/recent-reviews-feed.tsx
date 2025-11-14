@@ -11,9 +11,11 @@ import { useMenuData } from '@/hooks/use-menu-data';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { collectionGroup, query, orderBy } from 'firebase/firestore';
+import { collectionGroup, query, orderBy, Timestamp } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import { reviewConverter } from '@/firebase/converters';
+import { useDemoMode } from '@/context/demo-mode';
+import { demoCustomer } from '@/lib/data';
 
 const ReviewItemSkeleton = () => (
     <Card className="w-80 shrink-0">
@@ -47,22 +49,30 @@ const StarRating = ({ rating }: { rating: number }) => (
 );
 
 export default function RecentReviewsFeed() {
+  const { isDemo } = useDemoMode();
   const { firestore } = useFirebase();
+  
   const reviewsQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (isDemo || !firestore) return null;
     const baseQuery = collectionGroup(firestore, 'reviews').withConverter(reviewConverter);
     return query(baseQuery, orderBy('createdAt', 'desc'));
-  }, [firestore]);
+  }, [firestore, isDemo]);
 
-  const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery);
+  const { data: liveReviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery);
   const { products, isLoading: areProductsLoading } = useMenuData();
 
   const isLoading = areReviewsLoading || areProductsLoading;
 
   const enrichedReviews = useMemo(() => {
-    if (!reviews || !products) return [];
+    const sourceReviews = isDemo ? demoCustomer.reviews : liveReviews;
+    if (!sourceReviews || !products) return [];
     
-    return reviews
+    // Sort demo reviews by date, as they are static
+    if (isDemo) {
+        sourceReviews.sort((a, b) => (b.createdAt as Timestamp).toMillis() - (a.createdAt as Timestamp).toMillis());
+    }
+
+    return sourceReviews
       .map(review => {
           const product = products.find(p => p.id === review.productId);
           return {
@@ -71,7 +81,7 @@ export default function RecentReviewsFeed() {
           };
       })
       .slice(0, 10); // Show the 10 most recent reviews
-  }, [reviews, products]);
+  }, [isDemo, liveReviews, products]);
 
   return (
     <div className="py-12">
@@ -86,7 +96,7 @@ export default function RecentReviewsFeed() {
 
         <div className="relative -mx-4">
             <div className="flex gap-6 pb-4 px-4 overflow-x-auto">
-                {isLoading ? (
+                {isLoading && !isDemo ? (
                     [...Array(4)].map((_, i) => <ReviewItemSkeleton key={i} />)
                 ) : enrichedReviews.length > 0 ? (
                 enrichedReviews.map(review => (
@@ -94,11 +104,11 @@ export default function RecentReviewsFeed() {
                         <CardHeader>
                             <div className="flex items-center gap-3">
                                 <Avatar>
-                                    <AvatarFallback>{review.userId.substring(0, 1).toUpperCase()}</AvatarFallback>
+                                    <AvatarFallback>{(review.userId || 'A').substring(0, 1).toUpperCase()}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1">
                                     <p className="text-sm font-semibold">Review for <Link href={`/products/${review.productId}`} className="text-primary hover:underline">{review.productName}</Link></p>
-                                    <StarRating rating={review.rating} />
+                                    <StarRating rating={review.rating || 0} />
                                 </div>
                             </div>
                         </CardHeader>
