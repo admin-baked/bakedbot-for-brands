@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview An AI flow that summarizes customer reviews for a product.
  *
@@ -10,6 +11,8 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getProductReviews } from '../tools/get-product-reviews';
 import { getProduct } from '../tools/get-product';
+import { cookies } from 'next/headers';
+import { demoCustomer, demoProducts } from '@/lib/data';
 
 export const SummarizeReviewsInputSchema = z.object({
   productId: z.string().describe('The unique ID of the product whose reviews should be summarized.'),
@@ -62,10 +65,26 @@ const summarizeReviewsFlow = ai.defineFlow(
   async (input) => {
     // Validate input at the start of the flow
     const { productId, brandId } = SummarizeReviewsInputSchema.parse(input);
+    const cookieStore = cookies();
+    const isDemo = cookieStore.get('isUsingDemoData')?.value === 'true';
 
-    // Step 1: Call the tool to get the raw review data.
-    const reviews = await getProductReviews({ productId, brandId });
-    const product = await getProduct({ productId });
+    // Step 1: Get the product and review data based on mode.
+    let reviews: { text: string; rating: number }[];
+    let product: { name?: string | null } | null = null;
+    
+    if (isDemo) {
+        // In demo mode, fetch from static demo data.
+        product = demoProducts.find(p => p.id === productId) || null;
+        reviews = demoCustomer.reviews
+            .filter(r => r.productId === productId)
+            .map(r => ({ text: r.text || '', rating: r.rating || 0 }));
+    } else {
+        // In live mode, use the tools to fetch from Firestore.
+        const reviewData = await getProductReviews({ productId, brandId });
+        // The tool returns {text, rating}, which matches the type of `reviews`.
+        reviews = reviewData; 
+        product = await getProduct({ productId });
+    }
     
     // Step 2: If there are no reviews, return a default response.
     if (reviews.length === 0) {
