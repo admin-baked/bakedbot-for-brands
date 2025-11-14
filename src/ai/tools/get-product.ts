@@ -96,3 +96,4 @@ export const getProduct = ai.defineTool(
     }
   }
 );
+
