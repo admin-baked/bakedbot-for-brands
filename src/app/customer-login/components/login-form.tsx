@@ -25,7 +25,7 @@ const GoogleIcon = () => (
 );
 
 export default function LoginForm() {
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
     const [email, setEmail] = useState('');
@@ -52,9 +52,6 @@ export default function LoginForm() {
     useEffect(() => {
         if (!auth) return;
         
-        console.log('🔍 Checking for Google redirect result...');
-        setIsLoading(true);
-        
         getRedirectResult(auth)
             .then((result) => {
                 if (result) {
@@ -63,27 +60,14 @@ export default function LoginForm() {
                         title: 'Welcome!',
                         description: `Signed in as ${result.user.email}`,
                     });
-                } else {
-                    console.log('ℹ️ No redirect result found (user did not just complete Google sign-in)');
                 }
             })
             .catch((error) => {
                 console.error('❌ Google redirect result error:', error);
-                
-                let errorMessage = 'An error occurred during sign-in.';
-                
-                if (error.code === 'auth/account-exists-with-different-credential') {
-                    errorMessage = 'An account already exists with the same email but different sign-in method.';
-                } else if (error.code === 'auth/popup-closed-by-user') {
-                    errorMessage = 'Sign-in was cancelled.';
-                } else if (error.message) {
-                    errorMessage = error.message;
-                }
-                
                 toast({
                     variant: 'destructive',
                     title: 'Authentication Failed',
-                    description: errorMessage,
+                    description: error.message || 'An error occurred during sign-in.',
                 });
             })
             .finally(() => {
@@ -93,29 +77,15 @@ export default function LoginForm() {
 
     // Redirect if user is already logged in
     useEffect(() => {
-        if (user) {
-            console.log('👤 User logged in, checking role for redirect...');
-            if (firestore) {
-                const userDocRef = doc(firestore, 'users', user.uid);
-                getDoc(userDocRef).then(userDoc => {
-                    if (userDoc.exists() && userDoc.data().onboardingCompleted === false) {
-                        console.log('🚀 Redirecting to onboarding');
-                        router.replace('/onboarding');
-                    } else if (userDoc.exists() && userDoc.data().role === 'dispensary') {
-                        console.log('🏪 Redirecting to dispensary dashboard');
-                        router.replace('/dashboard/orders');
-                    } else {
-                        console.log('👥 Redirecting to customer dashboard');
-                        router.replace('/account/dashboard');
-                    }
-                }).catch(error => {
-                    console.error('Error fetching user doc:', error);
+        if (user && firestore) {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            getDoc(userDocRef).then(userDoc => {
+                if (userDoc.exists() && userDoc.data().onboardingCompleted === false) {
+                    router.replace('/onboarding');
+                } else {
                     router.replace('/account/dashboard');
-                });
-            } else {
-                console.log('📄 Firestore not ready, redirecting to default account page');
-                router.replace('/account');
-            }
+                }
+            });
         }
     }, [user, router, firestore]);
 
@@ -129,25 +99,10 @@ export default function LoginForm() {
             return;
         }
 
-        console.log('🚀 Initiating Google sign-in redirect...');
         setIsGoogleLoading(true);
         setIsLoading(true);
-        
         const provider = new GoogleAuthProvider();
-        
-        try {
-            await signInWithRedirect(auth, provider);
-            console.log('🔄 Redirecting to Google...');
-        } catch (error) {
-            console.error('❌ Google sign-in error:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Failed to start sign-in',
-                description: error instanceof Error ? error.message : 'Unknown error occurred',
-            });
-            setIsGoogleLoading(false);
-            setIsLoading(false);
-        }
+        await signInWithRedirect(auth, provider);
     };
 
     const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
@@ -157,7 +112,6 @@ export default function LoginForm() {
             toast({
                 variant: 'destructive',
                 title: 'Email is required',
-                description: 'Please enter your email address to receive a magic link.',
             });
             return;
         }
@@ -172,7 +126,6 @@ export default function LoginForm() {
         }
 
         setIsMagicLinkLoading(true);
-        setIsLoading(true);
         
         try {
             const isDevelopment = process.env.NODE_ENV === 'development';
@@ -187,20 +140,14 @@ export default function LoginForm() {
 
             setMagicLinkSent(true);
             setEmail(finalEmail);
-            toast({
-                title: 'Magic Link Sent!',
-                description: `A sign-in link has been sent to ${finalEmail}. Check your inbox!`,
-            });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-            console.error('❌ Magic link error:', errorMessage);
             toast({
                 variant: 'destructive',
                 title: 'Failed to send link',
                 description: errorMessage,
             });
         } finally {
-            setIsLoading(false);
             setIsMagicLinkLoading(false);
         }
     }, [email, toast, auth]);
@@ -213,7 +160,7 @@ export default function LoginForm() {
                         <Sparkles className="mx-auto h-12 w-12 text-primary" />
                         <CardTitle className="mt-4 text-2xl">Check Your Inbox!</CardTitle>
                         <CardDescription>
-                            A magic sign-in link has been sent to <strong>{email}</strong>. Click the link in the email to log in.
+                            A magic sign-in link has been sent to <strong>{email}</strong>.
                         </CardDescription>
                     </CardHeader>
                     <CardFooter>
