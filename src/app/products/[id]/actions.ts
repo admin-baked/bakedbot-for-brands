@@ -7,6 +7,9 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { runSummarizeReviews, type SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { z } from 'zod';
+import { cookies } from 'next/headers';
+import { demoProducts } from '@/lib/data';
+import type { Product } from '@/types/domain';
 
 /**
  * A server action to safely call the summarizeReviews AI flow from the server.
@@ -16,11 +19,19 @@ export async function getReviewSummary(input: {
   productId: string;
 }): Promise<SummarizeReviewsOutput | null> {
   const { productId } = input;
+  const cookieStore = cookies();
+  const isDemo = cookieStore.get('isUsingDemoData')?.value === 'true';
+
+  let product: Product | null = null;
 
   try {
-    const { firestore } = await createServerClient();
-    const productRepo = makeProductRepo(firestore);
-    const product = await productRepo.getById(productId);
+    if (isDemo) {
+      product = demoProducts.find(p => p.id === productId) || null;
+    } else {
+      const { firestore } = await createServerClient();
+      const productRepo = makeProductRepo(firestore);
+      product = await productRepo.getById(productId);
+    }
 
     if (!product) {
       console.error(`Product with ID ${productId} not found for review summary.`);
