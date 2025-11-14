@@ -88,7 +88,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [userProfile, setUserProfile] = React.useState<any>(null);
   const [isProfileLoading, setIsProfileLoading] = React.useState(true);
   
+  // This check determines if the current page should be wrapped by the dashboard layout.
+  // Login, auth callback, account, and onboarding pages are excluded.
+  const isLayoutActive = pathname.startsWith('/dashboard');
+
   React.useEffect(() => {
+    // Only run auth logic if this layout is active
+    if (!isLayoutActive) return;
+
     if (user && firestore) {
       setIsProfileLoading(true);
       const userDocRef = doc(firestore, 'users', user.uid);
@@ -101,65 +108,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             setIsCeoMode(false);
         }
         setIsProfileLoading(false);
-      }, () => {
+      }, (err) => {
+        console.error("Error fetching user profile:", err);
         setIsProfileLoading(false);
         setIsCeoMode(false);
       });
       return () => unsubscribe();
     } else if (!isUserLoading) {
+      // If there's no user and we're not loading, redirect to login
+      router.replace('/customer-login');
       setIsProfileLoading(false);
-      setUserProfile(null);
-      setIsCeoMode(false);
     }
-  }, [user, firestore, isUserLoading, setIsCeoMode]);
+  }, [user, firestore, isUserLoading, setIsCeoMode, router, isLayoutActive]);
 
 
-  const [isEditOpen, setIsEditOpen] = React.useState(false);
-  const [isAddOpen, setIsAddOpen] = React.useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
-  const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
-  
   React.useEffect(() => {
-    const isLoginPage = pathname.startsWith('/customer-login') || 
-                       pathname.startsWith('/brand-login') || 
-                       pathname.startsWith('/dispensary-login');
-    const isAuthCallback = pathname.startsWith('/auth/');
-    
-    // ✅ CRITICAL: Never interfere with login pages or auth callbacks
-    // Let the LoginForm handle all post-authentication redirects
-    if (isLoginPage || isAuthCallback) {
-        console.log('🔓 Layout: Ignoring login/auth page, letting LoginForm handle redirect');
-        return;
-    }
-
-    // Don't redirect if still loading
-    if (isUserLoading || isProfileLoading) {
-        console.log('⏳ Layout: Still loading user/profile data');
-        return;
+    // Only run redirect logic if the layout is active and user data is loaded
+    if (!isLayoutActive || isUserLoading || isProfileLoading) {
+      return;
     }
 
     if (user && userProfile) {
-        // ✅ User is authenticated - enforce role-based access ONLY on protected routes
         if (userProfile.onboardingCompleted === false && pathname !== '/onboarding') {
-            console.log('📝 Layout: User needs onboarding');
+            console.log('📝 Layout: User needs onboarding, redirecting...');
             router.replace('/onboarding');
         } else if (userProfile.role === 'dispensary' && !pathname.startsWith('/dashboard/orders') && !pathname.startsWith('/dashboard/settings')) {
-            console.log('🏪 Layout: Dispensary user accessing wrong page');
+            console.log('🏪 Layout: Dispensary user on wrong page, redirecting to orders...');
             router.replace('/dashboard/orders');
         }
-        // Note: We don't redirect brand/customer users here - they can access any dashboard page
     } else if (!user) {
-        // ✅ User is NOT authenticated - protect dashboard/account routes
-        const isProtectedRoute = pathname.startsWith('/dashboard') || 
-                                pathname.startsWith('/account') || 
-                                pathname === '/onboarding';
-        
-        if (isProtectedRoute) {
-            console.log('🔒 Layout: Protected route without auth, redirecting to login');
-            router.replace('/customer-login');
-        }
+        // This is a safeguard. The effect above should already handle this.
+        console.log('🔒 Layout: No user found, redirecting to login...');
+        router.replace('/customer-login');
     }
-}, [user, userProfile, isUserLoading, isProfileLoading, pathname, router]);
+}, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, isLayoutActive]);
 
 
   const handleSignOut = async () => {
@@ -200,6 +182,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setSelectedLink(link);
     setIsDeleteOpen(true);
   };
+  
+  // State for dialogs
+  const [isEditOpen, setIsEditOpen] = React.useState(false);
+  const [isAddOpen, setIsAddOpen] = React.useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const [selectedLink, setSelectedLink] = React.useState<NavLink | null>(null);
 
   const getInitials = (email?: string | null) => {
     if (!email) return 'U';
@@ -226,17 +214,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [navLinks, userProfile, shouldShowAdminControls]);
 
 
-  const isLoading = isUserLoading || isProfileLoading;
-  
-  const isExcludedFromLayout = 
-    pathname.startsWith('/customer-login') || 
-    pathname.startsWith('/brand-login') || 
-    pathname.startsWith('/dispensary-login') ||
-    pathname.startsWith('/auth/') || 
-    pathname.startsWith('/account') ||
-    pathname === '/onboarding';
+  // If the current page should not have the dashboard layout, render it directly.
+  if (!isLayoutActive) {
+      return <>{children}</>;
+  }
 
-  if (isLoading && !isExcludedFromLayout) {
+  // If the layout should be active but we are still loading, show a loader.
+  const isLoading = isUserLoading || isProfileLoading;
+  if (isLoading) {
     return (
         <div className="flex h-screen w-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -244,22 +229,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (user && isProfileLoading && !isExcludedFromLayout) {
-      return (
-         <div className="flex h-screen w-screen items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )
-  }
-
-  if (!user && !isExcludedFromLayout && pathname !== '/') {
-      return null;
-  }
-  
-  if (isExcludedFromLayout) {
-      return children;
-  }
-
+  // Render the full dashboard layout.
   return (
     <SidebarProvider>
       <TooltipProvider>
@@ -424,3 +394,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
+
+    
