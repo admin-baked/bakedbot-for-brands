@@ -3,55 +3,9 @@ import {
   FirestoreDataConverter,
   QueryDocumentSnapshot,
   SnapshotOptions,
-  Timestamp,
 } from "firebase/firestore";
-import type { Product, Location } from '@/lib/types';
+import type { Product, Location, OrderDoc, Review, UserInteraction } from '@/types/domain';
 
-
-// ---- Domain types (adjust fields to your actual schema) ----
-export type OrderDoc = {
-  id: string;
-  brandId?: string;
-  userId: string;
-  customer: {
-    name: string;
-    email?: string;
-  };
-  items: Array<{
-    productId: string;
-    name: string;
-    qty: number;
-    price: number;
-  }>;
-  totals: {
-    subtotal: number;
-    tax: number;
-    total: number;
-  };
-  locationId: string;
-  status: "submitted" | "pending" | "confirmed" | "ready" | "completed" | "cancelled";
-  createdAt: Timestamp;
-  mode: 'demo' | 'live';
-};
-
-export type Review = {
-  id: string;
-  brandId?: string;
-  productId: string;
-  userId: string;
-  rating: number; // 1..5
-  text: string;
-  createdAt: Timestamp;
-};
-
-export type UserInteraction = {
-  id: string;
-  brandId?: string;
-  userId: string;
-  interactionDate: Timestamp;
-  query: string;
-  recommendedProductIds?: string[];
-};
 
 // ---- Generic helpers ----
 const makeConverter = <T extends { id: string }>() =>

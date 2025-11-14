@@ -40,6 +40,7 @@ export type CartItem = Product & { quantity: number };
 
 export type Review = {
   id: string;
+  brandId?: string;
   productId: string;
   userId: string;
   rating: number;
@@ -50,6 +51,7 @@ export type Review = {
 // Type for the Order document stored in Firestore
 export type OrderDoc = {
   id: string; // Add id to the type
+  brandId?: string;
   userId: string;
   customer: {
       name: string;
@@ -84,6 +86,7 @@ export type OrderItemDoc = {
 
 export type UserInteraction = {
   id: string;
+  brandId?: string;
   userId: string;
   interactionDate: Timestamp;
   query: string;
