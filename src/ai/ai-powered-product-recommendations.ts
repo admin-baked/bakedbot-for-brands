@@ -11,12 +11,11 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { getProductReviews } from '@/ai/tools/get-product-reviews';
-import { getProduct } from '@/ai/tools/get-product';
+import { findSimilarProducts } from '@/ai/tools/find-similar-products';
 
 const RecommendProductsInputSchema = z.object({
   query: z.string().describe('The user query or description of what they are looking for.'),
   customerHistory: z.string().optional().describe('A summary of the customer purchase history and preferences.'),
-  availableProducts: z.string().describe('A list of available products with descriptions, provided in JSON format. The AI should use the `getProduct` tool to get more details on promising candidates.'),
 });
 export type RecommendProductsInput = z.infer<typeof RecommendProductsInputSchema>;
 
@@ -34,19 +33,23 @@ export type RecommendProductsOutput = z.infer<typeof RecommendProductsOutputSche
 
 const recommendProductsPrompt = ai.definePrompt({
   name: 'recommendProductsPrompt',
-  input: {schema: RecommendProductsInputSchema},
+  input: { schema: z.object({
+    query: z.string(),
+    customerHistory: z.string().optional(),
+    availableProducts: z.string(),
+  }) },
   output: {schema: RecommendProductsOutputSchema},
-  tools: [getProductReviews, getProduct],
-  prompt: `You are an expert AI budtender. Your goal is to recommend the best products to a user based on their request and history.
+  tools: [getProductReviews],
+  prompt: `You are an expert AI budtender. Your goal is to recommend the best products to a user based on their request, history, and a pre-selected list of relevant products.
 
-Analyze the user's query and their customer history to understand their needs and preferences.
-Based on this analysis, select up to a maximum of 3 suitable products from the list of available products.
-You can use the getProduct tool to get more details, and the getProductReviews tool to see what other customers are saying.
-
-User Query: {{{query}}}
+The user is looking for: {{{query}}}
 {{#if customerHistory}}
-Customer History: {{{customerHistory}}}
+Their preferences are: {{{customerHistory}}}
 {{/if}}
+
+Based on this, choose up to a maximum of 3 products from the following JSON list of semantically similar products.
+Use the getProductReviews tool if needed to understand customer sentiment.
+
 Available Products (JSON):
 {{{availableProducts}}}
 
@@ -62,7 +65,22 @@ const recommendProductsFlow = ai.defineFlow(
     outputSchema: RecommendProductsOutputSchema,
   },
   async input => {
-    const {output} = await recommendProductsPrompt(input);
+    // Step 1: Use the vector search tool to find the most relevant products first.
+    const similarProducts = await findSimilarProducts({ query: input.query, limit: 10 });
+    
+    if (similarProducts.length === 0) {
+      return {
+        products: [],
+        overallReasoning: "I couldn't find any products that matched your request. Could you try describing it a different way?",
+      };
+    }
+
+    // Step 2: Pass the query and the curated list of similar products to the LLM for the final recommendation.
+    const {output} = await recommendProductsPrompt({
+      ...input,
+      availableProducts: JSON.stringify(similarProducts),
+    });
+
     return output!;
   }
 );
