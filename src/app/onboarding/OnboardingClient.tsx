@@ -97,8 +97,10 @@ export default function OnboardingClient() {
                 // Redirect based on role after onboarding is fully complete
                 if (role === 'dispensary') {
                     router.replace('/dashboard/orders');
-                } else {
+                } else if (role === 'owner' || role === 'brand') { // 'brand' is an alias for 'owner' here
                     router.replace('/dashboard');
+                } else {
+                    router.replace('/account/dashboard');
                 }
             }
         } catch (error) {
