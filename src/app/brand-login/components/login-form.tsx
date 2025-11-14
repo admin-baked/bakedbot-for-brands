@@ -57,6 +57,8 @@ export default function LoginForm() {
             .then((result) => {
                 if (result) {
                     console.log('✅ Google sign-in successful:', result.user.email);
+                     // ✅ Set the flag
+                    window.localStorage.setItem('justSignedIn', 'true');
                     toast({
                         title: 'Welcome!',
                         description: `Signed in as ${result.user.email}`,

@@ -51,14 +51,24 @@ export default function LoginForm() {
     useEffect(() => {
         if (!auth) return;
         
+        console.log('🔍 Checking for Google redirect result...');
+        setIsLoading(true);
+        
         getRedirectResult(auth)
             .then((result) => {
                 if (result) {
                     console.log('✅ Google sign-in successful:', result.user.email);
+                    
+                    // ✅ Set the flag
+                    window.localStorage.setItem('justSignedIn', 'true');
+                    
                     toast({
                         title: 'Welcome!',
                         description: `Signed in as ${result.user.email}`,
                     });
+                    // The user redirect useEffect will handle navigation
+                } else {
+                    console.log('ℹ️ No redirect result found');
                 }
             })
             .catch((error) => {
