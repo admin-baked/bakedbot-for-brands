@@ -67,7 +67,10 @@ service cloud.firestore {
     // ---------- Users ----------
     // Users can create and update their own profile.
     match /users/{userId} {
-      allow read, create, update: if authed() && request.auth.uid == userId;
+      allow read: if authed() && request.auth.uid == userId;
+      // Allow creation during signup, or updates by the user themselves.
+      // This rule allows a user to set their role and locationId during onboarding.
+      allow write: if authed() && request.auth.uid == userId;
       
       // A user's own interactions are private to them.
       match /interactions/{interactionId} {
@@ -104,8 +107,9 @@ service cloud.firestore {
     }
 
     // ---------- Dispensary locations ----------
+    // Dispensaries collection is publicly readable for the locator and onboarding.
     match /dispensaries/{dispensaryId} {
-      allow get, list: if true; // basic info can be public; tighten if needed
+      allow get, list: if true;
       allow create, update, delete: if isDispensary() && canSeeDisp(dispensaryId)
                                     || isOwner() || isDev();
     }
