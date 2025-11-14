@@ -49,23 +49,26 @@ export default function DispensaryLoginForm() {
     }, [searchParams, toast]);
 
     useEffect(() => {
+        console.log(`[AUTH_EFFECT] Running. Auth ready: ${!!auth}, User loading: ${isAuthLoading}, Redirected: ${hasRedirected.current}`);
+
         if (!auth || isAuthLoading) {
-            console.log('⏳ Waiting for Firebase auth...');
+            console.log('[AUTH_EFFECT] ⏳ Waiting for Firebase auth to initialize or user state to load...');
             return;
         }
 
         if (hasRedirected.current) {
-            console.log('✅ Already redirected, skipping');
+            console.log('[AUTH_EFFECT] ✅ Already redirected, skipping subsequent runs.');
             return;
         }
 
         const handleAuthAndRedirect = async () => {
-            console.log('🔍 Checking authentication state...');
+            console.log('[AUTH_EFFECT] 🔍 Checking authentication state...');
 
+            // First, check for Google redirect result
             try {
                 const result = await getRedirectResult(auth);
                 if (result) {
-                    console.log('✅ Google sign-in result found:', result.user.email);
+                    console.log('[AUTH_EFFECT] ✅ Google sign-in result found:', result.user.email);
                     hasRedirected.current = true;
                     
                     toast({
@@ -77,7 +80,7 @@ export default function DispensaryLoginForm() {
                     return;
                 }
             } catch (error: any) {
-                console.error('❌ Google redirect error:', error);
+                console.error('[AUTH_EFFECT] ❌ Google redirect error:', error);
                 if (error.code !== 'auth/no-redirect-result') {
                     toast({
                         variant: 'destructive',
@@ -89,55 +92,58 @@ export default function DispensaryLoginForm() {
                 return;
             }
 
+            // If no Google redirect, check if user is already signed in
             if (user) {
-                console.log('👤 User already signed in:', user.email);
+                console.log(`[AUTH_EFFECT] 👤 User already signed in: ${user.email}`);
                 hasRedirected.current = true;
                 await redirectUserBasedOnRole(user.uid);
                 return;
             }
 
-            console.log('📝 No user found, showing login form');
+            // No user, no redirect - show the login form
+            console.log('[AUTH_EFFECT] 📝 No user found, showing login form');
             setIsLoading(false);
         };
 
         const redirectUserBasedOnRole = async (uid: string) => {
             if (!firestore) {
-                console.log('⚠️ Firestore not ready, waiting...');
+                console.log('[REDIRECT] ⚠️ Firestore not ready, waiting...');
                 await new Promise(resolve => setTimeout(resolve, 500));
                 if (!firestore) {
-                    console.log('⚠️ Firestore still not ready, using fallback redirect');
+                    console.log('[REDIRECT] ⚠️ Firestore still not ready, using fallback redirect to /dashboard/orders');
                     router.replace('/dashboard/orders');
                     return;
                 }
             }
 
             try {
+                console.log(`[REDIRECT] Fetching user doc for UID: ${uid}`);
                 const userDocRef = doc(firestore, 'users', uid);
                 const userDoc = await getDoc(userDocRef);
 
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
-                    console.log('👤 User data:', { role: userData.role, onboarding: userData.onboardingCompleted });
+                    console.log('[REDIRECT] 👤 User data:', { role: userData.role, onboarding: userData.onboardingCompleted });
 
                     if (userData.onboardingCompleted === false) {
-                        console.log('📝 Redirecting to onboarding');
+                        console.log('[REDIRECT] ➡️ Redirecting to /onboarding');
                         router.replace('/onboarding');
                     } else if (userData.role === 'dispensary') {
-                        console.log('🏪 Redirecting to dispensary dashboard');
+                        console.log('[REDIRECT] ➡️ Redirecting to /dashboard/orders');
                         router.replace('/dashboard/orders');
                     } else if (userData.role === 'brand' || userData.role === 'owner') {
-                        console.log('🏢 Redirecting to brand dashboard');
+                        console.log('[REDIRECT] ➡️ Redirecting to /dashboard');
                         router.replace('/dashboard');
                     } else {
-                        console.log('👥 Redirecting to customer dashboard');
+                        console.log('[REDIRECT] ➡️ Redirecting to /account/dashboard');
                         router.replace('/account/dashboard');
                     }
                 } else {
-                    console.log('🆕 New user, redirecting to onboarding');
+                    console.log('[REDIRECT] 🆕 New user, redirecting to /onboarding');
                     router.replace('/onboarding');
                 }
             } catch (error) {
-                console.error('❌ Error fetching user document:', error);
+                console.error('[REDIRECT] ❌ Error fetching user document:', error);
                 router.replace('/dashboard/orders');
             }
         };
