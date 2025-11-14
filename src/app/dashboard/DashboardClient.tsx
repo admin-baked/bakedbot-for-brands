@@ -3,17 +3,18 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageSquare, Sparkles, ThumbsUp, ThumbsDown, ArrowRight } from 'lucide-react';
+import { MessageSquare, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import type { Product } from '@/lib/types';
 import type { UserInteraction } from '@/firebase/converters';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, query, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, collectionGroup, Timestamp } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import TopProductsCard from './components/top-products-card';
 import BottomProductsCard from './components/bottom-products-card';
+import InteractionsChart from './components/interactions-chart';
 import { formatNumber } from '@/lib/utils';
 import { useUser } from '@/firebase/auth/use-user';
 import { interactionConverter, productConverter } from '@/firebase/converters';
@@ -48,7 +49,12 @@ export default function DashboardClient() {
   const interactionsQuery = useMemo(() => {
     if (!firestore || !currentBrandId) return null;
     const base = collectionGroup(firestore, 'interactions').withConverter(interactionConverter);
-    return query(base, where('brandId', '==', currentBrandId));
+    // Fetch last 30 days of interactions
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoTimestamp = Timestamp.fromDate(thirtyDaysAgo);
+    
+    return query(base, where('brandId', '==', currentBrandId), where('interactionDate', '>=', thirtyDaysAgoTimestamp));
   }, [firestore, currentBrandId]);
 
   const productsQuery = useMemo(() => {
@@ -101,21 +107,9 @@ export default function DashboardClient() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 bg-gradient-to-br from-primary/80 to-primary text-primary-foreground">
-          <CardHeader>
-            <CardTitle>Unleash your content with AI</CardTitle>
-            <CardDescription className="text-primary-foreground/80">
-              Effortlessly create engaging product descriptions and marketing materials with our powerful AI content generator.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/dashboard/content">
-              <Button variant="secondary" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
-                Start Creating <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-2">
+            <InteractionsChart interactions={interactions || []} isLoading={isLoading} />
+        </div>
 
         <div className="space-y-8">
           <TopProductsCard products={topProducts} isLoading={isLoading} />
