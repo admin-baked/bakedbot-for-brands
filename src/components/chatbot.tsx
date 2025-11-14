@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent, useTransition, useCallback } from 'react';
@@ -568,7 +569,7 @@ export default function Chatbot() {
             id: Date.now() + 1,
             text: result.overallReasoning || "Here are some recommendations based on your preferences:",
             sender: 'bot',
-            productSuggestions: recommendedProductDetails,
+            productSuggestions: recommendedProductDetails.length > 0 ? recommendedProductDetails : undefined,
         };
         setMessages(prev => [...prev, botMessage]);
 
