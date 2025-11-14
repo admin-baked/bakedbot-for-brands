@@ -72,7 +72,7 @@ test('favorite location flow', async ({ page }) => {
   // Login first
   await page.goto('/brand-login');
   await page.locator('button', { hasText: 'Dev Magic Login' }).click();
-  await page.locator('div[role="menuitem"]', { hasText: 'Login as martez@bakedbot.ai' }).click();
+  await page.locator('div[role="menuitem"]', { hasText: 'Login as brand@bakedbot.ai' }).click();
 
   // Navigate to the dashboard
   await page.goto('/account/dashboard');
@@ -136,7 +136,7 @@ test('account page renders', async ({ page }) => {
   // Login first
   await page.goto('/brand-login');
   await page.locator('button', { hasText: 'Dev Magic Login' }).click();
-  await page.locator('div[role="menuitem"]', { hasText: 'Login as martez@bakedbot.ai' }).click();
+  await page.locator('div[role="menuitem"]', { hasText: 'Login as brand@bakedbot.ai' }).click();
 
   // Navigate to the account page
   await page.goto('/account');
@@ -150,9 +150,9 @@ test('account page renders', async ({ page }) => {
 
 test('review submission flow', async ({ page }) => {
   // 1. Log in as a user
-  await page.goto('/brand-login');
+  await page.goto('/customer-login');
   await page.locator('button:has-text("Dev Magic Login")').click();
-  await page.locator('div[role="menuitem"]:has-text("Login as martez@bakedbot.ai")').click();
+  await page.locator('div[role="menuitem"]:has-text("Login as customer@bakedbot.ai")').click();
 
   // 2. Go to the review page
   await page.goto('/leave-a-review');

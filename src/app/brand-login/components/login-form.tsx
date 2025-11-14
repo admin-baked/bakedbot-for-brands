@@ -353,11 +353,8 @@ export default function LoginForm() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-80">
-                                <DropdownMenuItem onClick={(e) => handleMagicLinkSignIn(e, 'martez@bakedbot.ai')}>
-                                    Login as martez@bakedbot.ai (Brand)
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => handleMagicLinkSignIn(e, 'rishabh@bakedbot.ai')}>
-                                    Login as rishabh@bakedbot.ai (Brand)
+                                <DropdownMenuItem onClick={(e) => handleMagicLinkSignIn(e, 'brand@bakedbot.ai')}>
+                                    Login as brand@bakedbot.ai (Brand)
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -372,4 +369,5 @@ export default function LoginForm() {
     
 
     
+
 
