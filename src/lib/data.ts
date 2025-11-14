@@ -178,8 +178,13 @@ export const demoCustomer = {
         { id: 'demo2', createdAt: Timestamp.now(), status: 'ready', totals: { total: 88.00 } },
     ] as Partial<OrderDoc>[],
     reviews: [
-        { id: 'rev1', productId: '1', rating: 5, text: 'Absolutely love the Cosmic Caramels! Perfect for relaxing.' },
-        { id: 'rev2', productId: '4', rating: 4, text: 'OG Galaxy is a classic. Great for winding down.' },
+        { id: 'rev1', productId: '1', rating: 5, text: 'Absolutely love the Cosmic Caramels! Perfect for relaxing after a long day. The taste is amazing and the effects are smooth.' },
+        { id: 'rev2', productId: '4', rating: 4, text: 'OG Galaxy is a classic for a reason. Great for winding down and getting a good night\'s sleep. A bit harsh on the throat sometimes.' },
+        { id: 'rev3', productId: '1', rating: 4, text: 'These are tasty but sometimes inconsistent in potency. One piece was much stronger than another from the same batch.' },
+        { id: 'rev4', productId: '2', rating: 5, text: 'Giggle Gummies are my go-to for social events. They make me feel so talkative and happy without any anxiety. Highly recommend!' },
+        { id: 'rev5', productId: '7', rating: 3, text: 'The Vaporwave Voyage pen is convenient, but the flavor is a bit artificial for my taste. The effects are okay, but not very long-lasting.' },
+        { id: 'rev6', productId: '4', rating: 5, text: 'The best indica I have ever had. Knocks me right out and helps with my insomnia. A true 5-star flower.' },
+        { id: 'rev7', productId: '2', rating: 4, text: 'Fun for a party, but be careful not to take too many! They can be a bit more potent than you expect.' },
     ] as Partial<Review>[],
     interactions: [
         { recommendedProductIds: ['1', '2'] },
