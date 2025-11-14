@@ -1,13 +1,14 @@
+
 'use server';
 /**
  * @fileOverview A Genkit tool for finding similar products using Firestore Vector Search.
+ * This tool now searches across both product description embeddings and review summary embeddings.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
-import { DocumentData, FieldValue, Query, collection } from 'firebase/firestore';
-import { productConverter, type Product } from '@/firebase/converters';
+import type { Product } from '@/firebase/converters';
 import { googleAI } from '@genkit-ai/google-genai';
 
 const FindSimilarProductsInputSchema = z.object({
@@ -34,15 +35,14 @@ const FindSimilarProductsOutputSchema = z.array(ProductSchema);
 export const findSimilarProducts = ai.defineTool(
   {
     name: 'findSimilarProducts',
-    description: 'Finds products with descriptions semantically similar to the user\'s query using vector search.',
+    description: 'Finds products with descriptions or review summaries semantically similar to the user\'s query using vector search.',
     inputSchema: FindSimilarProductsInputSchema,
     outputSchema: FindSimilarProductsOutputSchema,
   },
   async ({ query, limit }) => {
     try {
       const { firestore } = await createServerClient();
-      const productsCollection = firestore.collection('products').withConverter(productConverter);
-
+      
       // 1. Generate an embedding for the user's query.
       const embeddingResponse = await ai.embed({
         model: googleAI.model('text-embedding-004'),
@@ -50,23 +50,50 @@ export const findSimilarProducts = ai.defineTool(
       });
       const queryEmbedding = embeddingResponse.embedding;
 
-      // 2. Query Firestore for the most similar product embeddings.
-      // This uses the findNearest method provided by the Firestore Vector Search extension.
-      const vectorQuery = productsCollection.findNearest('embedding', queryEmbedding, {
+      // 2. Query both collections in parallel.
+      const productsCollection = firestore.collection('products');
+      const reviewsEmbeddingCollection = firestore.collectionGroup('productReviewEmbeddings');
+
+      const productVectorQuery = productsCollection.findNearest('embedding', queryEmbedding, {
         limit: limit,
         distanceMeasure: 'COSINE'
       });
 
-      const querySnapshot = await vectorQuery.get();
+      const reviewVectorQuery = reviewsEmbeddingCollection.findNearest('embedding', queryEmbedding, {
+        limit: limit,
+        distanceMeasure: 'COSINE'
+      });
 
-      if (querySnapshot.empty) {
-        return [];
+      const [productSnapshot, reviewSnapshot] = await Promise.all([
+          productVectorQuery.get(),
+          reviewVectorQuery.get()
+      ]);
+      
+      // 3. Combine and de-duplicate results.
+      const combinedResults = new Map<string, Product>();
+
+      // Process product description results
+      for (const doc of productSnapshot.docs) {
+          const product = { id: doc.id, ...doc.data() } as Product;
+          if (!combinedResults.has(product.id)) {
+              combinedResults.set(product.id, product);
+          }
       }
 
-      // 3. Map the results to the Product schema.
-      const similarProducts = querySnapshot.docs.map(doc => {
-          const product = doc.data();
-          // The converter adds the 'id', so the data matches the Zod schema.
+      // Process review embedding results
+      for (const doc of reviewSnapshot.docs) {
+          const productRef = doc.ref.parent.parent; // Navigate up to the product document
+          if (productRef) {
+            const productDoc = await productRef.get();
+            if (productDoc.exists && !combinedResults.has(productDoc.id)) {
+                const product = { id: productDoc.id, ...productDoc.data() } as Product;
+                combinedResults.set(product.id, product);
+            }
+          }
+      }
+      
+      // 4. Map the results to the Product schema.
+      const similarProducts = Array.from(combinedResults.values()).slice(0, limit).map(product => {
           return {
             id: product.id,
             name: product.name,
@@ -90,3 +117,5 @@ export const findSimilarProducts = ai.defineTool(
     }
   }
 );
+
+    

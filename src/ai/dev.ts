@@ -10,3 +10,9 @@ import './tools/get-product.ts';
 import './tools/find-similar-products.ts';
 import './flows/summarize-reviews.ts';
 import './ai-powered-product-recommendations.ts';
+
+// New imports for review embeddings
+import './tools/generate-review-embeddings.ts';
+import './tools/find-products-by-reviews.ts';
+
+    
