@@ -6,7 +6,7 @@ import { HeroSlider } from '@/components/hero-slider';
 import { ProductCarousel } from '@/components/product-carousel';
 import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
-import { Footer } from './components/footer';
+import { Footer } from '@/app/components/footer';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useMemo } from 'react';
 import type { Product } from '@/lib/types';

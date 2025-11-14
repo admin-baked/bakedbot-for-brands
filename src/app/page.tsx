@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useStore } from '@/hooks/use-store';
 import MenuPage from '@/app/menu-page';
-import TiledMenuPage from '@/app/tiled-menu-page';
+import TiledMenuPage from '@/app/menu/tiled/page';
+import { useStore } from '@/hooks/use-store';
 import { useHydrated } from '@/hooks/useHydrated';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -28,6 +28,8 @@ export default function Page() {
     );
   }
 
+  // The logic to switch between menus is now simplified.
+  // The tiled menu has its own page at /menu/tiled
   if (menuStyle === 'alt') {
     return <TiledMenuPage />;
   }
