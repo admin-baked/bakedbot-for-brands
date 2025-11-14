@@ -1,17 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Grant public read-only access to the reviews collection group
-    match /{path=**}/reviews/{reviewId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+    // Default-deny all access
+    match /{document=**} {
+      allow read, write: if false;
     }
 
-    // For all other documents, require authentication for reads and writes.
-    // This rule does NOT apply to the 'reviews' path because the more specific rule above takes precedence.
+    // Allow ANYONE to READ any document in any collection.
+    // This is open for public visibility, which is what is needed
+    // for the homepage reviews feed.
+    match /{path=**} {
+      allow read: if true;
+    }
+
+    // Allow any AUTHENTICATED user to WRITE to any document.
+    // This secures all create, update, and delete operations.
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow write: if request.auth != null;
     }
   }
 }
