@@ -88,13 +88,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [userProfile, setUserProfile] = React.useState<any>(null);
   const [isProfileLoading, setIsProfileLoading] = React.useState(true);
   
-  // This check determines if the current page should be wrapped by the dashboard layout.
-  // Login, auth callback, account, and onboarding pages are excluded.
-  const isLayoutActive = pathname.startsWith('/dashboard');
+  const isDashboardRoute = pathname.startsWith('/dashboard');
 
   React.useEffect(() => {
-    // Only run auth logic if this layout is active
-    if (!isLayoutActive) return;
+    if (!isDashboardRoute) return;
 
     if (user && firestore) {
       setIsProfileLoading(true);
@@ -115,33 +112,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       });
       return () => unsubscribe();
     } else if (!isUserLoading) {
-      // If there's no user and we're not loading, redirect to login
-      router.replace('/customer-login');
+      router.replace('/brand-login');
       setIsProfileLoading(false);
     }
-  }, [user, firestore, isUserLoading, setIsCeoMode, router, isLayoutActive]);
+  }, [user, firestore, isUserLoading, setIsCeoMode, router, isDashboardRoute]);
 
 
   React.useEffect(() => {
-    // Only run redirect logic if the layout is active and user data is loaded
-    if (!isLayoutActive || isUserLoading || isProfileLoading) {
+    if (!isDashboardRoute || isUserLoading || isProfileLoading || !userProfile) {
       return;
     }
-
-    if (user && userProfile) {
-        if (userProfile.onboardingCompleted === false && pathname !== '/onboarding') {
-            console.log('📝 Layout: User needs onboarding, redirecting...');
-            router.replace('/onboarding');
-        } else if (userProfile.role === 'dispensary' && !pathname.startsWith('/dashboard/orders') && !pathname.startsWith('/dashboard/settings')) {
-            console.log('🏪 Layout: Dispensary user on wrong page, redirecting to orders...');
-            router.replace('/dashboard/orders');
-        }
-    } else if (!user) {
-        // This is a safeguard. The effect above should already handle this.
-        console.log('🔒 Layout: No user found, redirecting to login...');
-        router.replace('/customer-login');
+    
+    // If a customer-role user lands on a /dashboard route, send them to their own dashboard.
+    if (userProfile.role === 'customer') {
+        router.replace('/account/dashboard');
+        return;
     }
-}, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, isLayoutActive]);
+
+    if (userProfile.onboardingCompleted === false && pathname !== '/onboarding') {
+        router.replace('/onboarding');
+    } else if (userProfile.role === 'dispensary' && !pathname.startsWith('/dashboard/orders') && !pathname.startsWith('/dashboard/settings')) {
+        router.replace('/dashboard/orders');
+    }
+  }, [userProfile, isUserLoading, isProfileLoading, pathname, router, isDashboardRoute]);
 
 
   const handleSignOut = async () => {
@@ -214,12 +207,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [navLinks, userProfile, shouldShowAdminControls]);
 
 
-  // If the current page should not have the dashboard layout, render it directly.
-  if (!isLayoutActive) {
+  // If not a dashboard route, render children directly without the layout.
+  if (!isDashboardRoute) {
       return <>{children}</>;
   }
 
-  // If the layout should be active but we are still loading, show a loader.
+  // If the layout should be active but we are still loading user/profile data, show a loader.
   const isLoading = isUserLoading || isProfileLoading;
   if (isLoading) {
     return (
@@ -395,4 +388,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 }
 
+    
     
