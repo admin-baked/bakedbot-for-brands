@@ -38,15 +38,8 @@ export default function DispensaryLoginForm() {
     const hasRedirected = useRef(false);
 
     useEffect(() => {
-        const error = searchParams.get('error');
-        if (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Authentication Error',
-                description: decodeURIComponent(error),
-            });
-        }
-    }, [searchParams, toast]);
+        hasRedirected.current = false;
+    }, [user?.uid]);
 
     useEffect(() => {
         if (!auth) {
@@ -55,7 +48,7 @@ export default function DispensaryLoginForm() {
         }
 
         if (hasRedirected.current) {
-            console.log('✅ LoginForm: Already redirected, skipping');
+            console.log('✅ LoginForm: Already redirected in this session, skipping');
             return;
         }
 
@@ -73,6 +66,7 @@ export default function DispensaryLoginForm() {
                         description: `Signed in as ${result.user.email}`,
                     });
 
+                    await new Promise(resolve => setTimeout(resolve, 500));
                     await redirectUserBasedOnRole(result.user.uid);
                     return;
                 }
@@ -92,6 +86,8 @@ export default function DispensaryLoginForm() {
             if (user) {
                 console.log('👤 LoginForm: User already signed in:', user.email);
                 hasRedirected.current = true;
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
                 await redirectUserBasedOnRole(user.uid);
                 return;
             }
@@ -101,38 +97,50 @@ export default function DispensaryLoginForm() {
         };
 
         const redirectUserBasedOnRole = async (uid: string) => {
+            console.log('🔄 LoginForm: Starting redirect based on role for uid:', uid);
+            
             if (!firestore) {
                 console.log('⚠️ LoginForm: Firestore not ready, waiting...');
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                if (!firestore) {
+                    console.log('⚠️ LoginForm: Firestore still not ready after wait, using fallback');
+                    router.replace('/dashboard/orders');
+                    return;
+                }
             }
 
             try {
-                const userDocRef = doc(firestore!, 'users', uid);
+                const userDocRef = doc(firestore, 'users', uid);
                 const userDoc = await getDoc(userDocRef);
 
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
-                    console.log('👤 LoginForm: User data:', { role: userData.role, onboarding: userData.onboardingCompleted });
+                    console.log('👤 LoginForm: User data loaded:', { 
+                        role: userData.role, 
+                        onboarding: userData.onboardingCompleted 
+                    });
 
                     if (userData.onboardingCompleted === false) {
-                        console.log('📝 LoginForm: Redirecting to onboarding');
+                        console.log('📝 LoginForm: → Redirecting to /onboarding');
                         router.replace('/onboarding');
                     } else if (userData.role === 'dispensary') {
-                        console.log('🏪 LoginForm: Redirecting to dispensary dashboard');
+                        console.log('🏪 LoginForm: → Redirecting to /dashboard/orders');
                         router.replace('/dashboard/orders');
                     } else if (userData.role === 'brand' || userData.role === 'owner') {
-                        console.log('🏢 LoginForm: Redirecting to brand dashboard');
+                        console.log('🏢 LoginForm: → Redirecting to /dashboard');
                         router.replace('/dashboard');
                     } else {
-                        console.log('👥 LoginForm: Redirecting to customer dashboard');
+                        console.log('👥 LoginForm: → Redirecting to /account/dashboard');
                         router.replace('/account/dashboard');
                     }
                 } else {
-                    console.log('🆕 LoginForm: New user, redirecting to onboarding');
+                    console.log('🆕 LoginForm: New user (no doc), → Redirecting to /onboarding');
                     router.replace('/onboarding');
                 }
             } catch (error) {
                 console.error('❌ LoginForm: Error fetching user document:', error);
+                console.log('⚠️ LoginForm: Using fallback → Redirecting to /dashboard/orders');
                 router.replace('/dashboard/orders');
             }
         };
@@ -324,3 +332,4 @@ export default function DispensaryLoginForm() {
         </div>
     );
 }
+    
