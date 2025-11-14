@@ -61,7 +61,7 @@ export default function DataSourceSettings() {
     };
 
     return (
-        <Card>
+        <Card id="data">
             <CardHeader>
                 <CardTitle>Data Management</CardTitle>
                 <CardDescription>
