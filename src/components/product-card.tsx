@@ -68,7 +68,7 @@ export function ProductCard({ product }: { product: Product }) {
   };
   
   return (
-    <div className="bg-card text-card-foreground rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col group border">
+    <div className="bg-card text-card-foreground rounded-lg overflow-hidden flex flex-col group border">
       <Link href={`/products/${product.id}`} className="block">
         <div className="relative h-48">
             <Image
@@ -99,8 +99,8 @@ export function ProductCard({ product }: { product: Product }) {
           </p>
         )}
         
-        <div className="flex items-center justify-between mt-auto pt-3 border-t">
-          <span className="text-xl font-bold text-primary">
+        <div className="flex items-center justify-between mt-auto">
+          <span className="text-xl font-bold">
             {priceDisplay}
           </span>
           <Button
@@ -115,3 +115,4 @@ export function ProductCard({ product }: { product: Product }) {
     </div>
   );
 }
+
