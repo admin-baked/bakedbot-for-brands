@@ -1,22 +1,94 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default-deny all access
-    match /{document=**} {
-      allow read, write: if false;
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
     }
-
-    // Allow ANYONE to READ any document in any collection.
-    // This is open for public visibility, which is what is needed
-    // for the homepage reviews feed.
-    match /{path=**} {
-      allow read: if true;
+    
+    function isOwner() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner';
     }
-
-    // Allow any AUTHENTICATED user to WRITE to any document.
-    // This secures all create, update, and delete operations.
-    match /{document=**} {
-      allow write: if request.auth != null;
+    
+    function isDispensary() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'dispensary';
+    }
+    
+    function isBrand() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'brand';
+    }
+    
+    function isCustomer() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'customer';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && 
+                      (request.auth.uid == userId || isOwner());
+      allow delete: if isOwner();
+    }
+    
+    // Products collection
+    match /products/{productId} {
+      allow read: if true; // Public reading for menu
+      allow write: if isOwner() || isDispensary() || isBrand();
+      
+      // Reviews subcollection
+      match /reviews/{reviewId} {
+        allow read: if true; // Anyone can read reviews (including AI)
+        allow create: if isAuthenticated();
+        allow update, delete: if isAuthenticated() && 
+                                 (request.auth.uid == resource.data.userId || isOwner());
+      }
+    }
+    
+    // Orders collection
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && 
+                    (request.auth.uid == resource.data.customerId || 
+                     isOwner() || 
+                     isDispensary());
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && 
+                      (isOwner() || isDispensary());
+      allow delete: if isOwner();
+    }
+    
+    // Dispensaries collection
+    match /dispensaries/{dispensaryId} {
+      allow read: if true; // Public reading
+      allow write: if isOwner() || isDispensary();
+    }
+    
+    // Brands collection
+    match /brands/{brandId} {
+      allow read: if true; // Public reading
+      allow write: if isOwner() || isBrand();
+    }
+    
+    // Cart collection
+    match /carts/{cartId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == cartId;
+    }
+    
+    // Analytics collection (if you have it)
+    match /analytics/{document=**} {
+      allow read: if isOwner();
+      allow write: if isAuthenticated();
+    }
+    
+    // Settings/Config
+    match /settings/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner();
     }
   }
 }
