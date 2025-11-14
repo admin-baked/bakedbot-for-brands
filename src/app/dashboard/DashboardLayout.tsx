@@ -117,7 +117,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         } else {
             // No user document found, likely a new user. Redirect to onboarding.
-            router.replace('/onboarding');
+            if (pathname !== '/onboarding') {
+                router.replace('/onboarding');
+            }
         }
         setIsProfileLoading(false);
       }, (err) => {
