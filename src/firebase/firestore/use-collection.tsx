@@ -6,6 +6,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { FirebaseError } from 'firebase/app';
 import { getPathFromQuery } from './query-path';
+import { getAuth } from 'firebase/auth';
 
 type UseCollectionResult<T> = {
   data: T[] | null;
@@ -55,6 +56,21 @@ export function useCollection<T = DocumentData>(
         if (err instanceof FirebaseError && err.code === "permission-denied") {
           const inferredPath = getPathFromQuery(query);
           const path = inferredPath === "unknown/path" && debugPath ? debugPath : inferredPath;
+          
+          // Add debug logging
+          try {
+            const auth = getAuth();
+            console.log('🔍 Collection query failed:', {
+              path: inferredPath,
+              debugPath,
+              isAuthenticated: !!auth?.currentUser,
+              userId: auth?.currentUser?.uid,
+              error: err.code
+            });
+          } catch(e) {
+            console.error("Could not get auth instance for debug logging", e);
+          }
+
 
           const permissionError = new FirestorePermissionError({
               path: path,
