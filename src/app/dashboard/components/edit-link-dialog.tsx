@@ -24,7 +24,11 @@ interface EditLinkDialogProps {
   link: NavLink | null; // Null for "add" mode
 }
 
-const iconNames = Object.keys(LucideIcons).filter(key => typeof (LucideIcons as any)[key] === 'object');
+// Filter out non-component exports from lucide-react
+const iconNames = Object.keys(LucideIcons).filter(key => 
+  typeof (LucideIcons as any)[key] === 'object' && 
+  (LucideIcons as any)[key].displayName // Check if it's a likely React component
+);
 
 export default function EditLinkDialog({ isOpen, setIsOpen, link }: EditLinkDialogProps) {
   const { updateNavLink, addNavLink } = useStore();
@@ -83,7 +87,7 @@ export default function EditLinkDialog({ isOpen, setIsOpen, link }: EditLinkDial
         <DialogHeader>
           <DialogTitle>{isAddMode ? 'Add New Link' : 'Edit Link'}</DialogTitle>
           <DialogDescription>
-            {isAddMode ? 'Create a new navigation link for the sidebar.' : `Make changes to the "${link?.label}" link. Click save when you\'re done.`}
+            {isAddMode ? 'Create a new navigation link for the sidebar.' : `Make changes to the "${link?.label}" link. Click save when you're done.`}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -108,14 +112,18 @@ export default function EditLinkDialog({ isOpen, setIsOpen, link }: EditLinkDial
                     <SelectValue placeholder="Select an icon" />
                 </SelectTrigger>
                 <SelectContent>
-                    {iconNames.map(iconName => (
-                        <SelectItem key={iconName} value={iconName}>
-                            <div className="flex items-center gap-2">
-                                {React.createElement((LucideIcons as any)[iconName], { className: "h-4 w-4"})}
-                                <span>{iconName}</span>
-                            </div>
-                        </SelectItem>
-                    ))}
+                    {iconNames.map(iconName => {
+                        const IconComponent = (LucideIcons as any)[iconName];
+                        if (!IconComponent) return null;
+                        return (
+                            <SelectItem key={iconName} value={iconName}>
+                                <div className="flex items-center gap-2">
+                                    {React.createElement(IconComponent, { className: "h-4 w-4"})}
+                                    <span>{iconName}</span>
+                                </div>
+                            </SelectItem>
+                        )
+                    })}
                 </SelectContent>
             </Select>
           </div>
@@ -127,5 +135,3 @@ export default function EditLinkDialog({ isOpen, setIsOpen, link }: EditLinkDial
     </Dialog>
   );
 }
-
-    
