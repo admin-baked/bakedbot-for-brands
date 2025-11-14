@@ -124,13 +124,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                        pathname.startsWith('/dispensary-login');
     const isAuthCallback = pathname.startsWith('/auth/');
     
-    // Don't redirect if still loading or on auth/login pages
     if (isUserLoading || isProfileLoading || isAuthCallback || isLoginPage) {
         return;
     }
 
     if (user && userProfile) {
-        // User is authenticated - enforce role-based access
         if (userProfile.onboardingCompleted === false && pathname !== '/onboarding') {
             console.log('📝 Layout: User needs onboarding');
             router.replace('/onboarding');
@@ -139,7 +137,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             router.replace('/dashboard/orders');
         }
     } else if (!user) {
-        // User is NOT authenticated
         const isProtectedRoute = pathname.startsWith('/dashboard') || 
                                 pathname.startsWith('/account') || 
                                 pathname === '/onboarding';
@@ -198,19 +195,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const shouldShowAdminControls = isCeoMode && _hasHydrated;
   
-  // Filter links based on user role
   const visibleLinks = React.useMemo(() => {
     let links = navLinks;
     if (userProfile?.role === 'dispensary') {
         links = navLinks.filter(link => link.href === '/dashboard/orders' || link.href === '/dashboard/settings');
     } else if (userProfile?.role === 'brand' || userProfile?.role === 'owner') {
         links = navLinks.filter(link => link.href !== '/dashboard/orders');
-    } else if (userProfile) { // Default to customer view (customers don't see brand dashboard)
+    } else if (userProfile) { 
         links = []; 
     }
     
     if (shouldShowAdminControls) {
-      return links; // Show all (including hidden) for admin
+      return links; 
     }
     return links.filter(link => !link.hidden);
 
@@ -235,7 +231,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // If user is logged in but profile is still loading and we are on a protected page
   if (user && isProfileLoading && !isExcludedFromLayout) {
       return (
          <div className="flex h-screen w-screen items-center justify-center">
@@ -244,12 +239,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )
   }
 
-  // If user is not logged in and not on a public/auth page, don't render layout
   if (!user && !isExcludedFromLayout && pathname !== '/') {
       return null;
   }
   
-  // Do not render the brand dashboard layout for certain pages
   if (isExcludedFromLayout) {
       return children;
   }
@@ -400,7 +393,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Chatbot />
       </TooltipProvider>
 
-      {/* Dialogs for CEO mode */}
       <EditLinkDialog 
         isOpen={isEditOpen} 
         setIsOpen={setIsEditOpen}
@@ -409,7 +401,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <EditLinkDialog
         isOpen={isAddOpen}
         setIsOpen={setIsAddOpen}
-        link={null} // Pass null for add mode
+        link={null}
       />
        <DeleteLinkDialog
         isOpen={isDeleteOpen}
@@ -419,3 +411,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
+
+    
