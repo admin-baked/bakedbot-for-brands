@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -128,11 +127,13 @@ export default function LoginForm() {
         setIsMagicLinkLoading(true);
         
         try {
-            const isDevelopment = process.env.NODE_ENV === 'development';
-            const host = isDevelopment ? 'http://localhost:3000' : 'https://brands.bakedbot.ai';
+            const currentOrigin = typeof window !== 'undefined' 
+                ? window.location.origin 
+                : 'https://brands.bakedbot.ai';
+            
             const actionCodeSettings = {
                 handleCodeInApp: true,
-                url: `${host}/auth/callback`,
+                url: `${currentOrigin}/auth/callback`,
             };
 
             window.localStorage.setItem('emailForSignIn', finalEmail);
@@ -269,7 +270,7 @@ export default function LoginForm() {
                                 <span className="bg-card px-2 text-muted-foreground">For Devs</span>
                             </div>
                         </div>
-                        <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, `dev-customer-${Math.random().toString(36).substring(7)}@bakedbot.ai`)}>
+                        <Button variant="secondary" className="w-full" onClick={(e) => handleMagicLinkSignIn(e, `dev-customer@bakedbot.ai`)}>
                            Test Onboarding Flow
                         </Button>
                     </CardFooter>

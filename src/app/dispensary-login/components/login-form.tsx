@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -118,11 +117,13 @@ export default function DispensaryLoginForm() {
         setIsMagicLinkLoading(true);
         
         try {
-            const isDevelopment = process.env.NODE_ENV === 'development';
-            const host = isDevelopment ? 'http://localhost:3000' : 'https://brands.bakedbot.ai';
+            const currentOrigin = typeof window !== 'undefined' 
+                ? window.location.origin 
+                : 'https://brands.bakedbot.ai';
+            
             const actionCodeSettings = {
                 handleCodeInApp: true,
-                url: `${host}/auth/callback`,
+                url: `${currentOrigin}/auth/callback`,
             };
 
             window.localStorage.setItem('emailForSignIn', finalEmail);
