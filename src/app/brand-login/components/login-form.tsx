@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -12,7 +13,7 @@ import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
 import { GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail } from 'firebase/auth';
 import Logo from '@/components/logo';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
@@ -145,6 +146,33 @@ export default function LoginForm() {
                 title: 'Welcome!',
                 description: `Signed in as ${result.user.email}`,
             });
+
+            // ✅ CREATE USER DOCUMENT IF IT DOESN'T EXIST
+            if (firestore) {
+                try {
+                    const userDocRef = doc(firestore, 'users', result.user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    
+                    if (!userDoc.exists()) {
+                        console.log('🆕 Creating new user document...');
+                        
+                        await setDoc(userDocRef, {
+                            uid: result.user.uid,
+                            email: result.user.email,
+                            displayName: result.user.displayName || result.user.email?.split('@')[0] || 'User',
+                            photoURL: result.user.photoURL || null,
+                            role: 'customer', // Default role
+                            onboardingCompleted: false, // Start the onboarding flow
+                        });
+                        
+                        console.log('✅ User document created successfully');
+                    } else {
+                        console.log('✅ User document already exists');
+                    }
+                } catch (firestoreError) {
+                    console.error('⚠️ Error creating user document:', firestoreError);
+                }
+            }
 
             hasRedirected.current = true;
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -382,4 +410,6 @@ export default function LoginForm() {
         </div>
     );
 }
+    
+
     
