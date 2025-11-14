@@ -6,7 +6,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { cookies } from 'next/headers';
 import { sendOrderEmail } from '@/lib/email/send-order-email';
 import { z } from 'zod';
-import type { Location } from '@/lib/types';
+import type { Location } from '@/firebase/converters';
 import { demoLocations } from '@/lib/data';
 
 const OrderItemSchema = z.object({

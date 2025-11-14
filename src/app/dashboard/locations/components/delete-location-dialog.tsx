@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useStore } from '@/hooks/use-store';
-import type { Location } from '@/lib/types';
+import type { Location } from '@/firebase/converters';
 import { useToast } from '@/hooks/use-toast';
 
 interface DeleteLocationDialogProps {

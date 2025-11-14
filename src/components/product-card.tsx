@@ -6,7 +6,7 @@ import { useStore } from '@/hooks/use-store';
 import { ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import type { Product } from '@/lib/types';
+import type { Product } from '@/firebase/converters';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useMemo } from 'react';

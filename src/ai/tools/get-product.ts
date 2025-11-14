@@ -7,7 +7,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
-import type { Product } from '@/lib/types';
+import type { Product } from '@/firebase/converters';
 import { cookies } from 'next/headers';
 import { demoProducts } from '@/lib/data';
 

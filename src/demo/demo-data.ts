@@ -1,5 +1,5 @@
 
-import type { Product } from '@/lib/types';
+import type { Product, Location } from '@/firebase/converters';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export const DEMO_PRODUCTS: Product[] = [

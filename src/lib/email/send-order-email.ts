@@ -1,7 +1,7 @@
 
 import sgMail from "@sendgrid/mail";
 import type { OrderInput } from "@/app/checkout/actions/submitOrder";
-import type { Location } from "@/lib/types";
+import type { Location } from "@/firebase/converters";
 
 type SendArgs = {
   to: string | string[];
