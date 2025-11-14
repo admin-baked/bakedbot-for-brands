@@ -50,6 +50,14 @@ service cloud.firestore {
       }
     }
     
+    // ✅ ADD THIS: Allow collection group queries on reviews
+    match /{path=**}/reviews/{reviewId} {
+      allow read: if true; // Allow reading reviews from any product
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && 
+                               (request.auth.uid == resource.data.userId || isOwner());
+    }
+    
     // Orders collection
     match /orders/{orderId} {
       allow read: if isAuthenticated() && 
@@ -79,7 +87,7 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && request.auth.uid == cartId;
     }
     
-    // Analytics collection (if you have it)
+    // Analytics collection
     match /analytics/{document=**} {
       allow read: if isOwner();
       allow write: if isAuthenticated();
