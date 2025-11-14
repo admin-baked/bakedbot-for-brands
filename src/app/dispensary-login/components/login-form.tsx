@@ -119,11 +119,6 @@ export default function DispensaryLoginForm() {
             
             console.log('✅ Google sign-in successful:', result.user.email);
             
-            toast({
-                title: 'Welcome!',
-                description: `Signed in as ${result.user.email}`,
-            });
-
             if (firestore) {
                 try {
                     const userDocRef = doc(firestore, 'users', result.user.uid);
@@ -149,6 +144,11 @@ export default function DispensaryLoginForm() {
                     console.error('⚠️ Error creating user document:', firestoreError);
                 }
             }
+
+            toast({
+                title: 'Welcome!',
+                description: `Signed in as ${result.user.email}`,
+            });
             
         } catch (error: any) {
             console.error('❌ Google sign-in error:', error);
