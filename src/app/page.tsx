@@ -27,12 +27,6 @@ export default function Page() {
         </div>
     );
   }
-
-  // The logic to switch between menus is now simplified.
-  // The tiled menu has its own page at /menu/tiled
-  if (menuStyle === 'alt') {
-    return <TiledMenuPage />;
-  }
   
   return <MenuPage />;
 }
