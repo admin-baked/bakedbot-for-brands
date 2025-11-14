@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -80,17 +79,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
 
-  // --- Early return for non-dashboard pages ---
-  const isAuthPage = pathname.startsWith('/customer-login') ||
-                   pathname.startsWith('/brand-login') ||
-                   pathname.startsWith('/dispensary-login') ||
-                   pathname.startsWith('/onboarding') ||
-                   pathname.startsWith('/auth/callback');
-
-  if (isAuthPage) {
-    return <>{children}</>;
-  }
-  
   const { auth, firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
