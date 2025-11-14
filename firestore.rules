@@ -1,7 +1,48 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // TEMPORARY: Allow ALL reads and writes for authenticated users
+    
+    // Users collection - authenticated only
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null;
+    }
+    
+    // Products - public read, authenticated write
+    match /products/{productId} {
+      allow read: if true; // Public
+      allow write: if request.auth != null;
+      
+      // Reviews subcollection - PUBLIC READ
+      match /reviews/{reviewId} {
+        allow read: if true; // ✅ Anyone can read reviews
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth != null;
+      }
+    }
+    
+    // ✅ Collection group query for reviews - PUBLIC READ
+    match /{path=**}/reviews/{reviewId} {
+      allow read: if true; // ✅ Allow public collection group queries
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+    
+    // Orders - authenticated only
+    match /orders/{orderId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Dispensaries - public read
+    match /dispensaries/{dispensaryId} {
+        allow read: if true;
+        allow write: if request.auth != null;
+    }
+    
+    // Catch-all for everything else - authenticated only
+    // This rule must be LAST to avoid overriding more specific rules above.
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
