@@ -5,7 +5,7 @@ import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import * as LucideIcons from 'lucide-react';
-import type { Location } from '@/lib/types';
+import type { Location } from '@/firebase/converters';
 
 
 export type NavLink = {

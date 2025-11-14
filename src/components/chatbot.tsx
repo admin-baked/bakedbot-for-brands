@@ -10,7 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { type Product } from '@/lib/types';
+import { type Product } from '@/firebase/converters';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useStore } from '@/hooks/use-store';
@@ -751,7 +751,3 @@ export default function Chatbot() {
         </>
       );
 }
-
-    
-
-    

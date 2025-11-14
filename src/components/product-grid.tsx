@@ -8,7 +8,7 @@ import { Database, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useStore } from '@/hooks/use-store';
 import { useMemo } from 'react';
-import type { Product } from '@/lib/types';
+import type { Product } from '@/firebase/converters';
 import { Separator } from './ui/separator';
 import { Button } from './ui/button';
 import Image from 'next/image';

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { z } from 'zod';
@@ -19,7 +20,7 @@ import { submitOrder, type OrderInput } from '@/app/checkout/actions/submitOrder
 import { useTransition, useEffect } from 'react';
 import { Loader2, Send } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import type { Location } from '@/lib/types';
+import type { Location } from '@/firebase/converters';
 import { useToast } from '@/hooks/use-toast';
 
 const phoneRegex = new RegExp(

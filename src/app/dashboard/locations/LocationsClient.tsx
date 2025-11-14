@@ -13,7 +13,7 @@ import DeleteLocationDialog from './components/delete-location-dialog';
 import EditLocationDialog from './components/edit-location-dialog';
 import { useToast } from '@/hooks/use-toast';
 import * as Papa from 'papaparse';
-import type { Location } from '@/lib/types';
+import type { Location } from '@/firebase/converters';
 
 
 export default function LocationsClient() {

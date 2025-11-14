@@ -1,9 +1,10 @@
+
 'use client';
 
 import * as React from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { type Product } from '@/lib/types';
+import { type Product } from '@/firebase/converters';
 
 // Define the type for items within the cart
 export type CartItem = Product & { quantity: number };
