@@ -124,22 +124,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                        pathname.startsWith('/dispensary-login');
     const isAuthCallback = pathname.startsWith('/auth/');
     
-    // ✅ Don't interfere with login pages or auth callbacks at all
-    if (isUserLoading || isProfileLoading || isAuthCallback || isLoginPage) {
+    // ✅ CRITICAL: Never interfere with login pages or auth callbacks
+    // Let the LoginForm handle all post-authentication redirects
+    if (isLoginPage || isAuthCallback) {
+        console.log('🔓 Layout: Ignoring login/auth page, letting LoginForm handle redirect');
+        return;
+    }
+
+    // Don't redirect if still loading
+    if (isUserLoading || isProfileLoading) {
+        console.log('⏳ Layout: Still loading user/profile data');
         return;
     }
 
     if (user && userProfile) {
-        // User is authenticated - enforce role-based access on protected routes only
+        // ✅ User is authenticated - enforce role-based access ONLY on protected routes
         if (userProfile.onboardingCompleted === false && pathname !== '/onboarding') {
             console.log('📝 Layout: User needs onboarding');
             router.replace('/onboarding');
         } else if (userProfile.role === 'dispensary' && !pathname.startsWith('/dashboard/orders') && !pathname.startsWith('/dashboard/settings')) {
-            console.log('🏪 Layout: Dispensary user on wrong page, redirecting');
+            console.log('🏪 Layout: Dispensary user accessing wrong page');
             router.replace('/dashboard/orders');
         }
+        // Note: We don't redirect brand/customer users here - they can access any dashboard page
     } else if (!user) {
-        // User is NOT authenticated
+        // ✅ User is NOT authenticated - protect dashboard/account routes
         const isProtectedRoute = pathname.startsWith('/dashboard') || 
                                 pathname.startsWith('/account') || 
                                 pathname === '/onboarding';
