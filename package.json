@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "deploy-functions": "firebase deploy --only functions",
+    "init-embeddings": "npx tsx scripts/init-review-embeddings.ts"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.2.0",
@@ -74,3 +76,5 @@
     "typescript": "^5"
   }
 }
+
+    
