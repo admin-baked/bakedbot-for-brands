@@ -10,7 +10,7 @@ import { Loader2, KeyRound, Sparkles } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
 import { useUser } from '@/firebase/auth/use-user';
-import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendSignInLinkToEmail } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail } from 'firebase/auth';
 import Logo from '@/components/logo';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -55,38 +55,9 @@ export default function LoginForm() {
         const handleAuthAndRedirect = async () => {
             console.log('🔍 LoginForm: Checking authentication state...');
 
-            try {
-                const result = await getRedirectResult(auth);
-                if (result) {
-                    console.log('✅ LoginForm: Google sign-in result found:', result.user.email);
-                    hasRedirected.current = true;
-                    
-                    toast({
-                        title: 'Welcome!',
-                        description: `Signed in as ${result.user.email}`,
-                    });
-
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    await redirectUserBasedOnRole(result.user.uid);
-                    return;
-                }
-            } catch (error: any) {
-                console.error('❌ LoginForm: Google redirect error:', error);
-                if (error.code !== 'auth/no-redirect-result') {
-                    toast({
-                        variant: 'destructive',
-                        title: 'Authentication Failed',
-                        description: error.message || 'An error occurred during sign-in.',
-                    });
-                }
-                setIsLoading(false);
-                return;
-            }
-
             if (user) {
                 console.log('👤 LoginForm: User already signed in:', user.email);
                 hasRedirected.current = true;
-                
                 await new Promise(resolve => setTimeout(resolve, 500));
                 await redirectUserBasedOnRole(user.uid);
                 return;
@@ -158,20 +129,66 @@ export default function LoginForm() {
             return;
         }
 
-        console.log('🚀 Initiating Google sign-in redirect...');
+        console.log('🚀 Initiating Google sign-in with popup...');
         setIsGoogleLoading(true);
         
         const provider = new GoogleAuthProvider();
         
         try {
-            await signInWithRedirect(auth, provider);
-        } catch (error) {
-            console.error('❌ Google sign-in error:', error);
+            const result = await signInWithPopup(auth, provider);
+            
+            console.log('✅ Google sign-in successful:', result.user.email);
+            
             toast({
-                variant: 'destructive',
-                title: 'Failed to start sign-in',
-                description: error instanceof Error ? error.message : 'Unknown error occurred',
+                title: 'Welcome!',
+                description: `Signed in as ${result.user.email}`,
             });
+
+            hasRedirected.current = true;
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            if (firestore) {
+                const userDocRef = doc(firestore, 'users', result.user.uid);
+                const userDoc = await getDoc(userDocRef);
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    
+                    if (userData.onboardingCompleted === false) {
+                        router.replace('/onboarding');
+                    } else if (userData.role === 'dispensary') {
+                        router.replace('/dashboard/orders');
+                    } else if (userData.role === 'brand' || userData.role === 'owner') {
+                        router.replace('/dashboard');
+                    } else {
+                        router.replace('/account/dashboard');
+                    }
+                } else {
+                    router.replace('/onboarding');
+                }
+            } else {
+                router.replace('/account/dashboard');
+            }
+            
+        } catch (error: any) {
+            console.error('❌ Google sign-in error:', error);
+            
+            if (error.code === 'auth/popup-blocked') {
+                toast({
+                    variant: 'destructive',
+                    title: 'Popup Blocked',
+                    description: 'Please allow popups and try again, or use magic link instead.',
+                });
+            } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
+                console.log('User cancelled sign-in');
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Failed to sign in',
+                    description: error.message || 'Please try using magic link instead.',
+                });
+            }
+            
             setIsGoogleLoading(false);
         }
     };
@@ -254,7 +271,7 @@ export default function LoginForm() {
             <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 <p className="mt-4 text-sm text-muted-foreground">
-                    {isGoogleLoading ? 'Completing sign-in...' : 'Checking authentication...'}
+                    Checking authentication...
                 </p>
             </div>
         );
@@ -280,7 +297,7 @@ export default function LoginForm() {
                         {isGoogleLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Redirecting to Google...
+                                Signing in...
                             </>
                         ) : (
                             <>
