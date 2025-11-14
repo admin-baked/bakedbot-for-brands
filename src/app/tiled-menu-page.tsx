@@ -60,6 +60,12 @@ export default function TiledMenuPage() {
         }, {} as Record<string, Product[]>);
     }, [products]);
 
+    // Show top-liked products as flash deals
+    const flashDeals = useMemo(() => {
+        if (!products) return [];
+        return [...products].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 10);
+    }, [products]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
@@ -67,7 +73,7 @@ export default function TiledMenuPage() {
         <div className="container mx-auto px-4 space-y-12">
           <HeroSlider />
 
-          <ProductCarousel title="Flash Deals" products={products.slice(0, 6)} isLoading={isLoading} />
+          <ProductCarousel title="Flash Deals" products={flashDeals} isLoading={isLoading} />
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="md:col-span-2">
@@ -78,8 +84,8 @@ export default function TiledMenuPage() {
             </div>
           </div>
           
-          {Object.entries(categorizedProducts).map(([category, products]) => (
-             <ProductCarousel key={category} title={`Trending in ${category}`} products={products} isLoading={isLoading} />
+          {Object.entries(categorizedProducts).map(([category, catProducts]) => (
+             <ProductCarousel key={category} title={`Trending in ${category}`} products={catProducts} isLoading={isLoading} />
           ))}
 
         </div>
