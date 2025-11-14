@@ -54,6 +54,8 @@ export default function DispensaryLoginForm() {
         getRedirectResult(auth)
             .then((result) => {
                 if (result) {
+                    // ✅ Set the flag
+                    window.localStorage.setItem('justSignedIn', 'true');
                     toast({
                         title: 'Welcome!',
                         description: `Signed in as ${result.user.email}`,

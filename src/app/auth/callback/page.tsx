@@ -61,6 +61,9 @@ export default function AuthCallbackPage() {
                 
                 window.localStorage.removeItem('emailForSignIn');
                 
+                // ✅ Set flag to prevent layout from redirecting during auth propagation
+                window.localStorage.setItem('justSignedIn', 'true');
+                
                 setStatus('success');
                 
                 toast({
@@ -68,8 +71,8 @@ export default function AuthCallbackPage() {
                     description: `Successfully signed in as ${result.user.email}`,
                 });
 
-                // ✅ Wait a moment for auth state to propagate
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Wait for auth state to propagate
+                await new Promise(resolve => setTimeout(resolve, 1000)); // ← Increased to 1 second
 
                 // Check user role and redirect accordingly
                 if (!firestore) {
@@ -101,7 +104,7 @@ export default function AuthCallbackPage() {
                             router.replace('/account/dashboard');
                         }
                     } else {
-                        // New user - no document yet
+                        // New user - no document yet, go to onboarding
                         console.log('🆕 New user detected, redirecting to onboarding');
                         router.replace('/onboarding');
                     }
@@ -150,6 +153,9 @@ export default function AuthCallbackPage() {
             
             window.localStorage.setItem('emailForSignIn', email);
             
+            // ✅ Set flag to prevent layout from redirecting
+            window.localStorage.setItem('justSignedIn', 'true');
+            
             setStatus('success');
             
             toast({
@@ -158,7 +164,7 @@ export default function AuthCallbackPage() {
             });
 
             // Wait for auth state to propagate
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             // Check role and redirect
             if (firestore) {

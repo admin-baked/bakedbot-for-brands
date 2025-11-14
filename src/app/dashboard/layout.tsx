@@ -125,25 +125,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                        pathname.startsWith('/dispensary-login');
     const isAuthCallback = pathname.startsWith('/auth/');
     
-    // ✅ Don't redirect if still loading OR on callback page
-    if (isUserLoading || isProfileLoading || isAuthCallback) return;
+    // ✅ Check if we just signed in
+    const justSignedIn = typeof window !== 'undefined' && 
+                        window.localStorage.getItem('justSignedIn') === 'true';
+    
+    // Don't redirect if still loading, on callback page, OR just signed in
+    if (isUserLoading || isProfileLoading || isAuthCallback || justSignedIn) {
+        // ✅ If we just signed in and user is now available, clear the flag
+        if (justSignedIn && user && !isUserLoading) {
+            console.log('🎉 User authenticated, clearing justSignedIn flag');
+            window.localStorage.removeItem('justSignedIn');
+        }
+        return;
+    }
 
     if (user) {
         // User is authenticated
         if (isLoginPage) {
             // User is logged in but on login page - redirect based on role
             if (userProfile?.role === 'dispensary') {
+                console.log('🏪 Layout: Redirecting dispensary to orders');
                 router.replace('/dashboard/orders');
             } else if (userProfile?.role === 'brand' || userProfile?.role === 'owner') {
+                console.log('🏢 Layout: Redirecting brand/owner to dashboard');
                 router.replace('/dashboard');
             } else {
+                console.log('👥 Layout: Redirecting customer to account');
                 router.replace('/account/dashboard');
             }
         } else if (userProfile?.role === 'dispensary' && !pathname.startsWith('/dashboard/orders')) {
             // Dispensary user not on their page
+            console.log('🏪 Layout: Dispensary user on wrong page, redirecting');
             router.replace('/dashboard/orders');
         } else if (userProfile && userProfile.onboardingCompleted === false && pathname !== '/onboarding') {
             // User hasn't completed onboarding
+            console.log('📝 Layout: User needs onboarding');
             router.replace('/onboarding');
         }
     } else {
@@ -154,6 +170,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         
         if (isProtectedRoute) {
             // Trying to access protected route - send to login
+            console.log('🔒 Layout: Protected route without auth, redirecting to login');
             router.replace('/customer-login');
         }
     }
