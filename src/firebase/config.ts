@@ -9,25 +9,15 @@ const getCurrentAuthDomain = () => {
 
   const hostname = window.location.hostname;
 
-  // Cloud Workstation (Firebase Studio) - use the actual hostname
-  if (hostname.includes('cloudworkstations.dev')) {
-    console.log('🔧 Firebase Config: Using Cloud Workstation hostname for auth');
-    return hostname;
-  }
-
-  // Localhost
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    console.log('🔧 Firebase Config: Using Firebase default for localhost');
-    return 'studio-567050101-bc6e8.firebaseapp.com';
-  }
-
-  // Production
+  // Production only - use custom domain
   if (hostname === 'brands.bakedbot.ai') {
     console.log('🔧 Firebase Config: Using custom domain for production');
     return 'brands.bakedbot.ai';
   }
 
-  // Fallback to Firebase default
+  // ✅ All development environments (Cloud Workstation, localhost, etc.)
+  // Use Firebase default domain which has the auth handler
+  console.log('🔧 Firebase Config: Using Firebase default for development');
   return 'studio-567050101-bc6e8.firebaseapp.com';
 };
 
