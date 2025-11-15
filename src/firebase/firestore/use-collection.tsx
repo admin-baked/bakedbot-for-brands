@@ -91,7 +91,7 @@ export function useCollection<T = DocumentData>(
     );
 
     return () => unsubscribe();
-  }, [query, debugPath, onDenied]);
+  }, [JSON.stringify(query), debugPath, onDenied]);
 
   return { data, isLoading, error };
 }

@@ -16,7 +16,6 @@ import { useFirebase } from '@/firebase/provider';
 import { reviewConverter } from '@/firebase/converters';
 import { useDemoMode } from '@/context/demo-mode';
 import { demoCustomer } from '@/lib/data';
-import { useUser } from '@/firebase/auth/use-user';
 
 const ReviewItemSkeleton = () => (
     <Card className="w-80 shrink-0">
@@ -52,16 +51,18 @@ const StarRating = ({ rating }: { rating: number }) => (
 export default function RecentReviewsFeed() {
   const { isDemo } = useDemoMode();
   const { firestore } = useFirebase();
-  const { user } = useUser();
   
+  // The query is now safe to run for any user, authenticated or not,
+  // because of our new, more secure Firestore rules.
   const reviewsQuery = useMemo(() => {
-    // TEMPORARY FIX: Only run the query if the user is authenticated.
-    if (isDemo || !firestore || !user) return null;
+    if (isDemo || !firestore) return null;
     const baseQuery = collectionGroup(firestore, 'reviews').withConverter(reviewConverter);
     return query(baseQuery, orderBy('createdAt', 'desc'), limit(10));
-  }, [firestore, isDemo, user]);
+  }, [firestore, isDemo]);
 
-  const { data: liveReviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery);
+  const { data: liveReviews, isLoading: areReviewsLoading, error } = useCollection<Review>(reviewsQuery, {
+      debugPath: '**/reviews'
+  });
   const { products, isLoading: areProductsLoading } = useMenuData();
 
   const isLoading = areReviewsLoading || areProductsLoading;
@@ -86,8 +87,9 @@ export default function RecentReviewsFeed() {
       .slice(0, 10); // Show the 10 most recent reviews
   }, [isDemo, liveReviews, products]);
 
-  // Don't render the component at all for unauthenticated users in live mode
-  if (!isDemo && !user) {
+  // If there's a permission error, we can gracefully hide the component.
+  // The global error handler will still catch and display it for developers.
+  if (error) {
     return null;
   }
 
