@@ -69,37 +69,6 @@ export default function LeaveReviewClient() {
     }
   }, [state, toast]);
   
-  useEffect(() => {
-    // This effect runs the client-side logic to get the ID token
-    // and append it to the form. This is a secure way to pass user identity
-    // to a Server Action.
-    const attachIdTokenToForm = async () => {
-      if (user && formRef.current) {
-        try {
-          const token = await user.getIdToken();
-          
-          let tokenInput = formRef.current.querySelector('input[name="idToken"]') as HTMLInputElement;
-          if (!tokenInput) {
-            tokenInput = document.createElement('input');
-            tokenInput.type = 'hidden';
-            tokenInput.name = 'idToken';
-            formRef.current.appendChild(tokenInput);
-          }
-          tokenInput.value = token;
-
-        } catch (error) {
-          console.error("Error getting ID token for form:", error);
-          toast({
-            variant: 'destructive',
-            title: 'Authentication Error',
-            description: 'Could not verify your session. Please try logging in again.',
-          });
-        }
-      }
-    };
-    
-    attachIdTokenToForm();
-  }, [user, toast]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -160,7 +129,7 @@ export default function LeaveReviewClient() {
                 <Alert variant="destructive" className="mb-6">
                     <AlertTitle>You are not signed in!</AlertTitle>
                     <AlertDescription>
-                        You must be signed in to leave a review. <Link href="/brand-login" className="font-bold underline">Click here to sign in or sign up.</Link>
+                        You must be signed in to leave a review. <Link href="/customer-login" className="font-bold underline">Click here to sign in or sign up.</Link>
                     </AlertDescription>
                 </Alert>
               )}

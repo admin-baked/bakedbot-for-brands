@@ -116,29 +116,10 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
         return `$${product.price.toFixed(2)}`;
     }, [product, selectedLocationId]);
 
-    const handleFeedback = async (feedbackType: 'like' | 'dislike') => {
-        if (!user) {
-            toast({
-                variant: 'destructive',
-                title: 'Authentication Required',
-                description: 'You must be signed in to leave feedback.',
-            });
-            return;
-        }
-
+    const handleFeedback = (feedbackType: 'like' | 'dislike') => {
         const formData = new FormData();
         formData.append('productId', product.id);
         formData.append('feedbackType', feedbackType);
-        
-        // The user's ID token must be included for verification on the server.
-        try {
-            const idToken = await user.getIdToken();
-            formData.append('idToken', idToken);
-        } catch (error) {
-             toast({ variant: 'destructive', title: 'Authentication Error', description: 'Could not verify your session.' });
-             return;
-        }
-        
         startTransition(() => {
             formAction(formData);
         });

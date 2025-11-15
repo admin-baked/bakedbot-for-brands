@@ -55,7 +55,6 @@ export async function getReviewSummary(input: {
 const FeedbackSchema = z.object({
   productId: z.string().min(1),
   feedbackType: z.enum(['like', 'dislike']),
-  idToken: z.string().min(1, 'Authentication token is missing.'),
 });
 
 /**
@@ -70,7 +69,6 @@ export async function updateProductFeedback(
   const validatedFields = FeedbackSchema.safeParse({
     productId: formData.get('productId'),
     feedbackType: formData.get('feedbackType'),
-    idToken: formData.get('idToken'),
   });
 
   if (!validatedFields.success) {
@@ -78,12 +76,16 @@ export async function updateProductFeedback(
     return { error: true, message: 'Invalid input provided.' };
   }
   
-  const { productId, feedbackType, idToken } = validatedFields.data;
+  const { productId, feedbackType } = validatedFields.data;
   const { firestore, auth: adminAuth } = await createServerClient();
-  
+  const sessionCookie = cookies().get('__session')?.value;
+  if (!sessionCookie) {
+    return { error: true, message: 'You must be logged in to provide feedback.' };
+  }
+
   let decodedToken;
   try {
-    decodedToken = await adminAuth.verifyIdToken(idToken);
+    decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
   } catch (error) {
     console.error("Feedback Auth Error:", error);
     return { error: true, message: 'Authentication failed.' };
