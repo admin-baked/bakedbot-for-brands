@@ -1,5 +1,3 @@
-
-
 /**
  * @fileoverview An AI tool that summarizes all reviews for a product and generates a single vector embedding.
  * This is a copy of the main app's tool, intended for use within the Cloud Functions environment.
@@ -81,4 +79,3 @@ export const generateReviewEmbeddings = ai.defineTool(
     return { productId, reviewCount, summary, embeddingGenerated: true };
   }
 );
-
