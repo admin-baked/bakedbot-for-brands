@@ -29,21 +29,17 @@ const getProduct = async (id: string): Promise<Product | null> => {
       return demoProducts.find(p => p.id === id) || null;
     }
 
+    // If NOT in demo mode, only fetch from live data.
     try {
         const { firestore } = await createServerClient();
         const productRepo = makeProductRepo(firestore);
         const product = await productRepo.getById(id);
-
-        if (product) {
-            return product;
-        }
-        
-        // Fallback to demo data if not found in Firestore in live mode
-        return demoProducts.find(p => p.id === id) || null;
+        return product; // This will be null if not found, which is correct.
 
     } catch (error) {
-        console.error("Error fetching product on server, falling back to demo data:", error);
-        return demoProducts.find(p => p.id === id) || null;
+        console.error("Error fetching product on server:", error);
+        // Do not fall back to demo data. Return null to indicate an error or not found.
+        return null;
     }
 }
 
