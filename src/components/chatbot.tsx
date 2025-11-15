@@ -553,6 +553,7 @@ export default function Chatbot() {
     }
 
     try {
+        // This is the key part: Calling the Server Action from the client component.
         const result: RecommendProductsOutput = await recommendProducts({
             query: query,
         });
@@ -643,6 +644,7 @@ export default function Chatbot() {
     }
     
     try {
+      // This is the key part: Calling the Server Action from the client component.
       const result: RecommendProductsOutput = await recommendProducts({
         query: currentInput,
       });
