@@ -1,7 +1,6 @@
 'use client';
 
 import { useStore } from '@/hooks/use-store';
-import { useCart } from '@/hooks/use-cart';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
@@ -19,10 +18,9 @@ export default function CheckoutClient() {
   const [status, setStatus] = useState<'loading' | 'checking' | 'ready' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
   
-  // Subscribe to state
-  const { _hasHydrated, selectedLocationId } = useStore();
+  // Subscribe to state from the unified store
+  const { _hasHydrated, selectedLocationId, cartItems, getCartTotal, clearCart } = useStore();
   const { locations, isLoading: isMenuLoading } = useMenuData();
-  const { items: cart, getCartTotal, clearCart } = useCart();
   
   useEffect(() => {
     // Wait for hydration and menu data
@@ -34,7 +32,7 @@ export default function CheckoutClient() {
     // If the cart is already empty when the user lands here,
     // they probably just finished an order or came here by mistake.
     // Don't run the redirect logic, just show an empty checkout state.
-    if (cart.length === 0) {
+    if (cartItems.length === 0) {
         setStatus('ready');
         return;
     }
@@ -63,7 +61,7 @@ export default function CheckoutClient() {
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [_hasHydrated, selectedLocationId, locations, isMenuLoading, cart.length, router]);
+  }, [_hasHydrated, selectedLocationId, locations, isMenuLoading, cartItems.length, router]);
   
   const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
   const { subtotal, taxes, total } = getCartTotal();
@@ -107,7 +105,7 @@ export default function CheckoutClient() {
   }
 
   // Final safety check before rendering - this prevents a crash if the location lookup fails
-  if (status === 'ready' && !selectedLocation && cart.length > 0) {
+  if (status === 'ready' && !selectedLocation && cartItems.length > 0) {
      return (
        <div className="flex flex-col h-screen items-center justify-center text-center py-20">
          <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -116,7 +114,7 @@ export default function CheckoutClient() {
      );
   }
 
-  if (cart.length === 0) {
+  if (cartItems.length === 0) {
       return (
           <div className="min-h-screen bg-muted/20 flex flex-col">
               <Header />
@@ -169,7 +167,7 @@ export default function CheckoutClient() {
                         <Separator />
                     
                         <div className="space-y-2">
-                            {cart.length > 0 ? cart.map(item => (
+                            {cartItems.length > 0 ? cartItems.map(item => (
                                 <div key={item.id} className="flex justify-between items-center text-sm">
                                     <div>
                                         <span className="font-medium">{item.name}</span>
@@ -182,7 +180,7 @@ export default function CheckoutClient() {
                             )}
                         </div>
                         
-                        {cart.length > 0 && (
+                        {cartItems.length > 0 && (
                             <>
                                 <Separator />
                                 <div className="space-y-1 text-sm">

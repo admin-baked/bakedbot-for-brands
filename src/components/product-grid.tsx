@@ -12,7 +12,6 @@ import type { Product } from '@/firebase/converters';
 import { Separator } from './ui/separator';
 import { Button } from './ui/button';
 import Image from 'next/image';
-import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/hooks/use-toast';
 
 const ProductSkeleton = () => (
@@ -34,8 +33,7 @@ const ProductSkeleton = () => (
 );
 
 const TiledProductRow = ({ product }: { product: Product }) => {
-    const { addToCart } = useCart();
-    const { selectedLocationId } = useStore();
+    const { addToCart, selectedLocationId } = useStore();
     const { toast } = useToast();
 
     const priceDisplay = useMemo(() => {

@@ -1,16 +1,14 @@
 'use client';
 
-import { useCart } from '@/hooks/use-cart';
+import { useStore } from '@/hooks/use-store';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useStore } from '@/hooks/use-store';
 import { cn } from '@/lib/utils';
 import { useHydrated } from '@/hooks/useHydrated';
 import { SafeBadge } from '@/components/ui/SafeBadge';
 
 export function FloatingCartPill() {
-  const { getItemCount } = useCart();
-  const { setCartSheetOpen } = useStore();
+  const { getItemCount, setCartSheetOpen } = useStore();
   const hydrated = useHydrated();
   const itemCount = getItemCount();
   

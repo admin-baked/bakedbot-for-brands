@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useCart } from '@/hooks/use-cart';
+import { useStore } from '@/hooks/use-store';
 import { useUser } from '@/firebase/auth/use-user';
 import { submitOrder, type OrderInput } from '@/app/checkout/actions/submitOrder';
 import { useTransition, useEffect } from 'react';
@@ -53,7 +53,7 @@ interface CheckoutFormProps {
 
 export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormProps) {
   const { user } = useUser();
-  const { items: cart, getCartTotal } = useCart();
+  const { cartItems, getCartTotal } = useStore();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -80,7 +80,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormP
 
 
   const onSubmit = (data: CheckoutFormValues) => {
-    if (cart.length === 0) {
+    if (cartItems.length === 0) {
       toast({ variant: 'destructive', title: 'Your cart is empty!' });
       return;
     }
@@ -89,7 +89,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormP
       const { subtotal, taxes, total } = getCartTotal();
       
       const orderInput: OrderInput = {
-        items: cart.map(item => ({
+        items: cartItems.map(item => ({
             productId: item.id,
             name: item.name,
             qty: item.quantity,

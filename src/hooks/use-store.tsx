@@ -5,8 +5,9 @@ import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import * as LucideIcons from 'lucide-react';
-import type { Location } from '@/firebase/converters';
+import type { Location, Product } from '@/firebase/converters';
 
+export type CartItem = Product & { quantity: number };
 
 export type NavLink = {
   href: string;
@@ -16,42 +17,60 @@ export type NavLink = {
 };
 
 export interface StoreState {
+  // Cart State
+  cartItems: CartItem[];
+  
+  // App/UI State
   theme: Theme;
-  setTheme: (theme: Theme) => void;
   menuStyle: 'default' | 'alt';
-  setMenuStyle: (style: 'default' | 'alt') => void;
   selectedLocationId: string | null;
-  setSelectedLocationId: (id: string | null) => void;
   favoriteLocationId: string | null;
-  setFavoriteLocationId: (id: string | null) => void;
   isCartSheetOpen: boolean;
-  setCartSheetOpen: (isOpen: boolean) => void;
   chatExperience: 'default' | 'classic';
-  setChatExperience: (experience: 'default' | 'classic') => void;
+  
+  // Settings
   brandImageGenerations: number;
   lastBrandImageGeneration: number | null;
-  recordBrandImageGeneration: () => void;
   brandColor: string;
-  setBrandColor: (color: string) => void;
   brandUrl: string;
-  setBrandUrl: (url: string) => void;
   basePrompt: string;
-  setBasePrompt: (prompt: string) => void;
   welcomeMessage: string;
-  setWelcomeMessage: (message: string) => void;
   isCeoMode: boolean;
-  setIsCeoMode: (isCeo: boolean) => void;
   emailProvider: 'sendgrid' | 'gmail';
-  setEmailProvider: (provider: 'sendgrid' | 'gmail') => void;
   sendgridApiKey: string | null;
-  setSendgridApiKey: (key: string | null) => void;
   navLinks: NavLink[];
+  
+  // Hydration state
+  _hasHydrated: boolean;
+
+  // Actions
+  setTheme: (theme: Theme) => void;
+  setMenuStyle: (style: 'default' | 'alt') => void;
+  setSelectedLocationId: (id: string | null) => void;
+  setFavoriteLocationId: (id: string | null) => void;
+  setCartSheetOpen: (isOpen: boolean) => void;
+  setChatExperience: (experience: 'default' | 'classic') => void;
+  recordBrandImageGeneration: () => void;
+  setBrandColor: (color: string) => void;
+  setBrandUrl: (url: string) => void;
+  setBasePrompt: (prompt: string) => void;
+  setWelcomeMessage: (message: string) => void;
+  setIsCeoMode: (isCeo: boolean) => void;
+  setEmailProvider: (provider: 'sendgrid' | 'gmail') => void;
+  setSendgridApiKey: (key: string | null) => void;
   addNavLink: (link: NavLink) => void;
   updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
   toggleNavLinkVisibility: (href: string) => void;
   removeNavLink: (href: string) => void;
-  _hasHydrated: boolean;
   setHasHydrated: (hydrated: boolean) => void;
+
+  // Cart Actions
+  addToCart: (product: Product, locationId?: string | null) => void;
+  removeFromCart: (itemId: string) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
+  clearCart: () => void;
+  getCartTotal: () => { subtotal: number; taxes: number; total: number };
+  getItemCount: () => number;
 }
 
 const defaultNavLinks: NavLink[] = [
@@ -70,12 +89,18 @@ const defaultNavLinks: NavLink[] = [
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
+      // Cart State
+      cartItems: [],
+      
+      // App/UI State
       theme: 'green' as Theme,
       menuStyle: 'default' as 'default' | 'alt',
       selectedLocationId: null,
       favoriteLocationId: null,
       isCartSheetOpen: false,
       chatExperience: 'default' as 'default' | 'classic',
+      
+      // Settings
       brandImageGenerations: 0,
       lastBrandImageGeneration: null,
       brandColor: '',
@@ -86,7 +111,11 @@ export const useStore = create<StoreState>()(
       emailProvider: 'sendgrid' as 'sendgrid' | 'gmail',
       sendgridApiKey: null,
       navLinks: defaultNavLinks,
+      
+      // Hydration
       _hasHydrated: false,
+      
+      // Actions
       setTheme: (theme: Theme) => set({ theme }),
       setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
       setSelectedLocationId: (id: string | null) => set({ selectedLocationId: id }),
@@ -121,9 +150,58 @@ export const useStore = create<StoreState>()(
       })),
       removeNavLink: (href: string) => set(state => ({ navLinks: state.navLinks.filter(l => l.href !== href) })),
       setHasHydrated: (hydrated: boolean) => set({ _hasHydrated: hydrated }),
+      
+      // Cart Actions
+      addToCart: (product, locationId) =>
+        set((state) => {
+          const existingItem = state.cartItems.find((i) => i.id === product.id);
+          
+          const price = (locationId && product.prices?.[locationId])
+            ? product.prices[locationId]
+            : product.price;
+
+          if (existingItem) {
+            return {
+              cartItems: state.cartItems.map((i) =>
+                i.id === product.id ? { ...i, quantity: i.quantity + 1, price } : i
+              ),
+            };
+          }
+          return { cartItems: [...state.cartItems, { ...product, quantity: 1, price }] };
+        }),
+
+      removeFromCart: (itemId) =>
+        set((state) => ({
+          cartItems: state.cartItems.filter((i) => i.id !== itemId),
+        })),
+
+      updateQuantity: (itemId, quantity) =>
+        set((state) => {
+          if (quantity <= 0) {
+            return { cartItems: state.cartItems.filter((i) => i.id !== itemId) };
+          }
+          return {
+            cartItems: state.cartItems.map((i) =>
+              i.id === itemId ? { ...i, quantity } : i
+            ),
+          };
+        }),
+        
+      clearCart: () => set({ cartItems: [] }),
+
+      getCartTotal: () => {
+        const subtotal = get().cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+        const taxes = subtotal * 0.15; 
+        const total = subtotal + taxes;
+        return { subtotal, taxes, total };
+      },
+
+      getItemCount: () => {
+        return get().cartItems.reduce((total, item) => total + item.quantity, 0);
+      },
     }),
     {
-      name: 'bakedbot-storage', // Keep a separate name for local storage
+      name: 'bakedbot-storage', 
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);

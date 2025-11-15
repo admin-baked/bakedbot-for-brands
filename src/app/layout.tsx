@@ -5,7 +5,6 @@ import Script from 'next/script';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { CartProvider } from '@/hooks/use-cart';
 import { ThemeProvider } from '@/components/theme-provider';
 import { CartSheet } from '@/components/cart-sheet';
 import { DemoModeProvider } from '@/context/demo-mode';
@@ -29,11 +28,9 @@ export default function RootLayout({
         <ThemeProvider>
           <DemoModeProvider>
             <FirebaseClientProvider>
-              <CartProvider>
                 {children}
                 <CartSheet />
                 <Toaster />
-              </CartProvider>
             </FirebaseClientProvider>
           </DemoModeProvider>
         </ThemeProvider>

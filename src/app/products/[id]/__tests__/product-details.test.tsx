@@ -1,19 +1,17 @@
 
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ProductDetailsClient from '../components/product-details-client';
-import { useCart } from '@/hooks/use-cart';
-import { useStore } from '@/hooks/use-store';
+import { useStore, type StoreState } from '@/hooks/use-store';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase/auth/use-user';
 import * as Actions from '../actions';
 import type { Product } from '@/lib/types';
 import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
-import React, { useReducer } from 'react';
+import React from 'react';
 import { useFormState } from 'react-dom';
+import ProductDetailsClient from '../components/product-details-client';
 
 // Mock the dependencies
-jest.mock('@/hooks/use-cart');
 jest.mock('@/hooks/use-store');
 jest.mock('@/hooks/use-toast');
 jest.mock('@/firebase/auth/use-user');
@@ -22,9 +20,10 @@ jest.mock('../actions', () => ({
   updateProductFeedback: jest.fn(), // mock this specific export
 }));
 
-const mockAddToCart = jest.fn();
+const mockUseStore = useStore as jest.Mock;
 const mockToast = jest.fn();
 const mockUpdateProductFeedback = Actions.updateProductFeedback as jest.Mock;
+const mockAddToCart = jest.fn();
 
 const mockProduct: Product = {
   id: 'prod-1',
@@ -60,7 +59,6 @@ describe('ProductDetailsClient', () => {
     jest.clearAllMocks();
 
     // Setup default mock implementations
-    (useCart as jest.Mock).mockReturnValue({ addToCart: mockAddToCart });
     (useToast as jest.Mock).mockReturnValue({ toast: mockToast });
     (useUser as jest.Mock).mockReturnValue({ user: null, isUserLoading: false });
 
@@ -68,11 +66,13 @@ describe('ProductDetailsClient', () => {
     jest.spyOn(React, 'useTransition').mockImplementation(() => [false, (callback: () => void) => callback()]);
 
     // Mock useFormState for feedback
-    (useFormState as jest.Mock).mockImplementation((action, initialState) => useReducer(() => initialState, initialState));
+    (useFormState as jest.Mock).mockImplementation((action, initialState) => [initialState, () => {}]);
 
-
-    // Default state: no location selected
-    (useStore as unknown as jest.Mock).mockReturnValue({ selectedLocationId: null });
+    // Default state: no location selected, and mock cart actions
+    mockUseStore.mockReturnValue({
+      selectedLocationId: null,
+      addToCart: mockAddToCart,
+    });
   });
 
   it('renders product details correctly', () => {
@@ -100,7 +100,10 @@ describe('ProductDetailsClient', () => {
 
   it('adds item to cart and shows success toast when a location is selected', () => {
     // Override the store mock for this test
-    (useStore as unknown as jest.Mock).mockReturnValue({ selectedLocationId: 'loc1' });
+    mockUseStore.mockReturnValue({
+      selectedLocationId: 'loc1',
+      addToCart: mockAddToCart,
+    });
 
     render(<ProductDetailsClient product={mockProduct} summary={mockSummary} />);
     
@@ -129,7 +132,7 @@ describe('ProductDetailsClient', () => {
     await waitFor(() => {
         expect(mockUpdateProductFeedback).toHaveBeenCalled();
         // We can inspect the FormData object that was passed
-        const formData = mockUpdateProductFeedback.mock.calls[0][1];
+        const formData = mockUpdateProductFeedback.mock.calls[0][0];
         expect(formData.get('productId')).toBe('prod-1');
         expect(formData.get('feedbackType')).toBe('like');
     });
