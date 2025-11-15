@@ -44,7 +44,7 @@ export const findProductsByReviewContent = ai.defineTool(
 
         // 2. Perform a vector search on the product review embeddings.
         const embeddingsCollection = firestore.collectionGroup('productReviewEmbeddings');
-        const vectorQuery = embeddingsCollection.findNearest('embedding', embedding, {
+        const vectorQuery = embeddingsCollection.findNearest('embedding', embedding as number[], {
             limit: input.limit,
             distanceMeasure: 'COSINE'
         });

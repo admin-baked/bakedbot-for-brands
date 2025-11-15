@@ -1,9 +1,9 @@
 import { renderHook, act } from '@testing-library/react';
-import { useCart as useCartStore, type CartStore } from '../use-cart';
+import { useCart, type CartStore } from '../use-cart';
 import type { Product } from '@/lib/types';
 
 // Use the actual store for testing its logic
-const useCart = useCartStore;
+const useCartStore = useCart;
 
 // Mock product data for testing
 const mockProduct1: Product = {
@@ -34,12 +34,12 @@ describe('useCart hook', () => {
     beforeEach(() => {
         // Reset the store's state before each test
         act(() => {
-            useCart.getState().clearCart();
+            useCartStore.getState().clearCart();
         });
     });
 
     it('should add a new item to the cart', () => {
-        const { result } = renderHook(() => useCart());
+        const { result } = renderHook(() => useCartStore());
 
         act(() => {
             result.current.addToCart(mockProduct1, 'loc1');
@@ -52,7 +52,7 @@ describe('useCart hook', () => {
     });
     
     it('should increment the quantity of an existing item', () => {
-        const { result } = renderHook(() => useCart());
+        const { result } = renderHook(() => useCartStore());
 
         act(() => {
             result.current.addToCart(mockProduct1, 'loc1');
@@ -66,7 +66,7 @@ describe('useCart hook', () => {
     });
 
     it('should update an items quantity correctly', () => {
-        const { result } = renderHook(() => useCart());
+        const { result } = renderHook(() => useCartStore());
 
         act(() => {
             result.current.addToCart(mockProduct1, 'loc1');
@@ -79,7 +79,7 @@ describe('useCart hook', () => {
     });
     
      it('should remove an item if quantity is updated to 0', () => {
-        const { result } = renderHook(() => useCart());
+        const { result } = renderHook(() => useCartStore());
 
         act(() => {
             result.current.addToCart(mockProduct1, 'loc1');
@@ -92,7 +92,7 @@ describe('useCart hook', () => {
     });
 
     it('should remove an item from the cart', () => {
-        const { result } = renderHook(() => useCart());
+        const { result } = renderHook(() => useCartStore());
         
         act(() => {
             result.current.addToCart(mockProduct1, 'loc1');
@@ -110,7 +110,7 @@ describe('useCart hook', () => {
     });
 
     it('should clear the entire cart', () => {
-        const { result } = renderHook(() => useCart());
+        const { result } = renderHook(() => useCartStore());
         
         act(() => {
             result.current.addToCart(mockProduct1, 'loc1');
@@ -120,14 +120,14 @@ describe('useCart hook', () => {
         expect(result.current.items).toHaveLength(2);
 
         act(() => {
-            useCart.getState().clearCart();
+            useCartStore.getState().clearCart();
         });
 
         expect(result.current.items).toHaveLength(0);
     });
     
      it('should correctly calculate the item count', () => {
-        const { result } = renderHook(() => useCart());
+        const { result } = renderHook(() => useCartStore());
         
         act(() => {
             result.current.addToCart(mockProduct1, 'loc1'); // qty 1
@@ -144,7 +144,7 @@ describe('useCart hook', () => {
     });
 
     it('should correctly calculate totals', () => {
-        const { result } = renderHook(() => useCart());
+        const { result } = renderHook(() => useCartStore());
 
         act(() => {
             result.current.addToCart(mockProduct1, 'loc1'); // 1 * 25.00
@@ -166,7 +166,7 @@ describe('useCart hook', () => {
     });
 
      it('should use default price if location-specific price is not available', () => {
-        const { result } = renderHook(() => useCart());
+        const { result } = renderHook(() => useCartStore());
 
         // Add product with a location that doesn't have a specific price
         act(() => {
