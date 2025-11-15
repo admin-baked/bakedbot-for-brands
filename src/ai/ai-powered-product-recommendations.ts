@@ -69,7 +69,7 @@ const recommendProductsFlow = ai.defineFlow(
         limit: 10
       });
       
-      if (similarProducts.length === 0) {
+      if (!similarProducts || similarProducts.length === 0) {
         return {
           products: [],
           overallReasoning: "I couldn't find any products that matched your request. Could you try describing it a different way?",

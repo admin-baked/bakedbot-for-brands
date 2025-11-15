@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useMenuData } from '../use-menu-data';
 import { useDemoMode } from '@/context/demo-mode';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { useHasMounted } from '../use-has-mounted';
+import useHasMounted from '../use-has-mounted';
 import { demoProducts, demoLocations } from '@/lib/data';
 import type { Product, Location } from '@/lib/types';
 

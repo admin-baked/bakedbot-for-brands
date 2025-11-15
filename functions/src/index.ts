@@ -7,11 +7,11 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onDocumentWritten, type FirestoreEvent } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, QueryDocumentSnapshot } from "firebase-admin/firestore";
 
 // This is a workaround to initialize Genkit on Cloud Functions.
 // It's not ideal, but it's the current recommended approach.
@@ -29,7 +29,7 @@ initializeApp();
  */
 export const updateReviewEmbeddingsOnChange = onDocumentWritten(
     "products/{productId}/reviews/{reviewId}",
-    async (event) => {
+    async (event: FirestoreEvent<QueryDocumentSnapshot | undefined>) => {
         const productId = event.params.productId;
         const productSnap = await getFirestore().collection("products").doc(productId).get();
         
