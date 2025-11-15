@@ -1,3 +1,4 @@
+
 'use client';
 
 import MenuPage from '@/app/menu-page';
