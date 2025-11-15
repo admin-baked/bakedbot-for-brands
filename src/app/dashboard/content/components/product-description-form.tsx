@@ -62,7 +62,7 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
         const newContent = { 
             ...descriptionState.data,
             imageUrl: descriptionState.data.imageUrl || localGeneratedContent?.imageUrl || '',
-            productId: selectedProductId 
+            productId: descriptionState.data.productId || selectedProductId 
         } as GenerateProductDescriptionOutput & { productId?: string };
         setLocalGeneratedContent(newContent);
         onContentUpdate(newContent);
@@ -122,6 +122,17 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
     }
   }
 
+  const handleProductSelect = (value: string) => {
+    const productId = value === 'none' ? '' : value;
+    setSelectedProductId(productId);
+    const product = products?.find(p => p.id === productId);
+    if (product && formRef.current) {
+      (formRef.current.elements.namedItem('productName') as HTMLInputElement).value = product.name;
+      (formRef.current.elements.namedItem('msrp') as HTMLInputElement).value = product.price.toFixed(2);
+      (formRef.current.elements.namedItem('features') as HTMLTextAreaElement).value = product.description;
+    }
+  };
+
   return (
     <Card>
       <form ref={formRef}>
@@ -135,9 +146,9 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
            
           <div className="space-y-2">
             <Label htmlFor="product-select">Select a Product (Optional)</Label>
-            <Select name="productId" value={selectedProductId || "none"} onValueChange={(value) => setSelectedProductId(value === 'none' ? '' : value)} disabled={areProductsLoading}>
+            <Select name="productId" value={selectedProductId || "none"} onValueChange={handleProductSelect} disabled={areProductsLoading}>
                 <SelectTrigger id="product-select">
-                    <SelectValue placeholder={areProductsLoading ? "Loading products..." : "Select a product to associate feedback"} />
+                    <SelectValue placeholder={areProductsLoading ? "Loading products..." : "Select a product to pre-fill & link"} />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="none">None</SelectItem>
