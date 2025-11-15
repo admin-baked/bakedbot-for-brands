@@ -13,13 +13,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase/provider';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { Location } from '@/lib/types';
+import { useMenuData } from '@/hooks/use-menu-data';
 
 interface DispensaryLocatorProps {
-  locations: Location[];
-  isLoading: boolean;
+  // Props are no longer needed as the component will fetch its own data.
 }
 
-export function DispensaryLocator({ locations, isLoading }: DispensaryLocatorProps) {
+export function DispensaryLocator({}: DispensaryLocatorProps) {
+  const { locations, isLoading } = useMenuData();
   const { selectedLocationId, setSelectedLocationId, favoriteLocationId, setFavoriteLocationId, _hasHydrated } = useStore();
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
