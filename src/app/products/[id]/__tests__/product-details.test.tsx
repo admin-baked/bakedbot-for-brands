@@ -19,7 +19,7 @@ jest.mock('../actions', () => ({
   updateProductFeedback: jest.fn(), // mock this specific export
 }));
 
-const mockUseStore = useStore as jest.Mock;
+const mockUseStore = useStore as unknown as jest.Mock;
 const mockToast = jest.fn();
 const mockUpdateProductFeedback = Actions.updateProductFeedback as jest.Mock;
 const mockAddToCart = jest.fn();
