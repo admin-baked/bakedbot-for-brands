@@ -77,8 +77,8 @@ export const generateReviewEmbeddings = ai.defineTool(
     }
     
     const embedding = await ai.embed({
+        embedder: 'googleai/text-embedding-004',
         content: summary,
-        // The model is configured globally in the googleAI() plugin initialization
     });
 
     const embeddingData = {

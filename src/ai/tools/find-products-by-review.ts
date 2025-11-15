@@ -35,6 +35,7 @@ export const findProductsByReviewContent = ai.defineTool(
         
         // 1. Generate an embedding for the user's query.
         const embedding = await ai.embed({
+            embedder: 'googleai/text-embedding-004',
             content: input.query
         });
 

@@ -69,6 +69,7 @@ export const generateReviewEmbeddings = ai.defineTool(
     }
     
     const embedding = await ai.embed({
+        embedder: 'googleai/text-embedding-004',
         content: summary,
     });
 
