@@ -23,39 +23,21 @@ export default function AuthCallbackPage() {
     const { auth, firestore } = useFirebase();
     const { toast } = useToast();
 
-    const handleSuccessfulSignIn = async (user: any) => {
+    // This is the simplified success handler.
+    // It no longer contains any complex logic.
+    const handleSuccessfulSignIn = (user: any) => {
         if (firestore) {
-            try {
-                const userDocRef = doc(firestore, 'users', user.uid);
-                const userDoc = await getDoc(userDocRef);
-                
-                if (!userDoc.exists()) {
-                    console.log('🆕 Creating new user document...');
-                    
-                    await setDoc(userDocRef, {
-                        uid: user.uid,
-                        email: user.email,
-                        displayName: user.displayName || user.email?.split('@')[0] || 'User',
-                        photoURL: user.photoURL || null,
-                        role: 'customer',
-                        onboardingCompleted: false,
-                    }, { merge: true });
-                    
-                    console.log('✅ User document created successfully');
-                    router.replace('/onboarding');
-                    return;
-
-                } else {
-                    console.log('✅ User document already exists, redirecting to dashboard...');
-                    // User exists, let the dashboard layout handle redirection
-                    router.replace('/dashboard');
-                    return;
-                }
-            } catch (firestoreError) {
-                console.error('⚠️ Error checking/creating user document:', firestoreError);
-            }
+            const userDocRef = doc(firestore, 'users', user.uid);
+            // Non-blocking write to ensure user doc exists.
+            // The dashboard layout will handle redirection based on this doc.
+            setDoc(userDocRef, {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName || user.email?.split('@')[0] || 'User',
+                photoURL: user.photoURL || null,
+            }, { merge: true }).catch(err => console.error("Failed to ensure user doc exists", err));
         }
-        // Fallback redirection
+        // Always redirect to the same place.
         router.replace('/dashboard');
     }
 
@@ -85,6 +67,7 @@ export default function AuthCallbackPage() {
                 console.log('🎉 Magic link sign-in complete. Redirecting...');
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
+                // Call the simplified success handler
                 handleSuccessfulSignIn(result.user);
 
             } catch (error: any) {
@@ -123,7 +106,7 @@ export default function AuthCallbackPage() {
             setStatus('need-email');
         }
 
-    }, [auth, router, toast, firestore]);
+    }, [auth, router, toast]);
 
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
