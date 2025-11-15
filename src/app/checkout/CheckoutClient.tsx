@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useStore } from '@/hooks/use-store';
@@ -12,56 +13,15 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { Footer } from '../components/footer';
+import { useHydrated } from '@/hooks/useHydrated';
 
 export default function CheckoutClient() {
   const router = useRouter();
-  const [status, setStatus] = useState<'loading' | 'checking' | 'ready' | 'error'>('loading');
-  const [errorMessage, setErrorMessage] = useState('');
   
   // Subscribe to state from the unified store
-  const { _hasHydrated, selectedLocationId, cartItems, getCartTotal, clearCart } = useStore();
+  const { cartItems, getCartTotal, clearCart, selectedLocationId } = useStore();
   const { locations, isLoading: isMenuLoading } = useMenuData();
-  
-  useEffect(() => {
-    // Wait for hydration and menu data
-    if (!_hasHydrated || isMenuLoading) {
-      setStatus('loading');
-      return;
-    }
-    
-    // If the cart is already empty when the user lands here,
-    // they probably just finished an order or came here by mistake.
-    // Don't run the redirect logic, just show an empty checkout state.
-    if (cartItems.length === 0) {
-        setStatus('ready');
-        return;
-    }
-    
-    setStatus('checking');
-    
-    // Small delay to ensure state is fully updated
-    const timer = setTimeout(() => {
-      // Check prerequisites for a NEW checkout attempt
-      if (!selectedLocationId) {
-        setErrorMessage('No location selected. Redirecting...');
-        setStatus('error');
-        setTimeout(() => router.replace('/?error=no-location'), 2000);
-        return;
-      }
-      
-      const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
-      if (!selectedLocation) {
-        setErrorMessage('Selected location could not be found. Redirecting...');
-        setStatus('error');
-        setTimeout(() => router.replace('/?error=location-not-found'), 2000);
-        return;
-      }
-      
-      setStatus('ready');
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, [_hasHydrated, selectedLocationId, locations, isMenuLoading, cartItems.length, router]);
+  const isHydrated = useHydrated();
   
   const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
   const { subtotal, taxes, total } = getCartTotal();
@@ -74,8 +34,10 @@ export default function CheckoutClient() {
     }
   };
 
+  const isLoading = !isHydrated || isMenuLoading;
+
   // Loading state
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <div className="flex flex-col h-screen items-center justify-center text-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -84,36 +46,6 @@ export default function CheckoutClient() {
     );
   }
   
-  // Checking state
-  if (status === 'checking') {
-     return (
-      <div className="flex flex-col h-screen items-center justify-center text-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground mt-4">Preparing your checkout...</p>
-      </div>
-    );
-  }
-  
-  // Error state
-  if (status === 'error') {
-     return (
-      <div className="flex flex-col h-screen items-center justify-center text-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-destructive" />
-        <p className="text-destructive mt-4">{errorMessage}</p>
-      </div>
-    );
-  }
-
-  // Final safety check before rendering - this prevents a crash if the location lookup fails
-  if (status === 'ready' && !selectedLocation && cartItems.length > 0) {
-     return (
-       <div className="flex flex-col h-screen items-center justify-center text-center py-20">
-         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-         <p className="text-muted-foreground mt-4">Validating location...</p>
-       </div>
-     );
-  }
-
   if (cartItems.length === 0) {
       return (
           <div className="min-h-screen bg-muted/20 flex flex-col">
@@ -137,7 +69,22 @@ export default function CheckoutClient() {
           </div>
       )
   }
-
+  
+  // Final safety check before rendering - this prevents a crash if the location lookup fails
+  if (!selectedLocation) {
+     return (
+       <div className="flex flex-col h-screen items-center justify-center text-center py-20">
+         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+         <p className="text-muted-foreground mt-4">Validating location...</p>
+         <p className="text-destructive text-sm mt-2">No location selected. Please go back and select a location.</p>
+          <Button asChild variant="outline" className="mt-4">
+              <Link href="/">
+                  Return to Menu
+              </Link>
+          </Button>
+       </div>
+     );
+  }
 
   // Render checkout
   return (
