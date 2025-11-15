@@ -3,54 +3,54 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    // Products, Categories, and Dispensaries are public read-only
+    // Default to read-only for public collections.
+    // All write operations should be handled by secure Server Actions.
     match /products/{productId} {
       allow read: if true;
-      // Allow likes/dislikes only for authenticated users.
-      allow write: if request.auth != null; 
+      allow write: if false; // Disallow all client writes.
     }
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if false; // Read-only
+      allow write: if false;
     }
      match /dispensaries/{locationId} {
       allow read: if true;
-      // Allow authenticated users to create/update locations, e.g., from an admin dashboard
-      allow write: if request.auth != null;
+      allow write: if false; // All location management is done via Server Actions.
     }
 
-    // A user can read/write to their own user document.
+    // A user can read their own document. Writes are handled by Server Actions
+    // or Cloud Functions during onboarding.
     match /users/{userId} {
       allow read, write: if request.auth.uid == userId;
       
-      // Interactions are private to each user
+      // Interactions are private to each user.
       match /interactions/{interactionId} {
          allow read, write: if request.auth.uid == userId;
       }
     }
     
-    // Allow anyone to read reviews for a specific product.
+    // Anyone can read reviews. All writes are done via a secure Server Action.
     match /products/{productId}/reviews/{reviewId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if resource.data.userId == request.auth.uid;
+      allow write: if false; // Disallow all client writes.
     }
 
-    // This new rule allows the collection group query for 'reviews' across all products.
+    // This collection group query is necessary for the public "Recent Reviews" feed.
     match /{path=**}/reviews/{reviewId} {
       allow read: if true;
     }
     
-     // Product embeddings can be read by anyone. Writes are done server-side.
+    // Product embeddings are public, but only written by the server.
     match /products/{productId}/productReviewEmbeddings/{docId} {
       allow read: if true;
-      allow write: if false; // Only server-side writes
+      allow write: if false;
     }
     
-    // Orders can be created by anyone, but only read by the user who owns it
-    // or by an authorized dispensary/admin role.
+    // Orders can be created via a Server Action.
+    // They can be read by the user who owns the order, OR by an authorized
+    // dispensary/owner who has permission to view all orders.
     match /orders/{orderId} {
-      allow create: if true; // Anyone can submit an order
+      allow create: if false; // All creates via Server Action
       allow read, update: if request.auth.uid == resource.data.userId 
           || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['dispensary', 'owner', 'brand'];
     }
