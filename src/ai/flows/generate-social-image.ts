@@ -35,24 +35,25 @@ const prompt = ai.definePrompt({
   name: 'generateSocialMediaImagePrompt',
   input: {schema: GenerateSocialMediaImageInputSchema},
   output: {schema: GenerateSocialMediaImageOutputSchema},
-  prompt: `You are a creative director for a cutting-edge social media marketing agency.
+  prompt: `You are a specialized AI assistant for creating product-focused social media marketing images.
   Your task is to generate a compelling, eye-catching image that has viral potential for a social media post about a cannabis product.
   The image should be vibrant, modern, share-worthy, and suitable for platforms like Instagram and Twitter.
+
+  **IMPORTANT RULE:** You MUST ONLY generate images that are directly related to the product concept provided.
+  You MUST refuse any request to generate images of unrelated subjects, including but not limited to people, documents, diagrams, or harmful content.
 
   Use the style, colors, and branding from the provided brand logo as creative inspiration for the generated image.
   If a product packaging image is also provided, use its style as a secondary source of inspiration.
 
-  Image Prompt:
+  Image Prompt - Product Concept:
   - Product Name: {{{productName}}}
-  - Concept/Features: {{{features}}}
+  - Description/Features: {{{features}}}
   - Brand Voice: {{{brandVoice}}}
 
-  Brand Logo (use for creative inspiration):
-  {{media url=logoDataUri}}
+  Inspirational Assets:
+  - Brand Logo: {{media url=logoDataUri}}
   {{#if imageUrl}}
-  
-  Reference packaging image (use for secondary inspiration):
-  {{media url=imageUrl}}
+  - Reference packaging image: {{media url=imageUrl}}
   {{/if}}
   `,
   config: {
