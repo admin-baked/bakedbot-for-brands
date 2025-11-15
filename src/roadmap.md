@@ -2,48 +2,51 @@
 
 This document outlines the planned features and improvements for the BakedBot AI application.
 
-## Quarterly Review Prep: The Good, The Bad, and The Ugly
+---
 
-### The Good (Wins)
+## ✅ v2.0 Milestone: Technical Debt Paydown & Hardening
 
--   **Full Headless Commerce Flow**: We successfully implemented a complete, public-facing menu and headless checkout system, including location-based pricing and order fulfillment logic. This is a major milestone.
--   **Advanced AI Capabilities**: The AI is no longer just a simple chatbot. It now provides intelligent, multi-step product recommendations and can generate AI-powered summaries of customer reviews, adding significant value.
--   **Robust Pre-Publish Checks**: After some initial struggles, we now have a solid `pre-publish.sh` script that validates types, linting, and the production build, preventing broken code from being deployed.
--   **Flexible UI System**: We've established a themeable and component-based UI using ShadCN and Tailwind, allowing for rapid iteration and brand customization.
+We have successfully completed a major phase of technical debt reduction and application hardening.
 
-### The Bad (Challenges)
-
--   **Build & Dependency Hell**: The initial build process was plagued with a high volume of TypeScript errors and dependency mismatches, particularly between the main app and the Cloud Functions environment. This significantly slowed down development and required multiple iterations to fix.
--   **State Management Complexity**: We have two separate client-side stores (`useCart` and `useStore`). While functional, this adds complexity and could be a source of bugs. Consolidating or clarifying the boundary between them would be beneficial.
--   **AI Development Learning Curve**: Debugging Genkit flows and understanding the exact data shapes returned by AI tools and Firestore APIs proved to be a challenge, leading to several cycles of trial-and-error.
-
-### The Ugly (Technical Debt & Blockers)
-
--   **Testing Gaps**: While we have some test files, there is no comprehensive unit or end-to-end testing strategy. This is a significant risk as the application grows. The existing tests were also broken and required fixing.
--   **Inconsistent Data Fallback**: The logic for when to fall back to demo data versus live data is inconsistent. Some components fall back gracefully if live data is empty, while others do not. This needs to be standardized.
--   **Lack of SEO**: The product and menu pages currently have static metadata. They lack dynamic titles and descriptions, which is a major missed opportunity for search engine optimization and organic traffic.
+-   **State Management Consolidated**: Merged `useCart` and `useStore` hooks into a single, unified state management solution (`useStore`), simplifying the codebase.
+-   **Robust Data Fallback Logic**: Implemented a consistent data fetching strategy in `useMenuData` that gracefully falls back to demo data only when live data is unavailable, ensuring a stable UI.
+-   **Dynamic SEO for Products**: Enhanced product pages to generate unique, dynamic metadata for titles and descriptions, making them discoverable by search engines.
+-   **Testing Foundation Built**: Established a stable testing environment by configuring Jest with `jest-setup.ts` and fixing all broken unit tests for components and hooks.
 
 ---
 
-## Future Enhancements (Roadmap to Production)
+## 🚀 Roadmap to Production
 
-### 1. Production Deployment & Security
-- **Order Notification System**: Integrate a system (e.g., email service) to send the completed order details to the selected dispensary for fulfillment. This will complete the "headless" checkout experience without direct payment processing.
-- **Production Firebase & Security**:
-    - Provisioning: Ensure production instances of Firebase Authentication and Firestore are set up.
-    - Security Rules: Continue to refine and deploy comprehensive Firestore security rules to protect all data collections.
-    - App Check: Implement Firebase App Check to ensure requests to your backend services come from your authentic app.
+This section outlines the final, critical steps required to launch the application.
 
-### 2. AI Feature Enhancements
-- **AI Social Media Images**: Refine the feature to generate watermarked, brand-aligned social media images based on product details.
-- **Conversational Product Recommendations**: Continue to enhance the chatbot to provide more intelligent product recommendations based on user queries, available product data, and reviews.
+### Phase 1: Core Production Readiness (Must-Haves)
 
-### 3. Testing, Optimization, & SEO
-- **Unit & E2E Testing**: Implement a testing strategy with unit tests for critical components and end-to-end (E2E) tests for key user flows (e.g., login, checkout).
-- **Performance Optimization**: Analyze and optimize the application's bundle size, and implement lazy loading for components and images to ensure fast load times.
-- **SEO**: Add dynamic metadata (titles, descriptions) to product and menu pages to improve search engine visibility and ranking.
+*   **Security Lockdown**:
+    *   **Refine & Deploy Firestore Rules**: Conduct a final review of all Firestore security rules to ensure no unauthorized data access is possible. Deploy the finalized rules.
+    *   **Implement App Check**: Integrate Firebase App Check to ensure all backend requests originate from your authentic application, preventing abuse.
 
-## Completed Features
+*   **Production Configuration**:
+    *   **Provision Production Firebase**: Set up and configure the production instances of Firebase Authentication, Firestore, and Cloud Functions.
+    *   **Secure API Keys**: Ensure all third-party API keys (like SendGrid) and service account credentials are securely stored in a secret manager (like Google Secret Manager) and accessed only by the backend.
+
+### Phase 2: Feature Completion & Optimization
+
+*   **AI Feature Refinement**:
+    *   **AI Social Media Images**: Improve the image generation feature to properly apply watermarks and align with brand guidelines for production use.
+*   **Performance Optimization**:
+    *   **Bundle Size Analysis**: Use the Next.js Bundle Analyzer to identify large dependencies and opportunities for optimization.
+    *   **Implement Lazy Loading**: Apply lazy loading for non-critical components and images to improve initial page load times.
+
+### Phase 3: Go-Live & Post-Launch
+
+*   **Comprehensive Testing**:
+    *   **End-to-End (E2E) Tests**: Write E2E tests for critical user journeys, including the full checkout flow and user login, to prevent regressions.
+*   **Launch**:
+    *   Deploy the application to the production environment.
+*   **Post-Launch Monitoring**:
+    *   Set up monitoring and alerting for application performance and errors.
+
+## Completed Milestones
 
 ### Version 2.0 - Headless Menu & Enhanced AI
 - **Headless Menu & Checkout Flow**: 
