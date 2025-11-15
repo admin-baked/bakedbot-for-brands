@@ -23,7 +23,8 @@ service cloud.firestore {
     // A user can read their own document. Writes are handled by Server Actions
     // or Cloud Functions during onboarding.
     match /users/{userId} {
-      allow read, write: if request.auth.uid == userId;
+      allow read: if request.auth.uid == userId;
+      allow write: if false; // Disallow all client writes.
       
       // Interactions are private to each user.
       match /interactions/{interactionId} {
