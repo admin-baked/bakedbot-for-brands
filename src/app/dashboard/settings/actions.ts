@@ -4,25 +4,19 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/firebase/server-client';
-import { FieldValue } from 'firebase-admin/firestore';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Papa from 'papaparse';
 
-// This is a simplified version for the demo. In a real app, you'd get the UID
-// from a secure session or by verifying an ID token.
+// Schemas
 const UserIdSchema = z.string().min(1, 'User ID is required.');
 
-// Schema for API Key
 const ApiKeySchema = z.object({
   apiKey: z.string().min(1, 'API Key is required.'),
   userId: UserIdSchema,
 });
 
-// Schema for Product Import
-const ProductImportSchema = z.object({
-    productsFile: z.instanceof(File).refine(file => file.size > 0, 'Please upload a CSV file.').refine(file => file.type === 'text/csv', 'File must be a CSV.'),
-});
+const FileSchema = z.instanceof(File).refine(file => file.size > 0, 'Please upload a file.').refine(file => file.type === 'text/csv', 'File must be a CSV.');
 
-// Schema for Brand Voice
 const BrandVoiceSchema = z.object({
     brandDoc: z.instanceof(File).refine(file => file.size > 0, 'Please upload a document.'),
 });
@@ -30,209 +24,151 @@ const BrandVoiceSchema = z.object({
 const EmailSettingsSchema = z.object({
   emailProvider: z.enum(['sendgrid', 'gmail']),
   apiKey: z.string().optional(),
-})
+});
 
+const ProductSchema = z.object({
+    id: z.string().min(1, 'ID is required'),
+    name: z.string().min(1, 'Name is required'),
+    category: z.string().min(1, 'Category is required'),
+    price: z.coerce.number().min(0, 'Price must be non-negative'),
+    imageUrl: z.string().url('A valid image URL is required'),
+    imageHint: z.string().optional(),
+    description: z.string().min(1, 'Description is required'),
+});
+
+// Helper for revalidation
+async function revalidateDataPaths() {
+    revalidatePath('/dashboard/settings');
+    revalidatePath('/'); // For public menu
+    revalidatePath('/dashboard/products');
+    revalidatePath('/dashboard/locations');
+}
+
+// Server Action: Save Email Settings
 export async function saveEmailSettings(prevState: any, formData: FormData) {
-  // In a real app, you'd encrypt and securely store the API key.
-  // For this demo, we'll just confirm we received it.
   const validatedFields = EmailSettingsSchema.safeParse({
     emailProvider: formData.get('emailProvider'),
     apiKey: formData.get('apiKey'),
   });
 
   if (!validatedFields.success) {
-    return {
-      message: 'Invalid email settings.',
-      error: true,
-      fieldErrors: validatedFields.error.flatten().fieldErrors,
-    };
+    return { message: 'Invalid email settings.', error: true, fieldErrors: validatedFields.error.flatten().fieldErrors };
   }
-
   const { emailProvider, apiKey } = validatedFields.data;
 
   if (emailProvider === 'sendgrid' && (!apiKey || apiKey.trim() === '')) {
-     return {
-      message: 'API Key is required for SendGrid.',
-      error: true,
-      fieldErrors: { apiKey: ['API Key is required.'] }
-    };
+     return { message: 'API Key is required for SendGrid.', error: true, fieldErrors: { apiKey: ['API Key is required.'] } };
   }
   
-  if (apiKey) {
-    // In a real app, this would be an encrypted write to a secure store.
-  }
+  if (apiKey) { /* In a real app, securely store this key */ }
 
   revalidatePath('/dashboard/settings');
-  
-  return {
-    message: 'Email settings saved successfully!',
-    error: false,
-  };
+  return { message: 'Email settings saved successfully!', error: false };
 }
 
+// Server Action: Save BakedBot API Key
 export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
   const { firestore } = await createServerClient();
-  
   const validatedFields = ApiKeySchema.safeParse({
     apiKey: formData.get('bakedbot-api-key'),
-    userId: formData.get('userId'), // Get the UID from the form
+    userId: formData.get('userId'),
   });
 
   if (!validatedFields.success) {
-    return {
-      message: 'Invalid form data. Please check your inputs.',
-      error: true,
-      fieldErrors: validatedFields.error.flatten().fieldErrors,
-    };
+    return { message: 'Invalid form data.', error: true, fieldErrors: validatedFields.error.flatten().fieldErrors };
   }
-
   const { apiKey, userId } = validatedFields.data;
-  
-  // Use Admin SDK methods
   const userPrivateRef = firestore.doc(`user-private/${userId}`);
   
   try {
-    // The Admin SDK has permission to write here.
     await userPrivateRef.set({ bakedBotApiKey: apiKey }, { merge: true });
-    
     revalidatePath('/dashboard/settings');
-
-    return {
-      message: 'API Key saved successfully!',
-      error: false,
-    };
+    return { message: 'API Key saved successfully!', error: false };
   } catch (serverError: any) {
-    // This catch block might not be hit if there are network issues or other server-side problems.
-    throw new FirestorePermissionError({
-      path: userPrivateRef.path,
-      operation: 'write',
-      requestResourceData: { bakedBotApiKey: '[redacted]' },
-    });
+    throw new FirestorePermissionError({ path: userPrivateRef.path, operation: 'write', requestResourceData: { bakedBotApiKey: '[redacted]' } });
   }
 }
 
-export async function importProductsFromCsv(prevState: any, formData: FormData) {
-    const validatedFields = ProductImportSchema.safeParse({
-        productsFile: formData.get('product-csv-upload'),
-    });
-
-    if (!validatedFields.success) {
-        return {
-            message: validatedFields.error.flatten().fieldErrors.productsFile?.[0] || 'Invalid file.',
-            error: true,
-        };
+// Server Action: Import from CSV (Generic)
+async function importFromCsv(formData: FormData, fileFieldName: string, collectionName: string, idField: string) {
+    const validatedFile = FileSchema.safeParse(formData.get(fileFieldName));
+    if (!validatedFile.success) {
+        return { message: validatedFile.error.flatten().fieldErrors.productsFile?.[0] || 'Invalid file.', error: true };
     }
-    
-    const { productsFile } = validatedFields.data;
+    const { data: file } = validatedFile;
 
     try {
-        const fileContent = await productsFile.text();
-        const Papa = await import('papaparse');
-        
-        // Use Papaparse to parse the CSV content
-        const parseResult = Papa.parse(fileContent, {
-            header: true,
-            skipEmptyLines: true,
-            dynamicTyping: true, // Automatically convert numbers and booleans
-        });
+        const fileContent = await file.text();
+        const parseResult = Papa.parse(fileContent, { header: true, skipEmptyLines: true, dynamicTyping: true });
         
         if (parseResult.errors.length > 0) {
-            console.error("CSV Parsing Errors:", parseResult.errors);
             const firstError = parseResult.errors[0];
-            return {
-                message: `Error parsing CSV on row ${firstError.row}: ${firstError.message}`,
-                error: true,
-            };
+            return { message: `Error parsing CSV on row ${firstError.row}: ${firstError.message}`, error: true };
         }
 
         const { firestore } = await createServerClient();
         const batch = firestore.batch();
 
         parseResult.data.forEach((row: any) => {
-            if (!row.id) {
+            const docId = row[idField] ? String(row[idField]) : null;
+            if (!docId) {
                 console.warn("Skipping row with no ID:", row);
-                return; // Skip rows without an ID
+                return;
             }
-            
-            // Extract prices for different locations
-            const prices: { [locationId: string]: number } = {};
-            Object.keys(row).forEach(key => {
-                if (key.startsWith('price_')) {
-                    const locationId = key.substring(6); // remove "price_"
-                    if (row[key] !== null && row[key] !== undefined) {
-                        prices[locationId] = Number(row[key]);
-                    }
-                }
-            });
-
-            const productData = {
-                id: String(row.id),
-                name: row.name,
-                category: row.category,
-                price: Number(row.price), // Base price
-                prices: prices,
-                imageUrl: row.imageUrl,
-                imageHint: row.imageHint,
-                description: row.description,
-                likes: Number(row.likes) || 0,
-                dislikes: Number(row.dislikes) || 0,
-            };
-
-            const productRef = firestore.collection('products').doc(productData.id);
-            batch.set(productRef, productData);
+            const docRef = firestore.collection(collectionName).doc(docId);
+            batch.set(docRef, row);
         });
 
         await batch.commit();
-
-        revalidatePath('/dashboard/settings');
-        revalidatePath('/'); // Revalidate menu to show new products
-
-        return {
-            message: `Successfully imported ${parseResult.data.length} products from ${productsFile.name}.`,
-            error: false,
-        };
+        await revalidateDataPaths();
+        return { message: `Successfully imported ${parseResult.data.length} records from ${file.name}.`, error: false };
 
     } catch (e: any) {
-        const errorMessage = e.message || 'An unknown error occurred.';
-        console.error("Product import error:", errorMessage);
-        return {
-            message: `Failed to import products: ${errorMessage}`,
-            error: true,
-        };
+        return { message: `Failed to import: ${e.message || 'An unknown error occurred.'}`, error: true };
     }
 }
 
-export async function trainOnBrandDocuments(prevState: any, formData: FormData) {
-     const validatedFields = BrandVoiceSchema.safeParse({
-        brandDoc: formData.get('brand-doc-upload'),
-    });
 
-     if (!validatedFields.success) {
-        return {
-            message: validatedFields.error.flatten().fieldErrors.brandDoc?.[0] || 'Invalid file.',
-            error: true,
-        };
+export async function importProductsFromCsv(prevState: any, formData: FormData) {
+    return importFromCsv(formData, 'product-csv-upload', 'products', 'id');
+}
+
+export async function importLocationsFromCsv(prevState: any, formData: FormData) {
+    return importFromCsv(formData, 'location-csv-upload', 'dispensaries', 'id');
+}
+
+// Server Action: Add a single product
+export async function addProductAction(prevState: any, formData: FormData): Promise<{ message: string; error: boolean; }> {
+    const validatedFields = ProductSchema.safeParse(Object.fromEntries(formData.entries()));
+    if (!validatedFields.success) {
+        return { error: true, message: 'Invalid product data.' };
     }
 
+    try {
+        const { firestore } = await createServerClient();
+        const { id, ...productData } = validatedFields.data;
+        await firestore.collection('products').doc(id).set(productData);
+        await revalidateDataPaths();
+        return { error: false, message: `${productData.name} has been added.` };
+    } catch (e: any) {
+        return { error: true, message: `Failed to add product: ${e.message}` };
+    }
+}
+
+
+// Server Action: Train on Brand Docs
+export async function trainOnBrandDocuments(prevState: any, formData: FormData) {
+     const validatedFields = BrandVoiceSchema.safeParse({ brandDoc: formData.get('brand-doc-upload') });
+     if (!validatedFields.success) {
+        return { message: validatedFields.error.flatten().fieldErrors.brandDoc?.[0] || 'Invalid file.', error: true };
+    }
     const { brandDoc } = validatedFields.data;
 
     try {
-        // In a real app, you would process this file and use it to fine-tune an LLM.
-        // For now, we'll log it to show the mechanism works.
-
+        // In a real app, process this file for fine-tuning.
         revalidatePath('/dashboard/settings');
-
-        return {
-            message: `Successfully uploaded ${brandDoc.name} for training.`,
-            error: false,
-        };
-
+        return { message: `Successfully uploaded ${brandDoc.name} for training.`, error: false };
     } catch (e: any) {
-        const errorMessage = e.message || 'An unknown error occurred.';
-        console.error("Brand voice training error:", errorMessage);
-        return {
-            message: `Failed to upload document: ${errorMessage}`,
-            error: true,
-        };
+        return { message: `Failed to upload document: ${e.message || 'An unknown error occurred.'}`, error: true };
     }
 }

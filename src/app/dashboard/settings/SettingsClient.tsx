@@ -12,9 +12,12 @@ import DataSourceSettings from "./components/data-source-settings";
 import EmailSettings from "./components/email-settings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Paintbrush, Bot, SlidersHorizontal, Database, Languages, Mail, KeyRound } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 export default function SettingsClient() {
   const { isCeoMode } = useStore();
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'theme';
 
   return (
     <div className="flex flex-col gap-8">
@@ -25,7 +28,7 @@ export default function SettingsClient() {
         </p>
       </div>
 
-      <Tabs defaultValue="theme" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 h-auto sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           <TabsTrigger value="theme"><Paintbrush className="mr-2" /> Theme</TabsTrigger>
           <TabsTrigger value="menu"><SlidersHorizontal className="mr-2" /> Menu</TabsTrigger>
