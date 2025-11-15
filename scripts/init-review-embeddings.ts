@@ -39,7 +39,7 @@ const main = async () => {
 
             try {
                 // Call the existing tool to perform the generation and saving
-                const { output: result } = await generateReviewEmbeddings.run({ productId, brandId });
+                const result = await generateReviewEmbeddings.run({ productId, brandId });
                 
                 if (result.reviewCount === 0) {
                      process.stdout.write('⚪️ Skipped (no reviews found).\n');
