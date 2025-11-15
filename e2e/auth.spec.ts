@@ -30,4 +30,29 @@ test.describe('Authentication Flows', () => {
     await page.goto('/account');
     await expect(page.getByRole('heading', { name: 'My Account' })).toBeVisible();
   });
+
+  test('user can log out successfully', async ({ page }) => {
+    // 1. Log in first
+    await page.goto('/brand-login');
+    await page.getByTestId('dev-login-button').click();
+    await page.getByTestId('dev-login-item-brand@bakedbot.ai').click();
+
+    // 2. Go to the account page
+    await page.goto('/account');
+    await expect(page.getByRole('heading', { name: 'My Account' })).toBeVisible();
+
+    // 3. Click the logout button
+    await page.getByRole('button', { name: 'Sign Out' }).click();
+
+    // 4. Assert that the "Signed Out" toast appears
+    await expect(page.getByText('Signed Out')).toBeVisible();
+
+    // 5. Assert that the user is redirected to the homepage
+    await expect(page).toHaveURL('/');
+    
+    // 6. Assert that trying to access a protected route redirects to login
+    await page.goto('/account');
+    await expect(page).not.toHaveURL('/account');
+    await expect(page.getByRole('heading', { name: 'Brand Portal' })).toBeVisible();
+  });
 });
