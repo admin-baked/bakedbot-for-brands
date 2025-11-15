@@ -87,4 +87,3 @@ async function getRecommendations(userQuery: string) {
   }
 }
 ```
-
