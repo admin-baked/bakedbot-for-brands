@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { useCart as useCartStore } from '../use-cart';
+import { useCart as useCartStore, type CartStore } from '../use-cart';
 import type { Product } from '@/lib/types';
 
 // Use the actual store for testing its logic
