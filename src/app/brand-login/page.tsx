@@ -1,10 +1,11 @@
-// This component was incorrectly configured as a route segment.
-// The exports for `dynamic` and `revalidate` have been removed to fix a build error.
-
-import LoginForm from './components/login-form';
+import LoginForm from '../customer-login/components/login-form';
 
 export default function BrandLoginPage() {
     return (
-        <LoginForm />
+        <LoginForm 
+            title="Brand Portal"
+            description="Sign in to your brand account."
+            devLogins={[{ email: 'brand@bakedbot.ai', label: 'Login as brand@bakedbot.ai (Brand)' }]}
+        />
     );
 }

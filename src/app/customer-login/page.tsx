@@ -1,10 +1,11 @@
-// This component was incorrectly configured as a route segment.
-// The exports for `dynamic` and `revalidate` have been removed to fix a build error.
-
 import LoginForm from './components/login-form';
 
 export default function CustomerLoginPage() {
     return (
-        <LoginForm />
+        <LoginForm 
+            title="Customer Login"
+            description="Sign in or create an account to get started."
+            devLogins={[{ email: 'customer@bakedbot.ai', label: 'Login as customer@bakedbot.ai (Customer)' }]}
+        />
     );
 }

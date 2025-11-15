@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -16,6 +15,12 @@ import Logo from '@/components/logo';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
+type LoginFormProps = {
+    title: string;
+    description: string;
+    devLogins?: { email: string; label: string; }[];
+};
+
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
         <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
@@ -25,14 +30,13 @@ const GoogleIcon = () => (
     </svg>
 );
 
-export default function LoginForm() {
+export default function LoginForm({ title, description, devLogins = [] }: LoginFormProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [magicLinkSent, setMagicLinkSent] = useState(false);
     const { toast } = useToast();
-    const searchParams = useSearchParams();
     const { auth, firestore } = useFirebase();
     const { user } = useUser();
     const router = useRouter();
@@ -43,7 +47,7 @@ export default function LoginForm() {
         console.log('🔄 LoginForm: Starting redirect based on role for uid:', uid);
         
         if (!firestore) {
-            console.log('⚠️ LoginForm: Firestore not ready, using fallback');
+            console.log('⚠️ LoginForm: Firestore not ready, using fallback to /account/dashboard');
             router.replace('/account/dashboard');
             return;
         }
@@ -112,69 +116,31 @@ export default function LoginForm() {
             return;
         }
 
-        console.log('🚀 Initiating Google sign-in with popup...');
         setIsGoogleLoading(true);
-        
         const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({
-            prompt: 'select_account'
-        });
+        provider.setCustomParameters({ prompt: 'select_account' });
         
         try {
             const result = await signInWithPopup(auth, provider);
-            
-            console.log('✅ Google sign-in successful:', result.user.email);
-            
             if (firestore) {
-                try {
-                    const userDocRef = doc(firestore, 'users', result.user.uid);
-                    const userDoc = await getDoc(userDocRef);
-                    
-                    if (!userDoc.exists()) {
-                        console.log('🆕 Creating new user document...');
-                        
-                        await setDoc(userDocRef, {
-                            uid: result.user.uid,
-                            email: result.user.email,
-                            displayName: result.user.displayName || result.user.email?.split('@')[0] || 'User',
-                            photoURL: result.user.photoURL || null,
-                            role: 'customer',
-                            onboardingCompleted: false,
-                        });
-                        
-                        console.log('✅ User document created successfully');
-                    } else {
-                        console.log('✅ User document already exists');
-                    }
-                } catch (firestoreError) {
-                    console.error('⚠️ Error creating user document:', firestoreError);
+                const userDocRef = doc(firestore, 'users', result.user.uid);
+                const userDoc = await getDoc(userDocRef);
+                if (!userDoc.exists()) {
+                    await setDoc(userDocRef, {
+                        uid: result.user.uid,
+                        email: result.user.email,
+                        displayName: result.user.displayName || result.user.email?.split('@')[0] || 'User',
+                        photoURL: result.user.photoURL || null,
+                        role: 'customer',
+                        onboardingCompleted: false,
+                    });
                 }
             }
-
-            toast({
-                title: 'Welcome!',
-                description: `Signed in as ${result.user.email}`,
-            });
-            
+            toast({ title: 'Welcome!', description: `Signed in as ${result.user.email}` });
         } catch (error: any) {
-            console.error('❌ Google sign-in error:', error);
-            
-            if (error.code === 'auth/popup-blocked') {
-                toast({
-                    variant: 'destructive',
-                    title: 'Popup Blocked',
-                    description: 'Please allow popups and try again, or use magic link instead.',
-                });
-            } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
-                console.log('User cancelled sign-in');
-            } else {
-                toast({
-                    variant: 'destructive',
-                    title: 'Failed to sign in',
-                    description: error.message || 'Please try using magic link instead.',
-                });
+            if (error.code !== 'auth/popup-blocked' && error.code !== 'auth/cancelled-popup-request') {
+                toast({ variant: 'destructive', title: 'Failed to sign in', description: error.message || 'Please try using magic link instead.' });
             }
-            
             setIsGoogleLoading(false);
         }
     };
@@ -182,47 +148,20 @@ export default function LoginForm() {
     const handleMagicLinkSignIn = useCallback(async (e: React.FormEvent, targetEmail?: string) => {
         e.preventDefault();
         const finalEmail = targetEmail || email;
-        if (!finalEmail) {
-            toast({
-                variant: 'destructive',
-                title: 'Email is required',
-            });
-            return;
-        }
-
-        if (!auth) {
-            toast({ 
-                variant: 'destructive', 
-                title: 'Initialization Error', 
-                description: 'Firebase not ready.' 
-            });
-            return;
-        }
+        if (!finalEmail || !auth) return;
 
         setIsMagicLinkLoading(true);
-        
         try {
-            const currentOrigin = typeof window !== 'undefined' 
-                ? window.location.origin 
-                : 'https://brands.bakedbot.ai';
-            
             const actionCodeSettings = {
                 handleCodeInApp: true,
-                url: `${currentOrigin}/auth/callback`,
+                url: `${window.location.origin}/auth/callback`,
             };
-
             window.localStorage.setItem('emailForSignIn', finalEmail);
             await sendSignInLinkToEmail(auth, finalEmail, actionCodeSettings);
-
             setMagicLinkSent(true);
             setEmail(finalEmail);
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-            toast({
-                variant: 'destructive',
-                title: 'Failed to send link',
-                description: errorMessage,
-            });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Failed to send link', description: error.message });
         } finally {
             setIsMagicLinkLoading(false);
         }
@@ -235,18 +174,10 @@ export default function LoginForm() {
                     <CardHeader className="items-center text-center">
                         <Sparkles className="mx-auto h-12 w-12 text-primary" />
                         <CardTitle className="mt-4 text-2xl">Check Your Inbox!</CardTitle>
-                        <CardDescription>
-                            A magic sign-in link has been sent to <strong>{email}</strong>.
-                        </CardDescription>
+                        <CardDescription>A magic sign-in link has been sent to <strong>{email}</strong>.</CardDescription>
                     </CardHeader>
                     <CardFooter>
-                        <Button 
-                            variant="link" 
-                            className="w-full" 
-                            onClick={() => setMagicLinkSent(false)}
-                        >
-                            Back to Login
-                        </Button>
+                        <Button variant="link" className="w-full" onClick={() => setMagicLinkSent(false)}>Back to Login</Button>
                     </CardFooter>
                 </Card>
             </div>
@@ -257,9 +188,7 @@ export default function LoginForm() {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="mt-4 text-sm text-muted-foreground">
-                    Checking authentication...
-                </p>
+                <p className="mt-4 text-sm text-muted-foreground">Checking authentication...</p>
             </div>
         );
     }
@@ -270,91 +199,44 @@ export default function LoginForm() {
                 <CardHeader className="items-center space-y-4 text-center">
                     <Logo height={32} />
                     <div className="space-y-1">
-                        <CardTitle className="text-2xl">Customer Login</CardTitle>
-                        <CardDescription>Sign in or create an account to get started.</CardDescription>
+                        <CardTitle className="text-2xl">{title}</CardTitle>
+                        <CardDescription>{description}</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={handleGoogleSignIn}
-                        disabled={isGoogleLoading || isMagicLinkLoading}
-                    >
-                        {isGoogleLoading ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Signing in...
-                            </>
-                        ) : (
-                            <>
-                                <GoogleIcon />
-                                Continue with Google
-                            </>
-                        )}
+                    <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isMagicLinkLoading}>
+                        {isGoogleLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...</> : <><GoogleIcon /> Continue with Google</>}
                     </Button>
-                    
                     <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">Or with magic link</span>
-                        </div>
+                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or with magic link</span></div>
                     </div>
-                    
                     <form onSubmit={(e) => handleMagicLinkSignIn(e)} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Email Address</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="name@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                disabled={isGoogleLoading || isMagicLinkLoading}
-                                required
-                            />
+                            <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isGoogleLoading || isMagicLinkLoading} required />
                         </div>
-                        <Button 
-                            type="submit" 
-                            className="w-full" 
-                            disabled={isGoogleLoading || isMagicLinkLoading || !email}
-                        >
-                            {isMagicLinkLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Sending...
-                                </>
-                            ) : (
-                                <>
-                                    <KeyRound className="mr-2 h-4 w-4" />
-                                    Send Magic Link
-                                </>
-                            )}
+                        <Button type="submit" className="w-full" disabled={isGoogleLoading || isMagicLinkLoading || !email}>
+                            {isMagicLinkLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</> : <><KeyRound className="mr-2 h-4 w-4" /> Send Magic Link</>}
                         </Button>
                     </form>
                 </CardContent>
-                 {process.env.NODE_ENV === 'development' && (
+                {process.env.NODE_ENV === 'development' && devLogins.length > 0 && (
                     <CardFooter className="flex-col gap-2">
                         <div className="relative w-full">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-card px-2 text-muted-foreground">For Devs</span>
-                            </div>
+                            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                            <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">For Devs</span></div>
                         </div>
-                        <DropdownMenu>
+                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="secondary" className="w-full">
-                                    Dev Magic Login <ChevronDown className="ml-2 h-4 w-4" />
-                                </Button>
+                                <Button variant="secondary" className="w-full">Dev Magic Login <ChevronDown className="ml-2 h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-80">
-                                <DropdownMenuItem onClick={(e) => handleMagicLinkSignIn(e, 'customer@bakedbot.ai')}>
-                                    Login as customer@bakedbot.ai (Customer)
-                                </DropdownMenuItem>
+                                {devLogins.map(devLogin => (
+                                     <DropdownMenuItem key={devLogin.email} onClick={(e) => handleMagicLinkSignIn(e, devLogin.email)}>
+                                        {devLogin.label}
+                                     </DropdownMenuItem>
+                                ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </CardFooter>
@@ -363,9 +245,3 @@ export default function LoginForm() {
         </div>
     );
 }
-    
-
-    
-
-    
-
