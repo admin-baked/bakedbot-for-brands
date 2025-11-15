@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
 import { ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
@@ -12,8 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMemo } from 'react';
 
 export function ProductCard({ product }: { product: Product }) {
-  const { addToCart } = useCart();
-  const { selectedLocationId } = useStore();
+  const { addToCart, selectedLocationId } = useStore();
   const { toast } = useToast();
 
   const priceDisplay = useMemo(() => {
@@ -115,4 +113,3 @@ export function ProductCard({ product }: { product: Product }) {
     </div>
   );
 }
-

@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
 import { Plus } from 'lucide-react';
 import Image from 'next/image';
@@ -14,8 +13,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Skeleton } from './ui/skeleton';
 
 const ProductCarouselCard = ({ product }: { product: Product }) => {
-    const { addToCart } = useCart();
-    const { selectedLocationId } = useStore();
+    const { addToCart, selectedLocationId } = useStore();
     const { toast } = useToast();
 
     const priceDisplay = useMemo(() => {

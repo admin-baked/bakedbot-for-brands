@@ -12,7 +12,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
 import { useMenuData } from '@/hooks/use-menu-data';
 import Link from 'next/link';
@@ -21,9 +20,8 @@ import { MapPin, Minus, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export function CartSheet() {
-  const { isCartSheetOpen, setCartSheetOpen, selectedLocationId } = useStore();
+  const { isCartSheetOpen, setCartSheetOpen, selectedLocationId, cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useStore();
   const { locations } = useMenuData();
-  const { items, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
   const router = useRouter();
 
   const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
@@ -56,9 +54,9 @@ export function CartSheet() {
         
         <div className="flex-1 min-h-0">
           <ScrollArea className="h-full pr-4">
-            {items.length > 0 ? (
+            {cartItems.length > 0 ? (
                 <div className="space-y-4">
-                    {items.map(item => (
+                    {cartItems.map(item => (
                         <div key={item.id} className="flex gap-4">
                             <div className="relative h-16 w-16 rounded-md overflow-hidden border">
                                 <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
@@ -90,7 +88,7 @@ export function CartSheet() {
           </ScrollArea>
         </div>
 
-        {items.length > 0 && (
+        {cartItems.length > 0 && (
           <SheetFooter className="pt-4 border-t">
             <div className="w-full space-y-4">
               <div className="space-y-1 text-sm">

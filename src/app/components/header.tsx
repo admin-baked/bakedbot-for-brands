@@ -4,7 +4,6 @@
 import Link from 'next/link';
 import { Search, ShoppingBag, TestTube2, User, LogOut, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useCart } from '@/hooks/use-cart';
 import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import { Switch } from '@/components/ui/switch';
@@ -23,9 +22,8 @@ import { useHydrated } from '@/hooks/useHydrated';
 
 
 export default function Header() {
-    const { getItemCount } = useCart();
+    const { getItemCount, setCartSheetOpen } = useStore();
     const itemCount = getItemCount();
-    const { setCartSheetOpen } = useStore();
     const pathname = usePathname();
     const { user, isUserLoading } = useUser();
     const { auth } = useFirebase();
