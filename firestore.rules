@@ -1,10 +1,58 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // TEMPORARY: Allow all reads, auth required for writes
-    match /{document=**} {
+  
+    // Products, Categories, and Dispensaries are public read-only
+    match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      // Allow likes/dislikes only for authenticated users.
+      allow write: if request.auth != null; 
+    }
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if false; // Read-only
+    }
+     match /dispensaries/{locationId} {
+      allow read: if true;
+      allow write: if false; // Read-only from client, managed in dashboard
+    }
+
+    // A user can read/write to their own user document.
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId;
+      
+      // Interactions are private to each user
+      match /interactions/{interactionId} {
+         allow read, write: if request.auth.uid == userId;
+      }
+    }
+    
+    // Reviews can be read by anyone (as part of a subcollection).
+    // Writes are only allowed by the authenticated user who owns the review.
+    match /products/{productId}/reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if resource.data.userId == request.auth.uid;
+    }
+    
+     // Product embeddings can be read by anyone. Writes are done server-side.
+    match /products/{productId}/productReviewEmbeddings/{docId} {
+      allow read: if true;
+      allow write: if false; // Only server-side writes
+    }
+    
+    // Orders can be created by anyone, but only read by the user who owns it
+    // or by an authorized dispensary/admin role.
+    match /orders/{orderId} {
+      allow create: if true; // Anyone can submit an order
+      allow read, update: if request.auth.uid == resource.data.userId 
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['dispensary', 'owner', 'brand'];
+    }
+
+    // Default deny all other access
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
