@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -59,18 +60,28 @@ export async function submitReview(
     }
 
     const userId = decodedToken.uid; // Use the UID from the verified token
-    const reviewCollectionRef = firestore.collection(`products/${productId}/reviews`);
     
-    const dataToSave = {
-        ...reviewData,
-        userId, // Use the secure, server-verified user ID
-        productId, // Add the product ID for collection group queries
-        createdAt: FieldValue.serverTimestamp(),
-    };
-
     try {
+        // --- SECURITY FIX: Verify Product Exists ---
+        const productRef = firestore.collection('products').doc(productId);
+        const productSnap = await productRef.get();
+        if (!productSnap.exists) {
+            return {
+                message: 'This product does not exist. Cannot submit review.',
+                error: true,
+            };
+        }
+        
+        const reviewCollectionRef = productRef.collection('reviews');
+        
+        const dataToSave = {
+            ...reviewData,
+            userId, // Use the secure, server-verified user ID
+            productId, // Add the product ID for collection group queries
+            createdAt: FieldValue.serverTimestamp(),
+        };
+
         // This is a server-side admin write. It bypasses security rules.
-        // We do not use the client-side converter here.
         await reviewCollectionRef.add(dataToSave);
 
         revalidatePath(`/products/${productId}`);
@@ -84,7 +95,6 @@ export async function submitReview(
 
     } catch (serverError: any) {
         // This is a placeholder for a more robust error handling system
-        // that would ideally create and emit a contextual error.
         console.error("Server Action Error (submitReview):", serverError);
         return {
             message: 'Submission failed: An unexpected server error occurred.',
