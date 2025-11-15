@@ -1,6 +1,6 @@
 
 import sgMail from "@sendgrid/mail";
-import type { OrderInput } from "@/app/checkout/actions/submitOrder";
+import type { ServerOrderPayload } from "@/app/checkout/actions/submitOrder";
 import type { Location } from "@/firebase/converters";
 
 type SendArgs = {
@@ -8,7 +8,7 @@ type SendArgs = {
   bcc?: string[];
   subject: string;
   orderId: string;
-  order: OrderInput;
+  order: ServerOrderPayload;
   location: Location;
   recipientType: 'customer' | 'dispensary';
 };
