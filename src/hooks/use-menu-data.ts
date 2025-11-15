@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -51,7 +50,7 @@ export function useMenuData(): UseMenuDataResult {
     
     // If we are in live mode and live products are available, use them.
     // The `hydrated` check prevents a flash of demo data on initial client load.
-    if (hydrated && liveProducts && liveProducts.length > 0) {
+    if (hydrated && liveProducts) {
       return liveProducts;
     }
     
@@ -66,7 +65,7 @@ export function useMenuData(): UseMenuDataResult {
     if (isDemo) return demoLocations;
     
     // If we are in live mode and live locations are available, use them.
-    if (hydrated && liveLocations && liveLocations.length > 0) {
+    if (hydrated && liveLocations) {
       return liveLocations;
     }
 
