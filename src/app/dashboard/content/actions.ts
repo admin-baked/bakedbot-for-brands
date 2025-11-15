@@ -25,6 +25,7 @@ import { headers } from 'next/headers';
 
 const FormSchema = z.object({
   productName: z.string().min(3, 'Product name must be at least 3 characters.'),
+  productId: z.string().optional(),
   features: z.string().min(3, 'Features must be at least 3 characters.'),
   keywords: z.string().min(3, 'Keywords must be at least 3 characters.'),
   brandVoice: z.string().min(1, 'Please select a brand voice.'),
@@ -34,7 +35,7 @@ const FormSchema = z.object({
 
 export type DescriptionFormState = {
   message: string;
-  data: GenerateProductDescriptionOutput | null;
+  data: (GenerateProductDescriptionOutput & { productId?: string }) | null;
   error: boolean;
   fieldErrors?: {
     [key: string]: string[] | undefined;
@@ -59,6 +60,7 @@ export async function createProductDescription(
 ): Promise<DescriptionFormState> {
   const validatedFields = FormSchema.safeParse({
     productName: formData.get('productName'),
+    productId: formData.get('productId'),
     features: formData.get('features'),
     keywords: formData.get('keywords'),
     brandVoice: formData.get('brandVoice'),
@@ -75,16 +77,17 @@ export async function createProductDescription(
     };
   }
   
-  const { imageUrl, ...restOfData } = validatedFields.data;
+  const { imageUrl, productId, ...restOfData } = validatedFields.data;
 
   try {
     const result = await generateProductDescription({
       ...restOfData,
       imageUrl: imageUrl ?? undefined, // Pass existing URL or undefined
     } as GenerateProductDescriptionInput);
+
     return {
       message: 'Product description generated successfully.',
-      data: result,
+      data: { ...result, productId },
       error: false,
     };
   } catch (e) {
