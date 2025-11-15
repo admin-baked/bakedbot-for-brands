@@ -3,18 +3,18 @@ import { renderHook } from '@testing-library/react';
 import { useMenuData } from '../use-menu-data';
 import { useDemoMode } from '@/context/demo-mode';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import useHasMounted from '../use-has-mounted';
+import { useHydrated } from '../useHydrated';
 import { demoProducts, demoLocations } from '@/lib/data';
 import type { Product, Location } from '@/lib/types';
 
 // Mock the dependencies
 jest.mock('@/context/demo-mode');
 jest.mock('@/firebase/firestore/use-collection');
-jest.mock('../use-has-mounted');
+jest.mock('../useHydrated');
 
 const mockUseDemoMode = useDemoMode as jest.Mock;
 const mockUseCollection = useCollection as jest.Mock;
-const mockUseHasMounted = useHasMounted as jest.Mock;
+const mockUseHydrated = useHydrated as jest.Mock;
 
 const mockLiveProducts: Product[] = [
   { id: 'live-1', name: 'Live Product 1', category: 'Live', price: 10, prices: {}, imageUrl: '', imageHint: '', description: '' },
@@ -28,10 +28,10 @@ describe('useMenuData', () => {
     // Reset mocks before each test
     mockUseDemoMode.mockClear();
     mockUseCollection.mockClear();
-    mockUseHasMounted.mockClear();
+    mockUseHydrated.mockClear();
     
     // Default mock implementations
-    mockUseHasMounted.mockReturnValue(true);
+    mockUseHydrated.mockReturnValue(true);
     mockUseDemoMode.mockReturnValue({ isDemo: false, setIsDemo: jest.fn() });
     mockUseCollection.mockImplementation((query) => {
         // Distinguish between products and locations queries
@@ -69,7 +69,7 @@ describe('useMenuData', () => {
 
   it('should return loading state initially when in live mode', () => {
     mockUseCollection.mockReturnValue({ data: null, isLoading: true });
-    mockUseHasMounted.mockReturnValue(false); // Simulate initial render
+    mockUseHydrated.mockReturnValue(false); // Simulate initial render
 
     const { result } = renderHook(() => useMenuData());
 
@@ -105,15 +105,15 @@ describe('useMenuData', () => {
     expect(result.current.locations).toEqual(mockLiveLocations);
   });
 
-   it('should return demo arrays for live data if useCollection returns null and not mounted', () => {
-    mockUseHasMounted.mockReturnValue(false);
+   it('should return empty arrays for live data if useCollection returns null and not mounted', () => {
+    mockUseHydrated.mockReturnValue(false);
     mockUseCollection.mockReturnValue({ data: null, isLoading: false });
 
     const { result } = renderHook(() => useMenuData());
 
     expect(result.current.isLoading).toBe(true);
-    expect(result.current.products).toEqual(demoProducts);
-    expect(result.current.locations).toEqual(demoLocations);
+    expect(result.current.products).toEqual([]);
+    expect(result.current.locations).toEqual([]);
   });
 
 });
