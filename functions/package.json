@@ -1,5 +1,3 @@
-
-
 {
   "name": "functions",
   "description": "Cloud Functions for Firebase",
@@ -34,4 +32,3 @@
   },
   "private": true
 }
-

@@ -1,5 +1,3 @@
-
-
 /**
  * Import function triggers from their respective submodules:
  *
@@ -76,4 +74,3 @@ export const refreshAllReviewEmbeddings = onSchedule("every 24 hours", async () 
     }
     logger.info("Finished refreshing all review embeddings.");
 });
-

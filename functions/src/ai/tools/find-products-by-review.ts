@@ -1,5 +1,3 @@
-
-
 /**
  * @fileoverview An AI tool that finds products based on the semantic content of their reviews.
  * This is a copy of the main app's tool, intended for use within the Cloud Functions environment.
@@ -63,4 +61,3 @@ export const findProductsByReviewContent = ai.defineTool(
     return sortedProducts;
   }
 );
-
