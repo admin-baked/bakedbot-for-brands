@@ -7,6 +7,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
+import { demoProducts } from '@/lib/data';
 
 const RecommendProductsInputSchema = z.object({
   query: z.string().describe('The user query or description of what they are looking for.'),
@@ -69,5 +70,30 @@ const recommendProductsFlow = ai.defineFlow(
 );
 
 export async function recommendProducts(input: RecommendProductsInput): Promise<RecommendProductsOutput> {
+  // This is a temporary mock implementation until the vector search tool is fixed.
+  if (input.query.includes("sleep")) {
+    const p1 = demoProducts.find(p => p.id === '8'); // Comet Stick
+    const p2 = demoProducts.find(p => p.id === '4'); // OG Galaxy
+    return {
+      products: [
+        { productId: p1!.id, productName: p1!.name, reasoning: 'This vape is specifically designed for relaxation and sleep.'},
+        { productId: p2!.id, productName: p2!.name, reasoning: 'A classic indica strain known for its potent, calming effects.'},
+      ],
+      overallReasoning: 'Based on your request for sleep, I have selected two indica-dominant products that other customers have found effective for rest and relaxation. Sweet dreams! 😴',
+    }
+  }
+   if (input.query.includes("flavor") || input.query.includes("taste")) {
+    const p1 = demoProducts.find(p => p.id === '1'); // Cosmic Caramels
+    const p2 = demoProducts.find(p => p.id === '2'); // Giggle Gummies
+    return {
+      products: [
+        { productId: p1!.id, productName: p1!.name, reasoning: 'These rich and chewy caramels are a delicious treat.'},
+        { productId: p2!.id, productName: p2!.name, reasoning: 'If you prefer fruity flavors, these gummies are a great choice.'},
+      ],
+      overallReasoning: 'When it comes to flavor, our edibles are a top choice. I\'ve selected our popular caramels and gummies for you to consider.',
+    }
+  }
+
+  // Fallback to the original "offline" message.
   return recommendProductsFlow(input);
 }

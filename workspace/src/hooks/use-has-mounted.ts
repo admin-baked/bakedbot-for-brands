@@ -1,17 +1,2 @@
-// workspace/src/hooks/use-has-mounted.ts
-
-import { useEffect, useState } from "react";
-
-/**
- * Simple hook that returns true only after the component has mounted.
- * Useful to avoid hydration mismatches with browser-only APIs.
- */
-export default function useHasMounted(): boolean {
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  return hasMounted;
-}
+// This file is intentionally left blank as it is a duplicate of a file in the main `src` directory.
+// The entire `workspace` directory should be removed to avoid confusion and build errors.
