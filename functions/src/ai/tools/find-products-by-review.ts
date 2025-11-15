@@ -7,7 +7,7 @@
 import { ai } from '../genkit';
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import type { Product } from '../../../../types/domain';
+import type { Product } from '../../types/domain';
 import { z } from 'zod';
 
 
@@ -39,7 +39,7 @@ export const findProductsByReviewContent = ai.defineTool(
         // 1. Generate an embedding for the user's query.
         const embedding = await ai.embed({
             content: input.query,
-            model: 'googleai/text-embedding-004'
+            // The model is configured globally in the googleAI() plugin initialization
         });
 
         // 2. Perform a vector search on the product review embeddings.

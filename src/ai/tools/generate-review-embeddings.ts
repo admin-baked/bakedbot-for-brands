@@ -1,20 +1,11 @@
 /**
  * @fileOverview An AI tool that generates and saves a product review embedding.
- * This file lives in the `functions` directory and is deployed as part of the
- * Cloud Function environment.
  */
-import { ai } from '../genkit';
-import { initializeApp } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { ai } from '@/ai/genkit';
+import { createServerClient } from '@/firebase/server-client';
+import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import type { Review } from '../../types/domain';
-
-// Initialize Firebase Admin SDK if it hasn't been already
-if (!initializeApp.length) {
-    initializeApp();
-}
-
-const firestore = getFirestore();
+import type { Review } from '@/types/domain';
 
 export const GenerateReviewEmbeddingsInputSchema = z.object({
   productId: z.string(),
@@ -48,6 +39,7 @@ export const generateReviewEmbeddings = ai.defineTool(
     outputSchema: GenerateReviewEmbeddingsOutputSchema,
   },
   async ({ productId, brandId }) => {
+    const { firestore } = await createServerClient();
     const productRef = firestore.collection('products').doc(productId);
     const productSnap = await productRef.get();
 
@@ -78,7 +70,6 @@ export const generateReviewEmbeddings = ai.defineTool(
     
     const embedding = await ai.embed({
         content: summary,
-        // The model is configured globally in the googleAI() plugin initialization
     });
 
     const embeddingData = {

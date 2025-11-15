@@ -1,4 +1,3 @@
-
 import { renderHook, act } from '@testing-library/react';
 import { useCart as useCartStore } from '../use-cart';
 import type { Product } from '@/lib/types';
@@ -121,7 +120,7 @@ describe('useCart hook', () => {
         expect(result.current.items).toHaveLength(2);
 
         act(() => {
-            result.current.clearCart();
+            useCart.getState().clearCart();
         });
 
         expect(result.current.items).toHaveLength(0);
