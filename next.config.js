@@ -1,10 +1,6 @@
 
 /** @type {import('next').NextConfig} */
 
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-})
-
 const nextConfig = {
   reactStrictMode: true,
   images: {
@@ -31,11 +27,6 @@ const nextConfig = {
       },
     ],
   },
-  // Adding a harmless property to force cache invalidation and fix build errors.
-  // This can be removed later if desired.
-  experimental: {
-    serverComponentsExternalPackages: ['@react-pdf/renderer'],
-  },
 };
 
-module.exports = withBundleAnalyzer(nextConfig);
+module.exports = nextConfig;
