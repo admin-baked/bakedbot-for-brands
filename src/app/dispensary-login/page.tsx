@@ -1,8 +1,11 @@
-// This component was incorrectly configured as a route segment.
-// The exports for `dynamic` and `revalidate` have been removed to fix a build error.
-
-import DispensaryLoginForm from './components/login-form';
+import LoginForm from '../customer-login/components/login-form';
 
 export default function DispensaryLoginPage() {
-    return <DispensaryLoginForm />;
+    return (
+        <LoginForm 
+            title="Dispensary Portal"
+            description="Sign in to manage your orders."
+            devLogins={[{ email: 'dispensary@bakedbot.ai', label: 'Login as dispensary@bakedbot.ai (Dispensary)' }]}
+        />
+    );
 }
