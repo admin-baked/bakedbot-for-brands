@@ -552,12 +552,9 @@ export default function Chatbot() {
         return;
     }
 
-    const availableProducts = JSON.stringify(products.map(p => ({ id: p.id, name: p.name, description: p.description, category: p.category, price: p.price })));
-    
     try {
         const result: RecommendProductsOutput = await recommendProducts({
             query: query,
-            availableProducts: availableProducts,
         });
         
         const recommendedProductDetails = result.products.map(recommendedProd => {
@@ -646,11 +643,8 @@ export default function Chatbot() {
     }
     
     try {
-      const availableProducts = JSON.stringify(products.map(p => ({ id: p.id, name: p.name, description: p.description, category: p.category, price: p.price })));
-      
       const result: RecommendProductsOutput = await recommendProducts({
         query: currentInput,
-        availableProducts: availableProducts,
       });
         
       const recommendedProductDetails = result.products.map(recommendedProd => {
