@@ -154,7 +154,7 @@ export default function LoginForm({ title, description, devLogins = [] }: LoginF
     if (magicLinkSent) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-                <Card className="w-full max-w-md">
+                <Card className="w-full max-w-md" data-testid="magic-link-sent-card">
                     <CardHeader className="items-center text-center">
                         <Sparkles className="mx-auto h-12 w-12 text-primary" />
                         <CardTitle className="mt-4 text-2xl">Check Your Inbox!</CardTitle>
@@ -198,7 +198,7 @@ export default function LoginForm({ title, description, devLogins = [] }: LoginF
                     <form onSubmit={(e) => handleMagicLinkSignIn(e)} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Email Address</Label>
-                            <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isGoogleLoading || isMagicLinkLoading} required />
+                            <Input id="email" type="email" name="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isGoogleLoading || isMagicLinkLoading} required />
                         </div>
                         <Button type="submit" className="w-full" disabled={isGoogleLoading || isMagicLinkLoading || !email}>
                             {isMagicLinkLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</> : <><KeyRound className="mr-2 h-4 w-4" /> Send Magic Link</>}
@@ -213,11 +213,11 @@ export default function LoginForm({ title, description, devLogins = [] }: LoginF
                         </div>
                          <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="secondary" className="w-full">Dev Magic Login <ChevronDown className="ml-2 h-4 w-4" /></Button>
+                                <Button data-testid="dev-login-button" variant="secondary" className="w-full">Dev Magic Login <ChevronDown className="ml-2 h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-80">
                                 {devLogins.map(devLogin => (
-                                     <DropdownMenuItem key={devLogin.email} onClick={(e) => handleMagicLinkSignIn(e, devLogin.email)}>
+                                     <DropdownMenuItem key={devLogin.email} data-testid={`dev-login-item-${devLogin.email}`} onClick={(e) => handleMagicLinkSignIn(e, devLogin.email)}>
                                         {devLogin.label}
                                      </DropdownMenuItem>
                                 ))}

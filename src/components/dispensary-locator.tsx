@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -96,7 +95,8 @@ export function DispensaryLocator() {
                     const isFavorite = _hasHydrated && favoriteLocationId === loc.id;
                     return (
                     <Card 
-                        key={loc.id} 
+                        key={loc.id}
+                        data-testid={`location-card-${loc.id}`}
                         className={cn(
                             "text-left cursor-pointer transition-all w-80 shrink-0",
                             _hasHydrated && selectedLocationId === loc.id ? 'border-primary ring-2 ring-primary' : 'border-border'

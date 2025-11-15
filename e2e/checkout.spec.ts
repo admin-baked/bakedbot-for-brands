@@ -1,4 +1,3 @@
-
 import { test, expect } from '@playwright/test';
 
 test('full checkout flow', async ({ page }) => {
@@ -6,16 +5,17 @@ test('full checkout flow', async ({ page }) => {
     await page.goto('/');
 
     // 2. Select a location
-    await page.getByText('The Green Spot').click();
-    await expect(page.locator('.ring-primary')).toContainText('The Green Spot');
+    await page.getByTestId('location-card-1').click();
+    await expect(page.getByTestId('location-card-1')).toHaveClass(/ring-primary/);
 
     // 3. Find the "Cosmic Caramels" product card and add it to cart
-    const productCard = page.locator('.flex.flex-col.group.border', { has: page.locator('h3:has-text("Cosmic Caramels")') });
-    await productCard.locator('button:has-text("Add")').click();
+    const productCard = page.getByTestId('product-card-1');
+    await productCard.getByRole('button', { name: 'Add' }).click();
 
     // 4. Verify item is in cart by checking the pill
-    await expect(page.locator('.fixed.bottom-6')).toContainText('View Cart');
-    await expect(page.locator('.fixed.bottom-6 .inline-flex.items-center')).toContainText('1');
+    const cartPill = page.getByTestId('cart-pill');
+    await expect(cartPill).toContainText('View Cart');
+    await expect(cartPill.locator('span').last()).toContainText('1');
 
     // 5. Go to checkout
     await page.goto('/checkout');
@@ -31,6 +31,6 @@ test('full checkout flow', async ({ page }) => {
 
     // 8. Verify confirmation page
     await expect(page).toHaveURL(/\/order-confirmation\/.+/);
-    await expect(page.locator('h1', { hasText: 'Order Confirmed' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Order Confirmed' })).toBeVisible();
     await expect(page.getByText('Thank you, Test Customer!')).toBeVisible();
 });
