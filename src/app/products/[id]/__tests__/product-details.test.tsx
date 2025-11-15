@@ -1,5 +1,6 @@
 
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import ProductDetailsClient from '../components/product-details-client';
 import { useCart } from '@/hooks/use-cart';
 import { useStore } from '@/hooks/use-store';
@@ -8,7 +9,8 @@ import { useUser } from '@/firebase/auth/use-user';
 import * as Actions from '../actions';
 import type { Product } from '@/lib/types';
 import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
-import React from 'react';
+import React, { useReducer } from 'react';
+import { useFormState } from 'react-dom';
 
 // Mock the dependencies
 jest.mock('@/hooks/use-cart');
@@ -63,13 +65,14 @@ describe('ProductDetailsClient', () => {
     (useUser as jest.Mock).mockReturnValue({ user: null, isUserLoading: false });
 
     // Mock useTransition for the feedback test
-    jest.spyOn(React, 'useTransition').mockImplementation(() => [false, jest.fn((callback) => callback())]);
+    jest.spyOn(React, 'useTransition').mockImplementation(() => [false, (callback: () => void) => callback()]);
 
     // Mock useFormState for feedback
-    jest.spyOn(React, 'useFormState').mockImplementation(() => [{ message: '', error: false }, jest.fn()]);
+    (useFormState as jest.Mock).mockImplementation((action, initialState) => useReducer(() => initialState, initialState));
+
 
     // Default state: no location selected
-    (useStore as jest.Mock).mockReturnValue({ selectedLocationId: null });
+    (useStore as unknown as jest.Mock).mockReturnValue({ selectedLocationId: null });
   });
 
   it('renders product details correctly', () => {
@@ -97,7 +100,7 @@ describe('ProductDetailsClient', () => {
 
   it('adds item to cart and shows success toast when a location is selected', () => {
     // Override the store mock for this test
-    (useStore as jest.Mock).mockReturnValue({ selectedLocationId: 'loc1' });
+    (useStore as unknown as jest.Mock).mockReturnValue({ selectedLocationId: 'loc1' });
 
     render(<ProductDetailsClient product={mockProduct} summary={mockSummary} />);
     
@@ -126,7 +129,7 @@ describe('ProductDetailsClient', () => {
     await waitFor(() => {
         expect(mockUpdateProductFeedback).toHaveBeenCalled();
         // We can inspect the FormData object that was passed
-        const formData = mockUpdateProductFeedback.mock.calls[0][0];
+        const formData = mockUpdateProductFeedback.mock.calls[0][1];
         expect(formData.get('productId')).toBe('prod-1');
         expect(formData.get('feedbackType')).toBe('like');
     });

@@ -1,17 +1,20 @@
-
-'use server';
 /**
  * @fileOverview A Genkit tool for finding products by searching review content.
- *
- * - findProductsByReviewContent - A tool that uses vector search on review embeddings.
- * - FindProductsByReviewInput - The input type for the tool.
- * - FindProductsByReviewOutput - The return type for the tool.
+ * This file lives in the `functions` directory and is deployed as part of the
+ * Cloud Function environment.
  */
 
-import { ai } from '@/ai/genkit';
-import { createServerClient } from '@/firebase/server-client';
-import type { Product } from '@/firebase/converters';
+import { ai } from '../genkit';
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import type { Product } from '../../../../types/domain';
 import { z } from 'zod';
+
+
+// Initialize Firebase Admin SDK if it hasn't been already
+if (!initializeApp.length) {
+    initializeApp();
+}
 
 export const FindProductsByReviewInputSchema = z.object({
     query: z.string().describe('The natural language query to search for in product reviews.'),
@@ -31,7 +34,7 @@ export const findProductsByReviewContent = ai.defineTool(
         outputSchema: FindProductsByReviewOutputSchema,
     },
     async (input) => {
-        const { firestore, auth } = await createServerClient();
+        const firestore = getFirestore();
         
         // 1. Generate an embedding for the user's query.
         const embedding = await ai.embed({
