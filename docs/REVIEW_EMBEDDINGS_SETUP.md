@@ -71,4 +71,3 @@ Finally, run the one-time script to create embeddings for all the products that 
 ## **✅ Setup Complete!**
 
 Your application is now equipped with semantic search on product reviews. The `findProductsByReviewContent` tool is ready to be used in your AI flows.
-
