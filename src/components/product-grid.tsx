@@ -125,7 +125,7 @@ export function ProductGrid() {
          <p className="mt-1 text-sm text-muted-foreground">
              {isDemo
                 ? "Check your demo data source."
-                : <>You can switch to Demo Mode or <Link href="/dashboard/settings" className="text-primary underline">import your products</Link> in the dashboard.</>
+                : <>You can switch to Demo Mode or <Link href="/dashboard/settings#data" className="text-primary underline">import your products</Link> in the dashboard.</>
             }
         </p>
       </div>
