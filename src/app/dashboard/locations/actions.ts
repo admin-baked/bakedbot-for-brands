@@ -13,7 +13,7 @@ const LocationSchema = z.object({
     state: z.string().min(1, 'State is required'),
     zip: z.string().min(1, 'Zip code is required'),
     phone: z.string().optional(),
-    email: z.string().email('Invalid email').optional().or(z.literal('')),
+    email: z.string().email('A valid fulfillment email is required.'),
 });
 
 type FormState = {
