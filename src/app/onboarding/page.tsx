@@ -40,7 +40,7 @@ export default function OnboardingPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     // State for user role
-    const [role, setRole] = useState<'owner' | 'dispensary' | 'customer' | null>(null);
+    const [role, setRole] = useState<'owner' | 'brand' | 'dispensary' | 'customer' | null>(null);
 
     // State for location step
     const [locationView, setLocationView] = useState<'claim' | 'create'>('claim');
