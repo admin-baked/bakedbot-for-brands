@@ -7,7 +7,7 @@ This directory contains scripts and documentation to help you audit, clean, and 
 
 1.  **Run the Quick Audit**: This script is fast and requires no new packages. It finds low-hanging fruit like `console.log` statements and commented-out code.
     ```bash
-    ./scripts/quick-audit.sh
+    npm run audit
     ```
 
 2.  **Review Reports**: Check the newly created `audit-reports/` directory for text files summarizing the findings.
