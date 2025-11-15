@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { z } from 'zod';
@@ -7,14 +8,13 @@ import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cookies } from 'next/headers';
 
 
 const ReviewSchema = z.object({
   productId: z.string().min(1, 'Please select a product.'),
   rating: z.coerce.number().min(1, 'Please provide a rating.').max(5),
   text: z.string().min(10, 'Review must be at least 10 characters long.'),
-  // The ID token is now a required part of the schema for validation
-  idToken: z.string().min(1, 'Authentication token is missing.'),
 });
 
 export type ReviewFormState = {
@@ -29,12 +29,8 @@ export async function submitReview(
 ): Promise<ReviewFormState> {
     const { auth: adminAuth, firestore } = await createServerClient();
     
-    const validatedFields = ReviewSchema.safeParse({
-        productId: formData.get('productId'),
-        rating: formData.get('rating'),
-        text: formData.get('text'),
-        idToken: formData.get('idToken'), // Get the token from the form
-    });
+    // Server-side validation
+    const validatedFields = ReviewSchema.safeParse(Object.fromEntries(formData));
 
     if (!validatedFields.success) {
         return {
@@ -44,13 +40,15 @@ export async function submitReview(
         };
     }
     
-    // Destructure after successful validation
-    const { productId, idToken, ...reviewData } = validatedFields.data;
-    
+    const { productId, ...reviewData } = validatedFields.data;
+
     let decodedToken;
     try {
-        // Securely verify the ID token on the server
-        decodedToken = await adminAuth.verifyIdToken(idToken);
+        const sessionCookie = cookies().get('__session')?.value;
+        if (!sessionCookie) {
+            throw new Error('User not authenticated.');
+        }
+        decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
     } catch (authError) {
         console.error("Server Action Auth Error:", authError);
         return {
@@ -59,10 +57,9 @@ export async function submitReview(
         };
     }
 
-    const userId = decodedToken.uid; // Use the UID from the verified token
+    const userId = decodedToken.uid;
     
     try {
-        // --- SECURITY FIX: Verify Product Exists ---
         const productRef = firestore.collection('products').doc(productId);
         const productSnap = await productRef.get();
         if (!productSnap.exists) {
@@ -76,12 +73,11 @@ export async function submitReview(
         
         const dataToSave = {
             ...reviewData,
-            userId, // Use the secure, server-verified user ID
-            productId, // Add the product ID for collection group queries
+            userId, 
+            productId,
             createdAt: FieldValue.serverTimestamp(),
         };
 
-        // This is a server-side admin write. It bypasses security rules.
         await reviewCollectionRef.add(dataToSave);
 
         revalidatePath(`/products/${productId}`);
@@ -94,7 +90,6 @@ export async function submitReview(
         };
 
     } catch (serverError: any) {
-        // This is a placeholder for a more robust error handling system
         console.error("Server Action Error (submitReview):", serverError);
         return {
             message: 'Submission failed: An unexpected server error occurred.',

@@ -30,14 +30,14 @@ export function useMenuData(): UseMenuDataResult {
 
   // Step 1: Prepare Firestore queries for live data.
   const productsQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (isDemo || !firestore) return null;
     return query(collection(firestore, 'products').withConverter(productConverter));
-  }, [firestore]);
+  }, [firestore, isDemo]);
 
   const locationsQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (isDemo || !firestore) return null;
     return query(collection(firestore, 'dispensaries').withConverter(locationConverter));
-  }, [firestore]);
+  }, [firestore, isDemo]);
 
   // Step 2: Fetch the live data from Firestore using our real-time hook.
   const { data: liveProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
@@ -51,13 +51,13 @@ export function useMenuData(): UseMenuDataResult {
     // If we are in live mode and live products are available, use them.
     // The `hydrated` check prevents a flash of demo data on initial client load.
     if (hydrated && liveProducts) {
-      return liveProducts;
+      // If live data is empty, fall back to demo data for a better presentation.
+      return liveProducts.length > 0 ? liveProducts : demoProducts;
     }
     
     // Fallback: If in live mode but the collection is empty or still loading,
-    // or if the component hasn't mounted yet, default to an empty array.
-    // This prevents showing demo data when the live catalog is legitimately empty.
-    return [];
+    // or if the component hasn't mounted yet, default to demo data.
+    return demoProducts;
   }, [isDemo, hydrated, liveProducts]);
 
   const locations = useMemo<Location[]>(() => {
@@ -66,11 +66,11 @@ export function useMenuData(): UseMenuDataResult {
     
     // If we are in live mode and live locations are available, use them.
     if (hydrated && liveLocations) {
-      return liveLocations;
+       return liveLocations.length > 0 ? liveLocations : demoLocations;
     }
 
     // Fallback for locations.
-    return [];
+    return demoLocations;
   }, [isDemo, hydrated, liveLocations]);
 
   // Step 4: Determine the loading state.
