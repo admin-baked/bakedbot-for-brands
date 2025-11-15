@@ -93,7 +93,9 @@ export async function saveBakedBotApiKey(prevState: any, formData: FormData) {
 async function importFromCsv(formData: FormData, fileFieldName: string, collectionName: string, idField: string) {
     const validatedFile = FileSchema.safeParse(formData.get(fileFieldName));
     if (!validatedFile.success) {
-        return { message: validatedFile.error.flatten().fieldErrors.productsFile?.[0] || 'Invalid file.', error: true };
+        const fieldErrors = validatedFile.error.flatten().fieldErrors;
+        const errorMessage = (fieldErrors as any)?.[fileFieldName]?.[0] || 'Invalid file.';
+        return { message: errorMessage, error: true };
     }
     const { data: file } = validatedFile;
 
