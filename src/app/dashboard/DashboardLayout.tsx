@@ -107,7 +107,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           const userIsCeo = data.role === 'owner' || data.isCeo;
           setIsCeoMode(userIsCeo);
           
-          // --- Role-based redirection logic ---
+          // --- CENTRALIZED ROLE-BASED REDIRECTION LOGIC ---
           if (data.onboardingCompleted === false && pathname !== '/onboarding') {
               router.replace('/onboarding');
           } else if (data.role === 'customer' && pathname.startsWith('/dashboard')) {
