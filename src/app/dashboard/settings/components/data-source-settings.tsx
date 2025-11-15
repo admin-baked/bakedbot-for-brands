@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Upload, Download, Loader2, Database, TestTube2, PlusCircle, FileText } from "lucide-react";
+import { Upload, Download, Loader2, Database, TestTube2, PlusCircle, FileText, MapPin } from "lucide-react";
 import Link from "next/link";
 import { importProductsFromCsv, importLocationsFromCsv, addProductAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +16,8 @@ import { Switch } from '@/components/ui/switch';
 import { useDemoMode } from '@/context/demo-mode';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 const CsvSubmitButton = ({ label }: { label: string }) => {
   const { pending } = useFormStatus();

@@ -7,10 +7,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { createServerClient } from '@/firebase/server-client';
-import admin from 'firebase-admin';
-import type { Product } from '@/lib/types';
-import { findProductsByReviewContent } from './tools/find-products-by-review';
 
 const RecommendProductsInputSchema = z.object({
   query: z.string().describe('The user query or description of what they are looking for.'),
@@ -62,28 +58,13 @@ const recommendProductsFlow = ai.defineFlow(
     outputSchema: RecommendProductsOutputSchema,
   },
   async (input) => {
-    try {
-      // Step 1: Use vector similarity to find the most relevant products
-      const similarProducts = await findProductsByReviewContent.run({ query: input.query, limit: 5 });
-      
-      if (!similarProducts || similarProducts.length === 0) {
-        return {
-          products: [],
-          overallReasoning: "I couldn't find any products that matched your request. Could you try describing it a different way?",
-        };
-      }
-
-      // Step 2: Pass the query and curated list to the LLM for final recommendation
-      const {output} = await recommendProductsPrompt({
-        ...input,
-        availableProducts: JSON.stringify(similarProducts),
-      });
-
-      return output!;
-    } catch (error) {
-      console.error('❌ Error in recommendProductsFlow:', error);
-      throw error;
-    }
+    // This flow is simplified to return a mock response as the vector search
+    // tool has been removed. A real implementation would first call a tool
+    // to find relevant products based on the input query.
+    return {
+      products: [],
+      overallReasoning: "I can't make recommendations right now as my product search tool is offline. Please ask me about a specific product!",
+    };
   }
 );
 
