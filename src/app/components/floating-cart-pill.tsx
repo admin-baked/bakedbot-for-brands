@@ -5,7 +5,6 @@ import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useHydrated } from '@/hooks/useHydrated';
-import { SafeBadge } from '@/components/ui/SafeBadge';
 
 export function FloatingCartPill() {
   const { getItemCount, setCartSheetOpen } = useStore();
@@ -24,7 +23,9 @@ export function FloatingCartPill() {
       >
         <ShoppingBag className="mr-4" />
         <span>View Cart</span>
-        <SafeBadge value={itemCount} />
+        <span className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary-foreground text-primary font-bold text-xs">
+            {itemCount}
+        </span>
       </Button>
     </div>
   );
