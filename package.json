@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "test:e2e": "npx playwright install && playwright test",
+    "test:e2e": "npx playwright install && npx playwright install-deps && playwright test",
     "deploy-functions": "firebase deploy --only functions",
     "init-embeddings": "npx tsx scripts/init-review-embeddings.ts",
     "audit": "bash ./scripts/quick-audit.sh",
