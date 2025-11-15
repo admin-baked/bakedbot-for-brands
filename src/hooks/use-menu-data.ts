@@ -30,7 +30,6 @@ export function useMenuData(): UseMenuDataResult {
   const { firestore } = useFirebase();
 
   // Step 1: Prepare Firestore queries for live data.
-  // These will only be executed by useCollection if not in demo mode.
   const productsQuery = useMemo(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products').withConverter(productConverter));
@@ -47,22 +46,36 @@ export function useMenuData(): UseMenuDataResult {
 
   // Step 3: Decide which data source to return.
   const products = useMemo<Product[]>(() => {
-    // If demo mode is active, always return the static demo products.
+    // If demo mode is on, always use demo data.
     if (isDemo) return demoProducts;
-    // Otherwise, return the live products once they have been fetched on the client.
-    return hasMounted && liveProducts ? liveProducts : [];
+    
+    // If we are in live mode and live products are available, use them.
+    // The `hasMounted` check prevents a flash of demo data on initial client load.
+    if (hasMounted && liveProducts && liveProducts.length > 0) {
+      return liveProducts;
+    }
+    
+    // Fallback: If in live mode but the collection is empty or still loading,
+    // or if the component hasn't mounted yet, default to demo products.
+    return demoProducts;
   }, [isDemo, hasMounted, liveProducts]);
 
   const locations = useMemo<Location[]>(() => {
-    // If demo mode is active, always return the static demo locations.
+    // If demo mode is on, always use demo data.
     if (isDemo) return demoLocations;
-    // Otherwise, return the live locations.
-    return hasMounted && liveLocations ? liveLocations : [];
+    
+    // If we are in live mode and live locations are available, use them.
+    if (hasMounted && liveLocations && liveLocations.length > 0) {
+      return liveLocations;
+    }
+
+    // Fallback for locations.
+    return demoLocations;
   }, [isDemo, hasMounted, liveLocations]);
 
   // Step 4: Determine the loading state.
-  // Loading is true if we are in live mode and either of the collections are still loading.
-  const isLoading = isDemo ? false : (!hasMounted || areProductsLoading || areLocationsLoadingFirestore);
+  // Loading is true only if we are in live mode and data is still being fetched.
+  const isLoading = !isDemo && (!hasMounted || areProductsLoading || areLocationsLoadingFirestore);
 
   // Step 5: Return the final data package.
   return {
