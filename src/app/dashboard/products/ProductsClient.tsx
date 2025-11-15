@@ -18,11 +18,12 @@ export default function ProductsClient() {
   const formattedProducts = useMemo(() => {
     if (!products) return [];
     
+    // Ensure price is always a valid number before formatting
     return products.map((product) => ({
         id: product.id,
         name: product.name,
         category: product.category,
-        price: `$${product.price.toFixed(2)}`,
+        price: product.price ? `$${product.price.toFixed(2)}` : '$0.00',
         likes: product.likes || 0,
         dislikes: product.dislikes || 0,
     }));
@@ -63,9 +64,9 @@ export default function ProductsClient() {
             </p>
         </div>
         <Button asChild>
-            <Link href="/dashboard/settings#data">
+            <Link href="/dashboard/settings?tab=data">
                 <PlusCircle className="mr-2" />
-                Import/Add Products
+                Add or Import Products
             </Link>
         </Button>
       </div>

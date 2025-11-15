@@ -6,12 +6,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, PlusCircle, MapPin, Trash2, Pencil, Mail, Loader2 } from 'lucide-react';
-import Link from 'next/link';
+import { PlusCircle, MapPin, Trash2, Pencil, Mail, Loader2 } from 'lucide-react';
 import DeleteLocationDialog from './components/delete-location-dialog';
 import EditLocationDialog from './components/edit-location-dialog';
 import { useToast } from '@/hooks/use-toast';
-import * as Papa from 'papaparse';
 import type { Location } from '@/firebase/converters';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useFormState, useFormStatus } from 'react-dom';
@@ -60,20 +58,6 @@ export default function LocationsClient() {
     }
   }, [addState, toast]);
 
-
-  const handleCsvUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-        // This is a simplified approach for the demo.
-        // A robust solution would parse the CSV and call a server action for each row.
-        console.log("CSV upload is a mock for this component. Please use the data import in Settings for full functionality.");
-        toast({
-            title: "CSV Import (Mock)",
-            description: `File "${file.name}" selected. Use Settings > Data for the real import.`,
-        });
-    }
-  };
-
   const openDeleteDialog = (location: Location) => {
     setDialogState({ ...dialogState, deleteOpen: true, selectedLocation: location });
   };
@@ -89,85 +73,8 @@ export default function LocationsClient() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Locations</h1>
           <p className="text-muted-foreground">
-            Manage your dispensary locations for the product locator.
+            Manage your dispensary locations for the product locator. Add locations here or bulk import them from the Settings page.
           </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          <Card>
-            <form action={addFormAction} ref={formRef}>
-              <CardHeader>
-                <CardTitle>Add a Location</CardTitle>
-                <CardDescription>Manually enter a single dispensary location.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="loc-name">Location Name</Label>
-                  <Input id="loc-name" name="name" placeholder="e.g., Green Leaf Central" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="loc-address">Street Address</Label>
-                  <Input id="loc-address" name="address" placeholder="123 Main St" required />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="loc-city">City</Label>
-                    <Input id="loc-city" name="city" placeholder="Metropolis" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="loc-state">State</Label>
-                    <Input id="loc-state" name="state" placeholder="IL" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="loc-zip">Zip Code</Label>
-                    <Input id="loc-zip" name="zip" placeholder="12345" required />
-                  </div>
-                </div>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="loc-phone">Phone Number</Label>
-                        <Input id="loc-phone" name="phone" type="tel" placeholder="(555) 123-4567" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="loc-email">Fulfillment Email</Label>
-                        <Input id="loc-email" name="email" type="email" placeholder="orders@example.com" required />
-                    </div>
-                 </div>
-              </CardContent>
-              <CardFooter>
-                <AddLocationSubmitButton />
-              </CardFooter>
-            </form>
-          </Card>
-
-          <div className="space-y-8">
-              <Card>
-                  <CardHeader>
-                      <CardTitle>Bulk Import</CardTitle>
-                      <CardDescription>Upload a CSV file with multiple locations.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                      <Label htmlFor="csv-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted">
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                              <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                              <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                              <p className="text-xs text-muted-foreground">CSV file up to 5MB</p>
-                          </div>
-                          <Input id="csv-upload" type="file" className="hidden" accept=".csv" onChange={handleCsvUpload} />
-                      </Label>
-                  </CardContent>
-                  <CardFooter className="flex-col items-start gap-2">
-                      <p className="text-sm text-muted-foreground">
-                          Make sure your CSV is formatted correctly.
-                      </p>
-                      <Button variant="link" asChild className="p-0 h-auto">
-                          <Link href="/sample-locations.csv" download>
-                              <Download className="mr-2" /> Download sample .csv
-                          </Link>
-                      </Button>
-                  </CardFooter>
-              </Card>
-          </div>
         </div>
         
          <Card>
@@ -215,7 +122,7 @@ export default function LocationsClient() {
                   <div className="text-center py-12 text-muted-foreground">
                       <MapPin className="mx-auto h-12 w-12" />
                       <p className="mt-4">No locations added yet.</p>
-                      <p className="text-sm">Add a location using the form above.</p>
+                      <p className="text-sm">Add a location using the form in Settings.</p>
                   </div>
               )}
           </CardContent>
