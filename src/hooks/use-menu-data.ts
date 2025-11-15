@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -9,7 +10,6 @@ import { useDemoMode } from '@/context/demo-mode';
 import { demoProducts, demoLocations } from '@/lib/data';
 import useHasMounted from '@/hooks/use-has-mounted';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { usePathname } from 'next/navigation';
 
 
 export type UseMenuDataResult = {
@@ -22,35 +22,20 @@ export type UseMenuDataResult = {
 export function useMenuData(): UseMenuDataResult {
   const { isDemo } = useDemoMode();
   const hasMounted = useHasMounted();
-  const pathname = usePathname();
-
   const { firestore } = useFirebase();
-  
-  const isAuthOrDashboardPage = useMemo(() => {
-    if (!pathname) return false;
-    return pathname.startsWith('/dashboard') || 
-           pathname.startsWith('/account') ||
-           pathname.startsWith('/onboarding') ||
-           pathname.startsWith('/auth') ||
-           pathname.startsWith('/customer-login') ||
-           pathname.startsWith('/brand-login') ||
-           pathname.startsWith('/dispensary-login') ||
-           pathname.startsWith('/ceo');
-  }, [pathname]);
 
   const productsQuery = useMemo(() => {
-    if (!firestore || isAuthOrDashboardPage) return null;
+    if (!firestore) return null;
     return query(collection(firestore, 'products').withConverter(productConverter));
-  }, [firestore, isAuthOrDashboardPage]);
+  }, [firestore]);
 
   const locationsQuery = useMemo(() => {
-    if (!firestore || isAuthOrDashboardPage) return null;
+    if (!firestore) return null;
     return query(collection(firestore, 'dispensaries').withConverter(locationConverter));
-  }, [firestore, isAuthOrDashboardPage]);
+  }, [firestore]);
 
   // Use our existing live data hooks
   const { data: liveProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
-  
   const { data: liveLocations, isLoading: areLocationsLoadingFirestore } = useCollection<Location>(locationsQuery);
 
   // IMPORTANT: keep SSR and initial CSR consistent to avoid hydration warnings.
