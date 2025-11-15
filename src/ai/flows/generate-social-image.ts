@@ -39,19 +39,19 @@ const prompt = ai.definePrompt({
   Your task is to generate a compelling, eye-catching image that has viral potential for a social media post about a cannabis product.
   The image should be vibrant, modern, share-worthy, and suitable for platforms like Instagram and Twitter.
 
-  Incorporate the provided brand logo as a prominent watermark on the generated image. The watermark must be tastefully placed but clearly visible.
-  If a product packaging image is provided, use its style, colors, and branding as inspiration for the new image you create.
+  Use the style, colors, and branding from the provided brand logo as creative inspiration for the generated image.
+  If a product packaging image is also provided, use its style as a secondary source of inspiration.
 
   Image Prompt:
   - Product Name: {{{productName}}}
   - Concept/Features: {{{features}}}
   - Brand Voice: {{{brandVoice}}}
 
-  Logo to use as watermark:
+  Brand Logo (use for creative inspiration):
   {{media url=logoDataUri}}
   {{#if imageUrl}}
   
-  Reference packaging image (use for inspiration):
+  Reference packaging image (use for secondary inspiration):
   {{media url=imageUrl}}
   {{/if}}
   `,
