@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "test:e2e": "npx playwright install && npx playwright install-deps && playwright test",
+    "test:e2e": "npx playwright install --with-deps && playwright test",
     "deploy-functions": "firebase deploy --only functions",
     "init-embeddings": "npx tsx scripts/init-review-embeddings.ts",
     "audit": "bash ./scripts/quick-audit.sh",
@@ -64,6 +64,7 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^14.2.4",
+    "@playwright/test": "^1.45.1",
     "@tailwindcss/container-queries": "^0.1.0",
     "@testing-library/jest-dom": "^6.4.6",
     "@testing-library/react": "^16.0.0",
