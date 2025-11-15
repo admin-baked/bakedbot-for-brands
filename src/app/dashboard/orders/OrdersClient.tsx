@@ -18,37 +18,35 @@ export default function OrdersClient() {
   const { user, isUserLoading } = useUser();
   const { locations } = useMenuData(); 
   
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userClaims, setUserClaims] = useState<any>(null);
   
   useEffect(() => {
-    if (user && firestore) {
-      const unsub = onSnapshot(doc(firestore, 'users', user.uid), (doc) => {
-        setUserProfile(doc.data());
+    if (user) {
+      user.getIdTokenResult().then(idTokenResult => {
+          setUserClaims(idTokenResult.claims);
       });
-      return () => unsub();
     }
-  }, [user, firestore]);
+  }, [user]);
 
   const ordersQuery = useMemo(() => {
-    // CRITICAL FIX: Do not build the query until the user profile is loaded.
-    if (!firestore || !userProfile) return null;
+    // CRITICAL FIX: Do not build the query until the user claims are loaded.
+    if (!firestore || !userClaims) return null;
     
     const baseQuery = collection(firestore, 'orders').withConverter(orderConverter);
 
-    // For dispensary managers, only show orders for their location
-    if (userProfile.role === 'dispensary' && userProfile.locationId) {
-        return query(baseQuery, where('locationId', '==', userProfile.locationId));
+    // For dispensary managers, only show orders for their location from the secure claim
+    if (userClaims.role === 'dispensary' && userClaims.locationId) {
+        return query(baseQuery, where('locationId', '==', userClaims.locationId));
     }
     
     // For brand/owner, show all orders
-    if (userProfile.role === 'brand' || userProfile.role === 'owner') {
+    if (userClaims.role === 'brand' || userClaims.role === 'owner') {
         return query(baseQuery);
     }
 
     // Default to a query that returns nothing if role isn't right
-    // This prevents accidental data leakage to customer roles on this page.
     return query(baseQuery, where('userId', '==', 'nonexistent-user'));
-  }, [firestore, userProfile]);
+  }, [firestore, userClaims]);
   
   const { data: orders, isLoading: areOrdersLoading } = useCollection<OrderDoc>(ordersQuery);
   
@@ -70,7 +68,7 @@ export default function OrdersClient() {
     }));
   }, [orders, locations]);
 
-  const isLoading = areOrdersLoading || isUserLoading || !userProfile;
+  const isLoading = areOrdersLoading || isUserLoading || !userClaims;
 
   if (isLoading) {
     return (
