@@ -96,7 +96,7 @@ export default function EditLocationDialog({ isOpen, setIsOpen, location }: Edit
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="edit-loc-email">Fulfillment Email</Label>
-                    <Input id="edit-loc-email" name="email" type="email" defaultValue={location?.email || ''} />
+                    <Input id="edit-loc-email" name="email" type="email" defaultValue={location?.email || ''} required />
                 </div>
             </div>
             </div>

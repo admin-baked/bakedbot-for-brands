@@ -130,7 +130,7 @@ export default function LocationsClient() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="loc-email">Fulfillment Email</Label>
-                        <Input id="loc-email" name="email" type="email" placeholder="orders@example.com" />
+                        <Input id="loc-email" name="email" type="email" placeholder="orders@example.com" required />
                     </div>
                  </div>
               </CardContent>

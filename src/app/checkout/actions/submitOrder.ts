@@ -66,8 +66,8 @@ export async function submitOrder(input: OrderInput) {
   const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
   const location = await getLocationData(locationId);
 
-  if (!location) {
-      return { ok: false, error: 'Selected dispensary location could not be found.' };
+  if (!location || !location.email) {
+      return { ok: false, error: 'Selected dispensary location could not be found or is missing a fulfillment email.' };
   }
 
   const { firestore } = await createServerClient();
@@ -96,20 +96,15 @@ export async function submitOrder(input: OrderInput) {
     });
 
     // Email to dispensary for fulfillment
-    const fulfillmentEmail = location.email;
-    if (fulfillmentEmail) {
-        await sendOrderEmail({
-            to: fulfillmentEmail,
-            bcc: isDemo ? ['jack@bakedbot.ai'] : undefined, // BCC for demo purposes
-            subject: `New Online Order #${orderId.substring(0,7)} from BakedBot`,
-            orderId: orderId,
-            order: validation.data,
-            recipientType: 'dispensary',
-            location: location,
-        });
-    } else {
-         console.warn(`No fulfillment email found for location ${location.name} (${location.id}). Skipping dispensary notification.`);
-    }
+    await sendOrderEmail({
+        to: location.email,
+        bcc: isDemo ? ['jack@bakedbot.ai'] : undefined, // BCC for demo purposes
+        subject: `New Online Order #${orderId.substring(0,7)} from BakedBot`,
+        orderId: orderId,
+        order: validation.data,
+        recipientType: 'dispensary',
+        location: location,
+    });
 
   } catch (err) {
     console.error(`sendOrderEmail failed for order ${orderId} (non-blocking):`, err);
