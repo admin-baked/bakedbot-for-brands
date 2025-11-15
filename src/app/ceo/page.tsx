@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
 import { useStore } from '@/hooks/use-store';
 import { Button } from '@/components/ui/button';
