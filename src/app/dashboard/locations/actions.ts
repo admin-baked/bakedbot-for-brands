@@ -4,6 +4,7 @@
 import { createServerClient } from '@/firebase/server-client';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { cookies } from 'next/headers';
 
 const LocationSchema = z.object({
     id: z.string().optional(),
@@ -21,38 +22,56 @@ type FormState = {
     error: boolean;
 };
 
+// Helper function to verify user role from session cookie
+async function verifyUserRole(requiredRole: 'owner' | 'dispensary' | 'brand') {
+    const { auth, firestore } = await createServerClient();
+    const sessionCookie = cookies().get('__session')?.value;
+    if (!sessionCookie) {
+        throw new Error('Authentication required. Please sign in.');
+    }
+    
+    const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
+    if (decodedToken.role !== requiredRole) {
+        throw new Error(`Permission denied. User does not have '${requiredRole}' role.`);
+    }
+    return decodedToken;
+}
+
+
 async function revalidateLocationPaths() {
     revalidatePath('/dashboard/locations');
     revalidatePath('/'); // For public locator
 }
 
 export async function addLocationAction(prevState: FormState, formData: FormData): Promise<FormState> {
-    const validatedFields = LocationSchema.omit({id: true}).safeParse(Object.fromEntries(formData.entries()));
-
-    if (!validatedFields.success) {
-        return { error: true, message: 'Invalid form data.' };
-    }
-
     try {
+        await verifyUserRole('owner'); // SECURITY: Only owners can add locations
+        const validatedFields = LocationSchema.omit({id: true}).safeParse(Object.fromEntries(formData.entries()));
+
+        if (!validatedFields.success) {
+            return { error: true, message: 'Invalid form data.' };
+        }
+
         const { firestore } = await createServerClient();
         await firestore.collection('dispensaries').add(validatedFields.data);
         await revalidateLocationPaths();
         return { error: false, message: `${validatedFields.data.name} has been added.` };
+
     } catch (e: any) {
         return { error: true, message: `Failed to add location: ${e.message}` };
     }
 }
 
 export async function updateLocationAction(prevState: FormState, formData: FormData): Promise<FormState> {
-    const validatedFields = LocationSchema.safeParse(Object.fromEntries(formData.entries()));
-
-    if (!validatedFields.success || !validatedFields.data.id) {
-        return { error: true, message: 'Invalid form data or missing ID.' };
-    }
-
-    const { id, ...dataToUpdate } = validatedFields.data;
-
     try {
+        await verifyUserRole('owner'); // SECURITY: Only owners can update locations
+        const validatedFields = LocationSchema.safeParse(Object.fromEntries(formData.entries()));
+
+        if (!validatedFields.success || !validatedFields.data.id) {
+            return { error: true, message: 'Invalid form data or missing ID.' };
+        }
+
+        const { id, ...dataToUpdate } = validatedFields.data;
         const { firestore } = await createServerClient();
         await firestore.collection('dispensaries').doc(id).set(dataToUpdate, { merge: true });
         await revalidateLocationPaths();
@@ -63,12 +82,13 @@ export async function updateLocationAction(prevState: FormState, formData: FormD
 }
 
 export async function removeLocationAction(prevState: FormState, formData: FormData): Promise<FormState> {
-    const id = formData.get('id') as string;
-    if (!id) {
-        return { error: true, message: 'Location ID is missing.' };
-    }
-
     try {
+        await verifyUserRole('owner'); // SECURITY: Only owners can remove locations
+        const id = formData.get('id') as string;
+        if (!id) {
+            return { error: true, message: 'Location ID is missing.' };
+        }
+
         const { firestore } = await createServerClient();
         await firestore.collection('dispensaries').doc(id).delete();
         await revalidateLocationPaths();
