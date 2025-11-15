@@ -10,7 +10,7 @@ import type { Product } from '@/lib/types';
 jest.mock('@/hooks/use-store');
 jest.mock('@/hooks/use-toast');
 
-const mockUseStore = useStore as jest.Mock;
+const mockUseStore = useStore as unknown as jest.Mock;
 const mockToast = jest.fn();
 const mockAddToCart = jest.fn();
 
