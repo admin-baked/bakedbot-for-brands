@@ -16,7 +16,6 @@ import type { Location } from '@/firebase/converters';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useFormState, useFormStatus } from 'react-dom';
 import { addLocationAction } from './actions';
-import { importProductsFromCsv } from '../settings/actions';
 
 
 const initialState = { message: '', error: false };
