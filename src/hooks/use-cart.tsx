@@ -27,7 +27,7 @@ interface CartActions {
 }
 
 // Combine state and actions for the full store type
-type CartStore = CartState & CartActions;
+export type CartStore = CartState & CartActions;
 
 // Create the Zustand store with persistence
 const useCartStore = create<CartStore>()(
