@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -43,36 +44,11 @@ export default function LoginForm({ title, description, devLogins = [] }: LoginF
     
     const hasRedirected = useRef(false);
 
-    const redirectUserBasedOnRole = useCallback(async (uid: string) => {
-        if (!firestore) {
-            router.replace('/account/dashboard');
-            return;
-        }
-
-        try {
-            const userDocRef = doc(firestore, 'users', uid);
-            const userDoc = await getDoc(userDocRef);
-
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-
-                if (userData.onboardingCompleted === false) {
-                    router.replace('/onboarding');
-                } else if (userData.role === 'dispensary') {
-                    router.replace('/dashboard/orders');
-                } else if (userData.role === 'brand' || userData.role === 'owner') {
-                    router.replace('/dashboard');
-                } else {
-                    router.replace('/account/dashboard');
-                }
-            } else {
-                router.replace('/onboarding');
-            }
-        } catch (error) {
-            console.error('❌ LoginForm: Error fetching user document:', error);
-            router.replace('/account/dashboard');
-        }
-    }, [firestore, router]);
+    // This function is now much simpler. It just sends the user to a single
+    // entry point, and the DashboardLayout will handle the role-based routing.
+    const redirectUser = useCallback(() => {
+        router.replace('/dashboard');
+    }, [router]);
 
     useEffect(() => {
         if (!auth) {
@@ -81,14 +57,14 @@ export default function LoginForm({ title, description, devLogins = [] }: LoginF
 
         if (user && !hasRedirected.current) {
             hasRedirected.current = true;
-            redirectUserBasedOnRole(user.uid);
+            redirectUser();
             return;
         }
 
         if (!user) {
             setIsLoading(false);
         }
-    }, [auth, user, redirectUserBasedOnRole]);
+    }, [auth, user, redirectUser]);
 
     const handleGoogleSignIn = async () => {
         if (!auth) {
@@ -115,12 +91,13 @@ export default function LoginForm({ title, description, devLogins = [] }: LoginF
                         email: result.user.email,
                         displayName: result.user.displayName || result.user.email?.split('@')[0] || 'User',
                         photoURL: result.user.photoURL || null,
-                        role: 'customer',
+                        role: 'customer', // Default role for new sign-ups
                         onboardingCompleted: false,
                     });
                 }
             }
             toast({ title: 'Welcome!', description: `Signed in as ${result.user.email}` });
+            // The useEffect will catch the user change and redirect.
         } catch (error: any) {
             if (error.code !== 'auth/popup-blocked' && error.code !== 'auth/cancelled-popup-request') {
                 toast({ variant: 'destructive', title: 'Failed to sign in', description: error.message || 'Please try using magic link instead.' });
@@ -229,3 +206,5 @@ export default function LoginForm({ title, description, devLogins = [] }: LoginF
         </div>
     );
 }
+
+    
