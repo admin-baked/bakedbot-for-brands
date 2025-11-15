@@ -1,4 +1,5 @@
 
+
 import { NextResponse } from 'next/server';
 import { recommendProducts } from '@/ai/ai-powered-product-recommendations';
 
@@ -20,3 +21,4 @@ export async function GET() {
     }, { status: 500 });
   }
 }
+

@@ -1,4 +1,5 @@
 
+
 # AI Review Embeddings & Semantic Search
 
 This document outlines the architecture and implementation of the product review embedding system, which enables powerful semantic search capabilities across customer feedback.
@@ -87,4 +88,3 @@ async function getRecommendations(userQuery: string) {
 }
 ```
 
-    

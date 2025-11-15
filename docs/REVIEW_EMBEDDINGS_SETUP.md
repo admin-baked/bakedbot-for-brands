@@ -1,4 +1,5 @@
 
+
 # Quick Setup Guide: Review Embeddings & Semantic Search
 
 Follow these steps to enable semantic search on product reviews.
@@ -71,4 +72,3 @@ Finally, run the one-time script to create embeddings for all the products that 
 
 Your application is now equipped with semantic search on product reviews. The `findProductsByReviewContent` tool is ready to be used in your AI flows.
 
-    
