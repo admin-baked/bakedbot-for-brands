@@ -95,39 +95,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/brand-login');
       return;
     }
+    
+    if (!firestore) {
+      setIsProfileLoading(false);
+      return;
+    }
 
-    // --- Performance Improvement ---
-    // Instead of fetching the user doc from Firestore every time,
-    // we now get the role and onboarding status directly from the user's auth token claims.
-    // This is much faster and eliminates the post-onboarding redirect delay.
-    user.getIdTokenResult().then((idTokenResult) => {
-        const claims = idTokenResult.claims;
-        const profile = {
-            role: claims.role || 'customer', // Default to customer if no role claim
-            onboardingCompleted: claims.onboardingCompleted === true,
-        };
+    const userDocRef = doc(firestore, 'users', user.uid);
+    const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        const profile = doc.data();
         setUserProfile(profile);
 
-        const userIsCeo = profile.role === 'owner' || claims.isCeo;
+        const userIsCeo = profile?.role === 'owner' || profile?.isCeo;
         setIsCeoMode(userIsCeo);
         
         // --- CENTRALIZED ROLE-BASED REDIRECTION LOGIC ---
-        if (profile.onboardingCompleted === false && pathname !== '/onboarding') {
+        if (profile && profile.onboardingCompleted === false && pathname !== '/onboarding') {
             router.replace('/onboarding');
-        } else if (profile.role === 'customer' && pathname.startsWith('/dashboard')) {
+        } else if (profile && profile.role === 'customer' && pathname.startsWith('/dashboard')) {
             router.replace('/account/dashboard');
-        } else if (profile.role === 'dispensary' && !pathname.startsWith('/dashboard/orders') && !pathname.startsWith('/dashboard/settings')) {
+        } else if (profile && profile.role === 'dispensary' && !pathname.startsWith('/dashboard/orders') && !pathname.startsWith('/dashboard/settings')) {
             router.replace('/dashboard/orders');
         }
         setIsProfileLoading(false);
-    }).catch(err => {
-        console.error("Error getting user token claims:", err);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not verify your user role.' });
+    }, (err) => {
+        console.error("Error fetching user profile:", err);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not load your user profile.' });
         setIsProfileLoading(false);
         setIsCeoMode(false);
     });
 
-  }, [user, isUserLoading, pathname, router, setIsCeoMode, toast]);
+    return () => unsubscribe();
+  }, [user, firestore, isUserLoading, pathname, router, setIsCeoMode, toast]);
 
 
   const handleSignOut = async () => {
