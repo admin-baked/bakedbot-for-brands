@@ -31,12 +31,11 @@ export const findProductsByReviewContent = ai.defineTool(
         outputSchema: FindProductsByReviewOutputSchema,
     },
     async (input) => {
-        const { firestore, auth } = await createServerClient();
+        const { firestore } = await createServerClient();
         
         // 1. Generate an embedding for the user's query.
         const embedding = await ai.embed({
-            content: input.query,
-            model: 'googleai/text-embedding-004'
+            content: input.query
         });
 
         // 2. Perform a vector search on the product review embeddings.
