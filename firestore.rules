@@ -53,10 +53,5 @@ service cloud.firestore {
       allow read, update: if request.auth.uid == resource.data.userId 
           || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['dispensary', 'owner', 'brand'];
     }
-
-    // Default deny all other access
-    match /{document=**} {
-      allow read, write: if false;
-    }
   }
 }
