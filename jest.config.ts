@@ -22,7 +22,7 @@ const config: Config = {
     '^@/context/(.*)$': '<rootDir>/src/context/$1',
   },
   // Explicitly tell Jest to ignore the e2e directory
-  testPathIgnorePatterns: ['<rootDir>/e2e/'],
+  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/', '<rootDir>/e2e/'],
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
