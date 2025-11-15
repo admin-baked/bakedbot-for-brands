@@ -1,3 +1,4 @@
+
 import { Firestore } from 'firebase-admin/firestore';
 import type { Product } from '@/types/domain';
 

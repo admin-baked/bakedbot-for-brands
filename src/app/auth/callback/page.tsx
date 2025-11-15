@@ -23,37 +23,50 @@ export default function AuthCallbackPage() {
     const { auth, firestore } = useFirebase();
     const { toast } = useToast();
 
+    const handleSuccessfulSignIn = async (user: any) => {
+        if (firestore) {
+            try {
+                const userDocRef = doc(firestore, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+                
+                if (!userDoc.exists()) {
+                    console.log('🆕 Creating new user document...');
+                    
+                    await setDoc(userDocRef, {
+                        uid: user.uid,
+                        email: user.email,
+                        displayName: user.displayName || user.email?.split('@')[0] || 'User',
+                        photoURL: user.photoURL || null,
+                        role: 'customer',
+                        onboardingCompleted: false,
+                    }, { merge: true });
+                    
+                    console.log('✅ User document created successfully');
+                    router.replace('/onboarding');
+                    return;
+
+                } else {
+                    console.log('✅ User document already exists, redirecting to dashboard...');
+                    // User exists, let the dashboard layout handle redirection
+                    router.replace('/dashboard');
+                    return;
+                }
+            } catch (firestoreError) {
+                console.error('⚠️ Error checking/creating user document:', firestoreError);
+            }
+        }
+        // Fallback redirection
+        router.replace('/dashboard');
+    }
+
     useEffect(() => {
         if (!auth) {
             console.log('⏳ Callback: Waiting for Firebase auth to initialize...');
             return;
         }
 
-        const handleMagicLinkSignIn = async () => {
+        const handleMagicLinkSignIn = async (emailForSignIn: string) => {
             const url = window.location.href;
-            
-            console.log('🔗 Callback URL:', url);
-            console.log('🔍 Checking if this is a valid sign-in link...');
-
-            if (!isSignInWithEmailLink(auth, url)) {
-                console.log('❌ Not a valid email sign-in link');
-                setStatus('error');
-                setErrorMessage('Invalid sign-in link. Please request a new one.');
-                return;
-            }
-
-            console.log('✅ Valid sign-in link detected');
-
-            let emailForSignIn = window.localStorage.getItem('emailForSignIn');
-            
-            console.log('📧 Stored email:', emailForSignIn);
-
-            if (!emailForSignIn) {
-                console.log('⚠️ No email found in localStorage, asking user...');
-                setStatus('need-email');
-                return;
-            }
-
             try {
                 console.log('🔐 Attempting to sign in with email link...');
                 const result = await signInWithEmailLink(auth, emailForSignIn, url);
@@ -62,35 +75,6 @@ export default function AuthCallbackPage() {
                 
                 window.localStorage.removeItem('emailForSignIn');
                 
-                // ✅ CREATE USER DOCUMENT IF IT DOESN'T EXIST
-                if (firestore) {
-                    try {
-                        const userDocRef = doc(firestore, 'users', result.user.uid);
-                        const userDoc = await getDoc(userDocRef);
-                        
-                        if (!userDoc.exists()) {
-                            console.log('🆕 Creating new user document...');
-                            
-                            // Create new user document with default values
-                            await setDoc(userDocRef, {
-                                uid: result.user.uid,
-                                email: result.user.email,
-                                displayName: result.user.displayName || result.user.email?.split('@')[0] || 'User',
-                                photoURL: result.user.photoURL || null,
-                                role: 'customer', // Default role
-                                onboardingCompleted: false, // Start the onboarding flow
-                            });
-                            
-                            console.log('✅ User document created successfully');
-                        } else {
-                            console.log('✅ User document already exists');
-                        }
-                    } catch (firestoreError) {
-                        console.error('⚠️ Error creating user document:', firestoreError);
-                        // Don't block login if user doc creation fails
-                    }
-                }
-
                 setStatus('success');
                 
                 toast({
@@ -98,59 +82,48 @@ export default function AuthCallbackPage() {
                     description: `Successfully signed in as ${result.user.email}`,
                 });
 
-                console.log('🎉 Magic link sign-in complete. Redirecting to dashboard...');
-                
+                console.log('🎉 Magic link sign-in complete. Redirecting...');
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                // Redirect based on role
-                if (firestore) {
-                    try {
-                        const userDocRef = doc(firestore, 'users', result.user.uid);
-                        const userDoc = await getDoc(userDocRef);
-                        
-                        if (userDoc.exists()) {
-                            const userData = userDoc.data();
-                            if (userData.onboardingCompleted === false) {
-                                router.replace('/onboarding');
-                            } else if (userData.role === 'dispensary') {
-                                router.replace('/dashboard/orders');
-                            } else if (userData.role === 'brand' || userData.role === 'owner') {
-                                router.replace('/dashboard');
-                            } else {
-                                router.replace('/account/dashboard');
-                            }
-                        } else {
-                            router.replace('/onboarding');
-                        }
-                    } catch {
-                        router.replace('/account/dashboard');
-                    }
-                } else {
-                    router.replace('/account/dashboard');
-                }
+                handleSuccessfulSignIn(result.user);
 
             } catch (error: any) {
                 console.error('❌ Sign-in error:', error);
                 setStatus('error');
                 
+                let msg = 'An error occurred during sign-in.';
                 if (error.code === 'auth/invalid-action-code') {
-                    setErrorMessage('This sign-in link has expired or has already been used. Please request a new one.');
+                    msg = 'This sign-in link has expired or has already been used. Please request a new one.';
                 } else if (error.code === 'auth/invalid-email') {
-                    setErrorMessage('The email address is invalid. Please try again.');
+                    msg = 'The email address is invalid. Please try again.';
                 } else {
-                    setErrorMessage(error.message || 'An error occurred during sign-in.');
+                    msg = error.message || msg;
                 }
 
+                setErrorMessage(msg);
                 toast({
                     variant: 'destructive',
                     title: 'Sign-in Failed',
-                    description: errorMessage,
+                    description: msg,
                 });
             }
         };
+        
+        const url = window.location.href;
+        if (!isSignInWithEmailLink(auth, url)) {
+            setStatus('error');
+            setErrorMessage('Invalid sign-in link. Please request a new one.');
+            return;
+        }
+        
+        let storedEmail = window.localStorage.getItem('emailForSignIn');
+        if (storedEmail) {
+            handleMagicLinkSignIn(storedEmail);
+        } else {
+            setStatus('need-email');
+        }
 
-        handleMagicLinkSignIn();
-    }, [auth, router, toast, firestore, errorMessage]);
+    }, [auth, router, toast, firestore]);
 
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -166,34 +139,8 @@ export default function AuthCallbackPage() {
             
             console.log('✅ Sign-in successful!', result.user.email);
             
+            // This is important for the session to be maintained correctly
             window.localStorage.setItem('emailForSignIn', email);
-
-             // ✅ CREATE USER DOCUMENT IF IT DOESN'T EXIST
-            if (firestore) {
-                try {
-                    const userDocRef = doc(firestore, 'users', result.user.uid);
-                    const userDoc = await getDoc(userDocRef);
-                    
-                    if (!userDoc.exists()) {
-                        console.log('🆕 Creating new user document...');
-                        
-                        await setDoc(userDocRef, {
-                            uid: result.user.uid,
-                            email: result.user.email,
-                            displayName: result.user.displayName || result.user.email?.split('@')[0] || 'User',
-                            photoURL: result.user.photoURL || null,
-                            role: 'customer', // Default role
-                            onboardingCompleted: false, // Start the onboarding flow
-                        });
-                        
-                        console.log('✅ User document created successfully');
-                    } else {
-                        console.log('✅ User document already exists');
-                    }
-                } catch (firestoreError) {
-                    console.error('⚠️ Error creating user document:', firestoreError);
-                }
-            }
             
             setStatus('success');
             
@@ -203,39 +150,12 @@ export default function AuthCallbackPage() {
             });
 
             await new Promise(resolve => setTimeout(resolve, 1000));
-
-            if (firestore) {
-                try {
-                    const userDocRef = doc(firestore, 'users', result.user.uid);
-                    const userDoc = await getDoc(userDocRef);
-
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        
-                        if (userData.onboardingCompleted === false) {
-                            router.replace('/onboarding');
-                        } else if (userData.role === 'dispensary') {
-                            router.replace('/dashboard/orders');
-                        } else if (userData.role === 'brand' || userData.role === 'owner') {
-                            router.replace('/dashboard');
-                        } else {
-                            router.replace('/account/dashboard');
-                        }
-                    } else {
-                        router.replace('/onboarding');
-                    }
-                } catch {
-                    router.replace('/account/dashboard');
-                }
-            } else {
-                router.replace('/account/dashboard');
-            }
+            handleSuccessfulSignIn(result.user);
 
         } catch (error: any) {
             console.error('❌ Sign-in error:', error);
             
             let errorMsg = 'An error occurred during sign-in.';
-            
             if (error.code === 'auth/invalid-action-code') {
                 errorMsg = 'This sign-in link has expired or has already been used.';
             } else if (error.code === 'auth/invalid-email') {
