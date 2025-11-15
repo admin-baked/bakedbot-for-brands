@@ -1,26 +1,36 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, MapPin, Navigation, Star } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
-import { useMenuData } from '@/hooks/use-menu-data';
 import { haversineDistance } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase/provider';
 import { doc, updateDoc } from 'firebase/firestore';
+import type { Location } from '@/lib/types';
 
-export function DispensaryLocator() {
-  const { locations, isLoading: areLocationsLoading } = useMenuData();
+interface DispensaryLocatorProps {
+  locations: Location[];
+  isLoading: boolean;
+}
+
+export function DispensaryLocator({ locations, isLoading }: DispensaryLocatorProps) {
   const { selectedLocationId, setSelectedLocationId, favoriteLocationId, setFavoriteLocationId, _hasHydrated } = useStore();
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
   
   const [isLocating, setIsLocating] = useState(false);
   const [sortedLocations, setSortedLocations] = useState<typeof locations>([]);
+
+  // If the locations prop changes (e.g., from server-side props), update our sorted list.
+  useEffect(() => {
+    setSortedLocations(locations);
+  }, [locations]);
 
   const handleFindClosest = () => {
     if (!navigator.geolocation) {

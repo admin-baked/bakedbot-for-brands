@@ -24,5 +24,27 @@ export function makeProductRepo(db: Firestore) {
           brandId: data.brandId,
         } as Product;
     },
+    async getAll(): Promise<Product[]> {
+      const snapshot = await col.get();
+      if (snapshot.empty) {
+        return [];
+      }
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name,
+          category: data.category,
+          price: data.price,
+          prices: data.prices,
+          imageUrl: data.imageUrl,
+          imageHint: data.imageHint,
+          description: data.description,
+          likes: data.likes,
+          dislikes: data.dislikes,
+          brandId: data.brandId,
+        } as Product;
+      });
+    }
   };
 }

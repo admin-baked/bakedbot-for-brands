@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -19,65 +20,41 @@ export type UseMenuDataResult = {
 };
 
 /**
- * A centralized hook to fetch product and location data.
- * It intelligently switches between live Firestore data and static demo data
- * based on the state of the `useDemoMode` context.
+ * A client-side hook to fetch location data and provide product data.
+ * The primary product data should be fetched on the server and passed as props.
+ * This hook is now mainly for components that run purely on the client
+ * and need access to the locations list, like the shopping cart sheet.
  */
-export function useMenuData(): UseMenuDataResult {
+export function useMenuData(initialProducts: Product[] = [], initialLocations: Location[] = []): UseMenuDataResult {
   const { isDemo } = useDemoMode();
   const hydrated = useHydrated();
   const { firestore } = useFirebase();
 
-  // Step 1: Prepare Firestore queries for live data.
-  const productsQuery = useMemo(() => {
-    if (isDemo || !firestore) return null;
-    return query(collection(firestore, 'products').withConverter(productConverter));
-  }, [firestore, isDemo]);
-
+  // Locations are still needed on the client, so we fetch them here.
   const locationsQuery = useMemo(() => {
     if (isDemo || !firestore) return null;
     return query(collection(firestore, 'dispensaries').withConverter(locationConverter));
   }, [firestore, isDemo]);
 
-  // Step 2: Fetch the live data from Firestore using our real-time hook.
-  const { data: liveProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
   const { data: liveLocations, isLoading: areLocationsLoadingFirestore } = useCollection<Location>(locationsQuery);
 
-  // Step 3: Decide which data source to return.
+  // The hook now prioritizes server-provided data.
   const products = useMemo<Product[]>(() => {
-    // If demo mode is on, always use demo data.
     if (isDemo) return demoProducts;
-    
-    // If we are in live mode and live products are available, use them.
-    // The `hydrated` check prevents a flash of demo data on initial client load.
-    if (hydrated && liveProducts) {
-      // If live data is empty, fall back to demo data for a better presentation.
-      return liveProducts.length > 0 ? liveProducts : demoProducts;
-    }
-    
-    // Fallback: If in live mode but the collection is empty or still loading,
-    // or if the component hasn't mounted yet, default to demo data.
-    return demoProducts;
-  }, [isDemo, hydrated, liveProducts]);
+    return initialProducts.length > 0 ? initialProducts : demoProducts;
+  }, [isDemo, initialProducts]);
 
   const locations = useMemo<Location[]>(() => {
-    // If demo mode is on, always use demo data.
     if (isDemo) return demoLocations;
-    
-    // If we are in live mode and live locations are available, use them.
     if (hydrated && liveLocations) {
-       return liveLocations.length > 0 ? liveLocations : demoLocations;
+       return liveLocations.length > 0 ? liveLocations : initialLocations.length > 0 ? initialLocations : demoLocations;
     }
+    return initialLocations.length > 0 ? initialLocations : demoLocations;
+  }, [isDemo, hydrated, liveLocations, initialLocations]);
 
-    // Fallback for locations.
-    return demoLocations;
-  }, [isDemo, hydrated, liveLocations]);
+  // Loading is true only if we are in live mode and locations are being fetched.
+  const isLoading = !isDemo && (!hydrated || areLocationsLoadingFirestore);
 
-  // Step 4: Determine the loading state.
-  // Loading is true only if we are in live mode and data is still being fetched.
-  const isLoading = !isDemo && (!hydrated || areProductsLoading || areLocationsLoadingFirestore);
-
-  // Step 5: Return the final data package.
   return {
     products,
     locations,

@@ -3,7 +3,6 @@
 
 import { ProductCard } from './product-card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMenuData } from '@/hooks/use-menu-data';
 import { Database, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useStore } from '@/hooks/use-store';
@@ -13,6 +12,7 @@ import { Separator } from './ui/separator';
 import { Button } from './ui/button';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
+import { useDemoMode } from '@/context/demo-mode';
 
 const ProductSkeleton = () => (
     <div className="bg-card rounded-lg shadow-lg overflow-hidden border">
@@ -82,10 +82,14 @@ const TiledProductRow = ({ product }: { product: Product }) => {
     )
 }
 
+interface ProductGridProps {
+    products: Product[];
+    isLoading: boolean;
+}
 
-export function ProductGrid() {
-  const { products, isLoading, isDemo } = useMenuData();
+export function ProductGrid({ products, isLoading }: ProductGridProps) {
   const { menuStyle } = useStore();
+  const { isDemo } = useDemoMode();
 
   const categorizedProducts = useMemo(() => {
     if (!products) return {};
