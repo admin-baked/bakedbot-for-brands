@@ -9,8 +9,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getProductReviews } from '../tools/get-product-reviews';
-import { getProduct } from '../tools/get-product';
+import { createServerClient } from '@/firebase/server-client';
 import { cookies } from 'next/headers';
 import { demoCustomer, demoProducts } from '@/lib/data';
 
@@ -64,7 +63,7 @@ const summarizeReviewsFlow = ai.defineFlow(
   },
   async (input) => {
     // Validate input at the start of the flow
-    const { productId, brandId } = SummarizeReviewsInputSchema.parse(input);
+    const { productId } = SummarizeReviewsInputSchema.parse(input);
     const cookieStore = cookies();
     const isDemo = cookieStore.get('isUsingDemoData')?.value === 'true';
 
@@ -73,17 +72,17 @@ const summarizeReviewsFlow = ai.defineFlow(
     let product: { name?: string | null } | null = null;
     
     if (isDemo) {
-        // In demo mode, fetch from static demo data.
         product = demoProducts.find(p => p.id === productId) || null;
         reviews = demoCustomer.reviews
             .filter(r => r.productId === productId)
             .map(r => ({ text: r.text || '', rating: r.rating || 0 }));
     } else {
-        // In live mode, use the tools to fetch from Firestore.
-        const reviewData = await getProductReviews({ productId, brandId });
-        // The tool returns {text, rating}, which matches the type of `reviews`.
-        reviews = reviewData; 
-        product = await getProduct({ productId });
+        const { firestore } = await createServerClient();
+        const productSnap = await firestore.collection('products').doc(productId).get();
+        product = productSnap.data() as { name: string | null } || null;
+
+        const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).get();
+        reviews = reviewsSnap.docs.map(doc => doc.data() as { text: string; rating: number });
     }
     
     // Step 2: If there are no reviews, return a default response.
