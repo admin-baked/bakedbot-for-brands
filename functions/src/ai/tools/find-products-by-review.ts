@@ -37,14 +37,17 @@ export const findProductsByReviewContent = ai.defineTool(
         const firestore = getFirestore();
         
         // 1. Generate an embedding for the user's query.
-        const embedding = await ai.embed({
+        const embeddingResult = await ai.embed({
             embedder: 'googleai/text-embedding-004',
             content: input.query,
         });
+        
+        const embeddingVector: number[] = embeddingResult;
+
 
         // 2. Perform a vector search on the product review embeddings.
         const embeddingsCollection = firestore.collectionGroup('productReviewEmbeddings');
-        const vectorQuery = embeddingsCollection.findNearest('embedding', embedding, {
+        const vectorQuery = embeddingsCollection.findNearest('embedding', embeddingVector, {
             limit: input.limit,
             distanceMeasure: 'COSINE'
         });
