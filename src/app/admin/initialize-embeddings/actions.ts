@@ -1,9 +1,8 @@
-
 'use server';
 
 import { getFirestore } from 'firebase-admin/firestore';
-import { GoogleAuth } from 'google-auth-library';
 import { createServerClient } from '@/firebase/server-client';
+import admin from 'firebase-admin';
 
 interface Review {
   rating: number;
@@ -22,28 +21,58 @@ interface Product {
   cbdContent?: string;
 }
 
+/**
+ * Generate embedding using Vertex AI REST API with Firebase Admin auth
+ */
 async function generateEmbedding(text: string): Promise<number[]> {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8';
   
-  const auth = new GoogleAuth({
-    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-  });
+  try {
+    // Correctly initialize admin app before using its services
+    const { auth } = await createServerClient();
+    const accessToken = await auth.createCustomToken('server'); // Use auth instance to create token/get credentials
 
-  const client = await auth.getClient();
-  const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/text-embedding-004:predict`;
+    // To get an OAuth2 access token, we access the credential from the initialized app
+    const app = admin.app();
+    const credential = app.options.credential;
+    if (!credential) {
+        throw new Error('Firebase Admin SDK credential is not available.');
+    }
+    const token = await credential.getAccessToken();
+    
+    if (!token || !token.access_token) {
+      throw new Error('Failed to get access token from Firebase Admin');
+    }
 
-  const response = await client.request({
-    url,
-    method: 'POST',
-    data: {
-      instances: [{ content: text }],
-    },
-  });
+    const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/text-embedding-004:predict`;
 
-  const data = response.data as any;
-  return data.predictions[0].embeddings.values;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        instances: [{ content: text }],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Vertex AI API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.predictions[0].embeddings.values;
+  } catch (error: any) {
+    console.error('Error generating embedding:', error);
+    throw new Error(`Failed to generate embedding: ${error.message}`);
+  }
 }
 
+/**
+ * Generate review embedding for a product
+ */
 async function generateReviewEmbedding(product: Product): Promise<number[] | null> {
   const reviews = product.reviews || [];
 
@@ -83,6 +112,9 @@ ${reviewTexts.join('\n\n')}
   }
 }
 
+/**
+ * Server Action to initialize review embeddings
+ */
 export async function initializeReviewEmbeddings() {
   try {
     const { firestore } = await createServerClient();
