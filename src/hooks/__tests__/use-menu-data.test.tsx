@@ -1,5 +1,5 @@
 
-import { renderHook, act } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { useMenuData } from '../use-menu-data';
 import { useDemoMode } from '@/context/demo-mode';
 import { useCollection } from '@/firebase/firestore/use-collection';
@@ -36,7 +36,7 @@ describe('useMenuData', () => {
     mockUseCollection.mockImplementation((query) => {
         // Distinguish between products and locations queries
         if (!query) return { data: [], isLoading: false };
-        const path = query._query.path.canonicalString;
+        const path = query?._query?.path?.canonicalString() || '';
         if (path.includes('products')) {
             return { data: mockLiveProducts, isLoading: false };
         }
@@ -88,7 +88,7 @@ describe('useMenuData', () => {
     // Simulate data fetching completion
     mockUseCollection.mockImplementation((query) => {
         if (!query) return { data: [], isLoading: false };
-        const path = query._query.path.canonicalString;
+        const path = query?._query?.path?.canonicalString() || '';
         if (path.includes('products')) {
             return { data: mockLiveProducts, isLoading: false };
         }
@@ -105,14 +105,15 @@ describe('useMenuData', () => {
     expect(result.current.locations).toEqual(mockLiveLocations);
   });
 
-   it('should return empty arrays for live data if useCollection returns null', () => {
+   it('should return demo arrays for live data if useCollection returns null and not mounted', () => {
+    mockUseHasMounted.mockReturnValue(false);
     mockUseCollection.mockReturnValue({ data: null, isLoading: false });
 
     const { result } = renderHook(() => useMenuData());
 
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.products).toEqual([]);
-    expect(result.current.locations).toEqual([]);
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.products).toEqual(demoProducts);
+    expect(result.current.locations).toEqual(demoLocations);
   });
 
 });

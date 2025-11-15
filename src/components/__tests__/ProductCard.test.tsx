@@ -1,5 +1,5 @@
 
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useStore } from '@/hooks/use-store';
 import { useToast } from '@/hooks/use-toast';
