@@ -38,8 +38,8 @@ export const findProductsByReviewContent = ai.defineTool(
         
         // 1. Generate an embedding for the user's query.
         const embedding = await ai.embed({
+            embedder: 'googleai/text-embedding-004',
             content: input.query,
-            // The model is configured globally in the googleAI() plugin initialization
         });
 
         // 2. Perform a vector search on the product review embeddings.

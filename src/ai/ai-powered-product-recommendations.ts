@@ -64,7 +64,7 @@ const recommendProductsFlow = ai.defineFlow(
   async input => {
     try {
       // Step 1: Use vector similarity to find the most relevant products
-      const { output: similarProducts } = await findProductsByReviewContent(input);
+      const { output: similarProducts } = await findProductsByReviewContent.run(input);
       
       if (!similarProducts || similarProducts.length === 0) {
         return {
