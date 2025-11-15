@@ -95,38 +95,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/brand-login');
       return;
     }
-    
-    if (!firestore) {
-      setIsProfileLoading(false);
-      return;
-    }
 
-    const userDocRef = doc(firestore, 'users', user.uid);
-    const unsubscribe = onSnapshot(userDocRef, (doc) => {
-        const profile = doc.data();
-        setUserProfile(profile);
-
-        const userIsCeo = profile?.role === 'owner' || profile?.isCeo;
-        setIsCeoMode(userIsCeo);
+    // New logic: Use ID token claims for authorization
+    user.getIdTokenResult().then((idTokenResult) => {
+        const claims = idTokenResult.claims;
+        const userIsCeo = claims.isCeo === true || claims.role === 'owner';
+        const userIsDispensary = claims.role === 'dispensary';
+        const userIsBrand = claims.role === 'brand';
         
-        // --- CENTRALIZED ROLE-BASED REDIRECTION LOGIC ---
-        if (profile && profile.onboardingCompleted === false && pathname !== '/onboarding') {
-            router.replace('/onboarding');
-        } else if (profile && profile.role === 'customer' && pathname.startsWith('/dashboard')) {
-            router.replace('/account/dashboard');
-        } else if (profile && profile.role === 'dispensary' && !pathname.startsWith('/dashboard/orders') && !pathname.startsWith('/dashboard/settings')) {
+        setIsCeoMode(userIsCeo);
+        setUserProfile(claims); // Store claims as the "profile"
+
+        // --- CENTRALIZED ROLE-BASED REDIRECTION LOGIC from secure claims ---
+        if (!claims.onboardingCompleted && pathname !== '/onboarding') {
+             router.replace('/onboarding');
+        } else if (userIsDispensary && !pathname.startsWith('/dashboard/orders') && !pathname.startsWith('/dashboard/settings')) {
             router.replace('/dashboard/orders');
+        } else if (!userIsCeo && !userIsBrand && !userIsDispensary) {
+            // This is a regular customer, they don't belong in the admin dashboard.
+            router.replace('/account/dashboard');
         }
         setIsProfileLoading(false);
-    }, (err) => {
-        console.error("Error fetching user profile:", err);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not load your user profile.' });
+    }).catch(err => {
+        console.error("Error getting user token:", err);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not verify user permissions.' });
         setIsProfileLoading(false);
-        setIsCeoMode(false);
+        router.replace('/customer-login');
     });
 
-    return () => unsubscribe();
-  }, [user, firestore, isUserLoading, pathname, router, setIsCeoMode, toast]);
+  }, [user, isUserLoading, pathname, router, setIsCeoMode, toast]);
 
 
   const handleSignOut = async () => {
