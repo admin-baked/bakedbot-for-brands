@@ -79,7 +79,8 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
     const { toast } = useToast();
     const { user, isUserLoading } = useUser();
     
-    const [feedbackState, submitFeedback] = useFormState(updateProductFeedback, initialFeedbackState);
+    // The form action is now handled via a form element
+    const [feedbackState, formAction] = useFormState(updateProductFeedback, initialFeedbackState);
     const [isFeedbackPending, startTransition] = useTransition();
 
     useEffect(() => {
@@ -115,7 +116,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
         return `$${product.price.toFixed(2)}`;
     }, [product, selectedLocationId]);
 
-    const handleFeedback = (feedbackType: 'like' | 'dislike') => {
+    const handleFeedback = async (feedbackType: 'like' | 'dislike') => {
         if (!user) {
             toast({
                 variant: 'destructive',
@@ -129,8 +130,17 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
         formData.append('productId', product.id);
         formData.append('feedbackType', feedbackType);
         
+        // The user's ID token must be included for verification on the server.
+        try {
+            const idToken = await user.getIdToken();
+            formData.append('idToken', idToken);
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Authentication Error', description: 'Could not verify your session.' });
+             return;
+        }
+        
         startTransition(() => {
-            submitFeedback(formData);
+            formAction(formData);
         });
     };
 
@@ -203,7 +213,7 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                         <Plus className="mr-2 h-5 w-5" />
                         Add to Cart
                     </Button>
-                    <Button variant="outline" size="lg" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending || isUserLoading}>
+                     <Button variant="outline" size="lg" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending || isUserLoading}>
                         <ThumbsUp className="h-5 w-5 text-green-500"/>
                     </Button>
                     <Button variant="outline" size="lg" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending || isUserLoading}>
