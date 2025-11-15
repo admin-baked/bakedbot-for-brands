@@ -1,67 +1,72 @@
 
-
 'use server';
 /**
- * @fileoverview An AI tool that finds products based on the semantic content of their reviews.
+ * @fileOverview A Genkit tool for finding products by searching review content.
+ *
+ * - findProductsByReviewContent - A tool that uses vector search on review embeddings.
+ * - FindProductsByReviewInput - The input type for the tool.
+ * - FindProductsByReviewOutput - The return type for the tool.
  */
 
 import { ai } from '@/ai/genkit';
 import { createServerClient } from '@/firebase/server-client';
-import { productConverter, type Product } from '@/firebase/converters';
+import type { Product } from '@/firebase/converters';
 import { z } from 'zod';
-import { textEmbeddingGecko } from '@genkit-ai/google-genai';
 
-const FindProductsByReviewContentInputSchema = z.object({
-  query: z.string().describe('A natural language query describing what the user is looking for in a product based on customer experiences.'),
-  limit: z.number().optional().default(5).describe('The maximum number of products to return.'),
+export const FindProductsByReviewInputSchema = z.object({
+    query: z.string().describe('The natural language query to search for in product reviews.'),
+    limit: z.number().int().positive().optional().default(5).describe('The maximum number of products to return.'),
 });
-type FindProductsByReviewContentInput = z.infer<typeof FindProductsByReviewContentInputSchema>;
+export type FindProductsByReviewInput = z.infer<typeof FindProductsByReviewInputSchema>;
+
+export const FindProductsByReviewOutputSchema = z.array(z.custom<Product>());
+export type FindProductsByReviewOutput = z.infer<typeof FindProductsByReviewOutputSchema>;
 
 
 export const findProductsByReviewContent = ai.defineTool(
-  {
-    name: 'findProductsByReviewContent',
-    description: 'Finds products by semantically searching the content of their customer reviews. Use this to answer queries about what customers are saying, product effects, tastes, or use cases (e.g., "helps with sleep", "tastes like citrus").',
-    inputSchema: FindProductsByReviewContentInputSchema,
-    outputSchema: z.array(z.custom<Product>()),
-  },
-  async (input) => {
-    const { query, limit } = input;
-    const { firestore } = await createServerClient();
+    {
+        name: 'findProductsByReviewContent',
+        description: 'Finds products by semantically searching the content of their customer reviews. Use this to find products based on what customers say about them (e.g., "helps with sleep", "tastes like citrus").',
+        inputSchema: FindProductsByReviewInputSchema,
+        outputSchema: FindProductsByReviewOutputSchema,
+    },
+    async (input) => {
+        const { firestore, auth } = await createServerClient();
+        
+        // 1. Generate an embedding for the user's query.
+        const { embedding } = await ai.embed({
+            content: input.query,
+            model: 'googleai/text-embedding-004'
+        });
 
-    // 1. Generate an embedding for the user's query.
-    const queryEmbedding = await ai.embed({
-      embedder: textEmbeddingGecko,
-      content: query,
-    });
+        // 2. Perform a vector search on the product review embeddings.
+        const embeddingsCollection = firestore.collectionGroup('productReviewEmbeddings');
+        const vectorQuery = embeddingsCollection.findNearest('embedding', embedding, {
+            limit: input.limit,
+            distanceMeasure: 'COSINE'
+        });
 
-    // 2. Perform a vector search on the `productReviewEmbeddings` collection group.
-    const vectorQuery = firestore
-      .collectionGroup('productReviewEmbeddings')
-      .findNearest('embedding', queryEmbedding, {
-        limit,
-        distanceMeasure: 'COSINE',
-      });
-      
-    const nearestDocs = await vectorQuery.get();
-    
-    if (nearestDocs.empty) {
-      return [];
+        const nearestDocsSnapshot = await vectorQuery.get();
+
+        if (nearestDocsSnapshot.empty) {
+            return [];
+        }
+
+        // 3. Extract the product IDs from the search results.
+        const productIds = nearestDocsSnapshot.docs.map(doc => doc.data().productId);
+
+        if (productIds.length === 0) {
+            return [];
+        }
+
+        // 4. Fetch the full product documents for the matching IDs.
+        const productsRef = firestore.collection('products');
+        const productsQuery = productsRef.where('__name__', 'in', productIds);
+        const productsSnapshot = await productsQuery.get();
+
+        const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        
+        // 5. Return the products in the same order as the vector search results.
+        return productIds.map(id => products.find(p => p.id === id)).filter((p): p is Product => !!p);
     }
-
-    // 3. Extract the product IDs from the search results.
-    const productIds = nearestDocs.docs.map(doc => doc.data().productId);
-
-    // 4. Fetch the full product documents for the matching IDs.
-    const productsRef = firestore.collection('products').withConverter(productConverter);
-    const productDocs = await productsRef.where('__name__', 'in', productIds).get();
-
-    // The order from the 'in' query is not guaranteed, so we need to re-order
-    // the results to match the similarity order from the vector search.
-    const productsById = new Map(productDocs.docs.map(doc => [doc.id, doc.data()]));
-    const sortedProducts = productIds.map(id => productsById.get(id)).filter((p): p is Product => !!p);
-    
-    return sortedProducts;
-  }
 );
-
