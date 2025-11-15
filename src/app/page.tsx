@@ -1,5 +1,5 @@
-
 'use client';
+export const dynamic = 'force-dynamic';
 
 import MenuPage from '@/app/menu-page';
 import TiledMenuPage from '@/app/menu/tiled/page';

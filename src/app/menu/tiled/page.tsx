@@ -1,5 +1,5 @@
-
 'use client';
+export const dynamic = 'force-dynamic';
 
 import Header from '@/app/components/header';
 import { HeroSlider } from '@/components/hero-slider';
