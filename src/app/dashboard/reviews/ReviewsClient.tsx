@@ -19,11 +19,11 @@ export default function ReviewsClient() {
   const { products, isLoading: areProductsLoading } = useMenuData();
   
   const reviewsQuery = useMemo(() => {
-    // DO NOT run the query until both firestore and the user are available.
-    if (!firestore || !user) return null;
+    // The user is not required to fetch public reviews, so we remove that dependency.
+    if (!firestore) return null;
     const baseQuery = collectionGroup(firestore, 'reviews').withConverter(reviewConverter);
     return query(baseQuery, orderBy('createdAt', 'desc'));
-  }, [firestore, user]);
+  }, [firestore]);
 
   const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery, { debugPath: '**/reviews' });
 

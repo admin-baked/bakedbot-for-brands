@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -57,9 +58,9 @@ export function useCollection<T = DocumentData>(
           const inferredPath = getPathFromQuery(query);
           const path = inferredPath === "unknown/path" && debugPath ? debugPath : inferredPath;
           
-          // Add debug logging
+          // Add debug logging. Safely get auth instance.
           try {
-            const auth = getAuth();
+            const auth = getAuth(); // This might throw if Firebase isn't initialized
             console.log('🔍 Collection query failed:', {
               path: inferredPath,
               debugPath,
@@ -70,7 +71,14 @@ export function useCollection<T = DocumentData>(
               errorMessage: err.message
             });
           } catch(e) {
-            console.error("Could not get auth instance for debug logging", e);
+            // If getAuth fails, log without user info. This is safer.
+             console.log('🔍 Collection query failed (unauthenticated context):', {
+              path: inferredPath,
+              debugPath,
+              isAuthenticated: false,
+              errorCode: err.code,
+              errorMessage: err.message
+            });
           }
 
 

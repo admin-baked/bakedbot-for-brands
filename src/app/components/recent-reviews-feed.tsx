@@ -106,7 +106,7 @@ export default function RecentReviewsFeed() {
 
         <div className="relative -mx-4">
             <div className="flex gap-6 pb-4 px-4 overflow-x-auto">
-                {isLoading && !isDemo ? (
+                {isLoading ? (
                     [...Array(4)].map((_, i) => <ReviewItemSkeleton key={i} />)
                 ) : enrichedReviews.length > 0 ? (
                 enrichedReviews.map(review => (
