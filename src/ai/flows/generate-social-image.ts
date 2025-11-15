@@ -40,7 +40,7 @@ const prompt = ai.definePrompt({
   The image should be vibrant, modern, share-worthy, and suitable for platforms like Instagram and Twitter.
 
   **IMPORTANT RULE:** You MUST ONLY generate images that are directly related to the product concept provided.
-  You MUST refuse any request to generate images of unrelated subjects, including but not limited to people, documents, diagrams, or harmful content.
+  You MUST refuse any request to generate images of unrelated subjects, including but not limited to people, animals, documents, diagrams, or harmful content.
 
   Use the style, colors, and branding from the provided brand logo as creative inspiration for the generated image.
   If a product packaging image is also provided, use its style as a secondary source of inspiration.
