@@ -29,7 +29,7 @@ export default function OrdersClient() {
   }, [user]);
 
   const ordersQuery = useMemo(() => {
-    // CRITICAL FIX: Do not build the query until the user claims are loaded.
+    // CRITICAL: Do not build the query until the user claims are loaded.
     if (!firestore || !userClaims) return null;
     
     const baseQuery = collection(firestore, 'orders').withConverter(orderConverter);

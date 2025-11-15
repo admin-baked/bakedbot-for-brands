@@ -27,11 +27,11 @@ export async function updateOrderStatus(orderId: string, status: z.infer<typeof 
         }
         
         const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-        const userDocRef = firestore.collection('users').doc(decodedToken.uid);
-        const userDoc = await userDocRef.get();
-        const userProfile = userDoc.data();
+        
+        // This is a more direct way to get claims.
+        const userClaims = decodedToken;
 
-        if (!userProfile) {
+        if (!userClaims) {
             return { error: true, message: 'User profile not found.' };
         }
 
@@ -47,13 +47,13 @@ export async function updateOrderStatus(orderId: string, status: z.infer<typeof 
         // --- SECURITY FIX: Verify Ownership ---
         // An owner can modify any order.
         // A dispensary manager can ONLY modify orders for their assigned location.
-        if (userProfile.role === 'dispensary' && userProfile.locationId !== orderData?.locationId) {
+        if (userClaims.role === 'dispensary' && userClaims.locationId !== orderData?.locationId) {
             console.warn(`SECURITY ALERT: User ${decodedToken.uid} (dispensary) attempted to modify order ${orderId} for another location (${orderData?.locationId}).`);
             return { error: true, message: 'You are not authorized to modify this order.' };
         }
         
         // A brand role cannot modify any orders.
-        if (userProfile.role !== 'dispensary' && userProfile.role !== 'owner') {
+        if (userClaims.role !== 'dispensary' && userClaims.role !== 'owner') {
              return { error: true, message: 'You do not have permission to update orders.' };
         }
         

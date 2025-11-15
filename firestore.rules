@@ -48,15 +48,24 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+
+    // Product feedback can only be written by a logged-in user.
+    match /products/{productId}/feedback/{userId} {
+      allow read: if true;
+      allow write: if request.auth.uid == userId;
+    }
     
     // Orders can be created via a Server Action.
-    // They can be read by the user who owns the order, OR by an authorized
-    // dispensary/owner who has permission to view all orders.
+    // They can be read by:
+    // 1. The user who owns the order.
+    // 2. An owner/brand role.
+    // 3. A dispensary manager, but ONLY for their specific location.
     match /orders/{orderId} {
       allow create: if false; // All creates via Server Action
       allow read, update: if request.auth.uid == resource.data.userId 
-          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['dispensary', 'owner', 'brand'];
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'brand']
+          || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'dispensary' 
+              && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.locationId == resource.data.locationId);
     }
   }
 }
-
