@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/hooks/use-store';
 import { useUser } from '@/firebase/auth/use-user';
-import { submitOrder, type OrderInput } from '@/app/checkout/actions/submitOrder';
+import { submitOrder, type ClientOrderInput } from '@/app/checkout/actions/submitOrder';
 import { useTransition, useEffect } from 'react';
 import { Loader2, Send } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -53,7 +53,7 @@ interface CheckoutFormProps {
 
 export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormProps) {
   const { user } = useUser();
-  const { cartItems, getCartTotal } = useStore();
+  const { cartItems } = useStore();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -86,20 +86,13 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormP
     }
     
     startTransition(async () => {
-      const { subtotal, taxes, total } = getCartTotal();
-      
-      const orderInput: OrderInput = {
+      // The client now sends a much simpler, more secure payload.
+      // It only sends the product ID and quantity. No prices or totals.
+      const orderInput: ClientOrderInput = {
         items: cartItems.map(item => ({
             productId: item.id,
-            name: item.name,
             qty: item.quantity,
-            price: item.price
         })),
-        totals: {
-            subtotal,
-            tax: taxes,
-            total
-        },
         customer: {
             name: data.customerName,
             email: data.customerEmail
