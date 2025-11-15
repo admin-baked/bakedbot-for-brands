@@ -13,7 +13,8 @@
     "init-embeddings": "npx tsx scripts/init-review-embeddings.ts",
     "audit": "bash ./scripts/quick-audit.sh",
     "audit:deep": "bash ./scripts/audit-code.sh",
-    "analyze": "ANALYZE=true npm run build"
+    "analyze": "ANALYZE=true npm run build",
+    "pre-publish": "npm run type-check && npm run lint && npm run build"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.2.0",
