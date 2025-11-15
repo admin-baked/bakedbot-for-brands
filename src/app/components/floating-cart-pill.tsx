@@ -14,7 +14,10 @@ export function FloatingCartPill() {
   const showPill = hydrated && itemCount > 0;
 
   return (
-    <div className={cn("fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-300", showPill ? 'opacity-100' : 'opacity-0 pointer-events-none')}>
+    <div
+      data-testid="cart-pill"
+      className={cn("fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-300", showPill ? 'opacity-100' : 'opacity-0 pointer-events-none')}
+    >
       <Button
         onClick={() => setCartSheetOpen(true)}
         className="rounded-full shadow-lg h-14 pl-6 pr-8 text-base"

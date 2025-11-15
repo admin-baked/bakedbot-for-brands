@@ -26,7 +26,7 @@ const initialState: ReviewFormState = {
 
 const StarRating = ({ rating, setRating, disabled }: { rating: number; setRating: (rating: number) => void, disabled?: boolean }) => {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1" data-testid="star-rating">
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
           key={star}

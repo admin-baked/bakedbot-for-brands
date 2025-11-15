@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useStore } from '@/hooks/use-store';
@@ -66,7 +65,7 @@ export function ProductCard({ product }: { product: Product }) {
   };
   
   return (
-    <div className="bg-card text-card-foreground rounded-lg overflow-hidden flex flex-col group border">
+    <div data-testid={`product-card-${product.id}`} className="bg-card text-card-foreground rounded-lg overflow-hidden flex flex-col group border">
       <Link href={`/products/${product.id}`} className="block">
         <div className="relative h-48">
             <Image
