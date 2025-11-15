@@ -43,17 +43,13 @@ export default function AuthCallbackPage() {
 
     useEffect(() => {
         if (!auth) {
-            console.log('⏳ Callback: Waiting for Firebase auth to initialize...');
             return;
         }
 
         const handleMagicLinkSignIn = async (emailForSignIn: string) => {
             const url = window.location.href;
             try {
-                console.log('🔐 Attempting to sign in with email link...');
                 const result = await signInWithEmailLink(auth, emailForSignIn, url);
-                
-                console.log('✅ Sign-in successful!', result.user.email);
                 
                 window.localStorage.removeItem('emailForSignIn');
                 
@@ -64,7 +60,6 @@ export default function AuthCallbackPage() {
                     description: `Successfully signed in as ${result.user.email}`,
                 });
 
-                console.log('🎉 Magic link sign-in complete. Redirecting...');
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
                 // Call the simplified success handler
@@ -117,10 +112,7 @@ export default function AuthCallbackPage() {
         const url = window.location.href;
 
         try {
-            console.log('🔐 Attempting to sign in with provided email:', email);
             const result = await signInWithEmailLink(auth, email, url);
-            
-            console.log('✅ Sign-in successful!', result.user.email);
             
             // This is important for the session to be maintained correctly
             window.localStorage.setItem('emailForSignIn', email);

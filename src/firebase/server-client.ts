@@ -10,7 +10,6 @@ function getServiceAccount() {
   if (!b64) {
     // In a production environment with App Hosting, this env var is set automatically.
     // Locally, you might need a .env.local file.
-    console.warn("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. This is expected for local development if using a fallback, but required for production.");
     return null; // Return null to indicate it's not set
   }
   const json = Buffer.from(b64, "base64").toString("utf8");

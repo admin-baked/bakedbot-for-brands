@@ -44,10 +44,7 @@ export default function LoginForm({ title, description, devLogins = [] }: LoginF
     const hasRedirected = useRef(false);
 
     const redirectUserBasedOnRole = useCallback(async (uid: string) => {
-        console.log('🔄 LoginForm: Starting redirect based on role for uid:', uid);
-        
         if (!firestore) {
-            console.log('⚠️ LoginForm: Firestore not ready, using fallback to /account/dashboard');
             router.replace('/account/dashboard');
             return;
         }
@@ -58,50 +55,37 @@ export default function LoginForm({ title, description, devLogins = [] }: LoginF
 
             if (userDoc.exists()) {
                 const userData = userDoc.data();
-                console.log('👤 LoginForm: User data loaded:', { 
-                    role: userData.role, 
-                    onboarding: userData.onboardingCompleted 
-                });
 
                 if (userData.onboardingCompleted === false) {
-                    console.log('📝 LoginForm: → Redirecting to /onboarding');
                     router.replace('/onboarding');
                 } else if (userData.role === 'dispensary') {
-                    console.log('🏪 LoginForm: → Redirecting to /dashboard/orders');
                     router.replace('/dashboard/orders');
                 } else if (userData.role === 'brand' || userData.role === 'owner') {
-                    console.log('🏢 LoginForm: → Redirecting to /dashboard');
                     router.replace('/dashboard');
                 } else {
-                    console.log('👥 LoginForm: → Redirecting to /account/dashboard');
                     router.replace('/account/dashboard');
                 }
             } else {
-                console.log('🆕 LoginForm: New user (no doc), → Redirecting to /onboarding');
                 router.replace('/onboarding');
             }
         } catch (error) {
             console.error('❌ LoginForm: Error fetching user document:', error);
-            console.log('⚠️ LoginForm: Using fallback → Redirecting to /account/dashboard');
             router.replace('/account/dashboard');
         }
     }, [firestore, router]);
 
     useEffect(() => {
         if (!auth) {
-            console.log('⏳ LoginForm: Waiting for Firebase auth...');
             return;
         }
 
         if (user && !hasRedirected.current) {
-            console.log('👤 LoginForm: User already signed in:', user.email);
             hasRedirected.current = true;
             redirectUserBasedOnRole(user.uid);
             return;
         }
 
         if (!user) {
-            console.log('📝 LoginForm: No user found, showing login form');
             setIsLoading(false);
         }
     }, [auth, user, redirectUserBasedOnRole]);
