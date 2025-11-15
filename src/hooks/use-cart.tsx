@@ -30,7 +30,7 @@ interface CartActions {
 export type CartStore = CartState & CartActions;
 
 // Create the Zustand store with persistence
-const useCartStore = create<CartStore>()(
+const useCart = create<CartStore>()(
   persist(
     (set, get) => ({
       // Initial state
@@ -107,7 +107,7 @@ const useCartStore = create<CartStore>()(
 );
 
 // This hook can be used throughout the app
-export const useCart = () => useCartStore((state) => state);
+export { useCart };
 
 // The CartProvider is now a simple component that just renders its children,
 // as Zustand's persist middleware handles the state without a context provider.
