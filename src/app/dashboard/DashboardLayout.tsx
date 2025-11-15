@@ -102,6 +102,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const userIsCeo = claims.isCeo === true || claims.role === 'owner';
         const userIsDispensary = claims.role === 'dispensary';
         const userIsBrand = claims.role === 'brand';
+        const userIsCustomer = claims.role === 'customer';
         
         setIsCeoMode(userIsCeo);
         setUserProfile(claims); // Store claims as the "profile"
@@ -111,7 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
              router.replace('/onboarding');
         } else if (userIsDispensary && !pathname.startsWith('/dashboard/orders') && !pathname.startsWith('/dashboard/settings')) {
             router.replace('/dashboard/orders');
-        } else if (!userIsCeo && !userIsBrand && !userIsDispensary) {
+        } else if (userIsCustomer) {
             // This is a regular customer, they don't belong in the admin dashboard.
             router.replace('/account/dashboard');
         }
@@ -377,5 +378,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
-    
