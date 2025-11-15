@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
+import { isSignInWithEmailLink, signInWithEmailLink, User } from 'firebase/auth';
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
@@ -22,20 +22,32 @@ export default function AuthCallbackPage() {
     const { auth, firestore } = useFirebase();
     const { toast } = useToast();
 
-    // This is the simplified success handler.
-    // It no longer contains any complex logic.
-    const handleSuccessfulSignIn = (user: any) => {
+    // Unified success handler for both magic link flows
+    const handleSuccessfulSignIn = async (user: User) => {
         if (firestore) {
             const userDocRef = doc(firestore, 'users', user.uid);
             // Non-blocking write to ensure user doc exists.
             // The dashboard layout will handle redirection based on this doc.
-            setDoc(userDocRef, {
-                uid: user.uid,
-                email: user.email,
-                displayName: user.displayName || user.email?.split('@')[0] || 'User',
-                photoURL: user.photoURL || null,
-            }, { merge: true }).catch(err => console.error("Failed to ensure user doc exists", err));
+            try {
+                await setDoc(userDocRef, {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName || user.email?.split('@')[0] || 'User',
+                    photoURL: user.photoURL || null,
+                }, { merge: true });
+            } catch (err) {
+                 console.error("Failed to ensure user doc exists", err)
+            }
         }
+        
+        toast({
+            title: 'Welcome!',
+            description: `Successfully signed in as ${user.email}`,
+        });
+
+        // Add a small delay for the user to see the success message
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         // Always redirect to the same place.
         router.replace('/dashboard');
     }
@@ -50,19 +62,12 @@ export default function AuthCallbackPage() {
             try {
                 const result = await signInWithEmailLink(auth, emailForSignIn, url);
                 
+                // --- SECURITY FIX: Always remove the email from local storage on success. ---
                 window.localStorage.removeItem('emailForSignIn');
                 
                 setStatus('success');
                 
-                toast({
-                    title: 'Welcome!',
-                    description: `Successfully signed in as ${result.user.email}`,
-                });
-
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Call the simplified success handler
-                handleSuccessfulSignIn(result.user);
+                await handleSuccessfulSignIn(result.user);
 
             } catch (error: any) {
                 console.error('❌ Sign-in error:', error);
@@ -113,18 +118,12 @@ export default function AuthCallbackPage() {
         try {
             const result = await signInWithEmailLink(auth, email, url);
             
-            // This is important for the session to be maintained correctly
-            window.localStorage.setItem('emailForSignIn', email);
+            // --- SECURITY FIX: Always remove the email from local storage on success. ---
+            window.localStorage.removeItem('emailForSignIn');
             
             setStatus('success');
             
-            toast({
-                title: 'Welcome!',
-                description: `Successfully signed in as ${result.user.email}`,
-            });
-
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            handleSuccessfulSignIn(result.user);
+            await handleSuccessfulSignIn(result.user);
 
         } catch (error: any) {
             console.error('❌ Sign-in error:', error);
@@ -146,6 +145,9 @@ export default function AuthCallbackPage() {
                 description: errorMsg,
             });
             
+            // Do not reset status to 'need-email' - show the error and let the user decide.
+            setStatus('error');
+        } finally {
             setIsSubmitting(false);
         }
     };
@@ -173,7 +175,7 @@ export default function AuthCallbackPage() {
                         <div className="space-y-1">
                             <CardTitle>Confirm Your Email</CardTitle>
                             <CardDescription>
-                                Please enter the email address where you received the sign-in link.
+                                To continue, please enter the email address where you received the sign-in link.
                             </CardDescription>
                         </div>
                     </CardHeader>
@@ -221,7 +223,7 @@ export default function AuthCallbackPage() {
                         <CheckCircle2 className="h-12 w-12 text-green-500" />
                         <CardTitle className="mt-4">Sign-in Successful!</CardTitle>
                         <CardDescription>
-                            Redirecting you now...
+                            Redirecting you to the dashboard...
                         </CardDescription>
                     </CardHeader>
                 </Card>
