@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Recommends products to users based on their queries, preferences, and past interactions.
@@ -10,8 +9,10 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { getProductReviews } from '@/ai/tools/get-product-reviews';
-import { findSimilarProducts } from '@/ai/tools/find-similar-products';
+import { createServerClient } from '@/firebase/server-client';
+import { GoogleAuth } from 'google-auth-library';
+import type { Product } from '@/lib/types';
+
 
 const RecommendProductsInputSchema = z.object({
   query: z.string().describe('The user query or description of what they are looking for.'),
@@ -31,6 +32,56 @@ const RecommendProductsOutputSchema = z.object({
 });
 export type RecommendProductsOutput = z.infer<typeof RecommendProductsOutputSchema>;
 
+
+async function generateQueryEmbedding(text: string): Promise<number[]> {
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8';
+  const auth = new GoogleAuth({
+    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+  });
+  const client = await auth.getClient();
+  const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/text-embedding-004:predict`;
+
+  const response = await client.request({
+    url,
+    method: 'POST',
+    data: { instances: [{ content: text }] },
+  });
+
+  const data = response.data as any;
+  return data.predictions[0].embeddings.values;
+}
+
+
+async function findSimilarProducts(query: string, limit: number = 5): Promise<Product[]> {
+    const { firestore } = await createServerClient();
+    const queryEmbedding = await generateQueryEmbedding(query);
+
+    const vectorQuery = firestore.collectionGroup('productReviewEmbeddings').findNearest('embedding', queryEmbedding, {
+        limit,
+        distanceMeasure: 'COSINE',
+    });
+
+    const results = await vectorQuery.get();
+
+    if (results.empty) {
+        return [];
+    }
+    
+    // Fetch the full product documents
+    const productIds = results.docs.map(doc => doc.data().productId);
+    
+    if (productIds.length === 0) return [];
+    
+    const productsRef = firestore.collection('products');
+    const productsQuery = await productsRef.where('id', 'in', productIds).get();
+    
+    const productsById = new Map(productsQuery.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() } as Product]));
+    
+    // Return products in the order of similarity
+    return productIds.map(id => productsById.get(id)).filter((p): p is Product => !!p);
+}
+
+
 const recommendProductsPrompt = ai.definePrompt({
   name: 'recommendProductsPrompt',
   input: { schema: z.object({
@@ -39,7 +90,6 @@ const recommendProductsPrompt = ai.definePrompt({
     availableProducts: z.string(),
   }) },
   output: {schema: RecommendProductsOutputSchema},
-  tools: [getProductReviews],
   prompt: `You are an expert AI budtender. Your goal is to recommend the best products to a user based on their request, history, and a pre-selected list of relevant products.
 
 The user is looking for: {{{query}}}
@@ -48,7 +98,6 @@ Their preferences are: {{{customerHistory}}}
 {{/if}}
 
 Based on this, choose up to a maximum of 3 products from the following JSON list of semantically similar products.
-Use the getProductReviews tool if needed to understand customer sentiment.
 
 Available Products (JSON):
 {{{availableProducts}}}
@@ -66,7 +115,7 @@ const recommendProductsFlow = ai.defineFlow(
   },
   async input => {
     // Step 1: Use the vector search tool to find the most relevant products first.
-    const similarProducts = await findSimilarProducts({ query: input.query, limit: 10 });
+    const similarProducts = await findSimilarProducts(input.query, 10);
     
     if (similarProducts.length === 0) {
       return {
