@@ -50,11 +50,6 @@ export interface StoreState {
   updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
   toggleNavLinkVisibility: (href: string) => void;
   removeNavLink: (href: string) => void;
-  locations: Location[];
-  setLocations: (locations: Location[]) => void;
-  addLocation: (location: Location) => void;
-  updateLocation: (id: string, newLocation: Partial<Location>) => void;
-  removeLocation: (id: string) => void;
   _hasHydrated: boolean;
   setHasHydrated: (hydrated: boolean) => void;
 }
@@ -91,7 +86,6 @@ export const useStore = create<StoreState>()(
       emailProvider: 'sendgrid' as 'sendgrid' | 'gmail',
       sendgridApiKey: null,
       navLinks: defaultNavLinks,
-      locations: [],
       _hasHydrated: false,
       setTheme: (theme: Theme) => set({ theme }),
       setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
@@ -126,12 +120,6 @@ export const useStore = create<StoreState>()(
           navLinks: state.navLinks.map((link) => link.href === href ? { ...link, hidden: !link.hidden } : link)
       })),
       removeNavLink: (href: string) => set(state => ({ navLinks: state.navLinks.filter(l => l.href !== href) })),
-      setLocations: (locations: Location[]) => set({ locations }),
-      addLocation: (location: Location) => set((state) => ({ locations: [...state.locations, location] })),
-      updateLocation: (id: string, newLocation: Partial<Location>) => set((state) => ({
-          locations: state.locations.map((loc) => loc.id === id ? { ...loc, ...newLocation } : loc)
-      })),
-      removeLocation: (id: string) => set(state => ({ locations: state.locations.filter(l => l.id !== id) })),
       setHasHydrated: (hydrated: boolean) => set({ _hasHydrated: hydrated }),
     }),
     {
