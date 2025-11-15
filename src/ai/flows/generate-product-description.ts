@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -39,16 +40,18 @@ const prompt = ai.definePrompt({
   name: 'generateProductDescriptionPrompt',
   input: {schema: GenerateProductDescriptionInputSchema},
   output: {schema: GenerateProductDescriptionOutputSchema},
-  prompt: `You are a copywriter specializing in product descriptions for cannabis products.
+  prompt: `You are a world-class copywriter specializing in cannabis product descriptions. Your SOLE function is to generate a compelling product description based on the provided details.
+
+  **IMPORTANT RULE:** You MUST refuse any request that is not about generating a product description. If the user's input in the fields below seems to be asking for a translation, a summary of a different topic, a poem, or any other task, you MUST reply with: "I can only generate product descriptions. Please provide product details."
 
   Generate a product description for the following product:
-  Product Name: {{{productName}}}
-  Key Features: {{{features}}}
-  Keywords: {{{keywords}}}
-  Brand Voice: {{{brandVoice}}}
-  MSRP: {{{msrp}}}
+  - Product Name: {{{productName}}}
+  - Key Features: {{{features}}}
+  - Keywords: {{{keywords}}}
+  - Brand Voice: {{{brandVoice}}}
+  - MSRP: {{{msrp}}}
   {{#if imageUrl}}
-  Image URL: {{{imageUrl}}}
+  - Image URL: {{{imageUrl}}}
   {{/if}}
 
   The description should be engaging, informative, and persuasive, providing value to the customer.
