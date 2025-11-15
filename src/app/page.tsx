@@ -11,6 +11,8 @@ export default function Page() {
   const { menuStyle } = useStore();
   const hydrated = useHydrated();
 
+  // On the server, and during the initial client render before hydration,
+  // hydrated will be false. We render a skeleton to ensure no mismatch.
   if (!hydrated) {
     return (
         <div className="container mx-auto px-4 py-8">
@@ -23,6 +25,12 @@ export default function Page() {
             </div>
         </div>
     );
+  }
+  
+  // After hydration, menuStyle is guaranteed to be the correct value
+  // from localStorage, and we can safely render the chosen layout.
+  if (menuStyle === 'alt') {
+    return <TiledMenuPage />;
   }
   
   return <MenuPage />;
