@@ -13,9 +13,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useStore } from '@/hooks/use-store';
 import type { Location } from '@/firebase/converters';
 import { useToast } from '@/hooks/use-toast';
+import { useFormState } from 'react-dom';
+import { removeLocationAction } from '../actions';
 
 interface DeleteLocationDialogProps {
   isOpen: boolean;
@@ -23,36 +24,43 @@ interface DeleteLocationDialogProps {
   location: Location | null;
 }
 
+const initialState = { message: '', error: false };
+
 export default function DeleteLocationDialog({ isOpen, setIsOpen, location }: DeleteLocationDialogProps) {
-  const { removeLocation } = useStore();
   const { toast } = useToast();
+  const [state, formAction] = useFormState(removeLocationAction, initialState);
 
-  const handleDelete = () => {
-    if (!location) return;
-
-    removeLocation(location.id);
-    toast({
-      title: 'Location Removed',
-      description: `The "${location.name}" location has been permanently removed.`,
-    });
-    setIsOpen(false);
-  };
+  React.useEffect(() => {
+    if (state.message) {
+        toast({
+            title: state.error ? 'Error' : 'Success',
+            description: state.message,
+            variant: state.error ? 'destructive' : 'default',
+        });
+        if (!state.error) {
+            setIsOpen(false);
+        }
+    }
+  }, [state, toast, setIsOpen]);
 
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the <strong>{location?.name}</strong> location.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
+        <form action={formAction}>
+            <input type="hidden" name="id" value={location?.id || ''} />
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the <strong>{location?.name}</strong> location from Firestore.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction type="submit" className="bg-destructive hover:bg-destructive/90">
+                Delete
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </form>
       </AlertDialogContent>
     </AlertDialog>
   );

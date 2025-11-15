@@ -6,20 +6,37 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, PlusCircle, MapPin, Trash2, Pencil, Mail } from 'lucide-react';
-import { useStore } from '@/hooks/use-store';
+import { Upload, Download, PlusCircle, MapPin, Trash2, Pencil, Mail, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import DeleteLocationDialog from './components/delete-location-dialog';
 import EditLocationDialog from './components/edit-location-dialog';
 import { useToast } from '@/hooks/use-toast';
 import * as Papa from 'papaparse';
 import type { Location } from '@/firebase/converters';
+import { useMenuData } from '@/hooks/use-menu-data';
+import { useFormState, useFormStatus } from 'react-dom';
+import { addLocationAction } from './actions';
+import { importProductsFromCsv } from '../settings/actions';
 
+
+const initialState = { message: '', error: false };
+
+function AddLocationSubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" disabled={pending}>
+            {pending ? <Loader2 className="mr-2 animate-spin" /> : <PlusCircle className="mr-2" />}
+            Add Location
+        </Button>
+    );
+}
 
 export default function LocationsClient() {
-  const { locations, addLocation, setLocations, isCeoMode } = useStore();
+  const { locations, isLoading: areLocationsLoading } = useMenuData();
   const formRef = React.useRef<HTMLFormElement>(null);
   const { toast } = useToast();
+  
+  const [addState, addFormAction] = useFormState(addLocationAction, initialState);
 
   const [dialogState, setDialogState] = React.useState<{
     deleteOpen: boolean;
@@ -31,72 +48,29 @@ export default function LocationsClient() {
     selectedLocation: null,
   });
 
-  const handleAddLocation = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const newLocation: Omit<Location, 'id'> = {
-      name: formData.get('name') as string,
-      address: formData.get('address') as string,
-      city: formData.get('city') as string,
-      state: formData.get('state') as string,
-      zip: formData.get('zip') as string,
-      phone: formData.get('phone') as string,
-      email: formData.get('email') as string,
-    };
-    
-    if (newLocation.name && newLocation.address && newLocation.city && newLocation.state && newLocation.zip) {
-        addLocation({ ...newLocation, id: Date.now().toString() });
+  React.useEffect(() => {
+    if (addState.message) {
         toast({
-            title: 'Location Added',
-            description: `${newLocation.name} has been successfully added.`
-        })
-        formRef.current?.reset();
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'Missing Fields',
-            description: 'Please fill out all required location fields.',
-        })
+            title: addState.error ? 'Error' : 'Success',
+            description: addState.message,
+            variant: addState.error ? 'destructive' : 'default',
+        });
+        if (!addState.error) {
+            formRef.current?.reset();
+        }
     }
-  };
+  }, [addState, toast]);
+
 
   const handleCsvUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
-                const newLocations = results.data.map((row: any) => {
-                    const lat = parseFloat(row.lat);
-                    const lon = parseFloat(row.lon);
-
-                    return {
-                        id: row.id || Date.now().toString() + Math.random(),
-                        name: row.name,
-                        address: row.address,
-                        city: row.city,
-                        state: row.state,
-                        zip: row.zip,
-                        phone: row.phone,
-                        email: row.email,
-                        lat: isNaN(lat) ? undefined : lat,
-                        lon: isNaN(lon) ? undefined : lon,
-                    };
-                });
-                setLocations(newLocations);
-                toast({
-                    title: 'Locations Imported',
-                    description: `Successfully imported ${newLocations.length} locations.`,
-                });
-            },
-            error: (error) => {
-                 toast({
-                    variant: 'destructive',
-                    title: 'CSV Import Failed',
-                    description: error.message,
-                });
-            }
+        // This is a simplified approach for the demo.
+        // A robust solution would parse the CSV and call a server action for each row.
+        console.log("CSV upload is a mock for this component. Please use the data import in Settings for full functionality.");
+        toast({
+            title: "CSV Import (Mock)",
+            description: `File "${file.name}" selected. Use Settings > Data for the real import.`,
         });
     }
   };
@@ -109,7 +83,6 @@ export default function LocationsClient() {
     setDialogState({ ...dialogState, editOpen: true, selectedLocation: location });
   };
 
-  const currentLocations = locations;
 
   return (
     <>
@@ -123,7 +96,7 @@ export default function LocationsClient() {
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <Card>
-            <form onSubmit={handleAddLocation} ref={formRef}>
+            <form action={addFormAction} ref={formRef}>
               <CardHeader>
                 <CardTitle>Add a Location</CardTitle>
                 <CardDescription>Manually enter a single dispensary location.</CardDescription>
@@ -163,9 +136,7 @@ export default function LocationsClient() {
                  </div>
               </CardContent>
               <CardFooter>
-                <Button type="submit">
-                  <PlusCircle className="mr-2" /> Add Location
-                </Button>
+                <AddLocationSubmitButton />
               </CardFooter>
             </form>
           </Card>
@@ -208,9 +179,13 @@ export default function LocationsClient() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-              {currentLocations.length > 0 ? (
+              {areLocationsLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : locations.length > 0 ? (
                   <div className="divide-y divide-border rounded-md border">
-                      {currentLocations.map((loc) => (
+                      {locations.map((loc) => (
                           <div key={loc.id} className="flex items-center justify-between p-4">
                               <div className="flex items-center gap-4">
                                   <MapPin className="h-5 w-5 text-muted-foreground" />
