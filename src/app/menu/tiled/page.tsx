@@ -1,19 +1,20 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 
 import Header from '@/app/components/header';
-import { HeroSlider } from '@/components/hero-slider';
 import { ProductCarousel } from '@/components/product-carousel';
 import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { Footer } from '@/app/components/footer';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useMemo } from 'react';
-import type { Product } from '@/lib/types';
+import type { Product, Location } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { HeroSlider } from '@/components/hero-slider';
 
 const PromoCardLarge = () => (
     <Card className="overflow-hidden md:grid md:grid-cols-2 items-center">
@@ -44,9 +45,13 @@ const PromoCardSmall = () => (
     </Card>
 );
 
+interface TiledMenuPageProps {
+  serverProducts: Product[];
+  serverLocations: Location[];
+}
 
-export default function TiledMenuPage() {
-    const { products, isLoading } = useMenuData();
+export default function TiledMenuPage({ serverProducts, serverLocations }: TiledMenuPageProps) {
+    const { products, isLoading } = useMenuData(serverProducts, serverLocations);
 
     const categorizedProducts = useMemo(() => {
         if (!products) return {};
@@ -71,7 +76,7 @@ export default function TiledMenuPage() {
       <Header />
       <main className="flex-1">
         <div className="container mx-auto px-4 space-y-12">
-          <HeroSlider />
+          <HeroSlider products={products} isLoading={isLoading} />
 
           <ProductCarousel title="Flash Deals" products={flashDeals} isLoading={isLoading} />
           

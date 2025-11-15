@@ -8,11 +8,14 @@ import Image from 'next/image';
 import { type Product } from '@/firebase/converters';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useMenuData } from '@/hooks/use-menu-data';
 import { Skeleton } from './ui/skeleton';
 
-export function HeroSlider() {
-    const { products, isLoading } = useMenuData();
+interface HeroSliderProps {
+    products: Product[];
+    isLoading: boolean;
+}
+
+export function HeroSlider({ products, isLoading }: HeroSliderProps) {
 
     if (isLoading) {
         return <Skeleton className="w-full h-80 rounded-lg mb-12" />;

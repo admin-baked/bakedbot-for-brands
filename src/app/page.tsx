@@ -1,37 +1,47 @@
-'use client';
-export const dynamic = 'force-dynamic';
 
-import MenuPage from '@/app/menu-page';
-import TiledMenuPage from '@/app/menu/tiled/page';
-import { useStore } from '@/hooks/use-store';
-import { useHydrated } from '@/hooks/useHydrated';
-import { Skeleton } from '@/components/ui/skeleton';
+import { makeProductRepo } from '@/server/repos/productRepo';
+import { createServerClient } from '@/firebase/server-client';
+import { demoProducts, demoLocations } from '@/lib/data';
+import { cookies } from 'next/headers';
+import type { Product, Location } from '@/lib/types';
+import MenuPageClient from './menu-page-client';
 
-export default function Page() {
-  const { menuStyle } = useStore();
-  const hydrated = useHydrated();
 
-  // On the server, and during the initial client render before hydration,
-  // hydrated will be false. We render a skeleton to ensure no mismatch.
-  if (!hydrated) {
-    return (
-        <div className="container mx-auto px-4 py-8">
-            <Skeleton className="w-full h-80 rounded-lg mb-12" />
-            <Skeleton className="w-full h-48 rounded-lg mb-12" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {[...Array(8)].map((_, i) => (
-                    <Skeleton key={i} className="h-96 w-full" />
-                ))}
-            </div>
-        </div>
-    );
-  }
+async function getMenuData(): Promise<{ products: Product[]; locations: Location[] }> {
+    const cookieStore = cookies();
+    const isDemo = cookieStore.get('isUsingDemoData')?.value === 'true';
+
+    if (isDemo) {
+        return { products: demoProducts, locations: demoLocations };
+    }
+
+    try {
+        const { firestore } = await createServerClient();
+        const productRepo = makeProductRepo(firestore);
+        
+        // Fetch all products
+        const products = await productRepo.getAll();
+        
+        // Fetch all locations
+        const locationsSnap = await firestore.collection('dispensaries').get();
+        const locations = locationsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
+        
+        // If live data is empty, fall back to demo data for a better presentation
+        return {
+            products: products.length > 0 ? products : demoProducts,
+            locations: locations.length > 0 ? locations : demoLocations,
+        };
+
+    } catch (error) {
+        console.error("Failed to fetch menu data on server, falling back to demo data.", error);
+        return { products: demoProducts, locations: demoLocations };
+    }
+}
+
+
+export default async function Page() {
+  const { products, locations } = await getMenuData();
   
-  // After hydration, menuStyle is guaranteed to be the correct value
-  // from localStorage, and we can safely render the chosen layout.
-  if (menuStyle === 'alt') {
-    return <TiledMenuPage />;
-  }
-  
-  return <MenuPage />;
+  // The MenuPageClient will handle the client-side logic for layout switching
+  return <MenuPageClient serverProducts={products} serverLocations={locations} />;
 }
