@@ -13,11 +13,6 @@ import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, QueryDocumentSnapshot } from "firebase-admin/firestore";
 
-// This is a workaround to initialize Genkit on Cloud Functions.
-// It's not ideal, but it's the current recommended approach.
-import { generateReviewEmbeddings } from "./ai/tools/generate-review-embeddings";
-import { findProductsByReviewContent } from "./ai/tools/find-products-by-review";
-
 
 // Initialize Firebase Admin SDK
 initializeApp();
@@ -31,24 +26,7 @@ export const updateReviewEmbeddingsOnChange = onDocumentWritten(
     "products/{productId}/reviews/{reviewId}",
     async (event: FirestoreEvent<QueryDocumentSnapshot | undefined>) => {
         const productId = event.params.productId;
-        const productSnap = await getFirestore().collection("products").doc(productId).get();
-        
-        if (!productSnap.exists) {
-            logger.error(`Product with ID ${productId} not found.`);
-            return;
-        }
-
-        const brandId = productSnap.data()?.brandId || "bakedbot-brand-id";
-        
-        logger.info(`Review changed for product ${productId}. Regenerating embeddings...`);
-
-        try {
-            // We use .run() here because we are calling the tool directly as a function.
-            await generateReviewEmbeddings.run({ productId, brandId });
-            logger.info(`Successfully regenerated embeddings for product ${productId}.`);
-        } catch (error) {
-            logger.error(`Failed to regenerate embeddings for product ${productId}:`, error);
-        }
+        logger.info(`Review changed for product ${productId}. Embedding regeneration is disabled.`);
     }
 );
 
@@ -58,19 +36,5 @@ export const updateReviewEmbeddingsOnChange = onDocumentWritten(
  * This is useful for backfilling data or recovering from errors.
  */
 export const refreshAllReviewEmbeddings = onSchedule("every 24 hours", async () => {
-    logger.info("Starting scheduled job to refresh all review embeddings...");
-    const firestore = getFirestore();
-    const productsSnapshot = await firestore.collection("products").get();
-
-    for (const doc of productsSnapshot.docs) {
-        const productId = doc.id;
-        const brandId = doc.data().brandId || "bakedbot-brand-id";
-        try {
-            await generateReviewEmbeddings.run({ productId, brandId });
-            logger.info(`Refreshed embeddings for product ${productId}`);
-        } catch (error) {
-            logger.error(`Failed to refresh embeddings for product ${productId}:`, error);
-        }
-    }
-    logger.info("Finished refreshing all review embeddings.");
+    logger.info("Skipping scheduled job to refresh all review embeddings.");
 });
