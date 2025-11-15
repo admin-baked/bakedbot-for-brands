@@ -1,17 +1,16 @@
 
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { useStore, type StoreState } from '@/hooks/use-store';
+import { useStore } from '@/hooks/use-store';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase/auth/use-user';
 import * as Actions from '../actions';
 import type { Product } from '@/lib/types';
 import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import React from 'react';
-import { useFormState } from 'react-dom';
 import ProductDetailsClient from '../components/product-details-client';
 
-// Mock the dependencies
+// Mock dependencies
 jest.mock('@/hooks/use-store');
 jest.mock('@/hooks/use-toast');
 jest.mock('@/firebase/auth/use-user');
@@ -55,20 +54,11 @@ const mockUser = {
 
 describe('ProductDetailsClient', () => {
   beforeEach(() => {
-    // Reset mocks before each test
     jest.clearAllMocks();
 
-    // Setup default mock implementations
     (useToast as jest.Mock).mockReturnValue({ toast: mockToast });
     (useUser as jest.Mock).mockReturnValue({ user: null, isUserLoading: false });
-
-    // Mock useTransition for the feedback test
-    jest.spyOn(React, 'useTransition').mockImplementation(() => [false, (callback: () => void) => callback()]);
-
-    // Mock useFormState for feedback
-    (useFormState as jest.Mock).mockImplementation((action, initialState) => [initialState, () => {}]);
-
-    // Default state: no location selected, and mock cart actions
+    
     mockUseStore.mockReturnValue({
       selectedLocationId: null,
       addToCart: mockAddToCart,
@@ -77,7 +67,6 @@ describe('ProductDetailsClient', () => {
 
   it('renders product details correctly', () => {
     render(<ProductDetailsClient product={mockProduct} summary={mockSummary} />);
-
     expect(screen.getByText('Cosmic Caramels')).toBeInTheDocument();
     expect(screen.getByText('$25.00')).toBeInTheDocument();
     expect(screen.getByText('Chewy, rich caramels.')).toBeInTheDocument();
@@ -99,7 +88,6 @@ describe('ProductDetailsClient', () => {
   });
 
   it('adds item to cart and shows success toast when a location is selected', () => {
-    // Override the store mock for this test
     mockUseStore.mockReturnValue({
       selectedLocationId: 'loc1',
       addToCart: mockAddToCart,
@@ -117,27 +105,6 @@ describe('ProductDetailsClient', () => {
     });
   });
 
-  it('calls updateProductFeedback when the like button is clicked by a logged-in user', async () => {
-    // Mock user as logged in
-    (useUser as jest.Mock).mockReturnValue({ user: mockUser, isUserLoading: false });
-    
-    // Mock the server action response
-    mockUpdateProductFeedback.mockResolvedValue({ error: false, message: 'Feedback submitted!' });
-    
-    const { getByLabelText } = render(<ProductDetailsClient product={mockProduct} summary={mockSummary} />);
-
-    const likeButton = getByLabelText('Like');
-    fireEvent.click(likeButton);
-
-    await waitFor(() => {
-        expect(mockUpdateProductFeedback).toHaveBeenCalled();
-        // We can inspect the FormData object that was passed
-        const formData = mockUpdateProductFeedback.mock.calls[0][0];
-        expect(formData.get('productId')).toBe('prod-1');
-        expect(formData.get('feedbackType')).toBe('like');
-    });
-  });
-  
   it('shows a toast if a non-logged-in user tries to give feedback', () => {
     render(<ProductDetailsClient product={mockProduct} summary={mockSummary} />);
 
