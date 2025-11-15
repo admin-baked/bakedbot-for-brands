@@ -58,9 +58,8 @@ export async function saveEmailSettings(prevState: any, formData: FormData) {
     };
   }
   
-  console.log(`Email provider set to: ${emailProvider}`);
   if (apiKey) {
-    console.log('API Key received (handling would be secure in production)');
+    // In a real app, this would be an encrypted write to a secure store.
   }
 
   revalidatePath('/dashboard/settings');
@@ -220,10 +219,6 @@ export async function trainOnBrandDocuments(prevState: any, formData: FormData) 
     try {
         // In a real app, you would process this file and use it to fine-tune an LLM.
         // For now, we'll log it to show the mechanism works.
-        console.log('--- Simulating Brand Voice Training ---');
-        console.log(`File: ${brandDoc.name}, Type: ${brandDoc.type}, Size: ${brandDoc.size} bytes`);
-        console.log('This file would now be sent to a training pipeline.');
-        console.log('-------------------------------------');
 
         revalidatePath('/dashboard/settings');
 

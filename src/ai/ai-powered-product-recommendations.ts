@@ -99,7 +99,6 @@ async function findSimilarProducts(query: string, limit: number = 5): Promise<Pr
       .get();
 
     if (embeddingsSnapshot.empty) {
-      console.log('No product embeddings found');
       return [];
     }
 
@@ -119,8 +118,6 @@ async function findSimilarProducts(query: string, limit: number = 5): Promise<Pr
     const topMatches = similarities
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, limit);
-
-    console.log('Top matches:', topMatches.map(m => ({ name: m.productName, sim: m.similarity.toFixed(3) })));
 
     // Fetch full product details
     const productIds = topMatches.map(m => m.productId);
@@ -177,12 +174,8 @@ const recommendProductsFlow = ai.defineFlow(
   },
   async input => {
     try {
-      console.log('🚀 Starting product recommendation flow for query:', input.query);
-      
       // Step 1: Use vector similarity to find the most relevant products
       const similarProducts = await findSimilarProducts(input.query, 10);
-      
-      console.log(`✅ Found ${similarProducts.length} similar products`);
       
       if (similarProducts.length === 0) {
         return {
@@ -196,8 +189,6 @@ const recommendProductsFlow = ai.defineFlow(
         ...input,
         availableProducts: JSON.stringify(similarProducts),
       });
-
-      console.log('✅ Generated recommendations:', output?.products.length || 0);
 
       return output!;
     } catch (error) {
