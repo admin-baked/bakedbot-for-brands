@@ -58,15 +58,15 @@ export default function DashboardPage() {
   }, [firestore, currentBrandId]);
 
   const productsQuery = useMemo(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'products').withConverter(productConverter));
-  }, [firestore]);
+    if (!firestore || !currentBrandId) return null;
+    return query(collection(firestore, 'products').withConverter(productConverter), where('brandId', '==', currentBrandId));
+  }, [firestore, currentBrandId]);
 
   const { data: interactions, isLoading: areInteractionsLoading } = useCollection<UserInteraction>(
     interactionsQuery,
     { debugPath: `**/interactions?brandId=${currentBrandId}` }
   );
-  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery, { debugPath: '/products' });
+  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery, { debugPath: `/products?brandId=${currentBrandId}` });
 
   const isLoading = isUserLoading || areInteractionsLoading || areProductsLoading;
 
@@ -96,7 +96,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back! Here&apos;s a summary of your BakedBot AI performance.</p>
+        <p className="text-muted-foreground">Welcome back! Here's a summary of your BakedBot AI performance.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
