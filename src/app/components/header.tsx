@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -114,7 +115,7 @@ export default function Header() {
                     <div className="hidden md:flex items-center gap-2">
                         {hydrated && user ? (
                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
+                                <DropdownMenuTrigger asChild suppressHydrationWarning>
                                      <Button variant="ghost" className="flex items-center gap-2">
                                         <Avatar className="h-7 w-7">
                                             <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
@@ -161,7 +162,7 @@ export default function Header() {
                     {/* Mobile Menu */}
                     <div className="md:hidden">
                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                            <DropdownMenuTrigger asChild suppressHydrationWarning>
                                 <Button variant="ghost" size="icon">
                                     <Menu className="h-5 w-5" />
                                 </Button>
