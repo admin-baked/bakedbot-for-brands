@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Image from 'next/image';
@@ -90,7 +89,7 @@ const ReviewSummarySkeleton = () => (
 const initialFeedbackState = { message: '', error: false };
 
 function ProductDetailsClient({ product, children }: { product: Product, children: React.ReactNode }) {
-    const { addToCart, selectedLocationId } = useStore();
+    const { addToCart, selectedRetailerId } = useStore();
     const { toast } = useToast();
     const { user, isUserLoading } = useUser();
     
@@ -111,11 +110,11 @@ function ProductDetailsClient({ product, children }: { product: Product, childre
     const priceDisplay = useMemo(() => {
         const hasPricing = product.prices && Object.keys(product.prices).length > 0;
         
-        if (selectedLocationId && hasPricing && product.prices[selectedLocationId]) {
-            return `$${product.prices[selectedLocationId].toFixed(2)}`;
+        if (selectedRetailerId && hasPricing && product.prices[selectedRetailerId]) {
+            return `$${product.prices[selectedRetailerId].toFixed(2)}`;
         }
         
-        if (!selectedLocationId && hasPricing) {
+        if (!selectedRetailerId && hasPricing) {
             const priceValues = Object.values(product.prices);
             if (priceValues.length > 0) {
                 const minPrice = Math.min(...priceValues);
@@ -129,7 +128,7 @@ function ProductDetailsClient({ product, children }: { product: Product, childre
         }
         
         return `$${product.price.toFixed(2)}`;
-    }, [product, selectedLocationId]);
+    }, [product, selectedRetailerId]);
 
     const handleFeedback = (feedbackType: 'like' | 'dislike') => {
         const formData = new FormData();
@@ -141,7 +140,7 @@ function ProductDetailsClient({ product, children }: { product: Product, childre
     };
 
     const handleAddToCart = () => {
-        if (!selectedLocationId) {
+        if (!selectedRetailerId) {
             const locator = document.getElementById('locator');
             if (locator) {
                 locator.scrollIntoView({ behavior: 'smooth' });
@@ -157,7 +156,7 @@ function ProductDetailsClient({ product, children }: { product: Product, childre
             });
             return;
         }
-        addToCart(product, selectedLocationId);
+        addToCart(product, selectedRetailerId);
         toast({
             title: 'Added to Cart',
             description: `${product.name} has been added to your cart.`
@@ -216,7 +215,7 @@ function ProductDetailsClient({ product, children }: { product: Product, childre
                         <ThumbsDown className="h-5 w-5 text-red-500"/>
                     </Button>
                 </div>
-                {!selectedLocationId && (
+                {!selectedRetailerId && (
                     <p className="text-sm text-center text-destructive">Please select a location to add items to your cart.</p>
                 )}
 

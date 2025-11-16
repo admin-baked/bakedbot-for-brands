@@ -1,3 +1,4 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 
@@ -101,7 +102,7 @@ export default function LeaveReviewPage() {
                     <Button onClick={() => setShowSuccess(false)}>Leave Another Review</Button>
                     <div>
                         <Button variant="link" asChild>
-                            <Link href="/">
+                            <Link href="/menu/default">
                                 &larr; Back to Menu
                             </Link>
                         </Button>

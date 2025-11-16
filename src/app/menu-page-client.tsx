@@ -13,7 +13,7 @@ import Header from '@/app/components/header';
 import { Footer } from './components/footer';
 import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/hooks/use-hydrated';
 
 export default function MenuPageClient() {
   const { menuStyle } = useStore();
