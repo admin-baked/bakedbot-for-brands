@@ -9,6 +9,7 @@ import type { Product, Retailer } from '@/firebase/converters';
 import { useDemoMode } from '@/context/demo-mode';
 import { demoProducts, demoRetailers } from '@/lib/data';
 import { useCollection } from '@/firebase/firestore/use-collection';
+import { useHydrated } from './useHydrated';
 
 
 export type UseMenuDataResult = {
@@ -25,35 +26,41 @@ export type UseMenuDataResult = {
 export function useMenuData(): UseMenuDataResult {
   const { isDemo } = useDemoMode();
   const { firestore } = useFirebase();
+  const isHydrated = useHydrated();
 
-  // Set up Firestore queries. They will be null if in demo mode.
+  // Set up Firestore queries. They will be null if not hydrated, in demo mode, or if firestore is not available.
   const productsQuery = useMemo(() => {
-    if (isDemo || !firestore) return null;
+    if (!isHydrated || isDemo || !firestore) return null;
     return query(collection(firestore, 'products').withConverter(productConverter));
-  }, [firestore, isDemo]);
+  }, [firestore, isDemo, isHydrated]);
   
   const locationsQuery = useMemo(() => {
-    if (isDemo || !firestore) return null;
-    return query(collection(firestore, 'retailers').withConverter(retailerConverter));
-  }, [firestore, isDemo]);
+    if (!isHydrated || isDemo || !firestore) return null;
+    return query(collection(firestore, 'dispensaries').withConverter(retailerConverter));
+  }, [firestore, isDemo, isHydrated]);
 
   // Fetch live data from Firestore.
-  const { data: liveProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
-  const { data: liveLocations, isLoading: areLocationsLoading } = useCollection<Retailer>(locationsQuery);
+  const { data: liveProducts, isLoading: areProductsLoading, error: productsError } = useCollection<Product>(productsQuery);
+  const { data: liveLocations, isLoading: areLocationsLoading, error: locationsError } = useCollection<Retailer>(locationsQuery);
 
   // Determine the final data source based on demo mode and data availability.
+  // Use demo data if in demo mode, if there's an error fetching, or if live data is empty.
   const products = useMemo<Product[]>(() => {
     if (isDemo) return demoProducts;
-    return liveProducts && liveProducts.length > 0 ? liveProducts : demoProducts;
-  }, [isDemo, liveProducts]);
+    if (!isHydrated) return []; // Return empty on server
+    if (productsError || (liveProducts && liveProducts.length === 0)) return demoProducts;
+    return liveProducts || [];
+  }, [isDemo, isHydrated, liveProducts, productsError]);
 
   const locations = useMemo<Retailer[]>(() => {
     if (isDemo) return demoRetailers;
-    return liveLocations && liveLocations.length > 0 ? liveLocations : demoRetailers;
-  }, [isDemo, liveLocations]);
+    if (!isHydrated) return []; // Return empty on server
+    if (locationsError || (liveLocations && liveLocations.length === 0)) return demoRetailers;
+    return liveLocations || [];
+  }, [isDemo, isHydrated, liveLocations, locationsError]);
 
-  // The overall loading state depends on fetching live data.
-  const isLoading = !isDemo && (areProductsLoading || areLocationsLoading);
+  // The overall loading state depends on hydration status and fetching live data.
+  const isLoading = !isHydrated || (!isDemo && (areProductsLoading || areLocationsLoading));
 
   return {
     products,
@@ -62,3 +69,4 @@ export function useMenuData(): UseMenuDataResult {
     isDemo,
   };
 }
+
