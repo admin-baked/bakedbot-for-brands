@@ -5,15 +5,14 @@ import { useStore } from '@/hooks/use-store';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useHydrated } from '@/hooks/use-hydrated';
+import { useHydrated } from '@/hooks/useHydrated';
 
 export function FloatingCartPill() {
-  // We no longer need useHydrated here.
-  // The store's state is now reliable on first client render.
   const { getItemCount, setCartSheetOpen } = useStore();
+  const hydrated = useHydrated();
   const itemCount = getItemCount();
   
-  const showPill = itemCount > 0;
+  const showPill = hydrated && itemCount > 0;
 
   return (
     <div
