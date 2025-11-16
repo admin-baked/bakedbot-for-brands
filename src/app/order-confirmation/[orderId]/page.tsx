@@ -175,7 +175,7 @@ function OrderPageClient() {
                         <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
                             <h3 className="font-semibold flex items-center gap-2 text-muted-foreground"><MapPin className="h-4 w-4" /> Pickup Location</h3>
                             <p className="font-medium text-primary">{pickupLocation.name}</p>
-                            <p className="text-sm">{pickupLocation.address}, {pickupLocation.city}, {pickupLocation.state} ${pickupLocation.zip}</p>
+                            <p className="text-sm">{pickupLocation.address}, {pickupLocation.city}, {pickupLocation.state} {pickupLocation.zip}</p>
                         </div>
                     )}
                     
@@ -259,3 +259,5 @@ export default function OrderConfirmationPage() {
        </div>
     )
 }
+
+    

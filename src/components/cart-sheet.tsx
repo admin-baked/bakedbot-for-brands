@@ -18,15 +18,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Minus, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/hooks/use-hydrated';
 
 export function CartSheet() {
-  const { isCartSheetOpen, setCartSheetOpen, selectedLocationId, cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useStore();
+  const { isCartSheetOpen, setCartSheetOpen, selectedRetailerId, cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useStore();
   const { locations } = useMenuData();
   const router = useRouter();
   const hydrated = useHydrated();
 
-  const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
+  const selectedLocation = locations.find(loc => loc.id === selectedRetailerId);
   const { subtotal, taxes, total } = getCartTotal();
 
   const handleCheckout = () => {
@@ -121,3 +121,5 @@ export function CartSheet() {
     </Sheet>
   );
 }
+
+    

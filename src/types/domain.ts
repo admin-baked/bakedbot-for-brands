@@ -43,6 +43,9 @@ export type Retailer = {
     status?: 'active' | 'inactive';
 };
 
+export type Location = Retailer & { zipCode?: string };
+
+
 export type Order = {
   id: string;
   customer: string;
@@ -107,3 +110,5 @@ export type UserInteraction = {
   query: string;
   recommendedProductIds?: string[];
 };
+
+    

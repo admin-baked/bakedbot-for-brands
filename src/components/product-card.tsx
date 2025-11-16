@@ -11,19 +11,19 @@ import { useMemo } from 'react';
 import type { Product } from '@/types/domain';
 
 export function ProductCard({ product }: { product: Product }) {
-  const { addToCart, selectedLocationId } = useStore();
+  const { addToCart, selectedRetailerId } = useStore();
   const { toast } = useToast();
 
   const priceDisplay = useMemo(() => {
     const hasPricing = product.prices && Object.keys(product.prices).length > 0;
     
     // If a location is selected, show its specific price.
-    if (selectedLocationId && hasPricing && product.prices[selectedLocationId]) {
-        return `$${product.prices[selectedLocationId].toFixed(2)}`;
+    if (selectedRetailerId && hasPricing && product.prices[selectedRetailerId]) {
+        return `$${product.prices[selectedRetailerId].toFixed(2)}`;
     }
     
     // If no location is selected but there are multiple prices, show a range.
-    if (!selectedLocationId && hasPricing) {
+    if (!selectedRetailerId && hasPricing) {
         const priceValues = Object.values(product.prices);
         if (priceValues.length > 0) {
             const minPrice = Math.min(...priceValues);
@@ -38,10 +38,10 @@ export function ProductCard({ product }: { product: Product }) {
     
     // Fallback to the base price if no other conditions are met.
     return `$${product.price.toFixed(2)}`;
-  }, [product, selectedLocationId]);
+  }, [product, selectedRetailerId]);
 
   const handleAddToCart = () => {
-    if (!selectedLocationId) {
+    if (!selectedRetailerId) {
       const locator = document.getElementById('locator');
       if (locator) {
         locator.scrollIntoView({ behavior: 'smooth' });
@@ -58,7 +58,7 @@ export function ProductCard({ product }: { product: Product }) {
       return;
     }
     
-    addToCart(product, selectedLocationId);
+    addToCart(product, selectedRetailerId);
     toast({
         title: 'Added to Cart',
         description: `${product.name} has been added to your cart.`,
@@ -67,7 +67,7 @@ export function ProductCard({ product }: { product: Product }) {
   
   return (
     <div data-testid={`product-card-${product.id}`} className="bg-card text-card-foreground rounded-lg overflow-hidden flex flex-col group border">
-      <Link href={`/products/${product.id}`} className="block">
+      <Link href={`/menu/${product.brandId}/products/${product.id}`} className="block">
         <div className="relative h-48">
             <Image
                 src={product.imageUrl}
@@ -104,7 +104,7 @@ export function ProductCard({ product }: { product: Product }) {
           <Button
             onClick={handleAddToCart}
             size="sm"
-            title={!selectedLocationId ? 'Select a location first' : 'Add to cart'}
+            title={!selectedRetailerId ? 'Select a location first' : 'Add to cart'}
           >
             Add
           </Button>
@@ -113,3 +113,5 @@ export function ProductCard({ product }: { product: Product }) {
     </div>
   );
 }
+
+    

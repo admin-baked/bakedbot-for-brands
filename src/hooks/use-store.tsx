@@ -37,7 +37,7 @@ export interface StoreState {
   // App/UI State
   theme: Theme;
   menuStyle: 'default' | 'alt';
-  selectedLocationId: string | null;
+  selectedRetailerId: string | null;
   favoriteLocationId: string | null;
   isCartSheetOpen: boolean;
   chatExperience: 'default' | 'classic';
@@ -57,7 +57,7 @@ export interface StoreState {
   // Actions
   setTheme: (theme: Theme) => void;
   setMenuStyle: (style: 'default' | 'alt') => void;
-  setSelectedLocationId: (id: string | null) => void;
+  setSelectedRetailerId: (id: string | null) => void;
   setFavoriteLocationId: (id: string | null) => void;
   setCartSheetOpen: (isOpen: boolean) => void;
   setChatExperience: (experience: 'default' | 'classic') => void;
@@ -94,7 +94,7 @@ export const useStore = create<StoreState>()(
       // App/UI State
       theme: 'green' as Theme,
       menuStyle: 'default' as 'default' | 'alt',
-      selectedLocationId: null,
+      selectedRetailerId: null,
       favoriteLocationId: null,
       isCartSheetOpen: false,
       chatExperience: 'default' as 'classic',
@@ -114,7 +114,7 @@ export const useStore = create<StoreState>()(
       // Actions
       setTheme: (theme: Theme) => set({ theme }),
       setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
-      setSelectedLocationId: (id: string | null) => set({ selectedLocationId: id }),
+      setSelectedRetailerId: (id: string | null) => set({ selectedRetailerId: id }),
       setFavoriteLocationId: (id: string | null) => set({ favoriteLocationId: id }),
       setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
@@ -210,8 +210,8 @@ export const useStore = create<StoreState>()(
         cartItems: state.cartItems,
         theme: state.theme,
         menuStyle: state.menuStyle,
-        selectedRetailerId: state.selectedLocationId,
-        favoriteRetailerId: state.favoriteLocationId,
+        selectedRetailerId: state.selectedRetailerId,
+        favoriteRetailerId: state.favoriteRetailerId,
         chatExperience: state.chatExperience,
         brandImageGenerations: state.brandImageGenerations,
         lastBrandImageGeneration: state.lastBrandImageGeneration,
@@ -225,3 +225,5 @@ export const useStore = create<StoreState>()(
     }
   )
 );
+
+    

@@ -13,18 +13,18 @@ import { Skeleton } from './ui/skeleton';
 import type { Product } from '@/types/domain';
 
 const ProductCarouselCard = ({ product }: { product: Product }) => {
-    const { addToCart, selectedLocationId } = useStore();
+    const { addToCart, selectedRetailerId } = useStore();
     const { toast } = useToast();
 
     const priceDisplay = useMemo(() => {
-        if (selectedLocationId && product.prices?.[selectedLocationId]) {
-            return `$${product.prices[selectedLocationId].toFixed(2)}`;
+        if (selectedRetailerId && product.prices?.[selectedRetailerId]) {
+            return `$${product.prices[selectedRetailerId].toFixed(2)}`;
         }
         return `$${product.price.toFixed(2)}`;
-    }, [product, selectedLocationId]);
+    }, [product, selectedRetailerId]);
 
     const handleAddToCart = () => {
-        if (!selectedLocationId) {
+        if (!selectedRetailerId) {
             toast({
                 variant: 'destructive',
                 title: 'No Location Selected',
@@ -32,7 +32,7 @@ const ProductCarouselCard = ({ product }: { product: Product }) => {
             });
             return;
         }
-        addToCart(product, selectedLocationId);
+        addToCart(product, selectedRetailerId);
         toast({
             title: 'Added to Cart',
             description: `${product.name} has been added to your cart.`,
@@ -69,8 +69,8 @@ const ProductCarouselCard = ({ product }: { product: Product }) => {
                         onClick={handleAddToCart}
                         size="icon"
                         className="h-8 w-8"
-                        title={!selectedLocationId ? 'Select a location first' : 'Add to cart'}
-                        disabled={!selectedLocationId}
+                        title={!selectedRetailerId ? 'Select a location first' : 'Add to cart'}
+                        disabled={!selectedRetailerId}
                     >
                         <Plus className="h-4 w-4" />
                     </Button>
@@ -113,3 +113,5 @@ export function ProductCarousel({ title, products, isLoading }: { title: string,
         </div>
     );
 }
+
+    
