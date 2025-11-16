@@ -4,60 +4,56 @@ This document outlines the planned features and improvements for the BakedBot AI
 
 ---
 
-## ✅ v2.0 Milestone: Technical Debt Paydown & Hardening
+## 🚀 Final Roadmap to Production
 
-We have successfully completed a major phase of technical debt reduction and application hardening.
+This section outlines the final, critical steps required to launch the application, moving from a functional prototype to a production-ready service.
 
--   **State Management Consolidated**: Merged `useCart` and `useStore` hooks into a single, unified state management solution (`useStore`), simplifying the codebase.
--   **Robust Data Fallback Logic**: Implemented a consistent data fetching strategy in `useMenuData` that gracefully falls back to demo data only when live data is unavailable, ensuring a stable UI.
--   **Dynamic SEO for Products**: Enhanced product pages to generate unique, dynamic metadata for titles and descriptions, making them discoverable by search engines.
--   **Testing Foundation Built**: Established a stable testing environment by configuring Jest with `jest-setup.ts` and fixing all broken unit tests for components and hooks.
+### Phase 1: Production Hardening (Must-Haves for Go-Live)
+
+*   **Security Lockdown**:
+    *   **Finalize & Deploy Firestore Rules**: Conduct a comprehensive, line-by-line security audit of all Firestore rules to ensure no unauthorized data access is possible across tenants. Deploy the finalized rules.
+    *   **Implement App Check**: Integrate Firebase App Check to verify that all backend requests originate from your authentic application, preventing abuse and unauthorized API usage.
+*   **Production Configuration**:
+    *   **Secure API Keys & Secrets**: Transition all secrets (SendGrid API key, Firebase Service Account) to a secure, environment-variable-based system using a service like Google Secret Manager, as outlined in `DEPLOYMENT_INSTRUCTIONS.md`. Remove all hardcoded or locally-managed keys.
+    *   **Provision Production Firebase Instance**: Set up and configure the definitive production instances of Firebase Authentication and Firestore.
+
+### Phase 2: Testing & Optimization (Pre-Launch)
+
+*   **Comprehensive Testing**:
+    *   **End-to-End (E2E) Tests**: Write and automate E2E tests for the most critical user journeys: the full customer checkout flow and the brand/dispensary login process. This is vital to prevent regressions that could impact revenue or access.
+    *   **Unit Test Expansion**: Increase unit test coverage for key components and utility functions to ensure reliability.
+*   **Performance Optimization**:
+    *   **Bundle Size Analysis**: Use the Next.js Bundle Analyzer to identify large dependencies and create a strategy for optimization.
+    *   **Implement Lazy Loading**: Apply lazy loading for non-critical components (e.g., complex dashboard charts, modals) and images to significantly improve initial page load times.
+
+### Phase 3: Feature Polish (Post-Launch / V2.1)
+
+*   **AI Feature Refinement**:
+    *   **AI Social Media Images**: Enhance the image generation feature to properly apply brand watermarks and better align with brand guidelines for production-quality marketing assets.
+    *   **Conversational AI Polish**: Continue to refine the AI budtender's conversational abilities and the accuracy of its product recommendations.
 
 ---
 
-## 🚀 Roadmap to Production
+## ✅ Completed Milestones
 
-This section outlines the final, critical steps required to launch the application.
+### Technical Debt Paydown & Hardening (Day 13-15)
+- **State Management Consolidated**: Merged `useCart` and `useStore` hooks into a single, unified `useStore`, simplifying the codebase.
+- **Robust Data Fetching**: Implemented `useMenuData` hook that gracefully falls back to demo data, ensuring a stable UI.
+- **Server-Side Repositories**: Created server-side repositories for data access, improving security and performance.
+- **Dynamic SEO for Products**: Enhanced product pages to generate unique metadata for titles and descriptions.
+- **Testing Foundation Built**: Configured Jest and fixed broken unit tests, establishing a stable testing environment.
 
-### Phase 1: Core Production Readiness (Must-Haves)
+### Brand & Retailer Dashboards (Day 8-12)
+- **Role-Based Dashboards**: Built dedicated dashboard views for Brand Managers, Dispensary Managers, and Customers, ensuring users only see relevant information.
+- **Real-time Order Management**: Implemented a real-time order dashboard for dispensaries with status update capabilities.
+- **Customer Self-Service**: Created a "My Account" area for customers to view order history and manage preferences.
 
-*   **Security Lockdown**:
-    *   **Refine & Deploy Firestore Rules**: Conduct a final review of all Firestore security rules to ensure no unauthorized data access is possible. Deploy the finalized rules.
-    *   **Implement App Check**: Integrate Firebase App Check to ensure all backend requests originate from your authentic application, preventing abuse.
+### Headless Commerce & Order Routing (Day 4-7)
+- **Secure Server Actions**: Built and secured server actions for order submission, price verification, and status updates, removing logic from the client.
+-   **Order Routing & Email Notifications**: Implemented email notifications via SendGrid to alert both customers and dispensaries of order confirmations and status changes.
+-   **Retailer Selection**: Integrated a location/retailer selection step into the checkout process.
 
-*   **Production Configuration**:
-    *   **Provision Production Firebase**: Set up and configure the production instances of Firebase Authentication, Firestore, and Cloud Functions.
-    *   **Secure API Keys**: Ensure all third-party API keys (like SendGrid) and service account credentials are securely stored in a secret manager (like Google Secret Manager) and accessed only by the backend.
-
-### Phase 2: Feature Completion & Optimization
-
-*   **AI Feature Refinement**:
-    *   **AI Social Media Images**: Improve the image generation feature to properly apply watermarks and align with brand guidelines for production use.
-*   **Performance Optimization**:
-    *   **Bundle Size Analysis**: Use the Next.js Bundle Analyzer to identify large dependencies and opportunities for optimization.
-    *   **Implement Lazy Loading**: Apply lazy loading for non-critical components and images to improve initial page load times.
-
-### Phase 3: Go-Live & Post-Launch
-
-*   **Comprehensive Testing**:
-    *   **End-to-End (E2E) Tests**: Write E2E tests for critical user journeys, including the full checkout flow and user login, to prevent regressions.
-*   **Launch**:
-    *   Deploy the application to the production environment.
-*   **Post-Launch Monitoring**:
-    *   Set up monitoring and alerting for application performance and errors.
-
-## Completed Milestones
-
-### Version 2.0 - Headless Menu & Enhanced AI
-- **Headless Menu & Checkout Flow**: 
-    - Built a full-featured, public-facing product menu.
-    - Implemented a complete checkout UI with a form for customer details.
-    - Integrated location-based logic to find and display the 3 closest dispensaries.
-- **AI Review Summaries**: Created a Genkit flow and UI that uses an AI model to read all reviews for a product and generate a concise summary of pros and cons.
-- **Enhanced AI Chatbot**: The chatbot now has a multi-step onboarding flow to provide better recommendations.
-
-### Version 1.5 - Authentication & Initial Setup
-- **User Authentication**: Secure user authentication system allowing brands to sign up and sign in via Google and magic link.
-- **AI Product Description Generator**: Initial version of the AI content generator for product descriptions and social images.
-- **Customizable AI Chatbot**: "Smokey" chatbot widget with basic brand customization (theme, icon).
-- **Dashboard Foundation**: Basic dashboard layout with editable sidebar navigation and administrative controls.
+### Multi-Tenant Foundation (Day 1-3)
+-   **Role-Based Access Control (RBAC)**: Implemented Firebase Custom Claims (`brandId`, `locationId`, `role`) to enforce strict data separation between different brands and user types.
+-   **Secure Data Queries**: Updated all dashboard and data-fetching logic to be tenant-aware, ensuring a brand manager can only access their own data.
+-   **Centralized Auth Logic**: Refactored the `DashboardLayout` to be the single source of truth for user authorization and role-based redirects.
