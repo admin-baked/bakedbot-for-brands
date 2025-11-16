@@ -23,7 +23,6 @@ export default function MenuPageClient() {
   const { menuStyle } = useStore();
   const hydrated = useHydrated();
   
-  // The useMenuData hook is now simplified and fetches its own data on the client.
   const { products, locations, isLoading } = useMenuData();
 
   if (isLoading) {
@@ -44,28 +43,27 @@ export default function MenuPageClient() {
     );
   }
   
-  // Conditionally render based on hydration and menu style
-  const shouldShowTiledMenu = hydrated && menuStyle === 'alt';
-
-  if (shouldShowTiledMenu) {
-    return <TiledMenuPage />;
+  // Always render the default 'grid' layout on the server and initial client render.
+  // Only switch to the 'tiled' layout after hydration is complete.
+  if (!hydrated || menuStyle === 'default') {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <main className="flex-1">
+          <div className="container mx-auto px-4 space-y-12">
+            <HeroSlider products={products} isLoading={isLoading} />
+            <DispensaryLocator />
+            <ProductGrid products={products} isLoading={isLoading} />
+            <RecentReviewsFeed />
+          </div>
+        </main>
+        <FloatingCartPill />
+        <Chatbot />
+        <Footer />
+      </div>
+    );
   }
   
-  // Default Menu Layout
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1">
-        <div className="container mx-auto px-4 space-y-12">
-          <HeroSlider products={products} isLoading={isLoading} />
-          <DispensaryLocator />
-          <ProductGrid products={products} isLoading={isLoading} />
-          <RecentReviewsFeed />
-        </div>
-      </main>
-      <FloatingCartPill />
-      <Chatbot />
-      <Footer />
-    </div>
-  );
+  // Render the TiledMenuPage only after hydration and if the style is 'alt'.
+  return <TiledMenuPage />;
 }
