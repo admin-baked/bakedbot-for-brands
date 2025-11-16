@@ -1,69 +1,35 @@
-
 'use client';
 export const dynamic = 'force-dynamic';
 
 import * as React from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, MapPin, Trash2, Pencil, Mail, Loader2 } from 'lucide-react';
+import { Loader2, MapPin, Trash2, Pencil, Mail } from 'lucide-react';
 import DeleteLocationDialog from './components/delete-location-dialog';
 import EditLocationDialog from './components/edit-location-dialog';
-import { useToast } from '@/hooks/use-toast';
-import type { Location } from '@/firebase/converters';
+import type { Retailer } from '@/firebase/converters';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { useFormState, useFormStatus } from 'react-dom';
-import { addLocationAction } from './actions';
 
-
-const initialState = { message: '', error: false };
-
-function AddLocationSubmitButton() {
-    const { pending } = useFormStatus();
-    return (
-        <Button type="submit" disabled={pending}>
-            {pending ? <Loader2 className="mr-2 animate-spin" /> : <PlusCircle className="mr-2" />}
-            Add Location
-        </Button>
-    );
-}
 
 export default function LocationsPage() {
   const { locations, isLoading: areLocationsLoading } = useMenuData();
-  const formRef = React.useRef<HTMLFormElement>(null);
-  const { toast } = useToast();
   
-  const [addState, addFormAction] = useFormState(addLocationAction, initialState);
-
   const [dialogState, setDialogState] = React.useState<{
     deleteOpen: boolean;
     editOpen: boolean;
-    selectedLocation: Location | null;
+    selectedLocation: Retailer | null;
   }>({
     deleteOpen: false,
     editOpen: false,
     selectedLocation: null,
   });
 
-  React.useEffect(() => {
-    if (addState.message) {
-        toast({
-            title: addState.error ? 'Error' : 'Success',
-            description: addState.message,
-            variant: addState.error ? 'destructive' : 'default',
-        });
-        if (!addState.error) {
-            formRef.current?.reset();
-        }
-    }
-  }, [addState, toast]);
 
-  const openDeleteDialog = (location: Location) => {
+  const openDeleteDialog = (location: Retailer) => {
     setDialogState({ ...dialogState, deleteOpen: true, selectedLocation: location });
   };
 
-  const openEditDialog = (location: Location) => {
+  const openEditDialog = (location: Retailer) => {
     setDialogState({ ...dialogState, editOpen: true, selectedLocation: location });
   };
 
@@ -71,11 +37,13 @@ export default function LocationsPage() {
   return (
     <>
       <div className="flex flex-col gap-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Locations</h1>
-          <p className="text-muted-foreground">
-            Manage your dispensary locations for the product locator. Add locations here or bulk import them from the Settings page.
-          </p>
+        <div className="flex justify-between items-start">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Locations</h1>
+                <p className="text-muted-foreground">
+                    Manage your dispensary locations. Use the Settings page to add or import new locations.
+                </p>
+            </div>
         </div>
         
          <Card>
@@ -123,7 +91,7 @@ export default function LocationsPage() {
                   <div className="text-center py-12 text-muted-foreground">
                       <MapPin className="mx-auto h-12 w-12" />
                       <p className="mt-4">No locations added yet.</p>
-                      <p className="text-sm">Add a location using the form in Settings.</p>
+                      <p className="text-sm">Add or import locations in the Settings page to see them here.</p>
                   </div>
               )}
           </CardContent>

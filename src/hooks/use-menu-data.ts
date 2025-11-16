@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -38,7 +37,7 @@ export function useMenuData(): UseMenuDataResult {
     return query(collection(firestore, 'products').withConverter(productConverter), where('brandId', '==', brandId));
   }, [firestore, isDemo, isHydrated, brandId]);
   
-  // Locations are currently global, not brand-specific. This can be changed later if needed.
+  // Locations are currently global. We fetch all of them.
   const locationsQuery = useMemo(() => {
     if (!isHydrated || isDemo || !firestore) return null;
     return query(collection(firestore, 'dispensaries').withConverter(retailerConverter));
