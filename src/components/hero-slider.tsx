@@ -55,7 +55,7 @@ export function HeroSlider({ products, isLoading }: HeroSliderProps) {
                                     Discover our top-rated product: <span className="font-semibold">{product.name}</span>
                                 </p>
                                 <Button asChild className="mt-6" size="lg">
-                                    <Link href={`/products/${product.id}`}>
+                                    <Link href={`/menu/${product.brandId}/products/${product.id}`}>
                                         Shop Now
                                     </Link>
                                 </Button>
