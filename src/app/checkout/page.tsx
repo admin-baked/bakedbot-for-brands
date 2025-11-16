@@ -13,9 +13,12 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { Footer } from '../components/footer';
+import { useHydrated } from '@/hooks/useHydrated';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const hydrated = useHydrated();
   
   // Subscribe to state from the unified store
   const { cartItems, getCartTotal, clearCart, selectedLocationId } = useStore();
@@ -44,7 +47,7 @@ export default function CheckoutPage() {
     );
   }
   
-  if (cartItems.length === 0) {
+  if (hydrated && cartItems.length === 0) {
       return (
           <div className="min-h-screen bg-muted/20 flex flex-col">
               <Header />
@@ -110,39 +113,50 @@ export default function CheckoutPage() {
                         </div>
                     
                         <Separator />
-                    
-                        <div className="space-y-2">
-                            {cartItems.length > 0 ? cartItems.map(item => (
-                                <div key={item.id} className="flex justify-between items-center text-sm">
-                                    <div>
-                                        <span className="font-medium">{item.name}</span>
-                                        <span className="text-muted-foreground"> &times; {item.quantity}</span>
+
+                        {!hydrated ? (
+                          <div className="space-y-4">
+                            <div className="flex justify-between"><Skeleton className="h-5 w-32" /><Skeleton className="h-5 w-16" /></div>
+                            <div className="flex justify-between"><Skeleton className="h-5 w-24" /><Skeleton className="h-5 w-16" /></div>
+                            <Separator />
+                            <div className="flex justify-between"><Skeleton className="h-6 w-20" /><Skeleton className="h-6 w-24" /></div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="space-y-2">
+                                {cartItems.length > 0 ? cartItems.map(item => (
+                                    <div key={item.id} className="flex justify-between items-center text-sm">
+                                        <div>
+                                            <span className="font-medium">{item.name}</span>
+                                            <span className="text-muted-foreground"> &times; {item.quantity}</span>
+                                        </div>
+                                        <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
                                     </div>
-                                    <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
-                                </div>
-                            )) : (
-                                <p className='text-sm text-muted-foreground text-center py-4'>Your cart is empty.</p>
+                                )) : (
+                                    <p className='text-sm text-muted-foreground text-center py-4'>Your cart is empty.</p>
+                                )}
+                            </div>
+                            
+                            {cartItems.length > 0 && (
+                                <>
+                                    <Separator />
+                                    <div className="space-y-1 text-sm">
+                                        <div className="flex justify-between">
+                                            <span>Subtotal</span>
+                                            <span>${subtotal.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Taxes (est.)</span>
+                                            <span>${taxes.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between font-bold text-base mt-2">
+                                            <span>Total</span>
+                                            <span>${total.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </>
                             )}
-                        </div>
-                        
-                        {cartItems.length > 0 && (
-                            <>
-                                <Separator />
-                                <div className="space-y-1 text-sm">
-                                    <div className="flex justify-between">
-                                        <span>Subtotal</span>
-                                        <span>${subtotal.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Taxes (est.)</span>
-                                        <span>${taxes.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between font-bold text-base mt-2">
-                                        <span>Total</span>
-                                        <span>${total.toFixed(2)}</span>
-                                    </div>
-                                </div>
-                            </>
+                          </>
                         )}
                     </div>
                 </CardContent>
