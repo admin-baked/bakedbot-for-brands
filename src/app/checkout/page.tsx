@@ -1,9 +1,9 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 
 import { useStore } from '@/hooks/use-store';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import Header from '@/app/components/header';
 import { Separator } from '@/components/ui/separator';
@@ -13,7 +13,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { Footer } from '../components/footer';
-import { useHydrated } from '@/hooks/useHydrated';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -21,7 +20,6 @@ export default function CheckoutPage() {
   // Subscribe to state from the unified store
   const { cartItems, getCartTotal, clearCart, selectedLocationId } = useStore();
   const { locations, isLoading: isMenuLoading } = useMenuData();
-  const isHydrated = useHydrated();
   
   const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
   const { subtotal, taxes, total } = getCartTotal();
@@ -34,7 +32,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const isLoading = !isHydrated || isMenuLoading;
+  const isLoading = isMenuLoading;
 
   // Loading state
   if (isLoading) {
