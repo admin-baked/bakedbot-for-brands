@@ -1,4 +1,3 @@
-
 'use client';
 // This is the new homepage for brands, as provided.
 // It explains the value proposition for brand owners.

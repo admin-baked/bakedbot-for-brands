@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -133,7 +132,8 @@ export async function updateProductFeedback(
       });
     });
 
-    revalidatePath(`/products/${productId}`);
+    const productDoc = await productRef.get();
+    revalidatePath(`/menu/${productDoc.data()?.brandId}/products/${productId}`);
     revalidatePath('/dashboard');
 
     return { error: false, message: 'Thanks for your feedback!' };

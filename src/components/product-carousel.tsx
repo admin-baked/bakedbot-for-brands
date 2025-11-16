@@ -113,5 +113,3 @@ export function ProductCarousel({ title, products, isLoading }: { title: string,
         </div>
     );
 }
-
-    

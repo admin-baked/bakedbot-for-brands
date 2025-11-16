@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { z } from 'zod';
@@ -82,7 +81,7 @@ export async function submitReview(
 
         await reviewCollectionRef.add(dataToSave);
 
-        revalidatePath(`/products/${productId}`);
+        revalidatePath(`/menu/${brandId}/products/${productId}`);
         revalidatePath('/dashboard/reviews');
         revalidatePath('/account/dashboard');
 
