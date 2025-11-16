@@ -1,16 +1,17 @@
+
 'use server';
 
 /**
  * @fileOverview A Genkit tool for performing semantic or keyword search on products.
  */
 
-import { ai, defineTool } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { createServerClient } from '@/firebase/server-client';
 import { z } from 'zod';
 import { generateEmbedding } from '@/ai/utils/generate-embedding';
 import type { Product } from '@/firebase/converters';
 
-export const productSearch = defineTool(
+export const productSearch = ai.defineTool(
   {
     name: 'productSearch',
     description: 'Searches for products. Returns a list of relevant products based on the query.',
