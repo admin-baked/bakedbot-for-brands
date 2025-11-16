@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare, Shield, MapPin, Package, ExternalLink, Loader2 } from 'lucide-react';
+import { Settings, LogOut, Star, Pencil, Eye, EyeOff, Plus, FlaskConical, Trash2, MenuSquare, Shield, MapPin, Package, ExternalLink, Loader2, Link2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import {
   SidebarProvider,
@@ -196,6 +197,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   }, [navLinks, userProfile, shouldShowAdminControls]);
 
+  const brandMenuUrl = userProfile?.brandId ? `/menu/${userProfile.brandId}` : '/menu/default';
+
 
   // If we are still checking auth or profile, show a full-page loader.
   const isLoading = isUserLoading || isProfileLoading;
@@ -250,6 +253,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </SidebarMenuItem>
                    )
                 })}
+                <SidebarMenuItem>
+                    <SidebarMenuButton
+                        asChild
+                        tooltip="Your Public Menu"
+                        className="mt-4 border-2 border-dashed border-primary/50 bg-primary/10 text-primary hover:bg-primary/20"
+                    >
+                        <Link href={brandMenuUrl} target="_blank">
+                            <Link2 />
+                            <span>My Brand Menu</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarContent>
             <SidebarFooter>
@@ -296,7 +311,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                           <Link href="/" target="_blank">
+                           <Link href={brandMenuUrl} target="_blank">
                              <ExternalLink className="mr-2 h-4 w-4" />
                              <span>Public Menu</span>
                            </Link>
@@ -341,7 +356,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </DropdownMenuItem>
                    <DropdownMenuSeparator />
                    <DropdownMenuItem asChild>
-                     <Link href="/" target="_blank">
+                     <Link href={brandMenuUrl} target="_blank">
                        <ExternalLink className="mr-2 h-4 w-4" />
                        <span>Public Menu</span>
                      </Link>
