@@ -18,11 +18,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Minus, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useHydrated } from '@/hooks/useHydrated';
 
 export function CartSheet() {
   const { isCartSheetOpen, setCartSheetOpen, selectedLocationId, cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useStore();
   const { locations } = useMenuData();
   const router = useRouter();
+  const hydrated = useHydrated();
 
   const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
   const { subtotal, taxes, total } = getCartTotal();
@@ -54,7 +56,7 @@ export function CartSheet() {
         
         <div className="flex-1 min-h-0">
           <ScrollArea className="h-full pr-4">
-            {cartItems.length > 0 ? (
+            {hydrated && cartItems.length > 0 ? (
                 <div className="space-y-4">
                     {cartItems.map(item => (
                         <div key={item.id} className="flex gap-4">
@@ -88,7 +90,7 @@ export function CartSheet() {
           </ScrollArea>
         </div>
 
-        {cartItems.length > 0 && (
+        {hydrated && cartItems.length > 0 && (
           <SheetFooter className="pt-4 border-t">
             <div className="w-full space-y-4">
               <div className="space-y-1 text-sm">
