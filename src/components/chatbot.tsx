@@ -285,9 +285,9 @@ export default function Chatbot() {
     }
 
     try {
-        // This is the key part: Calling the Server Action from the client component.
         const result: RecommendProductsOutput = await recommendProducts({
             query: query,
+            products,
         });
         
         const recommendedProductDetails = result.products.map(recommendedProd => {
@@ -333,7 +333,7 @@ export default function Chatbot() {
     setIsBotTyping(true);
 
     if (chatMode === 'image') {
-        const logoDataUri = defaultChatbotIcon; // Use the reliable default icon URL
+        const logoDataUri = defaultChatbotIcon;
         
         const formData = new FormData();
         formData.append('productName', 'Brand Image');
@@ -360,7 +360,7 @@ export default function Chatbot() {
             setMessages((prev) => [...prev, imageMessage]);
         }
         setIsBotTyping(false);
-        setChatMode('chat'); // Reset to chat mode after generation
+        setChatMode('chat');
         return;
     }
   
@@ -376,9 +376,9 @@ export default function Chatbot() {
     }
     
     try {
-      // This is the key part: Calling the Server Action from the client component.
       const result: RecommendProductsOutput = await recommendProducts({
         query: currentInput,
+        products,
       });
         
       const recommendedProductDetails = result.products.map(recommendedProd => {
