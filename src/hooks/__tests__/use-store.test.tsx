@@ -132,5 +132,4 @@ describe('useStore - Cart Logic', () => {
     expect(result.current.getItemCount()).toBe(3);
   });
 });
-
     
