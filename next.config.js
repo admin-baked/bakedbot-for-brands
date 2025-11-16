@@ -27,6 +27,9 @@ const nextConfig = {
       },
     ],
   },
+  experimental: {
+    optimizePackageImports: ['@radix-ui/react-dropdown-menu', '@radix-ui/react-dialog']
+  }
 };
 
 module.exports = nextConfig;
