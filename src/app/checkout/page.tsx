@@ -21,10 +21,10 @@ export default function CheckoutPage() {
   const hydrated = useHydrated();
   
   // Subscribe to state from the unified store
-  const { cartItems, getCartTotal, clearCart, selectedLocationId } = useStore();
-  const { locations, isLoading: isMenuLoading } = useMenuData();
+  const { cartItems, getCartTotal, clearCart, selectedRetailerId } = useStore();
+  const { locations: retailers, isLoading: isMenuLoading } = useMenuData();
   
-  const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
+  const selectedRetailer = retailers.find(loc => loc.id === selectedRetailerId);
   const { subtotal, taxes, total } = getCartTotal();
 
   const handleOrderSuccess = (orderId: string, userId?: string) => {
@@ -72,7 +72,7 @@ export default function CheckoutPage() {
   }
   
   // Final safety check before rendering - this prevents a crash if the location lookup fails
-  if (!selectedLocation) {
+  if (!selectedRetailer) {
      return (
        <div className="flex flex-col h-screen items-center justify-center text-center py-20">
          <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -95,7 +95,7 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left side - Form */}
           <div>
-             <CheckoutForm onOrderSuccess={handleOrderSuccess} selectedLocation={selectedLocation!} />
+             <CheckoutForm onOrderSuccess={handleOrderSuccess} selectedRetailer={selectedRetailer} />
           </div>
 
           {/* Right side - Summary */}
@@ -108,8 +108,8 @@ export default function CheckoutPage() {
                     <div className='space-y-4'>
                         <div className="text-sm">
                             <p className="font-semibold text-muted-foreground flex items-center gap-2"><MapPin className='h-4 w-4'/> Pickup Location</p>
-                            <p className='font-medium mt-1'>{selectedLocation!.name}</p>
-                            <p className='text-xs text-muted-foreground'>{selectedLocation!.address}, {selectedLocation!.city}</p>
+                            <p className='font-medium mt-1'>{selectedRetailer.name}</p>
+                            <p className='text-xs text-muted-foreground'>{selectedRetailer.address}, {selectedRetailer.city}</p>
                         </div>
                     
                         <Separator />
@@ -175,3 +175,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    

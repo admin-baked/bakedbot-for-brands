@@ -20,7 +20,7 @@ import { submitOrder, type ClientOrderInput } from '@/app/checkout/actions/submi
 import { useTransition, useEffect } from 'react';
 import { Loader2, Send } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import type { Location } from '@/firebase/converters';
+import type { Retailer } from '@/firebase/converters';
 import { useToast } from '@/hooks/use-toast';
 
 const phoneRegex = new RegExp(
@@ -48,10 +48,10 @@ type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
 interface CheckoutFormProps {
   onOrderSuccess: (orderId: string, userId?: string) => void;
-  selectedLocation: Location;
+  selectedRetailer: Retailer;
 }
 
-export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormProps) {
+export function CheckoutForm({ onOrderSuccess, selectedRetailer }: CheckoutFormProps) {
   const { user } = useUser();
   const { cartItems } = useStore();
   const [isPending, startTransition] = useTransition();
@@ -97,7 +97,7 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormP
             name: data.customerName,
             email: data.customerEmail
         },
-        locationId: selectedLocation.id,
+        retailerId: selectedRetailer.id,
       };
 
       try {
@@ -191,3 +191,5 @@ export function CheckoutForm({ onOrderSuccess, selectedLocation }: CheckoutFormP
     </Card>
   );
 }
+
+    
