@@ -6,7 +6,7 @@ export type Product = {
   name: string;
   category: string;
   price: number;
-  prices: { [locationId: string]: number };
+  prices: { [retailerId: string]: number };
   imageUrl: string;
   imageHint: string;
   description: string;
@@ -15,7 +15,8 @@ export type Product = {
   brandId?: string;
 };
 
-export type Location = {
+// Renamed from Location to Retailer
+export type Retailer = {
     id: string;
     name: string;
     address: string;
@@ -26,7 +27,11 @@ export type Location = {
     email?: string;
     lat?: number;
     lon?: number;
-    distance?: number; // Add this for sorting
+    distance?: number;
+    // New fields for B2B2C model
+    tabletDeviceToken?: string | null;
+    acceptsOrders?: boolean;
+    status?: 'active' | 'inactive';
 };
 
 export type Order = {
@@ -69,7 +74,7 @@ export type OrderDoc = {
       tax: number;
       total: number;
   };
-  locationId: string;
+  retailerId: string; // Renamed from locationId
   createdAt: Timestamp;
   status: 'submitted' | 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
   mode: 'demo' | 'live';

@@ -1,5 +1,5 @@
 
-import type { Product, Location, Review, UserInteraction, OrderDoc } from '@/types/domain';
+import type { Product, Retailer, Review, UserInteraction, OrderDoc } from '@/types/domain';
 import { PlaceHolderImages } from './placeholder-images';
 import { Timestamp } from 'firebase/firestore';
 
@@ -101,7 +101,7 @@ export const demoProducts: Product[] = [
         price: 42.00,
         prices: { '1': 42.00, '2': 45.00, '3': 40.00 },
         imageUrl: PlaceHolderImages.find(p => p.id === 'product8')?.imageUrl || 'https://picsum.photos/seed/8/600/400',
-        imageHint: PlaceHolderImages.find(p => p.id === 'product8')?.imageHint || 'vape pen',
+        imageHint: PlaceHolderImages.find(p => p.id === 'vape pen')?.imageHint || 'vape pen',
         description: 'An indica-dominant vape pen designed for relaxation and sleep. Natural berry flavors. 1g cartridge.',
         likes: 195,
         dislikes: 4,
@@ -113,14 +113,14 @@ export const demoProducts: Product[] = [
         price: 48.00,
         prices: { '1': 48.00, '2': 50.00, '3': 47.00 },
         imageUrl: PlaceHolderImages.find(p => p.id === 'product9')?.imageUrl || 'https://picsum.photos/seed/9/600/400',
-        imageHint: PlaceHolderImages.find(p => p.id === 'product9')?.imageHint || 'vape cartridge',
+        imageHint: PlaceHolderImages.find(p => p.id === 'vape cartridge')?.imageHint || 'vape cartridge',
         description: 'A high-potency sativa cartridge with a tangy citrus flavor. Expect an uplifting and creative experience. 1g cartridge.',
         likes: 320,
         dislikes: 10,
     }
   ];
 
-export const demoLocations: Location[] = [
+export const demoRetailers: Retailer[] = [
     {
         id: '1',
         name: 'The Green Spot',
@@ -172,7 +172,7 @@ export const demoLocations: Location[] = [
 ];
 
 export const demoCustomer = {
-    favoriteLocationId: '1',
+    favoriteRetailerId: '1',
     orders: [
         { id: 'demo1', createdAt: Timestamp.now(), status: 'completed', totals: { total: 47.50 } },
         { id: 'demo2', createdAt: Timestamp.now(), status: 'ready', totals: { total: 88.00 } },

@@ -4,16 +4,16 @@
 import { useMemo } from 'react';
 import { collection, query } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
-import { productConverter, locationConverter } from '@/firebase/converters';
-import type { Product, Location } from '@/firebase/converters';
+import { productConverter, retailerConverter } from '@/firebase/converters';
+import type { Product, Retailer } from '@/firebase/converters';
 import { useDemoMode } from '@/context/demo-mode';
-import { demoProducts, demoLocations } from '@/lib/data';
+import { demoProducts, demoRetailers } from '@/lib/data';
 import { useCollection } from '@/firebase/firestore/use-collection';
 
 
 export type UseMenuDataResult = {
   products: Product[];
-  locations: Location[];
+  locations: Retailer[];
   isLoading: boolean;
   isDemo: boolean;
 };
@@ -34,12 +34,12 @@ export function useMenuData(): UseMenuDataResult {
   
   const locationsQuery = useMemo(() => {
     if (isDemo || !firestore) return null;
-    return query(collection(firestore, 'dispensaries').withConverter(locationConverter));
+    return query(collection(firestore, 'retailers').withConverter(retailerConverter));
   }, [firestore, isDemo]);
 
   // Fetch live data from Firestore.
   const { data: liveProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
-  const { data: liveLocations, isLoading: areLocationsLoading } = useCollection<Location>(locationsQuery);
+  const { data: liveLocations, isLoading: areLocationsLoading } = useCollection<Retailer>(locationsQuery);
 
   // Determine the final data source based on demo mode and data availability.
   const products = useMemo<Product[]>(() => {
@@ -47,9 +47,9 @@ export function useMenuData(): UseMenuDataResult {
     return liveProducts && liveProducts.length > 0 ? liveProducts : demoProducts;
   }, [isDemo, liveProducts]);
 
-  const locations = useMemo<Location[]>(() => {
-    if (isDemo) return demoLocations;
-    return liveLocations && liveLocations.length > 0 ? liveLocations : demoLocations;
+  const locations = useMemo<Retailer[]>(() => {
+    if (isDemo) return demoRetailers;
+    return liveLocations && liveLocations.length > 0 ? liveLocations : demoRetailers;
   }, [isDemo, liveLocations]);
 
   // The overall loading state depends on fetching live data.

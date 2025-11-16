@@ -5,7 +5,7 @@ import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import * as LucideIcons from 'lucide-react';
-import type { Location, Product } from '@/firebase/converters';
+import type { Retailer, Product } from '@/firebase/converters';
 
 export type CartItem = Product & { quantity: number };
 
@@ -24,8 +24,8 @@ export interface StoreState {
   // App/UI State
   theme: Theme;
   menuStyle: 'default' | 'alt';
-  selectedLocationId: string | null;
-  favoriteLocationId: string | null;
+  selectedRetailerId: string | null;
+  favoriteRetailerId: string | null;
   isCartSheetOpen: boolean;
   chatExperience: 'default' | 'classic';
   
@@ -44,8 +44,8 @@ export interface StoreState {
   // Actions
   setTheme: (theme: Theme) => void;
   setMenuStyle: (style: 'default' | 'alt') => void;
-  setSelectedLocationId: (id: string | null) => void;
-  setFavoriteLocationId: (id: string | null) => void;
+  setSelectedRetailerId: (id: string | null) => void;
+  setFavoriteRetailerId: (id: string | null) => void;
   setCartSheetOpen: (isOpen: boolean) => void;
   setChatExperience: (experience: 'default' | 'classic') => void;
   recordBrandImageGeneration: () => void;
@@ -62,7 +62,7 @@ export interface StoreState {
   removeNavLink: (href: string) => void;
 
   // Cart Actions
-  addToCart: (product: Product, locationId?: string | null) => void;
+  addToCart: (product: Product, retailerId?: string | null) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -76,9 +76,7 @@ const defaultNavLinks: NavLink[] = [
     { href: '/dashboard/products', label: 'Products', icon: 'Box', hidden: false },
     { href: '/dashboard/content', label: 'Content AI', icon: 'PenSquare', hidden: false },
     { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star', hidden: false },
-    { href: '/dashboard/locations', label: 'Locations', icon: 'MapPin', hidden: false },
-    { href: '/dashboard/settings#data', label: 'Catalog', icon: 'BookMarked', hidden: false },
-    { href: '/checkout', label: 'Checkout', icon: 'CreditCard', hidden: true },
+    { href: '/dashboard/locations', label: 'Retailers', icon: 'MapPin', hidden: false },
     { href: '/dashboard/settings', label: 'Settings', icon: 'Settings', hidden: false },
     { href: '/dashboard/ceo/import-demo-data', label: 'Data Manager', icon: 'Database', hidden: true },
     { href: '/dashboard/ceo/initialize-embeddings', label: 'AI Search Index', icon: 'BrainCircuit', hidden: true },
@@ -95,8 +93,8 @@ export const useStore = create<StoreState>()(
       // App/UI State
       theme: 'green' as Theme,
       menuStyle: 'default' as 'default' | 'alt',
-      selectedLocationId: null,
-      favoriteLocationId: null,
+      selectedRetailerId: null,
+      favoriteRetailerId: null,
       isCartSheetOpen: false,
       chatExperience: 'default' as 'classic',
       
@@ -115,8 +113,8 @@ export const useStore = create<StoreState>()(
       // Actions
       setTheme: (theme: Theme) => set({ theme }),
       setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
-      setSelectedLocationId: (id: string | null) => set({ selectedLocationId: id }),
-      setFavoriteLocationId: (id: string | null) => set({ favoriteLocationId: id }),
+      setSelectedRetailerId: (id: string | null) => set({ selectedRetailerId: id }),
+      setFavoriteRetailerId: (id: string | null) => set({ favoriteRetailerId: id }),
       setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
       setBrandColor: (color: string) => set({ brandColor: color }),
@@ -148,12 +146,12 @@ export const useStore = create<StoreState>()(
       removeNavLink: (href: string) => set(state => ({ navLinks: state.navLinks.filter(l => l.href !== href) })),
       
       // Cart Actions
-      addToCart: (product, locationId) =>
+      addToCart: (product, retailerId) =>
         set((state) => {
           const existingItem = state.cartItems.find((i) => i.id === product.id);
           
-          const price = (locationId && product.prices?.[locationId])
-            ? product.prices[locationId]
+          const price = (retailerId && product.prices?.[retailerId])
+            ? product.prices[retailerId]
             : product.price;
 
           if (existingItem) {
