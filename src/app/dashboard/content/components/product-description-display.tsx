@@ -4,7 +4,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { type GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { Button } from '@/components/ui/button';
-import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon, Loader2 } from 'lucide-react';
+import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon, useFormStatus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { useFormState } from 'react-dom';
@@ -14,18 +14,17 @@ import { useUser } from '@/firebase/auth/use-user';
 
 interface ProductDescriptionDisplayProps {
   productDescription: (GenerateProductDescriptionOutput & { productId?: string }) | null;
-  isImagePending?: boolean;
-  isDescriptionPending?: boolean;
 }
 
 const initialFeedbackState = { message: '', error: false };
 
 
-export default function ProductDescriptionDisplay({ productDescription, isImagePending, isDescriptionPending }: ProductDescriptionDisplayProps) {
+export default function ProductDescriptionDisplay({ productDescription }: ProductDescriptionDisplayProps) {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const [feedbackState, submitFeedbackAction] = useFormState(updateProductFeedback, initialFeedbackState);
   const [isFeedbackPending, startTransition] = useTransition();
+  const { pending: isContentPending } = useFormStatus();
 
 
   useEffect(() => {
@@ -111,7 +110,6 @@ export default function ProductDescriptionDisplay({ productDescription, isImageP
     });
   };
   
-  const isGenerating = isDescriptionPending || isImagePending;
   const hasContent = productDescription && (productDescription.description || productDescription.imageUrl);
 
   return (
@@ -136,12 +134,12 @@ export default function ProductDescriptionDisplay({ productDescription, isImageP
         )}
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto space-y-4">
-        {isGenerating ? (
-            <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/50 p-8 text-center text-muted-foreground">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="mt-4">Content generation in progress...</p>
-            </div>
-        ) : hasContent ? (
+        {!hasContent ? (
+          <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/50 p-8 text-center text-muted-foreground">
+            <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+            <p className="mt-4">Your generated content will appear here. <br/> Fill out the form and click a "Generate" button to start.</p>
+          </div>
+        ) : (
           <>
             {productDescription.imageUrl && (
                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
@@ -158,21 +156,16 @@ export default function ProductDescriptionDisplay({ productDescription, isImageP
               <p className="text-sm leading-relaxed whitespace-pre-line">{productDescription.description}</p>
             )}
           </>
-        ) : (
-          <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/50 p-8 text-center text-muted-foreground">
-            <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
-            <p className="mt-4">Your generated content will appear here. <br/> Fill out the form and click a "Generate" button to start.</p>
-          </div>
         )}
       </CardContent>
         {hasContent && (
          <CardFooter className="border-t pt-4">
              <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending || isGenerating || !productDescription?.productId || isUserLoading}>
+                    <Button variant="outline" size="icon" aria-label="Like" onClick={() => handleFeedback('like')} disabled={isFeedbackPending || isContentPending || !productDescription?.productId || isUserLoading}>
                         <ThumbsUp className="h-4 w-4 text-green-500"/>
                     </Button>
-                    <Button variant="outline" size="icon" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending || isGenerating || !productDescription?.productId || isUserLoading}>
+                    <Button variant="outline" size="icon" aria-label="Dislike" onClick={() => handleFeedback('dislike')} disabled={isFeedbackPending || isContentPending || !productDescription?.productId || isUserLoading}>
                         <ThumbsDown className="h-4 w-4 text-red-500"/>
                     </Button>
                 </div>

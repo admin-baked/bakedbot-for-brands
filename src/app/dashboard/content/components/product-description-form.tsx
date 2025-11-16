@@ -16,17 +16,11 @@ import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-produ
 import type { Product } from '@/firebase/converters';
 import { defaultChatbotIcon } from '@/lib/data';
 
-
-interface SubmitButtonProps {
-  formAction: (payload: FormData) => void;
-  type: 'description' | 'image';
-}
-
-function SubmitButton({ formAction, type }: SubmitButtonProps) {
+function SubmitButton({ action, type }: { action: (payload: FormData) => void, type: 'description' | 'image' }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" formAction={formAction} disabled={pending} className="w-full sm:w-auto" variant={type === 'description' ? 'default' : 'outline'}>
+    <Button formAction={action} disabled={pending} type="submit" variant={type === 'description' ? 'default' : 'outline'}>
       {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (type === 'description' ? <FileText className="mr-2 h-4 w-4" /> : <Wand2 className="mr-2 h-4 w-4" />)}
       {type === 'description' ? 'Generate Description' : 'Generate Image'}
     </Button>
@@ -115,13 +109,6 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
     }
   };
 
-  const handleFormSubmit = (e: React.FormEvent, action: (payload: FormData) => void) => {
-    e.preventDefault();
-    if(formRef.current) {
-        action(new FormData(formRef.current));
-    }
-  }
-
   const handleProductSelect = (value: string) => {
     const productId = value === 'none' ? '' : value;
     setSelectedProductId(productId);
@@ -206,8 +193,14 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
                     <Label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted">
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                             <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                            <p className="text-xs text-muted-foreground">SVG, PNG, JPG (Optional, to guide image generation)</p>
+                            {packagingImage ? (
+                                <p className="font-semibold text-sm text-primary">Image selected</p>
+                            ) : (
+                                 <>
+                                    <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                    <p className="text-xs text-muted-foreground">SVG, PNG, JPG (Optional, guides image generation)</p>
+                                 </>
+                            )}
                         </div>
                         <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
                     </Label>
@@ -215,12 +208,8 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
             </div>
         </CardContent>
          <CardFooter className="flex-col sm:flex-row gap-2">
-            <Button onClick={(e) => handleFormSubmit(e, descriptionFormAction)}>
-                <FileText className="mr-2 h-4 w-4" /> Generate Description
-            </Button>
-            <Button onClick={(e) => handleFormSubmit(e, imageFormAction)} variant="outline">
-                <Wand2 className="mr-2 h-4 w-4" /> Generate Image
-            </Button>
+            <SubmitButton action={descriptionFormAction} type="description" />
+            <SubmitButton action={imageFormAction} type="image" />
          </CardFooter>
       </form>
     </Card>
