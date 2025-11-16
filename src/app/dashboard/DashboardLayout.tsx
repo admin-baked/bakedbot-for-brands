@@ -136,7 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         title: "Signed Out",
         description: "You have been successfully logged out.",
       });
-      router.push('/');
+      window.location.href = '/';
     } catch (error) {
       console.error('Sign out error', error);
        toast({

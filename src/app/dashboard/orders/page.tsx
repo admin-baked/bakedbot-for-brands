@@ -1,3 +1,4 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +35,7 @@ export default function OrdersPage() {
     
     const baseQuery = collection(firestore, 'orders').withConverter(orderConverter);
 
-    // For dispensary managers, only show orders for their location from the secure claim
+    // For dispensary managers, only show orders for their assigned location from the secure claim
     if (userClaims.role === 'dispensary' && userClaims.locationId) {
         return query(baseQuery, where('locationId', '==', userClaims.locationId));
     }
