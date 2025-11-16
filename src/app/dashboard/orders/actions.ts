@@ -5,10 +5,13 @@ import { revalidatePath } from "next/cache";
 import { createServerClient } from "@/firebase/server-client";
 import { z } from "zod";
 import { cookies } from "next/headers";
+import { sendOrderEmail } from "@/lib/email/send-order-email";
+import type { OrderDoc, Retailer } from "@/firebase/converters";
 
 const StatusSchema = z.enum(['submitted', 'pending', 'confirmed', 'ready', 'completed', 'cancelled']);
+export type OrderStatus = z.infer<typeof StatusSchema>;
 
-export async function updateOrderStatus(orderId: string, status: z.infer<typeof StatusSchema>) {
+export async function updateOrderStatus(orderId: string, status: OrderStatus) {
     
     if (!orderId || !status) {
         return { error: true, message: 'Order ID and status are required.' };
@@ -27,7 +30,6 @@ export async function updateOrderStatus(orderId: string, status: z.infer<typeof 
         }
         
         const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-        
         const userClaims = decodedToken;
 
         if (!userClaims) {
@@ -41,24 +43,44 @@ export async function updateOrderStatus(orderId: string, status: z.infer<typeof 
             return { error: true, message: 'Order not found.' };
         }
         
-        const orderData = orderDoc.data();
+        const orderData = orderDoc.data() as OrderDoc;
 
         // --- SECURITY FIX: Verify Ownership ---
-        // An owner can modify any order.
-        // A dispensary manager can ONLY modify orders for their assigned location.
         if (userClaims.role === 'dispensary' && userClaims.locationId !== orderData?.retailerId) {
             console.warn(`SECURITY ALERT: User ${decodedToken.uid} (dispensary) attempted to modify order ${orderId} for another location (${orderData?.retailerId}).`);
             return { error: true, message: 'You are not authorized to modify this order.' };
         }
         
-        // A brand role cannot modify any orders.
         if (userClaims.role !== 'dispensary' && userClaims.role !== 'owner') {
              return { error: true, message: 'You do not have permission to update orders.' };
         }
         
+        // Update the document in Firestore
         await orderRef.update({ status: validation.data });
 
-        // Revalidate the paths where this data is shown.
+        // --- NEW: Send status update email ---
+        try {
+            const retailerSnap = await firestore.collection('dispensaries').doc(orderData.retailerId).get();
+            if (retailerSnap.exists) {
+                const retailerData = retailerSnap.data() as Retailer;
+                await sendOrderEmail({
+                    to: orderData.customer.email,
+                    subject: `Update on your BakedBot Order #${orderId.substring(0,7)}`,
+                    orderId: orderId,
+                    order: orderData,
+                    retailer: retailerData,
+                    recipientType: 'customer',
+                    updateInfo: {
+                        newStatus: validation.data,
+                    }
+                });
+            }
+        } catch (emailError) {
+            console.error(`Failed to send status update email for order ${orderId}:`, emailError);
+            // Non-fatal error, do not block the success response.
+        }
+
+        // Revalidate paths to update UI
         revalidatePath('/dashboard/orders');
         revalidatePath(`/order-confirmation/${orderId}`);
 

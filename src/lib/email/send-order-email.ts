@@ -2,6 +2,7 @@
 import sgMail from "@sendgrid/mail";
 import type { ServerOrderPayload } from "@/app/checkout/actions/submitOrder";
 import type { Retailer } from "@/firebase/converters";
+import type { OrderStatus } from "@/app/dashboard/orders/actions";
 
 type SendArgs = {
   to: string | string[];
@@ -11,10 +12,13 @@ type SendArgs = {
   order: ServerOrderPayload;
   retailer: Retailer;
   recipientType: 'customer' | 'dispensary';
+  updateInfo?: {
+    newStatus: OrderStatus;
+  }
 };
 
 const generateHtml = (args: SendArgs): string => {
-    const { order, orderId, recipientType, retailer } = args;
+    const { order, orderId, recipientType, retailer, updateInfo } = args;
     const itemsHtml = order.items.map(item => `
         <tr>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
@@ -24,13 +28,39 @@ const generateHtml = (args: SendArgs): string => {
         </tr>
     `).join('');
 
-    const headerText = recipientType === 'customer' 
-        ? `Thank you for your order, ${order.customer.name}!` 
-        : `New Online Order for Pickup`;
+    let headerText = '';
+    let introText = '';
+    
+    if (updateInfo) {
+        // This is a status update email
+        headerText = `Your Order is ${updateInfo.newStatus.charAt(0).toUpperCase() + updateInfo.newStatus.slice(1)}!`;
+        switch(updateInfo.newStatus) {
+            case 'confirmed':
+                introText = `Great news, ${order.customer.name}! Your order has been confirmed by <strong>${retailer.name}</strong> and is now being prepared.`;
+                break;
+            case 'ready':
+                introText = `Your order is packed and ready for pickup at <strong>${retailer.name}</strong>. You can head over any time during business hours.`;
+                break;
+            case 'completed':
+                introText = `Thank you for your purchase, ${order.customer.name}! We hope you enjoy your products.`;
+                break;
+            case 'cancelled':
+                introText = `Your order has been cancelled. If you have any questions, please contact <strong>${retailer.name}</strong> directly.`;
+                break;
+            default:
+                 introText = `There's an update on your order. Its new status is: <strong>${updateInfo.newStatus}</strong>.`;
+        }
+    } else {
+        // This is the initial order confirmation
+        headerText = recipientType === 'customer' 
+            ? `Thank you for your order, ${order.customer.name}!` 
+            : `New Online Order for Pickup`;
 
-    const introText = recipientType === 'customer'
-        ? `We've received your order and are getting it ready for pickup at <strong>${retailer.name}</strong>. Please have your ID ready when you arrive.`
-        : `The following order has been placed by <strong>${order.customer.name} (${order.customer.email})</strong> for pickup.`;
+        introText = recipientType === 'customer'
+            ? `We've received your order and are getting it ready for pickup at <strong>${retailer.name}</strong>. Please have your ID ready when you arrive.`
+            : `The following order has been placed by <strong>${order.customer.name} (${order.customer.email})</strong> for pickup.`;
+    }
+
 
     return `
       <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
@@ -95,5 +125,3 @@ export async function sendOrderEmail(args: SendArgs) {
     html: htmlBody,
   });
 }
-
-    
