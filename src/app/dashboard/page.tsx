@@ -1,3 +1,4 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 
@@ -7,7 +8,6 @@ import { MessageSquare, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import type { Product } from '@/lib/types';
 import type { UserInteraction } from '@/firebase/converters';
 import { Skeleton } from '@/components/ui/skeleton';
 import { collection, query, where, collectionGroup, Timestamp } from 'firebase/firestore';
@@ -18,6 +18,7 @@ import InteractionsChart from './components/interactions-chart';
 import { formatNumber } from '@/lib/utils';
 import { useUser } from '@/firebase/auth/use-user';
 import { interactionConverter, productConverter } from '@/firebase/converters';
+import type { Product } from '@/types/domain';
 
 function MetricCard({ title, value, icon: Icon, isLoading }: { title: string; value: string | number; icon: React.ElementType; isLoading: boolean }) {
   return (
@@ -119,3 +120,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
