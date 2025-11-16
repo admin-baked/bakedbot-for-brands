@@ -51,6 +51,7 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const id = params.id;
+  // The brandId is now available from the URL params.
   const product = await getProduct(id, params.brandId);
 
   if (!product) {

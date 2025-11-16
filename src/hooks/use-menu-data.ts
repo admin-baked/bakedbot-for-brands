@@ -29,11 +29,12 @@ export function useMenuData(): UseMenuDataResult {
   const { firestore } = useFirebase();
   const isHydrated = useHydrated();
   const params = useParams();
-  const brandId = params.brandId as string | undefined;
+  // Get brandId from URL, fallback to 'default' for demo mode
+  const brandId = params.brandId as string || 'default';
 
   // Set up Firestore queries. They will be null if not hydrated, in demo mode, or if firestore is not available.
   const productsQuery = useMemo(() => {
-    if (!isHydrated || isDemo || !firestore || !brandId) return null;
+    if (!isHydrated || isDemo || !firestore || !brandId || brandId === 'default') return null;
     return query(collection(firestore, 'products').withConverter(productConverter), where('brandId', '==', brandId));
   }, [firestore, isDemo, isHydrated, brandId]);
   
@@ -52,12 +53,12 @@ export function useMenuData(): UseMenuDataResult {
 
   // Determine the final data source.
   const products = useMemo<Product[]>(() => {
-    if (isDemo) return demoProducts;
+    if (isDemo || brandId === 'default') return demoProducts;
     if (!isHydrated) return []; // Return empty on server
     // **No longer falls back to demo data in live mode.**
     // If there's an error or no products, it will correctly return an empty array.
     return liveProducts || [];
-  }, [isDemo, isHydrated, liveProducts]);
+  }, [isDemo, isHydrated, liveProducts, brandId]);
 
   const locations = useMemo<Retailer[]>(() => {
     if (isDemo) return demoRetailers;

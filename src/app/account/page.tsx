@@ -78,7 +78,7 @@ export default function AccountPage() {
                                 </Link>
                              </Button>
                              <Button asChild variant="outline" size="lg">
-                                 <Link href="/">
+                                 <Link href="/menu/default">
                                     Continue Shopping
                                  </Link>
                              </Button>
