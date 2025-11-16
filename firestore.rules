@@ -65,7 +65,8 @@ service cloud.firestore {
       allow read, update: if request.auth.uid == resource.data.userId 
           || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'brand']
           || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'dispensary' 
-              && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.locationId == resource.data.locationId);
+              && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.locationId == resource.data.retailerId);
     }
   }
 }
+
