@@ -174,8 +174,8 @@ export const demoRetailers: Retailer[] = [
 export const demoCustomer = {
     favoriteRetailerId: '1',
     orders: [
-        { id: 'demo1', createdAt: Timestamp.now(), status: 'completed', totals: { total: 47.50 } },
-        { id: 'demo2', createdAt: Timestamp.now(), status: 'ready', totals: { total: 88.00 } },
+        { id: 'demo1', userId: 'demoUser', createdAt: Timestamp.now(), status: 'completed', totals: { total: 47.50 } },
+        { id: 'demo2', userId: 'demoUser', createdAt: Timestamp.now(), status: 'ready', totals: { total: 88.00 } },
     ] as Partial<OrderDoc>[],
     reviews: [
         { id: 'rev1', productId: '1', userId: 'demoUser1', rating: 5, text: 'Absolutely love the Cosmic Caramels! Perfect for relaxing after a long day. The taste is amazing and the effects are smooth.', createdAt: Timestamp.fromDate(new Date('2024-05-20T19:30:00Z')) },

@@ -84,7 +84,7 @@ export default function CustomerDashboardPage() {
 
      useEffect(() => {
         if (isDemo) {
-            const demoFavoriteId = demoCustomer.favoriteLocationId;
+            const demoFavoriteId = demoCustomer.favoriteRetailerId;
             setCurrentFavoriteId(demoFavoriteId);
             setStoreFavoriteId(demoFavoriteId);
             return;
