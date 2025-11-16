@@ -209,7 +209,7 @@ export const useStore = create<StoreState>()(
         theme: state.theme,
         menuStyle: state.menuStyle,
         selectedRetailerId: state.selectedRetailerId,
-        favoriteRetailerId: state.favoriteRetailerId, // Ensure this is persisted
+        favoriteRetailerId: state.favoriteRetailerId,
         isCartSheetOpen: state.isCartSheetOpen,
         chatExperience: state.chatExperience,
         brandImageGenerations: state.brandImageGenerations,

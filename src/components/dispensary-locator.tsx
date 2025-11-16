@@ -14,7 +14,7 @@ import { useFirebase } from '@/firebase/provider';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { Retailer } from '@/lib/types';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { useHydrated } from '@/hooks/use-hydrated';
+import { useHydrated } from '@/hooks/useHydrated';
 
 interface DispensaryLocatorProps {
   // Props are no longer needed as the component will fetch its own data.
