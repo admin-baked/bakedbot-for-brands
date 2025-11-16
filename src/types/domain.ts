@@ -2,6 +2,13 @@
 
 import { Timestamp } from 'firebase/firestore';
 
+// Type for the review summary embedding stored on a Product
+export type ReviewSummaryEmbedding = {
+  embedding: number[];
+  reviewCount: number;
+  updatedAt: Timestamp;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -14,6 +21,7 @@ export type Product = {
   likes?: number;
   dislikes?: number;
   brandId: string;
+  reviewSummaryEmbedding?: ReviewSummaryEmbedding; // Add embedding field
 };
 
 // Renamed from Location to Retailer

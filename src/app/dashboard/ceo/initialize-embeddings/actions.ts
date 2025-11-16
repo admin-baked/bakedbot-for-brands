@@ -1,9 +1,10 @@
 
+
 'use server';
 
-import { getFirestore } from 'firebase-admin/firestore';
 import { createServerClient } from '@/firebase/server-client';
-import admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
+import { generateEmbedding } from '@/ai/utils/generate-embedding'; // Use the Genkit utility
 
 interface Review {
   rating: number;
@@ -20,55 +21,6 @@ interface Product {
   category?: string;
   thcContent?: string;
   cbdContent?: string;
-}
-
-/**
- * Generate embedding using Vertex AI REST API with Firebase Admin auth
- */
-async function generateEmbedding(text: string): Promise<number[]> {
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8';
-  
-  try {
-    // Correctly initialize admin app before using its services
-    const { auth } = await createServerClient();
-    const accessToken = await auth.createCustomToken('server'); // Use auth instance to create token/get credentials
-
-    // To get an OAuth2 access token, we access the credential from the initialized app
-    const app = admin.app();
-    const credential = app.options.credential;
-    if (!credential) {
-        throw new Error('Firebase Admin SDK credential is not available.');
-    }
-    const token = await credential.getAccessToken();
-    
-    if (!token || !token.access_token) {
-      throw new Error('Failed to get access token from Firebase Admin');
-    }
-
-    const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/text-embedding-004:predict`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        instances: [{ content: text }],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Vertex AI API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    return data.predictions[0].embeddings.values;
-  } catch (error: any) {
-    console.error('Error generating embedding:', error);
-    throw new Error(`Failed to generate embedding: ${error.message}`);
-  }
 }
 
 /**
@@ -105,6 +57,7 @@ ${reviewTexts.join('\n\n')}
   `.trim();
 
   try {
+    // This now uses the centralized Genkit embedding utility
     const embedding = await generateEmbedding(embeddingText);
     return embedding;
   } catch (error) {
@@ -174,18 +127,20 @@ export async function initializeReviewEmbeddings() {
           continue;
         }
 
+        // UPDATED: Store the embedding on the product document itself
+        // for easier querying with vector search.
         await firestore
-          .collection(`products/${product.id}/productReviewEmbeddings`)
-          .doc('summary')
+          .collection('products')
+          .doc(product.id)
           .set({
-            productId: product.id,
-            productName: product.name,
-            embedding,
-            reviewCount,
-            updatedAt: new Date(),
-          });
+            reviewSummaryEmbedding: {
+              embedding: embedding,
+              reviewCount: reviewCount,
+              updatedAt: FieldValue.serverTimestamp(),
+            }
+          }, { merge: true });
 
-        console.log(`  ✅ Embedding generated and stored`);
+        console.log(`  ✅ Embedding generated and stored on product document.`);
         successCount++;
         results.push({
           product: product.name,
@@ -193,7 +148,9 @@ export async function initializeReviewEmbeddings() {
           reviewCount,
         });
 
+        // Add a small delay to avoid hitting API rate limits
         await new Promise((resolve) => setTimeout(resolve, 200));
+
       } catch (error: any) {
         console.error(`  ❌ Error:`, error);
         errorCount++;

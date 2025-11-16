@@ -2,16 +2,14 @@
 
 import { NextResponse } from 'next/server';
 import { recommendProducts } from '@/ai/ai-powered-product-recommendations';
-import { demoProducts } from '@/lib/data'; // Import demo data
 
 export async function GET() {
   try {
-    // This test route now passes the demo products directly into the action,
-    // simulating how it would work in a multi-tenant environment where the
-    // products would be fetched and scoped to a specific brand.
+    // This test route now calls the action with a brandId, simulating a
+    // multi-tenant request. The action itself handles fetching the products.
     const result = await recommendProducts({
       query: 'Recommend a strain for sleep',
-      products: demoProducts, 
+      brandId: 'default', 
     });
 
     return NextResponse.json({

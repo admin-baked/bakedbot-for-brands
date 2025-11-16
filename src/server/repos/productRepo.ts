@@ -1,50 +1,62 @@
 
-import { Firestore } from 'firebase-admin/firestore';
+
+import { Firestore, FieldValue } from 'firebase-admin/firestore';
 import type { Product } from '@/types/domain';
+import { generateEmbedding } from '@/ai/utils/generate-embedding';
+
 
 export function makeProductRepo(db: Firestore) {
-  const col = db.collection('products');
+  const productCollection = db.collection('products');
+
   return {
+    /**
+     * Retrieves a single product by its ID.
+     */
     async getById(id: string): Promise<Product | null> {
-      const snap = await col.doc(id).get();
+      const snap = await productCollection.doc(id).get();
       if (!snap.exists) return null;
       const data = snap.data()!;
-      // This manually shapes the data, avoiding converter mismatches.
       return { 
           id: snap.id,
-          name: data.name,
-          category: data.category,
-          price: data.price,
-          prices: data.prices,
-          imageUrl: data.imageUrl,
-          imageHint: data.imageHint,
-          description: data.description,
-          likes: data.likes,
-          dislikes: data.dislikes,
-          brandId: data.brandId,
+          ...data
         } as Product;
     },
-    async getAll(): Promise<Product[]> {
-      const snapshot = await col.get();
+
+    /**
+     * Performs a vector search on product review embeddings.
+     * Finds products with reviews that are semantically similar to the user's query.
+     */
+    async searchByVector(query: string, brandId: string, limit: number = 10): Promise<Product[]> {
+      const queryEmbedding = await generateEmbedding(query);
+
+      const vectorQuery = productCollection
+        .where('brandId', '==', brandId) // Ensure we only search within the correct brand
+        .where('reviewSummaryEmbedding.embedding', '!=', null) // Ensure embedding exists
+        .orderBy('reviewSummaryEmbedding.embedding')
+        .findNearest('reviewSummaryEmbedding.embedding', queryEmbedding, {
+          limit,
+          distanceMeasure: 'COSINE',
+        });
+      
+      const snapshot = await vectorQuery.get();
+
       if (snapshot.empty) {
         return [];
       }
-      return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          name: data.name,
-          category: data.category,
-          price: data.price,
-          prices: data.prices,
-          imageUrl: data.imageUrl,
-          imageHint: data.imageHint,
-          description: data.description,
-          likes: data.likes,
-          dislikes: data.dislikes,
-          brandId: data.brandId,
-        } as Product;
-      });
-    }
+      
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    },
+
+    /**
+     * Retrieves all products for a given brandId.
+     * Used as a fallback if vector search returns no results.
+     */
+    async getAllByBrand(brandId: string): Promise<Product[]> {
+      const snapshot = await productCollection.where('brandId', '==', brandId).get();
+      if (snapshot.empty) {
+        return [];
+      }
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Product);
+    },
   };
 }
