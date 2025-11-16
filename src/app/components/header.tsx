@@ -38,15 +38,15 @@ export default function Header() {
     ];
     
      const handleSignOut = async () => {
+        if (!auth) return;
         try {
-          if(auth) {
-            await signOut(auth);
-          }
+          await signOut(auth);
           toast({
             title: "Signed Out",
             description: "You have been successfully logged out.",
           });
-          router.push('/');
+          // Force a full page reload to clear all state
+          window.location.href = '/';
         } catch (error) {
           console.error('Sign out error', error);
            toast({
@@ -115,7 +115,7 @@ export default function Header() {
                     <div className="hidden md:flex items-center gap-2">
                         {hydrated && user ? (
                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild suppressHydrationWarning>
+                                <DropdownMenuTrigger asChild>
                                      <Button variant="ghost" className="flex items-center gap-2">
                                         <Avatar className="h-7 w-7">
                                             <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
@@ -162,7 +162,7 @@ export default function Header() {
                     {/* Mobile Menu */}
                     <div className="md:hidden">
                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild suppressHydrationWarning>
+                            <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon">
                                     <Menu className="h-5 w-5" />
                                 </Button>

@@ -1,3 +1,4 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +37,8 @@ export default function AccountPage() {
         title: "Signed Out",
         description: "You have been successfully logged out.",
       });
-      router.push('/');
+      // Force a full page reload to clear all state
+      window.location.href = '/';
     } catch (error) {
       console.error('Sign out error', error);
        toast({
