@@ -1,25 +1,19 @@
 'use server';
 
 /**
- * @fileOverview A Genkit tool for performing semantic search on product embeddings.
+ * @fileOverview A Genkit tool for performing semantic or keyword search on products.
  */
 
 import { ai, defineTool } from '@/ai/genkit';
 import { createServerClient } from '@/firebase/server-client';
 import { z } from 'zod';
-
-async function generateEmbedding(text: string): Promise<number[]> {
-  const { embedding } = await ai.embed({
-    model: 'googleai/text-embedding-004',
-    content: text,
-  });
-  return embedding;
-}
+import { generateEmbedding } from '@/ai/utils/generate-embedding';
+import type { Product } from '@/firebase/converters';
 
 export const productSearch = defineTool(
   {
     name: 'productSearch',
-    description: 'Searches for products that are semantically similar to a user query by searching reviews, descriptions, and product details. Returns a list of relevant products.',
+    description: 'Searches for products. Returns a list of relevant products based on the query.',
     inputSchema: z.object({
       query: z.string().describe('The user query to search for. E.g., "something to help me sleep"'),
     }),
@@ -35,40 +29,57 @@ export const productSearch = defineTool(
   },
   async (input) => {
     const { firestore } = await createServerClient();
-    const queryEmbedding = await generateEmbedding(input.query);
+    let products: Product[] = [];
 
     try {
+      // --- Primary Strategy: Vector Search ---
+      console.log(`Attempting vector search for query: "${input.query}"`);
+      const queryEmbedding = await generateEmbedding(input.query);
+      
       const vectorQueryResult = await firestore.collectionGroup('productReviewEmbeddings').findNearest('embedding', queryEmbedding, {
         limit: 5,
         distanceMeasure: 'COSINE',
       });
       
-      const productDocs = await Promise.all(
-        vectorQueryResult.docs.map(doc => firestore.collection('products').doc(doc.data().productId).get())
-      );
+      if (vectorQueryResult.docs.length > 0) {
+        const productDocs = await Promise.all(
+          vectorQueryResult.docs.map(doc => firestore.collection('products').doc(doc.data().productId).get())
+        );
 
-      const products = productDocs
-        .filter(doc => doc.exists)
-        .map(doc => {
-            const data = doc.data()!;
-            return {
-                id: doc.id,
-                name: data.name,
-                description: data.description,
-                category: data.category,
-                price: data.price,
-            };
-        });
-
-      return { products };
-
+        products = productDocs
+          .filter(doc => doc.exists)
+          .map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        
+        console.log(`Vector search successful. Found ${products.length} products.`);
+        return { products };
+      }
     } catch (e: any) {
-        if (e.message.includes('requires a vector index')) {
-            console.error('Firestore Vector Index Missing:', e.message);
-            throw new Error('The product search tool is not available because the required Firestore vector index has not been built. Please check your Firestore setup.');
-        }
-        console.error('Vector search error:', e);
-        throw e;
+        console.warn(`Vector search failed: ${e.message}. Falling back to keyword search.`);
+        // Fall through to keyword search if vector search fails for any reason
+    }
+    
+    // --- Fallback Strategy: Keyword Search ---
+    console.log(`Falling back to keyword search for query: "${input.query}"`);
+    try {
+      // A very simple keyword search. In a real app, you might use a more robust
+      // search service like Algolia or a more complex Firestore query.
+      const allProductsSnap = await firestore.collection('products').get();
+      const allProducts = allProductsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+
+      const queryWords = input.query.toLowerCase().split(/\s+/);
+      
+      products = allProducts.filter(product => {
+        const searchableText = `${product.name} ${product.description} ${product.category}`.toLowerCase();
+        return queryWords.some(word => searchableText.includes(word));
+      }).slice(0, 5); // Limit to 5 results
+
+      console.log(`Keyword search successful. Found ${products.length} products.`);
+      return { products };
+      
+    } catch (keywordError: any) {
+       console.error(`Keyword search also failed:`, keywordError);
+       // If both fail, return empty results so the AI can respond gracefully.
+       return { products: [] };
     }
   }
 );
