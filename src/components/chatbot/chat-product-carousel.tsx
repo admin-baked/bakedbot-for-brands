@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { cn } from '@/lib/utils';
-import type { Product } from '@/firebase/converters';
+import type { Product } from '@/types/domain';
 
 const ChatProductCarousel = ({ products, onAskSmokey, isCompact, onFeedback }: { products: Product[], onAskSmokey: (product: Product) => void, isCompact: boolean, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => (
     <>
@@ -58,3 +58,5 @@ const ChatProductCarousel = ({ products, onAskSmokey, isCompact, onFeedback }: {
 );
 
 export default ChatProductCarousel;
+
+    

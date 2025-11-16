@@ -5,11 +5,11 @@ import { useMemo } from 'react';
 import { collection, query } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import { productConverter, retailerConverter } from '@/firebase/converters';
-import type { Product, Retailer } from '@/firebase/converters';
 import { useDemoMode } from '@/context/demo-mode';
 import { demoProducts, demoRetailers } from '@/lib/data';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useHydrated } from './useHydrated';
+import type { Product, Retailer } from '@/types/domain';
 
 
 export type UseMenuDataResult = {
@@ -69,3 +69,5 @@ export function useMenuData(): UseMenuDataResult {
     isDemo,
   };
 }
+
+    

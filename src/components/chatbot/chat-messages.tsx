@@ -8,8 +8,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import type { Product } from '@/firebase/converters';
 import { useToast } from '@/hooks/use-toast';
+import type { Product } from '@/types/domain';
 
 type Message = {
     id: number;
@@ -184,3 +184,5 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
 )};
 
 export default ChatMessages;
+
+    
