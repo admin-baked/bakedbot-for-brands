@@ -1,24 +1,44 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { ProductsTable } from "./components/products-table";
 import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Product } from "@/firebase/converters";
-import { useMenuData } from "@/hooks/use-menu-data";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
+import { collection, query, where } from 'firebase/firestore';
+import { useFirebase } from "@/firebase/provider";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { productConverter } from "@/firebase/converters";
 
 export default function ProductsPage() {
-  const { isUserLoading } = useUser();
-  const { products, isLoading: areProductsLoading } = useMenuData();
+  const { user, isUserLoading } = useUser();
+  const { firestore } = useFirebase();
+  const [currentBrandId, setCurrentBrandId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      user.getIdTokenResult().then((idTokenResult) => {
+        const claims = idTokenResult.claims;
+        if (claims.brandId) setCurrentBrandId(claims.brandId as string);
+      });
+    }
+  }, [user]);
+
+  const productsQuery = useMemo(() => {
+    if (!firestore || !currentBrandId) return null;
+    return query(collection(firestore, 'products').withConverter(productConverter), where('brandId', '==', currentBrandId));
+  }, [firestore, currentBrandId]);
+
+  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
 
   const formattedProducts = useMemo(() => {
     if (!products) return [];
     
-    // Ensure price is always a valid number before formatting
     return products.map((product) => ({
         id: product.id,
         name: product.name,

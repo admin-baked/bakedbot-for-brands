@@ -1,31 +1,43 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { ReviewsTable } from "./components/reviews-table";
 import { useUser } from "@/firebase/auth/use-user";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Review } from "@/firebase/converters";
-import { useMenuData } from "@/hooks/use-menu-data";
+import type { Review, Product } from "@/firebase/converters";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collectionGroup, query, orderBy } from 'firebase/firestore';
+import { collectionGroup, query, where, collection, orderBy } from 'firebase/firestore';
 import { useFirebase } from "@/firebase/provider";
-import { reviewConverter } from "@/firebase/converters";
+import { reviewConverter, productConverter } from "@/firebase/converters";
 
 export default function ReviewsPage() {
-  const firebase = useFirebase();
-  const firestore = firebase?.firestore;
   const { user, isUserLoading } = useUser();
-  const { products, isLoading: areProductsLoading } = useMenuData();
-  
-  const reviewsQuery = useMemo(() => {
-    // The user is not required to fetch public reviews, so we remove that dependency.
-    if (!firestore) return null;
-    const baseQuery = collectionGroup(firestore, 'reviews').withConverter(reviewConverter);
-    return query(baseQuery, orderBy('createdAt', 'desc'));
-  }, [firestore]);
+  const { firestore } = useFirebase();
+  const [currentBrandId, setCurrentBrandId] = useState<string | null>(null);
 
-  const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery, { debugPath: '**/reviews' });
+  useEffect(() => {
+    if (user) {
+      user.getIdTokenResult().then((idTokenResult) => {
+        const claims = idTokenResult.claims;
+        if (claims.brandId) setCurrentBrandId(claims.brandId as string);
+      });
+    }
+  }, [user]);
+
+  const reviewsQuery = useMemo(() => {
+    if (!firestore || !currentBrandId) return null;
+    return query(collectionGroup(firestore, 'reviews').withConverter(reviewConverter), where('brandId', '==', currentBrandId), orderBy('createdAt', 'desc'));
+  }, [firestore, currentBrandId]);
+  
+  const productsQuery = useMemo(() => {
+    if (!firestore || !currentBrandId) return null;
+    return query(collection(firestore, 'products').withConverter(productConverter), where('brandId', '==', currentBrandId));
+  }, [firestore, currentBrandId]);
+
+  const { data: reviews, isLoading: areReviewsLoading } = useCollection<Review>(reviewsQuery, { debugPath: `**/reviews?brandId=${currentBrandId}` });
+  const { data: products, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
 
   const formattedReviews = useMemo(() => {
     if (!reviews || !products) return [];
@@ -35,7 +47,7 @@ export default function ReviewsPage() {
         return {
             id: review.id,
             productName: productName,
-            userEmail: "Anonymous", // User data is not denormalized on reviews for this demo
+            userEmail: "Anonymous",
             rating: review.rating,
             text: review.text,
             date: review.createdAt.toDate().toLocaleDateString(),
