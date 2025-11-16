@@ -45,6 +45,8 @@ export function HeroSlider({ products, isLoading }: HeroSliderProps) {
                                 fill
                                 className="object-cover brightness-75"
                                 priority={index === 0}
+                                placeholder="blur"
+                                blurDataURL="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="
                                 data-ai-hint={product.imageHint}
                             />
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 text-white">
@@ -55,7 +57,7 @@ export function HeroSlider({ products, isLoading }: HeroSliderProps) {
                                     Discover our top-rated product: <span className="font-semibold">{product.name}</span>
                                 </p>
                                 <Button asChild className="mt-6" size="lg">
-                                    <Link href={`/menu/${product.brandId}/products/${product.id}`}>
+                                    <Link href={`/menu/${product.brandId || 'default'}/products/${product.id}`}>
                                         Shop Now
                                     </Link>
                                 </Button>
