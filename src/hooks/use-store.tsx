@@ -3,27 +3,9 @@
 
 import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
-import { createJSONStorage, persist, StateStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import * as LucideIcons from 'lucide-react';
 import type { Location, Product } from '@/firebase/converters';
-import Cookies from 'universal-cookie';
-
-const cookies = new Cookies(null, { path: '/' });
-
-// Custom cookie-based storage for Zustand
-const cookieStorage: StateStorage = {
-  getItem: (name: string): string | null => {
-    return cookies.get(name) || null;
-  },
-  setItem: (name: string, value: string): void => {
-    const oneYear = 365 * 24 * 60 * 60;
-    cookies.set(name, value, { path: '/', maxAge: oneYear });
-  },
-  removeItem: (name: string): void => {
-    cookies.remove(name, { path: '/' });
-  },
-};
-
 
 export type CartItem = Product & { quantity: number };
 
@@ -35,6 +17,7 @@ export type NavLink = {
 };
 
 export interface StoreState {
+  _hasHydrated: boolean;
   // Cart State
   cartItems: CartItem[];
   
@@ -103,6 +86,7 @@ const defaultNavLinks: NavLink[] = [
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
+      _hasHydrated: false,
       // Cart State
       cartItems: [],
       
@@ -112,7 +96,7 @@ export const useStore = create<StoreState>()(
       selectedLocationId: null,
       favoriteLocationId: null,
       isCartSheetOpen: false,
-      chatExperience: 'default' as 'default' | 'classic',
+      chatExperience: 'default' as 'classic',
       
       // Settings
       brandImageGenerations: 0,
@@ -212,16 +196,12 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'bakedbot-storage', 
-      storage: createJSONStorage(() => cookieStorage), // Use cookie storage
-       // This part ensures that on first load, default values are used
-       // and only then the persisted state is applied, avoiding mismatches.
-      skipHydration: true,
+      storage: createJSONStorage(() => localStorage), 
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+            state._hasHydrated = true;
+        }
+      },
     }
   )
 );
-
-// This useEffect runs once on the client to hydrate the store.
-// This is the key to preventing hydration mismatches.
-if (typeof window !== 'undefined') {
-  useStore.persist.rehydrate();
-}
