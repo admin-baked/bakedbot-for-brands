@@ -17,7 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { QRDisplay } from './components/qr-display';
 import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase/provider';
-import { doc, onSnapshot, setDoc, query, where, collection, getDocs, limit, FieldValue } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, query, where, collection, getDocs, limit } from 'firebase/firestore';
 import type { OrderDoc } from '@/firebase/converters';
 import { orderConverter } from '@/firebase/converters';
 import { Footer } from '@/app/components/footer';
@@ -117,7 +117,7 @@ function OrderPageClient() {
     
     const getStatusStyles = (status: OrderDoc['status']) => {
         switch (status) {
-            case 'submitted': return { icon: Clock, className: 'bg-gray-500/20 text-gray-700' };
+            case 'submitted': return { icon: Play, className: 'bg-gray-500/20 text-gray-700' };
             case 'pending': return { icon: Clock, className: 'bg-yellow-500/20 text-yellow-700' };
             case 'confirmed': return { icon: CheckCircle, className: 'bg-blue-500/20 text-blue-700' };
             case 'ready': return { icon: PackageCheck, className: 'bg-teal-500/20 text-teal-700' };
