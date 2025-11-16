@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test('full checkout flow', async ({ page }) => {
-    // 1. Go to homepage
-    await page.goto('/');
+    // 1. Go to the menu page
+    await page.goto('/menu/default');
 
     // 2. Select a location
     await page.getByTestId('location-card-1').click();

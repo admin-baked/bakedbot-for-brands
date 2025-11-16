@@ -7,20 +7,21 @@ test.describe('Core Application Functionality', () => {
     await expect(page).toHaveTitle(/BakedBot - Headless Cannabis Commerce AI Agent/);
   });
 
-  test('get started link', async ({ page }) => {
+  test('marketing homepage has correct heading', async ({ page }) => {
     await page.goto('/');
-    const heading = page.getByRole('heading', { name: 'Find Your Bliss' });
+    const heading = page.getByRole('heading', { name: /Keep the customer in your brand funnel/i });
     await expect(heading).toBeVisible();
   });
 
-  test('demo mode toggle', async ({ page }) => {
-    await page.goto('/');
+  test('demo mode toggle on menu page', async ({ page }) => {
+    // Navigate to the actual menu page
+    await page.goto('/menu/default');
 
     // 1. Initial state check (Live data: Cosmic Caramels)
     await expect(page.getByTestId('product-card-1')).toBeVisible();
     await expect(page.getByTestId('product-card-4')).not.toBeVisible();
 
-    // 2. Find and click the demo mode switch
+    // 2. Find and click the demo mode switch in the header
     const demoModeSwitch = page.locator('#demo-mode-switch');
     await demoModeSwitch.click();
 
