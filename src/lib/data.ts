@@ -1,5 +1,5 @@
 
-import type { Product, Retailer, Review, UserInteraction, OrderDoc } from '@/types/domain';
+import type { Product, Retailer, Review, UserInteraction, OrderDoc, Location } from '@/types/domain';
 import { PlaceHolderImages } from './placeholder-images';
 import { Timestamp } from 'firebase/firestore';
 
@@ -179,6 +179,8 @@ export const demoRetailers: Retailer[] = [
         lon: -105.5217,
     }
 ];
+export const demoLocations: Location[] = demoRetailers as Location[];
+
 
 export const demoCustomer = {
     favoriteRetailerId: '1',
@@ -203,3 +205,5 @@ export const demoCustomer = {
         { brandId: 'default', recommendedProductIds: ['4'] }
     ] as Partial<UserInteraction>[],
 };
+
+    

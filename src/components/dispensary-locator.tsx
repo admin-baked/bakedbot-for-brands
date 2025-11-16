@@ -14,7 +14,7 @@ import { useFirebase } from '@/firebase/provider';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { Retailer } from '@/lib/types';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/hooks/use-hydrated';
 
 interface DispensaryLocatorProps {
   // Props are no longer needed as the component will fetch its own data.
@@ -22,7 +22,7 @@ interface DispensaryLocatorProps {
 
 export function DispensaryLocator({}: DispensaryLocatorProps) {
   const { locations, isLoading } = useMenuData();
-  const { selectedLocationId, setSelectedLocationId, favoriteLocationId, setFavoriteLocationId } = useStore();
+  const { selectedRetailerId, setSelectedRetailerId, favoriteLocationId, setFavoriteLocationId } = useStore();
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
   const hydrated = useHydrated();
@@ -57,7 +57,7 @@ export function DispensaryLocator({}: DispensaryLocatorProps) {
         setSortedLocations(newSortedLocations);
         setIsLocating(false);
         if (newSortedLocations.length > 0) {
-            setSelectedLocationId(newSortedLocations[0].id);
+            setSelectedRetailerId(newSortedLocations[0].id);
         }
       },
       (error) => {
@@ -69,7 +69,7 @@ export function DispensaryLocator({}: DispensaryLocatorProps) {
   };
   
   const handleSelectLocation = (id: string) => {
-    setSelectedLocationId(id);
+    setSelectedRetailerId(id);
   }
 
   const handleSetFavorite = async (e: React.MouseEvent, id: string) => {
@@ -106,7 +106,7 @@ export function DispensaryLocator({}: DispensaryLocatorProps) {
                 {displayLocations.map(loc => {
                     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.name}, ${loc.address}, ${loc.city}, ${loc.state} ${loc.zip}`)}`;
                     const isFavorite = hydrated && favoriteLocationId === loc.id;
-                    const isSelected = hydrated && selectedLocationId === loc.id;
+                    const isSelected = hydrated && selectedRetailerId === loc.id;
                     return (
                     <Card 
                         key={loc.id}
@@ -153,3 +153,5 @@ export function DispensaryLocator({}: DispensaryLocatorProps) {
     </div>
   );
 }
+
+    
