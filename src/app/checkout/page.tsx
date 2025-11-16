@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { Footer } from '../components/footer';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CheckoutPage() {
@@ -30,7 +30,8 @@ export default function CheckoutPage() {
   const handleOrderSuccess = (orderId: string, userId?: string) => {
     if (orderId) {
         clearCart();
-        const confirmationUrl = `/order-confirmation/${orderId}`;
+        // Pass userId to confirmation page if it exists (for non-anon users)
+        const confirmationUrl = `/order-confirmation/${orderId}${userId ? `?userId=${userId}` : ''}`;
         router.push(confirmationUrl);
     }
   };
@@ -175,5 +176,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-    

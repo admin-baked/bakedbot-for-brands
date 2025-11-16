@@ -59,7 +59,7 @@ export type Review = {
 export type OrderDoc = {
   id: string; // Add id to the type
   brandId?: string;
-  userId: string;
+  userId: string; // Now required
   customer: {
       name: string;
       email: string;
@@ -99,4 +99,5 @@ export type UserInteraction = {
   query: string;
   recommendedProductIds?: string[];
 };
+
 

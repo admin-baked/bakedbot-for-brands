@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -17,7 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { QRDisplay } from './components/qr-display';
 import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase/provider';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, query, where, collection, getDocs, limit, FieldValue } from 'firebase/firestore';
 import type { OrderDoc } from '@/firebase/converters';
 import { orderConverter } from '@/firebase/converters';
 import { Footer } from '@/app/components/footer';
@@ -25,7 +25,9 @@ import { Footer } from '@/app/components/footer';
 
 function OrderPageClient() {
     const params = useParams();
+    const searchParams = useSearchParams();
     const orderId = typeof params.orderId === 'string' ? params.orderId : '';
+    const userIdFromUrl = searchParams.get('userId');
     const { locations: retailers } = useMenuData();
     const { firestore } = useFirebase();
 
@@ -47,7 +49,36 @@ function OrderPageClient() {
         // Real-time listener for the order
         const unsubscribe = onSnapshot(orderRef, (docSnap) => {
             if (docSnap.exists()) {
-                setOrder(docSnap.data());
+                const orderData = docSnap.data();
+                setOrder(orderData);
+                
+                // If a user ID was passed from a successful checkout,
+                // and the order belongs to a newly created anonymous user,
+                // we update the order to link it to the actual user.
+                if (userIdFromUrl && orderData.userId.startsWith('anon_')) {
+                    console.log(`Linking anonymous order ${orderId} to user ${userIdFromUrl}`);
+                    setDoc(orderRef, { userId: userIdFromUrl }, { merge: true })
+                        .catch(err => console.error("Failed to link user to order:", err));
+
+                    // Backfill previous anonymous orders from the same email
+                    const backfillQuery = query(
+                        collection(firestore, "orders"),
+                        where("customer.email", "==", orderData.customer.email),
+                        where("userId", "!=", userIdFromUrl),
+                        limit(5)
+                    );
+                    
+                    getDocs(backfillQuery).then(querySnapshot => {
+                        const batch = firestore ? firestore.batch() : null;
+                        querySnapshot.forEach(doc => {
+                           if (doc.data().userId.startsWith('anon_') && batch) {
+                               console.log(`Backfilling order ${doc.id} for user ${userIdFromUrl}`);
+                               batch.update(doc.ref, { userId: userIdFromUrl });
+                           }
+                        });
+                        batch?.commit().catch(err => console.error("Failed to backfill orders:", err));
+                    });
+                }
             } else {
                 setError(new Error("Order not found."));
             }
@@ -59,7 +90,7 @@ function OrderPageClient() {
 
         return () => unsubscribe(); // Cleanup listener on unmount
 
-    }, [firestore, orderId]);
+    }, [firestore, orderId, userIdFromUrl]);
     
     const pickupLocation = retailers?.find(loc => loc.id === order?.retailerId);
 
