@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { OrderDoc } from "@/firebase/converters";
 import { useMenuData } from "@/hooks/use-menu-data";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { useFirebase } from "@/firebase/provider";
 import { orderConverter } from "@/firebase/converters";
 
@@ -37,7 +37,7 @@ export default function OrdersPage() {
 
     // For dispensary managers, only show orders for their assigned location from the secure claim
     if (userClaims.role === 'dispensary' && userClaims.locationId) {
-        return query(baseQuery, where('locationId', '==', userClaims.locationId));
+        return query(baseQuery, where('retailerId', '==', userClaims.locationId));
     }
     
     // For brand/owner, show all orders
@@ -64,8 +64,8 @@ export default function OrdersPage() {
         date: order.createdAt.toDate().toLocaleDateString(),
         status: order.status,
         total: `$${order.totals.total.toFixed(2)}`,
-        location: getLocationName(order.locationId),
-        locationId: order.locationId,
+        location: getLocationName(order.retailerId),
+        retailerId: order.retailerId,
     }));
   }, [orders, locations]);
 

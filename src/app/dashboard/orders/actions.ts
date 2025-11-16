@@ -28,7 +28,6 @@ export async function updateOrderStatus(orderId: string, status: z.infer<typeof 
         
         const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
         
-        // This is a more direct way to get claims.
         const userClaims = decodedToken;
 
         if (!userClaims) {
@@ -47,8 +46,8 @@ export async function updateOrderStatus(orderId: string, status: z.infer<typeof 
         // --- SECURITY FIX: Verify Ownership ---
         // An owner can modify any order.
         // A dispensary manager can ONLY modify orders for their assigned location.
-        if (userClaims.role === 'dispensary' && userClaims.locationId !== orderData?.locationId) {
-            console.warn(`SECURITY ALERT: User ${decodedToken.uid} (dispensary) attempted to modify order ${orderId} for another location (${orderData?.locationId}).`);
+        if (userClaims.role === 'dispensary' && userClaims.locationId !== orderData?.retailerId) {
+            console.warn(`SECURITY ALERT: User ${decodedToken.uid} (dispensary) attempted to modify order ${orderId} for another location (${orderData?.retailerId}).`);
             return { error: true, message: 'You are not authorized to modify this order.' };
         }
         

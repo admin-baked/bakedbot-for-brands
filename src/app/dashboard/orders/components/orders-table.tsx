@@ -22,9 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { updateOrderStatus } from '../actions';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
-import { useStore } from '@/hooks/use-store';
 
 
 // Define the shape of the data we'll pass to the table
@@ -35,7 +33,7 @@ export type OrderData = {
   status: 'submitted' | 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
   total: string;
   location: string;
-  locationId: string;
+  retailerId: string;
 };
 
 const getStatusStyles = (status: OrderData['status']) => {
