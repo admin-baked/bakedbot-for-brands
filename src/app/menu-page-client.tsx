@@ -15,55 +15,50 @@ import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { useHydrated } from '@/hooks/useHydrated';
 
-/**
- * This is the primary client component for the main application page.
- * It is now self-contained and handles its own data fetching and rendering logic.
- */
 export default function MenuPageClient() {
   const { menuStyle } = useStore();
   const hydrated = useHydrated();
-  
   const { products, locations, isLoading } = useMenuData();
 
-  if (isLoading) {
+  // Show loading skeleton until hydrated AND data is loaded
+  if (!hydrated || isLoading) {
     return (
-        <div className="flex flex-col min-h-screen">
-          <Header />
-          <main className="container mx-auto px-4 py-8 flex-1">
-              <Skeleton className="w-full h-80 rounded-lg mb-12" />
-              <Skeleton className="w-full h-48 rounded-lg mb-12" />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {[...Array(8)].map((_, i) => (
-                      <Skeleton key={i} className="h-96 w-full" />
-                  ))}
-              </div>
-          </main>
-          <Footer />
-        </div>
-    );
-  }
-  
-  // Always render the default 'grid' layout on the server and initial client render.
-  // Only switch to the 'tiled' layout after hydration is complete.
-  if (!hydrated || menuStyle === 'default') {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex flex-col min-h-screen">
         <Header />
-        <main className="flex-1">
-          <div className="container mx-auto px-4 space-y-12">
-            <HeroSlider products={products} isLoading={isLoading} />
-            <DispensaryLocator />
-            <ProductGrid products={products} isLoading={isLoading} />
-            <RecentReviewsFeed />
+        <main className="container mx-auto px-4 py-8 flex-1">
+          <Skeleton className="w-full h-80 rounded-lg mb-12" />
+          <Skeleton className="w-full h-48 rounded-lg mb-12" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <Skeleton key={i} className="h-96 w-full" />
+            ))}
           </div>
         </main>
-        <FloatingCartPill />
-        <Chatbot />
         <Footer />
       </div>
     );
   }
   
-  // Render the TiledMenuPage only after hydration and if the style is 'alt'.
-  return <TiledMenuPage />;
+  // Render tiled layout if selected
+  if (menuStyle === 'alt') {
+    return <TiledMenuPage />;
+  }
+  
+  // Render default grid layout
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header />
+      <main className="flex-1">
+        <div className="container mx-auto px-4 space-y-12">
+          <HeroSlider products={products} isLoading={false} />
+          <DispensaryLocator />
+          <ProductGrid products={products} isLoading={false} />
+          <RecentReviewsFeed />
+        </div>
+      </main>
+      <FloatingCartPill />
+      <Chatbot />
+      <Footer />
+    </div>
+  );
 }
