@@ -1,4 +1,5 @@
 
+
 /**
  * @fileOverview An AI flow that summarizes customer reviews for a product.
  *
@@ -6,6 +7,8 @@
  * - SummarizeReviewsInput - The input type for the summarizeReviews function.
  * - SummarizeReviewsOutput - The return type for the summarizeReviews function.
  */
+
+'use server';
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
@@ -109,11 +112,4 @@ export async function runSummarizeReviews(input: SummarizeReviewsInput): Promise
   const result = await summarizeReviewsFlow(input);
   // Ensure we return null if the output is nullish, matching the updated return type
   return result ?? null;
-}
-
-// Alias so older imports like { summarizeReviews } still work
-export async function summarizeReviews(
-  input: SummarizeReviewsInput,
-): Promise<SummarizeReviewsOutput | null> {
-  return runSummarizeReviews(input);
 }

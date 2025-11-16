@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import {
@@ -12,7 +13,7 @@ import {
   type GenerateSocialMediaImageOutput
 } from '@/ai/flows/generate-social-image';
 import {
-  summarizeReviews,
+  runSummarizeReviews,
   type SummarizeReviewsInput,
   type SummarizeReviewsOutput,
 } from '@/ai/flows/summarize-reviews';
@@ -179,7 +180,7 @@ export async function summarizeProductReviews(
     // Use the brandId from the product if it exists, otherwise use a placeholder.
     const brandId = productData?.brandId || 'bakedbot-brand-id'; 
     
-    const result = await summarizeReviews({ productId, brandId });
+    const result = await runSummarizeReviews({ productId, brandId });
     return {
       message: 'Review summary generated successfully.',
       data: result,
