@@ -38,7 +38,7 @@ export interface StoreState {
   theme: Theme;
   menuStyle: 'default' | 'alt';
   selectedRetailerId: string | null;
-  favoriteLocationId: string | null;
+  favoriteRetailerId: string | null;
   isCartSheetOpen: boolean;
   chatExperience: 'default' | 'classic';
   
@@ -58,7 +58,7 @@ export interface StoreState {
   setTheme: (theme: Theme) => void;
   setMenuStyle: (style: 'default' | 'alt') => void;
   setSelectedRetailerId: (id: string | null) => void;
-  setFavoriteLocationId: (id: string | null) => void;
+  setFavoriteRetailerId: (id: string | null) => void;
   setCartSheetOpen: (isOpen: boolean) => void;
   setChatExperience: (experience: 'default' | 'classic') => void;
   recordBrandImageGeneration: () => void;
@@ -95,7 +95,7 @@ export const useStore = create<StoreState>()(
       theme: 'green' as Theme,
       menuStyle: 'default' as 'default' | 'alt',
       selectedRetailerId: null,
-      favoriteLocationId: null,
+      favoriteRetailerId: null,
       isCartSheetOpen: false,
       chatExperience: 'default' as 'classic',
       
@@ -115,7 +115,7 @@ export const useStore = create<StoreState>()(
       setTheme: (theme: Theme) => set({ theme }),
       setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
       setSelectedRetailerId: (id: string | null) => set({ selectedRetailerId: id }),
-      setFavoriteLocationId: (id: string | null) => set({ favoriteLocationId: id }),
+      setFavoriteRetailerId: (id: string | null) => set({ favoriteRetailerId: id }),
       setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
       setBrandColor: (color: string) => set({ brandColor: color }),
@@ -204,14 +204,13 @@ export const useStore = create<StoreState>()(
             state._hasHydrated = true;
         }
       },
-      // Use partialize to select which parts of the state to persist.
-      // We are excluding `navLinks` and `isCeoMode`.
       partialize: (state) => ({
         cartItems: state.cartItems,
         theme: state.theme,
         menuStyle: state.menuStyle,
         selectedRetailerId: state.selectedRetailerId,
-        favoriteRetailerId: state.favoriteRetailerId,
+        favoriteRetailerId: state.favoriteRetailerId, // Ensure this is persisted
+        isCartSheetOpen: state.isCartSheetOpen,
         chatExperience: state.chatExperience,
         brandImageGenerations: state.brandImageGenerations,
         lastBrandImageGeneration: state.lastBrandImageGeneration,
@@ -225,5 +224,4 @@ export const useStore = create<StoreState>()(
     }
   )
 );
-
     
