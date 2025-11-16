@@ -9,7 +9,7 @@ import Chatbot from '@/components/chatbot';
 import { Footer } from '@/app/components/footer';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { useMemo } from 'react';
-import type { Product, Location } from '@/lib/types';
+import type { Product } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -45,13 +45,8 @@ const PromoCardSmall = () => (
     </Card>
 );
 
-interface TiledMenuPageProps {
-  serverProducts: Product[];
-  serverLocations: Location[];
-}
-
-export default function TiledMenuPage({ serverProducts, serverLocations }: TiledMenuPageProps) {
-    const { products, isLoading } = useMenuData(serverProducts, serverLocations);
+export default function TiledMenuPage() {
+    const { products, isLoading } = useMenuData();
 
     const categorizedProducts = useMemo(() => {
         if (!products) return {};

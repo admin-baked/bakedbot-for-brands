@@ -44,7 +44,7 @@ export default function MenuPageClient({ serverProducts, serverLocations }: Menu
   }
   
   if (menuStyle === 'alt') {
-    return <TiledMenuPage serverProducts={products} serverLocations={locations} />;
+    return <TiledMenuPage />;
   }
   
   return (
