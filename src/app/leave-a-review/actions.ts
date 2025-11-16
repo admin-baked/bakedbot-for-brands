@@ -69,12 +69,14 @@ export async function submitReview(
             };
         }
         
+        const brandId = productSnap.data()?.brandId || 'unknown';
         const reviewCollectionRef = productRef.collection('reviews');
         
         const dataToSave = {
             ...reviewData,
             userId, 
             productId,
+            brandId, // Add brandId to the review
             createdAt: FieldValue.serverTimestamp(),
         };
 
