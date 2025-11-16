@@ -46,10 +46,10 @@ export const retailerConverter: FirestoreDataConverter<Retailer> = {
       email: d.email,
       lat: d.lat,
       lon: d.lon,
+      distance: d.distance,
       tabletDeviceToken: d.tabletDeviceToken,
       acceptsOrders: d.acceptsOrders,
       status: d.status,
     };
   },
 };
-
