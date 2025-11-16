@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Image from 'next/image';
@@ -17,9 +18,10 @@ import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { updateProductFeedback } from '../actions';
 import { useUser } from '@/firebase/auth/use-user';
 import type { Product } from '@/types/domain';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
-function ReviewSummaryDisplay({ summary, isLoading }: { summary: SummarizeReviewsOutput | null, isLoading: boolean }) {
+function ReviewSummaryDisplay({ summary }: { summary: SummarizeReviewsOutput | null }) {
      return (
         <Card className="bg-muted/30">
             <CardHeader>
@@ -30,12 +32,7 @@ function ReviewSummaryDisplay({ summary, isLoading }: { summary: SummarizeReview
                 <CardDescription>A quick overview of what customers are saying.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {isLoading ? (
-                    <div className="flex flex-col items-center justify-center space-y-2 text-muted-foreground h-32">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p>Generating summary...</p>
-                    </div>
-                ) : !summary ? (
+                {!summary ? (
                      <div className="flex flex-col items-center justify-center space-y-2 text-destructive h-32">
                         <XCircle className="h-8 w-8" />
                         <p>Could not load summary.</p>
@@ -71,9 +68,28 @@ function ReviewSummaryDisplay({ summary, isLoading }: { summary: SummarizeReview
     );
 }
 
+const ReviewSummarySkeleton = () => (
+    <Card className="bg-muted/30">
+        <CardHeader>
+            <div className="flex items-center gap-2">
+                <MessageSquare className='h-5 w-5 text-primary' />
+                <CardTitle className="text-xl">AI Review Summary</CardTitle>
+            </div>
+            <CardDescription>A quick overview of what customers are saying.</CardDescription>
+        </CardHeader>
+        <CardContent>
+             <div className="flex flex-col items-center justify-center space-y-2 text-muted-foreground h-32">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p>Generating summary...</p>
+            </div>
+        </CardContent>
+    </Card>
+);
+
+
 const initialFeedbackState = { message: '', error: false };
 
-export default function ProductDetailsClient({ product, summary }: { product: Product, summary: SummarizeReviewsOutput | null }) {
+function ProductDetailsClient({ product, children }: { product: Product, children: React.ReactNode }) {
     const { addToCart, selectedLocationId } = useStore();
     const { toast } = useToast();
     const { user, isUserLoading } = useUser();
@@ -204,8 +220,14 @@ export default function ProductDetailsClient({ product, summary }: { product: Pr
                     <p className="text-sm text-center text-destructive">Please select a location to add items to your cart.</p>
                 )}
 
-                <ReviewSummaryDisplay summary={summary} isLoading={!summary} />
+                {children}
             </div>
         </div>
     );
 }
+
+// Attach sub-components to the main component
+ProductDetailsClient.ReviewSummaryDisplay = ReviewSummaryDisplay;
+ProductDetailsClient.ReviewSummarySkeleton = ReviewSummarySkeleton;
+
+export default ProductDetailsClient;
