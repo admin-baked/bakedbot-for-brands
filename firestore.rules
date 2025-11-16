@@ -24,7 +24,6 @@ service cloud.firestore {
     // or Cloud Functions during onboarding.
     match /users/{userId} {
       allow read: if request.auth.uid == userId;
-      allow write: if false; // Disallow all client writes.
       
       // Interactions are private to each user.
       match /interactions/{interactionId} {
@@ -63,12 +62,13 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow create: if false; // All creates via Server Action
       allow read, update: if request.auth.uid == resource.data.userId 
-          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'brand']
-          || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'dispensary' 
-              && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.locationId == resource.data.retailerId);
+          || request.auth.token.role in ['owner', 'brand']
+          || (request.auth.token.role == 'dispensary' 
+              && request.auth.token.locationId == resource.data.retailerId);
     }
   }
 }
+
 
 
 
