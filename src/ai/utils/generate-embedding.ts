@@ -14,10 +14,10 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     content: text,
   });
 
-  // ai.embed() returns an array of embeddings, one for each content part.
-  // Since we only provide one, we take the first result.
+  // ai.embed() returns an array of objects, each with an 'embedding' property.
+  // Since we only provide one content part, we take the embedding from the first result.
   if (result.length > 0) {
-    return result[0];
+    return result[0].embedding;
   }
 
   throw new Error('Embedding generation failed to produce a result.');
