@@ -12,7 +12,7 @@ describe('useStore - Cart Logic', () => {
   // Reset store before each test to ensure isolation
   beforeEach(() => {
     act(() => {
-      useStore.setState({ cartItems: [], selectedRetailerId: 'loc1' });
+      useStore.setState({ cartItems: [], selectedRetailerId: 'loc1', selectedLocationId: 'loc1' });
     });
   });
 
@@ -132,3 +132,5 @@ describe('useStore - Cart Logic', () => {
     expect(result.current.getItemCount()).toBe(3);
   });
 });
+
+    
