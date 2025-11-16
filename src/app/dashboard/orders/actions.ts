@@ -51,7 +51,7 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
             return { error: true, message: 'You are not authorized to modify this order.' };
         }
         
-        if (userClaims.role !== 'dispensary' && userClaims.role !== 'owner') {
+        if (userClaims.role !== 'dispensary' && userClaims.role !== 'owner' && userClaims.role !== 'brand') {
              return { error: true, message: 'You do not have permission to update orders.' };
         }
         

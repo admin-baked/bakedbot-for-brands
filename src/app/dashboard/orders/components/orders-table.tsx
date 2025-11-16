@@ -39,7 +39,7 @@ export type OrderData = {
 
 const getStatusStyles = (status: OrderData['status']) => {
     switch (status) {
-        case 'submitted': return { icon: Play, className: 'bg-gray-500/20 text-gray-700', label: 'New Order' };
+        case 'submitted': return { icon: Play, className: 'bg-gray-500/20 text-gray-700', label: 'New' };
         case 'pending': return { icon: Clock, className: 'bg-yellow-500/20 text-yellow-700', label: 'Pending' };
         case 'confirmed': return { icon: ThumbsUp, className: 'bg-blue-500/20 text-blue-700', label: 'Confirmed' };
         case 'ready': return { icon: PackageCheck, className: 'bg-teal-500/20 text-teal-700', label: 'Ready' };

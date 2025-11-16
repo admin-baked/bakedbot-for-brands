@@ -13,7 +13,7 @@ import CustomerOrderHistory from './components/customer-order-history';
 import CustomerUploads from './components/customer-uploads';
 import FavoriteLocation from './components/favorite-location';
 import { useStore } from '@/hooks/use-store';
-import { collection, query, where, doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, doc, setDoc, onSnapshot, getDocs, limit } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
@@ -66,7 +66,7 @@ export default function CustomerDashboardPage() {
 
     const setFavoriteLocationId = useStore(state => state.setFavoriteLocationId);
 
-    // Effect to fetch all user data from a single listener
+    // Effect to fetch all user data
     useEffect(() => {
         if (isDemo) {
             setUserData({
@@ -84,21 +84,13 @@ export default function CustomerDashboardPage() {
             setIsLoading(true);
             const userDocRef = doc(firestore, 'users', user.uid);
             
-            // This single listener gets the user profile and can be extended
-            // to fetch sub-collections efficiently in the future.
-            const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+            const unsubProfile = onSnapshot(userDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const profileData = docSnap.data();
-                    setUserData(prev => ({
-                        ...(prev || { orders: [], reviews: [], interactions: [] }),
-                        profile: profileData,
-                    }));
+                    setUserData(prev => ({ ...(prev ?? { orders: [], reviews: [], interactions: [] }), profile: profileData }));
                     setFavoriteLocationId(profileData.favoriteLocationId || null);
                 }
-                setIsLoading(false);
-            }, (error) => {
-                console.error("Error fetching user data:", error);
-                setIsLoading(false);
+                // We set loading to false in the final listener (orders)
             });
 
             // Set up separate listeners for sub-collections for now
@@ -106,12 +98,16 @@ export default function CustomerDashboardPage() {
             const reviewsQuery = query(collection(firestore, 'reviews'), where('userId', '==', user.uid));
             const interactionsQuery = query(collection(firestore, `users/${user.uid}/interactions`));
 
-            const unsubOrders = onSnapshot(ordersQuery, (snap) => setUserData(prev => ({ ...prev!, orders: snap.docs.map(d => ({id: d.id, ...d.data()})) })));
+            const unsubOrders = onSnapshot(ordersQuery, (snap) => {
+                setUserData(prev => ({ ...prev!, orders: snap.docs.map(d => ({id: d.id, ...d.data()})) }));
+                setIsLoading(false); // This is the last fetch, so we can stop loading.
+            }, () => setIsLoading(false));
+
             const unsubReviews = onSnapshot(reviewsQuery, (snap) => setUserData(prev => ({ ...prev!, reviews: snap.docs.map(d => ({id: d.id, ...d.data()})) })));
             const unsubInteractions = onSnapshot(interactionsQuery, (snap) => setUserData(prev => ({ ...prev!, interactions: snap.docs.map(d => ({id: d.id, ...d.data()})) })));
 
             return () => {
-                unsubscribe();
+                unsubProfile();
                 unsubOrders();
                 unsubReviews();
                 unsubInteractions();

@@ -33,7 +33,9 @@ const generateHtml = (args: SendArgs): string => {
     
     if (updateInfo) {
         // This is a status update email
-        headerText = `Your Order is ${updateInfo.newStatus.charAt(0).toUpperCase() + updateInfo.newStatus.slice(1)}!`;
+        const statusLabel = updateInfo.newStatus === 'ready' ? 'Ready for Pickup' : updateInfo.newStatus.charAt(0).toUpperCase() + updateInfo.newStatus.slice(1);
+        headerText = `Your Order is ${statusLabel}!`;
+
         switch(updateInfo.newStatus) {
             case 'confirmed':
                 introText = `Great news, ${order.customer.name}! Your order has been confirmed by <strong>${retailer.name}</strong> and is now being prepared.`;
