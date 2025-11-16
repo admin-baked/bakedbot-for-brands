@@ -35,6 +35,7 @@ const ProductSchema = z.object({
     imageUrl: z.string().url('A valid image URL is required'),
     imageHint: z.string().optional(),
     description: z.string().min(1, 'Description is required'),
+    brandId: z.string().min(1, 'Brand ID is required'), // Added brandId
 });
 
 // Helper to verify user role

@@ -17,6 +17,7 @@ import { useDemoMode } from '@/context/demo-mode';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useUser } from '@/firebase/auth/use-user';
 
 
 const CsvSubmitButton = ({ label }: { label: string }) => {
@@ -86,9 +87,19 @@ const CsvUploader = ({ formAction, fieldName, sampleUrl }: { formAction: (payloa
 }
 
 const AddProductForm = () => {
+    const { user } = useUser();
+    const [userProfile, setUserProfile] = useState<any>(null);
     const [addState, addFormAction] = useFormState(addProductAction, { message: '', error: false });
     const formRef = useRef<HTMLFormElement>(null);
     const { toast } = useToast();
+
+    useEffect(() => {
+        if (user) {
+          user.getIdTokenResult().then((idTokenResult) => {
+            setUserProfile(idTokenResult.claims);
+          });
+        }
+      }, [user]);
 
     useEffect(() => {
         if (addState.message) {
@@ -103,6 +114,7 @@ const AddProductForm = () => {
 
     return (
         <form action={addFormAction} ref={formRef}>
+            <input type="hidden" name="brandId" value={userProfile?.brandId || ''} />
             <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
