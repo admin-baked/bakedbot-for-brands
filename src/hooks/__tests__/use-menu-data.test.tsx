@@ -4,31 +4,33 @@ import { useMenuData } from '../use-menu-data';
 import { useDemoMode } from '@/context/demo-mode';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useHydrated } from '../useHydrated';
-import { demoProducts, demoLocations } from '@/lib/data';
-import type { Product, Location } from '@/lib/types';
+import { demoProducts, demoRetailers } from '@/lib/data';
+import type { Product, Retailer } from '@/lib/types';
 
 // Mock the dependencies
 jest.mock('@/context/demo-mode');
 jest.mock('@/firebase/firestore/use-collection');
 jest.mock('../useHydrated');
+jest.mock('next/navigation', () => ({
+  useParams: () => ({ brandId: 'live-brand' }),
+}));
+
 
 const mockUseDemoMode = useDemoMode as jest.Mock;
 const mockUseCollection = useCollection as jest.Mock;
 const mockUseHydrated = useHydrated as jest.Mock;
 
 const mockLiveProducts: Product[] = [
-  { id: 'live-1', name: 'Live Product 1', category: 'Live', price: 10, prices: {}, imageUrl: '', imageHint: '', description: '' },
+  { id: 'live-1', name: 'Live Product 1', category: 'Live', price: 10, prices: {}, imageUrl: '', imageHint: '', description: '', brandId: 'live-brand' },
 ];
-const mockLiveLocations: Location[] = [
+const mockLiveLocations: Retailer[] = [
   { id: 'live-loc-1', name: 'Live Location 1', address: '', city: '', state: '', zip: ''},
 ];
 
 describe('useMenuData', () => {
   beforeEach(() => {
     // Reset mocks before each test
-    mockUseDemoMode.mockClear();
-    mockUseCollection.mockClear();
-    mockUseHydrated.mockClear();
+    jest.clearAllMocks();
     
     // Default mock implementations
     mockUseHydrated.mockReturnValue(true);
@@ -36,7 +38,8 @@ describe('useMenuData', () => {
     mockUseCollection.mockImplementation((query) => {
         // Distinguish between products and locations queries
         if (!query) return { data: [], isLoading: false };
-        const path = query?._query?.path?.canonicalString() || '';
+        // This is a simplified check. A real-world scenario might need more robust query inspection.
+        const path = (query as any)._query?.path?.canonicalString() || '';
         if (path.includes('products')) {
             return { data: mockLiveProducts, isLoading: false };
         }
@@ -54,7 +57,7 @@ describe('useMenuData', () => {
 
     expect(result.current.isDemo).toBe(true);
     expect(result.current.products).toEqual(demoProducts);
-    expect(result.current.locations).toEqual(demoLocations);
+    expect(result.current.locations).toEqual(demoRetailers);
     expect(result.current.isLoading).toBe(false);
   });
 
@@ -67,7 +70,7 @@ describe('useMenuData', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('should return loading state initially when in live mode', () => {
+  it('should return loading state initially when in live mode and not hydrated', () => {
     mockUseCollection.mockReturnValue({ data: null, isLoading: true });
     mockUseHydrated.mockReturnValue(false); // Simulate initial render
 
@@ -88,7 +91,7 @@ describe('useMenuData', () => {
     // Simulate data fetching completion
     mockUseCollection.mockImplementation((query) => {
         if (!query) return { data: [], isLoading: false };
-        const path = query?._query?.path?.canonicalString() || '';
+        const path = (query as any)._query?.path?.canonicalString() || '';
         if (path.includes('products')) {
             return { data: mockLiveProducts, isLoading: false };
         }
@@ -105,7 +108,7 @@ describe('useMenuData', () => {
     expect(result.current.locations).toEqual(mockLiveLocations);
   });
 
-   it('should return empty arrays for live data if useCollection returns null and not mounted', () => {
+   it('should return empty arrays for live data if useCollection returns null and not hydrated', () => {
     mockUseHydrated.mockReturnValue(false);
     mockUseCollection.mockReturnValue({ data: null, isLoading: false });
 
