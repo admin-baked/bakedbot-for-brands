@@ -1,3 +1,4 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,7 @@ export default function AuthCallbackPage() {
             // Non-blocking write to ensure user doc exists.
             // The dashboard layout will handle redirection based on this doc.
             try {
+                // Using merge: true prevents overwriting existing roles or data.
                 await setDoc(userDocRef, {
                     uid: user.uid,
                     email: user.email,
@@ -49,7 +51,8 @@ export default function AuthCallbackPage() {
         // Add a small delay for the user to see the success message
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Always redirect to the same place.
+        // Always redirect to the main dashboard entry point.
+        // The DashboardLayout will handle role-based redirection.
         router.replace('/dashboard');
     }
 

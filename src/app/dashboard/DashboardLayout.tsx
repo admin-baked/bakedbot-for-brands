@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
 
-  const { auth, firestore } = useFirebase();
+  const { auth } = useFirebase();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
@@ -197,7 +197,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   }, [navLinks, userProfile, shouldShowAdminControls]);
 
-  const brandMenuUrl = userProfile?.brandId ? `/menu/${userProfile.brandId}` : '/menu/default';
+  const brandMenuUrl = userProfile?.brandId ? `/menu/${userProfile.brandId}` : '/';
 
 
   // If we are still checking auth or profile, show a full-page loader.
