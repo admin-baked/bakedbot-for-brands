@@ -98,5 +98,3 @@ export type UserInteraction = {
   query: string;
   recommendedProductIds?: string[];
 };
-
-    
