@@ -8,9 +8,16 @@ import { ai } from '@/ai/genkit';
  * @returns A promise that resolves to an array of numbers representing the embedding.
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const { embedding } = await ai.embed({
+  const result = await ai.embed({
     model: 'googleai/text-embedding-004',
     content: text,
   });
-  return embedding;
+
+  // ai.embed() returns an array of embeddings, one for each content part.
+  // Since we only provide one, we take the first result.
+  if (result.length > 0) {
+    return result[0].embedding;
+  }
+
+  throw new Error('Embedding generation failed to produce a result.');
 }
