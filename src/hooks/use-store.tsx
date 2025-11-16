@@ -16,6 +16,19 @@ export type NavLink = {
   hidden?: boolean;
 };
 
+// Moved outside the store definition to be a true constant.
+const defaultNavLinks: NavLink[] = [
+    { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard', hidden: false },
+    { href: '/dashboard/orders', label: 'Orders', icon: 'Package', hidden: false },
+    { href: '/dashboard/products', label: 'Products', icon: 'Box', hidden: false },
+    { href: '/dashboard/content', label: 'Content AI', icon: 'PenSquare', hidden: false },
+    { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star', hidden: false },
+    { href: '/dashboard/locations', label: 'Retailers', icon: 'MapPin', hidden: false },
+    { href: '/dashboard/settings', label: 'Settings', icon: 'Settings', hidden: false },
+    { href: '/dashboard/ceo/import-demo-data', label: 'Data Manager', icon: 'Database', hidden: true },
+    { href: '/dashboard/ceo/initialize-embeddings', label: 'AI Search Index', icon: 'BrainCircuit', hidden: true },
+];
+
 export interface StoreState {
   _hasHydrated: boolean;
   // Cart State
@@ -36,10 +49,10 @@ export interface StoreState {
   brandUrl: string;
   basePrompt: string;
   welcomeMessage: string;
-  isCeoMode: boolean;
+  isCeoMode: boolean; // Not persisted
   emailProvider: 'sendgrid' | 'gmail';
   sendgridApiKey: string | null;
-  navLinks: NavLink[];
+  navLinks: NavLink[]; // Not persisted
 
   // Actions
   setTheme: (theme: Theme) => void;
@@ -70,18 +83,6 @@ export interface StoreState {
   getItemCount: () => number;
 }
 
-const defaultNavLinks: NavLink[] = [
-    { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard', hidden: false },
-    { href: '/dashboard/orders', label: 'Orders', icon: 'Package', hidden: false },
-    { href: '/dashboard/products', label: 'Products', icon: 'Box', hidden: false },
-    { href: '/dashboard/content', label: 'Content AI', icon: 'PenSquare', hidden: false },
-    { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star', hidden: false },
-    { href: '/dashboard/locations', label: 'Retailers', icon: 'MapPin', hidden: false },
-    { href: '/dashboard/settings', label: 'Settings', icon: 'Settings', hidden: false },
-    { href: '/dashboard/ceo/import-demo-data', label: 'Data Manager', icon: 'Database', hidden: true },
-    { href: '/dashboard/ceo/initialize-embeddings', label: 'AI Search Index', icon: 'BrainCircuit', hidden: true },
-];
-
 
 export const useStore = create<StoreState>()(
   persist(
@@ -108,7 +109,7 @@ export const useStore = create<StoreState>()(
       isCeoMode: false,
       emailProvider: 'sendgrid' as 'sendgrid' | 'gmail',
       sendgridApiKey: null,
-      navLinks: defaultNavLinks,
+      navLinks: defaultNavLinks, // Initialized but not persisted.
       
       // Actions
       setTheme: (theme: Theme) => set({ theme }),
@@ -121,7 +122,7 @@ export const useStore = create<StoreState>()(
       setBrandUrl: (url: string) => set({ brandUrl: url }),
       setBasePrompt: (prompt: string) => set({ basePrompt: prompt }),
       setWelcomeMessage: (message: string) => set({ welcomeMessage: message }),
-      setIsCeoMode: (isCeo: boolean) => set({ isCeoMode: isCeo }),
+      setIsCeoMode: (isCeo: boolean) => set({ isCeoMode: isCeo }), // Action to set non-persisted state
       setEmailProvider: (provider) => set({ emailProvider: provider }),
       setSendgridApiKey: (key) => set({ sendgridApiKey: key }),
       recordBrandImageGeneration: () => {
@@ -136,6 +137,7 @@ export const useStore = create<StoreState>()(
               set({ brandImageGenerations: 1, lastBrandImageGeneration: now });
           }
       },
+      // Actions to modify non-persisted navLinks state
       addNavLink: (link: NavLink) => set((state) => ({ navLinks: [...state.navLinks, { ...link, hidden: false }] })),
       updateNavLink: (href: string, newLink: Partial<NavLink>) => set((state) => ({
           navLinks: state.navLinks.map((link) => link.href === href ? { ...link, ...newLink } : link)
@@ -202,6 +204,26 @@ export const useStore = create<StoreState>()(
             state._hasHydrated = true;
         }
       },
+      // Use partialize to select which parts of the state to persist.
+      // We are excluding `navLinks` and `isCeoMode`.
+      partialize: (state) => ({
+        cartItems: state.cartItems,
+        theme: state.theme,
+        menuStyle: state.menuStyle,
+        selectedRetailerId: state.selectedRetailerId,
+        favoriteRetailerId: state.favoriteRetailerId,
+        chatExperience: state.chatExperience,
+        brandImageGenerations: state.brandImageGenerations,
+        lastBrandImageGeneration: state.lastBrandImageGeneration,
+        brandColor: state.brandColor,
+        brandUrl: state.brandUrl,
+        basePrompt: state.basePrompt,
+        welcomeMessage: state.welcomeMessage,
+        emailProvider: state.emailProvider,
+        sendgridApiKey: state.sendgridApiKey,
+      }),
     }
   )
 );
+
+    
