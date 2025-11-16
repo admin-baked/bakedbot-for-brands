@@ -5,7 +5,7 @@
 
 export type {
   Product,
-  Location,
+  Retailer,
   OrderDoc,
   Review,
   UserInteraction,
