@@ -31,6 +31,11 @@ export default function CustomerReviewHistory({ reviews, isLoading }: CustomerRe
     if (!productId) return 'Unknown Product';
     return products.find(p => p.id === productId)?.name || 'Unknown Product';
   }
+  
+  const getProductBrandId = (productId?: string) => {
+    if (!productId) return 'default';
+    return products.find(p => p.id === productId)?.brandId || 'default';
+  }
 
   return (
     <Card>
@@ -55,7 +60,7 @@ export default function CustomerReviewHistory({ reviews, isLoading }: CustomerRe
               <div key={review.id} className="flex items-start gap-3">
                  <div className="flex-1">
                     <div className="flex items-center justify-between">
-                         <Link href={`/products/${review.productId}`} className="font-medium hover:underline text-sm">
+                         <Link href={`/menu/${getProductBrandId(review.productId)}/products/${review.productId}`} className="font-medium hover:underline text-sm">
                             {getProductName(review.productId)}
                         </Link>
                         <StarRating rating={review.rating || 0} />

@@ -60,7 +60,7 @@ export default function CheckoutPage() {
                       </CardHeader>
                       <CardFooter>
                           <Button asChild className="w-full">
-                              <Link href="/">
+                              <Link href="/menu/default">
                                   Return to Menu
                               </Link>
                           </Button>
@@ -80,7 +80,7 @@ export default function CheckoutPage() {
          <p className="text-muted-foreground mt-4">Validating location...</p>
          <p className="text-destructive text-sm mt-2">No location selected. Please go back and select a location.</p>
           <Button asChild variant="outline" className="mt-4">
-              <Link href="/">
+              <Link href="/menu/default">
                   Return to Menu
               </Link>
           </Button>
@@ -134,7 +134,7 @@ export default function CheckoutPage() {
                                         <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
                                     </div>
                                 )) : (
-                                    <p className='text-sm text-muted-foreground text-center py-4'>Your cart is empty.</p>
+                                    <p className="text-sm text-muted-foreground text-center py-4">Your cart is empty.</p>
                                 )}
                             </div>
                             
@@ -163,7 +163,7 @@ export default function CheckoutPage() {
                 </CardContent>
                 <CardFooter>
                      <Button variant="outline" className="w-full" asChild>
-                        <Link href="/">
+                        <Link href="/menu/default">
                             Edit Cart
                         </Link>
                      </Button>

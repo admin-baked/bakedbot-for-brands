@@ -48,7 +48,7 @@ export default function CustomerOrderHistory({ orders, isLoading }: CustomerOrde
         ) : !orders || orders.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-muted-foreground">You haven't placed any orders yet.</p>
-            <Button variant="link" asChild><Link href="/">Start Shopping</Link></Button>
+            <Button variant="link" asChild><Link href="/menu/default">Start Shopping</Link></Button>
           </div>
         ) : (
           <div className="rounded-md border">

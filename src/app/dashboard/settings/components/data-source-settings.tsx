@@ -34,7 +34,7 @@ const AddProductSubmitButton = () => {
     const { pending } = useFormStatus();
     return (
         <Button type="submit" disabled={pending}>
-            {pending ? <Loader2 className="mr-2 animate-spin" /> : <PlusCircle className="mr-2" />}
+            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2" />}
             Add Product
         </Button>
     );
@@ -114,7 +114,7 @@ const AddProductForm = () => {
 
     return (
         <form action={addFormAction} ref={formRef}>
-            <input type="hidden" name="brandId" value={userProfile?.brandId || ''} />
+            <input type="hidden" name="brandId" value={userProfile?.brandId || 'default'} />
             <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">

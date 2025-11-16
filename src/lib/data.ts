@@ -21,7 +21,7 @@ export const demoProducts: Product[] = [
       description: 'Chewy, rich caramels infused with full-spectrum cannabis oil. A perfect treat for a relaxing evening.',
       likes: 134,
       dislikes: 5,
-      brandId: 'bakedbot-brand-id',
+      brandId: 'default',
     },
     {
       id: '2',
@@ -34,7 +34,7 @@ export const demoProducts: Product[] = [
       description: 'Fruity, fun, and uplifting. These sativa-dominant gummies are great for social gatherings and creative boosts.',
       likes: 212,
       dislikes: 12,
-      brandId: 'bakedbot-brand-id',
+      brandId: 'default',
     },
     {
       id: '3',
@@ -47,7 +47,7 @@ export const demoProducts: Product[] = [
       description: 'Long-lasting, flavorful lollipops with a balanced hybrid effect. Ideal for a steady, manageable high.',
       likes: 98,
       dislikes: 2,
-      brandId: 'bakedbot-brand-id',
+      brandId: 'default',
     },
     {
       id: '4',
@@ -60,7 +60,7 @@ export const demoProducts: Product[] = [
       description: 'A classic indica-dominant strain known for its potent relaxing effects and earthy pine aroma. An eighth (3.5g).',
       likes: 450,
       dislikes: 25,
-      brandId: 'bakedbot-brand-id',
+      brandId: 'default',
     },
     {
       id: '5',
@@ -73,7 +73,7 @@ export const demoProducts: Product[] = [
       description: 'Dense, trichome-covered nugs with a sweet and pungent aroma. A premium flower for the discerning connoisseur. An eighth (3.5g).',
       likes: 510,
       dislikes: 15,
-      brandId: 'bakedbot-brand-id',
+      brandId: 'default',
     },
     {
         id: '6',
@@ -86,7 +86,7 @@ export const demoProducts: Product[] = [
         description: 'A powerful sativa strain with citrus notes and an energetic, cerebral high. Perfect for daytime use. An eighth (3.5g).',
         likes: 380,
         dislikes: 18,
-        brandId: 'bakedbot-brand-id',
+        brandId: 'default',
     },
     {
         id: '7',
@@ -99,7 +99,7 @@ export const demoProducts: Product[] = [
         description: 'A sleek, disposable vape pen with a balanced hybrid oil. Smooth, flavorful, and discreet. 1g cartridge.',
         likes: 280,
         dislikes: 8,
-        brandId: 'bakedbot-brand-id',
+        brandId: 'default',
     },
     {
         id: '8',
@@ -112,7 +112,7 @@ export const demoProducts: Product[] = [
         description: 'An indica-dominant vape pen designed for relaxation and sleep. Natural berry flavors. 1g cartridge.',
         likes: 195,
         dislikes: 4,
-        brandId: 'bakedbot-brand-id',
+        brandId: 'default',
     },
      {
         id: '9',
@@ -125,7 +125,7 @@ export const demoProducts: Product[] = [
         description: 'A high-potency sativa cartridge with a tangy citrus flavor. Expect an uplifting and creative experience. 1g cartridge.',
         likes: 320,
         dislikes: 10,
-        brandId: 'bakedbot-brand-id',
+        brandId: 'default',
     }
   ];
 
@@ -199,9 +199,7 @@ export const demoCustomer = {
         { id: 'rev10', productId: '6', userId: 'demoUser1', brandId: 'bakedbot-brand-id', rating: 5, text: 'Supernova Haze is a fantastic daytime strain. It really helps me focus and feel creative without any jitters. Has become a staple in my routine.', createdAt: Timestamp.fromDate(new Date('2024-05-27T13:40:00Z')) },
     ] as Partial<Review>[],
     interactions: [
-        { brandId: 'bakedbot-brand-id', recommendedProductIds: ['1', '2'] },
-        { brandId: 'bakedbot-brand-id', recommendedProductIds: ['4'] }
+        { brandId: 'default', recommendedProductIds: ['1', '2'] },
+        { brandId: 'default', recommendedProductIds: ['4'] }
     ] as Partial<UserInteraction>[],
 };
-
-    

@@ -33,20 +33,20 @@ export default function Header() {
     const hydrated = useHydrated();
 
     const navLinks = [
-        { href: '/', label: 'Home' },
+        { href: '/menu/default', label: 'Demo Menu' },
         { href: '/product-locator', label: 'Product Locator' },
     ];
     
      const handleSignOut = async () => {
+        if (!auth) return;
         try {
-          if(auth) {
-            await signOut(auth);
-          }
+          await signOut(auth);
           toast({
             title: "Signed Out",
             description: "You have been successfully logged out.",
           });
-          router.push('/');
+          // Force a full page reload to clear all state
+          window.location.href = '/';
         } catch (error) {
           console.error('Sign out error', error);
            toast({
@@ -67,7 +67,7 @@ export default function Header() {
         <header className="sticky top-0 z-40 w-full border-b bg-background/90 backdrop-blur-sm">
             <div className="container mx-auto flex h-16 items-center justify-between px-4">
                 <div className="flex items-center gap-6">
-                    <Logo height={28} />
+                    <Logo />
                     <nav className="hidden md:flex items-center gap-4">
                         {navLinks.map((link) => (
                             <Link

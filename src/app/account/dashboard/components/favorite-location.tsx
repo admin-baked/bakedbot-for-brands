@@ -80,7 +80,7 @@ export default function FavoriteLocation({ favoriteId, onSetFavorite }: Favorite
                 <h4 className="font-semibold text-sm mb-2">Latest from the menu:</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {latestProducts.map(product => (
-                        <Link key={product.id} href={`/products/${product.id}`} className="group">
+                        <Link key={product.id} href={`/menu/${product.brandId}/products/${product.id}`} className="group">
                              <div className="border rounded-lg overflow-hidden">
                                 <div className="relative aspect-square">
                                     <Image src={product.imageUrl} alt={product.name} fill className="object-cover transition-transform group-hover:scale-105" data-ai-hint={product.imageHint} />
@@ -95,7 +95,7 @@ export default function FavoriteLocation({ favoriteId, onSetFavorite }: Favorite
             </CardContent>
             <CardFooter>
                 <Button asChild className="w-full">
-                    <Link href="/">
+                    <Link href="/menu/default">
                         Start a New Order
                     </Link>
                 </Button>
