@@ -42,22 +42,28 @@ const prompt = ai.definePrompt({
   **IMPORTANT RULE:** You MUST ONLY generate images that are directly related to the product concept provided.
   You MUST refuse any request to generate images of unrelated subjects, including but not limited to people, animals, documents, diagrams, or harmful content.
 
-  Use the style, colors, and branding from the provided brand logo as creative inspiration for the generated image.
-  If a product packaging image is also provided, use its style as a secondary source of inspiration.
+  Using the provided brand logo, place it as a tasteful, subtle watermark in one of the corners of the generated image.
+  If a product packaging image is also provided, use its style as a secondary source of inspiration for the main image content.
 
   Image Prompt - Product Concept:
   - Product Name: {{{productName}}}
   - Description/Features: {{{features}}}
   - Brand Voice: {{{brandVoice}}}
 
-  Inspirational Assets:
-  - Brand Logo: {{media url=logoDataUri}}
+  Assets to Use:
+  - Watermark: {{media url=logoDataUri}}
   {{#if imageUrl}}
   - Reference packaging image: {{media url=imageUrl}}
   {{/if}}
   `,
   config: {
     responseModalities: ['TEXT', 'IMAGE'],
+    safetySettings: [
+        {
+          category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+          threshold: 'BLOCK_ONLY_HIGH',
+        },
+    ]
   },
   model: 'googleai/gemini-2.5-flash-image-preview',
 });
