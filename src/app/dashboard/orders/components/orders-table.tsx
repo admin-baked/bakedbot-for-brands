@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -16,11 +17,11 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MoreHorizontal, ArrowUpDown, CheckCircle, Clock, PackageCheck, Package, CircleX } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, ArrowUpDown, CheckCircle, Clock, PackageCheck, Package, CircleX, Play, ThumbsUp } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { updateOrderStatus } from '../actions';
+import { updateOrderStatus, type OrderStatus } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase/auth/use-user';
 
@@ -30,7 +31,7 @@ export type OrderData = {
   id: string;
   customerName: string;
   date: string;
-  status: 'submitted' | 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+  status: OrderStatus;
   total: string;
   location: string;
   retailerId: string;
@@ -38,19 +39,19 @@ export type OrderData = {
 
 const getStatusStyles = (status: OrderData['status']) => {
     switch (status) {
-        case 'submitted': return { icon: Clock, className: 'bg-gray-500/20 text-gray-700' };
-        case 'pending': return { icon: Clock, className: 'bg-yellow-500/20 text-yellow-700' };
-        case 'confirmed': return { icon: CheckCircle, className: 'bg-blue-500/20 text-blue-700' };
-        case 'ready': return { icon: PackageCheck, className: 'bg-teal-500/20 text-teal-700' };
-        case 'completed': return { icon: Package, className: 'bg-green-500/20 text-green-700' };
-        case 'cancelled': return { icon: CircleX, className: 'bg-red-500/20 text-red-700' };
-        default: return { icon: Clock, className: 'bg-gray-500/20 text-gray-700' };
+        case 'submitted': return { icon: Play, className: 'bg-gray-500/20 text-gray-700', label: 'New Order' };
+        case 'pending': return { icon: Clock, className: 'bg-yellow-500/20 text-yellow-700', label: 'Pending' };
+        case 'confirmed': return { icon: ThumbsUp, className: 'bg-blue-500/20 text-blue-700', label: 'Confirmed' };
+        case 'ready': return { icon: PackageCheck, className: 'bg-teal-500/20 text-teal-700', label: 'Ready' };
+        case 'completed': return { icon: CheckCircle, className: 'bg-green-500/20 text-green-700', label: 'Completed' };
+        case 'cancelled': return { icon: CircleX, className: 'bg-red-500/20 text-red-700', label: 'Cancelled' };
+        default: return { icon: Clock, className: 'bg-gray-500/20 text-gray-700', label: 'Unknown' };
     }
 };
 
 
 // Action menu for each row
-const OrderActions = ({ orderId }: { orderId: string }) => {
+const OrderActions = ({ order }: { order: OrderData }) => {
   const { toast } = useToast();
   const { user } = useUser();
   const [isPending, setIsPending] = React.useState(false);
@@ -62,7 +63,7 @@ const OrderActions = ({ orderId }: { orderId: string }) => {
     }
     
     setIsPending(true);
-    const result = await updateOrderStatus(orderId, status);
+    const result = await updateOrderStatus(order.id, status);
     
     if (result.error) {
       toast({ variant: 'destructive', title: 'Error', description: result.message });
@@ -72,6 +73,12 @@ const OrderActions = ({ orderId }: { orderId: string }) => {
     }
     setIsPending(false);
   }
+  
+  const nextAction = {
+    submitted: { label: 'Confirm Order', action: () => handleStatusChange('confirmed'), icon: ThumbsUp },
+    confirmed: { label: 'Mark as Ready', action: () => handleStatusChange('ready'), icon: PackageCheck },
+    ready: { label: 'Complete Order', action: () => handleStatusChange('completed'), icon: CheckCircle },
+  }[order.status as 'submitted' | 'confirmed' | 'ready'];
 
   return (
     <DropdownMenu>
@@ -83,7 +90,14 @@ const OrderActions = ({ orderId }: { orderId: string }) => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(orderId)}>
+        {nextAction && (
+          <DropdownMenuItem onClick={nextAction.action}>
+            <nextAction.icon className="mr-2 h-4 w-4" />
+            {nextAction.label}
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(order.id)}>
           Copy Order ID
         </DropdownMenuItem>
          <DropdownMenuSub>
@@ -132,11 +146,11 @@ export const columns: ColumnDef<OrderData>[] = [
     header: 'Status',
     cell: ({ row }) => {
         const status = row.original.status;
-        const { icon: Icon, className } = getStatusStyles(status);
+        const { icon: Icon, className, label } = getStatusStyles(status);
         return (
             <Badge className={cn("capitalize", className)}>
                 <Icon className="mr-1 h-3 w-3" />
-                {status}
+                {label}
             </Badge>
         )
     },
@@ -154,7 +168,7 @@ export const columns: ColumnDef<OrderData>[] = [
   },
   {
     id: 'actions',
-    cell: ({ row }) => <OrderActions orderId={row.original.id} />,
+    cell: ({ row }) => <OrderActions order={row.original} />,
   },
 ];
 
