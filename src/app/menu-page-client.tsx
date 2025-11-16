@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useStore } from '@/hooks/use-store';
@@ -12,6 +13,7 @@ import Header from '@/app/components/header';
 import { Footer } from './components/footer';
 import { FloatingCartPill } from './components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
+import { useHydrated } from '@/hooks/useHydrated';
 
 /**
  * This is the primary client component for the main application page.
@@ -19,6 +21,7 @@ import Chatbot from '@/components/chatbot';
  */
 export default function MenuPageClient() {
   const { menuStyle } = useStore();
+  const hydrated = useHydrated();
   
   // The useMenuData hook is now simplified and fetches its own data on the client.
   const { products, locations, isLoading } = useMenuData();
@@ -41,7 +44,10 @@ export default function MenuPageClient() {
     );
   }
   
-  if (menuStyle === 'alt') {
+  // Conditionally render based on hydration and menu style
+  const shouldShowTiledMenu = hydrated && menuStyle === 'alt';
+
+  if (shouldShowTiledMenu) {
     return <TiledMenuPage />;
   }
   
