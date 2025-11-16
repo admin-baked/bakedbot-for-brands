@@ -55,7 +55,7 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
       } else if (descriptionState.data) {
         const newContent = { 
             ...descriptionState.data,
-            imageUrl: descriptionState.data.imageUrl || localGeneratedContent?.imageUrl || '',
+            imageUrl: descriptionState.data.imageUrl || packagingImage || localGeneratedContent?.imageUrl || '',
             productId: descriptionState.data.productId || selectedProductId 
         } as GenerateProductDescriptionOutput & { productId?: string };
         setLocalGeneratedContent(newContent);
@@ -117,6 +117,25 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
       (formRef.current.elements.namedItem('productName') as HTMLInputElement).value = product.name;
       (formRef.current.elements.namedItem('msrp') as HTMLInputElement).value = product.price.toFixed(2);
       (formRef.current.elements.namedItem('features') as HTMLTextAreaElement).value = product.description;
+       setPackagingImage(product.imageUrl); // Pre-fill image from product
+       // Also update the display immediately
+       const newContent = {
+           ...(localGeneratedContent ?? { productName: '', description: '' }),
+           productName: product.name,
+           imageUrl: product.imageUrl,
+           productId: product.id
+       } as GenerateProductDescriptionOutput & { productId?: string };
+       setLocalGeneratedContent(newContent);
+       onContentUpdate(newContent);
+    } else if (productId === '') {
+        // Clear fields if "None" is selected
+        if (formRef.current) {
+            (formRef.current.elements.namedItem('productName') as HTMLInputElement).value = '';
+            (formRef.current.elements.namedItem('msrp') as HTMLInputElement).value = '';
+            (formRef.current.elements.namedItem('features') as HTMLTextAreaElement).value = '';
+        }
+        setPackagingImage('');
+        onContentUpdate(null);
     }
   };
 
@@ -202,7 +221,7 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
                                  </>
                             )}
                         </div>
-                        <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
+                        <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
                     </Label>
                 </div>
             </div>

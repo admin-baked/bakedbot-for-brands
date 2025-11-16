@@ -18,7 +18,7 @@ const GenerateProductDescriptionInputSchema = z.object({
   keywords: z.string().describe('Keywords to include in the description.'),
   brandVoice: z.string().describe('The brand voice for the description (e.g., Playful, Professional).'),
   msrp: z.string().optional().describe("The manufacturer's suggested retail price."),
-  imageUrl: z.string().optional().describe('A URL to an image of the product packaging.'),
+  imageUrl: z.string().optional().describe("A URL to an image of the product packaging, as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
 });
 
 export type GenerateProductDescriptionInput = z.infer<typeof GenerateProductDescriptionInputSchema>;
@@ -51,10 +51,11 @@ const prompt = ai.definePrompt({
   - Brand Voice: {{{brandVoice}}}
   - MSRP: {{{msrp}}}
   {{#if imageUrl}}
-  - Image URL: {{{imageUrl}}}
+  - Product Packaging Image: {{media url=imageUrl}}
   {{/if}}
 
   The description should be engaging, informative, and persuasive, providing value to the customer.
+  Use the Product Packaging Image to inform details about the product's appearance, size, or form factor if relevant.
   Include relevant keywords to improve search engine optimization.
   The output should be just the product description, not the title.
   Ensure the content is accurate.
