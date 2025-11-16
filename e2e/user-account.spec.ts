@@ -20,14 +20,14 @@ test.describe('User Account & Dashboard', () => {
 
   test('favorite location flow', async ({ page }) => {
     // Use demo mode for predictable data
-    await page.goto('/?demo=true');
+    await page.goto('/menu/default?demo=true');
     
     // Login first
     await page.goto('/brand-login');
     await page.getByTestId('dev-login-button').click();
     await page.getByTestId('dev-login-item-brand@bakedbot.ai').click();
   
-    // Navigate to the dashboard
+    // Navigate to the customer dashboard
     await page.goto('/account/dashboard');
   
     // Ensure we start in the "Set Favorite" state

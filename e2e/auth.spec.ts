@@ -15,9 +15,10 @@ test.describe('Authentication Flows', () => {
     await expect(magicLinkCard.locator('strong')).toHaveText('dispensary@bakedbot.ai');
     
     // Now, verify we can get to the dispensary order dashboard (simulating successful login)
-    await page.goto('/dashboard/orders');
+    // The DashboardLayout will handle the redirection based on the user's role.
+    await page.goto('/dashboard');
     
-    // Verify dashboard loads
+    // Verify dashboard loads to the correct page for a dispensary user
     await expect(page.getByRole('heading', { name: 'Customer Orders' })).toBeVisible();
   });
 
@@ -48,7 +49,9 @@ test.describe('Authentication Flows', () => {
     await expect(page.getByText('Signed Out')).toBeVisible();
 
     // 5. Assert that the user is redirected to the homepage
-    await expect(page).toHaveURL('/');
+    // The logout logic now does a full page reload to '/' which is the brand homepage.
+    await page.waitForURL('**/');
+    await expect(page.getByRole('heading', { name: /Keep the customer/ })).toBeVisible();
     
     // 6. Assert that trying to access a protected route redirects to login
     await page.goto('/account');
