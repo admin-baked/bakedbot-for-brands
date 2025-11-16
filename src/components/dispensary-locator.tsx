@@ -22,7 +22,7 @@ interface DispensaryLocatorProps {
 
 export function DispensaryLocator({}: DispensaryLocatorProps) {
   const { locations, isLoading } = useMenuData();
-  const { selectedRetailerId, setSelectedRetailerId, favoriteLocationId, setFavoriteLocationId } = useStore();
+  const { selectedRetailerId, setSelectedRetailerId, favoriteRetailerId, setFavoriteRetailerId } = useStore();
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
   const hydrated = useHydrated();
@@ -81,7 +81,7 @@ export function DispensaryLocator({}: DispensaryLocatorProps) {
     const userDocRef = doc(firestore, 'users', user.uid);
     try {
         await updateDoc(userDocRef, { favoriteLocationId: id });
-        setFavoriteLocationId(id);
+        setFavoriteRetailerId(id);
         toast({ title: 'Favorite location saved!' });
     } catch (error) {
         console.error('Failed to set favorite location', error);
@@ -105,7 +105,7 @@ export function DispensaryLocator({}: DispensaryLocatorProps) {
             <div className="flex gap-6 pb-4 -mx-4 px-4 overflow-x-auto">
                 {displayLocations.map(loc => {
                     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.name}, ${loc.address}, ${loc.city}, ${loc.state} ${loc.zip}`)}`;
-                    const isFavorite = hydrated && favoriteLocationId === loc.id;
+                    const isFavorite = hydrated && favoriteRetailerId === loc.id;
                     const isSelected = hydrated && selectedRetailerId === loc.id;
                     return (
                     <Card 
@@ -153,5 +153,3 @@ export function DispensaryLocator({}: DispensaryLocatorProps) {
     </div>
   );
 }
-
-    
