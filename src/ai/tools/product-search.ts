@@ -37,14 +37,16 @@ export const productSearch = ai.defineTool(
       console.log(`Attempting vector search for query: "${input.query}"`);
       const queryEmbedding = await generateEmbedding(input.query);
       
-      const vectorQueryResult = await firestore.collectionGroup('productReviewEmbeddings').findNearest('embedding', queryEmbedding, {
+      const vectorQuery = firestore.collectionGroup('productReviewEmbeddings').findNearest('embedding', queryEmbedding, {
         limit: 5,
         distanceMeasure: 'COSINE',
       });
       
-      if (vectorQueryResult.docs.length > 0) {
+      const vectorQuerySnapshot = await vectorQuery.get();
+      
+      if (vectorQuerySnapshot.docs.length > 0) {
         const productDocs = await Promise.all(
-          vectorQueryResult.docs.map(doc => firestore.collection('products').doc(doc.data().productId).get())
+          vectorQuerySnapshot.docs.map(doc => firestore.collection('products').doc(doc.data().productId).get())
         );
 
         products = productDocs
