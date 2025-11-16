@@ -17,28 +17,31 @@ import { makeProductRepo } from '@/server/repos/productRepo';
 import type { Product } from '@/types/domain';
 
 type Props = {
-  params: { id: string }
+  params: { id: string, brandId: string }
 }
 
-const getProduct = async (id: string): Promise<Product | null> => {
-    // Reading the cookie on the server to determine data source
+const getProduct = async (id: string, brandId?: string): Promise<Product | null> => {
     const cookieStore = cookies();
     const isDemo = cookieStore.get('isUsingDemoData')?.value === 'true';
 
-    if (isDemo) {
+    if (isDemo || brandId === 'default') {
       return demoProducts.find(p => p.id === id) || null;
     }
 
-    // If NOT in demo mode, only fetch from live data.
     try {
         const { firestore } = await createServerClient();
         const productRepo = makeProductRepo(firestore);
         const product = await productRepo.getById(id);
-        return product; // This will be null if not found, which is correct.
 
+        // SECURITY: Ensure the fetched product belongs to the requested brand.
+        if (product && product.brandId === brandId) {
+            return product;
+        }
+        
+        // If product doesn't exist or doesn't belong to the brand, return null.
+        return null;
     } catch (error) {
         console.error("Error fetching product on server:", error);
-        // Do not fall back to demo data. Return null to indicate an error or not found.
         return null;
     }
 }
@@ -48,7 +51,7 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const id = params.id;
-  const product = await getProduct(id);
+  const product = await getProduct(id, params.brandId);
 
   if (!product) {
     return {
@@ -88,7 +91,8 @@ function ProductPageSkeleton() {
 
 
 export default async function ProductPage({ params }: Props) {
-    const product = await getProduct(params.id);
+    // The brandId from the URL is now used for fetching.
+    const product = await getProduct(params.id, params.brandId);
 
     if (!product) {
         notFound();
@@ -111,5 +115,3 @@ export default async function ProductPage({ params }: Props) {
         </div>
     )
 }
-
-    

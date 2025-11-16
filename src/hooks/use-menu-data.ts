@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/provider';
 import { productConverter, retailerConverter } from '@/firebase/converters';
 import { useDemoMode } from '@/context/demo-mode';
@@ -10,6 +10,7 @@ import { demoProducts, demoRetailers } from '@/lib/data';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useHydrated } from './useHydrated';
 import type { Product, Retailer } from '@/types/domain';
+import { useParams } from 'next/navigation';
 
 
 export type UseMenuDataResult = {
@@ -20,20 +21,23 @@ export type UseMenuDataResult = {
 };
 
 /**
- * A simplified client-side hook to fetch all necessary menu data.
+ * A client-side hook to fetch all necessary menu data for a given brand.
  * It handles switching between live Firestore data and local demo data.
  */
 export function useMenuData(): UseMenuDataResult {
   const { isDemo } = useDemoMode();
   const { firestore } = useFirebase();
   const isHydrated = useHydrated();
+  const params = useParams();
+  const brandId = params.brandId as string | undefined;
 
   // Set up Firestore queries. They will be null if not hydrated, in demo mode, or if firestore is not available.
   const productsQuery = useMemo(() => {
-    if (!isHydrated || isDemo || !firestore) return null;
-    return query(collection(firestore, 'products').withConverter(productConverter));
-  }, [firestore, isDemo, isHydrated]);
+    if (!isHydrated || isDemo || !firestore || !brandId) return null;
+    return query(collection(firestore, 'products').withConverter(productConverter), where('brandId', '==', brandId));
+  }, [firestore, isDemo, isHydrated, brandId]);
   
+  // Locations are currently global, not brand-specific. This can be changed later if needed.
   const locationsQuery = useMemo(() => {
     if (!isHydrated || isDemo || !firestore) return null;
     return query(collection(firestore, 'dispensaries').withConverter(retailerConverter));
@@ -43,24 +47,24 @@ export function useMenuData(): UseMenuDataResult {
   const { data: liveProducts, isLoading: areProductsLoading, error: productsError } = useCollection<Product>(productsQuery);
   const { data: liveLocations, isLoading: areLocationsLoading, error: locationsError } = useCollection<Retailer>(locationsQuery);
 
-  // Determine the final data source based on demo mode and data availability.
-  // Use demo data if in demo mode, if there's an error fetching, or if live data is empty.
+  // The overall loading state depends on hydration status and fetching live data.
+  const isLoading = !isHydrated || (!isDemo && (areProductsLoading || areLocationsLoading));
+
+  // Determine the final data source.
   const products = useMemo<Product[]>(() => {
     if (isDemo) return demoProducts;
     if (!isHydrated) return []; // Return empty on server
-    if (productsError || (liveProducts && liveProducts.length === 0)) return demoProducts;
+    // **No longer falls back to demo data in live mode.**
+    // If there's an error or no products, it will correctly return an empty array.
     return liveProducts || [];
-  }, [isDemo, isHydrated, liveProducts, productsError]);
+  }, [isDemo, isHydrated, liveProducts]);
 
   const locations = useMemo<Retailer[]>(() => {
     if (isDemo) return demoRetailers;
     if (!isHydrated) return []; // Return empty on server
-    if (locationsError || (liveLocations && liveLocations.length === 0)) return demoRetailers;
+    if (locationsError) return demoRetailers; // Fallback for locations is okay for now.
     return liveLocations || [];
   }, [isDemo, isHydrated, liveLocations, locationsError]);
-
-  // The overall loading state depends on hydration status and fetching live data.
-  const isLoading = !isHydrated || (!isDemo && (areProductsLoading || areLocationsLoading));
 
   return {
     products,
@@ -69,5 +73,3 @@ export function useMenuData(): UseMenuDataResult {
     isDemo,
   };
 }
-
-    
