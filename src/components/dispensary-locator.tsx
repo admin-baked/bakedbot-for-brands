@@ -14,6 +14,7 @@ import { useFirebase } from '@/firebase/provider';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { Location } from '@/lib/types';
 import { useMenuData } from '@/hooks/use-menu-data';
+import { useHydrated } from '@/hooks/useHydrated';
 
 interface DispensaryLocatorProps {
   // Props are no longer needed as the component will fetch its own data.
@@ -21,9 +22,10 @@ interface DispensaryLocatorProps {
 
 export function DispensaryLocator({}: DispensaryLocatorProps) {
   const { locations, isLoading } = useMenuData();
-  const { selectedLocationId, setSelectedLocationId, favoriteLocationId, setFavoriteLocationId, _hasHydrated } = useStore();
+  const { selectedLocationId, setSelectedLocationId, favoriteLocationId, setFavoriteLocationId } = useStore();
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
+  const hydrated = useHydrated();
   
   const [isLocating, setIsLocating] = useState(false);
   const [sortedLocations, setSortedLocations] = useState<typeof locations>([]);
@@ -103,14 +105,15 @@ export function DispensaryLocator({}: DispensaryLocatorProps) {
             <div className="flex gap-6 pb-4 -mx-4 px-4 overflow-x-auto">
                 {displayLocations.map(loc => {
                     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.name}, ${loc.address}, ${loc.city}, ${loc.state} ${loc.zip}`)}`;
-                    const isFavorite = _hasHydrated && favoriteLocationId === loc.id;
+                    const isFavorite = hydrated && favoriteLocationId === loc.id;
+                    const isSelected = hydrated && selectedLocationId === loc.id;
                     return (
                     <Card 
                         key={loc.id}
                         data-testid={`location-card-${loc.id}`}
                         className={cn(
                             "text-left cursor-pointer transition-all w-80 shrink-0",
-                            _hasHydrated && selectedLocationId === loc.id ? 'border-primary ring-2 ring-primary' : 'border-border'
+                            isSelected ? 'border-primary ring-2 ring-primary' : 'border-border'
                         )}
                         onClick={() => handleSelectLocation(loc.id)}
                     >
