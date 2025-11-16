@@ -11,7 +11,7 @@ import { ProductGrid } from '@/components/product-grid';
 import RecentReviewsFeed from './components/recent-reviews-feed';
 import Header from '@/app/components/header';
 import { Footer } from './components/footer';
-import { FloatingCartPill } from './components/floating-cart-pill';
+import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { useHydrated } from '@/hooks/useHydrated';
 
