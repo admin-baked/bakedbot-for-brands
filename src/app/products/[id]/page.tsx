@@ -90,6 +90,16 @@ function ProductPageSkeleton() {
   );
 }
 
+// Wrapper component to fetch and stream the summary
+async function ReviewSummary({ productId }: { productId: string }) {
+  // Fetch the review summary using the server action.
+  // This will be streamed in via Suspense.
+  const summary = await getReviewSummary({ productId });
+  // The client component is now only responsible for display.
+  // Note: We're passing the raw summary data, not a loading prop.
+  return <ProductDetailsClient.ReviewSummaryDisplay summary={summary} />;
+}
+
 
 export default async function ProductPage({ params }: Props) {
     // The brandId from the URL is now used for fetching.
@@ -99,16 +109,16 @@ export default async function ProductPage({ params }: Props) {
         notFound();
     }
     
-    // Fetch the review summary using the new server action
-    const summary = await getReviewSummary({ productId: product.id });
-
     return (
         <div className="min-h-screen bg-background flex flex-col">
             <Header />
             <main className="container mx-auto flex-1">
-                <Suspense fallback={<ProductPageSkeleton />}>
-                    <ProductDetailsClient product={product} summary={summary} />
-                </Suspense>
+                {/* The main client component no longer needs to wait for the summary. */}
+                <ProductDetailsClient product={product}>
+                    <Suspense fallback={<ProductDetailsClient.ReviewSummarySkeleton />}>
+                        <ReviewSummary productId={product.id} />
+                    </Suspense>
+                </ProductDetailsClient>
             </main>
             <FloatingCartPill />
             <Chatbot />
