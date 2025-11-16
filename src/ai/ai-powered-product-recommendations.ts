@@ -57,17 +57,19 @@ const recommendProductsFlow = ai.defineFlow(
     outputSchema: RecommendProductsOutputSchema,
   },
   async (input) => {
-    // This flow is simplified to return a mock response as the vector search
-    // tool has been removed. A real implementation would first call a tool
-    // to find relevant products based on the input query.
-    return {
-      products: [],
-      overallReasoning: "I can't make recommendations right now as my product search tool is offline. Please ask me about a specific product!",
-    };
+    // In this simplified version, we use the entire demo product list
+    // as the context for the AI to make recommendations from.
+    const availableProducts = JSON.stringify(demoProducts, null, 2);
+
+    const { output } = await recommendProductsPrompt({
+      ...input,
+      availableProducts,
+    });
+    
+    return output!;
   }
 );
 
 export async function recommendProducts(input: RecommendProductsInput): Promise<RecommendProductsOutput> {
-  // Fallback to the "offline" message. This is now the primary path.
   return recommendProductsFlow(input);
 }
