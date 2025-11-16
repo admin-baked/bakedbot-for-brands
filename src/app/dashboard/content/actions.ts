@@ -1,5 +1,6 @@
 
 
+
 'use server';
 
 import {
@@ -88,7 +89,7 @@ export async function createProductDescription(
 
     return {
       message: 'Product description generated successfully.',
-      data: { ...result, productId },
+      data: { ...result, productId, imageUrl: imageUrl || result.imageUrl }, // Persist the input image URL
       error: false,
     };
   } catch (e) {
