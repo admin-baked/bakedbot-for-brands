@@ -1,7 +1,7 @@
 
 'use server';
 
-import { ai } from '@/ai/genkit';
+import { ai, googleAI } from '@/ai/genkit';
 
 /**
  * Generates a vector embedding for a given text using the specified model.
@@ -10,14 +10,14 @@ import { ai } from '@/ai/genkit';
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   const result = await ai.embed({
-    model: 'googleai/text-embedding-004',
+    embedder: googleAI.embedder('text-embedding-004'),
     content: text,
   });
 
   // ai.embed() returns an array of embeddings, one for each content part.
   // Since we only provide one, we take the first result.
   if (result.length > 0) {
-    return result[0].embedding;
+    return result[0];
   }
 
   throw new Error('Embedding generation failed to produce a result.');
