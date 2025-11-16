@@ -1,39 +1,39 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import type { FirestorePermissionError } from '@/firebase/errors';
+import GlobalError from '@/app/global-error';
 
 /**
  * An invisible component that listens for globally emitted 'permission-error' events.
- * It throws any received error to be caught by Next.js's global-error.tsx.
+ * It catches the error and renders the global error boundary without crashing the app.
  */
 export function FirebaseErrorListener() {
-  // Use the specific error type for the state for type safety.
   const [error, setError] = useState<FirestorePermissionError | null>(null);
 
   useEffect(() => {
-    // The callback now expects a strongly-typed error, matching the event payload.
     const handleError = (error: FirestorePermissionError) => {
-      // Set error in state to trigger a re-render.
+      // Set the error in state to trigger the boundary render.
       setError(error);
     };
 
-    // The typed emitter will enforce that the callback for 'permission-error'
-    // matches the expected payload type (FirestorePermissionError).
     errorEmitter.on('permission-error', handleError);
 
-    // Unsubscribe on unmount to prevent memory leaks.
     return () => {
       errorEmitter.off('permission-error', handleError);
     };
   }, []);
 
-  // On re-render, if an error exists in state, throw it.
+  // If an error exists, render the GlobalError component directly.
+  // This replaces the app's content with the error UI but doesn't crash the root.
   if (error) {
-    throw error;
+    // The `reset` function will simply clear the error state, allowing the
+    // user to attempt to re-render the child components (e.g., after logging out).
+    return <GlobalError error={error} reset={() => setError(null)} />;
   }
 
-  // This component renders nothing.
+  // This component normally renders nothing.
   return null;
 }
