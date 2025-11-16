@@ -18,18 +18,19 @@ import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useStore } from '@/hooks/use-store';
 import { useDemoMode } from '@/context/demo-mode';
+import { useHydrated } from '@/hooks/useHydrated';
 
 
 export default function Header() {
-  // We no longer need useHydrated.
-  const { getItemCount, setCartSheetOpen } = useStore();
-  const itemCount = getItemCount();
-  const pathname = usePathname();
-  const { user, isUserLoading } = useUser();
-  const { auth } = useFirebase();
-  const router = useRouter();
-  const { toast } = useToast();
-  const { isDemo, setIsDemo } = useDemoMode();
+    const { getItemCount, setCartSheetOpen } = useStore();
+    const itemCount = getItemCount();
+    const pathname = usePathname();
+    const { user, isUserLoading } = useUser();
+    const { auth } = useFirebase();
+    const router = useRouter();
+    const { toast } = useToast();
+    const { isDemo, setIsDemo } = useDemoMode();
+    const hydrated = useHydrated();
 
     const navLinks = [
         { href: '/', label: 'Home' },
@@ -84,15 +85,17 @@ export default function Header() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="hidden md:flex items-center gap-2">
-                        <TestTube2 className="h-5 w-5 text-primary" />
-                        <Label htmlFor="demo-mode-switch" className="text-sm font-medium">Demo Mode</Label>
-                        <Switch
-                            id="demo-mode-switch"
-                            checked={isDemo}
-                            onCheckedChange={setIsDemo}
-                        />
-                    </div>
+                    {hydrated && (
+                        <div className="hidden md:flex items-center gap-2">
+                            <TestTube2 className="h-5 w-5 text-primary" />
+                            <Label htmlFor="demo-mode-switch" className="text-sm font-medium">Demo Mode</Label>
+                            <Switch
+                                id="demo-mode-switch"
+                                checked={isDemo}
+                                onCheckedChange={setIsDemo}
+                            />
+                        </div>
+                    )}
                     <Separator orientation="vertical" className="h-6 hidden md:block" />
                     <Button variant="ghost" size="icon">
                         <Search className="h-5 w-5" />
@@ -100,7 +103,7 @@ export default function Header() {
                     
                     <Button variant="ghost" size="icon" className="relative" onClick={() => setCartSheetOpen(true)}>
                        <ShoppingBag className="h-5 w-5" />
-                       {itemCount > 0 && (
+                       {hydrated && itemCount > 0 && (
                            <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
                                {itemCount}
                            </span>
@@ -110,7 +113,7 @@ export default function Header() {
                     <Separator orientation="vertical" className="h-6 hidden md:block"/>
 
                     <div className="hidden md:flex items-center gap-2">
-                        {user ? (
+                        {hydrated && user ? (
                              <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                      <Button variant="ghost" className="flex items-center gap-2">
@@ -138,7 +141,7 @@ export default function Header() {
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                              </DropdownMenu>
-                        ) : !user ? (
+                        ) : hydrated && !user ? (
                             <>
                                 <Button variant="ghost" asChild>
                                     <Link href="/customer-login">
@@ -171,14 +174,14 @@ export default function Header() {
                                      </DropdownMenuItem>
                                 ))}
                                 <DropdownMenuSeparator />
-                                {user ? (
+                                {hydrated && user ? (
                                     <>
                                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                                         <DropdownMenuItem onClick={() => router.push('/account/dashboard')}>Dashboard</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push('/account')}>Account Details</DropdownMenuItem>
                                         <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                                     </>
-                                ) : !user ? (
+                                ) : hydrated && !user ? (
                                     <>
                                         <DropdownMenuItem onClick={() => router.push('/customer-login')}>Login</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push('/onboarding')}>Get Started</DropdownMenuItem>
