@@ -1,3 +1,4 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,7 @@ import { Footer } from '@/app/components/footer';
 function OrderPageClient() {
     const params = useParams();
     const orderId = typeof params.orderId === 'string' ? params.orderId : '';
-    const { locations } = useMenuData();
+    const { locations: retailers } = useMenuData();
     const { firestore } = useFirebase();
 
     const [order, setOrder] = useState<OrderDoc | null>(null);
@@ -60,7 +61,7 @@ function OrderPageClient() {
 
     }, [firestore, orderId]);
     
-    const pickupLocation = locations?.find(loc => loc.id === order?.locationId);
+    const pickupLocation = retailers?.find(loc => loc.id === order?.retailerId);
 
     if (isLoading) {
         return <OrderPageSkeleton />;
@@ -143,7 +144,7 @@ function OrderPageClient() {
                         <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
                             <h3 className="font-semibold flex items-center gap-2 text-muted-foreground"><MapPin className="h-4 w-4" /> Pickup Location</h3>
                             <p className="font-medium text-primary">{pickupLocation.name}</p>
-                            <p className="text-sm">{pickupLocation.address}, {pickupLocation.city}, {pickupLocation.state} {pickupLocation.zip}</p>
+                            <p className="text-sm">{pickupLocation.address}, ${pickupLocation.city}, ${pickupLocation.state} ${pickupLocation.zip}</p>
                         </div>
                     )}
                     
@@ -227,3 +228,5 @@ export default function OrderConfirmationPage() {
        </div>
     )
 }
+
+    

@@ -1,7 +1,7 @@
 
 import sgMail from "@sendgrid/mail";
 import type { ServerOrderPayload } from "@/app/checkout/actions/submitOrder";
-import type { Location } from "@/firebase/converters";
+import type { Retailer } from "@/firebase/converters";
 
 type SendArgs = {
   to: string | string[];
@@ -9,12 +9,12 @@ type SendArgs = {
   subject: string;
   orderId: string;
   order: ServerOrderPayload;
-  location: Location;
+  retailer: Retailer;
   recipientType: 'customer' | 'dispensary';
 };
 
 const generateHtml = (args: SendArgs): string => {
-    const { order, orderId, recipientType, location } = args;
+    const { order, orderId, recipientType, retailer } = args;
     const itemsHtml = order.items.map(item => `
         <tr>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
@@ -29,7 +29,7 @@ const generateHtml = (args: SendArgs): string => {
         : `New Online Order for Pickup`;
 
     const introText = recipientType === 'customer'
-        ? `We've received your order and are getting it ready for pickup at <strong>${location.name}</strong>. Please have your ID ready when you arrive.`
+        ? `We've received your order and are getting it ready for pickup at <strong>${retailer.name}</strong>. Please have your ID ready when you arrive.`
         : `The following order has been placed by <strong>${order.customer.name} (${order.customer.email})</strong> for pickup.`;
 
     return `
@@ -60,9 +60,9 @@ const generateHtml = (args: SendArgs): string => {
 
         <div style="background: #f9f9f9; padding: 15px; border-radius: 5px;">
           <h3 style="margin-top: 0;">Pickup Information</h3>
-          <p><strong>${location.name}</strong></p>
-          <p>${location.address}, ${location.city}, ${location.state} ${location.zip}</p>
-          ${location.phone ? `<p>${location.phone}</p>` : ''}
+          <p><strong>${retailer.name}</strong></p>
+          <p>${retailer.address}, ${retailer.city}, ${retailer.state} ${retailer.zip}</p>
+          ${retailer.phone ? `<p>${retailer.phone}</p>` : ''}
         </div>
 
         <p style="text-align: center; font-size: 0.8em; color: #999; margin-top: 20px;">
@@ -95,3 +95,5 @@ export async function sendOrderEmail(args: SendArgs) {
     html: htmlBody,
   });
 }
+
+    

@@ -6,8 +6,8 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { cookies } from 'next/headers';
 import { sendOrderEmail } from '@/lib/email/send-order-email';
 import { z } from 'zod';
-import type { Location, Product } from '@/firebase/converters';
-import { demoLocations, demoProducts } from '@/lib/data';
+import type { Retailer, Product } from '@/firebase/converters';
+import { demoRetailers, demoProducts } from '@/lib/data';
 import { makeProductRepo } from '@/server/repos/productRepo';
 
 // The client now only sends the ID and quantity. The server handles the rest.
@@ -26,7 +26,7 @@ const CustomerSchema = z.object({
 const OrderInputSchema = z.object({
   items: z.array(OrderItemSchema),
   customer: CustomerSchema,
-  locationId: z.string(),
+  retailerId: z.string(),
 });
 
 export type ClientOrderInput = z.infer<typeof OrderInputSchema>;
@@ -48,21 +48,21 @@ export type ServerOrderPayload = {
         name: string;
         email: string;
     };
-    locationId: string;
+    retailerId: string;
 }
 
-async function getLocationData(locationId: string): Promise<Location | undefined> {
+async function getRetailerData(retailerId: string): Promise<Retailer | undefined> {
     try {
         const { firestore } = await createServerClient();
-        const locationsSnap = await firestore.collection('dispensaries').get();
-        if (!locationsSnap.empty) {
-            const liveLocations = locationsSnap.docs.map(d => ({id: d.id, ...d.data()})) as Location[];
-            return liveLocations.find(l => l.id === locationId);
+        const retailersSnap = await firestore.collection('dispensaries').get();
+        if (!retailersSnap.empty) {
+            const liveRetailers = retailersSnap.docs.map(d => ({id: d.id, ...d.data()})) as Retailer[];
+            return liveRetailers.find(l => l.id === retailerId);
         }
-        return demoLocations.find(l => l.id === locationId);
+        return demoRetailers.find(l => l.id === retailerId);
     } catch (e) {
-        console.error("Could not fetch location data, falling back to demo.", e);
-        return demoLocations.find(l => l.id === locationId);
+        console.error("Could not fetch retailer data, falling back to demo.", e);
+        return demoRetailers.find(l => l.id === retailerId);
     }
 }
 
@@ -75,13 +75,13 @@ export async function submitOrder(input: ClientOrderInput) {
     return { ok: false, error: 'Invalid order data submitted.' };
   }
   
-  const { locationId, customer, items: clientItems } = validation.data;
+  const { retailerId, customer, items: clientItems } = validation.data;
 
-  // 2) Resolve demo mode on the server & get location details
+  // 2) Resolve demo mode on the server & get retailer details
   const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
-  const location = await getLocationData(locationId);
+  const retailer = await getRetailerData(retailerId);
 
-  if (!location || !location.email) {
+  if (!retailer || !retailer.email) {
       return { ok: false, error: 'Selected dispensary location could not be found or is missing a fulfillment email.' };
   }
 
@@ -93,7 +93,7 @@ export async function submitOrder(input: ClientOrderInput) {
     items: [],
     totals: { subtotal: 0, tax: 0, total: 0 },
     customer,
-    locationId,
+    retailerId,
   };
 
   for (const clientItem of clientItems) {
@@ -109,7 +109,7 @@ export async function submitOrder(input: ClientOrderInput) {
       }
       
       // Use the authoritative price from the database.
-      const price = product.prices?.[locationId] ?? product.price;
+      const price = product.prices?.[retailerId] ?? product.price;
 
       serverOrderPayload.items.push({
           ...clientItem,
@@ -145,18 +145,18 @@ export async function submitOrder(input: ClientOrderInput) {
       orderId: orderId,
       order: serverOrderPayload, // Use the secure server-generated payload
       recipientType: 'customer',
-      location: location,
+      retailer: retailer,
     });
 
     // Email to dispensary for fulfillment
     await sendOrderEmail({
-        to: location.email,
+        to: retailer.email,
         bcc: isDemo ? ['jack@bakedbot.ai'] : undefined, // BCC for demo purposes
         subject: `New Online Order #${orderId.substring(0,7)} from BakedBot`,
         orderId: orderId,
         order: serverOrderPayload, // Use the secure server-generated payload
         recipientType: 'dispensary',
-        location: location,
+        retailer: retailer,
     });
 
   } catch (err) {
@@ -167,3 +167,5 @@ export async function submitOrder(input: ClientOrderInput) {
 
   return { ok: true, orderId: orderId };
 }
+
+    
