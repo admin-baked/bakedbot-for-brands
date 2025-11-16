@@ -104,7 +104,7 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer }: CheckoutFormP
         const result = await submitOrder(orderInput);
 
         if (result.ok && result.orderId) {
-          onOrderSuccess(result.orderId, user?.uid);
+          onOrderSuccess(result.orderId, result.userId);
         } else {
           toast({ variant: 'destructive', title: 'Order Submission Failed', description: result.error || 'Could not submit order. Please try again.' });
         }
@@ -191,5 +191,3 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer }: CheckoutFormP
     </Card>
   );
 }
-
-    

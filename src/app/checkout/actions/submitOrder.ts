@@ -49,6 +49,7 @@ export type ServerOrderPayload = {
         email: string;
     };
     retailerId: string;
+    userId: string; // userId is now required.
 }
 
 async function getRetailerData(retailerId: string): Promise<Retailer | undefined> {
@@ -85,7 +86,26 @@ export async function submitOrder(input: ClientOrderInput) {
       return { ok: false, error: 'Selected dispensary location could not be found or is missing a fulfillment email.' };
   }
 
-  const { firestore } = await createServerClient();
+  // --- SECURITY FIX: Get user ID securely on the server ---
+  const { auth, firestore } = await createServerClient();
+  const sessionCookie = cookies().get('__session')?.value;
+  let userId: string;
+
+  if (sessionCookie) {
+    try {
+        const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
+        userId = decodedToken.uid;
+    } catch (e) {
+        console.warn("Invalid session cookie on checkout, treating as anonymous.", e);
+        // If cookie is invalid, treat as an anonymous user for this order
+        userId = `anon_${Date.now()}`;
+    }
+  } else {
+    // No cookie, this is an anonymous guest checkout
+    userId = `anon_${Date.now()}`;
+  }
+
+
   const productRepo = makeProductRepo(firestore);
   
   // 3) --- SECURITY FIX: Construct the authoritative order payload on the server ---
@@ -94,6 +114,7 @@ export async function submitOrder(input: ClientOrderInput) {
     totals: { subtotal: 0, tax: 0, total: 0 },
     customer,
     retailerId,
+    userId, // Add the verified or generated userId
   };
 
   for (const clientItem of clientItems) {
@@ -165,7 +186,5 @@ export async function submitOrder(input: ClientOrderInput) {
     // Do not re-throw, as the order was successfully created.
   }
 
-  return { ok: true, orderId: orderId };
+  return { ok: true, orderId: orderId, userId: userId.startsWith('anon_') ? undefined : userId };
 }
-
-    
