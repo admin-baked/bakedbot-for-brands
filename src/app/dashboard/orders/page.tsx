@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { OrderDoc } from "@/firebase/converters";
 import { useMenuData } from "@/hooks/use-menu-data";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import { useFirebase } from "@/firebase/provider";
 import { orderConverter } from "@/firebase/converters";
 
@@ -37,12 +37,12 @@ export default function OrdersPage() {
 
     // For dispensary managers, only show orders for their assigned location from the secure claim
     if (userClaims.role === 'dispensary' && userClaims.locationId) {
-        return query(baseQuery, where('retailerId', '==', userClaims.locationId));
+        return query(baseQuery, where('retailerId', '==', userClaims.locationId), orderBy('createdAt', 'desc'));
     }
     
     // For brand/owner, show all orders
     if (userClaims.role === 'brand' || userClaims.role === 'owner') {
-        return query(baseQuery);
+        return query(baseQuery, orderBy('createdAt', 'desc'));
     }
 
     // Default to a query that returns nothing if role isn't right
