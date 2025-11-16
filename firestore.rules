@@ -15,7 +15,7 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
-     match /retailers/{retailerId} {
+     match /dispensaries/{dispensaryId} {
       allow read: if true;
       allow write: if false; // All location management is done via Server Actions.
     }
@@ -69,6 +69,7 @@ service cloud.firestore {
     }
   }
 }
+
 
 
 
