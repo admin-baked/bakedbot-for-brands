@@ -21,6 +21,7 @@ export const demoProducts: Product[] = [
       description: 'Chewy, rich caramels infused with full-spectrum cannabis oil. A perfect treat for a relaxing evening.',
       likes: 134,
       dislikes: 5,
+      brandId: 'bakedbot-brand-id',
     },
     {
       id: '2',
@@ -33,6 +34,7 @@ export const demoProducts: Product[] = [
       description: 'Fruity, fun, and uplifting. These sativa-dominant gummies are great for social gatherings and creative boosts.',
       likes: 212,
       dislikes: 12,
+      brandId: 'bakedbot-brand-id',
     },
     {
       id: '3',
@@ -45,6 +47,7 @@ export const demoProducts: Product[] = [
       description: 'Long-lasting, flavorful lollipops with a balanced hybrid effect. Ideal for a steady, manageable high.',
       likes: 98,
       dislikes: 2,
+      brandId: 'bakedbot-brand-id',
     },
     {
       id: '4',
@@ -57,6 +60,7 @@ export const demoProducts: Product[] = [
       description: 'A classic indica-dominant strain known for its potent relaxing effects and earthy pine aroma. An eighth (3.5g).',
       likes: 450,
       dislikes: 25,
+      brandId: 'bakedbot-brand-id',
     },
     {
       id: '5',
@@ -69,6 +73,7 @@ export const demoProducts: Product[] = [
       description: 'Dense, trichome-covered nugs with a sweet and pungent aroma. A premium flower for the discerning connoisseur. An eighth (3.5g).',
       likes: 510,
       dislikes: 15,
+      brandId: 'bakedbot-brand-id',
     },
     {
         id: '6',
@@ -81,6 +86,7 @@ export const demoProducts: Product[] = [
         description: 'A powerful sativa strain with citrus notes and an energetic, cerebral high. Perfect for daytime use. An eighth (3.5g).',
         likes: 380,
         dislikes: 18,
+        brandId: 'bakedbot-brand-id',
     },
     {
         id: '7',
@@ -93,6 +99,7 @@ export const demoProducts: Product[] = [
         description: 'A sleek, disposable vape pen with a balanced hybrid oil. Smooth, flavorful, and discreet. 1g cartridge.',
         likes: 280,
         dislikes: 8,
+        brandId: 'bakedbot-brand-id',
     },
     {
         id: '8',
@@ -105,6 +112,7 @@ export const demoProducts: Product[] = [
         description: 'An indica-dominant vape pen designed for relaxation and sleep. Natural berry flavors. 1g cartridge.',
         likes: 195,
         dislikes: 4,
+        brandId: 'bakedbot-brand-id',
     },
      {
         id: '9',
@@ -117,6 +125,7 @@ export const demoProducts: Product[] = [
         description: 'A high-potency sativa cartridge with a tangy citrus flavor. Expect an uplifting and creative experience. 1g cartridge.',
         likes: 320,
         dislikes: 10,
+        brandId: 'bakedbot-brand-id',
     }
   ];
 
@@ -178,20 +187,20 @@ export const demoCustomer = {
         { id: 'demo2', userId: 'demoUser', createdAt: Timestamp.now(), status: 'ready', totals: { total: 88.00 } },
     ] as Partial<OrderDoc>[],
     reviews: [
-        { id: 'rev1', productId: '1', userId: 'demoUser1', rating: 5, text: 'Absolutely love the Cosmic Caramels! Perfect for relaxing after a long day. The taste is amazing and the effects are smooth.', createdAt: Timestamp.fromDate(new Date('2024-05-20T19:30:00Z')) },
-        { id: 'rev2', productId: '4', userId: 'demoUser2', rating: 4, text: 'OG Galaxy is a classic for a reason. Great for winding down and getting a good night\'s sleep. A bit harsh on the throat sometimes.', createdAt: Timestamp.fromDate(new Date('2024-05-21T12:00:00Z')) },
-        { id: 'rev3', productId: '1', userId: 'demoUser3', rating: 4, text: 'These are tasty but sometimes inconsistent in potency. One piece was much stronger than another from the same batch.', createdAt: Timestamp.fromDate(new Date('2024-05-22T14:15:00Z')) },
-        { id: 'rev4', productId: '2', userId: 'demoUser4', rating: 5, text: 'Giggle Gummies are my go-to for social events. They make me feel so talkative and happy without any anxiety. Highly recommend!', createdAt: Timestamp.fromDate(new Date('2024-05-22T18:45:00Z')) },
-        { id: 'rev5', productId: '7', userId: 'demoUser1', rating: 3, text: 'The Vaporwave Voyage pen is convenient, but the flavor is a bit artificial for my taste. The effects are okay, but not very long-lasting.', createdAt: Timestamp.fromDate(new Date('2024-05-23T09:00:00Z')) },
-        { id: 'rev6', productId: '4', userId: 'demoUser5', rating: 5, text: 'The best indica I have ever had. Knocks me right out and helps with my insomnia. A true 5-star flower.', createdAt: Timestamp.fromDate(new Date('2024-05-23T21:00:00Z')) },
-        { id: 'rev7', productId: '2', userId: 'demoUser2', rating: 4, text: 'Fun for a party, but be careful not to take too many! They can be a bit more potent than you expect.', createdAt: Timestamp.fromDate(new Date('2024-05-24T16:20:00Z')) },
-        { id: 'rev8', productId: '5', userId: 'demoUser6', rating: 5, text: 'Nebula Nugs are absolutely top-tier. The crystal coating is insane and the high is both euphoric and relaxing. Worth every penny.', createdAt: Timestamp.fromDate(new Date('2024-05-25T11:10:00Z')) },
-        { id: 'rev9', productId: '9', userId: 'demoUser7', rating: 4, text: 'Pulsar Pod gives a great, clean, energetic high. Perfect for getting chores done or going for a hike. Flavor is a little lemony for me.', createdAt: Timestamp.fromDate(new Date('2024-05-26T08:00:00Z')) },
-        { id: 'rev10', productId: '6', userId: 'demoUser1', rating: 5, text: 'Supernova Haze is a fantastic daytime strain. It really helps me focus and feel creative without any jitters. Has become a staple in my routine.', createdAt: Timestamp.fromDate(new Date('2024-05-27T13:40:00Z')) },
+        { id: 'rev1', productId: '1', userId: 'demoUser1', brandId: 'bakedbot-brand-id', rating: 5, text: 'Absolutely love the Cosmic Caramels! Perfect for relaxing after a long day. The taste is amazing and the effects are smooth.', createdAt: Timestamp.fromDate(new Date('2024-05-20T19:30:00Z')) },
+        { id: 'rev2', productId: '4', userId: 'demoUser2', brandId: 'bakedbot-brand-id', rating: 4, text: 'OG Galaxy is a classic for a reason. Great for winding down and getting a good night\'s sleep. A bit harsh on the throat sometimes.', createdAt: Timestamp.fromDate(new Date('2024-05-21T12:00:00Z')) },
+        { id: 'rev3', productId: '1', userId: 'demoUser3', brandId: 'bakedbot-brand-id', rating: 4, text: 'These are tasty but sometimes inconsistent in potency. One piece was much stronger than another from the same batch.', createdAt: Timestamp.fromDate(new Date('2024-05-22T14:15:00Z')) },
+        { id: 'rev4', productId: '2', userId: 'demoUser4', brandId: 'bakedbot-brand-id', rating: 5, text: 'Giggle Gummies are my go-to for social events. They make me feel so talkative and happy without any anxiety. Highly recommend!', createdAt: Timestamp.fromDate(new Date('2024-05-22T18:45:00Z')) },
+        { id: 'rev5', productId: '7', userId: 'demoUser1', brandId: 'bakedbot-brand-id', rating: 3, text: 'The Vaporwave Voyage pen is convenient, but the flavor is a bit artificial for my taste. The effects are okay, but not very long-lasting.', createdAt: Timestamp.fromDate(new Date('2024-05-23T09:00:00Z')) },
+        { id: 'rev6', productId: '4', userId: 'demoUser5', brandId: 'bakedbot-brand-id', rating: 5, text: 'The best indica I have ever had. Knocks me right out and helps with my insomnia. A true 5-star flower.', createdAt: Timestamp.fromDate(new Date('2024-05-23T21:00:00Z')) },
+        { id: 'rev7', productId: '2', userId: 'demoUser2', brandId: 'bakedbot-brand-id', rating: 4, text: 'Fun for a party, but be careful not to take too many! They can be a bit more potent than you expect.', createdAt: Timestamp.fromDate(new Date('2024-05-24T16:20:00Z')) },
+        { id: 'rev8', productId: '5', userId: 'demoUser6', brandId: 'bakedbot-brand-id', rating: 5, text: 'Nebula Nugs are absolutely top-tier. The crystal coating is insane and the high is both euphoric and relaxing. Worth every penny.', createdAt: Timestamp.fromDate(new Date('2024-05-25T11:10:00Z')) },
+        { id: 'rev9', productId: '9', userId: 'demoUser7', brandId: 'bakedbot-brand-id', rating: 4, text: 'Pulsar Pod gives a great, clean, energetic high. Perfect for getting chores done or going for a hike. Flavor is a little lemony for me.', createdAt: Timestamp.fromDate(new Date('2024-05-26T08:00:00Z')) },
+        { id: 'rev10', productId: '6', userId: 'demoUser1', brandId: 'bakedbot-brand-id', rating: 5, text: 'Supernova Haze is a fantastic daytime strain. It really helps me focus and feel creative without any jitters. Has become a staple in my routine.', createdAt: Timestamp.fromDate(new Date('2024-05-27T13:40:00Z')) },
     ] as Partial<Review>[],
     interactions: [
-        { recommendedProductIds: ['1', '2'] },
-        { recommendedProductIds: ['4'] }
+        { brandId: 'bakedbot-brand-id', recommendedProductIds: ['1', '2'] },
+        { brandId: 'bakedbot-brand-id', recommendedProductIds: ['4'] }
     ] as Partial<UserInteraction>[],
 };
 
