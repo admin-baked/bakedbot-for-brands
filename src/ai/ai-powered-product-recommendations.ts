@@ -5,7 +5,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { demoProducts } from '@/lib/data';
+import { productSearch } from '@/ai/tools/product-search';
 
 const RecommendProductsInputSchema = z.object({
   query: z.string().describe('The user query or description of what they are looking for.'),
@@ -27,26 +27,25 @@ export type RecommendProductsOutput = z.infer<typeof RecommendProductsOutputSche
 
 const recommendProductsPrompt = ai.definePrompt({
   name: 'recommendProductsPrompt',
+  tools: [productSearch],
   input: { schema: z.object({
     query: z.string(),
     customerHistory: z.string().optional(),
-    availableProducts: z.string(),
   }) },
   output: {schema: RecommendProductsOutputSchema},
-  prompt: `You are an expert AI budtender. Your goal is to recommend the best products to a user based on their request, history, and a pre-selected list of relevant products.
+  prompt: `You are an expert AI budtender. Your goal is to recommend the best products to a user based on their request.
 
 The user is looking for: {{{query}}}
 {{#if customerHistory}}
 Their preferences are: {{{customerHistory}}}
 {{/if}}
 
-Based on this, choose up to a maximum of 3 products from the following JSON list of semantically similar products.
-
-Available Products (JSON):
-{{{availableProducts}}}
+Use the productSearch tool to find a list of relevant products. Then, from that list, select up to a maximum of 3 products to recommend to the user.
 
 You must provide a compelling, one-sentence reason for each product recommendation.
 Most importantly, you MUST also provide an 'overallReasoning' for why this specific collection of products was chosen.
+
+If the product search tool returns no results, or if you cannot find a suitable product, inform the user that you couldn't find a good match and ask them to rephrase their request.
 `,
 });
 
@@ -57,16 +56,17 @@ const recommendProductsFlow = ai.defineFlow(
     outputSchema: RecommendProductsOutputSchema,
   },
   async (input) => {
-    // In this simplified version, we use the entire demo product list
-    // as the context for the AI to make recommendations from.
-    const availableProducts = JSON.stringify(demoProducts, null, 2);
-
-    const { output } = await recommendProductsPrompt({
-      ...input,
-      availableProducts,
-    });
+    const { output } = await recommendProductsPrompt(input);
     
-    return output!;
+    // Handle the case where the AI decides no products are suitable from the tool's output.
+    if (!output || !output.products || output.products.length === 0) {
+        return {
+            products: [],
+            overallReasoning: "I couldn't find a perfect match in our current inventory based on your request. Could you try describing what you're looking for in a different way?"
+        };
+    }
+    
+    return output;
   }
 );
 
