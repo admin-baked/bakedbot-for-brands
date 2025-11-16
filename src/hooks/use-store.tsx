@@ -3,9 +3,27 @@
 
 import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { createJSONStorage, persist, StateStorage } from 'zustand/middleware';
 import * as LucideIcons from 'lucide-react';
 import type { Location, Product } from '@/firebase/converters';
+import Cookies from 'universal-cookie';
+
+const cookies = new Cookies(null, { path: '/' });
+
+// Custom cookie-based storage for Zustand
+const cookieStorage: StateStorage = {
+  getItem: (name: string): string | null => {
+    return cookies.get(name) || null;
+  },
+  setItem: (name: string, value: string): void => {
+    const oneYear = 365 * 24 * 60 * 60;
+    cookies.set(name, value, { path: '/', maxAge: oneYear });
+  },
+  removeItem: (name: string): void => {
+    cookies.remove(name, { path: '/' });
+  },
+};
+
 
 export type CartItem = Product & { quantity: number };
 
@@ -39,9 +57,6 @@ export interface StoreState {
   emailProvider: 'sendgrid' | 'gmail';
   sendgridApiKey: string | null;
   navLinks: NavLink[];
-  
-  // Hydration state
-  _hasHydrated: boolean;
 
   // Actions
   setTheme: (theme: Theme) => void;
@@ -62,7 +77,6 @@ export interface StoreState {
   updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
   toggleNavLinkVisibility: (href: string) => void;
   removeNavLink: (href: string) => void;
-  setHasHydrated: (hydrated: boolean) => void;
 
   // Cart Actions
   addToCart: (product: Product, locationId?: string | null) => void;
@@ -112,9 +126,6 @@ export const useStore = create<StoreState>()(
       sendgridApiKey: null,
       navLinks: defaultNavLinks,
       
-      // Hydration
-      _hasHydrated: false,
-      
       // Actions
       setTheme: (theme: Theme) => set({ theme }),
       setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
@@ -149,7 +160,6 @@ export const useStore = create<StoreState>()(
           navLinks: state.navLinks.map((link) => link.href === href ? { ...link, hidden: !link.hidden } : link)
       })),
       removeNavLink: (href: string) => set(state => ({ navLinks: state.navLinks.filter(l => l.href !== href) })),
-      setHasHydrated: (hydrated: boolean) => set({ _hasHydrated: hydrated }),
       
       // Cart Actions
       addToCart: (product, locationId) =>
@@ -202,14 +212,16 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'bakedbot-storage', 
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.setHasHydrated(true);
-            if (!state.navLinks || state.navLinks.length === 0) {
-              state.navLinks = defaultNavLinks;
-          }
-        }
-      },
+      storage: createJSONStorage(() => cookieStorage), // Use cookie storage
+       // This part ensures that on first load, default values are used
+       // and only then the persisted state is applied, avoiding mismatches.
+      skipHydration: true,
     }
   )
 );
+
+// This useEffect runs once on the client to hydrate the store.
+// This is the key to preventing hydration mismatches.
+if (typeof window !== 'undefined') {
+  useStore.persist.rehydrate();
+}
