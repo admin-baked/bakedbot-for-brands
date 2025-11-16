@@ -30,6 +30,7 @@ import { defaultChatbotIcon } from '@/lib/data';
 import OnboardingFlow from './chatbot/onboarding-flow';
 import ChatMessages from './chatbot/chat-messages';
 import ChatProductCarousel from './chatbot/chat-product-carousel';
+import { useUser } from '@/firebase/auth/use-user';
 
 
 type Message = {
@@ -176,7 +177,19 @@ export default function Chatbot() {
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { products } = useMenuData();
+  const { products, isDemo } = useMenuData();
+  const { user } = useUser();
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) {
+      user.getIdTokenResult().then((idTokenResult) => {
+        setUserProfile(idTokenResult.claims);
+      });
+    }
+  }, [user]);
+
+  const brandId = userProfile?.brandId || 'default';
 
 
   const scrollToBottom = () => {
@@ -287,7 +300,7 @@ export default function Chatbot() {
     try {
         const result: RecommendProductsOutput = await recommendProducts({
             query: query,
-            products,
+            brandId: brandId
         });
         
         const recommendedProductDetails = result.products.map(recommendedProd => {
@@ -314,7 +327,7 @@ export default function Chatbot() {
     } finally {
         setIsBotTyping(false);
     }
-  }, [products]);
+  }, [products, brandId]);
 
   const handleSendMessage = useCallback(async (e: FormEvent) => {
     e.preventDefault();
@@ -378,7 +391,7 @@ export default function Chatbot() {
     try {
       const result: RecommendProductsOutput = await recommendProducts({
         query: currentInput,
-        products,
+        brandId: brandId,
       });
         
       const recommendedProductDetails = result.products.map(recommendedProd => {
@@ -406,7 +419,7 @@ export default function Chatbot() {
     } finally {
       setIsBotTyping(false);
     }
-  }, [inputValue, isBotTyping, hasStartedChat, chatMode, products, handleOnboardingComplete]);
+  }, [inputValue, isBotTyping, hasStartedChat, chatMode, products, brandId, handleOnboardingComplete]);
 
   const handleFeedback = (productId: string, type: 'like' | 'dislike') => {
     startTransition(async () => {
