@@ -4,10 +4,10 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { type GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { Button } from '@/components/ui/button';
-import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon, useFormStatus } from 'lucide-react';
+import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
-import { useFormState } from 'react-dom';
+import { useFormState, useFormStatus } from 'react-dom';
 import { useEffect, useTransition } from 'react';
 import { updateProductFeedback } from '@/app/products/[id]/actions';
 import { useUser } from '@/firebase/auth/use-user';

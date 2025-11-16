@@ -10,14 +10,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Home, MapPin, CheckCircle, Clock, PackageCheck, Package, CircleX } from 'lucide-react';
+import { ArrowLeft, Home, MapPin, CheckCircle, Clock, PackageCheck, Package, CircleX, Play } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { Separator } from '@/components/ui/separator';
 import { QRDisplay } from './components/qr-display';
 import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase/provider';
-import { doc, onSnapshot, setDoc, query, where, collection, getDocs, limit } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, query, where, collection, getDocs, limit, writeBatch } from 'firebase/firestore';
 import type { OrderDoc } from '@/firebase/converters';
 import { orderConverter } from '@/firebase/converters';
 import { Footer } from '@/app/components/footer';
@@ -69,14 +69,14 @@ function OrderPageClient() {
                     );
                     
                     getDocs(backfillQuery).then(querySnapshot => {
-                        const batch = firestore ? firestore.batch() : null;
+                        const batch = firestore ? writeBatch(firestore) : null;
                         querySnapshot.forEach(doc => {
                            if (doc.data().userId.startsWith('anon_') && batch) {
                                console.log(`Backfilling order ${doc.id} for user ${userIdFromUrl}`);
                                batch.update(doc.ref, { userId: userIdFromUrl });
                            }
                         });
-                        batch?.commit().catch(err => console.error("Failed to backfill orders:", err));
+                        batch?.commit().catch((err: Error) => console.error("Failed to backfill orders:", err));
                     });
                 }
             } else {

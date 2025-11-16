@@ -1,3 +1,4 @@
+
 'use client';
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +73,9 @@ export default function DispensaryPinLoginPage() {
                                 {[...Array(5)].map((_, i) => (
                                     <Input
                                         key={i}
-                                        ref={el => inputRefs.current[i] = el}
+                                        ref={el => {
+                                            if (el) inputRefs.current[i] = el;
+                                        }}
                                         id={`pin-${i}`}
                                         type="tel"
                                         maxLength={1}
