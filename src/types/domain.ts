@@ -12,7 +12,7 @@ export type Product = {
   description: string;
   likes?: number;
   dislikes?: number;
-  brandId: string;
+  brandId?: string;
 };
 
 // Renamed from Location to Retailer
