@@ -5,10 +5,14 @@ import { useStore } from '@/hooks/use-store';
 import { useToast } from '@/hooks/use-toast';
 import { ProductCard } from '@/components/product-card';
 import type { Product } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
-// Mock the hooks used by the component
+// Mock the hooks and modules used by the component
 jest.mock('@/hooks/use-store');
 jest.mock('@/hooks/use-toast');
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(),
+}));
 
 const mockUseStore = useStore as unknown as jest.Mock;
 const mockToast = jest.fn();
@@ -19,46 +23,45 @@ const mockProduct: Product = {
   name: 'Cosmic Caramels',
   category: 'Edibles',
   price: 25.00,
-  prices: { loc1: 25.00 },
+  prices: { 'loc1': 25.00 },
   imageUrl: 'https://picsum.photos/seed/1/600/400',
   imageHint: 'caramel',
   description: 'Chewy, rich caramels.',
+  brandId: 'default' // Add brandId for the test
 };
 
 describe('ProductCard', () => {
   beforeEach(() => {
     // Reset mocks before each test
     jest.clearAllMocks();
-
-    // Setup default mock implementations
-    (useToast as jest.Mock).mockReturnValue({
-      toast: mockToast,
-    });
-    // Default state: no location selected
+    (useRouter as jest.Mock).mockReturnValue({ push: jest.fn() });
+    (useToast as jest.Mock).mockReturnValue({ toast: mockToast });
     mockUseStore.mockReturnValue({
       selectedLocationId: null,
       addToCart: mockAddToCart,
     });
   });
 
-  it('renders product information correctly', () => {
+  it('should render product information and correct link', () => {
     render(<ProductCard product={mockProduct} />);
 
     expect(screen.getByText('Cosmic Caramels')).toBeInTheDocument();
     expect(screen.getByText('$25.00')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Cosmic Caramels' })).toBeInTheDocument();
+    
+    const image = screen.getByRole('img', { name: 'Cosmic Caramels' });
+    expect(image).toBeInTheDocument();
+
+    const link = screen.getByRole('link', { name: 'Cosmic Caramels' });
+    expect(link).toHaveAttribute('href', `/menu/${mockProduct.brandId}/products/${mockProduct.id}`);
   });
 
-  it('shows a destructive toast and does not add to cart if no location is selected', () => {
+  it('should show a destructive toast if no location is selected when adding to cart', () => {
     render(<ProductCard product={mockProduct} />);
 
     const addButton = screen.getByRole('button', { name: /Add/i });
     fireEvent.click(addButton);
 
-    // Verify that addToCart was NOT called
     expect(mockAddToCart).not.toHaveBeenCalled();
-
-    // Verify that a destructive toast was shown
     expect(mockToast).toHaveBeenCalledWith({
       variant: 'destructive',
       title: 'No Location Selected',
@@ -66,8 +69,7 @@ describe('ProductCard', () => {
     });
   });
 
-  it('adds item to cart and shows a success toast when a location is selected', () => {
-    // Override the mock for this specific test
+  it('should add item to cart and show a success toast when a location is selected', () => {
     mockUseStore.mockReturnValue({
       selectedLocationId: 'loc1',
       addToCart: mockAddToCart,
@@ -78,13 +80,11 @@ describe('ProductCard', () => {
     const addButton = screen.getByRole('button', { name: /Add/i });
     fireEvent.click(addButton);
 
-    // Verify that addToCart WAS called with the correct arguments
     expect(mockAddToCart).toHaveBeenCalledWith(mockProduct, 'loc1');
-
-    // Verify that a success toast was shown
     expect(mockToast).toHaveBeenCalledWith({
         title: 'Added to Cart',
         description: 'Cosmic Caramels has been added to your cart.',
     });
   });
 });
+
