@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -33,7 +34,7 @@ export default function Header() {
     const hydrated = useHydrated();
 
     const navLinks = [
-        { href: '/', label: 'Home' },
+        { href: '/menu/default', label: 'Demo Menu' },
         { href: '/product-locator', label: 'Product Locator' },
     ];
     
