@@ -1,4 +1,5 @@
 
+
 import { Timestamp } from 'firebase/firestore';
 
 export type Product = {
@@ -98,3 +99,4 @@ export type UserInteraction = {
   query: string;
   recommendedProductIds?: string[];
 };
+

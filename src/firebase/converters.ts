@@ -52,3 +52,4 @@ export const retailerConverter: FirestoreDataConverter<Retailer> = {
     };
   },
 };
+
