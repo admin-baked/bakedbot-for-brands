@@ -3,7 +3,6 @@
 
 import { useCookieStore } from '@/lib/cookie-storage';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMenuData } from '@/hooks/use-menu-data';
 import TiledMenuPage from '@/app/menu/tiled/page';
 import { HeroSlider } from '@/components/hero-slider';
 import { DispensaryLocator } from '@/components/dispensary-locator';
@@ -13,10 +12,11 @@ import Header from '@/components/header';
 import { Footer } from '@/components/footer';
 import { FloatingCartPill } from '@/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
-import { useHydrated } from '@/hooks/use-hydrated';
-import { useEffect } from 'react';
+import { useHydrated } from '@/hooks/useHydrated';
+import { useEffect, useMemo } from 'react';
 import type { Product, Retailer, Review } from '@/types/domain';
 import { useDemoMode } from '@/context/demo-mode';
+import { demoProducts, demoRetailers } from '@/lib/data';
 
 interface MenuPageClientProps {
   initialProducts: Product[];
@@ -37,8 +37,6 @@ export default function MenuPageClient({
   const { menuStyle } = useCookieStore();
   const hydrated = useHydrated();
 
-  // The useDemoMode hook now controls the client-side state, which can
-  // override the initial server-rendered state.
   const { isDemo, setIsDemo } = useDemoMode();
 
   // Set the initial demo state from the server render, but only once.
@@ -47,15 +45,15 @@ export default function MenuPageClient({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialIsDemo]);
 
-  // The useMenuData hook is still used here, but it will now prioritize
-  // the client-side demo mode toggle over its own fetching logic.
-  const { products, locations, isLoading } = useMenuData({
-    serverProducts: initialProducts,
-    serverLocations: initialLocations,
-  });
+  // isLoading is true until the component has hydrated on the client.
+  const isLoading = !hydrated;
+
+  // Determine which data to display based on demo mode.
+  const products = isDemo ? demoProducts : initialProducts;
+  const locations = isDemo ? demoRetailers : initialLocations;
 
   // Show loading skeleton until hydrated on the client.
-  if (!hydrated || isLoading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
@@ -75,7 +73,8 @@ export default function MenuPageClient({
   
   // Render tiled layout if selected
   if (menuStyle === 'alt') {
-    return <TiledMenuPage />;
+    // Pass the correct data down to the TiledMenuPage
+    return <TiledMenuPage products={products} locations={locations} isLoading={false} />;
   }
   
   // Render default grid layout
@@ -84,10 +83,10 @@ export default function MenuPageClient({
       <Header />
       <main className="flex-1">
         <div className="container mx-auto px-4 space-y-12">
-          <HeroSlider products={products} isLoading={isLoading} />
-          <DispensaryLocator locations={locations} isLoading={isLoading}/>
-          <ProductGrid products={products} isLoading={isLoading} />
-          <RecentReviewsFeed reviews={initialReviews} products={products} isLoading={isLoading} />
+          <HeroSlider products={products} isLoading={false} />
+          <DispensaryLocator locations={locations} isLoading={false}/>
+          <ProductGrid products={products} isLoading={false} />
+          <RecentReviewsFeed reviews={initialReviews} products={products} isLoading={false} />
         </div>
       </main>
       <FloatingCartPill />

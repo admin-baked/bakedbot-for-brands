@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -10,7 +11,8 @@ import { useFirebase } from '@/firebase/provider';
 import { doc, setDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useMenuData } from '@/hooks/use-menu-data';
+import { useCookieStore } from '@/lib/cookie-storage';
+import { demoRetailers } from '@/lib/data';
 import type { Retailer } from '@/types/domain';
 
 type OnboardingStep = 'role' | 'location' | 'products' | 'done';
@@ -26,13 +28,15 @@ export default function OnboardingPage() {
   const { firestore } = useFirebase();
   const { toast } = useToast();
   const router = useRouter();
-  const { locations, isLoading: areLocationsLoading } = useMenuData();
+
+  // Get locations from the cookie store as a fallback for the UI
+  // This part of the app doesn't need live data, just a list for selection.
+  const locations = demoRetailers; 
+  const areLocationsLoading = false;
 
   const handleNext = () => {
     if (step === 'role' && selectedRole) {
       if (selectedRole === 'brand' || selectedRole === 'customer') {
-        // Brands and Customers can skip location selection if they want,
-        // but let's take them to the final step to confirm.
         setStep('products');
       } else {
         setStep('location');
@@ -54,15 +58,13 @@ export default function OnboardingPage() {
         email: user.email,
         displayName: user.displayName,
         role: selectedRole,
-        brandId: selectedRole === 'brand' ? 'default' : null, // Hard-coding brandId for now
+        brandId: selectedRole === 'brand' ? 'default' : null,
         locationId: selectedLocation?.id || null
     };
 
     try {
         await setDoc(userDocRef, userProfileData, { merge: true });
         setStep('done');
-        // The Cloud Function will handle setting claims. After a short delay
-        // to allow claims to propagate, we redirect.
         toast({ title: 'Onboarding Complete!', description: 'Redirecting you to your dashboard...' });
         setTimeout(() => {
             router.push('/dashboard');
