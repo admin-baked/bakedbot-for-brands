@@ -10,33 +10,60 @@ import { formatDistanceToNow } from 'date-fns';
 import type { Review, Product } from '@/types/domain';
 import { Skeleton } from './ui/skeleton';
 
-const ReviewCard = ({ review, product }: { review: Review, product?: Product }) => (
-    <Card className="h-full">
-        <CardHeader className="flex flex-row items-start gap-4">
-            {product && (
-                <Link href={`/menu/${product.brandId}/products/${product.id}`} className="shrink-0">
-                    <div className="relative h-16 w-16 rounded-md overflow-hidden border">
-                         <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+// Helper function to safely convert various date formats to a Date object
+function getCreatedAtDate(createdAt: any): Date | null {
+  if (!createdAt) return null;
+
+  // Firestore Timestamp (client/admin)
+  if (typeof createdAt.toDate === 'function') {
+    return createdAt.toDate();
+  }
+
+  // Already a Date
+  if (createdAt instanceof Date) {
+    return createdAt;
+  }
+
+  // ISO string or something date-like
+  if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+    const d = new Date(createdAt);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  return null;
+}
+
+
+const ReviewCard = ({ review, product }: { review: Review, product?: Product }) => {
+    const createdAtDate = getCreatedAtDate(review.createdAt);
+    return (
+        <Card className="h-full">
+            <CardHeader className="flex flex-row items-start gap-4">
+                {product && (
+                    <Link href={`/menu/${product.brandId}/products/${product.id}`} className="shrink-0">
+                        <div className="relative h-16 w-16 rounded-md overflow-hidden border">
+                            <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+                        </div>
+                    </Link>
+                )}
+                <div>
+                    <CardTitle className="text-base line-clamp-1">{product?.name || `Review for product ${review.productId}`}</CardTitle>
+                    <div className="flex items-center gap-1 mt-1">
+                        {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
+                        ))}
                     </div>
-                </Link>
-            )}
-            <div>
-                 <CardTitle className="text-base line-clamp-1">{product?.name || `Review for product ${review.productId}`}</CardTitle>
-                 <div className="flex items-center gap-1 mt-1">
-                    {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
-                    ))}
                 </div>
-            </div>
-        </CardHeader>
-        <CardContent>
-            <p className="text-sm text-muted-foreground line-clamp-3 italic">"{review.text}"</p>
-            <p className="text-xs text-muted-foreground/80 mt-3 text-right">
-                {formatDistanceToNow(review.createdAt.toDate(), { addSuffix: true })}
-            </p>
-        </CardContent>
-    </Card>
-);
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-muted-foreground line-clamp-3 italic">"{review.text}"</p>
+                <p className="text-xs text-muted-foreground/80 mt-3 text-right">
+                    {createdAtDate ? formatDistanceToNow(createdAtDate, { addSuffix: true }) : 'Just now'}
+                </p>
+            </CardContent>
+        </Card>
+    )
+};
 
 const ReviewSkeleton = () => (
     <Card className="h-full">
