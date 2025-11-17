@@ -1,3 +1,4 @@
+
 'use client';
 
 // This component represents the "Tiled" or "Alternate" menu layout.

@@ -277,7 +277,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
     } finally {
       setIsBotTyping(false);
     }
-  }, [hasStartedChat]);
+  }, [hasStartedChat, brandId]);
 
   const handleOnboardingComplete = useCallback(async (answers: OnboardingAnswers) => {
     setIsOnboarding(false);

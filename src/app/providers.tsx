@@ -12,6 +12,8 @@ import { collection, getDocs, query } from "firebase/firestore";
 import type { Retailer } from "@/types/domain";
 import { retailerConverter } from "@/firebase/converters";
 import { demoRetailers } from "@/lib/data";
+import Header from "@/components/header";
+import { Footer } from "@/components/footer";
 
 export function Providers({ children }: { children: React.ReactNode }) {
     const { _hasHydrated } = useCookieStore();
@@ -50,7 +52,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <FirebaseClientProvider>
             <ThemeProvider>
-                {children}
+                <div className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-1">
+                        {children}
+                    </main>
+                    <Footer />
+                </div>
                 <CartSheet locations={locations} />
             </ThemeProvider>
         </FirebaseClientProvider>
