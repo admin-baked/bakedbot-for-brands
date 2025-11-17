@@ -58,7 +58,7 @@ const OnboardingFlow = ({ onComplete }: { onComplete: (answers: OnboardingAnswer
             )}
              {step === 'social' && (
                  <>
-                    <h2 className="text-lg font-semibold">One last thing! 👯‍♂️</h2>
+                    <h2 className="text-lg font-semibold">One last thing! 👯‍&#9792;</h2>
                     <p className="text-muted-foreground text-sm mt-1 mb-4">Are you planning to enjoy this solo or with others?</p>
                     <div className="grid grid-cols-2 gap-2">
                         <Button variant="outline" onClick={() => selectAnswer('social', 'Solo')}>Solo</Button>
