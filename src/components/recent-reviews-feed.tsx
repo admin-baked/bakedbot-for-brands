@@ -2,20 +2,13 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, MessageSquare } from 'lucide-react';
-import type { Review } from '@/firebase/converters';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCollection } from '@/firebase/firestore/use-collection';
-import { useMenuData } from '@/hooks/use-menu-data';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { collectionGroup, query, orderBy, Timestamp, limit } from 'firebase/firestore';
-import { useFirebase } from '@/firebase/provider';
-import { reviewConverter } from '@/firebase/converters';
-import { useDemoMode } from '@/context/demo-mode';
-import { demoCustomer } from '@/lib/data';
+import { type Review, type Product } from '@/firebase/converters';
+import { Timestamp } from 'firebase/firestore';
 
 const ReviewItemSkeleton = () => (
     <Card className="w-80 shrink-0">
@@ -48,35 +41,18 @@ const StarRating = ({ rating }: { rating: number }) => (
   </div>
 );
 
-export default function RecentReviewsFeed() {
-  const { isDemo } = useDemoMode();
-  const { firestore } = useFirebase();
+interface RecentReviewsFeedProps {
+    reviews: Review[];
+    products: Product[];
+    isLoading: boolean;
+}
+
+export default function RecentReviewsFeed({ reviews, products, isLoading }: RecentReviewsFeedProps) {
   
-  // The query is now safe to run for any user, authenticated or not,
-  // because of our new, more secure Firestore rules.
-  const reviewsQuery = useMemo(() => {
-    if (isDemo || !firestore) return null;
-    const baseQuery = collectionGroup(firestore, 'reviews').withConverter(reviewConverter);
-    return query(baseQuery, orderBy('createdAt', 'desc'), limit(10));
-  }, [firestore, isDemo]);
-
-  const { data: liveReviews, isLoading: areReviewsLoading, error } = useCollection<Review>(reviewsQuery, {
-      debugPath: '**/reviews'
-  });
-  const { products, isLoading: areProductsLoading } = useMenuData();
-
-  const isLoading = areReviewsLoading || areProductsLoading;
-
   const enrichedReviews = useMemo(() => {
-    const sourceReviews = isDemo ? demoCustomer.reviews : liveReviews;
-    if (!sourceReviews || !products) return [];
+    if (!reviews || !products) return [];
     
-    // Sort demo reviews by date, as they are static
-    if (isDemo) {
-        sourceReviews.sort((a, b) => (b.createdAt as Timestamp).toMillis() - (a.createdAt as Timestamp).toMillis());
-    }
-
-    return sourceReviews
+    return reviews
       .map(review => {
           const product = products.find(p => p.id === review.productId);
           return {
@@ -85,14 +61,10 @@ export default function RecentReviewsFeed() {
               productBrandId: product?.brandId || 'default'
           };
       })
-      .slice(0, 10); // Show the 10 most recent reviews
-  }, [isDemo, liveReviews, products]);
-
-  // If there's a permission error, we can gracefully hide the component.
-  // The global error handler will still catch and display it for developers.
-  if (error) {
-    return null;
-  }
+      // Sort client-side in case the source wasn't already sorted (e.g., demo data)
+      .sort((a, b) => (b.createdAt as Timestamp).toMillis() - (a.createdAt as Timestamp).toMillis())
+      .slice(0, 10);
+  }, [reviews, products]);
 
   return (
     <div className="py-12">
