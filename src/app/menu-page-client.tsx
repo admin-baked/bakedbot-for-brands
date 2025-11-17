@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useStore } from '@/hooks/use-store';
 import { useCookieStore } from '@/lib/cookie-storage';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMenuData } from '@/hooks/use-menu-data';
@@ -16,13 +15,14 @@ import { FloatingCartPill } from '@/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { useEffect } from 'react';
-import type { Product, Retailer } from '@/types/domain';
+import type { Product, Retailer, Review } from '@/types/domain';
 import { useDemoMode } from '@/context/demo-mode';
 
 interface MenuPageClientProps {
   initialProducts: Product[];
   initialLocations: Retailer[];
   initialIsDemo: boolean;
+  initialReviews: Review[];
 }
 
 /**
@@ -31,7 +31,8 @@ interface MenuPageClientProps {
 export default function MenuPageClient({
   initialProducts,
   initialLocations,
-  initialIsDemo
+  initialIsDemo,
+  initialReviews,
 }: MenuPageClientProps) {
   const { menuStyle } = useCookieStore();
   const hydrated = useHydrated();
@@ -86,7 +87,7 @@ export default function MenuPageClient({
           <HeroSlider products={products} isLoading={isLoading} />
           <DispensaryLocator locations={locations} isLoading={isLoading}/>
           <ProductGrid products={products} isLoading={isLoading} />
-          <RecentReviewsFeed />
+          <RecentReviewsFeed reviews={initialReviews} products={products} isLoading={isLoading} />
         </div>
       </main>
       <FloatingCartPill />

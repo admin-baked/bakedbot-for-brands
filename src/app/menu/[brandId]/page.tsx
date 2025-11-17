@@ -1,8 +1,11 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
-import { demoProducts, demoRetailers } from '@/lib/data';
+import { demoProducts, demoRetailers, demoCustomer } from '@/lib/data';
 import MenuPageClient from '@/app/menu-page-client';
+import type { Product, Retailer, Review } from '@/types/domain';
+import { collectionGroup, query, orderBy, limit } from 'firebase/firestore';
+import { reviewConverter } from '@/firebase/converters';
 
 // Revalidate the page every 60 seconds to fetch fresh data
 export const revalidate = 60;
@@ -14,9 +17,9 @@ export const revalidate = 60;
 export default async function MenuPage({ params }: { params: { brandId: string } }) {
   const { brandId } = params;
 
-  let products;
-  let locations;
-  let isLoading = false; // Data is fetched before render, so it's never "loading" on the client
+  let products: Product[];
+  let locations: Retailer[];
+  let reviews: Review[];
   let isDemo = false;
 
   if (brandId === 'default' || process.env.NEXT_PUBLIC_USE_DEMO_DATA === 'true') {
@@ -24,20 +27,31 @@ export default async function MenuPage({ params }: { params: { brandId: string }
     isDemo = true;
     products = demoProducts;
     locations = demoRetailers;
+    reviews = demoCustomer.reviews as Review[];
   } else {
     // Fetch live data from Firestore on the server
     try {
       const { firestore } = await createServerClient();
       const productRepo = makeProductRepo(firestore);
       
-      // Fetch both products and locations concurrently for efficiency
-      const [fetchedProducts, locationsSnap] = await Promise.all([
+      const reviewsQuery = query(
+          collectionGroup(firestore, 'reviews').withConverter(reviewConverter), 
+          orderBy('createdAt', 'desc'), 
+          limit(10)
+      );
+
+      const [fetchedProducts, locationsSnap, reviewsSnap] = await Promise.all([
         productRepo.getAllByBrand(brandId),
-        firestore.collection('dispensaries').get()
+        firestore.collection('dispensaries').get(),
+        firestore.runTransaction(async tx => {
+            const snap = await tx.get(reviewsQuery);
+            return snap.docs.map(doc => doc.data());
+        })
       ]);
 
       products = fetchedProducts;
-      locations = locationsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as typeof demoRetailers;
+      locations = locationsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Retailer[];
+      reviews = reviewsSnap;
 
     } catch (error) {
       console.error(`[MenuPage] Failed to fetch data for brand ${brandId}:`, error);
@@ -45,6 +59,7 @@ export default async function MenuPage({ params }: { params: { brandId: string }
       isDemo = true;
       products = demoProducts;
       locations = demoRetailers;
+      reviews = demoCustomer.reviews as Review[];
     }
   }
 
@@ -55,6 +70,7 @@ export default async function MenuPage({ params }: { params: { brandId: string }
       initialProducts={products}
       initialLocations={locations}
       initialIsDemo={isDemo}
+      initialReviews={reviews}
     />
   );
 }
