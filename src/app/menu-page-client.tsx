@@ -1,15 +1,12 @@
 
 'use client';
 
-import { useStore } from '@/hooks/use-store';
 import { Skeleton } from '@/components/ui/skeleton';
 import TiledMenuPage from '@/app/menu/tiled/page';
 import { HeroSlider } from '@/components/hero-slider';
 import { DispensaryLocator } from '@/components/dispensary-locator';
 import { ProductGrid } from '@/components/product-grid';
 import RecentReviewsFeed from '@/components/recent-reviews-feed';
-import Header from '@/components/header';
-import { Footer } from '@/components/footer';
 import { FloatingCartPill } from '@/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { useHydrated } from '@/hooks/use-hydrated';
@@ -57,8 +54,7 @@ export default function MenuPageClient({
   // Show loading skeleton until hydrated on the client.
   if (isLoading) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
+      <div className="pt-16">
         <main className="container mx-auto px-4 py-8 flex-1">
           <Skeleton className="w-full h-80 rounded-lg mb-12" />
           <Skeleton className="w-full h-48 rounded-lg mb-12" />
@@ -68,7 +64,6 @@ export default function MenuPageClient({
             ))}
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -80,19 +75,15 @@ export default function MenuPageClient({
   
   // Render default grid layout
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1">
+    <div className="pt-16">
         <div className="container mx-auto px-4 space-y-12">
           <HeroSlider products={featuredProducts} isLoading={false} />
           <DispensaryLocator locations={locations} isLoading={false}/>
           <ProductGrid products={products} isLoading={false} />
           <RecentReviewsFeed reviews={initialReviews} products={products} isLoading={false} />
         </div>
-      </main>
       <FloatingCartPill />
       <Chatbot products={featuredProducts} brandId={brandId} />
-      <Footer />
     </div>
   );
 }

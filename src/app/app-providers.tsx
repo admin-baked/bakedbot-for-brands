@@ -10,18 +10,18 @@ import { useEffect, useState } from 'react';
 import { collection, query, getDocs } from 'firebase/firestore';
 import { retailerConverter, type Retailer } from '@/firebase/converters';
 import { demoRetailers } from '@/lib/data';
+import Header from '@/components/header';
+import { Footer } from '@/components/footer';
 
 /**
  * AppProviders is a client component that sets up global providers
- * that rely on client-side state or hooks.
+ * and the main app layout structure (Header, Footer).
  */
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const { _hasHydrated } = useCookieStore();
   const { firestore } = useFirebase();
   const [locations, setLocations] = useState<Retailer[]>(demoRetailers);
 
-  // Synchronize the Zustand store with the cookie store after hydration.
-  // This is crucial for consistency between server and client renders.
   const { selectedRetailerId, setSelectedRetailerId } = useStore();
   const { favoriteRetailerId } = useCookieStore();
 
@@ -45,7 +45,6 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error("Failed to fetch locations for providers:", error);
-        // Fallback to demo data is handled by the initial state
       }
     }
     fetchLocations();
@@ -54,8 +53,14 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeProvider>
-      {children}
-      <CartSheet locations={locations}/>
+        <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-1">
+                {children}
+            </main>
+            <Footer />
+        </div>
+        <CartSheet locations={locations}/>
     </ThemeProvider>
   );
 }
