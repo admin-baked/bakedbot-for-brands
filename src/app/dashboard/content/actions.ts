@@ -160,6 +160,7 @@ export async function summarizeProductReviews(
   formData: FormData
 ): Promise<ReviewSummaryFormState> {
   const productId = formData.get('productId') as string;
+  const productName = formData.get('productName') as string;
 
   if (!productId) {
     return {
