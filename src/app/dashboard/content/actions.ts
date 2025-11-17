@@ -18,9 +18,7 @@ import {
 } from '@/ai/flows/summarize-reviews';
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
-import { FieldValue } from 'firebase-admin/firestore';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { headers } from 'next/headers';
+import { updateProductFeedback } from '@/app/products/[id]/actions';
 
 
 const DescriptionFormSchema = z.object({
@@ -77,7 +75,6 @@ export async function createProductDescription(
     keywords: formData.get('keywords'),
     brandVoice: formData.get('brandVoice'),
     msrp: formData.get('msrp'),
-    imageUrl: formData.get('imageUrl'), // Read the image URL from the form
   });
 
   if (!validatedFields.success) {
@@ -89,17 +86,14 @@ export async function createProductDescription(
     };
   }
   
-  const { imageUrl, productId, ...restOfData } = validatedFields.data;
+  const { productId, ...restOfData } = validatedFields.data;
 
   try {
-    const result = await generateProductDescription({
-      ...restOfData,
-      imageUrl: imageUrl ?? undefined, // Pass existing URL or undefined
-    } as GenerateProductDescriptionInput);
+    const result = await generateProductDescription(restOfData as GenerateProductDescriptionInput);
 
     return {
       message: 'Product description generated successfully.',
-      data: { ...result, productId, imageUrl: imageUrl || result.imageUrl }, // Persist the input image URL
+      data: { ...result, productId },
       error: false,
     };
   } catch (e) {
@@ -176,8 +170,6 @@ export async function summarizeProductReviews(
   }
 
   try {
-    // To securely call the tool, we need the brandId.
-    // Fetch the product doc on the server to get it.
     const { firestore } = await createServerClient();
     const productSnap = await firestore.collection('products').doc(productId).get();
 
@@ -186,8 +178,6 @@ export async function summarizeProductReviews(
     }
 
     const productData = productSnap.data();
-
-    // Use the brandId from the product if it exists, otherwise use a placeholder.
     const brandId = productData?.brandId || 'bakedbot-brand-id'; 
     
     const result = await runSummarizeReviews({ productId, brandId });
