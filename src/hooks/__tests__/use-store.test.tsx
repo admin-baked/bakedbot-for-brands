@@ -1,6 +1,7 @@
 
 import { act, renderHook } from '@testing-library/react';
 import { useStore } from '../use-store';
+import { useCookieStore } from '@/lib/cookie-storage';
 import { demoProducts } from '@/lib/data';
 import type { Product } from '@/lib/types';
 
@@ -12,7 +13,8 @@ describe('useStore - Cart Logic', () => {
   // Reset store before each test to ensure isolation
   beforeEach(() => {
     act(() => {
-      useStore.setState({ cartItems: [], selectedRetailerId: 'loc1', selectedLocationId: 'loc1' });
+      useStore.setState({ cartItems: [], selectedRetailerId: 'loc1' });
+      useCookieStore.setState({ selectedRetailerId: 'loc1', favoriteRetailerId: 'loc1' });
     });
   });
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,6 +15,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import type { Retailer } from '@/lib/types';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from './ui/skeleton';
+import { useCookieStore } from '@/lib/cookie-storage';
 
 interface DispensaryLocatorProps {
   locations: Retailer[];
@@ -21,7 +23,8 @@ interface DispensaryLocatorProps {
 }
 
 export function DispensaryLocator({ locations, isLoading }: DispensaryLocatorProps) {
-  const { selectedRetailerId, setSelectedRetailerId, favoriteRetailerId, setFavoriteRetailerId } = useStore();
+  const { selectedRetailerId, setSelectedRetailerId } = useStore();
+  const { favoriteRetailerId, setFavoriteRetailerId } = useCookieStore();
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
   const hydrated = useHydrated();
