@@ -1,10 +1,10 @@
+
 'use client';
 
-import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
-import { type Product } from '@/firebase/converters';
+import { type Product } from '@/types/domain';
 import { Button } from './ui/button';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
@@ -24,9 +24,6 @@ export function HeroSlider({ products, isLoading }: HeroSliderProps) {
         return null;
     }
 
-    // Get 3 products with the most likes
-    const featuredProducts = [...products].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 3);
-
     return (
         <div className="w-full rounded-lg overflow-hidden mb-12">
         <Carousel
@@ -35,7 +32,7 @@ export function HeroSlider({ products, isLoading }: HeroSliderProps) {
             opts={{ loop: true }}
         >
             <CarouselContent>
-                {featuredProducts.map((product, index) => (
+                {products.map((product, index) => (
                     <CarouselItem key={product.id}>
                         <div className="relative h-64 md:h-80 w-full">
                             <Image

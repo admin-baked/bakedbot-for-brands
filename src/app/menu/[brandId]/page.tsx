@@ -4,7 +4,7 @@ import { makeProductRepo } from '@/server/repos/productRepo';
 import { demoProducts, demoRetailers, demoCustomer } from '@/lib/data';
 import MenuPageClient from '@/app/menu-page-client';
 import type { Product, Retailer, Review } from '@/types/domain';
-import { collectionGroup, query, orderBy, limit } from 'firebase/firestore';
+import { collectionGroup, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { reviewConverter } from '@/firebase/converters';
 
 // Revalidate the page every 60 seconds to fetch fresh data
@@ -43,15 +43,12 @@ export default async function MenuPage({ params }: { params: { brandId: string }
       const [fetchedProducts, locationsSnap, reviewsSnap] = await Promise.all([
         productRepo.getAllByBrand(brandId),
         firestore.collection('dispensaries').get(),
-        firestore.runTransaction(async tx => {
-            const snap = await tx.get(reviewsQuery);
-            return snap.docs.map(doc => doc.data());
-        })
+        getDocs(reviewsQuery)
       ]);
 
       products = fetchedProducts;
       locations = locationsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Retailer[];
-      reviews = reviewsSnap;
+      reviews = reviewsSnap.docs.map(doc => doc.data());
 
     } catch (error) {
       console.error(`[MenuPage] Failed to fetch data for brand ${brandId}:`, error);
