@@ -67,6 +67,7 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer }: CheckoutFormP
     },
   });
 
+  // Pre-fill form with user data if available
   useEffect(() => {
     if (user) {
       form.reset({

@@ -11,10 +11,9 @@ import { Loader2, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Footer } from '@/components/footer';
-import { useHydrated } from '@/hooks/use-hydrated';
+import { useHydrated } from '@/hooks/useHydrated';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckoutForm } from '@/components/checkout-form';
-import { useCookieStore } from '@/lib/cookie-storage';
 import { demoRetailers } from '@/lib/data';
 
 
