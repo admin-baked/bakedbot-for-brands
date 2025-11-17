@@ -13,45 +13,13 @@ import { Footer } from '@/components/footer';
 import { FloatingCartPill } from '@/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { useHydrated } from '@/hooks/use-hydrated';
-import { useEffect } from 'react';
-import type { Product, Retailer } from '@/types/domain';
-import { useDemoMode } from '@/context/demo-mode';
 
-interface MenuPageClientProps {
-  initialProducts: Product[];
-  initialLocations: Retailer[];
-  initialIsDemo: boolean;
-}
-
-/**
- * This client component receives server-fetched data and handles all interactivity.
- */
-export default function MenuPageClient({
-  initialProducts,
-  initialLocations,
-  initialIsDemo
-}: MenuPageClientProps) {
+export default function MenuPageClient() {
   const { menuStyle } = useStore();
   const hydrated = useHydrated();
+  const { products, locations, isLoading } = useMenuData();
 
-  // The useDemoMode hook now controls the client-side state, which can
-  // override the initial server-rendered state.
-  const { isDemo, setIsDemo } = useDemoMode();
-
-  // Set the initial demo state from the server render, but only once.
-  useEffect(() => {
-    setIsDemo(initialIsDemo);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialIsDemo, setIsDemo]);
-
-  // The useMenuData hook is still used here, but it will now prioritize
-  // the client-side demo mode toggle over its own fetching logic.
-  const { products, locations, isLoading } = useMenuData({
-    serverProducts: initialProducts,
-    serverLocations: initialLocations,
-  });
-
-  // Show loading skeleton until hydrated on the client.
+  // Show loading skeleton until hydrated AND data is loaded
   if (!hydrated || isLoading) {
     return (
       <div className="flex flex-col min-h-screen">
