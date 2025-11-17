@@ -72,18 +72,14 @@
       "type": "object",
       "description": "Represents a user of the BakedBot AI Assistant.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user."
-        },
-        "username": {
-          "type": "string",
-          "description": "Username of the user."
-        },
         "email": {
           "type": "string",
           "description": "Email address of the user.",
           "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the user."
         },
         "favoriteLocationId": {
           "type": "string",
@@ -99,14 +95,16 @@
             "owner"
           ]
         },
+        "brandId": {
+          "type": "string",
+          "description": "For brand users, the ID of the brand they manage."
+        },
         "locationId": {
           "type": "string",
           "description": "For dispensary users, the ID of the location they manage."
         }
       },
       "required": [
-        "id",
-        "username",
         "email"
       ]
     },
