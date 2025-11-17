@@ -1,9 +1,9 @@
 
-import CheckoutClientPage from './checkout-client-page';
+import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
 import { demoRetailers } from '@/lib/data';
 import type { Retailer } from '@/types/domain';
-import { cookies } from 'next/headers';
+import CheckoutClientPage from './checkout-client-page';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
