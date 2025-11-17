@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent, useTransition, useCallback } from 'react';
@@ -31,6 +30,7 @@ import OnboardingFlow from './chatbot/onboarding-flow';
 import ChatMessages from './chatbot/chat-messages';
 import ChatProductCarousel from './chatbot/chat-product-carousel';
 import { useUser } from '@/firebase/auth/use-user';
+import { useCookieStore } from '@/lib/cookie-storage';
 
 
 type Message = {
@@ -169,7 +169,7 @@ export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
-  const { chatExperience } = useStore();
+  const { chatExperience } = useCookieStore();
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -419,7 +419,7 @@ export default function Chatbot() {
     } finally {
       setIsBotTyping(false);
     }
-  }, [inputValue, isBotTyping, hasStartedChat, chatMode, products, brandId, handleOnboardingComplete]);
+  }, [inputValue, isBotTyping, hasStartedChat, chatMode, products, brandId]);
 
   const handleFeedback = (productId: string, type: 'like' | 'dislike') => {
     startTransition(async () => {

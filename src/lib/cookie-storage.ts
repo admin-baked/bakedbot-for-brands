@@ -1,3 +1,4 @@
+
 'use client';
 
 import { type Theme } from '@/lib/themes';
@@ -28,17 +29,14 @@ const defaultNavLinks: NavLink[] = [
     { href: '/dashboard/ceo/initialize-embeddings', label: 'AI Search Index', icon: 'BrainCircuit', hidden: true },
 ];
 
-export interface StoreState {
+export interface CookieStoreState {
   _hasHydrated: boolean;
-  // Cart State
-  cartItems: CartItem[];
   
   // App/UI State
   theme: Theme;
   menuStyle: 'default' | 'alt';
-  selectedRetailerId: string | null;
   favoriteRetailerId: string | null;
-  isCartSheetOpen: boolean;
+  favoriteLocationId: string | null;
   chatExperience: 'default' | 'classic';
   
   // Settings
@@ -56,9 +54,8 @@ export interface StoreState {
   // Actions
   setTheme: (theme: Theme) => void;
   setMenuStyle: (style: 'default' | 'alt') => void;
-  setSelectedRetailerId: (id: string | null) => void;
   setFavoriteRetailerId: (id: string | null) => void;
-  setCartSheetOpen: (isOpen: boolean) => void;
+  setFavoriteLocationId: (id: string | null) => void;
   setChatExperience: (experience: 'default' | 'classic') => void;
   recordBrandImageGeneration: () => void;
   setBrandColor: (color: string) => void;
@@ -72,30 +69,19 @@ export interface StoreState {
   updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
   toggleNavLinkVisibility: (href: string) => void;
   removeNavLink: (href: string) => void;
-
-  // Cart Actions
-  addToCart: (product: Product, retailerId?: string | null) => void;
-  removeFromCart: (itemId: string) => void;
-  updateQuantity: (itemId: string, quantity: number) => void;
-  clearCart: () => void;
-  getCartTotal: () => { subtotal: number; taxes: number; total: number };
-  getItemCount: () => number;
 }
 
 
-export const useStore = create<StoreState>()(
+export const useCookieStore = create<CookieStoreState>()(
   persist(
     (set, get) => ({
       _hasHydrated: false,
-      // Cart State
-      cartItems: [],
       
       // App/UI State
       theme: 'green' as Theme,
       menuStyle: 'default' as 'default' | 'alt',
-      selectedRetailerId: null,
       favoriteRetailerId: null,
-      isCartSheetOpen: false,
+      favoriteLocationId: null,
       chatExperience: 'default' as 'classic',
       
       // Settings
@@ -113,9 +99,8 @@ export const useStore = create<StoreState>()(
       // Actions
       setTheme: (theme: Theme) => set({ theme }),
       setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
-      setSelectedRetailerId: (id: string | null) => set({ selectedRetailerId: id }),
-      setFavoriteRetailerId: (id: string | null) => set({ favoriteRetailerId: id }),
-      setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
+      setFavoriteRetailerId: (id: string | null) => set({ favoriteRetailerId: id, favoriteLocationId: id }),
+      setFavoriteLocationId: (id: string | null) => set({ favoriteRetailerId: id, favoriteLocationId: id }),
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
       setBrandColor: (color: string) => set({ brandColor: color }),
       setBrandUrl: (url: string) => set({ brandUrl: url }),
@@ -146,54 +131,6 @@ export const useStore = create<StoreState>()(
       })),
       removeNavLink: (href: string) => set(state => ({ navLinks: state.navLinks.filter(l => l.href !== href) })),
       
-      // Cart Actions
-      addToCart: (product, retailerId) =>
-        set((state) => {
-          const existingItem = state.cartItems.find((i) => i.id === product.id);
-          
-          const price = (retailerId && product.prices?.[retailerId])
-            ? product.prices[retailerId]
-            : product.price;
-
-          if (existingItem) {
-            return {
-              cartItems: state.cartItems.map((i) =>
-                i.id === product.id ? { ...i, quantity: i.quantity + 1, price } : i
-              ),
-            };
-          }
-          return { cartItems: [...state.cartItems, { ...product, quantity: 1, price }] };
-        }),
-
-      removeFromCart: (itemId) =>
-        set((state) => ({
-          cartItems: state.cartItems.filter((i) => i.id !== itemId),
-        })),
-
-      updateQuantity: (itemId, quantity) =>
-        set((state) => {
-          if (quantity <= 0) {
-            return { cartItems: state.cartItems.filter((i) => i.id !== itemId) };
-          }
-          return {
-            cartItems: state.cartItems.map((i) =>
-              i.id === itemId ? { ...i, quantity } : i
-            ),
-          };
-        }),
-        
-      clearCart: () => set({ cartItems: [] }),
-
-      getCartTotal: () => {
-        const subtotal = get().cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-        const taxes = subtotal * 0.15; 
-        const total = subtotal + taxes;
-        return { subtotal, taxes, total };
-      },
-
-      getItemCount: () => {
-        return get().cartItems.reduce((total, item) => total + item.quantity, 0);
-      },
     }),
     {
       name: 'bakedbot-storage', 
@@ -206,11 +143,10 @@ export const useStore = create<StoreState>()(
       // Use partialize to select which parts of the state to persist.
       // We are excluding `navLinks` and `isCeoMode`.
       partialize: (state) => ({
-        cartItems: state.cartItems,
         theme: state.theme,
         menuStyle: state.menuStyle,
-        selectedRetailerId: state.selectedRetailerId,
         favoriteRetailerId: state.favoriteRetailerId,
+        favoriteLocationId: state.favoriteLocationId,
         chatExperience: state.chatExperience,
         brandImageGenerations: state.brandImageGenerations,
         lastBrandImageGeneration: state.lastBrandImageGeneration,

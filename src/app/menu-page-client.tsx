@@ -1,6 +1,8 @@
+
 'use client';
 
 import { useStore } from '@/hooks/use-store';
+import { useCookieStore } from '@/lib/cookie-storage';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMenuData } from '@/hooks/use-menu-data';
 import TiledMenuPage from '@/app/menu/tiled/page';
@@ -31,7 +33,7 @@ export default function MenuPageClient({
   initialLocations,
   initialIsDemo
 }: MenuPageClientProps) {
-  const { menuStyle } = useStore();
+  const { menuStyle } = useCookieStore();
   const hydrated = useHydrated();
 
   // The useDemoMode hook now controls the client-side state, which can

@@ -18,7 +18,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Minus, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/hooks/use-hydrated';
 
 export function CartSheet() {
   const { isCartSheetOpen, setCartSheetOpen, selectedRetailerId, cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useStore();
