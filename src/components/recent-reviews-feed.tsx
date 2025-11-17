@@ -56,12 +56,12 @@ const ReviewSkeleton = () => (
 )
 
 interface RecentReviewsFeedProps {
-    reviews: Review[];
-    products: Product[];
-    isLoading: boolean;
+    reviews?: Review[];
+    products?: Product[];
+    isLoading?: boolean;
 }
 
-export default function RecentReviewsFeed({ reviews, products, isLoading }: RecentReviewsFeedProps) {
+export default function RecentReviewsFeed({ reviews = [], products = [], isLoading = false }: RecentReviewsFeedProps) {
 
     if (isLoading) {
         return (

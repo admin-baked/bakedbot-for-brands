@@ -11,7 +11,6 @@ import { demoProducts, demoCustomer } from '@/lib/data';
 import type { Product, Review } from '@/types/domain';
 import { FeedbackSchema } from '@/types/actions';
 import { reviewConverter } from '@/firebase/converters';
-import { collection, getDocs, query } from 'firebase/firestore';
 
 
 /**
@@ -38,7 +37,7 @@ export async function getReviewSummary(input: {
       product = await productRepo.getById(productId);
 
       if (product) {
-          const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter).get();
+          const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter as any).get();
           reviews = reviewsSnap.docs.map(d => d.data());
       }
     }

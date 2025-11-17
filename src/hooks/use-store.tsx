@@ -12,10 +12,12 @@ export interface StoreState {
   cartItems: CartItem[];
   selectedRetailerId: string | null;
   isCartSheetOpen: boolean;
+  menuStyle: 'default' | 'alt';
 
   // Actions
   setSelectedRetailerId: (id: string | null) => void;
   setCartSheetOpen: (isOpen: boolean) => void;
+  setMenuStyle: (style: 'default' | 'alt') => void;
 
   // Cart Actions
   addToCart: (product: Product, retailerId?: string | null) => void;
@@ -32,6 +34,7 @@ export const useStore = create<StoreState>()(
       cartItems: [],
       selectedRetailerId: null,
       isCartSheetOpen: false,
+      menuStyle: 'default',
       
       // Actions
       setSelectedRetailerId: (id: string | null) => {
@@ -39,6 +42,7 @@ export const useStore = create<StoreState>()(
         set({ selectedRetailerId: id })
       },
       setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
+      setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
       
       // Cart Actions
       addToCart: (product, retailerId) =>
