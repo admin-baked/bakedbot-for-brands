@@ -3,12 +3,12 @@
 export const dynamic = 'force-dynamic';
 
 import { useFormState } from 'react-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import ProductDescriptionDisplay from './components/product-description-display';
 import ProductDescriptionForm from './components/product-description-form';
 import ReviewSummarizer from './components/review-summarizer';
-import { createProductDescription, createSocialMediaImage, type DescriptionFormState, type ImageFormState } from './actions';
+import { createProductDescription, createSocialMediaImage, type DescriptionFormState, type ImageFormState } from '@/app/dashboard/content/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PenSquare, MessageSquare } from 'lucide-react';
 import { useCookieStore } from '@/lib/cookie-storage';
@@ -33,18 +33,21 @@ export default function ProductContentGeneratorPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [areProductsLoading, setAreProductsLoading] = useState(true);
 
-  useState(() => {
-    if (isDemo) {
-        setProducts(demoProducts);
+  useEffect(() => {
+    async function loadProducts() {
+        if (isDemo) {
+            setProducts(demoProducts);
+        } else if (firestore) {
+            // In a real app, you'd get the brandId from the user's session
+            const brandId = 'default'; 
+            const productRepo = makeProductRepo(firestore as any); // Cast needed due to server/client type mismatch
+            const fetchedProducts = await productRepo.getAllByBrand(brandId);
+            setProducts(fetchedProducts);
+        }
         setAreProductsLoading(false);
-    } else if (firestore) {
-        const productRepo = makeProductRepo(firestore as any);
-        productRepo.getAllByBrand('default').then(p => { // Assuming brand 'default' for now
-            setProducts(p);
-            setAreProductsLoading(false);
-        });
     }
-  });
+    loadProducts();
+  }, [isDemo, firestore]);
 
   const handleContentUpdate = (content: (GenerateProductDescriptionOutput & { productId?: string }) | null) => {
     setGeneratedContent(content);

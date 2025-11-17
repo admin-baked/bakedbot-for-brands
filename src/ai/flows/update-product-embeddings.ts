@@ -12,6 +12,8 @@ import { makeProductRepo } from '@/server/repos/productRepo';
 import { generateEmbedding } from '@/ai/utils/generate-embedding';
 import { Timestamp } from 'firebase-admin/firestore';
 import type { Review, ReviewSummaryEmbedding as ReviewSummaryEmbeddingType } from '@/types/domain';
+import { reviewConverter } from '@/firebase/converters';
+import type { FirestoreDataConverter } from 'firebase-admin/firestore';
 
 // --- Input and Output Schemas ---
 
@@ -65,7 +67,7 @@ const updateProductEmbeddingsFlow = ai.defineFlow(
     // 1. Fetch Product and Reviews
     const [product, reviewsSnap] = await Promise.all([
         productRepo.getById(productId),
-        firestore.collection(`products/${productId}/reviews`).get()
+        firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter as FirestoreDataConverter<Review>).get()
     ]);
     
     if (!product) {

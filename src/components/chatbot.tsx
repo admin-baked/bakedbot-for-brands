@@ -44,7 +44,6 @@ const initialImageState: ImageFormState = {
     message: '',
     imageUrl: null,
     error: false,
-    status: 'idle',
 };
 
 type OnboardingAnswers = {
