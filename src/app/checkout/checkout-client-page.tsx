@@ -5,25 +5,24 @@ export const dynamic = 'force-dynamic';
 import { useStore } from '@/hooks/use-store';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
-import Header from '@/components/header';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Footer } from '@/components/footer';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckoutForm } from '@/components/checkout-form';
 import type { Retailer } from '@/types/domain';
+import { useCookieStore } from '@/lib/cookie-storage';
 
 interface CheckoutClientPageProps {
   locations: Retailer[];
-  isDemo: boolean;
 }
 
-export default function CheckoutClientPage({ locations, isDemo }: CheckoutClientPageProps) {
+export default function CheckoutClientPage({ locations }: CheckoutClientPageProps) {
   const router = useRouter();
   const hydrated = useHydrated();
+  const { isDemo } = useCookieStore();
   
   const { cartItems, getCartTotal, clearCart, selectedRetailerId } = useStore();
   
@@ -41,9 +40,8 @@ export default function CheckoutClientPage({ locations, isDemo }: CheckoutClient
   // This check is important because even authenticated users might land here with an empty cart.
   if (hydrated && cartItems.length === 0) {
       return (
-          <div className="min-h-screen bg-muted/20 flex flex-col">
-              <Header />
-              <main className="container mx-auto px-4 py-8 text-center flex-1">
+          <div className="min-h-screen bg-muted/20 flex flex-col pt-16">
+              <div className="container mx-auto px-4 py-8 text-center flex-1">
                   <Card className="max-w-md mx-auto">
                       <CardHeader>
                           <CardTitle>Your Cart is Empty</CardTitle>
@@ -57,8 +55,7 @@ export default function CheckoutClientPage({ locations, isDemo }: CheckoutClient
                           </Button>
                       </CardFooter>
                   </Card>
-              </main>
-              <Footer />
+              </div>
           </div>
       )
   }
@@ -81,9 +78,8 @@ export default function CheckoutClientPage({ locations, isDemo }: CheckoutClient
 
   // Render checkout
   return (
-    <div className="min-h-screen bg-muted/20 flex flex-col">
-      <Header />
-      <main className="container mx-auto px-4 py-8 flex-1">
+    <div className="min-h-screen bg-muted/20 pt-16">
+      <div className="container mx-auto px-4 py-8 flex-1">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left side - Form */}
           <div>
@@ -162,8 +158,7 @@ export default function CheckoutClientPage({ locations, isDemo }: CheckoutClient
             </Card>
           </div>
         </div>
-      </main>
-      <Footer />
+      </div>
     </div>
   );
 }
