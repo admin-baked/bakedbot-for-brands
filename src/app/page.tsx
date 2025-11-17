@@ -1,4 +1,4 @@
-// app/page.tsx  OR src/app/page.tsx
+// src/app/page.tsx
 export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white">
@@ -34,7 +34,7 @@ export default function Home() {
 
           <p className="text-xs text-gray-500">
             Proven lift: 23% more conversions, 18% higher cart size, and automated compliance
-            for IL, MI, OH, CA, NY.
+            for IL, MI, OH, CA, and NY.
           </p>
         </section>
 
@@ -42,24 +42,24 @@ export default function Home() {
           <div className="rounded-2xl border border-gray-800 bg-zinc-900/60 p-5 space-y-2">
             <h2 className="text-sm font-semibold">Smokey · AI Budtender</h2>
             <p className="text-xs text-gray-400">
-              Conversational recommendations grounded in real inventory, terpenes, and desired
-              effects. Built to reduce “what should I buy?” anxiety.
+              Conversational recommendations grounded in real inventory, terpenes, and
+              desired effects. Built to reduce “what should I buy?” anxiety.
             </p>
           </div>
 
           <div className="rounded-2xl border border-gray-800 bg-zinc-900/60 p-5 space-y-2">
             <h2 className="text-sm font-semibold">Craig · Marketing Automation</h2>
             <p className="text-xs text-gray-400">
-              Email and SMS campaigns that stay inside TCPA, CTIA, and state rules—
-              with Deebo checking every send.
+              Email and SMS campaigns that stay inside TCPA, CTIA, and state rules — with
+              Deebo checking every send.
             </p>
           </div>
 
           <div className="rounded-2xl border border-gray-800 bg-zinc-900/60 p-5 space-y-2">
             <h2 className="text-sm font-semibold">Pops · Intelligence</h2>
             <p className="text-xs text-gray-400">
-              Daily insights on what&apos;s selling, who&apos;s buying, and where margins are hiding,
-              so owners can make decisions in minutes, not weeks.
+              Daily insights on what&apos;s selling, who&apos;s buying, and where margins are
+              hiding, so owners can make decisions in minutes, not weeks.
             </p>
           </div>
         </section>
