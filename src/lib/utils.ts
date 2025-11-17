@@ -32,20 +32,6 @@ export function haversineDistance(
   return R * c;
 }
 
-/**
- * Sets a cookie to persist the demo mode state.
- * @param on - Whether demo mode is enabled.
- */
-export function setDemoCookie(on: boolean) {
-  if (typeof document === 'undefined') return;
-  const oneYear = 365 * 24 * 60 * 60;
-  document.cookie = [
-    `isUsingDemoData=${on ? "1" : "0"}`,
-    "Max-Age=" + oneYear,
-    "Path=/",
-    "SameSite=Lax",
-  ].join("; ");
-}
 
 /**
  * Formats a number into a compact, readable string (e.g., 1200 -> 1.2k).

@@ -1,7 +1,9 @@
+
 import { act, renderHook } from '@testing-library/react';
 import { useStore } from '../use-store';
+import { useCookieStore } from '@/lib/cookie-storage';
 import { demoProducts } from '@/lib/data';
-import type { Product } from '@/lib/types';
+import type { Product } from '@/types/domain';
 
 // The product to be used in tests
 const testProduct: Product = demoProducts[0]; // Cosmic Caramels, price: 25.00
@@ -11,7 +13,8 @@ describe('useStore - Cart Logic', () => {
   // Reset store before each test to ensure isolation
   beforeEach(() => {
     act(() => {
-      useStore.setState({ cartItems: [], selectedLocationId: 'loc1' });
+      useStore.setState({ cartItems: [], selectedRetailerId: 'loc1' });
+      useCookieStore.setState({ selectedRetailerId: 'loc1', favoriteRetailerId: 'loc1' });
     });
   });
 

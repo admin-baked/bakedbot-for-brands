@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, ShoppingBag, User, LogOut, Menu } from 'lucide-react';
+import { Search, ShoppingBag, User, LogOut, Menu, TestTube2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
@@ -16,20 +16,24 @@ import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useStore } from '@/hooks/use-store';
 import { useHydrated } from '@/hooks/use-hydrated';
+import { useCookieStore } from '@/lib/cookie-storage';
+import { Switch } from './ui/switch';
+import { Label } from './ui/label';
 
 
 export default function Header() {
     const { getItemCount, setCartSheetOpen } = useStore();
     const itemCount = getItemCount();
     const pathname = usePathname();
-    const { user, isUserLoading } = useUser();
+    const { user } = useUser();
     const { auth } = useFirebase();
     const router = useRouter();
     const { toast } = useToast();
     const hydrated = useHydrated();
+    const { isDemo, setIsDemo } = useCookieStore();
 
     const navLinks = [
-        { href: '/menu/default', label: 'Demo Menu' },
+        { href: isDemo ? '/menu/default' : '/menu', label: isDemo ? 'Demo Menu' : 'Live Menu' },
         { href: '/product-locator', label: 'Product Locator' },
     ];
     
@@ -81,6 +85,18 @@ export default function Header() {
                 </div>
 
                 <div className="flex items-center gap-4">
+                     {hydrated && (
+                        <div className="hidden md:flex items-center gap-2">
+                            <TestTube2 className="h-5 w-5 text-primary" />
+                            <Label htmlFor="demo-mode-switch" className="text-sm font-medium">Demo Mode</Label>
+                            <Switch
+                                id="demo-mode-switch"
+                                checked={isDemo}
+                                onCheckedChange={setIsDemo}
+                            />
+                        </div>
+                    )}
+                    <Separator orientation="vertical" className="h-6 hidden md:block" />
                     <Button variant="ghost" size="icon">
                         <Search className="h-5 w-5" />
                     </Button>
@@ -171,6 +187,17 @@ export default function Header() {
                                         <DropdownMenuItem onClick={() => router.push('/onboarding')}>Get Started</DropdownMenuItem>
                                     </>
                                 ) : null}
+                                 <DropdownMenuSeparator />
+                                <div className="p-2">
+                                     <div className="flex items-center justify-between gap-2">
+                                        <Label htmlFor="demo-mode-switch-mobile" className="text-sm font-medium">Demo</Label>
+                                        <Switch
+                                            id="demo-mode-switch-mobile"
+                                            checked={isDemo}
+                                            onCheckedChange={setIsDemo}
+                                        />
+                                    </div>
+                                </div>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>

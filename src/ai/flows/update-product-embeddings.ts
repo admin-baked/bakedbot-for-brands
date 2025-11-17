@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI flow that generates and stores a vector embedding for a product
@@ -98,7 +99,7 @@ const updateProductEmbeddingsFlow = ai.defineFlow(
     await productRepo.updateEmbedding(productId, {
         embedding: embedding,
         reviewCount: reviews.length,
-        updatedAt: Timestamp.now(),
+        updatedAt: Timestamp.now() as unknown as Timestamp,
     });
     
     return {

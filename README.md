@@ -1,4 +1,4 @@
-pm run# Firebase Studio
+npx tsc --noEmitpm run# Firebase Studio
 
 This is a NextJS starter in Firebase Studio.
 

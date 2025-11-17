@@ -2,7 +2,10 @@
 import sgMail from "@sendgrid/mail";
 import type { ServerOrderPayload } from "@/app/checkout/actions/submitOrder";
 import type { Retailer } from "@/firebase/converters";
-import type { OrderStatus } from "@/app/dashboard/orders/actions";
+
+// This is a simple type for the server action's return value.
+export type OrderStatus = 'submitted' | 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+
 
 type SendArgs = {
   to: string | string[];
