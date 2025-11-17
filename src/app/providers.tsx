@@ -1,4 +1,3 @@
-
 'use client';
 
 import { FirebaseClientProvider } from "@/firebase/client-provider";
