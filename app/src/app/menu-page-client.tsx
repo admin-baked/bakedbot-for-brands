@@ -4,7 +4,7 @@
 import { useStore } from '@/hooks/use-store';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMenuData } from '@/hooks/use-menu-data';
-import TiledMenuPage from './menu/tiled/page';
+import TiledMenuPage from '@/app/menu/tiled/page';
 import { HeroSlider } from '@/components/hero-slider';
 import { DispensaryLocator } from '@/components/dispensary-locator';
 import { ProductGrid } from '@/components/product-grid';
