@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCookieStore } from '@/lib/cookie-storage';
@@ -12,9 +13,7 @@ import { Footer } from '@/components/footer';
 import { FloatingCartPill } from '@/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { useHydrated } from '@/hooks/use-hydrated';
-import { useEffect, useMemo } from 'react';
 import type { Product, Retailer, Review } from '@/types/domain';
-import { useDemoMode } from '@/context/demo-mode';
 import { demoProducts, demoRetailers } from '@/lib/data';
 
 interface MenuPageClientProps {
@@ -36,20 +35,13 @@ export default function MenuPageClient({
   const { menuStyle } = useCookieStore();
   const hydrated = useHydrated();
 
-  const { isDemo, setIsDemo } = useDemoMode();
-
-  // Set the initial demo state from the server render, but only once.
-  useEffect(() => {
-    setIsDemo(initialIsDemo);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialIsDemo]);
-
   // isLoading is true until the component has hydrated on the client.
   const isLoading = !hydrated;
 
-  // Determine which data to display based on demo mode.
-  const products = isDemo ? demoProducts : initialProducts;
-  const locations = isDemo ? demoRetailers : initialLocations;
+  // The server now determines whether to pass live or demo data.
+  // The client just renders what it receives.
+  const products = initialIsDemo ? demoProducts : initialProducts;
+  const locations = initialIsDemo ? demoRetailers : initialLocations;
 
   // Show loading skeleton until hydrated on the client.
   if (isLoading) {
@@ -72,7 +64,6 @@ export default function MenuPageClient({
   
   // Render tiled layout if selected
   if (menuStyle === 'alt') {
-    // Pass the correct data down to the TiledMenuPage
     return <TiledMenuPage products={products} locations={locations} isLoading={false} />;
   }
   
