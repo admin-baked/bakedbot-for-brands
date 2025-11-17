@@ -1,5 +1,6 @@
 
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -84,7 +85,7 @@ export default function Home() {
                 </Button>
                  <Button asChild size="lg" variant="outline">
                     <Link href="/menu/default">
-                      Watch 2-min demo
+                      View the Demo
                     </Link>
                 </Button>
               </div>
@@ -494,9 +495,3 @@ export default function Home() {
     </div>
   );
 }
-
-// NOTE: These UI components are extracted for clarity but would typically live in their own files.
-// For this example, we'll keep them here.
-
-import { Button } from "@/components/ui/button";
-
