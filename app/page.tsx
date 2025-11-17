@@ -9,13 +9,15 @@ export default function Home() {
       <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-400/10 ring-1 ring-emerald-400/40">
-              <span className="text-sm font-semibold text-emerald-300">BB</span>
-            </div>
-            <div className="leading-tight">
-              <p className="text-sm font-semibold tracking-tight">BakedBot AI</p>
-              <p className="text-[11px] text-slate-400">Brand Intelligence Console</p>
-            </div>
+            <Link href="/" className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-400/10 ring-1 ring-emerald-400/40">
+                <span className="text-sm font-semibold text-emerald-300">BB</span>
+                </div>
+                <div className="leading-tight">
+                <p className="text-sm font-semibold tracking-tight">BakedBot AI</p>
+                <p className="text-[11px] text-slate-400">Brand Intelligence Console</p>
+                </div>
+            </Link>
           </div>
 
           <nav className="hidden items-center gap-8 text-sm text-slate-300 md:flex">
