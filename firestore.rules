@@ -21,8 +21,7 @@ service cloud.firestore {
     }
 
     // USER-SPECIFIC DATA
-    // A user can read/update their own document. The Cloud Function for custom
-    // claims handles the initial write.
+    // A user can read/update their own document. An 'owner' can manage any user.
     match /users/{userId} {
       allow read, update: if request.auth.uid == userId || request.auth.token.role == 'owner';
       
@@ -59,16 +58,16 @@ service cloud.firestore {
     
     // ORDERS
     // Orders can be created via a Server Action.
-    // They can be read by:
+    // They can be read/updated by:
     // 1. The user who owns the order.
-    // 2. An owner/brand role.
-    // 3. A dispensary manager, but ONLY for their specific location.
+    // 2. An 'owner' or 'brand' manager, but ONLY for orders within their brand.
+    // 3. A 'dispensary' manager, but ONLY for orders assigned to their specific location.
     match /orders/{orderId} {
       allow create: if false; // All creates via Server Action
       allow read, update: if request.auth.uid == resource.data.userId 
-          || request.auth.token.role in ['owner', 'brand']
-          || (request.auth.token.role == 'dispensary' 
-              && request.auth.token.locationId == resource.data.retailerId);
+          || (request.auth.token.role == 'owner')
+          || (request.auth.token.role == 'brand' && request.auth.token.brandId == resource.data.brandId)
+          || (request.auth.token.role == 'dispensary' && request.auth.token.locationId == resource.data.retailerId);
     }
   }
 }
