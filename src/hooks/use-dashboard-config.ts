@@ -17,6 +17,7 @@ const navConfig: Record<string, NavLink[]> = {
   brand: [
     { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
     { href: '/dashboard/orders', label: 'Orders', icon: 'Package' },
+    { href: '/dashboard/products', label: 'Products', icon: 'Box' },
     { href: '/dashboard/content', label: 'Content AI', icon: 'PenSquare' },
     { href: '/dashboard/settings', label: 'Settings', icon: 'Settings' },
   ],

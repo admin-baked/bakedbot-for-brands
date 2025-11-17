@@ -27,11 +27,14 @@ export function makeProductRepo(db: Firestore) {
      * Finds products with reviews that are semantically similar to the user's query.
      */
     async searchByVector(query: string, brandId: string, limit: number = 10): Promise<Product[]> {
+      // Ensure brandId is valid, fallback to 'default' if necessary.
+      const effectiveBrandId = brandId && brandId.trim() !== '' ? brandId : 'default';
+
       const queryEmbedding = await generateEmbedding(query);
 
       const vectorQuery = productCollection
-        .where('brandId', '==', brandId) // Ensure we only search within the correct brand
-        .where('reviewSummaryEmbedding.embedding', '!=', null) // Ensure embedding exists
+        .where('brandId', '==', effectiveBrandId)
+        .where('reviewSummaryEmbedding.embedding', '!=', null)
         .orderBy('reviewSummaryEmbedding.embedding')
         .findNearest('reviewSummaryEmbedding.embedding', queryEmbedding, {
           limit,
@@ -52,11 +55,15 @@ export function makeProductRepo(db: Firestore) {
      * This is a comprehensive fetch of the entire catalog for a brand.
      */
     async getAllByBrand(brandId: string): Promise<Product[]> {
-      const snapshot = await productCollection.where('brandId', '==', brandId).get();
-      if (snapshot.empty) {
-        return [];
-      }
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Product);
-    },
+        // Ensure brandId is valid, fallback to 'default' if necessary.
+        const effectiveBrandId = brandId && brandId.trim() !== '' ? brandId : 'default';
+
+        const snapshot = await productCollection.where('brandId', '==', effectiveBrandId).get();
+        if (snapshot.empty) {
+            console.log(`No products found for brandId: ${effectiveBrandId}`);
+            return [];
+        }
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    }
   };
 }
