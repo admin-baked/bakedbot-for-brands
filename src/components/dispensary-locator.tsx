@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase/provider';
 import { doc, updateDoc } from 'firebase/firestore';
-import type { Retailer } from '@/lib/types';
+import type { Retailer } from '@/types/domain';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from './ui/skeleton';
 import { useCookieStore } from '@/lib/cookie-storage';
