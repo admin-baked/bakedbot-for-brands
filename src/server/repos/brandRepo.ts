@@ -1,7 +1,8 @@
 
-import { Firestore } from 'firebase-admin/firestore';
+import { Firestore, FieldValue } from 'firebase-admin/firestore';
 import type { Brand } from '@/types/domain';
 import { defaultLogo } from '@/lib/data';
+import type { DeepPartial } from '@/types/utils';
 
 const defaultBrand: Brand = {
   id: 'default',
@@ -18,7 +19,6 @@ export function makeBrandRepo(db: Firestore) {
 
   return {
     async getById(id: string): Promise<Brand> {
-      // Use the default ID if none is provided.
       const brandId = id === 'default' || !id ? 'default' : id;
       
       try {
@@ -40,9 +40,37 @@ export function makeBrandRepo(db: Firestore) {
         } as Brand;
       } catch (error) {
         console.error(`Error fetching brand with ID "${brandId}":`, error);
-        // Fallback to default in case of any error
         return defaultBrand;
       }
     },
+    
+    /**
+     * Updates a brand document with the provided partial data.
+     * Uses dot notation for nested objects to avoid overwriting entire objects.
+     */
+    async update(id: string, data: DeepPartial<Omit<Brand, 'id'>>): Promise<void> {
+        if (!id) {
+            throw new Error("Brand ID is required for update.");
+        }
+        
+        const updatePayload: Record<string, any> = {};
+
+        // Flatten the nested structure for Firestore's update method
+        const flattenObject = (obj: any, prefix = ''): void => {
+            Object.keys(obj).forEach(key => {
+                const value = obj[key];
+                const newKey = prefix ? `${prefix}.${key}` : key;
+                if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof FieldValue)) {
+                    flattenObject(value, newKey);
+                } else {
+                    updatePayload[newKey] = value;
+                }
+            });
+        };
+
+        flattenObject(data);
+
+        await brandCollection.doc(id).update(updatePayload);
+    }
   };
 }
