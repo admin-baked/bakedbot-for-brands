@@ -1,6 +1,7 @@
 
 
 
+
 import { Timestamp } from 'firebase/firestore';
 
 export type Brand = {
@@ -17,7 +18,7 @@ export type Brand = {
 export type ReviewSummaryEmbedding = {
   embedding: number[];
   reviewCount: number;
-  updatedAt: Timestamp;
+  updatedAt: Date;
 };
 
 export type Product = {

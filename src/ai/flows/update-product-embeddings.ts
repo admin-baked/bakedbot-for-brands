@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { generateEmbedding } from '@/ai/utils/generate-embedding';
-import { Timestamp, type FirestoreDataConverter } from 'firebase-admin/firestore';
+import { FieldValue, type FirestoreDataConverter } from 'firebase-admin/firestore';
 import type { Review, ReviewSummaryEmbedding as ReviewSummaryEmbeddingType } from '@/types/domain';
 import { reviewConverter } from '@/firebase/converters';
 
@@ -101,7 +101,7 @@ const updateProductEmbeddingsFlow = ai.defineFlow(
     await productRepo.updateEmbedding(productId, {
         embedding: embedding,
         reviewCount: reviews.length,
-        updatedAt: Timestamp.now(),
+        updatedAt: new Date(),
     });
     
     return {
