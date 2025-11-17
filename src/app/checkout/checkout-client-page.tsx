@@ -8,20 +8,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription }
 import Header from '@/components/header';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, MapPin } from 'lucide-react';
-import { CheckoutForm } from '@/components/checkout-form';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useMenuData } from '@/hooks/use-menu-data';
 import { Footer } from '@/components/footer';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CheckoutForm } from '@/components/checkout-form';
 
-export default function CheckoutPage() {
+
+export default function CheckoutClientPage() {
   const router = useRouter();
   const hydrated = useHydrated();
   
   // Subscribe to state from the unified store
   const { cartItems, getCartTotal, clearCart, selectedRetailerId } = useStore();
+  // We can use the hook here because data is already fetched by the server parent
   const { locations: retailers, isLoading: isMenuLoading } = useMenuData();
   
   const selectedRetailer = retailers.find(loc => loc.id === selectedRetailerId);
@@ -48,6 +50,7 @@ export default function CheckoutPage() {
     );
   }
   
+  // This check is important because even authenticated users might land here with an empty cart.
   if (hydrated && cartItems.length === 0) {
       return (
           <div className="min-h-screen bg-muted/20 flex flex-col">
@@ -72,13 +75,13 @@ export default function CheckoutPage() {
       )
   }
   
-  // Final safety check before rendering - this prevents a crash if the location lookup fails
+  // Final safety check for location, which might not be set if user navigates directly.
   if (!selectedRetailer) {
      return (
        <div className="flex flex-col h-screen items-center justify-center text-center py-20">
          <Loader2 className="h-8 w-8 animate-spin text-primary" />
          <p className="text-muted-foreground mt-4">Validating location...</p>
-         <p className="text-destructive text-sm mt-2">No location selected. Please go back and select a location.</p>
+         <p className="text-destructive text-sm mt-2">No location selected. Please return to the menu and select a pickup spot.</p>
           <Button asChild variant="outline" className="mt-4">
               <Link href="/menu/default">
                   Return to Menu
