@@ -39,13 +39,11 @@ export interface CookieStoreState {
   favoriteLocationId: string | null;
   chatExperience: 'default' | 'classic';
   
-  // Settings
+  // Settings - These will be migrated to Firestore
   brandImageGenerations: number;
   lastBrandImageGeneration: number | null;
   brandColor: string;
   brandUrl: string;
-  basePrompt: string;
-  welcomeMessage: string;
   isCeoMode: boolean; // Not persisted
   emailProvider: 'sendgrid' | 'gmail';
   sendgridApiKey: string | null;
@@ -60,8 +58,6 @@ export interface CookieStoreState {
   recordBrandImageGeneration: () => void;
   setBrandColor: (color: string) => void;
   setBrandUrl: (url: string) => void;
-  setBasePrompt: (prompt: string) => void;
-  setWelcomeMessage: (message: string) => void;
   setIsCeoMode: (isCeo: boolean) => void;
   setEmailProvider: (provider: 'sendgrid' | 'gmail') => void;
   setSendgridApiKey: (key: string | null) => void;
@@ -89,8 +85,6 @@ export const useCookieStore = create<CookieStoreState>()(
       lastBrandImageGeneration: null,
       brandColor: '',
       brandUrl: '',
-      basePrompt: "You are Smokey, a friendly and knowledgeable AI budtender. Your goal is to help users discover the best cannabis products for them. Keep your tone light, informative, and a little playful.",
-      welcomeMessage: "Hello! I'm Smokey, your AI budtender. Browse our products above and ask me anything about them!",
       isCeoMode: false,
       emailProvider: 'sendgrid' as 'sendgrid' | 'gmail',
       sendgridApiKey: null,
@@ -104,8 +98,6 @@ export const useCookieStore = create<CookieStoreState>()(
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
       setBrandColor: (color: string) => set({ brandColor: color }),
       setBrandUrl: (url: string) => set({ brandUrl: url }),
-      setBasePrompt: (prompt: string) => set({ basePrompt: prompt }),
-      setWelcomeMessage: (message: string) => set({ welcomeMessage: message }),
       setIsCeoMode: (isCeo: boolean) => set({ isCeoMode: isCeo }), // Action to set non-persisted state
       setEmailProvider: (provider) => set({ emailProvider: provider }),
       setSendgridApiKey: (key) => set({ sendgridApiKey: key }),
@@ -140,8 +132,7 @@ export const useCookieStore = create<CookieStoreState>()(
             state._hasHydrated = true;
         }
       },
-      // Use partialize to select which parts of the state to persist.
-      // We are excluding `navLinks` and `isCeoMode`.
+      // We only persist UI preferences, not sensitive or brand-specific settings.
       partialize: (state) => ({
         theme: state.theme,
         menuStyle: state.menuStyle,
@@ -150,12 +141,6 @@ export const useCookieStore = create<CookieStoreState>()(
         chatExperience: state.chatExperience,
         brandImageGenerations: state.brandImageGenerations,
         lastBrandImageGeneration: state.lastBrandImageGeneration,
-        brandColor: state.brandColor,
-        brandUrl: state.brandUrl,
-        basePrompt: state.basePrompt,
-        welcomeMessage: state.welcomeMessage,
-        emailProvider: state.emailProvider,
-        sendgridApiKey: state.sendgridApiKey,
       }),
     }
   )

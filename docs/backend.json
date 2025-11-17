@@ -1,5 +1,44 @@
 {
   "entities": {
+    "Brand": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Brand",
+      "type": "object",
+      "description": "Represents a brand, containing settings for its public-facing menu and AI.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the brand."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the brand."
+        },
+        "logoUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the brand's logo."
+        },
+        "chatbotConfig": {
+          "type": "object",
+          "description": "Configuration for the AI chatbot.",
+          "properties": {
+            "basePrompt": {
+              "type": "string",
+              "description": "The base personality prompt for the AI budtender."
+            },
+            "welcomeMessage": {
+              "type": "string",
+              "description": "The initial welcome message shown in the chat window."
+            }
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
     "Product": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
@@ -30,6 +69,10 @@
         "categoryId": {
           "type": "string",
           "description": "Reference to Category. (Relationship: Category 1:N Product)"
+        },
+        "brandId": {
+          "type": "string",
+          "description": "Reference to Brand. (Relationship: Brand 1:N Product)"
         }
       },
       "required": [
@@ -38,7 +81,8 @@
         "description",
         "price",
         "imageUrl",
-        "categoryId"
+        "categoryId",
+        "brandId"
       ]
     },
     "Category": {
@@ -258,6 +302,22 @@
   "firestore": {
     "structure": [
       {
+        "path": "/brands/{brandId}",
+        "definition": {
+          "entityName": "Brand",
+          "schema": {
+            "$ref": "#/backend/entities/Brand"
+          },
+          "description": "Stores brand-specific configuration and settings.",
+          "params": [
+            {
+              "name": "brandId",
+              "description": "The unique identifier of the brand."
+            }
+          ]
+        }
+      },
+      {
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
@@ -358,6 +418,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the BakedBot AI Assistant, a WordPress plugin that provides AI-powered product recommendations, menu generation, content creation, and order management integration. The structure emphasizes authorization independence, clarity, and scalability, following the principles of DBAC (Database-Based Access Control). It avoids hierarchical authorization dependencies by denormalizing data where necessary, ensuring that security rules can be simple and efficient.\n\nThe key structural decisions and their justifications are:\n\n*   **Users Collection (`/users/{userId}`):** Stores user profiles with a `role` field to differentiate between customers, brands, and dispensaries.\n*   **Categories Collection (`/categories/{categoryId}`):** Stores product categories. No specific ownership required, so top-level collection.\n*   **Products Collection (`/products/{productId}`):** Stores product information. No specific ownership required, so top-level collection.  Includes a `categoryId` field to reference the category.\n*   **Orders Collection (`/orders/{orderId}`):** A root collection for all orders. This is a crucial change. It prevents a dispensary from needing to `get()` a user document to access an order, which would violate security rules. Security rules will grant access based on the order's `userId` (for customers) and `locationId` (for dispensaries).\n*   **Content Collection (`/content/{contentId}`):** Stores AI-generated content. No specific ownership required, so top-level collection.\n*   **UserInteractions Collection (`/users/{userId}/interactions/{interactionId}`):** Stores user interactions with the AI assistant, nested under the user. This supports personalized recommendations and utilizes path-based ownership.\n\nThis structure achieves **Authorization Independence** by:\n\n*   Using a root `/orders` collection. This allows a dispensary user (who is not the customer) to query for and update orders belonging to their location without needing to read the customer's user profile.\n\nThe structure supports the required **QAPs (Rules are not Filters)** by:\n\n*   Segregating data with different access needs into separate collections.\n*   Utilizing path-based ownership for user-specific data (interactions)."
+    "reasoning": "The Firestore data structure is designed to support the BakedBot AI Assistant, a WordPress plugin that provides AI-powered product recommendations, menu generation, content creation, and order management integration. The structure emphasizes authorization independence, clarity, and scalability, following the principles of DBAC (Database-Based Access Control). It avoids hierarchical authorization dependencies by denormalizing data where necessary, ensuring that security rules can be simple and efficient.\n\nThe key structural decisions and their justifications are:\n\n*   **Brands Collection (`/brands/{brandId}`):** Stores brand-specific settings, allowing for a multi-tenant architecture where each brand can have its own configuration for things like the AI chatbot.\n*   **Users Collection (`/users/{userId}`):** Stores user profiles with a `role` field to differentiate between customers, brands, and dispensaries.\n*   **Categories Collection (`/categories/{categoryId}`):** Stores product categories. No specific ownership required, so top-level collection.\n*   **Products Collection (`/products/{productId}`):** Stores product information and now includes a `brandId` to associate it with a brand.\n*   **Orders Collection (`/orders/{orderId}`):** A root collection for all orders. This is a crucial change. It prevents a dispensary from needing to `get()` a user document to access an order, which would violate security rules. Security rules will grant access based on the order's `userId` (for customers) and `locationId` (for dispensaries).\n*   **Content Collection (`/content/{contentId}`):** Stores AI-generated content. No specific ownership required, so top-level collection.\n*   **UserInteractions Collection (`/users/{userId}/interactions/{interactionId}`):** Stores user interactions with the AI assistant, nested under the user. This supports personalized recommendations and utilizes path-based ownership.\n\nThis structure achieves **Authorization Independence** by:\n\n*   Using a root `/orders` collection. This allows a dispensary user (who is not the customer) to query for and update orders belonging to their location without needing to read the customer's user profile.\n\nThe structure supports the required **QAPs (Rules are not Filters)** by:\n\n*   Segregating data with different access needs into separate collections.\n*   Utilizing path-based ownership for user-specific data (interactions)."
   }
 }

@@ -55,7 +55,6 @@ type OnboardingAnswers = {
 
 
 const ChatWindow = ({
-  chatExperience,
   products,
   onAskSmokey,
   hasStartedChat,
@@ -73,7 +72,6 @@ const ChatWindow = ({
   chatMode,
   onFeedback,
 }: {
-  chatExperience: 'default' | 'classic';
   products: Product[];
   onAskSmokey: (product: Product) => void;
   hasStartedChat: boolean;
@@ -91,6 +89,8 @@ const ChatWindow = ({
   chatMode: 'chat' | 'image';
   onFeedback: (productId: string, type: 'like' | 'dislike') => void;
 }) => {
+  const { chatExperience } = useCookieStore();
+  
   return (
     <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-card border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
       <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
