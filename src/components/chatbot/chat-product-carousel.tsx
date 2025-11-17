@@ -58,5 +58,3 @@ const ChatProductCarousel = ({ products, onAskSmokey, isCompact, onFeedback }: {
 );
 
 export default ChatProductCarousel;
-
-    

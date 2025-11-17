@@ -23,14 +23,14 @@ import { createSocialMediaImage } from '@/app/dashboard/content/actions';
 import { updateProductFeedback } from '@/app/products/[id]/actions';
 import type { ImageFormState } from '@/app/dashboard/content/actions';
 import { useToast } from '@/hooks/use-toast';
-import { useMenuData } from '@/hooks/use-menu-data';
 import { ChatbotIcon } from './chatbot-icon';
-import { defaultChatbotIcon } from '@/lib/data';
+import { defaultChatbotIcon, demoProducts } from '@/lib/data';
 import OnboardingFlow from './chatbot/onboarding-flow';
 import ChatMessages from './chatbot/chat-messages';
 import ChatProductCarousel from './chatbot/chat-product-carousel';
 import { useUser } from '@/firebase/auth/use-user';
 import { useCookieStore } from '@/lib/cookie-storage';
+import { useDemoMode } from '@/context/demo-mode';
 
 
 type Message = {
@@ -177,7 +177,11 @@ export default function Chatbot() {
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { products, isDemo } = useMenuData();
+  const { isDemo, setIsDemo } = useDemoMode();
+  
+  // This hook now correctly switches between demo and live data
+  const products = isDemo ? demoProducts : (useMenuData({serverProducts: [], serverLocations: []}).products);
+  
   const { user } = useUser();
   const [userProfile, setUserProfile] = useState<any>(null);
 
@@ -472,7 +476,6 @@ export default function Chatbot() {
           {isOpen && products && (
             <ChatWindow
               products={products}
-              chatExperience={chatExperience}
               onAskSmokey={handleAskSmokey}
               hasStartedChat={hasStartedChat}
               startOnboarding={startOnboarding}
