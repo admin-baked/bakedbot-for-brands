@@ -2,6 +2,16 @@
 
 import { Timestamp } from 'firebase/firestore';
 
+export type Brand = {
+  id: string;
+  name: string;
+  logoUrl?: string;
+  chatbotConfig: {
+    basePrompt: string;
+    welcomeMessage: string;
+  };
+};
+
 // Type for the review summary embedding stored on a Product
 export type ReviewSummaryEmbedding = {
   embedding: number[];
