@@ -4,7 +4,6 @@ import { cookies } from 'next/headers';
 import { retailerConverter, type Retailer } from '@/firebase/converters';
 import { demoRetailers } from '@/lib/data';
 import CheckoutClientPage from './checkout-client-page';
-import { collection, getDocs, query } from 'firebase/firestore';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,8 +16,10 @@ export default async function CheckoutPage() {
     } else {
         try {
             const { firestore } = await createServerClient();
-            const locationsQuery = query(collection(firestore, 'dispensaries')).withConverter(retailerConverter);
-            const snapshot = await getDocs(locationsQuery);
+            // Use Admin SDK syntax
+            const locationsRef = firestore.collection('dispensaries').withConverter(retailerConverter);
+            const snapshot = await locationsRef.get();
+            
             if (!snapshot.empty) {
                 locations = snapshot.docs.map(doc => doc.data());
             } else {
