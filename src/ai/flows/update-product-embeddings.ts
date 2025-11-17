@@ -99,7 +99,7 @@ const updateProductEmbeddingsFlow = ai.defineFlow(
     await productRepo.updateEmbedding(productId, {
         embedding: embedding,
         reviewCount: reviews.length,
-        updatedAt: Timestamp.now() as unknown as Timestamp,
+        updatedAt: Timestamp.now(),
     });
     
     return {

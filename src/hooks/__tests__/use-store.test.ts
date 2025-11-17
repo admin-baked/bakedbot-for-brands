@@ -14,7 +14,7 @@ describe('useStore - Cart Logic', () => {
   beforeEach(() => {
     act(() => {
       useStore.setState({ cartItems: [], selectedRetailerId: 'loc1' });
-      useCookieStore.setState({ selectedRetailerId: 'loc1', favoriteRetailerId: 'loc1' });
+      useCookieStore.setState({ selectedRetailerId: 'loc1' as (string | null), favoriteRetailerId: 'loc1' });
     });
   });
 

@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useCookieStore } from '@/lib/cookie-storage';
 import { Skeleton } from '@/components/ui/skeleton';
 import TiledMenuPage from '@/app/menu/tiled/page';
 import { HeroSlider } from '@/components/hero-slider';
@@ -15,6 +14,7 @@ import Chatbot from '@/components/chatbot';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { useEffect } from 'react';
 import type { Product, Retailer, Review } from '@/types/domain';
+import { useCookieStore } from '@/lib/cookie-storage';
 
 interface MenuPageClientProps {
   brandId: string;
@@ -74,7 +74,7 @@ export default function MenuPageClient({
   
   // Render tiled layout if selected
   if (menuStyle === 'alt') {
-    return <TiledMenuPage products={products} locations={locations} isLoading={false} />;
+    return <TiledMenuPage products={products} locations={locations} isLoading={false} brandId={brandId} />;
   }
   
   // Render default grid layout

@@ -1,5 +1,6 @@
 
 
+
 import { Timestamp } from 'firebase/firestore';
 
 export type Brand = {
@@ -76,6 +77,9 @@ export type Review = {
   createdAt: Timestamp;
 };
 
+// This is a simple type for the server action's return value.
+export type OrderStatus = 'submitted' | 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+
 // Type for the Order document stored in Firestore
 export type OrderDoc = {
   id: string; // Add id to the type
@@ -98,7 +102,7 @@ export type OrderDoc = {
   };
   retailerId: string; // Renamed from locationId
   createdAt: Timestamp;
-  status: 'submitted' | 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+  status: OrderStatus;
   mode: 'demo' | 'live';
 };
 

@@ -5,7 +5,7 @@ import { ProductCard } from './product-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Database } from 'lucide-react';
 import Link from 'next/link';
-import type { Product } from '@/firebase/converters';
+import type { Product } from '@/types/domain';
 import { useCookieStore } from '@/lib/cookie-storage';
 
 const ProductSkeleton = () => (
