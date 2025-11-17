@@ -17,9 +17,10 @@ interface TiledMenuPageProps {
   products: Product[];
   locations: Retailer[];
   isLoading: boolean;
+  brandId: string;
 }
 
-export default function TiledMenuPage({ products, locations, isLoading }: TiledMenuPageProps) {
+export default function TiledMenuPage({ products, locations, isLoading, brandId }: TiledMenuPageProps) {
 
   if (isLoading) {
     return (
@@ -48,7 +49,7 @@ export default function TiledMenuPage({ products, locations, isLoading }: TiledM
         </div>
       </main>
       <FloatingCartPill />
-      <Chatbot products={products} brandId="default" />
+      <Chatbot products={products} brandId={brandId} />
       <Footer />
     </div>
   );

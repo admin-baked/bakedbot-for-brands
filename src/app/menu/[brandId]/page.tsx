@@ -35,7 +35,7 @@ export default async function MenuPage({ params }: { params: { brandId: string }
       const productRepo = makeProductRepo(firestore);
       
       const reviewsQuery = query(
-          collectionGroup(firestore, 'reviews').withConverter(reviewConverter as any), 
+          collectionGroup(firestore, 'reviews'), 
           orderBy('createdAt', 'desc'), 
           limit(10)
       );
@@ -43,12 +43,12 @@ export default async function MenuPage({ params }: { params: { brandId: string }
       const [fetchedProducts, locationsSnap, reviewsSnap] = await Promise.all([
         productRepo.getAllByBrand(brandId),
         firestore.collection('dispensaries').get(),
-        getDocs(reviewsQuery as any)
+        getDocs(reviewsQuery)
       ]);
 
       products = fetchedProducts;
       locations = locationsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Retailer[];
-      reviews = reviewsSnap.docs.map(doc => doc.data());
+      reviews = reviewsSnap.docs.map(doc => reviewConverter.fromFirestore(doc)) as Review[];
 
     } catch (error) {
       console.error(`[MenuPage] Failed to fetch data for brand ${brandId}:`, error);
