@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Skeleton } from '@/components/ui/skeleton';
@@ -74,7 +73,13 @@ export default function MenuPageClient({
   
   // Render tiled layout if selected
   if (menuStyle === 'alt') {
-    return <TiledMenuPage products={products} locations={locations} isLoading={false} brandId={brandId} />;
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <TiledMenuPage products={products} locations={locations} isLoading={false} brandId={brandId} />
+        <Footer />
+      </div>
+    );
   }
   
   // Render default grid layout

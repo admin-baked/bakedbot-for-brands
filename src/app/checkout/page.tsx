@@ -5,6 +5,8 @@ import { retailerConverter, type Retailer } from '@/firebase/converters';
 import { demoRetailers } from '@/lib/data';
 import CheckoutClientPage from './checkout-client-page';
 import { collection, getDocs, query } from 'firebase/firestore';
+import Header from '@/components/header';
+import { Footer } from '@/components/footer';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,5 +33,11 @@ export default async function CheckoutPage() {
         }
     }
 
-    return <CheckoutClientPage locations={locations} isDemo={isDemo} />;
+    return (
+        <div className="flex flex-col min-h-screen">
+            <Header />
+            <CheckoutClientPage locations={locations} />
+            <Footer />
+        </div>
+    );
 }

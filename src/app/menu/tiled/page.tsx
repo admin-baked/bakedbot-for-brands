@@ -1,11 +1,10 @@
-
 'use client';
 
 // This component represents the "Tiled" or "Alternate" menu layout.
 // It is now a simple presentational component that receives all its data via props.
 
 import Chatbot from '@/components/chatbot';
-import { DispensaryLocator } from '@/components/dispensary-locator';
+import DispensaryLocator from '@/components/dispensary-locator';
 import { FloatingCartPill } from '@/components/floating-cart-pill';
 import { ProductGrid } from '@/components/product-grid';
 import { Skeleton } from '@/components/ui/skeleton';
