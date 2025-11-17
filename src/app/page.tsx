@@ -482,4 +482,3 @@ export default function BrandsHomepage() {
     </div>
   );
 }
-    
