@@ -9,10 +9,9 @@ import ProductDescriptionDisplay from './components/product-description-display'
 import ProductDescriptionForm from './components/product-description-form';
 import ReviewSummarizer from './components/review-summarizer';
 import { createProductDescription, createSocialMediaImage, type DescriptionFormState, type ImageFormState } from './actions';
-import { useDemoData } from '@/hooks/use-demo-data';
+import { demoProducts } from '@/lib/data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PenSquare, MessageSquare } from 'lucide-react';
-import SocialImageForm from './components/social-image-form';
 
 
 const initialDescriptionState: DescriptionFormState = { message: '', data: null, error: false };
@@ -25,8 +24,8 @@ export default function ProductContentGeneratorPage() {
   const [descriptionState, descriptionFormAction] = useFormState(createProductDescription, initialDescriptionState);
   const [imageState, imageFormAction] = useFormState(createSocialMediaImage, initialImageState);
   
-  // Get product data
-  const { products } = useDemoData();
+  // For the dashboard, using static demo data for the product selector is sufficient.
+  const products = demoProducts;
   const areProductsLoading = !products;
 
   const handleContentUpdate = (content: (GenerateProductDescriptionOutput & { productId?: string }) | null) => {
@@ -50,20 +49,15 @@ export default function ProductContentGeneratorPage() {
 
             <TabsContent value="generator" className="mt-6">
                  <div className="grid grid-cols-1 gap-8 @container lg:grid-cols-2">
-                    <div className="flex flex-col gap-8">
-                      <ProductDescriptionForm 
+                    <ProductDescriptionForm 
                         onContentUpdate={handleContentUpdate}
-                        formAction={descriptionFormAction}
-                        state={descriptionState}
+                        descriptionFormAction={descriptionFormAction}
+                        imageFormAction={imageFormAction}
+                        descriptionState={descriptionState}
+                        imageState={imageState}
                         products={products}
                         areProductsLoading={areProductsLoading}
-                      />
-                      <SocialImageForm
-                        onContentUpdate={handleContentUpdate}
-                        formAction={imageFormAction}
-                        state={imageState}
-                      />
-                    </div>
+                    />
                     <ProductDescriptionDisplay 
                         productDescription={generatedContent}
                     />

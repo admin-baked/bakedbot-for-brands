@@ -3,55 +3,111 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import type { DescriptionFormState } from '../actions';
+import type { DescriptionFormState, ImageFormState } from '../actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, Loader2, FileText } from 'lucide-react';
+import { DollarSign, Loader2, Upload, Wand2, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import type { Product } from '@/firebase/converters';
+import { defaultChatbotIcon } from '@/lib/data';
 
-function SubmitButton() {
+function SubmitButton({ action, type }: { action: (payload: FormData) => void, type: 'description' | 'image' }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button disabled={pending} type="submit">
-      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
-      Generate Description
+    <Button formAction={action} disabled={pending} type="submit" variant={type === 'description' ? 'default' : 'outline'}>
+      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (type === 'description' ? <FileText className="mr-2 h-4 w-4" /> : <Wand2 className="mr-2 h-4 w-4" />)}
+      {type === 'description' ? 'Generate Description' : 'Generate Image'}
     </Button>
   );
 }
 
 interface ProductDescriptionFormProps {
     onContentUpdate: (content: (GenerateProductDescriptionOutput & { productId?: string }) | null) => void;
-    formAction: (payload: FormData) => void;
-    state: DescriptionFormState;
+    descriptionFormAction: (payload: FormData) => void;
+    imageFormAction: (payload: FormData) => void;
+    descriptionState: DescriptionFormState;
+    imageState: ImageFormState;
     products: Product[] | null;
     areProductsLoading: boolean;
 }
 
-export default function ProductDescriptionForm({ onContentUpdate, formAction, state, products, areProductsLoading }: ProductDescriptionFormProps) {
+export default function ProductDescriptionForm({ onContentUpdate, descriptionFormAction, imageFormAction, descriptionState, imageState, products, areProductsLoading }: ProductDescriptionFormProps) {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [localGeneratedContent, setLocalGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
+  const [packagingImage, setPackagingImage] = useState<string>('');
   
+  // Effect for handling description generation results
   useEffect(() => {
-    if (state.message) {
-      if (state.error) {
-        if(!state.fieldErrors) {
-          toast({ variant: 'destructive', title: 'Error', description: state.message });
+    if (descriptionState.message) {
+      if (descriptionState.error) {
+        if(!descriptionState.fieldErrors) { // Show toast only for general errors
+          toast({ variant: 'destructive', title: 'Error', description: descriptionState.message });
         }
-      } else if (state.data) {
-        onContentUpdate({ ...state.data, productId: selectedProductId });
+      } else if (descriptionState.data) {
+        const newContent = { 
+            ...descriptionState.data,
+            imageUrl: descriptionState.data.imageUrl || packagingImage || localGeneratedContent?.imageUrl || '',
+            productId: descriptionState.data.productId || selectedProductId 
+        } as GenerateProductDescriptionOutput & { productId?: string };
+        setLocalGeneratedContent(newContent);
+        onContentUpdate(newContent);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
+  }, [descriptionState]);
+
+  // Effect for handling image generation results
+  useEffect(() => {
+    if (imageState.message) {
+      toast({
+        variant: imageState.error ? 'destructive' : 'default',
+        title: imageState.error ? 'Image Generation Error' : 'Success',
+        description: imageState.message,
+      });
+    }
+    if (!imageState.error && imageState.imageUrl) {
+        const productName = formRef.current?.productName.value || localGeneratedContent?.productName || 'Generated Image';
+        const newContent = {
+            ...(localGeneratedContent ?? { productName: '', description: '' }),
+            productName: productName,
+            imageUrl: imageState.imageUrl,
+            productId: selectedProductId
+        } as GenerateProductDescriptionOutput & { productId?: string };
+        setLocalGeneratedContent(newContent);
+        onContentUpdate(newContent);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageState]);
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUri = reader.result as string;
+        setPackagingImage(dataUri);
+        // Also update the display immediately
+        const newContent = {
+            ...(localGeneratedContent ?? { productName: '', description: '' }),
+            productName: formRef.current?.productName.value || localGeneratedContent?.productName || 'Packaging Preview',
+            imageUrl: dataUri,
+            productId: selectedProductId
+        } as GenerateProductDescriptionOutput & { productId?: string };
+        setLocalGeneratedContent(newContent);
+        onContentUpdate(newContent);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleProductSelect = (value: string) => {
     const productId = value === 'none' ? '' : value;
@@ -61,30 +117,44 @@ export default function ProductDescriptionForm({ onContentUpdate, formAction, st
       (formRef.current.elements.namedItem('productName') as HTMLInputElement).value = product.name;
       (formRef.current.elements.namedItem('msrp') as HTMLInputElement).value = product.price.toFixed(2);
       (formRef.current.elements.namedItem('features') as HTMLTextAreaElement).value = product.description;
+       setPackagingImage(product.imageUrl); // Pre-fill image from product
+       // Also update the display immediately
+       const newContent = {
+           ...(localGeneratedContent ?? { productName: '', description: '' }),
+           productName: product.name,
+           imageUrl: product.imageUrl,
+           productId: product.id
+       } as GenerateProductDescriptionOutput & { productId?: string };
+       setLocalGeneratedContent(newContent);
+       onContentUpdate(newContent);
     } else if (productId === '') {
+        // Clear fields if "None" is selected
         if (formRef.current) {
             (formRef.current.elements.namedItem('productName') as HTMLInputElement).value = '';
             (formRef.current.elements.namedItem('msrp') as HTMLInputElement).value = '';
             (formRef.current.elements.namedItem('features') as HTMLTextAreaElement).value = '';
         }
+        setPackagingImage('');
         onContentUpdate(null);
     }
   };
 
   return (
     <Card>
-      <form ref={formRef} action={formAction}>
+      <form ref={formRef}>
         <CardHeader>
-          <CardTitle>Product Description</CardTitle>
-          <CardDescription>Generate a compelling product description using AI.</CardDescription>
+          <CardTitle>Product Content Generator</CardTitle>
+          <CardDescription>Fill in the details below to generate content. The same details will be used for both image and text generation.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-           <input type="hidden" name="productId" value={selectedProductId} />
+           <input type="hidden" name="logoDataUri" value={defaultChatbotIcon} />
+           <input type="hidden" name="imageUrl" value={packagingImage || ''} />
+           
           <div className="space-y-2">
             <Label htmlFor="product-select">Select a Product (Optional)</Label>
-            <Select name="productId_display_only" value={selectedProductId || "none"} onValueChange={handleProductSelect} disabled={areProductsLoading}>
+            <Select name="productId" value={selectedProductId || "none"} onValueChange={handleProductSelect} disabled={areProductsLoading}>
                 <SelectTrigger id="product-select">
-                    <SelectValue placeholder={areProductsLoading ? "Loading products..." : "Select to pre-fill form"} />
+                    <SelectValue placeholder={areProductsLoading ? "Loading products..." : "Select a product to pre-fill & link"} />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="none">None</SelectItem>
@@ -93,12 +163,13 @@ export default function ProductDescriptionForm({ onContentUpdate, formAction, st
                     ))}
                 </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">Associating a product enables the like/dislike feedback buttons on the display card.</p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="productName">Product Name</Label>
             <Input id="productName" name="productName" placeholder="e.g., Cosmic Caramels" />
-            {state.fieldErrors?.productName && <p className="text-sm text-destructive">{state.fieldErrors.productName[0]}</p>}
+            {descriptionState.fieldErrors?.productName && <p className="text-sm text-destructive">{descriptionState.fieldErrors.productName[0]}</p>}
           </div>
           <div className="grid grid-cols-1 gap-6 @[25rem]:grid-cols-2">
             <div className="space-y-2">
@@ -107,7 +178,7 @@ export default function ProductDescriptionForm({ onContentUpdate, formAction, st
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input id="msrp" name="msrp" placeholder="25.00" className="pl-8" />
               </div>
-              {state.fieldErrors?.msrp && <p className="text-sm text-destructive">{state.fieldErrors.msrp[0]}</p>}
+              {descriptionState.fieldErrors?.msrp && <p className="text-sm text-destructive">{descriptionState.fieldErrors.msrp[0]}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="brandVoice">Brand Voice</Label>
@@ -122,22 +193,42 @@ export default function ProductDescriptionForm({ onContentUpdate, formAction, st
                   <SelectItem value="Adventurous">Adventurous</SelectItem>
                   </SelectContent>
               </Select>
-              {state.fieldErrors?.brandVoice && <p className="text-sm text-destructive">{state.fieldErrors.brandVoice[0]}</p>}
+              {descriptionState.fieldErrors?.brandVoice && <p className="text-sm text-destructive">{descriptionState.fieldErrors.brandVoice[0]}</p>}
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="features">Key Features</Label>
-             <Textarea id="features" name="features" placeholder="e.g., Chewy, full-spectrum, 10mg THC per piece." />
-             {state.fieldErrors?.features && <p className="text-sm text-destructive">{state.fieldErrors.features[0]}</p>}
+            <Label htmlFor="features">Key Features / Prompt</Label>
+             <Textarea id="features" name="features" placeholder="e.g., Chewy, Full-spectrum, 10mg THC per piece. Use these details to guide both text and image generation." />
+             {descriptionState.fieldErrors?.features && <p className="text-sm text-destructive">{descriptionState.fieldErrors.features[0]}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="keywords">Keywords</Label>
             <Input id="keywords" name="keywords" placeholder="e.g., caramel, edible, relaxing, indica" />
-            {state.fieldErrors?.keywords && <p className="text-sm text-destructive">{state.fieldErrors.keywords[0]}</p>}
+            {descriptionState.fieldErrors?.keywords && <p className="text-sm text-destructive">{descriptionState.fieldErrors.keywords[0]}</p>}
           </div>
+           <div className="space-y-2">
+                <Label>Product Packaging</Label>
+                <div className="flex items-center justify-center w-full">
+                    <Label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                            {packagingImage ? (
+                                <p className="font-semibold text-sm text-primary">Image selected</p>
+                            ) : (
+                                 <>
+                                    <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                    <p className="text-xs text-muted-foreground">SVG, PNG, JPG (Optional, guides image generation)</p>
+                                 </>
+                            )}
+                        </div>
+                        <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
+                    </Label>
+                </div>
+            </div>
         </CardContent>
-         <CardFooter>
-            <SubmitButton />
+         <CardFooter className="flex-col sm:flex-row gap-2">
+            <SubmitButton action={descriptionFormAction} type="description" />
+            <SubmitButton action={imageFormAction} type="image" />
          </CardFooter>
       </form>
     </Card>
