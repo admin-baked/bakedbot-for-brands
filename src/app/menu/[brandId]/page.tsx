@@ -4,7 +4,7 @@ import { makeProductRepo } from '@/server/repos/productRepo';
 import { demoProducts, demoRetailers, demoCustomer } from '@/lib/data';
 import MenuPageClient from '@/app/menu-page-client';
 import type { Product, Retailer, Review } from '@/types/domain';
-import { collection, collectionGroup, getDocs, query, orderBy, limit, Firestore } from 'firebase/firestore';
+import { collectionGroup, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { reviewConverter } from '@/firebase/converters';
 import { createServerClient as createAdminServerClient } from '@/firebase/server-client';
 
