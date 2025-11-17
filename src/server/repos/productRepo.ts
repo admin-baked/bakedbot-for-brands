@@ -1,7 +1,7 @@
 
 
 import { Firestore, FieldValue } from 'firebase-admin/firestore';
-import type { Product } from '@/types/domain';
+import type { Product, ReviewSummaryEmbedding } from '@/types/domain';
 import { generateEmbedding } from '@/ai/utils/generate-embedding';
 
 
@@ -64,6 +64,35 @@ export function makeProductRepo(db: Firestore) {
             return [];
         }
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    },
+
+    /**
+     * Retrieves all products across all brands.
+     * Used by the admin action to initialize embeddings for every product.
+     */
+    async getAll(): Promise<Product[]> {
+        const snapshot = await productCollection.get();
+        if (snapshot.empty) {
+            return [];
+        }
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    },
+
+    /**
+     * Updates or clears the embedding for a specific product.
+     */
+    async updateEmbedding(productId: string, embeddingData: ReviewSummaryEmbedding | null): Promise<void> {
+        if (embeddingData === null) {
+            // If there are no reviews, remove the embedding field.
+            await productCollection.doc(productId).update({
+                reviewSummaryEmbedding: FieldValue.delete(),
+            });
+        } else {
+            // Otherwise, update the product with the new embedding and metadata.
+            await productCollection.doc(productId).update({
+                reviewSummaryEmbedding: embeddingData,
+            });
+        }
     }
   };
 }
