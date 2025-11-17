@@ -4,11 +4,11 @@
 // For now, it uses the same core components as the default menu,
 // but it can be customized with a different structure in the future.
 
-import Header from '../../components/header';
-import { Footer } from '../components/footer';
+import Header from '@/components/header';
+import { Footer } from '@/components/footer';
 import Chatbot from '@/components/chatbot';
 import { DispensaryLocator } from '@/components/dispensary-locator';
-import { FloatingCartPill } from '../../components/floating-cart-pill';
+import { FloatingCartPill } from '@/components/floating-cart-pill';
 import { ProductGrid } from '@/components/product-grid';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMenuData } from '@/hooks/use-menu-data';
