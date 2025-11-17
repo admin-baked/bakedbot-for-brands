@@ -6,8 +6,6 @@ import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 
 export default function Home() {
-  // Removed useUser hook to prevent context error on the static homepage.
-  
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 font-sans">
       {/* Top nav */}
@@ -29,20 +27,18 @@ export default function Home() {
               Demo menu
             </Link>
           </nav>
-          {/* Static auth links for the marketing page */}
+          {/* Corrected Auth / CTAs using Button asChild */}
           <div className="flex items-center gap-3 text-sm">
-            <Link
-              href="/brand-login"
-              className="rounded-full border border-slate-700 px-3 py-1.5 text-slate-200 hover:border-slate-500"
-            >
-              Login
-            </Link>
-            <Link
-              href="/onboarding"
-              className="rounded-full bg-emerald-400 px-4 py-1.5 font-medium text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.75)] hover:bg-emerald-300"
-            >
-              Get started
-            </Link>
+            <Button asChild variant="outline" size="sm" className="rounded-full border-slate-700 px-3 py-1.5 text-slate-200 hover:border-slate-500 hover:text-slate-200">
+              <Link href="/brand-login">
+                Login
+              </Link>
+            </Button>
+            <Button asChild size="sm" className="rounded-full bg-emerald-400 px-4 py-1.5 font-medium text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.75)] hover:bg-emerald-300">
+              <Link href="/onboarding">
+                Get started
+              </Link>
+            </Button>
           </div>
         </div>
       </header>
@@ -73,19 +69,18 @@ export default function Home() {
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-400">
             BakedBot is an AI-powered headless menu and checkout system that embeds directly into your existing brand website, keeping customers engaged with your content and products without sending them to a third-party marketplace.
           </p>
+          {/* Corrected Hero buttons */}
           <div className="mt-10 flex items-center justify-center gap-x-6">
-            <Link
-              href="/onboarding"
-              className="rounded-full bg-emerald-400 px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.9)] hover:bg-emerald-300"
-            >
-              Get started free
-            </Link>
-            <Link
-              href="/menu/default"
-              className="rounded-full border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm text-slate-100 hover:border-slate-500"
-            >
-              View live demo
-            </Link>
+             <Button asChild size="sm" className="rounded-full bg-emerald-400 px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.9)] hover:bg-emerald-300">
+              <Link href="/onboarding">
+                Get started free
+              </Link>
+            </Button>
+            <Button asChild size="sm" className="rounded-full border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm text-slate-100 hover:border-slate-500">
+              <Link href="/menu/default">
+                View live demo
+              </Link>
+            </Button>
           </div>
         </div>
       </main>
