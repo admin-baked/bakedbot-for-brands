@@ -11,20 +11,23 @@ import { Loader2, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Footer } from '@/components/footer';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckoutForm } from '@/components/checkout-form';
-import { demoRetailers } from '@/lib/data';
+import type { Retailer } from '@/types/domain';
 
+interface CheckoutClientPageProps {
+  locations: Retailer[];
+  isDemo: boolean;
+}
 
-export default function CheckoutClientPage() {
+export default function CheckoutClientPage({ locations, isDemo }: CheckoutClientPageProps) {
   const router = useRouter();
   const hydrated = useHydrated();
   
   const { cartItems, getCartTotal, clearCart, selectedRetailerId } = useStore();
-  const retailers = demoRetailers; // Locations can come from static data for now
   
-  const selectedRetailer = retailers.find(loc => loc.id === selectedRetailerId);
+  const selectedRetailer = locations.find(loc => loc.id === selectedRetailerId);
   const { subtotal, taxes, total } = getCartTotal();
 
   const handleOrderSuccess = (orderId: string, userId?: string) => {
@@ -48,7 +51,7 @@ export default function CheckoutClientPage() {
                       </CardHeader>
                       <CardFooter>
                           <Button asChild className="w-full">
-                              <Link href="/menu/default">
+                              <Link href={isDemo ? "/menu/default" : "/menu"}>
                                   Return to Menu
                               </Link>
                           </Button>
@@ -68,7 +71,7 @@ export default function CheckoutClientPage() {
          <p className="text-muted-foreground mt-4">Validating location...</p>
          <p className="text-destructive text-sm mt-2">No location selected. Please return to the menu and select a pickup spot.</p>
           <Button asChild variant="outline" className="mt-4">
-              <Link href="/menu/default">
+              <Link href={isDemo ? "/menu/default" : "/menu"}>
                   Return to Menu
               </Link>
           </Button>
@@ -151,7 +154,7 @@ export default function CheckoutClientPage() {
                 </CardContent>
                 <CardFooter>
                      <Button variant="outline" className="w-full" asChild>
-                        <Link href="/menu/default">
+                        <Link href={isDemo ? "/menu/default" : "/menu"}>
                             Edit Cart
                         </Link>
                      </Button>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -18,16 +19,20 @@ import { MapPin, Minus, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { demoRetailers } from '@/lib/data';
+import { useMemo } from 'react';
+import type { Retailer } from '@/types/domain';
 
-export function CartSheet() {
+export function CartSheet({ locations }: { locations: Retailer[] }) {
   const { isCartSheetOpen, setCartSheetOpen, selectedRetailerId, cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useStore();
-  // Since this component is global, it's safer to use static demo data here
-  // than to try and fetch live data, which depends on the brand context.
-  const locations = demoRetailers;
   const router = useRouter();
   const hydrated = useHydrated();
 
-  const selectedLocation = locations.find(loc => loc.id === selectedRetailerId);
+  const selectedLocation = useMemo(() => 
+    locations.find(loc => loc.id === selectedRetailerId) || 
+    demoRetailers.find(loc => loc.id === selectedRetailerId),
+    [locations, selectedRetailerId]
+  );
+  
   const { subtotal, taxes, total } = getCartTotal();
 
   const handleCheckout = () => {
