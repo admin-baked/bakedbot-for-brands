@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -34,14 +33,16 @@ export function useMenuData({ serverProducts, serverLocations }: UseMenuDataProp
   const isLoading = !isHydrated;
 
   const products = useMemo<Product[]>(() => {
+    if (isLoading) return []; // Return empty array while loading to prevent flashes of server data
     if (isDemo) return demoProducts;
     return serverProducts || [];
-  }, [isDemo, serverProducts]);
+  }, [isDemo, serverProducts, isLoading]);
 
   const locations = useMemo<Retailer[]>(() => {
+    if (isLoading) return [];
     if (isDemo) return demoRetailers;
     return serverLocations || [];
-  }, [isDemo, serverLocations]);
+  }, [isDemo, serverLocations, isLoading]);
 
   return {
     products,

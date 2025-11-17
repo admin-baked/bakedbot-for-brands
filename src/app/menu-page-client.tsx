@@ -42,7 +42,7 @@ export default function MenuPageClient({
   useEffect(() => {
     setIsDemo(initialIsDemo);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialIsDemo, setIsDemo]);
+  }, [initialIsDemo]);
 
   // The useMenuData hook is still used here, but it will now prioritize
   // the client-side demo mode toggle over its own fetching logic.
@@ -81,9 +81,9 @@ export default function MenuPageClient({
       <Header />
       <main className="flex-1">
         <div className="container mx-auto px-4 space-y-12">
-          <HeroSlider products={products} isLoading={false} />
-          <DispensaryLocator />
-          <ProductGrid products={products} isLoading={false} />
+          <HeroSlider products={products} isLoading={isLoading} />
+          <DispensaryLocator locations={locations} isLoading={isLoading}/>
+          <ProductGrid products={products} isLoading={isLoading} />
           <RecentReviewsFeed />
         </div>
       </main>

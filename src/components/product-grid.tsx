@@ -1,11 +1,9 @@
-
 'use client';
 
 import { ProductCard } from './product-card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Database, Plus } from 'lucide-react';
+import { Database } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo } from 'react';
 import type { Product } from '@/firebase/converters';
 import { useDemoMode } from '@/context/demo-mode';
 
@@ -67,8 +65,6 @@ export function ProductGrid({ products, isLoading }: ProductGridProps) {
     );
   }
   
-  // This component now only renders the default grid layout.
-  // The logic to show the 'alt' layout is handled by the parent page component.
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {products.map(product => (

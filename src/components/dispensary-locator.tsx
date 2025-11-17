@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, MapPin, Navigation, Star } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
@@ -13,31 +12,32 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase/provider';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { Retailer } from '@/lib/types';
-import { useMenuData } from '@/hooks/use-menu-data';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/hooks/use-hydrated';
+import { Skeleton } from './ui/skeleton';
 
 interface DispensaryLocatorProps {
-  // Props are no longer needed as the component will fetch its own data.
+  locations: Retailer[];
+  isLoading: boolean;
 }
 
-export function DispensaryLocator({}: DispensaryLocatorProps) {
-  const { locations, isLoading } = useMenuData();
+export function DispensaryLocator({ locations, isLoading }: DispensaryLocatorProps) {
   const { selectedRetailerId, setSelectedRetailerId, favoriteRetailerId, setFavoriteRetailerId } = useStore();
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
   const hydrated = useHydrated();
   
   const [isLocating, setIsLocating] = useState(false);
-  const [sortedLocations, setSortedLocations] = useState<typeof locations>([]);
+  const [sortedLocations, setSortedLocations] = useState<Retailer[]>([]);
 
-  // If the locations prop changes (e.g., from server-side props), update our sorted list.
   useEffect(() => {
-    setSortedLocations(locations);
+    if (locations) {
+      setSortedLocations(locations);
+    }
   }, [locations]);
 
   const handleFindClosest = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
+      toast({ variant: 'destructive', title: 'Geolocation is not supported by your browser.' });
       return;
     }
 
@@ -62,7 +62,7 @@ export function DispensaryLocator({}: DispensaryLocatorProps) {
       },
       (error) => {
         console.error('Error getting location:', error);
-        alert('Could not get your location. Please ensure location services are enabled.');
+        toast({ variant: 'destructive', title: 'Could not get your location. Please ensure location services are enabled.'});
         setIsLocating(false);
       }
     );
@@ -97,13 +97,24 @@ export function DispensaryLocator({}: DispensaryLocatorProps) {
         <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4">
           Find a Dispensary Near You
         </h2>
-        <Button onClick={handleFindClosest} disabled={isLocating}>
+        <Button onClick={handleFindClosest} disabled={isLocating || isLoading}>
           {isLocating ? <Loader2 className="mr-2 animate-spin" /> : <Navigation className="mr-2" />}
           Use My Current Location
         </Button>
         <div className="mt-8">
             <div className="flex gap-6 pb-4 -mx-4 px-4 overflow-x-auto">
-                {displayLocations.map(loc => {
+                {isLoading ? (
+                  [...Array(3)].map((_, i) => (
+                    <Card key={i} className="w-80 shrink-0">
+                      <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
+                      <CardContent className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-2/3" />
+                        <Skeleton className="h-5 w-1/3 mt-2" />
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : displayLocations.map(loc => {
                     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.name}, ${loc.address}, ${loc.city}, ${loc.state} ${loc.zip}`)}`;
                     const isFavorite = hydrated && favoriteRetailerId === loc.id;
                     const isSelected = hydrated && selectedRetailerId === loc.id;
