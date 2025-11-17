@@ -4,13 +4,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    // Default to read-only for public collections.
-    // All write operations should be handled by secure Server Actions.
+    // PUBLIC-READABLE COLLECTIONS
+    // The server is responsible for scoping data by brand. These rules allow
+    // the public client (and server) to read the necessary data for menus.
     match /products/{productId} {
-      // UPDATED: Products can be read if public, or if they belong to the user's brand.
-      // For this app, we'll enforce brand-scoping for reads.
-      allow read: if resource.data.brandId == request.auth.token.brandId || request.auth.token.role == 'owner';
-      allow write: if false; // Disallow all client writes.
+      allow read: if true;
+      allow write: if false; // All writes must go through secure Server Actions.
     }
     match /categories/{categoryId} {
       allow read: if true;
@@ -21,8 +20,9 @@ service cloud.firestore {
       allow write: if false; // All location management is done via Server Actions.
     }
 
-    // A user can read their own document. Writes are handled by Server Actions
-    // or Cloud Functions during onboarding.
+    // USER-SPECIFIC DATA
+    // A user can read/update their own document. The Cloud Function for custom
+    // claims handles the initial write.
     match /users/{userId} {
       allow read, update: if request.auth.uid == userId || request.auth.token.role == 'owner';
       
@@ -32,6 +32,7 @@ service cloud.firestore {
       }
     }
     
+    // REVIEWS
     // Anyone can read reviews. All writes are done via a secure Server Action.
     match /products/{productId}/reviews/{reviewId} {
       allow read: if true;
@@ -43,6 +44,7 @@ service cloud.firestore {
       allow read: if true;
     }
     
+    // EMBEDDINGS & FEEDBACK
     // Product embeddings are public, but only written by the server.
     match /products/{productId}/productReviewEmbeddings/{docId} {
       allow read: if true;
@@ -55,6 +57,7 @@ service cloud.firestore {
       allow write: if request.auth.uid == userId;
     }
     
+    // ORDERS
     // Orders can be created via a Server Action.
     // They can be read by:
     // 1. The user who owns the order.
