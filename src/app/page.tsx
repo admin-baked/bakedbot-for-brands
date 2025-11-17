@@ -50,8 +50,8 @@ export default function Home() {
           <div className="rounded-2xl border border-gray-800 bg-zinc-900/60 p-5 space-y-2">
             <h2 className="text-sm font-semibold">Craig · Marketing Automation</h2>
             <p className="text-xs text-gray-400">
-              Email and SMS campaigns that stay inside TCPA, CTIA, and state rules — with
-              Deebo checking every send.
+              Email and SMS campaigns that stay inside TCPA, CTIA, and state rules—
+              with Deebo checking every send.
             </p>
           </div>
 
