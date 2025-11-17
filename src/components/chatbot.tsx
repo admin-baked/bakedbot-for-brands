@@ -10,7 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { type Product } from '@/firebase/converters';
+import { type Product } from '@/types/domain';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useStore } from '@/hooks/use-store';
@@ -424,7 +424,7 @@ export default function Chatbot({ products, brandId }: { products: Product[]; br
         const formData = new FormData();
         formData.append('productId', productId);
         formData.append('feedbackType', type);
-        const result = await updateProductFeedback(null as any, formData);
+        const result = await updateProductFeedback(null, formData);
         if (!result.error) {
             toast({
                 title: 'Feedback Submitted!',

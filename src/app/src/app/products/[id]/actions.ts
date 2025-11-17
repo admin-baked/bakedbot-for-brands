@@ -1,3 +1,4 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -54,7 +55,7 @@ export async function getReviewSummary(input: {
  * This action is now idempotent and tracks user votes to prevent spamming.
  */
 export async function updateProductFeedback(
-  prevState: { message: string; error: boolean },
+  prevState: { message: string; error: boolean } | null,
   formData: FormData
 ): Promise<{ message: string; error: boolean }> {
   
