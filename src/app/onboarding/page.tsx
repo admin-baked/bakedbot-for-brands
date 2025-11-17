@@ -1,4 +1,3 @@
-
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -11,7 +10,6 @@ import { useFirebase } from '@/firebase/provider';
 import { doc, setDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useCookieStore } from '@/lib/cookie-storage';
 import { demoRetailers } from '@/lib/data';
 import type { Retailer } from '@/types/domain';
 
@@ -29,8 +27,8 @@ export default function OnboardingPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  // Get locations from the cookie store as a fallback for the UI
-  // This part of the app doesn't need live data, just a list for selection.
+  // For the onboarding UI, it's sufficient to use the static demo data
+  // for location selection.
   const locations = demoRetailers; 
   const areLocationsLoading = false;
 

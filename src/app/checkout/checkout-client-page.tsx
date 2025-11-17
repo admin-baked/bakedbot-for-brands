@@ -10,21 +10,20 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useMenuData } from '@/hooks/use-menu-data';
 import { Footer } from '@/components/footer';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckoutForm } from '@/components/checkout-form';
+import { useCookieStore } from '@/lib/cookie-storage';
+import { demoRetailers } from '@/lib/data';
 
 
 export default function CheckoutClientPage() {
   const router = useRouter();
   const hydrated = useHydrated();
   
-  // Subscribe to state from the unified store
   const { cartItems, getCartTotal, clearCart, selectedRetailerId } = useStore();
-  // We can use the hook here because data is already fetched by the server parent
-  const { locations: retailers, isLoading: isMenuLoading } = useMenuData();
+  const retailers = demoRetailers; // Locations can come from static data for now
   
   const selectedRetailer = retailers.find(loc => loc.id === selectedRetailerId);
   const { subtotal, taxes, total } = getCartTotal();
@@ -32,24 +31,11 @@ export default function CheckoutClientPage() {
   const handleOrderSuccess = (orderId: string, userId?: string) => {
     if (orderId) {
         clearCart();
-        // Pass userId to confirmation page if it exists (for non-anon users)
         const confirmationUrl = `/order-confirmation/${orderId}${userId ? `?userId=${userId}` : ''}`;
         router.push(confirmationUrl);
     }
   };
 
-  const isLoading = isMenuLoading;
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="flex flex-col h-screen items-center justify-center text-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground mt-4">Loading checkout...</p>
-      </div>
-    );
-  }
-  
   // This check is important because even authenticated users might land here with an empty cart.
   if (hydrated && cartItems.length === 0) {
       return (
