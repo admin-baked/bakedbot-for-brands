@@ -24,7 +24,7 @@ import { updateProductFeedback } from '@/app/products/[id]/actions';
 import type { ImageFormState } from '@/app/dashboard/content/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ChatbotIcon } from './chatbot-icon';
-import { defaultChatbotIcon, demoProducts } from '@/lib/data';
+import { defaultChatbotIcon } from '@/lib/data';
 import OnboardingFlow from './chatbot/onboarding-flow';
 import ChatMessages from './chatbot/chat-messages';
 import ChatProductCarousel from './chatbot/chat-product-carousel';
@@ -55,6 +55,7 @@ type OnboardingAnswers = {
 
 const ChatWindow = ({
   products,
+  brandId,
   onAskSmokey,
   hasStartedChat,
   startOnboarding,
@@ -72,6 +73,7 @@ const ChatWindow = ({
   onFeedback,
 }: {
   products: Product[];
+  brandId: string;
   onAskSmokey: (product: Product) => void;
   hasStartedChat: boolean;
   startOnboarding: () => void;
@@ -164,7 +166,7 @@ const ChatWindow = ({
 }
 
 
-export default function Chatbot() {
+export default function Chatbot({ products, brandId }: { products: Product[]; brandId: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
@@ -177,9 +179,6 @@ export default function Chatbot() {
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // The products are now sourced from static demo data.
-  const products = demoProducts;
-  
   const { user } = useUser();
   const [userProfile, setUserProfile] = useState<any>(null);
 
@@ -190,9 +189,6 @@ export default function Chatbot() {
       });
     }
   }, [user]);
-
-  const brandId = userProfile?.brandId || 'default';
-
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -474,6 +470,7 @@ export default function Chatbot() {
           {isOpen && products && (
             <ChatWindow
               products={products}
+              brandId={brandId}
               onAskSmokey={handleAskSmokey}
               hasStartedChat={hasStartedChat}
               startOnboarding={startOnboarding}

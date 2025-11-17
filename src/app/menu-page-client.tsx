@@ -14,23 +14,26 @@ import { FloatingCartPill } from '@/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { useHydrated } from '@/hooks/use-hydrated';
 import type { Product, Retailer, Review } from '@/types/domain';
-import { demoProducts, demoRetailers } from '@/lib/data';
 
 interface MenuPageClientProps {
+  brandId: string;
   initialProducts: Product[];
   initialLocations: Retailer[];
   initialIsDemo: boolean;
   initialReviews: Review[];
+  featuredProducts: Product[];
 }
 
 /**
  * This client component receives server-fetched data and handles all interactivity.
  */
 export default function MenuPageClient({
+  brandId,
   initialProducts,
   initialLocations,
   initialIsDemo,
   initialReviews,
+  featuredProducts,
 }: MenuPageClientProps) {
   const { menuStyle } = useCookieStore();
   const hydrated = useHydrated();
@@ -38,10 +41,9 @@ export default function MenuPageClient({
   // isLoading is true until the component has hydrated on the client.
   const isLoading = !hydrated;
 
-  // The server now determines whether to pass live or demo data.
-  // The client just renders what it receives.
-  const products = initialIsDemo ? demoProducts : initialProducts;
-  const locations = initialIsDemo ? demoRetailers : initialLocations;
+  // The client just renders what it receives from the server.
+  const products = initialProducts;
+  const locations = initialLocations;
 
   // Show loading skeleton until hydrated on the client.
   if (isLoading) {
@@ -80,7 +82,7 @@ export default function MenuPageClient({
         </div>
       </main>
       <FloatingCartPill />
-      <Chatbot />
+      <Chatbot products={featuredProducts} brandId={brandId} />
       <Footer />
     </div>
   );
