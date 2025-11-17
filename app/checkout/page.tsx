@@ -4,14 +4,14 @@ export const dynamic = 'force-dynamic';
 import { useStore } from '@/hooks/use-store';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
-import Header from '../components/header';
+import Header from '@/components/header';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, MapPin } from 'lucide-react';
 import { CheckoutForm } from './components/checkout-form';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useMenuData } from '@/hooks/use-menu-data';
-import { Footer } from '../components/footer';
+import { Footer } from '@/components/footer';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from '@/components/ui/skeleton';
 

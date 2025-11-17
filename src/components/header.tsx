@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -18,7 +17,7 @@ import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useStore } from '@/hooks/use-store';
 import { useDemoMode } from '@/context/demo-mode';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/hooks/use-hydrated';
 
 
 export default function Header() {
