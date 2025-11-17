@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,7 +5,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
 import { type Product } from '@/firebase/converters';
-import { Button } from '@/components/ui/button';
+import { Button } from './ui/button';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
 

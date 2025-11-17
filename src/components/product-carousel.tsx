@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useStore } from '@/hooks/use-store';
@@ -6,7 +5,7 @@ import { Plus } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from './ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../hooks/use-toast';
 import { useMemo } from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Skeleton } from './ui/skeleton';
