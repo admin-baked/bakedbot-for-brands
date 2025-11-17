@@ -9,7 +9,7 @@ import ProductDescriptionDisplay from './components/product-description-display'
 import ProductDescriptionForm from './components/product-description-form';
 import ReviewSummarizer from './components/review-summarizer';
 import { createProductDescription, createSocialMediaImage, type DescriptionFormState, type ImageFormState } from './actions';
-import { demoProducts } from '@/lib/data';
+import { useMenuData } from '@/hooks/use-menu-data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PenSquare, MessageSquare } from 'lucide-react';
 
@@ -24,9 +24,8 @@ export default function ProductContentGeneratorPage() {
   const [descriptionState, descriptionFormAction] = useFormState(createProductDescription, initialDescriptionState);
   const [imageState, imageFormAction] = useFormState(createSocialMediaImage, initialImageState);
   
-  // For the dashboard, using static demo data for the product selector is sufficient.
-  const products = demoProducts;
-  const areProductsLoading = !products;
+  // Get product data
+  const { products, isLoading: areProductsLoading } = useMenuData();
 
   const handleContentUpdate = (content: (GenerateProductDescriptionOutput & { productId?: string }) | null) => {
     setGeneratedContent(content);
@@ -50,13 +49,13 @@ export default function ProductContentGeneratorPage() {
             <TabsContent value="generator" className="mt-6">
                  <div className="grid grid-cols-1 gap-8 @container lg:grid-cols-2">
                     <ProductDescriptionForm 
-                        onContentUpdate={handleContentUpdate}
-                        descriptionFormAction={descriptionFormAction}
-                        imageFormAction={imageFormAction}
-                        descriptionState={descriptionState}
-                        imageState={imageState}
-                        products={products}
-                        areProductsLoading={areProductsLoading}
+                    onContentUpdate={handleContentUpdate}
+                    descriptionFormAction={descriptionFormAction}
+                    imageFormAction={imageFormAction}
+                    descriptionState={descriptionState}
+                    imageState={imageState}
+                    products={products}
+                    areProductsLoading={areProductsLoading}
                     />
                     <ProductDescriptionDisplay 
                         productDescription={generatedContent}

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -37,28 +36,28 @@ interface ReviewSummarizerProps {
 
 export default function ReviewSummarizer({ products, areProductsLoading }: ReviewSummarizerProps) {
     const [state, formAction] = useFormState(summarizeProductReviews, initialState);
-    const { pending } = useFormStatus();
     const { toast } = useToast();
     const formRef = useRef<HTMLFormElement>(null);
     const [selectedProductName, setSelectedProductName] = useState('');
 
     useEffect(() => {
-        if (state.message && !pending) {
+        if (state.message) {
             if (state.error) {
                 toast({ variant: 'destructive', title: 'Error', description: state.message });
             }
         }
-    }, [state, pending, toast]);
+    }, [state, toast]);
 
     const handleSelectChange = (value: string) => {
         const product = products?.find(p => p.id === value);
         setSelectedProductName(product?.name || '');
     };
 
+    const isPending = (formRef.current?.getAttribute('data-pending') === 'true');
+
     return (
         <Card>
             <form ref={formRef} action={formAction}>
-                 <input type="hidden" name="productName" value={selectedProductName} />
                 <CardHeader>
                     <CardTitle>AI Review Summarizer</CardTitle>
                     <CardDescription>Get instant insights by summarizing all reviews for a specific product.</CardDescription>
@@ -79,9 +78,9 @@ export default function ReviewSummarizer({ products, areProductsLoading }: Revie
                     <SubmitButton />
                 </CardFooter>
             </form>
-            {(pending || state.data) && (
+            {(isPending || state.data) && (
                 <CardContent className="border-t pt-6 space-y-4">
-                     {pending ? (
+                     {isPending ? (
                         <div className="flex flex-col items-center justify-center space-y-2 text-muted-foreground">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             <p>Reading reviews and generating summary...</p>
