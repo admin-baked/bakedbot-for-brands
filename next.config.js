@@ -16,7 +16,7 @@ const nextConfig = {
         hostname: 'studio-567050101-bc6e8.firebasestorage.app',
       },
       {
-        protocol: 'https,"',
+        protocol: 'https',
         hostname: 'images.unsplash.com',
       },
       {
