@@ -1,6 +1,13 @@
 
 "use server";
 
+import { z } from 'zod';
+import { generateProductDescription } from '@/ai/flows/generate-product-description';
+import { generateSocialMediaImage } from '@/ai/flows/generate-social-image';
+import { getReviewSummary } from '@/app/products/[id]/actions';
+import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
+
+
 // Shared type for the summary data
 export type ReviewSummaryData = {
   pros: string[];
@@ -35,11 +42,6 @@ export type ReviewSummaryFormState = {
   error: boolean | string | null;
 };
 
-import { generateProductDescription } from '@/ai/flows/generate-product-description';
-import { generateSocialMediaImage } from '@/ai/flows/generate-social-image';
-import { getReviewSummary } from '@/app/products/[id]/actions';
-import { z } from 'zod';
-
 
 const ProductDescriptionSchema = z.object({
   productName: z.string().min(1, "Product name is required."),
@@ -67,7 +69,10 @@ export async function createProductDescription(
   }
 
   try {
-    const result = await generateProductDescription(validatedFields.data);
+    const result = await generateProductDescription({
+        ...validatedFields.data,
+        keywords: validatedFields.data.keywords || ""
+    });
     return {
       message: "Description generated successfully.",
       data: { ...result, productId: validatedFields.data.productId },

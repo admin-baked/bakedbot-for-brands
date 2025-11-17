@@ -3,15 +3,30 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/firebase/server-client';
-import { FieldValue, Transaction, getDocs, collectionGroup, query } from 'firebase-admin/firestore';
+import { FieldValue, Transaction, FirestoreDataConverter, QueryDocumentSnapshot, DocumentData } from 'firebase-admin/firestore';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { runSummarizeReviews, type SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { cookies } from 'next/headers';
 import { demoProducts, demoCustomer } from '@/lib/data';
 import type { Product, Review } from '@/types/domain';
 import { FeedbackSchema } from '@/types/actions';
-import { reviewConverter } from '@/firebase/converters';
-import type { DocumentData, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { reviewConverter as clientReviewConverter } from '@/firebase/converters';
+
+
+const reviewConverter: FirestoreDataConverter<Review> = {
+  toFirestore(review: Review): DocumentData {
+    const { id, ...data } = review;
+    return data;
+  },
+  fromFirestore(snapshot: QueryDocumentSnapshot): Review {
+    const data = snapshot.data();
+    return {
+      id: snapshot.id,
+      ...data,
+    } as Review;
+  },
+};
+
 
 /**
  * A server action to safely call the summarizeReviews AI flow from the server.
@@ -37,7 +52,7 @@ export async function getReviewSummary(input: {
       product = await productRepo.getById(productId);
 
       if (product) {
-          const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter as FirestoreDataConverter<Review>).get();
+          const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter).get();
           reviews = reviewsSnap.docs.map(d => d.data());
       }
     }
