@@ -14,7 +14,6 @@ import { DollarSign, Loader2, Upload, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import type { Product } from '@/firebase/converters';
-import { defaultChatbotIcon } from '@/lib/data';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -42,11 +41,10 @@ export default function ProductDescriptionForm({ onContentUpdate, formAction, st
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [packagingImage, setPackagingImage] = useState<string>('');
   
-  // Effect for handling description generation results
   useEffect(() => {
     if (state.message) {
       if (state.error) {
-        if(!state.fieldErrors) { // Show toast only for general errors
+        if(!state.fieldErrors) {
           toast({ variant: 'destructive', title: 'Error', description: state.message });
         }
       } else if (state.data) {
@@ -58,8 +56,7 @@ export default function ProductDescriptionForm({ onContentUpdate, formAction, st
         onContentUpdate(newContent);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
+  }, [state, packagingImage, onContentUpdate, selectedProductId, toast]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,7 +65,6 @@ export default function ProductDescriptionForm({ onContentUpdate, formAction, st
       reader.onloadend = () => {
         const dataUri = reader.result as string;
         setPackagingImage(dataUri);
-        // Also update the display immediately
         onContentUpdate({
           productName: formRef.current?.productName.value || 'Packaging Preview',
           description: '',
@@ -114,7 +110,6 @@ export default function ProductDescriptionForm({ onContentUpdate, formAction, st
           <CardDescription>Generate a compelling product description using AI.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-           <input type="hidden" name="logoDataUri" value={defaultChatbotIcon} />
            <input type="hidden" name="imageUrl" value={packagingImage || ''} />
            
           <div className="space-y-2">

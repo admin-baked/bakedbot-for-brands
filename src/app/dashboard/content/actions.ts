@@ -1,6 +1,4 @@
 
-
-
 'use server';
 
 import {
@@ -25,15 +23,24 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { headers } from 'next/headers';
 
 
-const FormSchema = z.object({
+const DescriptionFormSchema = z.object({
   productName: z.string().min(3, 'Product name must be at least 3 characters.'),
   productId: z.string().optional(),
   features: z.string().min(3, 'Features must be at least 3 characters.'),
   keywords: z.string().min(3, 'Keywords must be at least 3 characters.'),
   brandVoice: z.string().min(1, 'Please select a brand voice.'),
   msrp: z.string().optional(),
-  imageUrl: z.string().optional(), // Now we expect the image URL (as a data URI)
+  imageUrl: z.string().optional(),
 });
+
+const ImageFormSchema = z.object({
+    productName: z.string().min(3, 'A title or product name is required.'),
+    features: z.string().min(3, 'A visual prompt is required.'),
+    brandVoice: z.string().min(1, 'Please select a brand voice.'),
+    imageUrl: z.string().optional(),
+    logoDataUri: z.string(),
+});
+
 
 export type DescriptionFormState = {
   message: string;
@@ -48,6 +55,9 @@ export type ImageFormState = {
   message: string;
   imageUrl: string | null;
   error: boolean;
+  fieldErrors?: {
+    [key: string]: string[] | undefined;
+  };
 };
 
 export type ReviewSummaryFormState = {
@@ -60,7 +70,7 @@ export async function createProductDescription(
   prevState: DescriptionFormState,
   formData: FormData
 ): Promise<DescriptionFormState> {
-  const validatedFields = FormSchema.safeParse({
+  const validatedFields = DescriptionFormSchema.safeParse({
     productName: formData.get('productName'),
     productId: formData.get('productId'),
     features: formData.get('features'),
@@ -107,22 +117,24 @@ export async function createSocialMediaImage(
   formData: FormData
 ): Promise<ImageFormState> {
 
-  const validatedFields = FormSchema.pick({ productName: true, features: true, brandVoice: true, imageUrl: true }).safeParse({
+  const validatedFields = ImageFormSchema.safeParse({
     productName: formData.get('productName'),
     features: formData.get('features'),
     brandVoice: formData.get('brandVoice'),
     imageUrl: formData.get('imageUrl'),
+    logoDataUri: formData.get('logoDataUri'),
   });
 
   if (!validatedFields.success) {
     return {
-      message: 'Product name, features, and brand voice are required to generate an image.',
+      message: 'Invalid image prompt data.',
       imageUrl: null,
       error: true,
+      fieldErrors: validatedFields.error.flatten().fieldErrors,
     };
   }
-
-  const logoDataUri = formData.get('logoDataUri') as string;
+  
+  const { logoDataUri } = validatedFields.data;
   if (!logoDataUri) {
     return {
       message: 'A brand logo is required to generate a watermarked image. Please upload one in Settings.',
@@ -132,10 +144,7 @@ export async function createSocialMediaImage(
   }
 
   try {
-    const result = await generateSocialMediaImage({
-      ...validatedFields.data,
-      logoDataUri,
-    } as GenerateSocialMediaImageInput);
+    const result = await generateSocialMediaImage(validatedFields.data as GenerateSocialMediaImageInput);
     
     return {
       message: 'Image generated successfully!',

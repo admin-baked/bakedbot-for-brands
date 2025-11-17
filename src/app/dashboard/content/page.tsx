@@ -10,7 +10,7 @@ import ProductDescriptionForm from './components/product-description-form';
 import SocialImageForm from './components/social-image-form';
 import ReviewSummarizer from './components/review-summarizer';
 import { createProductDescription, createSocialMediaImage, type DescriptionFormState, type ImageFormState } from './actions';
-import { useMenuData } from '@/hooks/use-menu-data';
+import { useMenuData } from '@/hooks/use-demo-data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PenSquare, MessageSquare } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -27,7 +27,8 @@ export default function ProductContentGeneratorPage() {
   const [imageState, imageFormAction] = useFormState(createSocialMediaImage, initialImageState);
   
   // Get product data for pre-filling forms
-  const { products, isLoading: areProductsLoading } = useMenuData();
+  const { products } = useMenuData();
+  const areProductsLoading = !products;
 
   const handleContentUpdate = (content: (GenerateProductDescriptionOutput & { productId?: string }) | null) => {
     setGeneratedContent(content);
