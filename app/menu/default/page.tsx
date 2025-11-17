@@ -1,25 +1,39 @@
 
-// app/menu/default/page.tsx
-import type { Metadata } from "next";
+import { createServerClient } from '@/firebase/server-client';
+import { makeProductRepo } from '@/server/repos/productRepo';
+import { demoProducts, demoRetailers, demoCustomer } from '@/lib/data';
+import MenuPageClient from '@/app/menu-page-client';
+import type { Product, Retailer, Review } from '@/types/domain';
+import { collectionGroup, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
-export const metadata: Metadata = {
-  title: "Demo Menu – BakedBot AI",
-};
+// Revalidate the page every 60 seconds to fetch fresh data
+export const revalidate = 60;
 
-export default function DemoMenuPage() {
-  // TODO: Replace this with your real demo menu component
-  // e.g. <PublicMenu brandId="default" />
+/**
+ * This is the main server component for the default demo menu page.
+ * It fetches all necessary demo data and passes it to the client component.
+ */
+export default async function DemoMenuPage() {
+  // For the default demo, we always use the static demo data.
+  const isDemo = true;
+  const products: Product[] = demoProducts;
+  const locations: Retailer[] = demoRetailers;
+  const reviews: Review[] = demoCustomer.reviews as Review[];
+  const brandId = 'default';
+  
+  // Get a subset of featured products for things like carousels.
+  const featuredProducts = [...products].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 10);
+
+  // The Server Component passes the fetched data as props to the Client Component
+  // which handles all the interactivity (state, hooks, etc.).
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50 p-8">
-      <h1 className="text-3xl font-bold mb-4">Demo menu</h1>
-      <p className="text-slate-300 mb-6">
-        This is the public demo of your headless menu and AI budtender.
-      </p>
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-        <p className="text-sm text-slate-300">
-          Hook your real menu component in here once the route is working.
-        </p>
-      </div>
-    </main>
+    <MenuPageClient
+      brandId={brandId}
+      initialProducts={products}
+      initialLocations={locations}
+      initialIsDemo={isDemo}
+      initialReviews={reviews}
+      featuredProducts={featuredProducts}
+    />
   );
 }
