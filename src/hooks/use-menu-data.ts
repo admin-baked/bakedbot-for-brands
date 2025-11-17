@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -11,7 +12,6 @@ import { useHydrated } from './useHydrated';
 import type { Product, Retailer } from '@/types/domain';
 import { useParams } from 'next/navigation';
 
-
 export type UseMenuDataResult = {
   products: Product[];
   locations: Retailer[];
@@ -19,52 +19,52 @@ export type UseMenuDataResult = {
   isDemo: boolean;
 };
 
+interface UseMenuDataProps {
+  serverProducts?: Product[];
+  serverLocations?: Retailer[];
+}
+
 /**
- * A client-side hook to fetch all necessary menu data for a given brand.
- * It handles switching between live Firestore data and local demo data.
+ * A client-side hook that now primarily manages the *display* of menu data.
+ * It prioritizes client-side demo mode state and can use server-preloaded data.
  */
-export function useMenuData(): UseMenuDataResult {
+export function useMenuData({ serverProducts, serverLocations }: UseMenuDataProps = {}): UseMenuDataResult {
   const { isDemo } = useDemoMode();
   const { firestore } = useFirebase();
   const isHydrated = useHydrated();
   const params = useParams();
-  // Get brandId from URL, fallback to 'default' for demo mode
   const brandId = params.brandId as string || 'default';
 
-  // Set up Firestore queries. They will be null if not hydrated, in demo mode, or if firestore is not available.
+  // Firestore queries are now only for client-side updates after initial load.
   const productsQuery = useMemo(() => {
-    if (!isHydrated || isDemo || !firestore || !brandId || brandId === 'default') return null;
+    // Don't fetch on the client if we have server data, are in demo mode, or SSR.
+    if (serverProducts || !isHydrated || isDemo || !firestore || brandId === 'default') return null;
     return query(collection(firestore, 'products').withConverter(productConverter), where('brandId', '==', brandId));
-  }, [firestore, isDemo, isHydrated, brandId]);
+  }, [firestore, isDemo, isHydrated, brandId, serverProducts]);
   
-  // Locations are currently global. We fetch all of them.
   const locationsQuery = useMemo(() => {
-    if (!isHydrated || isDemo || !firestore) return null;
+    if (serverLocations || !isHydrated || isDemo || !firestore) return null;
     return query(collection(firestore, 'dispensaries').withConverter(retailerConverter));
-  }, [firestore, isDemo, isHydrated]);
+  }, [firestore, isDemo, isHydrated, serverLocations]);
 
-  // Fetch live data from Firestore.
-  const { data: liveProducts, isLoading: areProductsLoading, error: productsError } = useCollection<Product>(productsQuery);
-  const { data: liveLocations, isLoading: areLocationsLoading, error: locationsError } = useCollection<Retailer>(locationsQuery);
+  const { data: liveProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
+  const { data: liveLocations, isLoading: areLocationsLoading } = useCollection<Retailer>(locationsQuery);
 
-  // The overall loading state depends on hydration status and fetching live data.
-  const isLoading = !isHydrated || (!isDemo && (areProductsLoading || areLocationsLoading));
+  const isLoading = !isHydrated || (!isDemo && (areProductsLoading || areLocationsLoading) && !serverProducts);
 
-  // Determine the final data source.
   const products = useMemo<Product[]>(() => {
-    if (isDemo || brandId === 'default') return demoProducts;
-    if (!isHydrated) return []; // Return empty on server
-    // **No longer falls back to demo data in live mode.**
-    // If there's an error or no products, it will correctly return an empty array.
-    return liveProducts || [];
-  }, [isDemo, isHydrated, liveProducts, brandId]);
+    if (isDemo) return demoProducts;
+    if (liveProducts) return liveProducts; // Prioritize fresh client-side data
+    if (serverProducts) return serverProducts; // Use server-preloaded data
+    return []; // Default to empty array
+  }, [isDemo, liveProducts, serverProducts]);
 
   const locations = useMemo<Retailer[]>(() => {
     if (isDemo) return demoRetailers;
-    if (!isHydrated) return []; // Return empty on server
-    if (locationsError) return demoRetailers; // Fallback for locations is okay for now.
-    return liveLocations || [];
-  }, [isDemo, isHydrated, liveLocations, locationsError]);
+    if (liveLocations) return liveLocations;
+    if (serverLocations) return serverLocations;
+    return [];
+  }, [isDemo, liveLocations, serverLocations]);
 
   return {
     products,
