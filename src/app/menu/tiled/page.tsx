@@ -2,8 +2,6 @@
 'use client';
 
 // This component represents the "Tiled" or "Alternate" menu layout.
-// For now, it uses the same core components as the default menu,
-// but it can be customized with a different structure in the future.
 
 import Header from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -12,10 +10,15 @@ import { DispensaryLocator } from '@/components/dispensary-locator';
 import { FloatingCartPill } from '@/components/floating-cart-pill';
 import { ProductGrid } from '@/components/product-grid';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMenuData } from '@/hooks/use-menu-data';
+import type { Product, Retailer } from '@/types/domain';
 
-export default function TiledMenuPage() {
-  const { products, locations, isLoading } = useMenuData();
+interface TiledMenuPageProps {
+  products: Product[];
+  locations: Retailer[];
+  isLoading: boolean;
+}
+
+export default function TiledMenuPage({ products, locations, isLoading }: TiledMenuPageProps) {
 
   if (isLoading) {
     return (
