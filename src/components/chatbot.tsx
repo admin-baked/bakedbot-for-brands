@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent, useTransition, useCallback } from 'react';
@@ -29,7 +30,6 @@ import ChatMessages from './chatbot/chat-messages';
 import ChatProductCarousel from './chatbot/chat-product-carousel';
 import { useUser } from '@/firebase/auth/use-user';
 import { useCookieStore } from '@/lib/cookie-storage';
-import { useDemoMode } from '@/context/demo-mode';
 
 
 type Message = {
