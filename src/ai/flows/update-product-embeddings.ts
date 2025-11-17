@@ -10,10 +10,9 @@ import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { generateEmbedding } from '@/ai/utils/generate-embedding';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, type FirestoreDataConverter } from 'firebase-admin/firestore';
 import type { Review, ReviewSummaryEmbedding as ReviewSummaryEmbeddingType } from '@/types/domain';
 import { reviewConverter } from '@/firebase/converters';
-import type { FirestoreDataConverter } from 'firebase-admin/firestore';
 
 // --- Input and Output Schemas ---
 
@@ -67,14 +66,15 @@ const updateProductEmbeddingsFlow = ai.defineFlow(
     // 1. Fetch Product and Reviews
     const [product, reviewsSnap] = await Promise.all([
         productRepo.getById(productId),
-        firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter as FirestoreDataConverter<Review>).get()
+        firestore.collection(`products/${productId}/reviews`).get()
     ]);
     
     if (!product) {
         throw new Error(`Product with ID ${productId} not found.`);
     }
 
-    const reviews: Review[] = reviewsSnap.docs.map(doc => doc.data() as Review);
+    const reviews = reviewsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
+
 
     // 2. Handle case with no reviews
     if (reviews.length === 0) {
