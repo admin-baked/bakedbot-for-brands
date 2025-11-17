@@ -10,7 +10,7 @@ import { DispensaryLocator } from '@/components/dispensary-locator';
 import { ProductGrid } from '@/components/product-grid';
 import RecentReviewsFeed from '@/app/components/recent-reviews-feed';
 import Header from '@/app/components/header';
-import { Footer } from './components/footer';
+import { Footer } from '@/app/components/footer';
 import { FloatingCartPill } from '@/app/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { useHydrated } from '@/hooks/use-hydrated';
