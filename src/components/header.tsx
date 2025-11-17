@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -32,9 +33,9 @@ export default function Header() {
     const hydrated = useHydrated();
 
     const navLinks = [
-        { href: '/', label: 'Home' },
-        { href: '/menu/default', label: 'Demo Menu' },
-        { href: '/product-locator', label: 'Product Locator' },
+        { href: '/', label: 'Home', icon: Home },
+        { href: '/menu/default', label: 'Demo Menu', icon: TestTube2 },
+        { href: '/product-locator', label: 'Product Locator', icon: Search },
     ];
     
      const handleSignOut = async () => {
@@ -170,6 +171,7 @@ export default function Header() {
                             <DropdownMenuContent align="end">
                                 {navLinks.map(link => (
                                      <DropdownMenuItem key={link.href} onClick={() => router.push(link.href)}>
+                                        <link.icon className="mr-2 h-4 w-4" />
                                         {link.label}
                                      </DropdownMenuItem>
                                 ))}
