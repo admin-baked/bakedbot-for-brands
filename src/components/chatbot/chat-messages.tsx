@@ -184,5 +184,3 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
 )};
 
 export default ChatMessages;
-
-    
