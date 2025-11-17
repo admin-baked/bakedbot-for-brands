@@ -1,4 +1,3 @@
-
 // app/page.tsx
 import Link from 'next/link';
 import Image from 'next/image';
@@ -18,12 +17,12 @@ export default function Home() {
 
           {/* Main nav */}
           <nav className="hidden items-center gap-6 text-sm text-slate-300 md:flex">
-            <Link href="#features" className="hover:text-white">
+            <a href="#features" className="hover:text-white">
               Features
-            </Link>
-            <Link href="#how-it-works" className="hover:text-white">
+            </a>
+            <a href="#how-it-works" className="hover:text-white">
               How it works
-            </Link>
+            </a>
             {/* Demo menu – update this href to your real demo route */}
             <Link href="/menu/default" className="hover:text-white">
               Demo menu
