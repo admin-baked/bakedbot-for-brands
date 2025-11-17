@@ -24,12 +24,12 @@ export default function Home() {
             <a href="#how-it-works" className="hover:text-emerald-300">
               How it works
             </a>
-            <a
+            <Link
               href="/menu/default"
               className="hover:text-emerald-300"
             >
               Demo menu
-            </a>
+            </Link>
             <a href="#pricing" className="hover:text-emerald-300">
               Pricing
             </a>
@@ -123,9 +123,8 @@ export default function Home() {
 
                 <div className="grid gap-3 text-xs">
                   <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Pricing Monitor</p>
-                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-300">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Pricing Monitor</p>
+                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-300">
                         Live
                       </span>
                     </div>
