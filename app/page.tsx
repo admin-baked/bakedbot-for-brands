@@ -1,3 +1,6 @@
+
+import Link from "next/link";
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 font-sans">
@@ -22,10 +25,8 @@ export default function Home() {
               How it works
             </a>
             <a
-              href="https://brands.bakedbot.ai/demo-menu"
+              href="/menu/default"
               className="hover:text-emerald-300"
-              target="_blank"
-              rel="noreferrer"
             >
               Demo menu
             </a>
@@ -38,12 +39,12 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-3 text-sm">
-            <button className="rounded-full border border-slate-700 px-3 py-1.5 text-slate-200 hover:border-slate-500">
+            <Link href="/customer-login" className="rounded-full border border-slate-700 px-3 py-1.5 text-slate-200 hover:border-slate-500">
               Login
-            </button>
-            <button className="rounded-full bg-emerald-400 px-4 py-1.5 font-medium text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.75)] hover:bg-emerald-300">
+            </Link>
+            <Link href="/onboarding" className="rounded-full bg-emerald-400 px-4 py-1.5 font-medium text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.75)] hover:bg-emerald-300">
               Get started free
-            </button>
+            </Link>
           </div>
         </div>
       </header>
@@ -72,26 +73,24 @@ export default function Home() {
               </p>
 
               <div className="mb-3 flex flex-wrap items-center gap-3">
-                <button className="rounded-full bg-emerald-400 px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.9)] hover:bg-emerald-300">
+                <Link href="/onboarding" className="rounded-full bg-emerald-400 px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.9)] hover:bg-emerald-300">
                   Get started free
-                </button>
-                <button className="rounded-full border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm text-slate-100 hover:border-slate-500">
+                </Link>
+                <Link href="/menu/default" className="rounded-full border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm text-slate-100 hover:border-slate-500">
                   Watch 2-min demo
-                </button>
+                </Link>
               </div>
               <p className="mb-2 text-[11px] text-slate-400">
                 Own the customer relationship · Dispensaries still compliantly fulfill the order
               </p>
               <p className="text-[11px] text-emerald-300">
                 Want to see it in action?{" "}
-                <a
-                  href="https://brands.bakedbot.ai/demo-menu"
-                  target="_blank"
-                  rel="noreferrer"
+                <Link
+                  href="/menu/default"
                   className="underline underline-offset-2 hover:text-emerald-200"
                 >
                   Open the demo menu
-                </a>
+                </Link>
                 .
               </p>
 
@@ -443,9 +442,9 @@ export default function Home() {
                 accuracy and reorder cadence level up within days.
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-3">
-                <button className="rounded-full bg-emerald-400 px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.9)] hover:bg-emerald-300">
+                <Link href="/onboarding" className="rounded-full bg-emerald-400 px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.9)] hover:bg-emerald-300">
                   Get started free
-                </button>
+                </Link>
                 <button className="rounded-full border border-emerald-300/70 bg-slate-950/70 px-4 py-2 text-xs font-semibold text-emerald-100 hover:border-emerald-200">
                   Book a strategy call
                 </button>
