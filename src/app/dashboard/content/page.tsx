@@ -12,6 +12,7 @@ import { createProductDescription, createSocialMediaImage, type DescriptionFormS
 import { useDemoData } from '@/hooks/use-demo-data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PenSquare, MessageSquare } from 'lucide-react';
+import SocialImageForm from './components/social-image-form';
 
 
 const initialDescriptionState: DescriptionFormState = { message: '', data: null, error: false };
@@ -49,15 +50,20 @@ export default function ProductContentGeneratorPage() {
 
             <TabsContent value="generator" className="mt-6">
                  <div className="grid grid-cols-1 gap-8 @container lg:grid-cols-2">
-                    <ProductDescriptionForm 
-                      onContentUpdate={handleContentUpdate}
-                      descriptionFormAction={descriptionFormAction}
-                      imageFormAction={imageFormAction}
-                      descriptionState={descriptionState}
-                      imageState={imageState}
-                      products={products}
-                      areProductsLoading={areProductsLoading}
-                    />
+                    <div className="flex flex-col gap-8">
+                      <ProductDescriptionForm 
+                        onContentUpdate={handleContentUpdate}
+                        formAction={descriptionFormAction}
+                        state={descriptionState}
+                        products={products}
+                        areProductsLoading={areProductsLoading}
+                      />
+                      <SocialImageForm
+                        onContentUpdate={handleContentUpdate}
+                        formAction={imageFormAction}
+                        state={imageState}
+                      />
+                    </div>
                     <ProductDescriptionDisplay 
                         productDescription={generatedContent}
                     />
