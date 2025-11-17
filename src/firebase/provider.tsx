@@ -97,19 +97,18 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 export const useFirebase = (): FirebaseServices => {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
-    if (typeof window === 'undefined') {
-      // On the server, return a null-safe context to prevent build errors.
-      return {
+    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+      console.error('useFirebase called outside of FirebaseProvider.');
+    }
+    // Return a safe fallback to prevent crashes on public pages.
+    return {
         firebaseApp: null,
         firestore: null,
         auth: null,
         user: null,
-        isUserLoading: true,
+        isUserLoading: true, // loading is true as user state is unknown
         userError: null,
       };
-    }
-    // On the client, this is a developer error if the provider is missing.
-    throw new Error('useFirebase must be used within a FirebaseProvider.');
   }
   return context;
 };
