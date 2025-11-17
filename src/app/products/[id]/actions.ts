@@ -1,5 +1,5 @@
 
-'use server';
+"use server";
 
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/firebase/server-client';
@@ -12,6 +12,7 @@ import type { Product, Review } from '@/types/domain';
 import { FeedbackSchema } from '@/types/actions';
 import { reviewConverter } from '@/firebase/converters';
 import { collection, getDocs, query } from 'firebase/firestore';
+
 
 /**
  * A server action to safely call the summarizeReviews AI flow from the server.
@@ -37,7 +38,7 @@ export async function getReviewSummary(input: {
       product = await productRepo.getById(productId);
 
       if (product) {
-          const reviewsSnap = await getDocs(query(collection(firestore as any, `products/${productId}/reviews`).withConverter(reviewConverter)));
+          const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter).get();
           reviews = reviewsSnap.docs.map(d => d.data());
       }
     }
@@ -47,21 +48,18 @@ export async function getReviewSummary(input: {
       return null;
     }
 
-    // Use the brandId from the product if it exists, otherwise use a placeholder.
     const brandId = product.brandId || 'bakedbot-brand-id';
 
     const summary = await runSummarizeReviews({ productId, brandId, reviewTexts: reviews.map(r => r.text), productName: product.name });
     return summary;
   } catch (error) {
     console.error(`Failed to get review summary for product ${productId}:`, error);
-    // Return null instead of throwing, so the page can still render.
     return null;
   }
 }
 
 /**
  * SECURELY updates the like or dislike count for a product in Firestore.
- * This action is now idempotent and tracks user votes to prevent spamming.
  */
 export async function updateProductFeedback(
   prevState: { message: string; error: boolean } | null,
@@ -112,23 +110,20 @@ export async function updateProductFeedback(
       let dislikeIncrement = 0;
 
       if (existingVote === feedbackType) {
-        // User is clicking the same button again, so we'll undo their vote.
         transaction.delete(feedbackRef);
         if (feedbackType === 'like') likeIncrement = -1;
         else dislikeIncrement = -1;
       } else {
-        // This is a new vote or a changed vote.
         transaction.set(feedbackRef, { vote: feedbackType, date: FieldValue.serverTimestamp() });
         if (feedbackType === 'like') {
           likeIncrement = 1;
           if (existingVote === 'dislike') dislikeIncrement = -1;
-        } else { // feedbackType is 'dislike'
+        } else {
           dislikeIncrement = 1;
           if (existingVote === 'like') likeIncrement = -1;
         }
       }
       
-      // Atomically update the aggregate counts on the product.
       transaction.update(productRef, {
         likes: FieldValue.increment(likeIncrement),
         dislikes: FieldValue.increment(dislikeIncrement),

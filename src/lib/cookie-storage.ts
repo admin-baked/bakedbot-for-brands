@@ -36,7 +36,6 @@ export interface CookieStoreState {
   theme: Theme;
   menuStyle: 'default' | 'alt';
   favoriteRetailerId: string | null;
-  favoriteLocationId: string | null;
   chatExperience: 'default' | 'classic';
   isDemo: boolean;
   
@@ -54,7 +53,6 @@ export interface CookieStoreState {
   setTheme: (theme: Theme) => void;
   setMenuStyle: (style: 'default' | 'alt') => void;
   setFavoriteRetailerId: (id: string | null) => void;
-  setFavoriteLocationId: (id: string | null) => void;
   setChatExperience: (experience: 'default' | 'classic') => void;
   setIsDemo: (isDemo: boolean) => void;
   recordBrandImageGeneration: () => void;
@@ -79,7 +77,6 @@ export const useCookieStore = create<CookieStoreState>()(
       theme: 'green' as Theme,
       menuStyle: 'default' as 'default' | 'alt',
       favoriteRetailerId: null,
-      favoriteLocationId: null,
       chatExperience: 'default' as 'classic',
       isDemo: true,
       
@@ -96,8 +93,7 @@ export const useCookieStore = create<CookieStoreState>()(
       // Actions
       setTheme: (theme: Theme) => set({ theme }),
       setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
-      setFavoriteRetailerId: (id: string | null) => set({ favoriteRetailerId: id, favoriteLocationId: id }),
-      setFavoriteLocationId: (id: string | null) => set({ favoriteRetailerId: id, favoriteLocationId: id }),
+      setFavoriteRetailerId: (id: string | null) => set({ favoriteRetailerId: id }),
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
       setIsDemo: (isDemo: boolean) => set({ isDemo }),
       setBrandColor: (color: string) => set({ brandColor: color }),
@@ -141,7 +137,6 @@ export const useCookieStore = create<CookieStoreState>()(
         theme: state.theme,
         menuStyle: state.menuStyle,
         favoriteRetailerId: state.favoriteRetailerId,
-        favoriteLocationId: state.favoriteLocationId,
         chatExperience: state.chatExperience,
         isDemo: state.isDemo,
         brandImageGenerations: state.brandImageGenerations,
