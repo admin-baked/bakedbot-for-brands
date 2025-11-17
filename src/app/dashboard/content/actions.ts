@@ -19,6 +19,8 @@ import {
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { updateProductFeedback } from '@/app/products/[id]/actions';
+import type { Review } from '@/types/domain';
+import { reviewConverter } from '@/firebase/converters';
 
 
 const DescriptionFormSchema = z.object({
@@ -173,7 +175,7 @@ export async function summarizeProductReviews(
   try {
     const { firestore } = await createServerClient();
     const productSnap = await firestore.collection('products').doc(productId).get();
-
+    
     if (!productSnap.exists) {
         throw new Error(`Product with ID ${productId} not found.`);
     }
@@ -181,7 +183,16 @@ export async function summarizeProductReviews(
     const productData = productSnap.data();
     const brandId = productData?.brandId || 'bakedbot-brand-id'; 
     
-    const result = await runSummarizeReviews({ productId, brandId });
+    const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter).get();
+    const reviewTexts = reviewsSnap.docs.map(doc => doc.data().text);
+
+    const result = await runSummarizeReviews({ 
+        productId, 
+        brandId, 
+        productName: productName || productData?.name,
+        reviewTexts 
+    });
+
     return {
       message: 'Review summary generated successfully.',
       data: result,

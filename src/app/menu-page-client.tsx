@@ -75,7 +75,7 @@ export default function MenuPageClient({
       <Header />
       <main className="flex-1">
         <div className="container mx-auto px-4 space-y-12">
-          <HeroSlider products={products} isLoading={false} />
+          <HeroSlider products={featuredProducts} isLoading={false} />
           <DispensaryLocator locations={locations} isLoading={false}/>
           <ProductGrid products={products} isLoading={false} />
           <RecentReviewsFeed reviews={initialReviews} products={products} isLoading={false} />

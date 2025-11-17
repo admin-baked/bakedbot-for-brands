@@ -1,3 +1,4 @@
+
 'use client';
 
 // This component represents the "Tiled" or "Alternate" menu layout.
@@ -47,7 +48,7 @@ export default function TiledMenuPage({ products, locations, isLoading }: TiledM
         </div>
       </main>
       <FloatingCartPill />
-      <Chatbot />
+      <Chatbot products={products} brandId="default" />
       <Footer />
     </div>
   );
