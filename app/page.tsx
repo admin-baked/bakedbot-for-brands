@@ -41,7 +41,7 @@ export default function Home() {
 
           <div className="flex items-center gap-3 text-sm">
             <Button asChild variant="outline">
-                <Link href="/customer-login">
+                <Link href="/brand-login">
                   Login
                 </Link>
             </Button>
@@ -495,3 +495,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
