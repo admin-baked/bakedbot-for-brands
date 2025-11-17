@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent, useTransition, useCallback } from 'react';
@@ -177,10 +176,9 @@ export default function Chatbot() {
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { isDemo, setIsDemo } = useDemoMode();
   
-  // This hook now correctly switches between demo and live data
-  const products = isDemo ? demoProducts : (useMenuData({serverProducts: [], serverLocations: []}).products);
+  // The products are now sourced from static demo data.
+  const products = demoProducts;
   
   const { user } = useUser();
   const [userProfile, setUserProfile] = useState<any>(null);

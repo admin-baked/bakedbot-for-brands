@@ -1,7 +1,7 @@
-
 'use client';
 
 // This component represents the "Tiled" or "Alternate" menu layout.
+// It is now a simple presentational component that receives all its data via props.
 
 import Header from '@/components/header';
 import { Footer } from '@/components/footer';

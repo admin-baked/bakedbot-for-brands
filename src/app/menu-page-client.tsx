@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCookieStore } from '@/lib/cookie-storage';
@@ -12,7 +11,7 @@ import Header from '@/components/header';
 import { Footer } from '@/components/footer';
 import { FloatingCartPill } from '@/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/hooks/use-hydrated';
 import { useEffect, useMemo } from 'react';
 import type { Product, Retailer, Review } from '@/types/domain';
 import { useDemoMode } from '@/context/demo-mode';

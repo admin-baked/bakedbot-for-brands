@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -13,16 +12,18 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useStore } from '@/hooks/use-store';
-import { useMenuData } from '@/hooks/use-menu-data';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Minus, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useHydrated } from '@/hooks/use-hydrated';
+import { demoRetailers } from '@/lib/data';
 
 export function CartSheet() {
   const { isCartSheetOpen, setCartSheetOpen, selectedRetailerId, cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useStore();
-  const { locations } = useMenuData();
+  // Since this component is global, it's safer to use static demo data here
+  // than to try and fetch live data, which depends on the brand context.
+  const locations = demoRetailers;
   const router = useRouter();
   const hydrated = useHydrated();
 
