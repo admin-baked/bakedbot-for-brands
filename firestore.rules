@@ -1,5 +1,4 @@
 
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -8,7 +7,9 @@ service cloud.firestore {
     // Default to read-only for public collections.
     // All write operations should be handled by secure Server Actions.
     match /products/{productId} {
-      allow read: if true;
+      // UPDATED: Products can be read if public, or if they belong to the user's brand.
+      // For this app, we'll enforce brand-scoping for reads.
+      allow read: if resource.data.brandId == request.auth.token.brandId || request.auth.token.role == 'owner';
       allow write: if false; // Disallow all client writes.
     }
     match /categories/{categoryId} {
@@ -23,7 +24,7 @@ service cloud.firestore {
     // A user can read their own document. Writes are handled by Server Actions
     // or Cloud Functions during onboarding.
     match /users/{userId} {
-      allow read: if request.auth.uid == userId;
+      allow read, update: if request.auth.uid == userId || request.auth.token.role == 'owner';
       
       // Interactions are private to each user.
       match /interactions/{interactionId} {
@@ -68,11 +69,3 @@ service cloud.firestore {
     }
   }
 }
-
-
-
-
-
-
-
-
