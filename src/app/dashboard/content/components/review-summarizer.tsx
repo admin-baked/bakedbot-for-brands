@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -5,8 +6,8 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { summarizeProductReviews } from '../actions';
-import type { ReviewSummaryFormState } from '../actions';
+import { summarizeProductReviews } from '@/app/dashboard/content/actions';
+import type { ReviewSummaryFormState } from '@/app/dashboard/content/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Wand2, Loader2, ThumbsUp, ThumbsDown, CheckCircle, XCircle, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +40,8 @@ export default function ReviewSummarizer({ products, areProductsLoading }: Revie
     const { toast } = useToast();
     const formRef = useRef<HTMLFormElement>(null);
     const [selectedProductName, setSelectedProductName] = useState('');
+    const { pending } = useFormStatus();
+
 
     useEffect(() => {
         if (state.message) {
@@ -53,11 +56,10 @@ export default function ReviewSummarizer({ products, areProductsLoading }: Revie
         setSelectedProductName(product?.name || '');
     };
 
-    const isPending = (formRef.current?.getAttribute('data-pending') === 'true');
-
     return (
         <Card>
             <form ref={formRef} action={formAction}>
+                 <input type="hidden" name="productName" value={selectedProductName} />
                 <CardHeader>
                     <CardTitle>AI Review Summarizer</CardTitle>
                     <CardDescription>Get instant insights by summarizing all reviews for a specific product.</CardDescription>
@@ -78,9 +80,9 @@ export default function ReviewSummarizer({ products, areProductsLoading }: Revie
                     <SubmitButton />
                 </CardFooter>
             </form>
-            {(isPending || state.data) && (
+            {(pending || state.data) && (
                 <CardContent className="border-t pt-6 space-y-4">
-                     {isPending ? (
+                     {pending ? (
                         <div className="flex flex-col items-center justify-center space-y-2 text-muted-foreground">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             <p>Reading reviews and generating summary...</p>
@@ -101,13 +103,13 @@ export default function ReviewSummarizer({ products, areProductsLoading }: Revie
                                 <div className='space-y-2'>
                                      <h4 className='font-semibold flex items-center gap-2'><CheckCircle className='h-5 w-5 text-green-500'/> Pros</h4>
                                      <ul className='list-disc pl-5 space-y-1 text-sm'>
-                                        {state.data.pros.length > 0 ? state.data.pros.map((pro, i) => <li key={i}>{pro}</li>) : <li>No common pros found.</li>}
+                                        {state.data.pros.length > 0 ? state.data.pros.map((pro: string, i: number) => <li key={i}>{pro}</li>) : <li>No common pros found.</li>}
                                      </ul>
                                 </div>
                                 <div className='space-y-2'>
                                     <h4 className='font-semibold flex items-center gap-2'><XCircle className='h-5 w-5 text-red-500'/> Cons</h4>
                                      <ul className='list-disc pl-5 space-y-1 text-sm'>
-                                        {state.data.cons.length > 0 ? state.data.cons.map((con, i) => <li key={i}>{con}</li>) : <li>No common cons found.</li>}
+                                        {state.data.cons.length > 0 ? state.data.cons.map((con: string, i: number) => <li key={i}>{con}</li>) : <li>No common cons found.</li>}
                                      </ul>
                                 </div>
                             </div>
