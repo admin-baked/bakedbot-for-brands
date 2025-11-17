@@ -17,8 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useStore } from '@/hooks/use-store';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { useCookieStore } from '@/lib/cookie-storage';
-import { Switch } from './ui/switch';
-import { Label } from './ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 
 export default function Header() {
@@ -34,7 +34,7 @@ export default function Header() {
 
     const navLinks = [
         { href: isDemo ? '/menu/default' : '/menu', label: isDemo ? 'Demo Menu' : 'Live Menu' },
-        // { href: '/product-locator', label: 'Product Locator' }, // Hidden for now
+        { href: '/product-locator', label: 'Product Locator', hidden: true },
     ];
     
      const handleSignOut = async () => {
@@ -69,7 +69,7 @@ export default function Header() {
                 <div className="flex items-center gap-6">
                     <Logo />
                     <nav className="hidden md:flex items-center gap-4">
-                        {navLinks.map((link) => (
+                        {navLinks.filter(link => !link.hidden).map((link) => (
                             <Link
                                 key={link.href}
                                 href={link.href}
@@ -168,7 +168,7 @@ export default function Header() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                {navLinks.map(link => (
+                                {navLinks.filter(link => !link.hidden).map(link => (
                                      <DropdownMenuItem key={link.href} onClick={() => router.push(link.href)}>
                                         {link.label}
                                      </DropdownMenuItem>
