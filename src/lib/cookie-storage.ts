@@ -22,8 +22,8 @@ const defaultNavLinks: NavLink[] = [
     { href: '/dashboard/orders', label: 'Orders', icon: 'Package', hidden: false },
     { href: '/dashboard/products', label: 'Products', icon: 'Box', hidden: false },
     { href: '/dashboard/content', label: 'Content AI', icon: 'PenSquare', hidden: false },
-    { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star', hidden: false },
-    { href: '/dashboard/locations', label: 'Retailers', icon: 'MapPin', hidden: false },
+    { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star', hidden: true },
+    { href: '/dashboard/locations', label: 'Retailers', icon: 'MapPin', hidden: true },
     { href: '/dashboard/settings', label: 'Settings', icon: 'Settings', hidden: false },
     { href: '/dashboard/ceo/import-demo-data', label: 'Data Manager', icon: 'Database', hidden: true },
     { href: '/dashboard/ceo/initialize-embeddings', label: 'AI Search Index', icon: 'BrainCircuit', hidden: true },
@@ -38,6 +38,7 @@ export interface CookieStoreState {
   favoriteRetailerId: string | null;
   favoriteLocationId: string | null;
   chatExperience: 'default' | 'classic';
+  isDemo: boolean;
   
   // Settings - These will be migrated to Firestore
   brandImageGenerations: number;
@@ -55,6 +56,7 @@ export interface CookieStoreState {
   setFavoriteRetailerId: (id: string | null) => void;
   setFavoriteLocationId: (id: string | null) => void;
   setChatExperience: (experience: 'default' | 'classic') => void;
+  setIsDemo: (isDemo: boolean) => void;
   recordBrandImageGeneration: () => void;
   setBrandColor: (color: string) => void;
   setBrandUrl: (url: string) => void;
@@ -79,6 +81,7 @@ export const useCookieStore = create<CookieStoreState>()(
       favoriteRetailerId: null,
       favoriteLocationId: null,
       chatExperience: 'default' as 'classic',
+      isDemo: true,
       
       // Settings
       brandImageGenerations: 0,
@@ -96,6 +99,7 @@ export const useCookieStore = create<CookieStoreState>()(
       setFavoriteRetailerId: (id: string | null) => set({ favoriteRetailerId: id, favoriteLocationId: id }),
       setFavoriteLocationId: (id: string | null) => set({ favoriteRetailerId: id, favoriteLocationId: id }),
       setChatExperience: (experience: 'default' | 'classic') => set({ chatExperience: experience }),
+      setIsDemo: (isDemo: boolean) => set({ isDemo }),
       setBrandColor: (color: string) => set({ brandColor: color }),
       setBrandUrl: (url: string) => set({ brandUrl: url }),
       setIsCeoMode: (isCeo: boolean) => set({ isCeoMode: isCeo }), // Action to set non-persisted state
@@ -139,6 +143,7 @@ export const useCookieStore = create<CookieStoreState>()(
         favoriteRetailerId: state.favoriteRetailerId,
         favoriteLocationId: state.favoriteLocationId,
         chatExperience: state.chatExperience,
+        isDemo: state.isDemo,
         brandImageGenerations: state.brandImageGenerations,
         lastBrandImageGeneration: state.lastBrandImageGeneration,
       }),

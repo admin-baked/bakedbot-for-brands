@@ -21,6 +21,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { updateProductFeedback } from '@/app/products/[id]/actions';
 import type { Review } from '@/types/domain';
 import { reviewConverter } from '@/firebase/converters';
+import { collection, getDocs, query } from 'firebase/firestore';
 
 
 const DescriptionFormSchema = z.object({
@@ -183,7 +184,7 @@ export async function summarizeProductReviews(
     const productData = productSnap.data();
     const brandId = productData?.brandId || 'bakedbot-brand-id'; 
     
-    const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter).get();
+    const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter as any).get();
     const reviewTexts = reviewsSnap.docs.map(doc => doc.data().text);
 
     const result = await runSummarizeReviews({ 

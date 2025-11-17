@@ -35,7 +35,7 @@ export default async function MenuPage({ params }: { params: { brandId: string }
       const productRepo = makeProductRepo(firestore);
       
       const reviewsQuery = query(
-          collectionGroup(firestore, 'reviews').withConverter(reviewConverter), 
+          collectionGroup(firestore, 'reviews').withConverter(reviewConverter as any), 
           orderBy('createdAt', 'desc'), 
           limit(10)
       );
@@ -43,7 +43,7 @@ export default async function MenuPage({ params }: { params: { brandId: string }
       const [fetchedProducts, locationsSnap, reviewsSnap] = await Promise.all([
         productRepo.getAllByBrand(brandId),
         firestore.collection('dispensaries').get(),
-        getDocs(reviewsQuery)
+        getDocs(reviewsQuery as any)
       ]);
 
       products = fetchedProducts;

@@ -4,6 +4,7 @@
 import { create } from 'zustand';
 import type { Product } from '@/types/domain';
 import { useToast } from '@/hooks/use-toast';
+import { useCookieStore } from './../lib/cookie-storage';
 
 export type CartItem = Product & { quantity: number };
 
@@ -33,7 +34,10 @@ export const useStore = create<StoreState>()(
       isCartSheetOpen: false,
       
       // Actions
-      setSelectedRetailerId: (id: string | null) => set({ selectedRetailerId: id }),
+      setSelectedRetailerId: (id: string | null) => {
+        useCookieStore.getState().setFavoriteRetailerId(id);
+        set({ selectedRetailerId: id })
+      },
       setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
       
       // Cart Actions

@@ -13,6 +13,7 @@ import { Footer } from '@/components/footer';
 import { FloatingCartPill } from '@/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { useHydrated } from '@/hooks/use-hydrated';
+import { useEffect } from 'react';
 import type { Product, Retailer, Review } from '@/types/domain';
 
 interface MenuPageClientProps {
@@ -35,8 +36,15 @@ export default function MenuPageClient({
   initialReviews,
   featuredProducts,
 }: MenuPageClientProps) {
-  const { menuStyle } = useCookieStore();
+  const { menuStyle, setIsDemo } = useCookieStore();
   const hydrated = useHydrated();
+
+  // Set the initial demo state from the server render, but only once.
+  useEffect(() => {
+    setIsDemo(initialIsDemo);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialIsDemo]);
+
 
   // isLoading is true until the component has hydrated on the client.
   const isLoading = !hydrated;

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ProductCard } from './product-card';
@@ -5,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Database } from 'lucide-react';
 import Link from 'next/link';
 import type { Product } from '@/firebase/converters';
-import { useDemoMode } from '@/context/demo-mode';
+import { useCookieStore } from '@/lib/cookie-storage';
 
 const ProductSkeleton = () => (
     <div className="bg-card rounded-lg shadow-lg overflow-hidden border">
@@ -32,7 +33,7 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ products, isLoading }: ProductGridProps) {
-  const { isDemo } = useDemoMode();
+  const { isDemo } = useCookieStore();
   
   if (isLoading) {
     return (

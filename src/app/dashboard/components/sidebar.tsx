@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -26,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
+import { ForwardRefExoticComponent, RefAttributes } from 'react';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
@@ -67,7 +69,7 @@ export function DashboardSidebar() {
       <SidebarContent>
         <SidebarMenu>
           {navLinks.filter(link => !link.hidden).map((link) => {
-            const Icon = LucideIcons[link.icon as keyof typeof LucideIcons] || LucideIcons.Folder;
+            const Icon = (LucideIcons as any)[link.icon] || LucideIcons.Folder;
             const isActive = pathname === link.href;
             return (
               <SidebarMenuItem key={link.href}>
