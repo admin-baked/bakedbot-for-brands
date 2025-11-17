@@ -44,6 +44,7 @@ const initialImageState: ImageFormState = {
     message: '',
     imageUrl: null,
     error: false,
+    status: 'idle',
 };
 
 type OnboardingAnswers = {
@@ -165,8 +166,12 @@ const ChatWindow = ({
   );
 }
 
+type ChatbotProps = {
+    products?: Product[];
+    brandId?: string;
+  };
 
-export default function Chatbot({ products, brandId }: { products: Product[]; brandId: string }) {
+export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);

@@ -18,11 +18,11 @@ import { Skeleton } from './ui/skeleton';
 import { useCookieStore } from '@/lib/cookie-storage';
 
 interface DispensaryLocatorProps {
-  locations: Retailer[];
-  isLoading: boolean;
+  locations?: Retailer[];
+  isLoading?: boolean;
 }
 
-export function DispensaryLocator({ locations, isLoading }: DispensaryLocatorProps) {
+export function DispensaryLocator({ locations = [], isLoading = false }: DispensaryLocatorProps) {
   const { selectedRetailerId, setSelectedRetailerId } = useStore();
   const { favoriteRetailerId, setFavoriteRetailerId } = useCookieStore();
   const { user, firestore } = useFirebase();

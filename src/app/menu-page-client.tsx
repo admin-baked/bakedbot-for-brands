@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useStore } from '@/hooks/use-store';
 import { Skeleton } from '@/components/ui/skeleton';
 import TiledMenuPage from '@/app/menu/tiled/page';
 import { HeroSlider } from '@/components/hero-slider';

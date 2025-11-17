@@ -14,13 +14,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { Product, Retailer } from '@/types/domain';
 
 interface TiledMenuPageProps {
-  products: Product[];
-  locations: Retailer[];
-  isLoading: boolean;
-  brandId: string;
+  products?: Product[];
+  locations?: Retailer[];
+  isLoading?: boolean;
+  brandId?: string;
 }
 
-export default function TiledMenuPage({ products, locations, isLoading, brandId }: TiledMenuPageProps) {
+export default function TiledMenuPage({ products = [], locations = [], isLoading = false, brandId = "" }: TiledMenuPageProps) {
 
   if (isLoading) {
     return (
