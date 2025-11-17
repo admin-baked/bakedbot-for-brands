@@ -11,7 +11,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { generateEmbedding } from '@/ai/utils/generate-embedding';
 import { Timestamp } from 'firebase-admin/firestore';
-import type { Review } from '@/types/domain';
+import type { Review, ReviewSummaryEmbedding as ReviewSummaryEmbeddingType } from '@/types/domain';
 
 // --- Input and Output Schemas ---
 

@@ -11,10 +11,10 @@ import { Loader2, MapPin } from 'lucide-react';
 import { CheckoutForm } from '@/components/checkout-form';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useMenuData } from '@/hooks/use-menu-data';
 import { Footer } from '@/components/footer';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMenuData } from '@/hooks/use-menu-data';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -24,7 +24,7 @@ export default function CheckoutPage() {
   const { cartItems, getCartTotal, clearCart, selectedRetailerId } = useStore();
   const { locations: retailers, isLoading: isMenuLoading } = useMenuData();
   
-  const selectedRetailer = retailers.find(loc => loc.id === selectedRetailerId);
+  const selectedRetailer = retailers.find((loc: any) => loc.id === selectedRetailerId);
   const { subtotal, taxes, total } = getCartTotal();
 
   const handleOrderSuccess = (orderId: string, userId?: string) => {

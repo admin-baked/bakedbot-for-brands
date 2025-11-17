@@ -1,11 +1,13 @@
 
+
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { demoProducts, demoRetailers, demoCustomer } from '@/lib/data';
 import MenuPageClient from '@/app/menu-page-client';
 import type { Product, Retailer, Review } from '@/types/domain';
-import { collectionGroup, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, collectionGroup, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { reviewConverter } from '@/firebase/converters';
+import { createServerClient as createAdminServerClient } from '@/firebase/server-client';
 
 // Revalidate the page every 60 seconds to fetch fresh data
 export const revalidate = 60;
@@ -31,7 +33,7 @@ export default async function MenuPage({ params }: { params: { brandId: string }
   } else {
     // Fetch live data from Firestore on the server
     try {
-      const { firestore } = await createServerClient();
+      const { firestore } = await createAdminServerClient();
       const productRepo = makeProductRepo(firestore);
       
       const reviewsQuery = query(
@@ -43,12 +45,12 @@ export default async function MenuPage({ params }: { params: { brandId: string }
       const [fetchedProducts, locationsSnap, reviewsSnap] = await Promise.all([
         productRepo.getAllByBrand(brandId),
         firestore.collection('dispensaries').get(),
-        getDocs(reviewsQuery)
+        getDocs(reviewsQuery as any),
       ]);
 
       products = fetchedProducts;
       locations = locationsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Retailer[];
-      reviews = reviewsSnap.docs.map(doc => reviewConverter.fromFirestore(doc)) as Review[];
+      reviews = reviewsSnap.docs.map(doc => reviewConverter.fromFirestore(doc as any)) as Review[];
 
     } catch (error) {
       console.error(`[MenuPage] Failed to fetch data for brand ${brandId}:`, error);
