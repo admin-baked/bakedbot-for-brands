@@ -78,7 +78,7 @@ const recommendProductsFlow = ai.defineFlow(
     outputSchema: RecommendProductsOutputSchema,
   },
   async (input) => {
-    const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
+    const isDemo = input.brandId === 'default' || cookies().get('isUsingDemoData')?.value === 'true';
 
     let candidateProducts: Product[];
 

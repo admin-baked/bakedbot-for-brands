@@ -49,7 +49,7 @@ export function makeProductRepo(db: Firestore) {
 
     /**
      * Retrieves all products for a given brandId.
-     * Used as a fallback if vector search returns no results.
+     * This is a comprehensive fetch of the entire catalog for a brand.
      */
     async getAllByBrand(brandId: string): Promise<Product[]> {
       const snapshot = await productCollection.where('brandId', '==', brandId).get();

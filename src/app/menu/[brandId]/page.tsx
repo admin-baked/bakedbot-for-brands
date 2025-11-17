@@ -62,15 +62,20 @@ export default async function MenuPage({ params }: { params: { brandId: string }
       reviews = demoCustomer.reviews as Review[];
     }
   }
+  
+  // Get a subset of featured products for things like carousels.
+  const featuredProducts = [...products].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 10);
 
   // The Server Component passes the fetched data as props to the Client Component
   // which handles all the interactivity (state, hooks, etc.).
   return (
     <MenuPageClient
+      brandId={brandId}
       initialProducts={products}
       initialLocations={locations}
       initialIsDemo={isDemo}
       initialReviews={reviews}
+      featuredProducts={featuredProducts}
     />
   );
 }
