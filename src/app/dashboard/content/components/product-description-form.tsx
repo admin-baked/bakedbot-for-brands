@@ -3,91 +3,64 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import type { DescriptionFormState, ImageFormState } from '../actions';
+import type { DescriptionFormState } from '../actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, Loader2, Upload, Wand2, FileText } from 'lucide-react';
+import { DollarSign, Loader2, Upload, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import type { Product } from '@/firebase/converters';
 import { defaultChatbotIcon } from '@/lib/data';
 
-function SubmitButton({ action, type }: { action: (payload: FormData) => void, type: 'description' | 'image' }) {
+function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button formAction={action} disabled={pending} type="submit" variant={type === 'description' ? 'default' : 'outline'}>
-      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (type === 'description' ? <FileText className="mr-2 h-4 w-4" /> : <Wand2 className="mr-2 h-4 w-4" />)}
-      {type === 'description' ? 'Generate Description' : 'Generate Image'}
+    <Button disabled={pending} type="submit" variant='default'>
+      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+      Generate Description
     </Button>
   );
 }
 
 interface ProductDescriptionFormProps {
     onContentUpdate: (content: (GenerateProductDescriptionOutput & { productId?: string }) | null) => void;
-    descriptionFormAction: (payload: FormData) => void;
-    imageFormAction: (payload: FormData) => void;
-    descriptionState: DescriptionFormState;
-    imageState: ImageFormState;
+    formAction: (payload: FormData) => void;
+    state: DescriptionFormState;
     products: Product[] | null;
     areProductsLoading: boolean;
 }
 
-export default function ProductDescriptionForm({ onContentUpdate, descriptionFormAction, imageFormAction, descriptionState, imageState, products, areProductsLoading }: ProductDescriptionFormProps) {
+export default function ProductDescriptionForm({ onContentUpdate, formAction, state, products, areProductsLoading }: ProductDescriptionFormProps) {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   
   const [selectedProductId, setSelectedProductId] = useState<string>('');
-  const [localGeneratedContent, setLocalGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
   const [packagingImage, setPackagingImage] = useState<string>('');
   
   // Effect for handling description generation results
   useEffect(() => {
-    if (descriptionState.message) {
-      if (descriptionState.error) {
-        if(!descriptionState.fieldErrors) { // Show toast only for general errors
-          toast({ variant: 'destructive', title: 'Error', description: descriptionState.message });
+    if (state.message) {
+      if (state.error) {
+        if(!state.fieldErrors) { // Show toast only for general errors
+          toast({ variant: 'destructive', title: 'Error', description: state.message });
         }
-      } else if (descriptionState.data) {
+      } else if (state.data) {
         const newContent = { 
-            ...descriptionState.data,
-            imageUrl: descriptionState.data.imageUrl || packagingImage || localGeneratedContent?.imageUrl || '',
-            productId: descriptionState.data.productId || selectedProductId 
+            ...state.data,
+            imageUrl: state.data.imageUrl || packagingImage || '',
+            productId: state.data.productId || selectedProductId 
         } as GenerateProductDescriptionOutput & { productId?: string };
-        setLocalGeneratedContent(newContent);
         onContentUpdate(newContent);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [descriptionState]);
+  }, [state]);
 
-  // Effect for handling image generation results
-  useEffect(() => {
-    if (imageState.message) {
-      toast({
-        variant: imageState.error ? 'destructive' : 'default',
-        title: imageState.error ? 'Image Generation Error' : 'Success',
-        description: imageState.message,
-      });
-    }
-    if (!imageState.error && imageState.imageUrl) {
-        const productName = formRef.current?.productName.value || localGeneratedContent?.productName || 'Generated Image';
-        const newContent = {
-            ...(localGeneratedContent ?? { productName: '', description: '' }),
-            productName: productName,
-            imageUrl: imageState.imageUrl,
-            productId: selectedProductId
-        } as GenerateProductDescriptionOutput & { productId?: string };
-        setLocalGeneratedContent(newContent);
-        onContentUpdate(newContent);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageState]);
-  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -96,14 +69,12 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
         const dataUri = reader.result as string;
         setPackagingImage(dataUri);
         // Also update the display immediately
-        const newContent = {
-            ...(localGeneratedContent ?? { productName: '', description: '' }),
-            productName: formRef.current?.productName.value || localGeneratedContent?.productName || 'Packaging Preview',
-            imageUrl: dataUri,
-            productId: selectedProductId
-        } as GenerateProductDescriptionOutput & { productId?: string };
-        setLocalGeneratedContent(newContent);
-        onContentUpdate(newContent);
+        onContentUpdate({
+          productName: formRef.current?.productName.value || 'Packaging Preview',
+          description: '',
+          imageUrl: dataUri,
+          productId: selectedProductId,
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -117,18 +88,14 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
       (formRef.current.elements.namedItem('productName') as HTMLInputElement).value = product.name;
       (formRef.current.elements.namedItem('msrp') as HTMLInputElement).value = product.price.toFixed(2);
       (formRef.current.elements.namedItem('features') as HTMLTextAreaElement).value = product.description;
-       setPackagingImage(product.imageUrl); // Pre-fill image from product
-       // Also update the display immediately
-       const newContent = {
-           ...(localGeneratedContent ?? { productName: '', description: '' }),
-           productName: product.name,
+       setPackagingImage(product.imageUrl);
+       onContentUpdate({ 
+           productName: product.name, 
+           description: '', 
            imageUrl: product.imageUrl,
            productId: product.id
-       } as GenerateProductDescriptionOutput & { productId?: string };
-       setLocalGeneratedContent(newContent);
-       onContentUpdate(newContent);
+        });
     } else if (productId === '') {
-        // Clear fields if "None" is selected
         if (formRef.current) {
             (formRef.current.elements.namedItem('productName') as HTMLInputElement).value = '';
             (formRef.current.elements.namedItem('msrp') as HTMLInputElement).value = '';
@@ -141,10 +108,10 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
 
   return (
     <Card>
-      <form ref={formRef}>
+      <form ref={formRef} action={formAction}>
         <CardHeader>
-          <CardTitle>Product Content Generator</CardTitle>
-          <CardDescription>Fill in the details below to generate content. The same details will be used for both image and text generation.</CardDescription>
+          <CardTitle>Product Description</CardTitle>
+          <CardDescription>Generate a compelling product description using AI.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
            <input type="hidden" name="logoDataUri" value={defaultChatbotIcon} />
@@ -163,13 +130,13 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
                     ))}
                 </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Associating a product enables the like/dislike feedback buttons on the display card.</p>
+            <p className="text-xs text-muted-foreground">Pre-fills the form and enables feedback on the generated content.</p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="productName">Product Name</Label>
             <Input id="productName" name="productName" placeholder="e.g., Cosmic Caramels" />
-            {descriptionState.fieldErrors?.productName && <p className="text-sm text-destructive">{descriptionState.fieldErrors.productName[0]}</p>}
+            {state.fieldErrors?.productName && <p className="text-sm text-destructive">{state.fieldErrors.productName[0]}</p>}
           </div>
           <div className="grid grid-cols-1 gap-6 @[25rem]:grid-cols-2">
             <div className="space-y-2">
@@ -178,7 +145,7 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input id="msrp" name="msrp" placeholder="25.00" className="pl-8" />
               </div>
-              {descriptionState.fieldErrors?.msrp && <p className="text-sm text-destructive">{descriptionState.fieldErrors.msrp[0]}</p>}
+              {state.fieldErrors?.msrp && <p className="text-sm text-destructive">{state.fieldErrors.msrp[0]}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="brandVoice">Brand Voice</Label>
@@ -193,23 +160,23 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
                   <SelectItem value="Adventurous">Adventurous</SelectItem>
                   </SelectContent>
               </Select>
-              {descriptionState.fieldErrors?.brandVoice && <p className="text-sm text-destructive">{descriptionState.fieldErrors.brandVoice[0]}</p>}
+              {state.fieldErrors?.brandVoice && <p className="text-sm text-destructive">{state.fieldErrors.brandVoice[0]}</p>}
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="features">Key Features / Prompt</Label>
-             <Textarea id="features" name="features" placeholder="e.g., Chewy, Full-spectrum, 10mg THC per piece. Use these details to guide both text and image generation." />
-             {descriptionState.fieldErrors?.features && <p className="text-sm text-destructive">{descriptionState.fieldErrors.features[0]}</p>}
+            <Label htmlFor="features">Key Features</Label>
+             <Textarea id="features" name="features" placeholder="e.g., Chewy, Full-spectrum, 10mg THC per piece." />
+             {state.fieldErrors?.features && <p className="text-sm text-destructive">{state.fieldErrors.features[0]}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="keywords">Keywords</Label>
             <Input id="keywords" name="keywords" placeholder="e.g., caramel, edible, relaxing, indica" />
-            {descriptionState.fieldErrors?.keywords && <p className="text-sm text-destructive">{descriptionState.fieldErrors.keywords[0]}</p>}
+            {state.fieldErrors?.keywords && <p className="text-sm text-destructive">{state.fieldErrors.keywords[0]}</p>}
           </div>
            <div className="space-y-2">
-                <Label>Product Packaging</Label>
+                <Label>Product Packaging (Optional)</Label>
                 <div className="flex items-center justify-center w-full">
-                    <Label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted">
+                    <Label htmlFor="dropzone-file-desc" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted">
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                             <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
                             {packagingImage ? (
@@ -217,18 +184,17 @@ export default function ProductDescriptionForm({ onContentUpdate, descriptionFor
                             ) : (
                                  <>
                                     <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                    <p className="text-xs text-muted-foreground">SVG, PNG, JPG (Optional, guides image generation)</p>
+                                    <p className="text-xs text-muted-foreground">Provides visual context for the AI</p>
                                  </>
                             )}
                         </div>
-                        <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
+                        <Input id="dropzone-file-desc" type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
                     </Label>
                 </div>
             </div>
         </CardContent>
-         <CardFooter className="flex-col sm:flex-row gap-2">
-            <SubmitButton action={descriptionFormAction} type="description" />
-            <SubmitButton action={imageFormAction} type="image" />
+         <CardFooter>
+            <SubmitButton />
          </CardFooter>
       </form>
     </Card>
