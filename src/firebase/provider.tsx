@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -96,6 +97,18 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 export const useFirebase = (): FirebaseServices => {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
+    if (typeof window === 'undefined') {
+      // On the server, return a null-safe context to prevent build errors.
+      return {
+        firebaseApp: null,
+        firestore: null,
+        auth: null,
+        user: null,
+        isUserLoading: true,
+        userError: null,
+      };
+    }
+    // On the client, this is a developer error if the provider is missing.
     throw new Error('useFirebase must be used within a FirebaseProvider.');
   }
   return context;
@@ -105,6 +118,7 @@ export const useFirebase = (): FirebaseServices => {
 export const useAuth = (): Auth | null => {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
+    if (typeof window === 'undefined') return null;
     throw new Error('useAuth must be used within a FirebaseProvider.');
   }
   return context.auth;
@@ -114,6 +128,7 @@ export const useAuth = (): Auth | null => {
 export const useFirestore = (): Firestore | null => {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
+     if (typeof window === 'undefined') return null;
     throw new Error('useFirestore must be used within a FirebaseProvider.');
   }
   return context.firestore;
@@ -123,6 +138,7 @@ export const useFirestore = (): Firestore | null => {
 export const useFirebaseApp = (): FirebaseApp | null => {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
+    if (typeof window === 'undefined') return null;
     throw new Error('useFirebaseApp must be used within a FirebaseProvider.');
   }
   return context.firebaseApp;
