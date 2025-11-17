@@ -1,0 +1,60 @@
+
+import { createServerClient } from '@/firebase/server-client';
+import { makeProductRepo } from '@/server/repos/productRepo';
+import { demoProducts, demoRetailers } from '@/lib/data';
+import MenuPageClient from '@/app/menu-page-client';
+
+// Revalidate the page every 60 seconds to fetch fresh data
+export const revalidate = 60;
+
+/**
+ * This is the main server component for the menu page.
+ * It fetches brand-specific data on the server and passes it to a client component.
+ */
+export default async function MenuPage({ params }: { params: { brandId: string } }) {
+  const { brandId } = params;
+
+  let products;
+  let locations;
+  let isLoading = false; // Data is fetched before render, so it's never "loading" on the client
+  let isDemo = false;
+
+  if (brandId === 'default' || process.env.NEXT_PUBLIC_USE_DEMO_DATA === 'true') {
+    // Use static demo data
+    isDemo = true;
+    products = demoProducts;
+    locations = demoRetailers;
+  } else {
+    // Fetch live data from Firestore on the server
+    try {
+      const { firestore } = await createServerClient();
+      const productRepo = makeProductRepo(firestore);
+      
+      // Fetch both products and locations concurrently for efficiency
+      const [fetchedProducts, locationsSnap] = await Promise.all([
+        productRepo.getAllByBrand(brandId),
+        firestore.collection('dispensaries').get()
+      ]);
+
+      products = fetchedProducts;
+      locations = locationsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as typeof demoRetailers;
+
+    } catch (error) {
+      console.error(`[MenuPage] Failed to fetch data for brand ${brandId}:`, error);
+      // Fallback to demo data in case of a server-side error to prevent a crash
+      isDemo = true;
+      products = demoProducts;
+      locations = demoRetailers;
+    }
+  }
+
+  // The Server Component passes the fetched data as props to the Client Component
+  // which handles all the interactivity (state, hooks, etc.).
+  return (
+    <MenuPageClient
+      initialProducts={products}
+      initialLocations={locations}
+      initialIsDemo={isDemo}
+    />
+  );
+}
