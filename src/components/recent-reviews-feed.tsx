@@ -40,7 +40,7 @@ const ReviewCard = ({ review, product }: { review: Review, product?: Product }) 
         <Card className="h-full">
             <CardHeader className="flex flex-row items-start gap-4">
                 {product && (
-                    <Link href={`/menu/${product.brandId}/products/${product.id}`} className="shrink-0">
+                    <Link href={`/menu/${product.brandId || 'default'}/products/${product.id}`} className="shrink-0">
                         <div className="relative h-16 w-16 rounded-md overflow-hidden border">
                             <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
                         </div>
