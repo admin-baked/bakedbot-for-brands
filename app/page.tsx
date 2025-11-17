@@ -40,7 +40,7 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-3 text-sm">
-            <Button asChild>
+            <Button asChild variant="outline">
                 <Link href="/customer-login">
                   Login
                 </Link>
