@@ -31,7 +31,6 @@ export default function PageClient({ products, areProductsLoading }: PageClientP
   }
 
   return (
-    <div className="flex flex-col gap-6">
        <Tabs defaultValue="generator" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="generator"><PenSquare className="mr-2" /> Content Generator</TabsTrigger>
@@ -59,6 +58,5 @@ export default function PageClient({ products, areProductsLoading }: PageClientP
                 <ReviewSummarizer products={products} areProductsLoading={areProductsLoading} />
             </TabsContent>
         </Tabs>
-    </div>
   );
 }

@@ -3,6 +3,7 @@
 
 import { DashboardSidebar } from '@/components/dashboard-sidebar';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { DashboardHeader } from '@/components/dashboard-header';
 
 export default function DashboardLayout({
   children,
@@ -19,6 +20,7 @@ export default function DashboardLayout({
                   <SidebarTrigger />
               </header>
               <main className="flex flex-1 flex-col p-4 sm:p-6">
+                <DashboardHeader />
                 {children}
               </main>
           </SidebarInset>
