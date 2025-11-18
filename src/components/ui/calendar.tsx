@@ -7,7 +7,7 @@ import { DayPicker, DropdownProps } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectScrollUpButton, SelectScrollDownButton } from "./select"
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
 
@@ -65,42 +65,34 @@ function Calendar({
           }
           return <ChevronRight className="h-4 w-4" />;
         },
-        Dropdown: ({ value, onChange, children, ...props }: DropdownProps) => {
-          const options = React.Children.toArray(
-            children
-          ) as React.ReactElement<React.HTMLProps<HTMLOptionElement>>[]
-          const selected = options.find((child) => child.props.value === value)
-          const handleChange = (value: string) => {
-            const changeEvent = {
-              target: { value },
-            } as React.ChangeEvent<HTMLSelectElement>
-            onChange?.(changeEvent)
-          }
-          return (
-            <Select
-              value={value?.toString()}
-              onValueChange={(value) => {
-                handleChange(value)
-              }}
-            >
-              <SelectTrigger className="pr-1.5 focus:ring-0">
-                <SelectValue>{selected?.props?.children}</SelectValue>
-              </SelectTrigger>
-              <SelectContent position="popper">
-                <SelectScrollUpButton />
-                {options.map((option, id: number) => (
-                  <SelectItem
-                    key={`${option.props.value}-${id}`}
-                    value={option.props.value?.toString() ?? ""}
-                  >
-                    {option.props.children}
-                  </SelectItem>
-                ))}
-                <SelectScrollDownButton />
-              </SelectContent>
-            </Select>
-          )
-        },
+        Dropdown: (props: any) => {
+            const { value, onChange, children, ...rest } = props;
+            const options = React.Children.toArray(
+              children
+            ) as React.ReactElement<React.HTMLProps<HTMLOptionElement>>[]
+            const selected = options.find((child) => child.props.value === value)
+            const handleChange = (value: string) => {
+              const changeEvent = {
+                target: { value },
+              } as React.ChangeEvent<HTMLSelectElement>
+              onChange?.(changeEvent)
+            }
+            return (
+              <Select
+                value={value?.toString()}
+                onValueChange={(value) => {
+                  handleChange(value)
+                }}
+              >
+                <SelectTrigger className="pr-1.5 focus:ring-0">
+                  <SelectValue>{selected?.props?.children}</SelectValue>
+                </SelectTrigger>
+                <SelectContent position="popper" {...rest}>
+                    {children}
+                </SelectContent>
+              </Select>
+            )
+          },
       }}
       {...props}
     />
