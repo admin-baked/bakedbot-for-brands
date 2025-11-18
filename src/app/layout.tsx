@@ -1,2 +1,2 @@
-// This file is no longer used and has been replaced by app/layout.tsx
-// It can be safely deleted.
+// This file is no longer used. The primary layout is now at /app/layout.tsx.
+// This file can be safely deleted.
