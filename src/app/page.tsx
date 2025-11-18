@@ -9,7 +9,7 @@ export default function Home() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'heroImage');
   
   return (
-    <>
+    <main>
       {/* Hero – AI Budtender widget as the star */}
       <section className="relative overflow-hidden border-b border-slate-800 bg-slate-950 text-slate-50">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_55%),_radial-gradient(circle_at_bottom,_rgba(59,130,246,0.12),_transparent_55%)] opacity-90" />
@@ -197,7 +197,7 @@ export default function Home() {
                     <p className="text-sm font-semibold text-slate-50">94% accuracy</p>
                     <p className="text-[11px] text-slate-400">across connected dispensaries</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3">
+                  <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-3">
                     <p className="mb-1 text-[11px] uppercase tracking-[0.16em] text-slate-400">Reorder Signals</p>
                     <p className="text-sm font-semibold text-slate-50">18 locations</p>
                     <p className="text-[11px] text-slate-400">predicted to restock this week</p>
@@ -227,6 +227,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-    </>
+    </main>
   );
 }
