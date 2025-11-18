@@ -10,7 +10,7 @@ import { collection, getDocs, query } from "firebase/firestore";
 import type { Retailer } from "@/types/domain";
 import { retailerConverter } from "@/firebase/converters";
 import { demoRetailers } from "@/lib/data";
-import { FirebaseRoot } from "./firebase-root";
+import { FirebaseClientProvider } from "@/firebase/client-provider";
 
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -48,7 +48,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 
     return (
-        <FirebaseRoot>
+        <FirebaseClientProvider>
             <ThemeProvider>
                 <div className="flex flex-col min-h-screen">
                     <main className="flex-1">
@@ -57,6 +57,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 </div>
                 <CartSheet locations={locations} />
             </ThemeProvider>
-        </FirebaseRoot>
+        </FirebaseClientProvider>
     )
 }
