@@ -18,13 +18,17 @@ import Image from 'next/image';
 import { MapPin, Minus, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useHydrated } from '@/hooks/use-hydrated';
-import { useMenuData } from '@/hooks/use-menu-data';
+import { demoRetailers } from '@/lib/data';
+import { Retailer } from '@/types/domain';
 
 export function CartSheet() {
   const { isCartSheetOpen, setCartSheetOpen, selectedRetailerId, cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useStore();
-  const { locations } = useMenuData();
   const router = useRouter();
   const hydrated = useHydrated();
+
+  // For the purpose of the cart sheet, we can rely on demo data or a simplified fetch.
+  // In a real app, this might come from a global context or a more specific hook.
+  const locations: Retailer[] = demoRetailers; 
 
   const selectedLocation = locations.find(loc => loc.id === selectedRetailerId);
   

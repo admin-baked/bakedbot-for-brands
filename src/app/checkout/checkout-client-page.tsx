@@ -7,13 +7,12 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, MapPin } from 'lucide-react';
+import { CheckoutForm } from '@/components/checkout-form';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckoutForm } from '@/components/checkout-form';
-import type { Retailer } from '@/types/domain';
-import { useCookieStore } from '@/lib/cookie-storage';
+import type { Retailer } from '@/firebase/converters';
 
 interface CheckoutClientPageProps {
   locations: Retailer[];
@@ -22,11 +21,10 @@ interface CheckoutClientPageProps {
 export default function CheckoutClientPage({ locations }: CheckoutClientPageProps) {
   const router = useRouter();
   const hydrated = useHydrated();
-  const { isDemo } = useCookieStore();
   
   const { cartItems, getCartTotal, clearCart, selectedRetailerId } = useStore();
   
-  const selectedRetailer = locations.find(loc => loc.id === selectedRetailerId);
+  const selectedRetailer = locations.find((loc: any) => loc.id === selectedRetailerId);
   const { subtotal, taxes, total } = getCartTotal();
 
   const handleOrderSuccess = (orderId: string, userId?: string) => {
@@ -37,7 +35,17 @@ export default function CheckoutClientPage({ locations }: CheckoutClientPageProp
     }
   };
 
-  // This check is important because even authenticated users might land here with an empty cart.
+  const isLoading = !hydrated;
+
+  if (isLoading) {
+    return (
+      <div className="container flex flex-col h-screen items-center justify-center text-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground mt-4">Loading checkout...</p>
+      </div>
+    );
+  }
+  
   if (hydrated && cartItems.length === 0) {
       return (
           <div className="container mx-auto px-4 py-8 text-center flex-1">
@@ -48,7 +56,7 @@ export default function CheckoutClientPage({ locations }: CheckoutClientPageProp
                   </CardHeader>
                   <CardFooter>
                       <Button asChild className="w-full">
-                          <Link href={isDemo ? "/menu/default" : "/menu"}>
+                          <Link href="/menu/default">
                               Return to Menu
                           </Link>
                       </Button>
@@ -58,15 +66,14 @@ export default function CheckoutClientPage({ locations }: CheckoutClientPageProp
       )
   }
   
-  // Final safety check for location, which might not be set if user navigates directly.
   if (!selectedRetailer) {
      return (
-       <div className="flex flex-col h-screen items-center justify-center text-center py-20">
+       <div className="container flex flex-col h-screen items-center justify-center text-center py-20">
          <Loader2 className="h-8 w-8 animate-spin text-primary" />
          <p className="text-muted-foreground mt-4">Validating location...</p>
-         <p className="text-destructive text-sm mt-2">No location selected. Please return to the menu and select a pickup spot.</p>
+         <p className="text-destructive text-sm mt-2">No location selected. Please go back and select a location.</p>
           <Button asChild variant="outline" className="mt-4">
-              <Link href={isDemo ? "/menu/default" : "/menu"}>
+              <Link href="/menu/default">
                   Return to Menu
               </Link>
           </Button>
@@ -74,16 +81,12 @@ export default function CheckoutClientPage({ locations }: CheckoutClientPageProp
      );
   }
 
-  // Render checkout
   return (
     <div className="container mx-auto px-4 py-8 flex-1">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Left side - Form */}
         <div>
            <CheckoutForm onOrderSuccess={handleOrderSuccess} selectedRetailer={selectedRetailer} />
         </div>
-
-        {/* Right side - Summary */}
         <div className="order-first md:order-last">
            <Card className="sticky top-24">
               <CardHeader>
@@ -147,7 +150,7 @@ export default function CheckoutClientPage({ locations }: CheckoutClientPageProp
               </CardContent>
               <CardFooter>
                    <Button variant="outline" className="w-full" asChild>
-                      <Link href={isDemo ? "/menu/default" : "/menu"}>
+                      <Link href="/menu/default">
                           Edit Cart
                       </Link>
                    </Button>
