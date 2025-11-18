@@ -1,3 +1,4 @@
+
 {
   "compilerOptions": {
     "baseUrl": ".",
@@ -37,6 +38,7 @@
   ],
   "exclude": [
     "node_modules",
-    "playwright-report"
+    "playwright-report",
+    "_app"
   ]
 }
