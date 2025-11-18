@@ -1,9 +1,10 @@
+
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
 import { demoProducts, demoRetailers, demoCustomer } from '@/lib/data';
 import { productConverter, retailerConverter, reviewConverter } from '@/firebase/converters';
-import { WriteBatch, collectionGroup } from 'firebase-admin/firestore';
+import { WriteBatch } from 'firebase-admin/firestore';
 import { updateProductEmbeddings } from '@/ai/flows/update-product-embeddings';
 import { makeProductRepo } from '@/server/repos/productRepo';
 
@@ -22,20 +23,20 @@ export async function importDemoData(): Promise<ActionResult> {
 
     // Import products
     demoProducts.forEach(product => {
-      const docRef = firestore.collection('products').doc(product.id).withConverter(productConverter);
+      const docRef = (firestore as any).collection('products').doc(product.id).withConverter(productConverter as any);
       batch.set(docRef, product, { merge: true });
     });
 
     // Import retailers (dispensaries)
     demoRetailers.forEach(retailer => {
-      const docRef = firestore.collection('dispensaries').doc(retailer.id).withConverter(retailerConverter);
+      const docRef = (firestore as any).collection('dispensaries').doc(retailer.id).withConverter(retailerConverter as any);
       batch.set(docRef, retailer, { merge: true });
     });
     
     // Import reviews
     demoCustomer.reviews.forEach(review => {
       if (review.id && review.productId) {
-        const docRef = firestore.collection('products').doc(review.productId).collection('reviews').doc(review.id).withConverter(reviewConverter);
+        const docRef = (firestore as any).collection('products').doc(review.productId).collection('reviews').doc(review.id).withConverter(reviewConverter as any);
         batch.set(docRef, review as any, { merge: true });
       }
     });

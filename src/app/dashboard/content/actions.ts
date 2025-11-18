@@ -1,9 +1,10 @@
+
 'use server';
 
 import { z } from 'zod';
 import { generateProductDescription, type GenerateProductDescriptionInput, type GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { generateSocialMediaImage, type GenerateSocialMediaImageInput, type GenerateSocialMediaImageOutput } from '@/ai/flows/generate-social-image';
-import { runSummarizeReviews, type SummarizeReviewsInput, type SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
+import { runSummarizeReviews, type SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { createServerClient } from '@/firebase/server-client';
 import { demoCustomer, demoProducts } from '@/lib/data';
@@ -142,8 +143,8 @@ export async function summarizeProductReviews(prevState: ReviewSummaryFormState,
             reviews = (demoCustomer.reviews as Review[]).filter(r => r.productId === productId);
         } else {
             const { firestore } = await createServerClient();
-            const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter).get();
-            reviews = reviewsSnap.docs.map(d => d.data());
+            const reviewsSnap = await (firestore as any).collection(`products/${productId}/reviews`).withConverter(reviewConverter as any).get();
+            reviews = reviewsSnap.docs.map((d: any) => d.data() as Review);
         }
         
         const summary = await runSummarizeReviews({
