@@ -1,10 +1,14 @@
-
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
 import { demoProducts, demoRetailers, demoCustomer } from '@/lib/data';
 import { productConverter, retailerConverter, reviewConverter } from '@/firebase/converters';
 import { WriteBatch, collectionGroup } from 'firebase-admin/firestore';
+import { updateProductEmbeddings } from '@/ai/flows/update-product-embeddings';
+import { makeProductRepo } from '@/server/repos/productRepo';
+
+
+// --- Data Manager Actions ---
 
 export type ActionResult = {
   message: string;
@@ -64,7 +68,6 @@ export async function clearAllData(): Promise<ActionResult> {
             }
         }
         
-        // Also clear sub-collections like reviews and feedback
         const reviewsQuery = firestore.collectionGroup('reviews').limit(batchSize);
         let reviewsSnapshot;
         while ((reviewsSnapshot = await reviewsQuery.get()).size > 0) {
@@ -86,4 +89,44 @@ export async function clearAllData(): Promise<ActionResult> {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
         return { message: `Failed to clear data: ${errorMessage}`, error: true };
     }
+}
+
+
+// --- AI Search Index Actions ---
+
+export type EmbeddingActionResult = {
+  message: string;
+  results: {
+    productId: string;
+    status: string;
+    reviewCount: number;
+  }[];
+};
+
+export async function initializeAllEmbeddings(): Promise<EmbeddingActionResult> {
+  try {
+    const { firestore } = await createServerClient();
+    const productRepo = makeProductRepo(firestore);
+    const products = await productRepo.getAll();
+
+    if (products.length === 0) {
+      return { message: 'No products found to process.', results: [] };
+    }
+    
+    const embeddingPromises = products.map(product => 
+      updateProductEmbeddings({ productId: product.id })
+    );
+
+    const results = await Promise.all(embeddingPromises);
+
+    return {
+      message: `Successfully processed ${results.length} products.`,
+      results: results,
+    };
+
+  } catch (error) {
+    console.error('Error initializing embeddings:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    throw new Error(`Initialization failed: ${errorMessage}`);
+  }
 }

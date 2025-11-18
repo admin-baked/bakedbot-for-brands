@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useFormState } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { importDemoData, clearAllData, type ActionResult } from '../actions';
-import { SubmitButton } from './components/submit-button';
+import { SubmitButton } from './submit-button';
 import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -15,7 +14,7 @@ const initialState: ActionResult = {
   error: false,
 };
 
-export default function DataManagerPage() {
+export default function DataManagerTab() {
   const [importState, importAction] = useFormState(importDemoData, initialState);
   const [clearState, clearAction] = useFormState(clearAllData, initialState);
   const { toast } = useToast();
@@ -47,7 +46,7 @@ export default function DataManagerPage() {
           <CardHeader>
             <CardTitle>Import Demo Data</CardTitle>
             <CardDescription>
-              Populate your Firestore database with the complete set of demo products, locations, and reviews. This is useful for testing or resetting your environment. This will overwrite existing data with the same IDs.
+              Populate your Firestore database with the complete set of demo products, locations, and reviews. This will overwrite existing data with the same IDs.
             </CardDescription>
           </CardHeader>
           <CardFooter>

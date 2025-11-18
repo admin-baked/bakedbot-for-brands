@@ -28,13 +28,11 @@ export default function AISearchIndexTab() {
   const [state, formAction] = useFormState(initializeAllEmbeddings, initialState);
   const { toast } = useToast();
 
-  // This effect will trigger a toast when the form action completes.
   useEffect(() => {
-    if (state?.message) {
+    if (state?.message && state.message.startsWith('Successfully')) {
       toast({
-        title: state.message.startsWith('Successfully') ? 'Success!' : 'Error',
+        title: 'Success!',
         description: state.message,
-        variant: state.message.startsWith('Successfully') ? 'default' : 'destructive',
       });
     }
   }, [state, toast]);
@@ -67,7 +65,7 @@ export default function AISearchIndexTab() {
             <ScrollArea className="h-72 w-full rounded-md border p-4 font-mono text-sm">
               {state.results.map((result) => (
                  <div key={result.productId} className="flex items-center gap-2 mb-1">
-                  {result.status.startsWith('Success') ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-destructive" />}
+                  {result.status.startsWith('Embedding updated') ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-destructive" />}
                   <span>{result.productId}:</span>
                   <span className="text-muted-foreground">{result.status}</span>
                  </div>
@@ -77,7 +75,6 @@ export default function AISearchIndexTab() {
         </Card>
       )}
 
-      {/* This handles the case where the action itself throws an unhandled error */}
       {state.message && state.message.startsWith('Initialization failed') && (
          <Card className="border-destructive">
              <CardHeader>
