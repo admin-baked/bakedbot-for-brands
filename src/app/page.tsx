@@ -237,9 +237,9 @@ export default function BrandsHomepage() {
                       <Link href="/dashboard" className="flex-1 rounded-full bg-emerald-400 px-3 py-1 font-semibold text-slate-950 hover:bg-emerald-300 text-center">
                         Review &amp; send orders
                       </Link>
-                      <button className="rounded-full border border-emerald-300/40 px-3 py-1 text-emerald-100 hover:border-emerald-200">
+                      <Link href="#" className="rounded-full border border-emerald-300/40 px-3 py-1 text-emerald-100 hover:border-emerald-200">
                         Snooze
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -247,6 +247,8 @@ export default function BrandsHomepage() {
             </div>
           </div>
         </section>
+
+        {/* ...keep the rest of your sections here... */}
       </main>
     </div>
   );
