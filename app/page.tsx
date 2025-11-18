@@ -19,6 +19,18 @@ export default function BrandsHomepage() {
             </div>
           </div>
 
+          <nav className="hidden items-center gap-8 text-sm text-slate-300 md:flex">
+            <a href="#features" className="hover:text-slate-50">
+              Features
+            </a>
+            <a href="#how-it-works" className="hover:text-slate-50">
+              How it works
+            </a>
+            <Link href="/menu/default" className="hover:text-slate-50">
+              Demo menu
+            </Link>
+          </nav>
+
           <div className="flex items-center gap-3 text-sm">
             <Link href="/brand-login" className="rounded-full border border-slate-700 px-3 py-1.5 text-slate-200 hover:border-slate-500">
               Login
@@ -162,7 +174,7 @@ export default function BrandsHomepage() {
         </section>
 
         {/* Brand Intelligence Console – moved down from hero */}
-        <section className="border-b border-slate-800 bg-slate-950/90">
+        <section className="border-b border-slate-800 bg-slate-950/90" id="how-it-works">
           <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 md:flex-row md:items-center">
             <div className="md:w-1/2">
               <h3 className="text-lg font-semibold tracking-tight text-slate-50 md:text-xl">
