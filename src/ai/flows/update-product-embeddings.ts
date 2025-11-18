@@ -2,7 +2,8 @@
 'use server';
 /**
  * @fileOverview An AI flow that generates and stores a vector embedding for a product
- * based on a summary of its customer reviews.
+ * based on a summary of its customer reviews. This action is now responsible for
+ * fetching its own data before calling the pure AI flow.
  */
 
 import { ai } from '@/ai/genkit';
@@ -10,11 +11,10 @@ import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { generateEmbedding } from '@/ai/utils/generate-embedding';
-import { FieldValue, type FirestoreDataConverter } from 'firebase-admin/firestore';
-import type { Review, ReviewSummaryEmbedding as ReviewSummaryEmbeddingType } from '@/types/domain';
+import type { Review, ReviewSummaryEmbedding } from '@/types/domain';
 import { reviewConverter } from '@/firebase/converters';
 
-// --- Input and Output Schemas ---
+// --- Input and Output Schemas for the Server Action ---
 
 const UpdateProductEmbeddingsInputSchema = z.object({
   productId: z.string().describe('The unique ID of the product to process.'),
@@ -32,7 +32,6 @@ export type UpdateProductEmbeddingsOutput = z.infer<typeof UpdateProductEmbeddin
 // --- AI Prompts ---
 
 // This prompt is specifically tuned to generate a summary for embedding purposes.
-// It's more data-rich and less conversational than the one for the UI.
 const summarizeReviewsForEmbeddingPrompt = ai.definePrompt(
   {
     name: 'summarizeReviewsForEmbeddingPrompt',
@@ -50,42 +49,24 @@ const summarizeReviewsForEmbeddingPrompt = ai.definePrompt(
   }
 );
 
-// --- The Main Flow ---
+// --- Pure AI Flow ---
 
-const updateProductEmbeddingsFlow = ai.defineFlow(
+const generateEmbeddingFromReviewsFlow = ai.defineFlow(
   {
-    name: 'updateProductEmbeddingsFlow',
-    inputSchema: UpdateProductEmbeddingsInputSchema,
-    outputSchema: UpdateProductEmbeddingsOutputSchema,
+    name: 'generateEmbeddingFromReviewsFlow',
+    inputSchema: z.object({
+      productName: z.string(),
+      reviewTexts: z.array(z.string()),
+    }),
+    outputSchema: z.object({
+      summary: z.string(),
+      embedding: z.array(z.number()),
+    }),
   },
-  async (input) => {
-    const { productId } = input;
-    const { firestore } = await createServerClient();
-    const productRepo = makeProductRepo(firestore);
-
-    // 1. Fetch Product and Reviews
-    const [product, reviewsSnap] = await Promise.all([
-        productRepo.getById(productId),
-        firestore.collection(`products/${productId}/reviews`).get()
-    ]);
-    
-    if (!product) {
-        throw new Error(`Product with ID ${productId} not found.`);
-    }
-
-    const reviews = reviewsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
-
-
-    // 2. Handle case with no reviews
-    if (reviews.length === 0) {
-        await productRepo.updateEmbedding(productId, null);
-        return { productId, status: 'No reviews found, embedding cleared.', reviewCount: 0 };
-    }
-
-    // 3. Generate a data-rich summary using the AI prompt
-    const reviewTexts = reviews.map(r => r.text);
+  async ({ productName, reviewTexts }) => {
+    // 1. Generate a data-rich summary using the AI prompt
     const summaryResponse = await summarizeReviewsForEmbeddingPrompt({
-        productName: product.name,
+        productName: productName,
         reviews: reviewTexts,
     });
     
@@ -94,10 +75,46 @@ const updateProductEmbeddingsFlow = ai.defineFlow(
         throw new Error('Failed to generate a review summary for embedding.');
     }
 
-    // 4. Generate the vector embedding from the summary
+    // 2. Generate the vector embedding from the summary
     const embedding = await generateEmbedding(summaryText);
+    
+    return { summary: summaryText, embedding };
+  }
+);
 
-    // 5. Save the new embedding and summary to the product document
+
+// --- The Main Server Action ---
+
+export async function updateProductEmbeddings(input: UpdateProductEmbeddingsInput): Promise<UpdateProductEmbeddingsOutput> {
+    const { productId } = input;
+    const { firestore } = await createServerClient();
+    const productRepo = makeProductRepo(firestore);
+
+    // 1. Fetch Product and Reviews
+    const [product, reviewsSnap] = await Promise.all([
+        productRepo.getById(productId),
+        firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter).get()
+    ]);
+    
+    if (!product) {
+        throw new Error(`Product with ID ${productId} not found.`);
+    }
+
+    const reviews = reviewsSnap.docs.map(doc => doc.data());
+
+    // 2. Handle case with no reviews
+    if (reviews.length === 0) {
+        await productRepo.updateEmbedding(productId, null);
+        return { productId, status: 'No reviews; embedding cleared.', reviewCount: 0 };
+    }
+
+    // 3. Call the pure AI flow to get the summary and embedding
+    const { summary, embedding } = await generateEmbeddingFromReviewsFlow({
+        productName: product.name,
+        reviewTexts: reviews.map(r => r.text)
+    });
+
+    // 4. Save the new embedding and summary to the product document
     await productRepo.updateEmbedding(productId, {
         embedding: embedding,
         reviewCount: reviews.length,
@@ -106,13 +123,8 @@ const updateProductEmbeddingsFlow = ai.defineFlow(
     
     return {
         productId,
-        status: 'Embedding generated and saved successfully.',
+        status: 'Embedding updated.',
         reviewCount: reviews.length,
-        summary: summaryText,
+        summary: summary,
     };
-  }
-);
-
-export async function updateProductEmbeddings(input: UpdateProductEmbeddingsInput): Promise<UpdateProductEmbeddingsOutput> {
-    return updateProductEmbeddingsFlow(input);
 }
