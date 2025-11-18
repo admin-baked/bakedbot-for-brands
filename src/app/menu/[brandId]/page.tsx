@@ -6,7 +6,7 @@ import MenuPageClient from '@/app/menu-page-client';
 import type { Product, Retailer, Review } from '@/types/domain';
 import { collectionGroup, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { reviewConverter } from '@/firebase/converters';
-import { createServerClient as createAdminServerClient } from '@/firebase/server-client';
+import { DocumentData } from 'firebase-admin/firestore';
 
 // Revalidate the page every 60 seconds to fetch fresh data
 export const revalidate = 60;
@@ -23,8 +23,8 @@ export default async function MenuPage({ params }: { params: { brandId: string }
   let reviews: Review[];
   let isDemo = false;
 
-  if (brandId === 'default' || process.env.NEXT_PUBLIC_USE_DEMO_DATA === 'true') {
-    // Use static demo data
+  if (brandId === 'default') {
+    // Use static demo data for the 'default' brand
     isDemo = true;
     products = demoProducts;
     locations = demoRetailers;
@@ -32,11 +32,11 @@ export default async function MenuPage({ params }: { params: { brandId: string }
   } else {
     // Fetch live data from Firestore on the server
     try {
-      const { firestore } = await createAdminServerClient();
+      const { firestore } = await createServerClient();
       const productRepo = makeProductRepo(firestore);
       
       const reviewsQuery = query(
-          (firestore as any).collectionGroup('reviews'), 
+          collectionGroup(firestore, 'reviews').withConverter(reviewConverter), 
           orderBy('createdAt', 'desc'), 
           limit(10)
       );
@@ -44,12 +44,12 @@ export default async function MenuPage({ params }: { params: { brandId: string }
       const [fetchedProducts, locationsSnap, reviewsSnap] = await Promise.all([
         productRepo.getAllByBrand(brandId),
         firestore.collection('dispensaries').get(),
-        (reviewsQuery as any).get(),
+        getDocs(reviewsQuery),
       ]);
 
       products = fetchedProducts;
-      locations = locationsSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })) as Retailer[];
-      reviews = reviewsSnap.docs.map((doc: any) => reviewConverter.fromFirestore(doc as any)) as Review[];
+      locations = locationsSnap.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() })) as Retailer[];
+      reviews = reviewsSnap.docs.map((doc: DocumentData) => doc.data()) as Review[];
 
     } catch (error) {
       console.error(`[MenuPage] Failed to fetch data for brand ${brandId}:`, error);
