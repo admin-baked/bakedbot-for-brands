@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent, useTransition, useCallback } from 'react';
@@ -19,7 +18,7 @@ import { recommendProducts, type RecommendProductsOutput } from '@/ai/ai-powered
 import { getReviewSummary } from '@/app/products/[id]/actions';
 import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { createSocialMediaImage, type ImageFormState } from '@/app/dashboard/(main)/content/actions';
+import { createSocialMediaImage, type ImageFormState } from '@/app/dashboard/content/actions';
 import { updateProductFeedback } from '@/app/products/[id]/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ChatbotIcon } from './chatbot-icon';
