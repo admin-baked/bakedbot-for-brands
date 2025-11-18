@@ -1,4 +1,3 @@
-
 'use client';
 
 import Chatbot from '@/components/chatbot';

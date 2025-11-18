@@ -9,7 +9,7 @@ import { FloatingCartPill } from '@/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { useMenuData } from '@/app/menu/menu-layout-client';
-import TiledMenuPage from '../tiled/page';
+import TiledMenuPage from './tiled/page';
 import { useCookieStore } from '@/lib/cookie-storage';
 
 export default function MenuPageContents() {
