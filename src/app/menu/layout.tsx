@@ -7,8 +7,6 @@ import { collectionGroup, getDocs, query, orderBy, limit, DocumentData as AdminD
 import { reviewConverter } from '@/firebase/converters';
 import { DocumentData } from 'firebase-admin/firestore';
 import MenuLayoutClient from './menu-layout-client';
-import Header from '@/components/header';
-import { Footer } from '@/components/footer';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -74,15 +72,12 @@ async function getMenuData(brandId: string) {
 
 
 export default async function MenuLayout({ children, params }: MenuLayoutProps) {
-  // Use a different brandId for tiled layout if needed, or default to main params
   const effectiveBrandId = params.brandId || 'default';
   const menuData = await getMenuData(effectiveBrandId);
 
   return (
     <MenuLayoutClient initialData={menuData}>
-        <div className="pt-16">
-            {children}
-        </div>
+        {children}
     </MenuLayoutClient>
   );
 }
