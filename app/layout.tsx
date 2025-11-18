@@ -1,12 +1,14 @@
-// app/layout.tsx
+
 import type { Metadata } from "next";
 import React from "react";
 import "./globals.css";
+import Header from "@/components/header";
+import { Footer } from "@/components/footer";
 import { Providers } from "@/app/providers";
 
 export const metadata: Metadata = {
-  title: "BakedBot Studio",
-  description: "Headless menu + AI budtender",
+  title: "BakedBot AI",
+  description: "Headless menu & AI budtender for cannabis brands",
 };
 
 export default function RootLayout({
@@ -16,8 +18,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
-        <Providers>{children}</Providers>
+      <body className="flex flex-col min-h-screen">
+        <Providers>
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+        </Providers>
       </body>
     </html>
   );

@@ -4,8 +4,8 @@ import { cookies } from 'next/headers';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import type { Product } from '@/types/domain';
 import { demoProducts } from '@/lib/data';
-import { ProductsDataTable } from './components/products-data-table';
-import { columns } from './components/products-table-columns';
+import { ProductsDataTable } from '@/components/products-data-table';
+import { columns } from '@/components/products-table-columns';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
