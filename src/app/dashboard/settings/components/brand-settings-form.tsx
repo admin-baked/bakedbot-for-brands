@@ -11,6 +11,11 @@ import { useToast } from '@/hooks/use-toast';
 import { updateBrandSettings, type BrandSettingsFormState } from '../actions';
 import { type Brand } from '@/types/domain';
 import { SubmitButton } from './submit-button';
+import { useCookieStore } from '@/lib/cookie-storage';
+import { themes } from '@/lib/themes';
+import { cn } from '@/lib/utils';
+import { Check } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
 const initialState: BrandSettingsFormState = {
   message: '',
@@ -25,6 +30,7 @@ export default function BrandSettingsForm({ brand }: BrandSettingsFormProps) {
   const [state, formAction] = useFormState(updateBrandSettings, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
+  const { theme, setTheme } = useCookieStore();
 
   useEffect(() => {
     if (state.message) {
@@ -41,9 +47,9 @@ export default function BrandSettingsForm({ brand }: BrandSettingsFormProps) {
       <form ref={formRef} action={formAction}>
         <CardHeader>
           <CardTitle>Brand Identity</CardTitle>
-          <CardDescription>Update your brand's name and logo.</CardDescription>
+          <CardDescription>Update your brand's name, logo, and theme.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="brandName">Brand Name</Label>
             <Input id="brandName" name="brandName" defaultValue={brand.name} />
@@ -53,6 +59,26 @@ export default function BrandSettingsForm({ brand }: BrandSettingsFormProps) {
             <Label htmlFor="logoUrl">Logo URL</Label>
             <Input id="logoUrl" name="logoUrl" defaultValue={brand.logoUrl || ''} placeholder="https://example.com/logo.png"/>
              {state.fieldErrors?.logoUrl && <p className="text-sm text-destructive">{state.fieldErrors.logoUrl[0]}</p>}
+          </div>
+          <Separator />
+          <div className="space-y-3">
+             <Label>Theme</Label>
+             <div className="grid grid-cols-3 gap-2">
+                {themes.map((t) => (
+                    <Button
+                        key={t.name}
+                        variant="outline"
+                        type="button"
+                        onClick={() => setTheme(t.name)}
+                        className={cn("justify-start", theme === t.name && "border-primary ring-2 ring-primary")}
+                    >
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `hsl(${t.cssVars.light.primary})` }}>
+                         {theme === t.name && <Check className="h-4 w-4 text-white" />}
+                        </span>
+                        <span className="ml-3 capitalize">{t.name}</span>
+                    </Button>
+                ))}
+             </div>
           </div>
         </CardContent>
         <CardFooter>
