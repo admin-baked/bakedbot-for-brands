@@ -2,12 +2,12 @@
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { demoProducts } from '@/lib/data';
-import ContentAITab from './components/content-ai-tab';
+import PageClient from './page-client';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ProductContentAIPage() {
+export default async function ProductContentGeneratorPage() {
     const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
     let products = [];
     let areProductsLoading = true;
@@ -31,5 +31,5 @@ export default async function ProductContentAIPage() {
         }
     }
     
-    return <ContentAITab initialProducts={products} areProductsLoading={areProductsLoading} />;
+    return <PageClient products={products} areProductsLoading={areProductsLoading} />;
 }
