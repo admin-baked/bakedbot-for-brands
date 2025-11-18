@@ -9,7 +9,7 @@ export default function Home() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'heroImage');
   
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 font-sans">
+    <div className="bg-slate-950 text-slate-50 font-sans">
       {/* Top nav is now in the global Header component, so it's removed from here */}
 
       <main>
