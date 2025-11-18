@@ -32,7 +32,7 @@ export default async function CheckoutPage() {
     }
 
     return (
-        <div className="bg-muted/20 flex-1">
+        <div className="bg-muted/20 flex-1 py-8">
              <CheckoutClientPage locations={locations} />
         </div>
     );

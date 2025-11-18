@@ -197,7 +197,7 @@ export default function Home() {
                     <p className="text-sm font-semibold text-slate-50">94% accuracy</p>
                     <p className="text-[11px] text-slate-400">across connected dispensaries</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-3">
+                  <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3">
                     <p className="mb-1 text-[11px] uppercase tracking-[0.16em] text-slate-400">Reorder Signals</p>
                     <p className="text-sm font-semibold text-slate-50">18 locations</p>
                     <p className="text-[11px] text-slate-400">predicted to restock this week</p>

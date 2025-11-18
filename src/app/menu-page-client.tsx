@@ -54,17 +54,15 @@ export default function MenuPageClient({
   // Show loading skeleton until hydrated on the client.
   if (isLoading) {
     return (
-      <div className="pt-16">
-        <main className="container mx-auto px-4 py-8 flex-1">
-          <Skeleton className="w-full h-80 rounded-lg mb-12" />
-          <Skeleton className="w-full h-48 rounded-lg mb-12" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
-              <Skeleton key={i} className="h-96 w-full" />
-            ))}
-          </div>
-        </main>
-      </div>
+      <main className="container mx-auto px-4 py-8 flex-1">
+        <Skeleton className="w-full h-80 rounded-lg mb-12" />
+        <Skeleton className="w-full h-48 rounded-lg mb-12" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <Skeleton key={i} className="h-96 w-full" />
+          ))}
+        </div>
+      </main>
     );
   }
   
@@ -77,15 +75,15 @@ export default function MenuPageClient({
   
   // Render default grid layout
   return (
-    <div className="pt-16">
-        <div className="container mx-auto px-4 space-y-12">
-          <HeroSlider products={featuredProducts} isLoading={false} />
-          <DispensaryLocator locations={locations} isLoading={false}/>
-          <ProductGrid products={products} isLoading={false} />
-          <RecentReviewsFeed reviews={initialReviews} products={products} isLoading={false} />
-        </div>
+    <>
+      <div className="container mx-auto px-4 space-y-12 py-8">
+        <HeroSlider products={featuredProducts} isLoading={false} />
+        <DispensaryLocator locations={locations} isLoading={false}/>
+        <ProductGrid products={products} isLoading={false} />
+        <RecentReviewsFeed reviews={initialReviews} products={products} isLoading={false} />
+      </div>
       <FloatingCartPill />
       <Chatbot products={featuredProducts} brandId={brandId} />
-    </div>
+    </>
   );
 }
