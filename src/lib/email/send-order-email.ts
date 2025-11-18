@@ -19,7 +19,7 @@ type SendArgs = {
 
 const generateHtml = (args: SendArgs): string => {
     const { order, orderId, recipientType, retailer, updateInfo } = args;
-    const itemsHtml = order.items.map((item) => `
+    const itemsHtml = order.items.map((item: { name: string; qty: number; price: number }) => `
         <tr>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.qty}</td>
