@@ -33,7 +33,6 @@
   "include": [
     "next-env.d.ts",
     "src/**/*",
-    ".next/types/**/*.ts",
     "functions/src/**/*"
   ],
   "exclude": [
