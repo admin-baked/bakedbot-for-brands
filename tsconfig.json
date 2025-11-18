@@ -1,9 +1,10 @@
-
 {
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": [
+        "src/*"
+      ]
     },
     "target": "es5",
     "lib": [
@@ -31,11 +32,11 @@
   "include": [
     "next-env.d.ts",
     "src/**/*",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "functions/src/**/*"
   ],
   "exclude": [
     "node_modules",
-    "playwright-report",
-    "functions"
+    "playwright-report"
   ]
 }
