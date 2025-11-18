@@ -1,4 +1,5 @@
 
+
 import { createServerClient } from '@/firebase/server-client';
 import { cookies } from 'next/headers';
 import { type Retailer } from '@/firebase/converters';
@@ -31,7 +32,8 @@ export default async function CheckoutPage() {
     }
 
     return (
-        <CheckoutClientPage locations={locations} />
+        <div className="bg-muted/20 flex-1">
+             <CheckoutClientPage locations={locations} />
+        </div>
     );
 }
-

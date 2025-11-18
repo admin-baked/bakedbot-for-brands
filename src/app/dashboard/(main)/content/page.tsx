@@ -7,7 +7,7 @@ import ProductDescriptionDisplay from '@/components/product-description-display'
 import ProductDescriptionForm from '@/components/product-description-form';
 import ReviewSummarizer from '@/components/review-summarizer';
 import { useFormState } from 'react-dom';
-import { createProductDescription, createSocialMediaImage, type DescriptionFormState, type ImageFormState } from '@/app/dashboard/(main)/content/actions';
+import { createProductDescription, createSocialMediaImage, type DescriptionFormState, type ImageFormState } from './actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PenSquare, MessageSquare } from 'lucide-react';
 import type { Product } from '@/types/domain';
@@ -20,7 +20,10 @@ const initialImageState: ImageFormState = { message: '', imageUrl: null, error: 
 
 export default function ProductContentAIPage() {
   const { isDemo } = useCookieStore();
-  const { products, isLoading: areProductsLoading } = useProducts(isDemo ? 'default' : undefined);
+  // In a real app, you would pass the user's brandId here.
+  // For this demo, we use 'default' for live data or undefined if not needed.
+  const brandId = isDemo ? 'default' : 'default';
+  const { products, isLoading: areProductsLoading } = useProducts(brandId);
 
   const [generatedContent, setGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
   
