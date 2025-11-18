@@ -19,9 +19,8 @@ import { recommendProducts, type RecommendProductsOutput } from '@/ai/ai-powered
 import { getReviewSummary } from '@/app/products/[id]/actions';
 import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { createSocialMediaImage } from '@/app/dashboard/content/actions';
+import { createSocialMediaImage, type ImageFormState } from '@/app/dashboard/(main)/content/actions';
 import { updateProductFeedback } from '@/app/products/[id]/actions';
-import type { ImageFormState } from '@/app/dashboard/content/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ChatbotIcon } from './chatbot-icon';
 import { defaultChatbotIcon } from '@/lib/data';
@@ -417,7 +416,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
         text: "I'm sorry, I'm having a little trouble thinking right now. Please try again in a moment.",
         sender: 'bot',
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsBotTyping(false);
     }
@@ -495,3 +494,5 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
         </>
       );
 }
+
+    
