@@ -1,36 +1,19 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Loader2, MapPin, Navigation, Star } from 'lucide-react';
-import { useStore } from '@/hooks/use-store';
-import { haversineDistance } from '@/lib/utils';
-import { cn } from '@/lib/utils';
-import Link from 'next/link';
-import { useToast } from '@/hooks/use-toast';
-import { useFirebase } from '@/firebase/provider';
-import { doc, updateDoc } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
 import type { Retailer } from '@/types/domain';
 import { useHydrated } from '@/hooks/use-hydrated';
-import { Skeleton } from './ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { cn, haversineDistance } from '@/lib/utils';
+import { useStore } from '@/hooks/use-store';
+import { doc, updateDoc } from 'firebase/firestore';
+import { Loader2, MapPin, Navigation, Star } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useCookieStore } from '@/lib/cookie-storage';
-
-// 🔐 Safe wrapper: never crash if provider is missing
-function useOptionalFirebase() {
-  try {
-    return useFirebase();
-  } catch (e) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn(
-        '[DispensaryLocator] useFirebase failed – likely no <FirebaseProvider> above. Running in guest mode.',
-        e,
-      );
-    }
-    return { user: null, firestore: null }; // Return a safe, null-like object
-  }
-}
 
 
 interface DispensaryLocatorProps {

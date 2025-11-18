@@ -1,4 +1,3 @@
-
 import { createServerClient } from '@/firebase/server-client';
 import { cookies } from 'next/headers';
 import { retailerConverter, type Retailer } from '@/firebase/converters';

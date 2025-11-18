@@ -1,7 +1,5 @@
-
 'use client';
 
-import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CartSheet } from "@/components/cart-sheet";
 import { useCookieStore } from "@/lib/cookie-storage";
@@ -12,8 +10,8 @@ import { collection, getDocs, query } from "firebase/firestore";
 import type { Retailer } from "@/types/domain";
 import { retailerConverter } from "@/firebase/converters";
 import { demoRetailers } from "@/lib/data";
-import Header from "@/components/header";
-import { Footer } from "@/components/footer";
+import { FirebaseRoot } from "./firebase-root";
+
 
 export function Providers({ children }: { children: React.ReactNode }) {
     const { _hasHydrated } = useCookieStore();
@@ -50,17 +48,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 
     return (
-        <FirebaseClientProvider>
+        <FirebaseRoot>
             <ThemeProvider>
                 <div className="flex flex-col min-h-screen">
-                    <Header />
                     <main className="flex-1">
                         {children}
                     </main>
-                    <Footer />
                 </div>
                 <CartSheet locations={locations} />
             </ThemeProvider>
-        </FirebaseClientProvider>
+        </FirebaseRoot>
     )
 }
