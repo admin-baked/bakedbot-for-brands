@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -19,7 +18,6 @@ export default function BrandsHomepage() {
             </div>
           </div>
 
-          {/* Header links / nav */}
           <div className="flex items-center gap-3 text-sm">
             <Link href="/brand-login" className="rounded-full border border-slate-700 px-3 py-1.5 text-slate-200 hover:border-slate-500">
               Login
@@ -59,7 +57,7 @@ export default function BrandsHomepage() {
                   Get started free
                 </Link>
                 <Link href="/menu/default" className="rounded-full border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm text-slate-100 hover:border-slate-500">
-                  View live demo
+                  Watch 2-min demo
                 </Link>
               </div>
 
@@ -87,7 +85,6 @@ export default function BrandsHomepage() {
             <div className="md:w-1/2">
               <div className="mx-auto max-w-md rounded-3xl border border-slate-200/20 bg-slate-950/40 p-2 shadow-[0_40px_120px_rgba(15,23,42,0.9)]">
                 <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80">
-                  {/* Using a placeholder image */}
                   <img
                     src="https://picsum.photos/seed/budtender/600/800"
                     alt="Headless menu and AI budtender experience"
@@ -162,7 +159,7 @@ export default function BrandsHomepage() {
         </section>
 
         {/* Brand Intelligence Console – moved down from hero */}
-        <section id="how-it-works" className="border-b border-slate-800 bg-slate-950/90">
+        <section className="border-b border-slate-800 bg-slate-950/90">
           <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 md:flex-row md:items-center">
             <div className="md:w-1/2">
               <h3 className="text-lg font-semibold tracking-tight text-slate-50 md:text-xl">
@@ -175,7 +172,7 @@ export default function BrandsHomepage() {
               </p>
               <ul className="mt-4 space-y-2 text-xs text-slate-300">
                 <li>• Daily scans of every connected dispensary menu</li>
-                <li>• MSRP and pricing guardrails so your brand doesn&apos;t get discounted away</li>
+                <li>• MSRP and pricing guardrails so your brand doesn't get discounted away</li>
                 <li>• Reorder suggestions based on actual retail movement, not guesswork</li>
               </ul>
             </div>
@@ -246,10 +243,7 @@ export default function BrandsHomepage() {
             </div>
           </div>
         </section>
-
       </main>
     </div>
   );
 }
-
-    
