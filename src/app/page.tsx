@@ -3,8 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 export default function Home() {
+  const heroImage = PlaceHolderImages.find(p => p.id === 'heroImage');
+  
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 font-sans">
       {/* Top nav is now in the global Header component, so it's removed from here */}
@@ -65,14 +68,16 @@ export default function Home() {
             <div className="md:w-1/2">
               <div className="mx-auto max-w-md rounded-3xl border border-slate-200/20 bg-slate-950/40 p-2 shadow-[0_40px_120px_rgba(15,23,42,0.9)]">
                 <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80">
-                  <Image
-                    src="https://picsum.photos/seed/budtender/600/800"
-                    alt="Headless menu and AI budtender experience"
-                    width={600}
-                    height={800}
-                    className="h-full w-full object-cover"
-                    data-ai-hint="chatbot mobile"
-                  />
+                  {heroImage && (
+                    <Image
+                      src={heroImage.imageUrl}
+                      alt="Headless menu and AI budtender experience"
+                      width={600}
+                      height={800}
+                      className="h-full w-full object-cover"
+                      data-ai-hint={heroImage.imageHint}
+                    />
+                  )}
                 </div>
               </div>
               <p className="mt-3 text-center text-[11px] text-slate-500">
