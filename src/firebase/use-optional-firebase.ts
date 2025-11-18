@@ -19,7 +19,7 @@ export function useOptionalFirebase() {
         `[useOptionalFirebase] useFirebase() failed, likely because no <FirebaseProvider> is present in the component tree. This is expected on public pages. Components using this hook will fall back to a non-authenticated state.`,
       );
     }
-    // Return a safe, "null" version of the context value.
+    // Return a safe, "null" version of the context value with a consistent shape.
     return { 
         user: null,
         isUserLoading: false,
