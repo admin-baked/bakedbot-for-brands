@@ -1,6 +1,7 @@
 
-// This page is intentionally left blank.
-// The content for the root dashboard is rendered by the layout based on the path.
+import DashboardWelcome from './components/dashboard-welcome';
+
+// This page renders the content for the root of the /dashboard route.
 export default function DashboardRootPage() {
-  return null;
+  return <DashboardWelcome />;
 }
