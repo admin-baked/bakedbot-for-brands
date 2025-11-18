@@ -25,11 +25,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <FirebaseClientProvider>
             <ThemeProvider>
-                <div className="flex flex-col min-h-screen">
-                    <main className="flex-1">
-                        {children}
-                    </main>
-                </div>
+                {children}
                 <CartSheet />
             </ThemeProvider>
         </FirebaseClientProvider>
