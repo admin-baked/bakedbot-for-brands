@@ -16,7 +16,6 @@ export type NavLink = {
 const navConfig: Record<string, NavLink[]> = {
   brand: [
     { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
-    { href: '/dashboard/orders', label: 'Orders', icon: 'Package' },
     { href: '/dashboard/products', label: 'Products', icon: 'Box' },
     { href: '/dashboard/content', label: 'Content AI', icon: 'PenSquare' },
     { href: '/dashboard/settings', label: 'Settings', icon: 'Settings' },
@@ -32,15 +31,12 @@ const navConfig: Record<string, NavLink[]> = {
   ],
   // 'owner' or 'admin' role
   admin: [
-    { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard', hidden: false },
-    { href: '/dashboard/orders', label: 'Orders', icon: 'Package', hidden: false },
-    { href: '/dashboard/products', label: 'Products', icon: 'Box', hidden: false },
-    { href: '/dashboard/content', label: 'Content AI', icon: 'PenSquare', hidden: false },
-    { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star', hidden: true },
-    { href: '/dashboard/locations', label: 'Retailers', icon: 'MapPin', hidden: true },
-    { href: '/dashboard/settings', label: 'Settings', icon: 'Settings', hidden: false },
-    { href: '/dashboard/ceo/import-demo-data', label: 'Data Manager', icon: 'Database', hidden: false },
-    { href: '/dashboard/ceo/initialize-embeddings', label: 'AI Search Index', icon: 'BrainCircuit', hidden: false },
+    { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
+    { href: '/dashboard/products', label: 'Products', icon: 'Box' },
+    { href: '/dashboard/content', label: 'Content AI', icon: 'PenSquare' },
+    { href: '/dashboard/settings', label: 'Settings', icon: 'Settings' },
+    { href: '/dashboard/ceo/import-demo-data', label: 'Data Manager', icon: 'Database' },
+    { href: '/dashboard/ceo/initialize-embeddings', label: 'AI Search Index', icon: 'BrainCircuit' },
   ]
 };
 

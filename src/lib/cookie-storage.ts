@@ -1,33 +1,11 @@
-
 'use client';
 
 import { type Theme } from '@/lib/themes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import * as LucideIcons from 'lucide-react';
 import type { Retailer, Product } from '@/firebase/converters';
 
 export type CartItem = Product & { quantity: number };
-
-export type NavLink = {
-  href: string;
-  label: string;
-  icon: keyof typeof LucideIcons;
-  hidden?: boolean;
-};
-
-// Moved outside the store definition to be a true constant.
-const defaultNavLinks: NavLink[] = [
-    { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard', hidden: false },
-    { href: '/dashboard/orders', label: 'Orders', icon: 'Package', hidden: false },
-    { href: '/dashboard/products', label: 'Products', icon: 'Box', hidden: false },
-    { href: '/dashboard/content', label: 'Content AI', icon: 'PenSquare', hidden: false },
-    { href: '/dashboard/reviews', label: 'Reviews', icon: 'Star', hidden: true },
-    { href: '/dashboard/locations', label: 'Retailers', icon: 'MapPin', hidden: true },
-    { href: '/dashboard/settings', label: 'Settings', icon: 'Settings', hidden: false },
-    { href: '/dashboard/ceo/import-demo-data', label: 'Data Manager', icon: 'Database', hidden: true },
-    { href: '/dashboard/ceo/initialize-embeddings', label: 'AI Search Index', icon: 'BrainCircuit', hidden: true },
-];
 
 export interface CookieStoreState {
   _hasHydrated: boolean;
@@ -47,7 +25,6 @@ export interface CookieStoreState {
   isCeoMode: boolean; // Not persisted
   emailProvider: 'sendgrid' | 'gmail';
   sendgridApiKey: string | null;
-  navLinks: NavLink[]; // Not persisted
 
   // Actions
   setTheme: (theme: Theme) => void;
@@ -61,10 +38,6 @@ export interface CookieStoreState {
   setIsCeoMode: (isCeo: boolean) => void;
   setEmailProvider: (provider: 'sendgrid' | 'gmail') => void;
   setSendgridApiKey: (key: string | null) => void;
-  addNavLink: (link: NavLink) => void;
-  updateNavLink: (href: string, newLink: Partial<NavLink>) => void;
-  toggleNavLinkVisibility: (href: string) => void;
-  removeNavLink: (href: string) => void;
 }
 
 
@@ -88,7 +61,6 @@ export const useCookieStore = create<CookieStoreState>()(
       isCeoMode: false,
       emailProvider: 'sendgrid' as 'sendgrid' | 'gmail',
       sendgridApiKey: null,
-      navLinks: defaultNavLinks, // Initialized but not persisted.
       
       // Actions
       setTheme: (theme: Theme) => set({ theme }),
@@ -113,16 +85,6 @@ export const useCookieStore = create<CookieStoreState>()(
               set({ brandImageGenerations: 1, lastBrandImageGeneration: now });
           }
       },
-      // Actions to modify non-persisted navLinks state
-      addNavLink: (link: NavLink) => set((state) => ({ navLinks: [...state.navLinks, { ...link, hidden: false }] })),
-      updateNavLink: (href: string, newLink: Partial<NavLink>) => set((state) => ({
-          navLinks: state.navLinks.map((link) => link.href === href ? { ...link, ...newLink } : link)
-      })),
-      toggleNavLinkVisibility: (href: string) => set((state) => ({
-          navLinks: state.navLinks.map((link) => link.href === href ? { ...link, hidden: !link.hidden } : link)
-      })),
-      removeNavLink: (href: string) => set(state => ({ navLinks: state.navLinks.filter(l => l.href !== href) })),
-      
     }),
     {
       name: 'bakedbot-storage', 
