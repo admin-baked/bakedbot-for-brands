@@ -7,7 +7,7 @@ import ProductDescriptionDisplay from '@/components/product-description-display'
 import ProductDescriptionForm from '@/components/product-description-form';
 import ReviewSummarizer from '@/components/review-summarizer';
 import { useFormState } from 'react-dom';
-import { createProductDescription, createSocialMediaImage, type DescriptionFormState, type ImageFormState } from '@/app/dashboard/(main)/content/actions';
+import { createProductDescription, createSocialMediaImage, type DescriptionFormState, type ImageFormState } from '@/app/dashboard/content/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PenSquare, MessageSquare } from 'lucide-react';
 import type { Product } from '@/types/domain';
@@ -15,12 +15,12 @@ import type { Product } from '@/types/domain';
 const initialDescriptionState: DescriptionFormState = { message: '', data: null, error: false };
 const initialImageState: ImageFormState = { message: '', imageUrl: null, error: false };
 
-interface ContentAITabProps {
-  initialProducts: Product[];
+interface PageClientProps {
+  products: Product[];
   areProductsLoading: boolean;
 }
 
-export default function ContentAITab({ initialProducts, areProductsLoading }: ContentAITabProps) {
+export default function PageClient({ products, areProductsLoading }: PageClientProps) {
   const [generatedContent, setGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
   
   const [descriptionState, descriptionFormAction] = useFormState(createProductDescription, initialDescriptionState);
@@ -46,7 +46,7 @@ export default function ContentAITab({ initialProducts, areProductsLoading }: Co
                       imageFormAction={imageFormAction}
                       descriptionState={descriptionState}
                       imageState={imageState}
-                      products={initialProducts}
+                      products={products}
                       areProductsLoading={areProductsLoading}
                     />
                     <ProductDescriptionDisplay 
@@ -56,7 +56,7 @@ export default function ContentAITab({ initialProducts, areProductsLoading }: Co
             </TabsContent>
 
             <TabsContent value="summarizer" className="mt-6">
-                <ReviewSummarizer products={initialProducts} areProductsLoading={areProductsLoading} />
+                <ReviewSummarizer products={products} areProductsLoading={areProductsLoading} />
             </TabsContent>
         </Tabs>
     </div>
