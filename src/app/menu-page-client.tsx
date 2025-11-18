@@ -1,9 +1,7 @@
-'use client';
-
-// Compatibility shim to prevent build failures during refactoring.
-// This file can be removed once all components are migrated to the new menu layout architecture.
+"use client";
 
 // Super loose type so TS doesn't freak out.
+// You can replace `any` with a real interface later.
 export type MenuData = any;
 
 // Temporary compatibility hook.
@@ -14,10 +12,11 @@ export function useMenuData(): MenuData {
     brandId: 'default',
     locations: [],
     products: [],
-    reviews: [],
-    featuredProducts: [],
+    initialIsDemo: true,
     isDemo: true,
-    isLoading: true,
+    initialReviews: [],
+    featuredProducts: [],
+    isLoading: false,
     error: null,
   };
 }
