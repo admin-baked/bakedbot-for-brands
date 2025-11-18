@@ -1,4 +1,4 @@
-// src/app/menu/menu-layout-client.tsx
+
 'use client';
 
 import { useHydrated } from '@/hooks/use-hydrated';

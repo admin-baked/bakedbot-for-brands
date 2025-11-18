@@ -1,3 +1,4 @@
+
 'use client';
 import { useCookieStore } from "@/lib/cookie-storage";
 import { useRouter } from "next/navigation";
@@ -9,7 +10,7 @@ export default function DefaultLayout({ children }: { children: React.ReactNode 
 
     useEffect(() => {
         if (menuStyle === 'alt') {
-            router.replace('/menu/(tiled)');
+            router.replace('/menu/tiled');
         }
     }, [menuStyle, router]);
 
