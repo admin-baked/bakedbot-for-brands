@@ -47,8 +47,6 @@ export const useStore = create<StoreState>()(
           if (!retailerId) {
             // This case should be prevented by UI logic, but as a safeguard:
             console.error("addToCart called without a retailerId.");
-            // Optionally, show a toast to the user. This part depends on how you handle user feedback.
-            // For now, we'll just prevent the action.
             return state;
           }
 
