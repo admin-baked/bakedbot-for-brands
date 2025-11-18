@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ProductsDataTable } from '@/app/dashboard/products/components/products-data-table';

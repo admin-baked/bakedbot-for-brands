@@ -1,3 +1,4 @@
+
 'use client';
 
 import { type Brand } from '@/types/domain';
