@@ -38,8 +38,9 @@ export const useStore = create<StoreState>()(
       
       // Actions
       setSelectedRetailerId: (id: string | null) => {
+        // Also update the cookie for persistence across sessions
         useCookieStore.getState().setFavoriteRetailerId(id);
-        set({ selectedRetailerId: id })
+        set({ selectedRetailerId: id });
       },
       setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
       setMenuStyle: (style: 'default' | 'alt') => set({ menuStyle: style }),
