@@ -7,8 +7,8 @@ import Header from "@/components/header";
 import { Footer } from "@/components/footer";
 
 export const metadata: Metadata = {
-  title: "BakedBot Studio",
-  description: "Headless menu + AI budtender",
+  title: "BakedBot AI",
+  description: "Headless menu & AI budtender for cannabis brands",
 };
 
 export default function RootLayout({
