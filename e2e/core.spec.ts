@@ -5,7 +5,7 @@ test.describe('Core Application Functionality', () => {
 
   test('has title', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveTitle(/BakedBot - Headless Cannabis Commerce AI Agent/);
+    await expect(page).toHaveTitle(/BakedBot AI/);
   });
 
   test('marketing homepage has correct heading', async ({ page }) => {

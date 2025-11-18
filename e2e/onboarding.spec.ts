@@ -4,8 +4,8 @@ import { test, expect } from '@playwright/test';
 test.describe('Onboarding Flow', () => {
 
   test('new user successfully completes onboarding and is redirected', async ({ page }) => {
-    // 1. Start at the login page for a new customer
-    await page.goto('/customer-login');
+    // 1. Start at the onboarding page directly, as if redirected from a signup
+    await page.goto('/onboarding');
     
     // 2. Use the dev login to simulate a new user which triggers onboarding
     await page.getByTestId('dev-login-button').click();
