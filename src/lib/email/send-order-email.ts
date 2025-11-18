@@ -1,6 +1,6 @@
 
 import sgMail from "@sendgrid/mail";
-import type { ServerOrderPayload } from "@/app/checkout/actions/submitOrder";
+import type { ServerOrderPayload } from "../../app/checkout/actions/submitOrder";
 import type { Retailer } from "@/firebase/converters";
 import type { OrderStatus } from "@/types/domain";
 
@@ -19,7 +19,7 @@ type SendArgs = {
 
 const generateHtml = (args: SendArgs): string => {
     const { order, orderId, recipientType, retailer, updateInfo } = args;
-    const itemsHtml = order.items.map(item => `
+    const itemsHtml = order.items.map((item: any) => `
         <tr>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.qty}</td>

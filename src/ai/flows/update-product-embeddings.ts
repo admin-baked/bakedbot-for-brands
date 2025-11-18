@@ -93,14 +93,14 @@ export async function updateProductEmbeddings(input: UpdateProductEmbeddingsInpu
     // 1. Fetch Product and Reviews
     const [product, reviewsSnap] = await Promise.all([
         productRepo.getById(productId),
-        firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter).get()
+        (firestore as any).collection(`products/${productId}/reviews`).withConverter(reviewConverter as any).get()
     ]);
     
     if (!product) {
         throw new Error(`Product with ID ${productId} not found.`);
     }
 
-    const reviews = reviewsSnap.docs.map(doc => doc.data());
+    const reviews: Review[] = reviewsSnap.docs.map((doc: any) => doc.data() as Review);
 
     // 2. Handle case with no reviews
     if (reviews.length === 0) {

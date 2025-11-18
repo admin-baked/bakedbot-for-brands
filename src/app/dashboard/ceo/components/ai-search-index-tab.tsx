@@ -1,15 +1,16 @@
+
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { initializeAllEmbeddings, type ActionResult } from '../actions';
+import { initializeAllEmbeddings, type EmbeddingActionResult } from '../actions';
 import { BrainCircuit, Check, Loader2, ServerCrash, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const initialState: ActionResult = {
+const initialState: EmbeddingActionResult = {
   message: '',
   results: [],
 };
@@ -63,7 +64,7 @@ export default function AISearchIndexTab() {
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-72 w-full rounded-md border p-4 font-mono text-sm">
-              {state.results.map((result) => (
+              {state.results.map((result: { productId: string; status: string }) => (
                  <div key={result.productId} className="flex items-center gap-2 mb-1">
                   {result.status.startsWith('Embedding updated') ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-destructive" />}
                   <span>{result.productId}:</span>

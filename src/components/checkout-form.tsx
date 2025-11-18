@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/hooks/use-store';
 import { useUser } from '@/firebase/auth/use-user';
-import { submitOrder, type ClientOrderInput } from '@/app/checkout/actions/submitOrder';
+import { submitOrder, type ClientOrderInput } from '../app/checkout/actions/submitOrder';
 import { useTransition, useEffect } from 'react';
 import { Loader2, Send } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
