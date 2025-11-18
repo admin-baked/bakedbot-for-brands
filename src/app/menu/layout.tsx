@@ -1,4 +1,3 @@
-
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { demoProducts, demoRetailers, demoCustomer } from '@/lib/data';
@@ -7,6 +6,8 @@ import { collectionGroup, getDocs, query, orderBy, limit } from 'firebase/firest
 import { reviewConverter } from '@/firebase/converters';
 import { DocumentData } from 'firebase-admin/firestore';
 import MenuLayoutClient from './menu-layout-client';
+import Header from '@/components/header';
+import { Footer } from '@/components/footer';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -78,7 +79,9 @@ export default async function MenuLayout({ children, params }: MenuLayoutProps) 
 
   return (
     <MenuLayoutClient initialData={menuData}>
-        {children}
+        <div className="pt-16">
+            {children}
+        </div>
     </MenuLayoutClient>
   );
 }
