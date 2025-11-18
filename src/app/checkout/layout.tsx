@@ -4,6 +4,8 @@ import type { Retailer } from '@/types/domain';
 import { DocumentData } from 'firebase-admin/firestore';
 import CheckoutLayoutClient from './checkout-layout-client';
 import { cookies } from 'next/headers';
+import Header from '@/components/header';
+import { Footer } from '@/components/footer';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -36,7 +38,11 @@ export default async function CheckoutLayout({ children }: CheckoutLayoutProps) 
 
   return (
     <CheckoutLayoutClient initialData={checkoutData}>
-        {children}
+        <div className="min-h-screen bg-muted/20 flex flex-col">
+            <main className="flex-1">
+                {children}
+            </main>
+        </div>
     </CheckoutLayoutClient>
   );
 }
