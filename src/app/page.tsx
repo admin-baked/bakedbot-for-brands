@@ -172,7 +172,7 @@ export default function BrandsHomepage() {
               </p>
               <ul className="mt-4 space-y-2 text-xs text-slate-300">
                 <li>• Daily scans of every connected dispensary menu</li>
-                <li>• MSRP and pricing guardrails so your brand doesn't get discounted away</li>
+                <li>• MSRP and pricing guardrails so your brand doesn&apos;t get discounted away</li>
                 <li>• Reorder suggestions based on actual retail movement, not guesswork</li>
               </ul>
             </div>
