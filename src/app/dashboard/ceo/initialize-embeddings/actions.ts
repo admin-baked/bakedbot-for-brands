@@ -1,7 +1,9 @@
+
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
 import { updateProductEmbeddings } from '@/ai/flows/update-product-embeddings';
+import { makeProductRepo } from '@/server/repos/productRepo';
 
 // This is a simple type for the server action's return value.
 // It will be an array of the results from each embedding flow.
@@ -22,17 +24,16 @@ export type ActionResult = {
 export async function initializeAllEmbeddings(): Promise<ActionResult> {
   try {
     const { firestore } = await createServerClient();
-    const productsSnap = await firestore.collection('products').get();
+    const productRepo = makeProductRepo(firestore);
+    const products = await productRepo.getAll();
 
-    if (productsSnap.empty) {
+    if (products.length === 0) {
       return { message: 'No products found to process.', results: [] };
     }
-
-    const productIds = productsSnap.docs.map(doc => doc.id);
     
     // Trigger the flow for each product in parallel.
-    const embeddingPromises = productIds.map(productId => 
-      updateProductEmbeddings({ productId })
+    const embeddingPromises = products.map(product => 
+      updateProductEmbeddings({ productId: product.id })
     );
 
     const results = await Promise.all(embeddingPromises);

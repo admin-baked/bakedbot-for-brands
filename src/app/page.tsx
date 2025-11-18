@@ -7,29 +7,7 @@ import Image from "next/image";
 export default function BrandsHomepage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 font-sans">
-      {/* Top nav */}
-      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/85 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-400/10 ring-1 ring-emerald-400/40">
-              <span className="text-sm font-semibold text-emerald-300">BB</span>
-            </div>
-            <div className="leading-tight">
-              <p className="text-sm font-semibold tracking-tight">BakedBot AI</p>
-              <p className="text-[11px] text-slate-400">Headless Menu &amp; AI Budtender</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 text-sm">
-            <Link href="/brand-login" className="rounded-full border border-slate-700 px-3 py-1.5 text-slate-200 hover:border-slate-500">
-              Login
-            </Link>
-            <Link href="/onboarding" className="rounded-full bg-emerald-400 px-4 py-1.5 font-medium text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.75)] hover:bg-emerald-300">
-              Get started free
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* Top nav is now in the global Header component, so it's removed from here */}
 
       <main>
         {/* Hero – AI Budtender widget as the star */}
@@ -247,11 +225,7 @@ export default function BrandsHomepage() {
             </div>
           </div>
         </section>
-
-        {/* ...keep the rest of your sections here... */}
       </main>
     </div>
   );
 }
-
-    
