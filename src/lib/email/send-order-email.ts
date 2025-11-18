@@ -1,4 +1,3 @@
-
 import sgMail from "@sendgrid/mail";
 import type { ServerOrderPayload } from '../../app/checkout/actions/submitOrder';
 import type { Retailer } from "@/firebase/converters";
