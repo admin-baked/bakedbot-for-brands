@@ -18,20 +18,15 @@ import Image from 'next/image';
 import { MapPin, Minus, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useHydrated } from '@/hooks/use-hydrated';
-import { demoRetailers } from '@/lib/data';
-import { useMemo } from 'react';
-import type { Retailer } from '@/types/domain';
+import { useMenuData } from '@/hooks/use-menu-data';
 
-export function CartSheet({ locations }: { locations: Retailer[] }) {
+export function CartSheet() {
   const { isCartSheetOpen, setCartSheetOpen, selectedRetailerId, cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useStore();
+  const { locations } = useMenuData();
   const router = useRouter();
   const hydrated = useHydrated();
 
-  const selectedLocation = useMemo(() => 
-    locations.find(loc => loc.id === selectedRetailerId) || 
-    demoRetailers.find(loc => loc.id === selectedRetailerId),
-    [locations, selectedRetailerId]
-  );
+  const selectedLocation = locations.find(loc => loc.id === selectedRetailerId);
   
   const { subtotal, taxes, total } = getCartTotal();
 
