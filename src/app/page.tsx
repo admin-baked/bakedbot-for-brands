@@ -1,9 +1,10 @@
-// src/app/brands/page.tsx
+
+// src/app/page.tsx
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-export default function BrandsHomepage() {
+export default function Home() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 font-sans">
       {/* Top nav is now in the global Header component, so it's removed from here */}
@@ -61,7 +62,7 @@ export default function BrandsHomepage() {
             </div>
 
             {/* Hero visual – screenshot of AI Budtender widget */}
-            <div className="md:w/1/2">
+            <div className="md:w-1/2">
               <div className="mx-auto max-w-md rounded-3xl border border-slate-200/20 bg-slate-950/40 p-2 shadow-[0_40px_120px_rgba(15,23,42,0.9)]">
                 <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80">
                   <Image
@@ -158,7 +159,7 @@ export default function BrandsHomepage() {
               </ul>
             </div>
 
-            <div className="md:w/1/2">
+            <div className="md:w-1/2">
               <div className="mx-auto max-w-md rounded-3xl border border-slate-800 bg-slate-900/70 p-4 shadow-[0_0_60px_rgba(15,23,42,0.9)]">
                 <div className="mb-3 flex items-center justify-between text-xs text-slate-400">
                   <span className="font-medium text-slate-200">Brand Intelligence Console</span>
