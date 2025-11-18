@@ -29,8 +29,8 @@ test.describe('Authentication Flows', () => {
     await page.getByTestId('dev-login-item-brand@bakedbot.ai').click();
 
     // Navigate to the account page to verify login
-    await page.goto('/account');
-    await expect(page.getByRole('heading', { name: 'My Account' })).toBeVisible();
+    await page.goto('/dashboard');
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   });
 
   test('user can log out successfully', async ({ page }) => {
@@ -39,24 +39,26 @@ test.describe('Authentication Flows', () => {
     await page.getByTestId('dev-login-button').click();
     await page.getByTestId('dev-login-item-brand@bakedbot.ai').click();
 
-    // 2. Go to the account page
-    await page.goto('/account');
-    await expect(page.getByRole('heading', { name: 'My Account' })).toBeVisible();
+    // 2. Go to the account page (now dashboard)
+    await page.goto('/dashboard');
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 
-    // 3. Click the logout button
-    await page.getByRole('button', { name: 'Sign Out' }).click();
+    // 3. Click the logout button from the user dropdown in the sidebar
+    // This requires clicking the user avatar/name first to open the menu.
+    await page.getByText('brand@bakedbot.ai').click();
+    await page.getByRole('menuitem', { name: 'Sign Out' }).click();
 
     // 4. Assert that the "Signed Out" toast appears
     await expect(page.getByText('Signed Out')).toBeVisible();
 
     // 5. Assert that the user is redirected to the homepage
-    // The logout logic now does a full page reload to '/' which is the brand homepage.
     await page.waitForURL('**/');
     await expect(page.getByRole('heading', { name: /Keep the customer/ })).toBeVisible();
     
     // 6. Assert that trying to access a protected route redirects to login
-    await page.goto('/account');
-    await expect(page).not.toHaveURL('/account');
-    await expect(page.getByRole('heading', { name: 'Brand Portal' })).toBeVisible();
+    await page.goto('/dashboard');
+    await expect(page).not.toHaveURL('/dashboard');
+    // After logout, it should redirect to the brand login page.
+    await expect(page.getByRole('heading', { name: 'Brand login' })).toBeVisible();
   });
 });
