@@ -3,6 +3,10 @@
 
 import { useEffect, useState } from 'react';
 import { onSnapshot, DocumentReference, DocumentData } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { FirebaseError } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 
 type UseDocResult<T> = {
   data: T | null;
@@ -27,17 +31,48 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null): UseD
       ref,
       (docSnap) => {
         if (docSnap.exists()) {
-          // The converter now handles adding the ID, so we can just use doc.data()
-          setData(docSnap.data());
+          setData({ id: docSnap.id, ...docSnap.data() } as T);
         } else {
           setData(null);
         }
         setIsLoading(false);
+        setError(null);
       },
       (err) => {
-        console.error(`Error fetching doc: ${ref.path}`, err);
-        setError(err);
         setIsLoading(false);
+
+        if (err instanceof FirebaseError && err.code === 'permission-denied') {
+          try {
+            const auth = getAuth();
+            console.log('🔍 Doc query failed:', {
+              path: ref.path,
+              isAuthenticated: !!auth?.currentUser,
+              userId: auth?.currentUser?.uid,
+              email: auth?.currentUser?.email,
+              errorCode: err.code,
+              errorMessage: err.message
+            });
+          } catch (e) {
+             console.log('🔍 Doc query failed (unauthenticated context):', {
+              path: ref.path,
+              isAuthenticated: false,
+              errorCode: err.code,
+              errorMessage: err.message
+            });
+          }
+
+          const permissionError = new FirestorePermissionError({
+            path: ref.path,
+            operation: 'get',
+          });
+          
+          setError(permissionError);
+          errorEmitter.emit('permission-error', permissionError);
+          return;
+        }
+
+        console.error(`Unhandled error fetching doc: ${ref.path}`, err);
+        setError(err);
       }
     );
 
