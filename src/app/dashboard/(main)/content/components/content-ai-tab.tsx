@@ -14,12 +14,11 @@ import type { Product } from '@/types/domain';
 const initialDescriptionState: DescriptionFormState = { message: '', data: null, error: false };
 const initialImageState: ImageFormState = { message: '', imageUrl: null, error: false };
 
-interface PageClientProps {
-  products: Product[];
-  areProductsLoading: boolean;
+interface ContentAITabProps {
+  initialProducts: Product[];
 }
 
-export default function PageClient({ products, areProductsLoading }: PageClientProps) {
+export default function ContentAITab({ initialProducts }: ContentAITabProps) {
   const [generatedContent, setGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
   
   const [descriptionState, descriptionFormAction] = useFormState(createProductDescription, initialDescriptionState);
@@ -31,13 +30,6 @@ export default function PageClient({ products, areProductsLoading }: PageClientP
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">AI Content Suite</h1>
-        <p className="text-muted-foreground">
-          Generate compelling product descriptions, social media images, and analyze customer reviews.
-        </p>
-      </div>
-
        <Tabs defaultValue="generator" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="generator"><PenSquare className="mr-2" /> Content Generator</TabsTrigger>
@@ -52,8 +44,8 @@ export default function PageClient({ products, areProductsLoading }: PageClientP
                       imageFormAction={imageFormAction}
                       descriptionState={descriptionState}
                       imageState={imageState}
-                      products={products}
-                      areProductsLoading={areProductsLoading}
+                      products={initialProducts}
+                      areProductsLoading={false}
                     />
                     <ProductDescriptionDisplay 
                         productDescription={generatedContent}
@@ -62,7 +54,7 @@ export default function PageClient({ products, areProductsLoading }: PageClientP
             </TabsContent>
 
             <TabsContent value="summarizer" className="mt-6">
-                <ReviewSummarizer products={products} areProductsLoading={areProductsLoading} />
+                <ReviewSummarizer products={initialProducts} areProductsLoading={false} />
             </TabsContent>
         </Tabs>
     </div>

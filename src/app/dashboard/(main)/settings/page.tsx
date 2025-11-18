@@ -1,13 +1,13 @@
-
 import { createServerClient } from '@/firebase/server-client';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { makeBrandRepo } from '@/server/repos/brandRepo';
-import SettingsPageClient from './settings-page-client';
+import type { Brand } from '@/types/domain';
+import SettingsTab from './components/settings-tab';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SettingsPage() {
+export default async function DashboardSettingsPage() {
   const { auth, firestore } = await createServerClient();
   const sessionCookie = cookies().get('__session')?.value;
   
@@ -15,22 +15,23 @@ export default async function SettingsPage() {
     redirect('/brand-login');
   }
 
-  let brandId: string;
+  let brandId: string | null = null;
   try {
     const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-    brandId = decodedToken.brandId;
-    if (!brandId) {
-      // This could happen if a non-brand user (e.g., customer, dispensary) lands here.
-      // We'll redirect them to their default dashboard.
-      redirect('/dashboard');
-    }
+    brandId = decodedToken.brandId || null;
   } catch (error) {
-    console.error('Auth error in Settings page:', error);
     redirect('/brand-login');
   }
-  
+
+  if (!brandId) {
+      redirect('/onboarding');
+  }
+
+  let brand: Brand;
   const brandRepo = makeBrandRepo(firestore);
-  const brand = await brandRepo.getById(brandId);
+  brand = await brandRepo.getById(brandId);
   
-  return <SettingsPageClient brand={brand} />;
+  return (
+    <SettingsTab brand={brand} />
+  );
 }

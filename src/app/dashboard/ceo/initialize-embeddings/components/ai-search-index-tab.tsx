@@ -3,7 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { initializeAllEmbeddings, type ActionResult } from './actions';
+import { initializeAllEmbeddings, type ActionResult } from '../actions';
 import { BrainCircuit, Check, Loader2, ServerCrash, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,7 @@ function GenerateButton() {
   );
 }
 
-export default function InitializeEmbeddingsPage() {
+export default function AISearchIndexTab() {
   const [state, formAction] = useFormState(initializeAllEmbeddings, initialState);
   const { toast } = useToast();
 
@@ -41,13 +41,6 @@ export default function InitializeEmbeddingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">AI Search Index Manager</h1>
-        <p className="text-muted-foreground">
-          Generate or update the vector search index for all products based on their customer reviews.
-        </p>
-      </div>
-
       <Card>
         <form action={formAction}>
           <CardHeader>
