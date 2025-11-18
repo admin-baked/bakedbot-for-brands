@@ -10,7 +10,7 @@ import { useHydrated } from '@/hooks/use-hydrated';
 import { useMenuData } from '@/app/menu/menu-layout-client';
 
 
-export default function TiledMenuPageContents() {
+export default function TiledMenuPage() {
   const hydrated = useHydrated();
   const { products, locations, brandId } = useMenuData();
 
