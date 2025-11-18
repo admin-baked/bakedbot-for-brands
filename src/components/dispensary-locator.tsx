@@ -1,18 +1,20 @@
+
 'use client';
 
-import { Skeleton } from '@/components/ui/skeleton';
+import { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Loader2, MapPin, Navigation, Star } from 'lucide-react';
+import { useStore } from '@/hooks/use-store';
+import { haversineDistance } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import type { Retailer } from '@/types/domain';
 import { useHydrated } from '@/hooks/use-hydrated';
-import { useToast } from '@/hooks/use-toast';
-import { cn, haversineDistance } from '@/lib/utils';
-import { useStore } from '@/hooks/use-store';
-import { doc, updateDoc } from 'firebase/firestore';
-import { Loader2, MapPin, Navigation, Star } from 'lucide-react';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useCookieStore } from '@/lib/cookie-storage';
 
 
