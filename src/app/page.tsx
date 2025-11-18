@@ -1,6 +1,8 @@
-import Link from 'next/link';
+// app/page.tsx
+import React from "react";
+import Link from "next/link";
 
-export default function Home() {
+export default function HomePage() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-50 font-sans">
       {/* Marketing header */}
@@ -77,22 +79,21 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right side: preview card (no Firebase, no hooks) */}
         <div className="mt-10 flex-1 md:mt-0">
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
             <div className="mb-3 h-2 w-20 rounded-full bg-emerald-500" />
             <div className="space-y-2 text-sm text-slate-300">
               <p>Headless menu widget preview</p>
               <p className="text-xs text-slate-400">
-                This is where your embedded brand menu and AI budtender live —
-                on your own domain.
+                This is where your embedded brand menu and AI budtender live — on
+                your own domain.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Anchors for header nav */}
+      {/* Sections for #features / #how-it-works */}
       <section id="features" className="border-t border-slate-800 py-16">
         <div className="mx-auto max-w-6xl px-4 text-slate-200">
           <h2 className="text-xl font-semibold">Features</h2>
