@@ -17,13 +17,11 @@ export default async function CheckoutPage() {
     } else {
         try {
             const { firestore } = await createServerClient();
-            // Use Admin SDK syntax directly
             const snapshot = await firestore.collection('dispensaries').get();
             
             if (!snapshot.empty) {
                 locations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Retailer));
             } else {
-                // Fallback if no live locations are found
                 locations = demoRetailers;
             }
         } catch (error) {
