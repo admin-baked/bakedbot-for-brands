@@ -1,6 +1,6 @@
-'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function BrandsHomepage() {
   return (
@@ -85,9 +85,11 @@ export default function BrandsHomepage() {
             <div className="md:w-1/2">
               <div className="mx-auto max-w-md rounded-3xl border border-slate-200/20 bg-slate-950/40 p-2 shadow-[0_40px_120px_rgba(15,23,42,0.9)]">
                 <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80">
-                  <img
+                  <Image
                     src="https://picsum.photos/seed/budtender/600/800"
                     alt="Headless menu and AI budtender experience"
+                    width={600}
+                    height={800}
                     className="h-full w-full object-cover"
                     data-ai-hint="chatbot user interface"
                   />
