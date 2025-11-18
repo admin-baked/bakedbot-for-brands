@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -19,7 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useStore } from '@/hooks/use-store';
 import { useDemoMode } from '@/context/demo-mode';
 import { useHydrated } from '@/hooks/use-hydrated';
-
 
 export default function Header() {
     const { getItemCount, setCartSheetOpen } = useStore();
@@ -70,18 +68,24 @@ export default function Header() {
                 <div className="flex items-center gap-6">
                     <Logo />
                     <nav className="hidden md:flex items-center gap-4">
-                        {navLinks.map((link) => (
+                        {navLinks.map((link) => {
+                          const isActive =
+                              link.href === '/'
+                                ? pathname === '/'
+                                : pathname.startsWith(link.href);
+                          return (
                             <Link
                                 key={link.href}
                                 href={link.href}
                                 className={cn(
                                     "text-sm font-medium transition-colors hover:text-primary",
-                                    pathname === link.href ? "text-primary" : "text-muted-foreground"
+                                    isActive ? "text-primary" : "text-muted-foreground"
                                 )}
                             >
                                 {link.label}
                             </Link>
-                        ))}
+                          )
+                        })}
                     </nav>
                 </div>
 
@@ -131,7 +135,7 @@ export default function Header() {
                                         <User className="mr-2" />
                                         Account Details
                                     </DropdownMenuItem>
-                                     <DropdownMenuItem onClick={() => router.push('/account/dashboard')}>
+                                     <DropdownMenuItem onClick={() => router.push('/dashboard')}>
                                         <User className="mr-2" />
                                         Dashboard
                                     </DropdownMenuItem>
@@ -179,7 +183,7 @@ export default function Header() {
                                 {hydrated && user ? (
                                     <>
                                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                                        <DropdownMenuItem onClick={() => router.push('/account/dashboard')}>Dashboard</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push('/dashboard')}>Dashboard</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push('/account')}>Account Details</DropdownMenuItem>
                                         <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                                     </>

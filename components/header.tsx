@@ -1,7 +1,8 @@
+
 'use client';
 
 import Link from 'next/link';
-import { Search, ShoppingBag, TestTube2, User, LogOut, Menu } from 'lucide-react';
+import { Search, ShoppingBag, TestTube2, User, LogOut, Menu, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
@@ -32,8 +33,9 @@ export default function Header() {
     const hydrated = useHydrated();
 
     const navLinks = [
-        { href: '/menu/default', label: 'Demo Menu' },
-        { href: '/product-locator', label: 'Product Locator' },
+        { href: '/', label: 'Home', icon: Home },
+        { href: '/menu/default', label: 'Demo Menu', icon: TestTube2 },
+        { href: '/product-locator', label: 'Product Locator', icon: Search },
     ];
     
      const handleSignOut = async () => {
@@ -68,18 +70,24 @@ export default function Header() {
                 <div className="flex items-center gap-6">
                     <Logo />
                     <nav className="hidden md:flex items-center gap-4">
-                        {navLinks.map((link) => (
+                        {navLinks.map((link) => {
+                          const isActive =
+                              link.href === '/'
+                                ? pathname === '/'
+                                : pathname.startsWith(link.href);
+                          return (
                             <Link
                                 key={link.href}
                                 href={link.href}
                                 className={cn(
                                     "text-sm font-medium transition-colors hover:text-primary",
-                                    pathname === link.href ? "text-primary" : "text-muted-foreground"
+                                    isActive ? "text-primary" : "text-muted-foreground"
                                 )}
                             >
                                 {link.label}
                             </Link>
-                        ))}
+                          )
+                        })}
                     </nav>
                 </div>
 
@@ -129,7 +137,7 @@ export default function Header() {
                                         <User className="mr-2" />
                                         Account Details
                                     </DropdownMenuItem>
-                                     <DropdownMenuItem onClick={() => router.push('/account/dashboard')}>
+                                     <DropdownMenuItem onClick={() => router.push('/dashboard')}>
                                         <User className="mr-2" />
                                         Dashboard
                                     </DropdownMenuItem>
@@ -169,6 +177,7 @@ export default function Header() {
                             <DropdownMenuContent align="end">
                                 {navLinks.map(link => (
                                      <DropdownMenuItem key={link.href} onClick={() => router.push(link.href)}>
+                                        <link.icon className="mr-2 h-4 w-4" />
                                         {link.label}
                                      </DropdownMenuItem>
                                 ))}
@@ -176,7 +185,7 @@ export default function Header() {
                                 {hydrated && user ? (
                                     <>
                                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                                        <DropdownMenuItem onClick={() => router.push('/account/dashboard')}>Dashboard</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push('/dashboard')}>Dashboard</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push('/account')}>Account Details</DropdownMenuItem>
                                         <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                                     </>
