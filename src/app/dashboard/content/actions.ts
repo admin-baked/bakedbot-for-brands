@@ -1,9 +1,14 @@
-
 'use server';
 
 import { z } from 'zod';
 import { generateProductDescription, type GenerateProductDescriptionInput, type GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { generateSocialMediaImage, type GenerateSocialMediaImageInput, type GenerateSocialMediaImageOutput } from '@/ai/flows/generate-social-image';
+import { runSummarizeReviews, type SummarizeReviewsInput, type SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
+import { makeProductRepo } from '@/server/repos/productRepo';
+import { createServerClient } from '@/firebase/server-client';
+import { demoCustomer, demoProducts } from '@/lib/data';
+import type { Review } from '@/types/domain';
+import { reviewConverter } from '@/firebase/converters';
 
 // --- Description Generation ---
 
@@ -102,5 +107,58 @@ export async function createSocialMediaImage(
             imageUrl: null,
             error: true,
         };
+    }
+}
+
+
+// --- Review Summarization ---
+
+const ReviewSummarySchema = z.object({
+  productId: z.string().min(1, 'Product ID is required'),
+  productName: z.string().min(1, 'Product Name is required'),
+  brandId: z.string().optional(),
+});
+
+
+export type ReviewSummaryFormState = {
+    message: string;
+    data: SummarizeReviewsOutput | null;
+    error: boolean;
+};
+
+
+export async function summarizeProductReviews(prevState: ReviewSummaryFormState, formData: FormData): Promise<ReviewSummaryFormState> {
+    const validatedFields = ReviewSummarySchema.safeParse(Object.fromEntries(formData.entries()));
+    if (!validatedFields.success) {
+        return { message: "Invalid product selection.", data: null, error: true };
+    }
+    
+    const { productId, productName, brandId = 'default' } = validatedFields.data;
+
+    try {
+        let reviews: Review[];
+        // Simplified demo vs. live logic for fetching reviews
+        if (productId.startsWith('demo-')) {
+            reviews = (demoCustomer.reviews as Review[]).filter(r => r.productId === productId);
+        } else {
+            const { firestore } = await createServerClient();
+            const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter).get();
+            reviews = reviewsSnap.docs.map(d => d.data());
+        }
+        
+        const summary = await runSummarizeReviews({
+            productId,
+            brandId,
+            productName,
+            reviewTexts: reviews.map(r => r.text)
+        });
+
+        if (!summary) {
+            return { message: "Could not generate summary.", data: null, error: true };
+        }
+        
+        return { message: "Summary generated.", data: summary, error: false };
+    } catch (e: any) {
+        return { message: `An error occurred: ${e.message}`, data: null, error: true };
     }
 }

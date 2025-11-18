@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -12,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PenSquare, MessageSquare } from 'lucide-react';
 import type { Product } from '@/types/domain';
 
-const initialDescriptionState: DescriptionFormState = { message: '', data: null, error: false };
+const initialDescriptionState: DescriptionFormState = { message: '', data: undefined, error: false };
 const initialImageState: ImageFormState = { message: '', imageUrl: null, error: false };
 
 interface PageClientProps {
