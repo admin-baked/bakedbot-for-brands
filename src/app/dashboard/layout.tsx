@@ -6,7 +6,6 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/s
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 import { usePathname, useRouter } from 'next/navigation';
-import DashboardWelcome from '@/app/dashboard/components/dashboard-welcome';
 
 export default function DashboardLayout({
   children,
@@ -17,7 +16,6 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
 
-  const isRootDashboard = pathname === '/dashboard';
   const dashboardTabs = navLinks.filter(link => link.href.startsWith('/dashboard/'));
 
   return (
@@ -45,7 +43,7 @@ export default function DashboardLayout({
                             </TabsList>
                         </Tabs>
                     </div>
-                    {isRootDashboard ? <DashboardWelcome /> : children}
+                    {children}
                 </div>
               </main>
           </SidebarInset>
