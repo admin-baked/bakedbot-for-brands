@@ -4,8 +4,6 @@ import type { Retailer } from '@/types/domain';
 import { DocumentData } from 'firebase-admin/firestore';
 import CheckoutLayoutClient from './checkout-layout-client';
 import { cookies } from 'next/headers';
-import Header from '@/components/header';
-import { Footer } from '@/components/footer';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 

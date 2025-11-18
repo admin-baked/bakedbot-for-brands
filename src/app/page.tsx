@@ -1,4 +1,3 @@
-
 // src/app/page.tsx
 import React from "react";
 import Link from "next/link";
@@ -10,9 +9,6 @@ export default function Home() {
   
   return (
     <div className="bg-slate-950 text-slate-50">
-      {/* Top nav is now in the global Header component, so it's removed from here */}
-
-      
         {/* Hero – AI Budtender widget as the star */}
         <section className="relative overflow-hidden border-b border-slate-800">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_55%),_radial-gradient(circle_at_bottom,_rgba(59,130,246,0.12),_transparent_55%)] opacity-90" />
