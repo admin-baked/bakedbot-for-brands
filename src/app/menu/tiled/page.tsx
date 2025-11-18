@@ -2,23 +2,18 @@
 'use client';
 
 // This component represents the "Tiled" or "Alternate" menu layout.
-// It is now a simple presentational component that receives all its data via props.
+// It now uses the useMenuData hook to fetch its own data.
 
 import Chatbot from '@/components/chatbot';
 import DispensaryLocator from '@/components/dispensary-locator';
 import { FloatingCartPill } from '@/components/floating-cart-pill';
 import { ProductGrid } from '@/components/product-grid';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Product, Retailer } from '@/types/domain';
+import { useMenuData } from '@/hooks/use-menu-data';
 
-interface TiledMenuPageProps {
-  products?: Product[];
-  locations?: Retailer[];
-  isLoading?: boolean;
-  brandId?: string;
-}
-
-export default function TiledMenuPage({ products = [], locations = [], isLoading = false, brandId = "" }: TiledMenuPageProps) {
+export default function TiledMenuPage() {
+  const { products, locations, isLoading } = useMenuData();
+  const brandId = products[0]?.brandId || 'default'; // Get brandId from data
 
   if (isLoading) {
     return (

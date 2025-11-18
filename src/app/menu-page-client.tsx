@@ -13,6 +13,7 @@ import { useHydrated } from '@/hooks/use-hydrated';
 import { useEffect } from 'react';
 import type { Product, Retailer, Review } from '@/types/domain';
 import { useCookieStore } from '@/lib/cookie-storage';
+import { useMenuData } from '@/hooks/use-menu-data';
 
 interface MenuPageClientProps {
   brandId: string;
@@ -43,13 +44,10 @@ export default function MenuPageClient({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialIsDemo]);
 
+  const { products, locations, isLoading: isMenuLoading } = useMenuData();
 
   // isLoading is true until the component has hydrated on the client.
-  const isLoading = !hydrated;
-
-  // The client just renders what it receives from the server.
-  const products = initialProducts;
-  const locations = initialLocations;
+  const isLoading = !hydrated || isMenuLoading;
 
   // Show loading skeleton until hydrated on the client.
   if (isLoading) {
@@ -71,7 +69,7 @@ export default function MenuPageClient({
   // Render tiled layout if selected
   if (menuStyle === 'alt') {
     return (
-        <TiledMenuPage products={products} locations={locations} isLoading={false} brandId={brandId} />
+        <TiledMenuPage />
     );
   }
   
@@ -79,10 +77,10 @@ export default function MenuPageClient({
   return (
     <div className="pt-16">
         <div className="container mx-auto px-4 space-y-12">
-          <HeroSlider products={featuredProducts} isLoading={false} />
-          <DispensaryLocator locations={locations} isLoading={false}/>
-          <ProductGrid products={products} isLoading={false} />
-          <RecentReviewsFeed reviews={initialReviews} products={products} isLoading={false} />
+          <HeroSlider products={featuredProducts} isLoading={isLoading} />
+          <DispensaryLocator locations={locations} isLoading={isLoading}/>
+          <ProductGrid products={products} isLoading={isLoading} />
+          <RecentReviewsFeed reviews={initialReviews} products={products} isLoading={isLoading} />
         </div>
       <FloatingCartPill />
       <Chatbot products={featuredProducts} brandId={brandId} />
