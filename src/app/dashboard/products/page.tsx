@@ -1,3 +1,4 @@
+
 import { createServerClient } from '@/firebase/server-client';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -6,29 +7,38 @@ import { ProductsDataTable } from './components/products-data-table';
 import { columns } from './components/products-table-columns';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { demoProducts } from '@/lib/data';
+import type { Product } from '@/types/domain';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProductsPage() {
-    const { auth, firestore } = await createServerClient();
-    const sessionCookie = cookies().get('__session')?.value;
-    if (!sessionCookie) {
-      redirect('/brand-login');
-    }
+    const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
+    let products: Product[] = [];
 
-    let brandId: string;
-    try {
-        const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-        brandId = decodedToken.brandId;
-        if (!brandId) {
-            redirect('/dashboard'); // Not a brand user
+    if (isDemo) {
+        products = demoProducts;
+    } else {
+        const { auth, firestore } = await createServerClient();
+        const sessionCookie = cookies().get('__session')?.value;
+        if (!sessionCookie) {
+          redirect('/brand-login');
         }
-    } catch (error) {
-        redirect('/brand-login');
-    }
 
-    const productRepo = makeProductRepo(firestore);
-    const products = await productRepo.getAllByBrand(brandId);
+        let brandId: string;
+        try {
+            const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
+            brandId = decodedToken.brandId;
+            if (!brandId) {
+                redirect('/dashboard'); // Not a brand user
+            }
+        } catch (error) {
+            redirect('/brand-login');
+        }
+
+        const productRepo = makeProductRepo(firestore);
+        products = await productRepo.getAllByBrand(brandId);
+    }
     
     return (
         <div className="flex flex-col gap-6">
