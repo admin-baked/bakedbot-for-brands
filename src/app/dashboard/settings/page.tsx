@@ -25,6 +25,8 @@ export default async function DashboardSettingsPage() {
   }
 
   if (!brandId) {
+      // If the user has no brandId, they need to complete onboarding.
+      // This is a common scenario for new signups.
       redirect('/onboarding');
   }
 

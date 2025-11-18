@@ -12,6 +12,8 @@ export default async function ProductContentGeneratorPage() {
     let products = [];
     let areProductsLoading = true;
 
+    // This logic remains the same, but the component it renders (`PageClient`) will
+    // now correctly be part of the dashboard layout.
     if (isDemo) {
         products = demoProducts;
         areProductsLoading = false;
@@ -31,7 +33,5 @@ export default async function ProductContentGeneratorPage() {
         }
     }
     
-    // The PageClient now contains all the UI, including the main title,
-    // so we just render that.
     return <PageClient products={products} areProductsLoading={areProductsLoading} />;
 }

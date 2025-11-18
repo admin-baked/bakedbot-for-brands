@@ -13,6 +13,7 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { demoRetailers } from '@/lib/data';
 import type { Retailer } from '@/types/domain';
+import DevLoginButton from '@/components/dev-login-button';
 
 type OnboardingStep = 'role' | 'location' | 'products' | 'done';
 type UserRole = 'brand' | 'dispensary' | 'customer';
@@ -47,7 +48,7 @@ export default function OnboardingPage() {
 
   const handleFinish = async () => {
     if (!user || !firestore) {
-        toast({ variant: 'destructive', title: 'Error', description: 'User or database not available.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'User or database not available. Please sign in.' });
         return;
     }
 
@@ -57,7 +58,7 @@ export default function OnboardingPage() {
         email: user.email,
         displayName: user.displayName,
         role: selectedRole,
-        brandId: selectedRole === 'brand' ? 'default' : null,
+        brandId: selectedRole === 'brand' ? user.uid : null, // Use UID as a simple brandId
         locationId: selectedLocation?.id || null
     };
 
@@ -132,18 +133,28 @@ export default function OnboardingPage() {
           <CardTitle className="text-3xl">Welcome to BakedBot!</CardTitle>
           <CardDescription>Let's get your account set up in just a few steps.</CardDescription>
         </CardHeader>
-        {renderStep()}
-        <CardFooter className="flex justify-end gap-2">
-            {step !== 'products' && step !== 'done' && (
-                <Button onClick={handleNext} disabled={!canProceed}>Continue</Button>
-            )}
-            {step === 'products' && (
-                <Button onClick={handleFinish} disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Finish & Go to Dashboard
-                </Button>
-            )}
-        </CardFooter>
+        
+        {!user ? (
+            <CardContent className="text-center">
+                <p className="mb-4 text-muted-foreground">Please sign in to continue onboarding.</p>
+                 <DevLoginButton />
+            </CardContent>
+        ) : (
+            <>
+                {renderStep()}
+                <CardFooter className="flex justify-end gap-2">
+                    {step !== 'products' && step !== 'done' && (
+                        <Button onClick={handleNext} disabled={!canProceed}>Continue</Button>
+                    )}
+                    {step === 'products' && (
+                        <Button onClick={handleFinish} disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Finish & Go to Dashboard
+                        </Button>
+                    )}
+                </CardFooter>
+            </>
+        )}
       </Card>
     </div>
   );
