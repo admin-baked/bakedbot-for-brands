@@ -1,46 +1,12 @@
-// app/page.tsx
+// src/app/page.tsx
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-export default function BrandsHomepage() {
+export default function Home() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 font-sans">
-      {/* Top nav */}
-      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/85 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-400/10 ring-1 ring-emerald-400/40">
-              <span className="text-sm font-semibold text-emerald-300">BB</span>
-            </div>
-            <div className="leading-tight">
-              <p className="text-sm font-semibold tracking-tight">BakedBot AI</p>
-              <p className="text-[11px] text-slate-400">Headless Menu &amp; AI Budtender</p>
-            </div>
-          </div>
-
-          <nav className="hidden items-center gap-8 text-sm text-slate-300 md:flex">
-            <a href="#features" className="hover:text-slate-50">
-              Features
-            </a>
-            <a href="#how-it-works" className="hover:text-slate-50">
-              How it works
-            </a>
-            <Link href="/menu/default" className="hover:text-slate-50">
-              Demo menu
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-3 text-sm">
-            <Link href="/brand-login" className="rounded-full border border-slate-700 px-3 py-1.5 text-slate-200 hover:border-slate-500">
-              Login
-            </Link>
-            <Link href="/onboarding" className="rounded-full bg-emerald-400 px-4 py-1.5 font-medium text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.75)] hover:bg-emerald-300">
-              Get started free
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* Top nav is now in the global Header component, so it's removed from here */}
 
       <main>
         {/* Hero – AI Budtender widget as the star */}
@@ -174,7 +140,7 @@ export default function BrandsHomepage() {
         </section>
 
         {/* Brand Intelligence Console – moved down from hero */}
-        <section className="border-b border-slate-800 bg-slate-950/90" id="how-it-works">
+        <section className="border-b border-slate-800 bg-slate-950/90">
           <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 md:flex-row md:items-center">
             <div className="md:w-1/2">
               <h3 className="text-lg font-semibold tracking-tight text-slate-50 md:text-xl">
