@@ -1,2 +1,2 @@
-// This file is no longer used and has been replaced by app/page.tsx.
-// It can be safely deleted.
+// This file is no longer used. The primary homepage is now at /app/page.tsx.
+// This file can be safely deleted.
