@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { makeBrandRepo } from '@/server/repos/brandRepo';
 import type { Brand } from '@/types/domain';
-import SettingsTab from '@/components/settings-tab';
+import SettingsTab from './components/settings-tab';
 
 export const dynamic = 'force-dynamic';
 

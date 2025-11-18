@@ -31,5 +31,7 @@ export default async function ProductContentGeneratorPage() {
         }
     }
     
+    // The PageClient now contains all the UI, including the main title,
+    // so we just render that.
     return <PageClient products={products} areProductsLoading={areProductsLoading} />;
 }
