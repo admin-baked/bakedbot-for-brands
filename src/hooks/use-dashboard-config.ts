@@ -20,15 +20,15 @@ const navConfig: Record<string, NavLink[]> = {
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your brand activity.', icon: 'LayoutDashboard' },
     { href: '/dashboard/products', label: 'Products', description: 'Manage your product catalog.', icon: 'Box' },
     { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare' },
-    { href: '/dashboard/settings', label: 'Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
+    { href: '/account', label: 'Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
   ],
   dispensary: [
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your dispensary activity.', icon: 'LayoutDashboard' },
     { href: '/dashboard/orders', label: 'Customer Orders', description: 'View and manage incoming online orders.', icon: 'Package' },
-    { href: '/dashboard/settings', label: 'Settings', description: 'Manage your dispensary information.', icon: 'Settings' },
+    { href: '/account', label: 'Settings', description: 'Manage your dispensary information.', icon: 'Settings' },
   ],
   customer: [
-    { href: '/account/dashboard', label: 'My Dashboard', description: 'View your order history and preferences.', icon: 'User' },
+    { href: '/account', label: 'My Dashboard', description: 'View your order history and preferences.', icon: 'User' },
     { href: '/menu/default', label: 'Start Shopping', description: 'Browse our products and find what you need.', icon: 'ShoppingCart' },
   ],
   // 'owner' or 'admin' role
@@ -36,7 +36,7 @@ const navConfig: Record<string, NavLink[]> = {
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your brand activity.', icon: 'LayoutDashboard' },
     { href: '/dashboard/products', label: 'Products', description: 'Manage your product catalog.', icon: 'Box' },
     { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare' },
-    { href: '/dashboard/settings', label: 'Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
+    { href: '/account', label: 'Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
     { href: '/dashboard/ceo', label: 'Admin Console', description: 'Manage data and AI features.', icon: 'Shield' },
   ]
 };

@@ -2,13 +2,14 @@
 import { createServerClient } from '@/firebase/server-client';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { orderConverter, retailerConverter, type OrderDoc, type Retailer } from '@/firebase/converters';
+import { orderConverter, retailerConverter, type OrderDoc, type Retailer, type Brand } from '@/firebase/converters';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { DocumentData } from 'firebase-admin/firestore';
 import CustomerAccountView from './components/customer-account-view';
 import BrandAccountView from './components/brand-account-view';
+import { makeBrandRepo } from '@/server/repos/brandRepo';
 
-async function getAccountData(uid: string, role: string, locationId?: string | null) {
+async function getAccountData(uid: string, role: string, brandId?: string | null, locationId?: string | null) {
     const { firestore } = await createServerClient();
     
     if (role === 'customer') {
@@ -28,7 +29,17 @@ async function getAccountData(uid: string, role: string, locationId?: string | n
         return { orders, retailers };
     }
     
-    // For brand/dispensary users, we might fetch brand/location-specific data here in the future
+    if (role === 'brand' && brandId) {
+        const brandRepo = makeBrandRepo(firestore);
+        const brand = await brandRepo.getById(brandId);
+        return { brand };
+    }
+
+    if (role === 'dispensary' && locationId) {
+        // In the future, we might fetch specific dispensary settings here
+        return { brand: null }; // Placeholder
+    }
+    
     return {};
 }
 
@@ -53,12 +64,12 @@ export default async function AccountPage() {
         redirect('/onboarding');
     }
 
-    const accountData = await getAccountData(uid, role, locationId);
+    const accountData = await getAccountData(uid, role, brandId, locationId);
 
     if (role === 'customer') {
         return <CustomerAccountView user={{name, email}} {...accountData} />;
     }
     
     // For Brand and Dispensary users
-    return <BrandAccountView user={{ name, email, role }} />;
+    return <BrandAccountView user={{ name, email, role }} brand={accountData.brand as Brand | null} />;
 }
