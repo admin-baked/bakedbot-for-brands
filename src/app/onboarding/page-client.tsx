@@ -23,6 +23,7 @@ const initialState: OnboardingState = {
   error: false,
 };
 
+const isProd = process.env.NODE_ENV === 'production';
 
 export default function OnboardingClientPage() {
   const [step, setStep] = useState<OnboardingStep>('role');
@@ -130,7 +131,7 @@ export default function OnboardingClientPage() {
         ) : !user ? (
             <CardContent className="text-center">
                 <p className="mb-4 text-muted-foreground">Please sign in to continue onboarding.</p>
-                 <DevLoginButton />
+                 {!isProd && <DevLoginButton />}
             </CardContent>
         ) : (
             <form action={formAction}>

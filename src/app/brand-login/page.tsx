@@ -12,6 +12,8 @@ import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { sendSignInLinkToEmail } from 'firebase/auth';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 export default function BrandLoginPage() {
   const router = useRouter();
   const { auth } = useFirebase();
@@ -79,18 +81,21 @@ export default function BrandLoginPage() {
             </form>
           )}
 
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or for development
-              </span>
-            </div>
-          </div>
-          {/* The DevLoginButton is a convenience for local development */}
-          <DevLoginButton />
+          {!isProd && (
+            <>
+                <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                    Or for development
+                    </span>
+                </div>
+                </div>
+                <DevLoginButton />
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
