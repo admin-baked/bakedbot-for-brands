@@ -13,19 +13,16 @@ export async function GET(req: NextRequest) {
   try {
     const upstreamRes = await fetch(upstreamUrl.toString(), {
       method: "GET",
-      // no CORS issues here: this is server → server
       headers: {
         Accept: "application/json",
       },
     });
 
     const text = await upstreamRes.text();
+    const contentType = upstreamRes.headers.get("content-type") ?? "";
 
-    // Try to parse JSON; if it’s HTML or something else, wrap it in an error
-    let json: any;
-    try {
-      json = JSON.parse(text);
-    } catch {
+    // If Cloud Function replied with HTML or something weird, surface that
+    if (!contentType.includes("application/json")) {
       return NextResponse.json(
         {
           ok: false,
@@ -36,13 +33,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Pass through the upstream JSON + status
+    const json = JSON.parse(text);
     return NextResponse.json(json, { status: upstreamRes.status });
   } catch (err: any) {
     return NextResponse.json(
       {
         ok: false,
-        error: err?.message ?? "Unknown error talking to CannMenus proxy",
+        error: err?.message ?? "Unknown error talking to brands function",
       },
       { status: 500 }
     );
