@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -26,6 +27,41 @@ type Product = {
   [key: string]: any;
 };
 
+async function runApiFetch(endpoint: string, params: Record<string, string>) {
+    const url = new URL(endpoint, window.location.origin);
+    Object.entries(params).forEach(([key, value]) => {
+        if (value) {
+            url.searchParams.set(key, value);
+        }
+    });
+
+    const res = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+            "Accept": "application/json",
+        },
+    });
+
+    const text = await res.text();
+    let json: any;
+    try {
+        json = JSON.parse(text);
+    } catch (e) {
+        throw new Error(
+        `Unexpected non-JSON response (status ${res.status}). Body starts with: ${text
+            .slice(0, 150)
+            .replace(/\s+/g, " ")}`
+        );
+    }
+
+    if (!res.ok || json.ok === false) {
+        throw new Error(json?.error || `Request failed with status ${res.status}`);
+    }
+    
+    return json.data?.data || json.data || [];
+}
+
+
 export default function CannMenusDevConsole() {
   const [mode, setMode] = useState<Mode>("brand");
   const [query, setQuery] = useState("");
@@ -43,25 +79,9 @@ export default function CannMenusDevConsole() {
     setSelectedRetailer("");
 
     try {
-      const endpoint =
-        mode === "brand"
-          ? "/api/cannmenus/brands"
-          : "/api/cannmenus/retailers";
-
-      const url = new URL(endpoint, window.location.origin);
-      if (query.trim()) {
-        url.searchParams.set("search", query.trim());
-      }
-
-      const resp = await fetch(url.toString());
-      const json = await resp.json();
-
-      if (!json.ok) {
-        throw new Error(json.error || "Unknown error");
-      }
-
-      const list: CannMenusItem[] = json.data?.data || json.data || [];
-      setResults(list);
+      const endpoint = mode === "brand" ? "/api/cannmenus/brands" : "/api/cannmenus/retailers";
+      const data = await runApiFetch(endpoint, { search: query.trim() });
+      setResults(data);
     } catch (e: any) {
       setError(e.message || "Search failed");
     } finally {
@@ -77,20 +97,12 @@ export default function CannMenusDevConsole() {
     setProducts([]);
 
     try {
-      const url = new URL("/api/cannmenus/products", window.location.origin);
-      url.searchParams.set("retailerId", selectedRetailer);
-      url.searchParams.set("page", "1");
-      url.searchParams.set("limit", "100");
-
-      const resp = await fetch(url.toString());
-      const json = await resp.json();
-
-      if (!json.ok) {
-        throw new Error(json.error || "Products error");
-      }
-
-      const items: Product[] = json.data?.data || json.data || [];
-      setProducts(items);
+      const data = await runApiFetch('/api/cannmenus/products', {
+        retailerId: selectedRetailer,
+        page: '1',
+        limit: '100',
+      });
+      setProducts(data);
     } catch (e: any) {
       setError(e.message || "Failed to load products");
     } finally {
@@ -104,7 +116,7 @@ export default function CannMenusDevConsole() {
         <CardHeader>
             <CardTitle>CannMenus Dev Console</CardTitle>
             <CardDescription>
-                Internal testing page for the API proxies defined in <code className="p-1 bg-muted rounded-sm text-xs">apphosting.yaml</code>.
+                Internal testing page for the API proxies defined in <code className="p-1 bg-muted rounded-sm text-xs">apphosting.yaml</code>. Requests are sent to <code className="p-1 bg-muted rounded-sm text-xs">/api/cannmenus/*</code>.
             </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
