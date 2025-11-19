@@ -219,9 +219,11 @@ export default function BrandsHomepage() {
                       <span className="font-semibold">Nebula Nugs 3.5g</span>. Send suggested reorder quantities now?
                     </p>
                     <div className="mt-3 flex gap-2 text-[11px]">
-                      <Button asChild className="flex-1 rounded-full bg-emerald-400 px-3 py-1 font-semibold text-slate-950 hover:bg-emerald-300">
-                        <Link href="/dashboard/orders">Review &amp; send orders</Link>
-                      </Button>
+                      <Link href="/dashboard/orders" passHref>
+                        <Button asChild className="flex-1 rounded-full bg-emerald-400 px-3 py-1 font-semibold text-slate-950 hover:bg-emerald-300">
+                          <a>Review &amp; send orders</a>
+                        </Button>
+                      </Link>
                       <Button variant="outline" className="rounded-full border-emerald-300/40 px-3 py-1 text-emerald-100 hover:border-emerald-200">
                         Snooze
                       </Button>
@@ -236,5 +238,3 @@ export default function BrandsHomepage() {
     </div>
   );
 }
-
-    

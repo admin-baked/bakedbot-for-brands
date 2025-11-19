@@ -3,7 +3,7 @@
     {
       "id": "homeHero",
       "description": "A hero image showing the AI Budtender experience on a mobile phone.",
-      "imageUrl": "/images/ai-budtender-hero.png",
+      "imageUrl": "https://storage.googleapis.com/stedi-assets/misc/baked-bot-hero-screenshot.png",
       "imageHint": "AI budtender"
     },
     {
