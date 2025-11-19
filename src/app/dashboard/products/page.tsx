@@ -15,7 +15,7 @@ import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardProductsPage() {
-  const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
+  const isDemo = cookies().get('isDemo')?.value === 'true';
   
   let products: Product[] = [];
   
@@ -62,3 +62,4 @@ export default async function DashboardProductsPage() {
     </div>
   );
 }
+
