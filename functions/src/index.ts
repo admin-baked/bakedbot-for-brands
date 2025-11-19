@@ -1,66 +1,90 @@
-import { initializeApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import * as logger from "firebase-functions/logger";
-import { onDocumentWritten } from "firebase-functions/v2/firestore";
+// functions/src/index.ts
+
 import { onRequest } from "firebase-functions/v2/https";
+import * as logger from "firebase-functions/logger";
 
-// Initialize Firebase Admin SDK
-if (!initializeApp().name) {
-    initializeApp();
-}
+const allowCors = (res: any) => {
+  // CORS for direct testing in browser; Next.js calls don't strictly need this,
+  // but it doesn't hurt.
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-control-allow-methods", "GET, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+};
 
-/**
- * Cloud Function that listens for writes to the /users/{userId} collection.
- * When a user document is created or updated, it reads the role, brandId, and locationId
- * and sets them as custom claims on the corresponding Firebase Auth user.
- */
-export const setUserClaims = onDocumentWritten("users/{userId}", async (event) => {
-  const userId = event.params.userId;
-  const afterData = event.data?.after.data();
-
-  // If there's no data after the write (e.g., a delete), we can't do anything.
-  if (!afterData) {
-    logger.info(`User document for ${userId} was deleted, no claims to update.`);
-    return null;
+export const health = onRequest((req, res) => {
+  if (req.method === "OPTIONS") {
+    allowCors(res);
+    res.status(204).send("");
+    return;
   }
 
-  // Extract the claims from the document.
-  // Ensure they are strings or null, as custom claims have type limitations.
-  const role = afterData.role || null;
-  const brandId = afterData.brandId || null;
-  const locationId = afterData.locationId || null;
+  allowCors(res);
+  res.json({
+    ok: true,
+    service: "cannmenus-proxy",
+    time: new Date().toISOString(),
+  });
+});
 
-  try {
-    // Construct the claims object, filtering out any null values.
-    const claimsToSet: { [key: string]: any } = {};
-    if (role) claimsToSet.role = role;
-    if (brandId) claimsToSet.brandId = brandId;
-    if (locationId) claimsToSet.locationId = locationId;
-    
-    // If there are no claims to set, we can exit early.
-    if (Object.keys(claimsToSet).length === 0) {
-        logger.info(`No new claims to set for user ${userId}.`);
-        return null;
-    }
-
-    // Set the custom claims on the user's authentication token.
-    await getAuth().setCustomUserClaims(userId, claimsToSet);
-
-    logger.info(`Successfully set custom claims for user ${userId}:`, claimsToSet);
-    return { result: `Custom claims set for ${userId}` };
-
-  } catch (error) {
-    logger.error(`Error setting custom claims for user ${userId}:`, error);
-    // Re-throwing the error will cause the function to retry if it's a transient issue.
-    throw error;
+// --- brands stub ---
+export const brands = onRequest((req, res) => {
+  if (req.method === "OPTIONS") {
+    allowCors(res);
+    res.status(204).send("");
+    return;
   }
+
+  allowCors(res);
+
+  const search = (req.query.search as string) ?? "";
+  logger.info("CannMenus brands search", { search });
+
+  res.json({
+    source: "firebase-functions:brands (stub)",
+    query: search,
+    items: [], // later this will be the list from CannMenus
+  });
 });
 
+// --- retailers stub ---
+export const retailers = onRequest((req, res) => {
+  if (req.method === "OPTIONS") {
+    allowCors(res);
+    res.status(204).send("");
+    return;
+  }
 
-// simple health check (optional)
-export const health = onRequest({ cors: true }, async (_req, res) => {
-  res.json({ ok: true, service: "brands.bakedbot.ai", time: Date.now() });
+  allowCors(res);
+
+  const search = (req.query.search as string) ?? "";
+  logger.info("CannMenus retailers search", { search });
+
+  res.json({
+    source: "firebase-functions:retailers (stub)",
+    query: search,
+    items: [],
+  });
 });
 
-// CannMenus endpoints
-export { brands, retailers, products } from "./cannmenus";
+// --- products stub ---
+export const products = onRequest((req, res) => {
+  if (req.method === "OPTIONS") {
+    allowCors(res);
+    res.status(204).send("");
+    return;
+  }
+
+  allowCors(res);
+
+  const search = (req.query.search as string) ?? "";
+  const brandId = (req.query.brandId as string) ?? "";
+  const retailerId = (req.query.retailerId as string) ?? "";
+
+  logger.info("CannMenus products search", { search, brandId, retailerId });
+
+  res.json({
+    source: "firebase-functions:products (stub)",
+    query: { search, brandId, retailerId },
+    items: [],
+  });
+});
