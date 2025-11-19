@@ -1,4 +1,4 @@
-
+import 'server-only';
 import { Firestore, FieldValue, DocumentReference } from 'firebase-admin/firestore';
 import type { Product, ReviewSummaryEmbedding } from '@/types/domain';
 import { generateEmbedding } from '@/ai/utils/generate-embedding';
@@ -38,7 +38,6 @@ export function makeProductRepo(db: Firestore) {
       const vectorQuery = productCollection
         .where('brandId', '==', effectiveBrandId)
         .where('reviewSummaryEmbedding.embedding', '!=', null)
-        .orderBy('reviewSummaryEmbedding.embedding')
         .findNearest('reviewSummaryEmbedding.embedding', queryEmbedding, {
           limit,
           distanceMeasure: 'COSINE',
