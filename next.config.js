@@ -16,4 +16,5 @@ const nextConfig = {
   },
 };
 
+// Invalidate cache
 module.exports = nextConfig;
