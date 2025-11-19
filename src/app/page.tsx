@@ -8,31 +8,6 @@ import Link from 'next/link';
 export default function BrandsHomepage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 font-sans">
-      {/* Top nav */}
-      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/85 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-400/10 ring-1 ring-emerald-400/40">
-              <span className="text-sm font-semibold text-emerald-300">BB</span>
-            </div>
-            <div className="leading-tight">
-              <p className="text-sm font-semibold tracking-tight">BakedBot AI</p>
-              <p className="text-[11px] text-slate-400">Headless Menu &amp; AI Budtender</p>
-            </div>
-          </div>
-
-          {/* Header links / nav removed per request */}
-          <div className="flex items-center gap-3 text-sm">
-            <button className="rounded-full border border-slate-700 px-3 py-1.5 text-slate-200 hover:border-slate-500">
-              Login
-            </button>
-            <button className="rounded-full bg-emerald-400 px-4 py-1.5 font-medium text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.75)] hover:bg-emerald-300">
-              Get started free
-            </button>
-          </div>
-        </div>
-      </header>
-
       <main>
         {/* Hero – AI Budtender widget as the star */}
         <section className="relative overflow-hidden border-b border-slate-800">
@@ -57,12 +32,12 @@ export default function BrandsHomepage() {
               </p>
 
               <div className="mb-4 flex flex-wrap items-center gap-3">
-                <button className="rounded-full bg-emerald-400 px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.9)] hover:bg-emerald-300">
-                  Get started free
-                </button>
-                <button className="rounded-full border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm text-slate-100 hover:border-slate-500">
-                  Watch 2-min demo
-                </button>
+                <Button asChild className="rounded-full bg-emerald-400 px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.9)] hover:bg-emerald-300">
+                  <Link href="/onboarding">Get started free</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full border-slate-700 bg-slate-900/60 px-4 py-2 text-sm text-slate-100 hover:border-slate-500">
+                  <Link href="/menu/default">Watch 2-min demo</Link>
+                </Button>
               </div>
 
               <p className="text-[11px] text-slate-400">
@@ -90,10 +65,12 @@ export default function BrandsHomepage() {
               <div className="mx-auto max-w-md rounded-3xl border border-slate-200/20 bg-slate-950/40 p-2 shadow-[0_40px_120px_rgba(15,23,42,0.9)]">
                 <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80">
                   {/* Swap src with the real path to your attached hero image */}
-                  <img
+                  <Image
                     src="/images/ai-budtender-hero.png"
                     alt="Headless menu and AI budtender experience"
                     className="h-full w-full object-cover"
+                    width={800}
+                    height={700}
                   />
                 </div>
               </div>
@@ -234,12 +211,12 @@ export default function BrandsHomepage() {
                       <span className="font-semibold">Nebula Nugs 3.5g</span>. Send suggested reorder quantities now?
                     </p>
                     <div className="mt-3 flex gap-2 text-[11px]">
-                      <button className="flex-1 rounded-full bg-emerald-400 px-3 py-1 font-semibold text-slate-950 hover:bg-emerald-300">
-                        Review &amp; send orders
-                      </button>
-                      <button className="rounded-full border border-emerald-300/40 px-3 py-1 text-emerald-100 hover:border-emerald-200">
+                      <Button asChild className="flex-1 rounded-full bg-emerald-400 px-3 py-1 font-semibold text-slate-950 hover:bg-emerald-300">
+                        <Link href="/dashboard/orders">Review &amp; send orders</Link>
+                      </Button>
+                      <Button variant="outline" className="rounded-full border-emerald-300/40 px-3 py-1 text-emerald-100 hover:border-emerald-200">
                         Snooze
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -247,10 +224,9 @@ export default function BrandsHomepage() {
             </div>
           </div>
         </section>
-
-        {/* The rest of your sections (How it works, For dispensaries, Pricing, CTA, Footer) can stay as-is */}
-        {/* ... keep your existing code for those sections here ... */}
       </main>
     </div>
   );
 }
+
+    
