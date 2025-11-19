@@ -20,6 +20,21 @@ export function makeBrandRepo(db: Firestore) {
   const brandCollection = db.collection('brands');
 
   return {
+    /**
+     * Generates the payload for a new brand, including default configurations.
+     * This is not an async function; it just constructs the object.
+     */
+    createPayload(name: string, logoUrl: string = defaultLogo): Omit<Brand, 'id'> {
+        return {
+            name,
+            logoUrl,
+            chatbotConfig: {
+                basePrompt: `You are a helpful and friendly budtender for ${name}. Your goal is to help users find the perfect product for their desired experience.`,
+                welcomeMessage: `Welcome! I'm the AI budtender for ${name}. How can I help you find what you're looking for today?`,
+            },
+        };
+    },
+
     async getById(id: string): Promise<Brand> {
       const brandId = id === DEMO_BRAND_ID || !id ? DEMO_BRAND_ID : id;
       
