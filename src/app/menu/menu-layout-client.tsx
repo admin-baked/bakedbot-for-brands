@@ -5,6 +5,7 @@ import { useHydrated } from '@/hooks/use-hydrated';
 import { useCookieStore } from '@/lib/cookie-storage';
 import { useEffect } from 'react';
 import type { Product, Retailer, Review } from '@/types/domain';
+import { useDemoMode } from '@/context/demo-mode';
 
 // Define the shape of the data that will be passed from the server.
 interface MenuData {
@@ -38,7 +39,7 @@ export const useMenuData = () => {
  * with the cookie-based store.
  */
 export default function MenuLayoutClient({ children, initialData }: { children: React.ReactNode, initialData: MenuData }) {
-  const { setIsDemo } = useCookieStore();
+  const { setIsDemo } = useDemoMode();
   const hydrated = useHydrated();
 
   // Effect to sync the server-determined demo status with the client-side cookie store.
