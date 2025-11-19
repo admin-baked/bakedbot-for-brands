@@ -17,18 +17,16 @@ import { useFirebase } from '@/firebase/provider';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useStore } from '@/hooks/use-store';
-import { useDemoMode } from '@/context/demo-mode';
 import { useHydrated } from '@/hooks/use-hydrated';
 
 export default function Header() {
-    const { getItemCount, setCartSheetOpen } = useStore();
+    const { getItemCount, setCartSheetOpen, isDemo, setIsDemo } = useStore();
     const itemCount = getItemCount();
     const pathname = usePathname();
     const { user, isUserLoading } = useUser();
     const { auth } = useFirebase();
     const router = useRouter();
     const { toast } = useToast();
-    const { isDemo, setIsDemo } = useDemoMode();
     const hydrated = useHydrated();
 
     const navLinks = [

@@ -15,8 +15,6 @@ import { doc, updateDoc } from 'firebase/firestore';
 import type { Retailer } from '@/types/domain';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCookieStore } from '@/lib/cookie-storage';
-
 
 interface DispensaryLocatorProps {
   locations?: Retailer[];
@@ -24,8 +22,13 @@ interface DispensaryLocatorProps {
 }
 
 export default function DispensaryLocator({ locations = [], isLoading = false }: DispensaryLocatorProps) {
-  const { selectedRetailerId, setSelectedRetailerId } = useStore();
-  const { favoriteRetailerId, setFavoriteRetailerId, _hasHydrated } = useCookieStore();
+  const { 
+      selectedRetailerId, 
+      setSelectedRetailerId, 
+      favoriteRetailerId,
+      setFavoriteRetailerId,
+      _hasHydrated 
+  } = useStore();
   const firebase = useOptionalFirebase();
   const { toast } = useToast();
   
@@ -100,7 +103,7 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
     }
     const userDocRef = doc(firestore, 'users', user.uid);
     try {
-        await updateDoc(userDocRef, { favoriteLocationId: id });
+        await updateDoc(userDocRef, { favoriteRetailerId: id });
         setFavoriteRetailerId(id);
         toast({ title: 'Favorite location saved!' });
     } catch (error) {

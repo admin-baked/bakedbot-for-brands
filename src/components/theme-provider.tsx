@@ -2,11 +2,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useCookieStore } from '@/lib/cookie-storage';
+import { useStore } from '@/hooks/use-store';
 import { themes } from '@/lib/themes';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { theme, _hasHydrated } = useCookieStore();
+  const { theme, _hasHydrated } = useStore();
 
   useEffect(() => {
     if (_hasHydrated) {

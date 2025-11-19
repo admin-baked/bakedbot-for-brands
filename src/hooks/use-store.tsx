@@ -2,21 +2,36 @@
 'use client';
 
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Product } from '@/types/domain';
+import type { Theme } from '@/lib/themes';
 import { useToast } from '@/hooks/use-toast';
-import { useCookieStore } from './../lib/cookie-storage';
 
 export type CartItem = Product & { quantity: number };
 
 export interface StoreState {
+  _hasHydrated: boolean;
   cartItems: CartItem[];
-  selectedRetailerId: string | null;
   isCartSheetOpen: boolean;
+  
+  // From legacy cookie-store
+  theme: Theme;
+  menuStyle: 'default' | 'alt';
+  favoriteRetailerId: string | null;
+  chatExperience: 'default' | 'classic';
+  isDemo: boolean;
+  isCeoMode: boolean; // Not persisted
 
   // Actions
-  setSelectedRetailerId: (id: string | null) => void;
+  setHasHydrated: (hydrated: boolean) => void;
   setCartSheetOpen: (isOpen: boolean) => void;
-
+  setTheme: (theme: Theme) => void;
+  setMenuStyle: (style: 'default' | 'alt') => void;
+  setFavoriteRetailerId: (id: string | null) => void;
+  setChatExperience: (experience: 'default' | 'classic') => void;
+  setIsDemo: (isDemo: boolean) => void;
+  setIsCeoMode: (isCeo: boolean) => void;
+  
   // Cart Actions
   addToCart: (product: Product, retailerId?: string | null) => void;
   removeFromCart: (itemId: string) => void;
@@ -28,24 +43,34 @@ export interface StoreState {
 
 
 export const useStore = create<StoreState>()(
+  persist(
     (set, get) => ({
+      _hasHydrated: false,
       cartItems: [],
-      selectedRetailerId: null,
       isCartSheetOpen: false,
-      
+
+      // UI Preferences
+      theme: 'green',
+      menuStyle: 'default',
+      favoriteRetailerId: null,
+      chatExperience: 'default',
+      isDemo: true,
+      isCeoMode: false,
+
       // Actions
-      setSelectedRetailerId: (id: string | null) => {
-        // Also update the cookie for persistence across sessions
-        useCookieStore.getState().setFavoriteRetailerId(id);
-        set({ selectedRetailerId: id });
-      },
+      setHasHydrated: (hydrated: boolean) => set({ _hasHydrated: hydrated }),
       setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
+      setTheme: (theme) => set({ theme }),
+      setMenuStyle: (style) => set({ menuStyle: style }),
+      setFavoriteRetailerId: (id) => set({ favoriteRetailerId: id }),
+      setChatExperience: (experience) => set({ chatExperience: experience }),
+      setIsDemo: (isDemo) => set({ isDemo }),
+      setIsCeoMode: (isCeo) => set({ isCeoMode: isCeo }),
       
       // Cart Actions
       addToCart: (product, retailerId) =>
         set((state) => {
           if (!retailerId) {
-            // This case should be prevented by UI logic, but as a safeguard:
             console.error("addToCart called without a retailerId.");
             return state;
           }
@@ -95,5 +120,23 @@ export const useStore = create<StoreState>()(
       getItemCount: () => {
         return get().cartItems.reduce((total, item) => total + item.quantity, 0);
       },
-    })
+    }),
+    {
+      name: 'bakedbot-storage', 
+      storage: createJSONStorage(() => localStorage), 
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setHasHydrated(true);
+        }
+      },
+      // IMPORTANT: Only persist UI preferences, not transactional state like the cart.
+      partialize: (state) => ({
+        theme: state.theme,
+        menuStyle: state.menuStyle,
+        favoriteRetailerId: state.favoriteRetailerId,
+        chatExperience: state.chatExperience,
+        isDemo: state.isDemo,
+      }),
+    }
+  )
 );
