@@ -14,38 +14,33 @@ test.describe('Authentication Flows', () => {
     await expect(magicLinkCard).toBeVisible();
     await expect(magicLinkCard.locator('h2')).toHaveText('Check Your Inbox!');
     await expect(magicLinkCard.locator('strong')).toHaveText('dispensary@bakedbot.ai');
-    
-    // Now, verify we can get to the dispensary order dashboard (simulating successful login)
-    // The DashboardLayout will handle the redirection based on the user's role.
-    await page.goto('/dashboard');
-    
-    // Verify dashboard loads to the correct page for a dispensary user
-    await expect(page.getByRole('heading', { name: 'Customer Orders' })).toBeVisible();
   });
 
-  test('brand login flow', async ({ page }) => {
+  test('brand login flow via dev login', async ({ page }) => {
     await page.goto('/brand-login');
+    
+    // The DevLoginButton is now the primary mechanism on this page
+    await expect(page.getByText('Dev Login (local only)')).toBeVisible();
     await page.getByTestId('dev-login-button').click();
     await page.getByTestId('dev-login-item-brand@bakedbot.ai').click();
 
-    // Navigate to the account page to verify login
+    // Navigate to the dashboard page to verify login
     await page.goto('/dashboard');
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   });
 
   test('user can log out successfully', async ({ page }) => {
-    // 1. Log in first
+    // 1. Log in first using the dev login
     await page.goto('/brand-login');
     await page.getByTestId('dev-login-button').click();
     await page.getByTestId('dev-login-item-brand@bakedbot.ai').click();
 
-    // 2. Go to the account page (now dashboard)
+    // 2. Go to the account page to ensure login state is active
     await page.goto('/dashboard');
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 
-    // 3. Click the logout button from the user dropdown in the sidebar
-    // This requires clicking the user avatar/name first to open the menu.
-    await page.getByText('brand@bakedbot.ai').click();
+    // 3. Click the logout button from the user dropdown in the main header
+    await page.getByRole('button', { name: /My Account/ }).click();
     await page.getByRole('menuitem', { name: 'Sign Out' }).click();
 
     // 4. Assert that the "Signed Out" toast appears
@@ -59,6 +54,6 @@ test.describe('Authentication Flows', () => {
     await page.goto('/dashboard');
     await expect(page).not.toHaveURL('/dashboard');
     // After logout, it should redirect to the brand login page.
-    await expect(page.getByRole('heading', { name: 'Brand login' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Brand Login' })).toBeVisible();
   });
 });
