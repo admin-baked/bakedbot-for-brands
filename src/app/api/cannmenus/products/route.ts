@@ -1,4 +1,3 @@
-
 // src/app/api/cannmenus/products/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
