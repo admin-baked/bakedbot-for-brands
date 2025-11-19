@@ -1,3 +1,4 @@
+
 import 'server-only';
 import { Firestore, FieldValue } from 'firebase-admin/firestore';
 import type { Brand } from '@/types/domain';
