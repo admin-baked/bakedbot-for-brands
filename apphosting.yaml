@@ -14,6 +14,10 @@ runConfig:
       value: "BakedBot Orders"
     - variable: RECAPTCHA_SITE_KEY
       secret: RECAPTCHA_SITE_KEY
+    - variable: CANNMENUS_API_BASE
+      value: "https://api.cannmenus.com"
+    - variable: CANNMENUS_API_KEY
+      secret: CANNMENUS_API_KEY
 
 rewrites:
   - source: /api/health
