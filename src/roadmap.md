@@ -4,55 +4,63 @@ This document outlines the planned features and improvements for the BakedBot AI
 
 ---
 
-## 🚀 Final Roadmap to Production
+## 🚀 Roadmap to Version 2.0
 
-This section outlines the final, critical steps required to launch the application, moving from a functional prototype to a production-ready service. This roadmap is focused on a multi-tenant architecture where "Brands" are the primary tenants.
+This roadmap outlines the path to a robust, feature-complete "2.0" version of the application. The primary goals are to complete technical hardening and build out the core functionality for our dispensary partners.
 
-### Phase 1: Multi-Tenancy & Security Hardening (Must-Haves for Go-Live)
+### Phase 1: Polish & Pre-Launch Hardening
 
-*   **Tenant-Aware Routing & Data**:
-    *   **Dynamic Subdomains/Paths**: Implement the logic to resolve a `brandId` from the request hostname (e.g., `brand-name.bakedbot.ai`) or path (`/menu/brand-name`).
-    *   **Server-Side Data Scoping**: Ensure all data fetching (products, locations, orders) is strictly scoped on the server using the resolved `brandId` from the request, not from client-side state.
+This phase focuses on addressing remaining technical debt and ensuring the application is clean, maintainable, and ready for production scaling.
 
-*   **Security Lockdown**:
-    *   **Finalize & Deploy Firestore Rules**: Conduct a comprehensive, line-by-line security audit of all Firestore rules. Rules must be updated to use `request.auth.token.brandId` and `request.auth.token.locationId` to enforce strict data ownership and prevent cross-tenant data access.
-    *   **Implement App Check**: Integrate Firebase App Check to verify that all backend requests originate from your authentic application, preventing abuse and unauthorized API usage.
-    *   **Harden Server Actions**: Re-verify user identity and authorization claims (`role`, `brandId`) at the beginning of every Server Action to ensure every operation is authorized.
+1.  **Consolidate Authorization Logic**:
+    *   **Goal**: Ensure all server actions use a single, consistent method for authentication and authorization.
+    *   **Action**: Refactor all remaining server actions to use the new `requireUser` utility, removing duplicated session-checking logic.
 
-*   **Production Configuration**:
-    *   **Secure API Keys & Secrets**: Transition all secrets (SendGrid API key, Firebase Service Account) to a secure, environment-variable-based system using a service like Google Secret Manager, as outlined in `DEPLOYMENT_INSTRUCTIONS.md`.
-    *   **Provision Production Firebase Instance**: Set up and configure the definitive production instances of Firebase Authentication and Firestore.
+2.  **Optimize Client Bundle**:
+    *   **Goal**: Reduce the initial JavaScript bundle size for a faster end-user experience.
+    *   **Action**: Move all static demo data (`demoProducts`, `demoRetailers`, etc.) from `src/lib/data.ts` to server-only modules that are not included in the client build.
 
-### Phase 2: Testing & Optimization (Pre-Launch)
+3.  **Unify Marketing Assets**:
+    *   **Goal**: Maintain a single source of truth for all marketing and placeholder images.
+    *   **Action**: Move the hardcoded hero image path from `src/app/page.tsx` into the `src/lib/placeholder-images.json` configuration file.
 
-*   **Comprehensive Testing**:
-    *   **End-to-End (E2E) Tests**: Write and automate E2E tests for the most critical user journeys: the full customer checkout flow, brand onboarding, and the dispensary login process. This is vital to prevent regressions.
-    *   **Unit Test Expansion**: Increase unit test coverage for data repositories, server actions, and critical UI components.
-*   **Performance Optimization**:
-    *   **Bundle Size Analysis**: Use the Next.js Bundle Analyzer to identify and optimize large dependencies.
-    *   **Implement Lazy Loading**: Apply lazy loading for non-critical components (e.g., complex dashboard charts, modals) and images to improve initial page load times.
+4.  **Finalize AI Engine Hardening**:
+    *   **Goal**: Make the AI recommendation engine's failure states transparent and user-friendly.
+    *   **Action**: Implement rich, structured logging within the `recommendProducts` flow and create specific, helpful fallback messages for different failure scenarios (e.g., "No matching products," "Menu is being set up").
 
-### Phase 3: Feature Polish (Post-Launch / V2.1)
+### Phase 2: V2.0 Feature - Dispensary Enablement
 
-*   **AI Feature Refinement**:
-    *   **AI Social Media Images**: Enhance the image generation feature to properly apply brand watermarks and better align with brand guidelines.
-    *   **Conversational AI Polish**: Continue to refine the AI budtender's conversational abilities and the accuracy of its product recommendations.
-*   **Custom Domains for Paid Tiers**: Build the UI and backend logic to allow paid brand accounts to map their own custom domains to their headless menu.
+This phase focuses on building the core feature set for our Dispensary Manager persona, enabling the B2B2C order fulfillment loop.
+
+1.  **Dispensary Manager Dashboard**:
+    *   **Goal**: Provide dispensary managers with a dedicated interface to manage their information and incoming orders.
+    *   **Action**: Build out the `/dashboard/orders` and `/dashboard/settings` views specifically for the `dispensary` role.
+
+2.  **Real-Time Order Management**:
+    *   **Goal**: Allow dispensaries to view and update the status of orders routed to them in real-time.
+    *   **Action**: Implement a live-updating order list on the dispensary dashboard. Build the UI and server actions necessary for a manager to transition an order's status (e.g., from `submitted` -> `confirmed` -> `ready` -> `completed`).
 
 ---
 
 ## ✅ Completed Milestones
 
-### Foundational Multi-Tenancy (Day 16+)
+### Full Product CRUD & Security (Day 18+)
+- **Full Product Lifecycle Management**: Implemented the complete "Create, Read, Update, and Delete" (CRUD) functionality for brand managers via the dashboard. This includes a unified `saveProduct` action and a secure `deleteProduct` action with a confirmation dialog.
+- **Centralized Authorization**: Created a `requireUser` server-side utility to centralize and standardize authentication and role-based access control for all server actions.
+- **Hardened Firestore Rules**: Deployed stricter Firestore security rules for the `products` collection, ensuring data operations are protected at the database level.
+- **End-to-End Test for Products**: Added a comprehensive Playwright test to validate the entire product management lifecycle, guarding against future regressions.
+
+### Foundational Multi-Tenancy & DX Refinements (Day 16-18)
 - **Brand-Centric Homepage**: Established a new homepage targeting brands as the primary user, clarifying the B2B value proposition.
-- **Role-Based Dashboards**: Built dedicated dashboard views for Brand Managers, Dispensary Managers, and Customers.
-- **Real-time Order Management**: Implemented a real-time order dashboard for dispensaries with status update capabilities.
-- **Customer Self-Service**: Created a "My Account" area for customers to view order history and manage preferences.
+- **Unified State Management**: Merged `useStore` and `useCookieStore` into a single Zustand store with selective persistence, creating a single source of truth for client state.
+- **Simplified Provider Architecture**: Consolidated all global context providers directly into the root layout, making the app's structure cleaner and more explicit.
+- **Role-Based Login & Live Order Status**: Shipped major UX improvements, including a multi-persona login dropdown and a dynamic, real-time order tracking page for customers.
+- **AI Recommendation Engine Hardening**: Made the core recommendation flow more resilient by adding defensive checks, keyword search fallbacks, and improved data validation.
 
 ### Headless Commerce & Order Routing (Day 4-10)
 - **Secure Server Actions**: Built and secured server actions for order submission, price verification, and status updates.
 - **Order Routing & Email Notifications**: Implemented email notifications via SendGrid for order confirmations and status changes.
-- **Retailer Selection & PIN Login**: Integrated a location selection step and a foundational PIN login page for dispensaries.
+- **Retailer Selection & Foundational Auth**: Integrated location selection and initial PIN-based login pages.
 
 ### Initial Platform Build (Day 1-3)
 - **Role-Based Access Control (RBAC)**: Implemented Firebase Custom Claims (`role`, `brandId`, `locationId`) as the basis for the security model.
