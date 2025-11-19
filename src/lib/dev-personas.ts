@@ -1,8 +1,9 @@
 // src/lib/dev-personas.ts
-
 import type { UserProfile } from "@/types/domain";
 
-export const devPersonas: Record<string, Omit<UserProfile, 'id'>> = {
+export type DevPersonaKey = 'brand' | 'dispensary' | 'customer' | 'onboarding';
+
+export const devPersonas: Record<DevPersonaKey, Omit<UserProfile, 'id'>> = {
     brand: {
         uid: 'dev-brand-user',
         email: 'brand@bakedbot.ai',
@@ -35,4 +36,14 @@ export const devPersonas: Record<string, Omit<UserProfile, 'id'>> = {
         brandId: null,
         locationId: null,
     }
-}
+};
+
+// This is safe to use on the client (no secrets here).
+export const DEV_PERSONA_OPTIONS = Object.entries(devPersonas).map(
+  ([key, persona]) => ({
+    key: key as DevPersonaKey,
+    label: persona.displayName,
+    email: persona.email,
+    role: persona.role,
+  })
+);
