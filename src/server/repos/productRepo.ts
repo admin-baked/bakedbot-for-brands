@@ -1,6 +1,6 @@
 
 
-import { Firestore, FieldValue } from 'firebase-admin/firestore';
+import { Firestore, FieldValue, DocumentReference } from 'firebase-admin/firestore';
 import type { Product, ReviewSummaryEmbedding } from '@/types/domain';
 import { generateEmbedding } from '@/ai/utils/generate-embedding';
 
@@ -10,10 +10,17 @@ export function makeProductRepo(db: Firestore) {
 
   return {
     /**
+     * Retrieves a reference to a product document.
+     */
+    getRef(id: string): DocumentReference {
+        return productCollection.doc(id);
+    },
+
+    /**
      * Retrieves a single product by its ID.
      */
     async getById(id: string): Promise<Product | null> {
-      const snap = await productCollection.doc(id).get();
+      const snap = await this.getRef(id).get();
       if (!snap.exists) return null;
       const data = snap.data()!;
       return { 
