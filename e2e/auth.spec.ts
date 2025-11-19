@@ -2,30 +2,27 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication Flows', () => {
-  test('dispensary login flow', async ({ page }) => {
+  test('dispensary login with magic link', async ({ page }) => {
     await page.goto('/dispensary-login');
 
-    // Fill in the email and click the magic link button
     await page.fill('input[name="email"]', 'dispensary@bakedbot.ai');
     await page.getByRole('button', { name: 'Send Magic Link' }).click();
 
-    // Expect the "Check Your Inbox!" card to be visible
     const magicLinkCard = page.getByTestId('magic-link-sent-card');
     await expect(magicLinkCard).toBeVisible();
     await expect(magicLinkCard.locator('h2')).toHaveText('Check Your Inbox!');
     await expect(magicLinkCard.locator('strong')).toHaveText('dispensary@bakedbot.ai');
   });
 
-  test('brand login flow via dev login', async ({ page }) => {
+  test('brand login with dev login button', async ({ page }) => {
     await page.goto('/brand-login');
     
-    // The DevLoginButton is now the primary mechanism on this page
-    await expect(page.getByText('Dev Login (local only)')).toBeVisible();
+    // The DevLoginButton is the primary mechanism for dev login now
     await page.getByTestId('dev-login-button').click();
     await page.getByTestId('dev-login-item-brand@bakedbot.ai').click();
 
-    // Navigate to the dashboard page to verify login
-    await page.goto('/dashboard');
+    // After login, it should redirect to the dashboard
+    await expect(page).toHaveURL('/dashboard');
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   });
 
@@ -35,7 +32,7 @@ test.describe('Authentication Flows', () => {
     await page.getByTestId('dev-login-button').click();
     await page.getByTestId('dev-login-item-brand@bakedbot.ai').click();
 
-    // 2. Go to the account page to ensure login state is active
+    // 2. Go to the dashboard to ensure login state is active
     await page.goto('/dashboard');
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 
