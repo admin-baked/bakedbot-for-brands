@@ -6,6 +6,7 @@ import { useCookieStore } from '@/lib/cookie-storage';
 import { useEffect } from 'react';
 import type { Product, Retailer, Review } from '@/types/domain';
 
+// Define the shape of the data that will be passed from the server.
 interface MenuData {
     brandId: string;
     products: Product[];
@@ -15,11 +16,14 @@ interface MenuData {
     isDemo: boolean;
 }
 
-// This is a new context to provide the server-fetched data to all client components in this layout.
+// Create a new context to provide the server-fetched data to all client components in this layout.
 import { createContext, useContext } from 'react';
 
 const MenuDataContext = createContext<MenuData | null>(null);
 
+/**
+ * A hook to easily access the menu data from any child client component.
+ */
 export const useMenuData = () => {
   const context = useContext(MenuDataContext);
   if (!context) {
@@ -28,11 +32,16 @@ export const useMenuData = () => {
   return context;
 };
 
-
+/**
+ * This client component receives the data fetched on the server and provides it
+ * to all its children via context. It also synchronizes the `isDemo` state
+ * with the cookie-based store.
+ */
 export default function MenuLayoutClient({ children, initialData }: { children: React.ReactNode, initialData: MenuData }) {
   const { setIsDemo } = useCookieStore();
   const hydrated = useHydrated();
 
+  // Effect to sync the server-determined demo status with the client-side cookie store.
   useEffect(() => {
     if (hydrated) {
         setIsDemo(initialData.isDemo);
