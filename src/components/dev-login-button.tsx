@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { devPersonas } from '@/lib/dev-personas';
+import { devPersonas, DEV_PERSONA_OPTIONS, type DevPersonaKey } from '@/lib/dev-personas';
 import { Briefcase, Building, Loader2, User, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -37,7 +37,7 @@ export default function DevLoginButton() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const handleDevLogin = async (persona: keyof typeof devPersonas) => {
+  const handleDevLogin = async (persona: DevPersonaKey) => {
     if (!auth) {
       toast({ variant: 'destructive', title: 'Firebase not initialized.' });
       return;
@@ -49,7 +49,7 @@ export default function DevLoginButton() {
         throw new Error(result.error);
       }
       await signInWithCustomToken(auth, result.token);
-      toast({ title: 'Dev Login Success!', description: `Logged in as ${persona}.` });
+      toast({ title: 'Dev Login Success!', description: `Logged in as ${devPersonas[persona].displayName}.` });
       
       // Determine redirection based on persona
       if (persona === 'onboarding') {
@@ -77,18 +77,18 @@ export default function DevLoginButton() {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Select Persona</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {Object.entries(devPersonas).map(([key, { displayName, role }]) => {
-            const Icon = personaIcons[key as string] || User;
+        {DEV_PERSONA_OPTIONS.map(({ key, label, email }) => {
+            const Icon = personaIcons[key] || User;
             const isCurrent = isSubmitting === key;
             return (
               <DropdownMenuItem 
                 key={key} 
-                onClick={() => handleDevLogin(key as keyof typeof devPersonas)} 
+                onClick={() => handleDevLogin(key)} 
                 disabled={!!isSubmitting}
-                data-testid={`dev-login-item-${devPersonas[key as keyof typeof devPersonas].email}`}
+                data-testid={`dev-login-item-${email}`}
               >
                 {isCurrent ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
-                <span>{displayName}</span>
+                <span>{label}</span>
               </DropdownMenuItem>
             )
         })}
