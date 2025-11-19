@@ -1,7 +1,7 @@
 
 'use client';
 
-import { ProductCard } from './product-card';
+import { ProductCard } from '@/components/product-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Database } from 'lucide-react';
 import Link from 'next/link';

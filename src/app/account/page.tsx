@@ -57,7 +57,7 @@ export default async function AccountPage() {
 
     const accountData = await getAccountData(uid, role as string, brandId, locationId);
 
-    if (role === 'customer' && accountData.orders && account.retailers) {
+    if (role === 'customer' && accountData.orders && accountData.retailers) {
         return <CustomerAccountView user={{name, email}} orders={accountData.orders} retailers={accountData.retailers} />;
     }
     
