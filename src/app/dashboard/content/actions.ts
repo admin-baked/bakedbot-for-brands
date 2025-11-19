@@ -10,6 +10,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { demoCustomer, demoProducts } from '@/lib/data';
 import type { Review } from '@/types/domain';
 import { reviewConverter } from '@/firebase/converters';
+import { revalidatePath } from 'next/cache';
 
 // --- Description Generation ---
 
@@ -162,4 +163,41 @@ export async function summarizeProductReviews(prevState: ReviewSummaryFormState,
     } catch (e: any) {
         return { message: `An error occurred: ${e.message}`, data: null, error: true };
     }
+}
+
+// --- Apply Content to Product ---
+
+export type ApplyContentFormState = {
+  message: string;
+  error: boolean;
+};
+
+const ApplyContentSchema = z.object({
+  productId: z.string().min(1, 'Product ID is required.'),
+  description: z.string().min(1, 'Description is required.'),
+});
+
+export async function applyGeneratedContentToProduct(
+  prevState: ApplyContentFormState,
+  formData: FormData
+): Promise<ApplyContentFormState> {
+  const validatedFields = ApplyContentSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!validatedFields.success) {
+    return { message: 'Invalid data.', error: true };
+  }
+
+  const { firestore, auth } = await createServerClient();
+  const productRepo = makeProductRepo(firestore);
+  
+  try {
+    const { productId, description } = validatedFields.data;
+    await productRepo.update(productId, { description });
+    
+    revalidatePath(`/dashboard/products`);
+    revalidatePath(`/dashboard/products/${productId}/edit`);
+
+    return { message: 'Product description updated successfully!', error: false };
+  } catch (e: any) {
+    return { message: `Failed to apply content: ${e.message}`, error: true };
+  }
 }
