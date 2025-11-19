@@ -5,6 +5,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/server/auth/auth';
+import { makeBrandRepo } from '@/server/repos/brandRepo';
 
 // Define the schema for the form data
 const OnboardingSchema = z.object({
@@ -56,22 +57,25 @@ export async function completeOnboarding(prevState: OnboardingState, formData: F
     locationId: userProfileData.locationId,
   };
   
-  // Filter out null values before setting claims/doc
   const filteredClaims = Object.fromEntries(Object.entries(claims).filter(([_, v]) => v !== null));
   const filteredProfileData = Object.fromEntries(Object.entries(userProfileData).filter(([_, v]) => v !== null));
 
   try {
     const { auth, firestore } = await createServerClient();
     const userDocRef = firestore.collection('users').doc(uid);
+    const brandRepo = makeBrandRepo(firestore);
     
-    // Use a transaction or batch to ensure atomicity
     await firestore.runTransaction(async (transaction) => {
       // 1. Set the user document in Firestore
       transaction.set(userDocRef, filteredProfileData, { merge: true });
       
-      // 2. Set custom claims on the Auth user
-      // Note: setCustomUserClaims is not part of a transaction, but should be done
-      // after we're confident the Firestore write will succeed.
+      // 2. If the user is a new brand owner, create their brand document.
+      if (role === 'brand') {
+        const newBrandDocRef = firestore.collection('brands').doc(uid);
+        const newBrandName = displayName ? `${displayName}'s Brand` : 'My New Brand';
+        // Use the create method from the repo which includes default configs.
+        transaction.set(newBrandDocRef, brandRepo.createPayload(newBrandName));
+      }
     });
 
     // This must happen after the transaction for consistency
