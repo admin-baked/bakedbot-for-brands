@@ -1,4 +1,3 @@
-
 // src/app/dashboard/orders/actions.ts
 'use server';
 
@@ -10,6 +9,7 @@ import type { OrderStatus, OrderDoc, Retailer } from '@/types/domain';
 import { sendOrderEmail } from '@/lib/email/send-order-email';
 import { retailerConverter } from '@/firebase/converters';
 import { requireUser } from '@/server/auth/auth';
+import type { ServerOrderPayload } from '@/app/checkout/actions/submitOrder';
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
     submitted: ['confirmed', 'cancelled'],
@@ -86,6 +86,15 @@ export async function updateOrderStatus(
     const updatedOrderSnap = await orderRef.get();
     const updatedOrder = updatedOrderSnap.data() as OrderDoc;
 
+    if (!updatedOrder.brandId) {
+        throw new Error('Order is missing brandId, cannot send order email.');
+    }
+
+    const serverOrderPayload: ServerOrderPayload = {
+      ...(updatedOrder as any),
+      brandId: updatedOrder.brandId, // now guaranteed non-undefined
+    };
+
     const retailerSnap = await firestore.collection('dispensaries').doc(updatedOrder.retailerId).withConverter(retailerConverter as any).get();
     const retailer = retailerSnap.data() as Retailer;
 
@@ -94,7 +103,7 @@ export async function updateOrderStatus(
         to: updatedOrder.customer.email,
         subject: `Your order #${orderId.substring(0, 7)} is now ${newStatus}!`,
         orderId: orderId,
-        order: updatedOrder,
+        order: serverOrderPayload,
         retailer: retailer,
         recipientType: 'customer',
         updateInfo: { newStatus },
