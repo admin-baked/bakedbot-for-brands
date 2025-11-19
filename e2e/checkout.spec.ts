@@ -11,7 +11,7 @@ test('full checkout flow', async ({ page }) => {
 
     // 3. Find the "Cosmic Caramels" product card and add it to cart
     const productCard = page.getByTestId('product-card-1');
-    await productCard.getByRole('button', { name: 'Add' }).click();
+    await productCard.locator('button', { hasText: 'Add' }).click();
 
     // 4. Verify item is in cart by checking the pill
     const cartPill = page.getByTestId('cart-pill');

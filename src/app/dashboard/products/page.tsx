@@ -9,7 +9,6 @@ import { columns } from './components/products-table-columns';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { DEMO_BRAND_ID } from '@/lib/config';
 import { requireUser } from '@/server/auth/auth';
 import { redirect } from 'next/navigation';
 
@@ -53,11 +52,11 @@ export default async function DashboardProductsPage() {
         <div className="flex items-center justify-between">
              {/* The header is now handled by the layout */}
              <div/>
-            <Button asChild>
-                <Link href="/dashboard/products/new">
-                    <PlusCircle className="mr-2" /> Add Product
-                </Link>
-            </Button>
+            <Link href="/dashboard/products/new">
+              <Button>
+                  <PlusCircle className="mr-2" /> Add Product
+              </Button>
+            </Link>
         </div>
         <ProductsDataTable columns={columns} data={products} />
     </div>
