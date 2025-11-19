@@ -15,6 +15,69 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useTransition } from 'react';
+import { deleteProduct } from '../actions';
+import { useToast } from '@/hooks/use-toast';
+
+function DeleteAction({ productId, productName }: { productId: string; productName: string }) {
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+
+  const handleDelete = () => {
+    startTransition(async () => {
+      const result = await deleteProduct(productId);
+      if (result.error) {
+        toast({
+          variant: 'destructive',
+          title: 'Deletion Failed',
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: 'Success!',
+          description: result.message,
+        });
+      }
+    });
+  };
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive">
+             <Trash2 className="mr-2 h-4 w-4" /> Delete product
+        </div>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the product
+            <span className="font-semibold"> {productName}</span>.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+            {isPending ? 'Deleting...' : 'Continue'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 
 export const columns: ColumnDef<Product>[] = [
   {
@@ -96,9 +159,8 @@ export const columns: ColumnDef<Product>[] = [
                         <Pencil className="mr-2 h-4 w-4" /> Edit product
                     </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete product
-                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DeleteAction productId={product.id} productName={product.name} />
             </DropdownMenuContent>
             </DropdownMenu>
         </div>

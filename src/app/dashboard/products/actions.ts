@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { z } from 'zod';
@@ -80,4 +81,42 @@ export async function saveProduct(
   // Revalidate and redirect
   revalidatePath('/dashboard/products');
   redirect('/dashboard/products');
+}
+
+
+export async function deleteProduct(productId: string): Promise<ProductFormState> {
+    let user;
+    try {
+        user = await requireUser(['brand', 'owner']);
+    } catch (error) {
+        return { error: true, message: 'Unauthorized.' };
+    }
+
+    const brandId = user.brandId;
+    if (!brandId) {
+        return { error: true, message: 'You are not associated with a brand.' };
+    }
+    
+    if (!productId) {
+        return { error: true, message: 'Product ID is missing.' };
+    }
+
+    try {
+        const { firestore } = await createServerClient();
+        const productRepo = makeProductRepo(firestore);
+
+        // Security check: Verify the product belongs to the user's brand before deleting.
+        const product = await productRepo.getById(productId);
+        if (!product || product.brandId !== brandId) {
+            return { error: true, message: 'Forbidden: You do not have permission to delete this product.' };
+        }
+
+        await productRepo.delete(productId);
+
+        revalidatePath('/dashboard/products');
+        return { error: false, message: 'Product deleted successfully.' };
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        return { error: true, message: `Failed to delete product: ${errorMessage}` };
+    }
 }
