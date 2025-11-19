@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { saveProduct, type ProductFormState } from '../actions';
 import type { Product } from '@/types/domain';
-import { SubmitButton } from '@/components/dashboard/ceo/components/submit-button';
+import { SubmitButton } from '@/app/dashboard/ceo/components/submit-button';
 import Link from 'next/link';
 
 const ProductSchema = z.object({
@@ -150,16 +150,5 @@ export function ProductForm({ product }: ProductFormProps) {
         </Card>
       </form>
     </Form>
-  </change>
-  <change>
-    <file>src/app/dashboard/products/new/page.tsx</file>
-    <content><![CDATA[
-import { ProductForm } from "../components/product-form";
-
-export default function NewProductPage() {
-  return (
-    <div className="mx-auto max-w-2xl">
-        <ProductForm />
-    </div>
   );
 }
