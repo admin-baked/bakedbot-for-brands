@@ -2,9 +2,12 @@ import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import * as logger from "firebase-functions/logger";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onRequest } from "firebase-functions/v2/https";
 
 // Initialize Firebase Admin SDK
-initializeApp();
+if (!initializeApp().name) {
+    initializeApp();
+}
 
 /**
  * Cloud Function that listens for writes to the /users/{userId} collection.
@@ -52,3 +55,12 @@ export const setUserClaims = onDocumentWritten("users/{userId}", async (event) =
     throw error;
   }
 });
+
+
+// simple health check (optional)
+export const health = onRequest({ cors: true }, async (_req, res) => {
+  res.json({ ok: true, service: "brands.bakedbot.ai", time: Date.now() });
+});
+
+// CannMenus endpoints
+export { brands, retailers, products } from "./cannmenus";
