@@ -4,64 +4,46 @@ This document outlines the planned features and improvements for the BakedBot AI
 
 ---
 
-## 🚀 Roadmap to Version 2.0
+## 🚀 Roadmap to Version 3.0: Automated Intelligence
 
-This roadmap outlines the path to a robust, feature-complete "2.0" version of the application. The primary goals are to complete technical hardening and build out the core functionality for our dispensary partners.
+With the core platform, user journeys, and initial intelligence engine complete, the next phase focuses on automation and deep market insights by integrating with third-party data sources.
 
-### Phase 1: Polish & Pre-Launch Hardening
+### Phase 3: Automated Menu & Pricing Intelligence via CannMenus Integration
 
-This phase focuses on addressing remaining technical debt and ensuring the application is clean, maintainable, and ready for production scaling.
+*   **Goal**: To eliminate manual data entry for dispensary menus, provide real-time menu accuracy insights, and unlock competitive pricing intelligence.
+*   **Vision**: Transform the Brand Intelligence Console from a tool for managing a brand's *own* data into a tool for understanding the entire competitive landscape in real-time.
 
-1.  **Consolidate Authorization Logic**:
-    *   **Goal**: Ensure all server actions use a single, consistent method for authentication and authorization.
-    *   **Action**: Refactor all remaining server actions to use the new `requireUser` utility, removing duplicated session-checking logic.
+1.  **Foundational API Integration & Data Ingestion**:
+    *   **Action**: Build a secure, server-side service/repository to communicate with the CannMenus API. Implement a flow to fetch menu data for dispensaries carrying the brand's products and map it to our internal models.
 
-2.  **Optimize Client Bundle**:
-    *   **Goal**: Reduce the initial JavaScript bundle size for a faster end-user experience.
-    *   **Action**: Move all static demo data (`demoProducts`, `demoRetailers`, etc.) from `src/lib/data.ts` to server-only modules that are not included in the client build.
+2.  **Real-Time Menu Sync & Accuracy Dashboard**:
+    *   **Action**: Create a "Menu Sync" feature in the dashboard to provide a live view of product listings across all partner dispensaries, automatically flagging discrepancies.
 
-3.  **Unify Marketing Assets**:
-    *   **Goal**: Maintain a single source of truth for all marketing and placeholder images.
-    *   **Action**: Move the hardcoded hero image path from `src/app/page.tsx` into the `src/lib/placeholder-images.json` configuration file.
+3.  **Competitive Pricing Intelligence**:
+    *   **Action**: Build a "Pricing Intelligence" dashboard to visualize a brand's own pricing against their top competitors, SKU-by-SKU and market-by-market.
 
-4.  **Finalize AI Engine Hardening**:
-    *   **Goal**: Make the AI recommendation engine's failure states transparent and user-friendly.
-    *   **Action**: Implement rich, structured logging within the `recommendProducts` flow and create specific, helpful fallback messages for different failure scenarios (e.g., "No matching products," "Menu is being set up").
-
-### Phase 2: V2.0 Feature - Dispensary Enablement
-
-This phase focuses on building the core feature set for our Dispensary Manager persona, enabling the B2B2C order fulfillment loop.
-
-1.  **Dispensary Manager Dashboard**:
-    *   **Goal**: Provide dispensary managers with a dedicated interface to manage their information and incoming orders.
-    *   **Action**: Build out the `/dashboard/orders` and `/dashboard/settings` views specifically for the `dispensary` role.
-
-2.  **Real-Time Order Management**:
-    *   **Goal**: Allow dispensaries to view and update the status of orders routed to them in real-time.
-    *   **Action**: Implement a live-updating order list on the dispensary dashboard. Build the UI and server actions necessary for a manager to transition an order's status (e.g., from `submitted` -> `confirmed` -> `ready` -> `completed`).
+4.  **AI-Powered Pricing Recommendations**:
+    *   **Action**: Enhance the AI engine with a new flow that analyzes competitive pricing data to provide proactive, strategic recommendations for price adjustments and promotions.
 
 ---
 
 ## ✅ Completed Milestones
 
-### Full Product CRUD & Security (Day 18+)
-- **Full Product Lifecycle Management**: Implemented the complete "Create, Read, Update, and Delete" (CRUD) functionality for brand managers via the dashboard. This includes a unified `saveProduct` action and a secure `deleteProduct` action with a confirmation dialog.
-- **Centralized Authorization**: Created a `requireUser` server-side utility to centralize and standardize authentication and role-based access control for all server actions.
-- **Hardened Firestore Rules**: Deployed stricter Firestore security rules for the `products` collection, ensuring data operations are protected at the database level.
-- **End-to-End Test for Products**: Added a comprehensive Playwright test to validate the entire product management lifecycle, guarding against future regressions.
+### Phase 2: The Brand Intelligence Engine
+- **Unified Data Model**: Eliminated the client-side "Demo Mode" toggle by making "BakedBot" a first-class, seedable brand. Critically, added `brandId` to `Order` documents, linking sales data directly to brands.
+- **Harmonized Homepage**: Redesigned the marketing homepage to be visually consistent with the application's dynamic theme, creating a seamless user experience.
+- **Analytics Dashboard**: Launched the `/dashboard/analytics` page, providing brand owners with their first actionable insights, including Total Revenue, Total Orders, and Top Selling Products visualized with charts.
 
-### Foundational Multi-Tenancy & DX Refinements (Day 16-18)
-- **Brand-Centric Homepage**: Established a new homepage targeting brands as the primary user, clarifying the B2B value proposition.
-- **Unified State Management**: Merged `useStore` and `useCookieStore` into a single Zustand store with selective persistence, creating a single source of truth for client state.
-- **Simplified Provider Architecture**: Consolidated all global context providers directly into the root layout, making the app's structure cleaner and more explicit.
-- **Role-Based Login & Live Order Status**: Shipped major UX improvements, including a multi-persona login dropdown and a dynamic, real-time order tracking page for customers.
-- **AI Recommendation Engine Hardening**: Made the core recommendation flow more resilient by adding defensive checks, keyword search fallbacks, and improved data validation.
+### Phase 1: Polish & User Experience Hardening
+- **Enhanced Authentication UX**: Replaced magic link logins with a professional and secure email/password system for Brand and Dispensary users, including a full sign-up flow.
+- **Robust Error Handling**: Implemented a `global-error.tsx` boundary to catch server-side errors and prevent application crashes, with specific handling for Firestore permission errors. Added loading skeletons for a better perceived performance.
+- **Completed Onboarding Logic**: Ensured that new brand owners have a `Brand` document automatically created upon completing the onboarding flow, allowing them to immediately manage their settings.
+- **AI Content Application & Feedback Loop**: Added a "Save to Product" button to the Content AI suite and implemented a "Like/Dislike" feedback system for AI-generated recommendations.
+- **Customer Account Center**: Built the "My Account" page for customers to view order history and manage preferences, including setting a "Favorite Dispensary" to streamline checkout.
+- **Advanced AI Content Generation**: Expanded the AI suite to include social media image generation, allowing brands to create unique marketing assets on demand.
+- **CEO/Admin Console**: Created a secure dashboard for administrators to manage underlying application data and AI processes, including data seeding and vector index management.
 
-### Headless Commerce & Order Routing (Day 4-10)
-- **Secure Server Actions**: Built and secured server actions for order submission, price verification, and status updates.
-- **Order Routing & Email Notifications**: Implemented email notifications via SendGrid for order confirmations and status changes.
-- **Retailer Selection & Foundational Auth**: Integrated location selection and initial PIN-based login pages.
-
-### Initial Platform Build (Day 1-3)
+### Initial Platform Build (Pre-Roadmap)
 - **Role-Based Access Control (RBAC)**: Implemented Firebase Custom Claims (`role`, `brandId`, `locationId`) as the basis for the security model.
-- **Dashboard & Component UI**: Built the foundational UI for the dashboard, menus, and AI content tools using Next.js and ShadCN.
+- **Secure Server Actions & Order Routing**: Built and secured server actions for order submission, price verification, and status updates, including email notifications.
+- **Foundational UI & State**: Built the foundational UI for the dashboard, menus, and AI content tools using Next.js, ShadCN, and a unified Zustand store.
