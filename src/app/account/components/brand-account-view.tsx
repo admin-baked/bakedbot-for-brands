@@ -11,6 +11,8 @@ interface BrandAccountViewProps {
 }
 
 export default function BrandAccountView({ user, brand }: BrandAccountViewProps) {
+  const isBrandOwner = user.role === 'brand' || user.role === 'owner';
+
   return (
     <div className="container mx-auto max-w-5xl py-12 px-4">
       <div className="space-y-2 mb-8">
@@ -20,13 +22,13 @@ export default function BrandAccountView({ user, brand }: BrandAccountViewProps)
         </p>
       </div>
 
-      {brand ? (
+      {isBrandOwner && brand ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           <BrandSettingsForm brand={brand} />
           <ChatbotSettingsForm brand={brand} />
         </div>
       ) : (
-        <p>No brand or dispensary settings available.</p>
+        <p>Your account settings will appear here once configured.</p>
       )}
     </div>
   );

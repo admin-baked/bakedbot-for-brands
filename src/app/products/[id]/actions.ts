@@ -95,6 +95,7 @@ export async function updateProductFeedback(
   
   let user;
   try {
+      // Require any authenticated user.
       user = await requireUser();
   } catch(e) {
       return { error: true, message: 'You must be logged in to provide feedback.' };

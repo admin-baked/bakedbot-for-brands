@@ -30,7 +30,7 @@ async function getAccountData(uid: string, role: string, brandId?: string | null
         return { orders, retailers, brand: null }; // Ensure consistent shape
     }
     
-    if (role === 'brand' && brandId) {
+    if ((role === 'brand' || role === 'owner') && brandId) {
         const brandRepo = makeBrandRepo(firestore);
         const brand = await brandRepo.getById(brandId);
         return { brand, orders: null, retailers: null }; // Ensure consistent shape
