@@ -11,6 +11,7 @@ export type UserProfile = {
   role: 'brand' | 'dispensary' | 'customer' | 'owner' | null;
   brandId: string | null;
   locationId: string | null;
+  favoriteRetailerId?: string | null;
 };
 
 export type Brand = {
@@ -113,6 +114,7 @@ export type OrderDoc = {
   createdAt: Timestamp;
   status: OrderStatus;
   mode: 'demo' | 'live';
+  updatedAt?: Timestamp; // For tracking status changes
 };
 
 
@@ -133,4 +135,3 @@ export type UserInteraction = {
   query: string;
   recommendedProductIds?: string[];
 };
-
