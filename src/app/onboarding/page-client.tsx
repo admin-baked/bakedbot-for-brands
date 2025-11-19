@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUser } from '@/firebase/auth/use-user';
 import { useToast } from '@/hooks/use-toast';
-import { demoRetailers } from '@/lib/data';
+import { demoRetailers } from '@/server/demo/demo-data';
 import DevLoginButton from '@/components/dev-login-button';
 import { useFormState } from 'react-dom';
 import { completeOnboarding, type OnboardingState } from './actions';
