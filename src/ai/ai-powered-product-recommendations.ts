@@ -11,7 +11,7 @@ import type { Product } from '@/firebase/converters';
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { cookies } from 'next/headers';
-import { demoProducts } from '@/server/demo/demo-data';
+import { demoProducts } from '@/lib/demo/demo-data';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
 

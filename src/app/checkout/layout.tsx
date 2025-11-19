@@ -1,6 +1,6 @@
 
 import { createServerClient } from '@/firebase/server-client';
-import { demoRetailers } from '@/server/demo/demo-data';
+import { demoRetailers } from '@/lib/demo/demo-data';
 import type { Retailer } from '@/types/domain';
 import { DocumentData } from 'firebase-admin/firestore';
 import CheckoutLayoutClient from './checkout-layout-client';

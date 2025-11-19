@@ -1,6 +1,6 @@
 
 import DispensaryLocator from '@/components/dispensary-locator';
-import { demoRetailers } from '@/server/demo/demo-data';
+import { demoRetailers } from '@/lib/demo/demo-data';
 
 export default function ProductLocatorPage() {
   // For this standalone page, we can provide the demo data directly.
