@@ -109,7 +109,16 @@ export async function sendOrderEmail(args: SendArgs) {
   const { SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME } = process.env;
 
   if (!SENDGRID_API_KEY || !SENDGRID_FROM_EMAIL) {
-    // Throwing here is good: it’s a *configuration* error
+    // In dev, log to console instead of throwing
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('--- SENDGRID IS NOT CONFIGURED ---');
+      console.log('To:', args.to);
+      console.log('Subject:', args.subject);
+      console.log('--- HTML (begin) ---');
+      console.log(generateHtml(args));
+      console.log('--- HTML (end) ---');
+      return;
+    }
     throw new Error("SendGrid not configured (SENDGRID_API_KEY/SENDGRID_FROM_EMAIL).");
   }
 
