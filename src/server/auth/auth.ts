@@ -32,10 +32,11 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
     throw new Error('Unauthorized: Invalid session cookie.');
   }
 
-  const userRole = (decodedToken.role as Role) || null;
-
-  if (requiredRoles && (!userRole || !requiredRoles.includes(userRole))) {
-    throw new Error('Forbidden: You do not have the required permissions.');
+  if (requiredRoles && requiredRoles.length > 0) {
+    const userRole = (decodedToken.role as Role) || null;
+    if (!userRole || !requiredRoles.includes(userRole)) {
+      throw new Error('Forbidden: You do not have the required permissions.');
+    }
   }
 
   return decodedToken;

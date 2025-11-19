@@ -51,7 +51,8 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
             setSelectedRetailerId(favoriteRetailerId);
         }
     }
-  }, [_hasHydrated, selectedRetailerId, favoriteRetailerId, setSelectedRetailerId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [_hasHydrated, selectedRetailerId, favoriteRetailerId]);
 
   const handleFindClosest = () => {
     if (!navigator.geolocation) {
