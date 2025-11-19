@@ -1,9 +1,10 @@
 
+
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { CheckCircle, Truck, MapPin } from "lucide-react";
-import { useDoc } from "@/firebase/use-doc";
+import { useDoc } from "@/firebase/firestore/use-doc";
 import { orderConverter, retailerConverter, type OrderDoc } from "@/firebase/converters";
 import { doc } from 'firebase/firestore';
 import { useFirebase } from "@/firebase/provider";

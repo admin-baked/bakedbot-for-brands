@@ -33,12 +33,12 @@
   "include": [
     "next-env.d.ts",
     "src",
-    "functions/src/**/*",
     ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "playwright-report",
-    "_app"
+    "_app",
+    "functions"
   ]
 }
