@@ -3,6 +3,9 @@ import type { Product, Retailer, Review, UserInteraction, OrderDoc, Location } f
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Timestamp } from 'firebase/firestore';
 
+// This is now exported so the chatbot can use it as a fallback.
+export const defaultChatbotIcon = 'https://storage.googleapis.com/stedi-assets/misc/smokey-icon-1.png';
+
 
 export const demoProducts: Product[] = [
     {
