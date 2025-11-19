@@ -53,8 +53,8 @@ export default async function DashboardProductsPage() {
              {/* The header is now handled by the layout */}
              <div/>
             <Link href="/dashboard/products/new" passHref>
-              <Button asChild>
-                <a><PlusCircle /> Add Product</a>
+              <Button>
+                <PlusCircle /> Add Product
               </Button>
             </Link>
         </div>

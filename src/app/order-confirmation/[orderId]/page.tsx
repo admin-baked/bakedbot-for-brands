@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { type OrderStatus } from "@/types/domain";
+import type { OrderStatus } from "@/types/domain";
 
 const statusSteps: OrderStatus[] = ['submitted', 'confirmed', 'ready', 'completed'];
 
@@ -173,9 +173,9 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button asChild className="w-full">
-                        <Link href="/menu/default">Continue Shopping</Link>
-                    </Button>
+                    <Link href="/menu/default" passHref>
+                        <Button className="w-full">Continue Shopping</Button>
+                    </Link>
                 </CardFooter>
             </Card>
         </div>

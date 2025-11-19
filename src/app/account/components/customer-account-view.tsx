@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -79,8 +80,8 @@ export default function CustomerAccountView({ user, orders = [], retailers = [] 
                                 <p className="font-bold text-lg">${order.totals.total.toFixed(2)}</p>
                             </div>
                             <Link href={`/order-confirmation/${order.id}`} passHref>
-                              <Button asChild variant="outline" size="sm" className="w-full mt-3">
-                                  <a>View Details</a>
+                              <Button variant="outline" size="sm" className="w-full mt-3">
+                                  View Details
                               </Button>
                             </Link>
                         </div>

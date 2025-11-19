@@ -33,12 +33,12 @@ export default function BrandsHomepage() {
               </p>
 
               <div className="mb-4 flex flex-wrap items-center gap-3">
-                <Button asChild className="rounded-full bg-emerald-400 px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.9)] hover:bg-emerald-300">
-                  <Link href="/onboarding">Get started free</Link>
-                </Button>
-                <Button asChild variant="outline" className="rounded-full border-slate-700 bg-slate-900/60 px-4 py-2 text-sm text-slate-100 hover:border-slate-500">
-                  <Link href="/menu/default">Watch 2-min demo</Link>
-                </Button>
+                <Link href="/onboarding" passHref>
+                    <Button className="rounded-full bg-emerald-400 px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.9)] hover:bg-emerald-300">Get started free</Button>
+                </Link>
+                <Link href="/menu/default" passHref>
+                    <Button variant="outline" className="rounded-full border-slate-700 bg-slate-900/60 px-4 py-2 text-sm text-slate-100 hover:border-slate-500">Watch 2-min demo</Button>
+                </Link>
               </div>
 
               <p className="text-[11px] text-slate-400">
@@ -218,8 +218,8 @@ export default function BrandsHomepage() {
                     </p>
                     <div className="mt-3 flex gap-2 text-[11px]">
                       <Link href="/dashboard/orders" passHref>
-                        <Button asChild className="flex-1 rounded-full bg-emerald-400 px-3 py-1 font-semibold text-slate-950 hover:bg-emerald-300">
-                          <a>Review &amp; send orders</a>
+                        <Button className="flex-1 rounded-full bg-emerald-400 px-3 py-1 font-semibold text-slate-950 hover:bg-emerald-300">
+                          Review &amp; send orders
                         </Button>
                       </Link>
                       <Button variant="outline" className="rounded-full border-emerald-300/40 px-3 py-1 text-emerald-100 hover:border-emerald-200">
