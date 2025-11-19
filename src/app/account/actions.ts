@@ -2,11 +2,10 @@
 'use server';
 
 import { z } from 'zod';
-import { createServerClient } from '@/firebase/server-client';
-import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import { makeBrandRepo } from '@/server/repos/brandRepo';
 import type { Brand } from '@/types/domain';
-import { revalidatePath } from 'next/cache';
+import { requireUser } from '@/server/auth/auth';
 
 const BrandSettingsSchema = z.object({
   name: z.string().min(2, 'Brand name must be at least 2 characters.'),
@@ -28,15 +27,9 @@ export async function updateBrandSettings(
   prevState: BrandSettingsFormState,
   formData: FormData
 ): Promise<BrandSettingsFormState> {
-  const { auth } = await createServerClient();
-  const sessionCookie = cookies().get('__session')?.value;
-  if (!sessionCookie) {
-    return { error: true, message: 'You must be logged in to update settings.' };
-  }
-
   try {
-    const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-    const brandId = decodedToken.brandId;
+    const user = await requireUser(['brand', 'owner']);
+    const brandId = user.brandId;
     if (!brandId) {
       return { error: true, message: 'You are not associated with a brand.' };
     }
@@ -55,7 +48,7 @@ export async function updateBrandSettings(
     }
     
     const { name, logoUrl } = validatedFields.data;
-
+    const { createServerClient } = await import('@/firebase/server-client');
     const { firestore } = await createServerClient();
     const brandRepo = makeBrandRepo(firestore);
     
@@ -82,15 +75,9 @@ export async function updateChatbotSettings(
   prevState: BrandSettingsFormState,
   formData: FormData
 ): Promise<BrandSettingsFormState> {
-    const { auth } = await createServerClient();
-    const sessionCookie = cookies().get('__session')?.value;
-    if (!sessionCookie) {
-        return { error: true, message: 'You must be logged in to update settings.' };
-    }
-
     try {
-        const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-        const brandId = decodedToken.brandId;
+        const user = await requireUser(['brand', 'owner']);
+        const brandId = user.brandId;
         if (!brandId) {
             return { error: true, message: 'You are not associated with a brand.' };
         }
@@ -107,7 +94,8 @@ export async function updateChatbotSettings(
                 fieldErrors: validatedFields.error.flatten().fieldErrors,
             };
         }
-
+        
+        const { createServerClient } = await import('@/firebase/server-client');
         const { firestore } = await createServerClient();
         const brandRepo = makeBrandRepo(firestore);
         

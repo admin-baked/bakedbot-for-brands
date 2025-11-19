@@ -2,9 +2,9 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
-import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { requireUser } from '@/server/auth/auth';
 
 // Define the schema for the form data
 const OnboardingSchema = z.object({
@@ -19,17 +19,12 @@ export type OnboardingState = {
 };
 
 export async function completeOnboarding(prevState: OnboardingState, formData: FormData): Promise<OnboardingState> {
-  const { auth, firestore } = await createServerClient();
-  const sessionCookie = cookies().get('__session')?.value;
-  if (!sessionCookie) {
-    return { error: true, message: 'Authentication required. Please sign in.' };
-  }
-
-  let decodedToken;
+  let user;
   try {
-    decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-  } catch {
-    return { error: true, message: 'Invalid session. Please sign in again.' };
+    user = await requireUser();
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return { error: true, message: errorMessage };
   }
   
   const validatedFields = OnboardingSchema.safeParse({
@@ -45,7 +40,7 @@ export async function completeOnboarding(prevState: OnboardingState, formData: F
   }
 
   const { role, locationId } = validatedFields.data;
-  const { uid, email, name: displayName } = decodedToken;
+  const { uid, email, name: displayName } = user;
 
   const userProfileData: Record<string, any> = {
     email,
@@ -66,6 +61,7 @@ export async function completeOnboarding(prevState: OnboardingState, formData: F
   const filteredProfileData = Object.fromEntries(Object.entries(userProfileData).filter(([_, v]) => v !== null));
 
   try {
+    const { auth, firestore } = await createServerClient();
     const userDocRef = firestore.collection('users').doc(uid);
     
     // Use a transaction or batch to ensure atomicity

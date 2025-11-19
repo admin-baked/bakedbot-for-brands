@@ -1,28 +1,22 @@
+
 // src/app/dashboard/orders/page.tsx
-import { createServerClient } from '@/firebase/server-client';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import OrdersDashboardClient from './components/orders-dashboard-client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
+import { requireUser } from '@/server/auth/auth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardOrdersPage() {
-    const { auth } = await createServerClient();
-    const sessionCookie = cookies().get('__session')?.value;
-    if (!sessionCookie) {
-        redirect('/brand-login');
-    }
-
-    let decodedToken;
+    let user;
     try {
-        decodedToken = await auth.verifySessionCookie(sessionCookie, true);
+        user = await requireUser(['dispensary', 'owner']);
     } catch (error) {
         redirect('/brand-login');
     }
 
-    const { role, locationId } = decodedToken;
+    const { role, locationId } = user;
 
     if (role !== 'dispensary' || !locationId) {
         return (
