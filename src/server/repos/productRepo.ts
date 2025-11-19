@@ -3,6 +3,7 @@ import { Firestore, FieldValue, DocumentReference } from 'firebase-admin/firesto
 import type { Product, ReviewSummaryEmbedding } from '@/types/domain';
 import { generateEmbedding } from '@/ai/utils/generate-embedding';
 import { productConverter } from '@/firebase/converters';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 
 export function makeProductRepo(db: Firestore) {
@@ -31,7 +32,7 @@ export function makeProductRepo(db: Firestore) {
      */
     async searchByVector(query: string, brandId: string, limit: number = 10): Promise<Product[]> {
       // Ensure brandId is valid, fallback to 'default' if necessary.
-      const effectiveBrandId = brandId && brandId.trim() !== '' ? brandId : 'default';
+      const effectiveBrandId = brandId && brandId.trim() !== '' ? brandId : DEMO_BRAND_ID;
 
       const queryEmbedding = await generateEmbedding(query);
 
@@ -57,7 +58,7 @@ export function makeProductRepo(db: Firestore) {
      * This is a comprehensive fetch of the entire catalog for a brand.
      */
     async getAllByBrand(brandId: string): Promise<Product[]> {
-        const effectiveBrandId = brandId && brandId.trim() !== '' ? brandId : 'default';
+        const effectiveBrandId = brandId && brandId.trim() !== '' ? brandId : DEMO_BRAND_ID;
         const snapshot = await productCollection.where('brandId', '==', effectiveBrandId).get();
         if (snapshot.empty) {
             console.log(`No products found for brandId: ${effectiveBrandId}`);

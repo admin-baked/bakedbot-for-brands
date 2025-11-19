@@ -3,9 +3,10 @@ import { Firestore, FieldValue } from 'firebase-admin/firestore';
 import type { Brand } from '@/types/domain';
 import { defaultLogo } from '@/lib/data';
 import type { DeepPartial } from '@/types/utils';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 const defaultBrand: Brand = {
-  id: 'default',
+  id: DEMO_BRAND_ID,
   name: 'BakedBot',
   logoUrl: defaultLogo,
   chatbotConfig: {
@@ -19,15 +20,15 @@ export function makeBrandRepo(db: Firestore) {
 
   return {
     async getById(id: string): Promise<Brand> {
-      const brandId = id === 'default' || !id ? 'default' : id;
+      const brandId = id === DEMO_BRAND_ID || !id ? DEMO_BRAND_ID : id;
       
       try {
         const snap = await brandCollection.doc(brandId).get();
         if (!snap.exists) {
           console.warn(`Brand document for ID "${brandId}" not found. Falling back to default brand config.`);
           // If the default doc doesn't exist, create it.
-          if (brandId === 'default') {
-            await brandCollection.doc('default').set(defaultBrand);
+          if (brandId === DEMO_BRAND_ID) {
+            await brandCollection.doc(DEMO_BRAND_ID).set(defaultBrand);
             return defaultBrand;
           }
           return defaultBrand;

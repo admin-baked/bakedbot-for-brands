@@ -12,6 +12,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { cookies } from 'next/headers';
 import { demoProducts } from '@/lib/data';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 
 // The input now only requires the query and brand context.
@@ -78,7 +79,7 @@ const recommendProductsFlow = ai.defineFlow(
     outputSchema: RecommendProductsOutputSchema,
   },
   async (input) => {
-    const isDemo = input.brandId === 'default' || cookies().get('isUsingDemoData')?.value === 'true';
+    const isDemo = input.brandId === DEMO_BRAND_ID || cookies().get('isUsingDemoData')?.value === 'true';
 
     let candidateProducts: Product[];
 
