@@ -53,7 +53,7 @@ export async function submitOrder(clientPayload: ClientOrderInput) {
         const productRepo = makeProductRepo(firestore);
         const productIds = clientPayload.items.map(item => item.productId);
         
-        const productSnaps = await firestore.getAll(...productIds.map(id => (productRepo as any).getRef(id)));
+        const productSnaps = await firestore.getAll(...productIds.map(id => productRepo.getRef(id)));
         
         const productsById = new Map<string, Product>();
         productSnaps.forEach(snap => {
