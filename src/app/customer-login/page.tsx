@@ -46,7 +46,7 @@ export default function CustomerLoginPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Customer Login</CardTitle>
           <CardDescription>
-            Sign in with a secure magic link sent to your email.
+            Sign in to view your order history and manage preferences.
           </CardDescription>
         </CardHeader>
         <CardContent>
