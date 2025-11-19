@@ -3,20 +3,42 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { CheckCircle, Truck, MapPin } from "lucide-react";
+import { CheckCircle, ShoppingCart, CookingPot, PackageCheck, PartyPopper } from "lucide-react";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { orderConverter, retailerConverter, type OrderDoc } from "@/firebase/converters";
+import { orderConverter, retailerConverter, type OrderDoc, type OrderStatus } from "@/firebase/converters";
 import { doc } from 'firebase/firestore';
 import { useFirebase } from "@/firebase/provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+
+const statusSteps: OrderStatus[] = ['submitted', 'confirmed', 'ready', 'completed'];
+
+const getStatusInfo = (status: OrderStatus) => {
+    switch (status) {
+        case 'submitted':
+            return { icon: ShoppingCart, text: "We've received your order and are sending it to the dispensary.", progress: 25 };
+        case 'confirmed':
+            return { icon: CookingPot, text: "The dispensary has confirmed your order and is preparing it now.", progress: 50 };
+        case 'ready':
+            return { icon: PackageCheck, text: "Good news! Your order is packed and ready for pickup.", progress: 75 };
+        case 'completed':
+            return { icon: PartyPopper, text: "Your order has been picked up. Enjoy!", progress: 100 };
+        case 'cancelled':
+             return { icon: XCircle, text: "This order has been cancelled.", progress: 0 };
+        default:
+            return { icon: ShoppingCart, text: "Order received.", progress: 10 };
+    }
+}
+
 
 export default function OrderConfirmationPage({ params }: { params: { orderId: string }}) {
     const { firestore } = useFirebase();
 
-    // Fetch the order
+    // Fetch the order in real-time
     const orderRef = firestore ? doc(firestore, 'orders', params.orderId).withConverter(orderConverter) : null;
     const { data: order, isLoading: isOrderLoading } = useDoc<OrderDoc>(orderRef);
     
@@ -40,6 +62,10 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
                            <Skeleton className="h-4 w-1/2" />
                            <Skeleton className="h-4 w-1/3" />
                         </div>
+                         <div className="p-4 border rounded-md space-y-3">
+                           <Skeleton className="h-10 w-full" />
+                           <Skeleton className="h-4 w-3/4 mx-auto" />
+                        </div>
                         <Separator />
                         <div className="space-y-4">
                              {[...Array(2)].map((_, i) => (
@@ -53,12 +79,6 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
                                 </div>
                             ))}
                         </div>
-                         <Separator />
-                         <div className="space-y-2 text-right">
-                             <Skeleton className="h-4 w-32 ml-auto" />
-                             <Skeleton className="h-4 w-28 ml-auto" />
-                             <Skeleton className="h-6 w-40 ml-auto mt-2" />
-                         </div>
                     </CardContent>
                  </Card>
              </div>
@@ -78,29 +98,35 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
         );
     }
     
+    const { icon: StatusIcon, text: statusText, progress } = getStatusInfo(order.status);
+
     return (
         <div className="container mx-auto max-w-2xl py-12 px-4">
             <Card>
                 <CardHeader className="text-center items-center">
-                    <CheckCircle className="h-16 w-16 text-green-500" />
-                    <CardTitle className="mt-4 text-3xl">Order Confirmed</CardTitle>
-                    <CardDescription className="text-base">
-                       Thank you, {order.customer.name}! Your order has been placed successfully.
+                    <StatusIcon className={cn("h-16 w-16", order.status === 'completed' ? 'text-green-500' : 'text-primary')} />
+                    <CardTitle className="mt-4 text-3xl">
+                       {order.status === 'completed' ? 'Order Completed!' : 'Order Status'}
+                    </CardTitle>
+                    <CardDescription className="text-base max-w-md mx-auto">
+                       {statusText}
                     </CardDescription>
                     <p className="text-sm text-muted-foreground pt-2">Order ID: #{order.id.substring(0, 7)}</p>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="rounded-lg border bg-muted/50 p-4">
-                         <h3 className="font-semibold flex items-center gap-2 mb-2"><MapPin className="h-5 w-5 text-primary" /> Pickup Location</h3>
-                         {retailer ? (
-                             <>
-                                <p className="font-bold">{retailer.name}</p>
-                                <p className="text-sm text-muted-foreground">{retailer.address}, {retailer.city}, {retailer.state} {retailer.zip}</p>
-                             </>
-                         ): (
-                             <p className="text-sm text-muted-foreground">Loading location details...</p>
-                         )}
-                    </div>
+                    {order.status !== 'cancelled' && (
+                        <div className="px-4 pt-4">
+                            <Progress value={progress} className="w-full" />
+                            <div className="grid grid-cols-4 mt-2 text-xs text-muted-foreground">
+                                {statusSteps.map((step, index) => (
+                                    <div key={step} className={cn("text-center capitalize", index > statusSteps.indexOf(order.status) ? "opacity-50" : "font-semibold text-primary")}>
+                                        {step}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                   
                    <Separator />
                    <div>
                      <h3 className="font-semibold mb-4">Order Summary</h3>
@@ -133,9 +159,17 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
                        </div>
                    </div>
                    <Separator />
-                   <div className="text-center text-muted-foreground text-sm">
-                       You will receive an email confirmation shortly and another email when your order is ready for pickup.
-                   </div>
+                    <div className="rounded-lg border bg-muted/50 p-4">
+                         <h3 className="font-semibold flex items-center gap-2 mb-2">Pickup Location</h3>
+                         {retailer ? (
+                             <>
+                                <p className="font-bold">{retailer.name}</p>
+                                <p className="text-sm text-muted-foreground">{retailer.address}, {retailer.city}, {retailer.state} {retailer.zip}</p>
+                             </>
+                         ): (
+                             <p className="text-sm text-muted-foreground">Loading location details...</p>
+                         )}
+                    </div>
                 </CardContent>
                 <CardFooter>
                     <Button asChild className="w-full">
@@ -146,3 +180,4 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
         </div>
     )
 }
+
