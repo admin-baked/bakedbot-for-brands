@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from "react";
@@ -103,7 +102,7 @@ export default function CannMenusDevPage() {
         if (result.data) setRaw(result.data);
       } else {
         setRaw(result.data ?? null);
-        setResults(result.data?.data?.data || result.data?.data || result.data?.items || []);
+        setResults(result.data?.items || result.data?.data?.data || result.data?.data || []);
       }
     } catch (err: any) {
       setError(err?.message ?? String(err));
@@ -128,12 +127,13 @@ export default function CannMenusDevPage() {
       const resp = await fetch(url.toString());
       const json = await resp.json();
 
-      if (!json.ok) {
-        throw new Error(json.error || "Products error");
+      if (json.ok === false) { // Handle stubs and errors
+        throw new Error(json.error || json.warning || "Products error");
       }
 
-      const items: Product[] = json.data?.data || json.data || [];
+      const items: Product[] = json.items || json.data?.data || json.data || [];
       setProducts(items);
+      setRaw(json); // Also show the raw product response
     } catch (e: any) {
       setError(e.message || "Failed to load products");
     } finally {
@@ -146,7 +146,7 @@ export default function CannMenusDevPage() {
       <header className="space-y-2">
         <h1 className="text-2xl font-bold">CannMenus Dev Console</h1>
         <p className="text-sm text-muted-foreground">
-          Internal testing page for the API proxies.
+          Internal testing page for the Next.js API proxies.
         </p>
       </header>
 
@@ -165,7 +165,7 @@ export default function CannMenusDevPage() {
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="radio"
-              checked={mode === "retailer"}
+              checked={mode === "dispensary"}
               onChange={() => setMode("dispensary")}
             />
             <span>Dispensary</span>
@@ -212,19 +212,19 @@ export default function CannMenusDevPage() {
         <div className="space-y-2 max-h-72 overflow-auto border border-gray-200 rounded p-2">
           {results.map((r) => {
             const label = r.name || r.title || `ID ${r.id}`;
-            const isSelected = mode === "retailer" && r.id === selectedRetailer;
+            const isSelected = mode === "dispensary" && r.id === selectedRetailer;
 
             return (
               <button
                 key={r.id}
                 type="button"
                 onClick={() => {
-                  if (mode === "retailer") {
+                  if (mode === "dispensary") {
                     setSelectedRetailer(r.id);
                   }
                 }}
                 className={`w-full text-left border rounded px-3 py-2 text-sm ${
-                  mode === "retailer"
+                  mode === "dispensary"
                     ? isSelected
                       ? "bg-black text-white border-black"
                       : "bg-white hover:bg-gray-50"
@@ -239,16 +239,21 @@ export default function CannMenusDevPage() {
             );
           })}
 
-          {!results.length && (
+          {!results.length && !loading && (
             <div className="text-xs text-muted-foreground">
               No results yet. Run a search.
+            </div>
+          )}
+           {loading && (
+            <div className="text-xs text-muted-foreground">
+              Loading...
             </div>
           )}
         </div>
       </section>
 
       {/* Retailer → Products */}
-      {mode === "retailer" && (
+      {mode === "dispensary" && (
         <section className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="text-sm font-medium">
@@ -301,13 +306,22 @@ export default function CannMenusDevPage() {
               </div>
             ))}
             {products.length > 40 && (
-              <div className="text-xs text-muted-foreground">
+              <div className="text-sm text-muted-foreground">
                 Truncated for display. Data looks good though.
               </div>
             )}
           </div>
         </section>
       )}
+      
+       {raw && (
+        <section className="mt-6">
+          <h2 className="text-xl font-semibold mb-2">Raw API Response</h2>
+          <pre className="w-full min-h-[120px] text-xs bg-gray-50 border rounded p-3 overflow-auto">
+            {JSON.stringify(raw, null, 2)}
+          </pre>
+        </section>
+       )}
     </div>
   );
 }

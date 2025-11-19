@@ -1,32 +1,48 @@
 // src/app/api/cannmenus/brands/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-const FUNCTIONS_BASE =
-  "https://us-central1-studio-567050101-bc6e8.cloudfunctions.net";
+const CANNMENUS_API_BASE = process.env.CANNMENUS_API_BASE;
+const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
 
 export async function GET(req: NextRequest) {
   const search = req.nextUrl.searchParams.get("search") ?? "";
 
-  const upstreamUrl = new URL("/brands", FUNCTIONS_BASE);
-  if (search) upstreamUrl.searchParams.set("search", search);
+  // If not configured yet, return a stub so the dev console still works
+  if (!CANNMENUS_API_BASE || !CANNMENUS_API_KEY) {
+    return NextResponse.json(
+      {
+        source: "next-api:cannmenus:brands (stub)",
+        query: search,
+        items: [],
+        warning:
+          "CANNMENUS_API_BASE or CANNMENUS_API_KEY not configured; returning stub.",
+      },
+      { status: 200 }
+    );
+  }
 
   try {
-    const upstreamRes = await fetch(upstreamUrl.toString(), {
+    const url = new URL("/brands", CANNMENUS_API_BASE);
+    if (search.trim()) {
+      url.searchParams.set("search", search.trim());
+    }
+
+    const upstreamRes = await fetch(url.toString(), {
       method: "GET",
       headers: {
         Accept: "application/json",
+        Authorization: `Bearer ${CANNMENUS_API_KEY}`,
       },
     });
 
     const text = await upstreamRes.text();
     const contentType = upstreamRes.headers.get("content-type") ?? "";
 
-    // If Cloud Function replied with HTML or something weird, surface that
     if (!contentType.includes("application/json")) {
       return NextResponse.json(
         {
           ok: false,
-          error: `Upstream non-JSON response (status ${upstreamRes.status})`,
+          error: `CannMenus non-JSON response (status ${upstreamRes.status})`,
           bodySnippet: text.slice(0, 200),
         },
         { status: 502 }
@@ -34,12 +50,24 @@ export async function GET(req: NextRequest) {
     }
 
     const json = JSON.parse(text);
-    return NextResponse.json(json, { status: upstreamRes.status });
+
+    if (!upstreamRes.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: json?.error ?? `CannMenus error (status ${upstreamRes.status})`,
+          data: json,
+        },
+        { status: upstreamRes.status }
+      );
+    }
+
+    return NextResponse.json(json, { status: 200 });
   } catch (err: any) {
     return NextResponse.json(
       {
         ok: false,
-        error: err?.message ?? "Unknown error talking to brands function",
+        error: err?.message ?? "Unknown error talking to CannMenus brands API",
       },
       { status: 500 }
     );
