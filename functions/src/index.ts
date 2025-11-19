@@ -7,7 +7,7 @@ const allowCors = (res: any) => {
   // CORS for direct testing in browser; Next.js calls don't strictly need this,
   // but it doesn't hurt.
   res.set("Access-Control-Allow-Origin", "*");
-  res.set("Access-control-allow-methods", "GET, OPTIONS");
+  res.set("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 };
 
@@ -42,7 +42,7 @@ export const brands = onRequest((req, res) => {
   res.json({
     source: "firebase-functions:brands (stub)",
     query: search,
-    items: [], // later this will be the list from CannMenus
+    items: [],
   });
 });
 
