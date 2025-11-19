@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, ShoppingBag, TestTube2, User, LogOut, Menu, Home } from 'lucide-react';
+import { Search, ShoppingBag, TestTube2, User, LogOut, Menu, Home, Building, UserCircle, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
@@ -132,11 +132,7 @@ export default function Header() {
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => router.push('/account')}>
-                                        <User className="mr-2" />
-                                        Account Details
-                                    </DropdownMenuItem>
-                                     <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                                    <DropdownMenuItem onClick={() => router.push('/dashboard')}>
                                         <User className="mr-2" />
                                         Dashboard
                                     </DropdownMenuItem>
@@ -149,11 +145,23 @@ export default function Header() {
                              </DropdownMenu>
                         ) : hydrated && !user ? (
                             <>
-                                <Button variant="ghost" asChild>
-                                    <Link href="/customer-login">
-                                    Login
-                                    </Link>
-                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost">Login</Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuLabel>Login As</DropdownMenuLabel>
+                                        <DropdownMenuItem onClick={() => router.push('/customer-login')}>
+                                            <UserCircle className="mr-2" /> Customer
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push('/brand-login')}>
+                                            <Briefcase className="mr-2" /> Brand
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push('/dispensary-login')}>
+                                            <Building className="mr-2" /> Dispensary
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                                 <Button asChild>
                                     <Link href="/onboarding">
                                     Get Started
@@ -185,12 +193,13 @@ export default function Header() {
                                     <>
                                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                                         <DropdownMenuItem onClick={() => router.push('/dashboard')}>Dashboard</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push('/account')}>Account Details</DropdownMenuItem>
                                         <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                                     </>
                                 ) : hydrated && !user ? (
                                     <>
-                                        <DropdownMenuItem onClick={() => router.push('/customer-login')}>Login</DropdownMenuItem>
+                                        <DropdownMenuLabel>Login / Register</DropdownMenuLabel>
+                                        <DropdownMenuItem onClick={() => router.push('/customer-login')}>Customer Login</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push('/brand-login')}>Brand Login</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push('/onboarding')}>Get Started</DropdownMenuItem>
                                     </>
                                 ) : null}
