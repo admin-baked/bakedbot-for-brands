@@ -7,7 +7,6 @@ const FUNCTIONS_BASE =
 export async function GET(req: NextRequest) {
   const url = req.nextUrl;
 
-  // Pass through any relevant query params (brandId, retailerId, search, etc.)
   const upstreamUrl = new URL("/products", FUNCTIONS_BASE);
   url.searchParams.forEach((value, key) => {
     upstreamUrl.searchParams.set(key, value);
@@ -22,11 +21,9 @@ export async function GET(req: NextRequest) {
     });
 
     const text = await upstreamRes.text();
+    const contentType = upstreamRes.headers.get("content-type") ?? "";
 
-    let json: any;
-    try {
-      json = JSON.parse(text);
-    } catch {
+    if (!contentType.includes("application/json")) {
       return NextResponse.json(
         {
           ok: false,
@@ -37,12 +34,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const json = JSON.parse(text);
     return NextResponse.json(json, { status: upstreamRes.status });
   } catch (err: any) {
     return NextResponse.json(
       {
         ok: false,
-        error: err?.message ?? "Unknown error talking to CannMenus proxy",
+        error: err?.message ?? "Unknown error talking to products function",
       },
       { status: 500 }
     );
