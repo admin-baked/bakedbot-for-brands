@@ -1,5 +1,4 @@
 
-import 'server-only';
 import type { Product, Retailer, Review, UserInteraction, OrderDoc, Location } from '@/types/domain';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Timestamp } from 'firebase/firestore';

@@ -7,7 +7,7 @@ import { generateSocialMediaImage, type GenerateSocialMediaImageInput, type Gene
 import { runSummarizeReviews, type SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { createServerClient } from '@/firebase/server-client';
-import { demoCustomer, demoProducts } from '@/server/demo/demo-data';
+import { demoCustomer, demoProducts } from '@/lib/demo/demo-data';
 import type { Review } from '@/types/domain';
 import { reviewConverter } from '@/firebase/converters';
 import { revalidatePath } from 'next/cache';

@@ -3,7 +3,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { cookies } from 'next/headers';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import type { Product } from '@/types/domain';
-import { demoProducts } from '@/server/demo/demo-data';
+import { demoProducts } from '@/lib/demo/demo-data';
 import { ProductsDataTable } from './components/products-data-table';
 import { columns } from './components/products-table-columns';
 import { PlusCircle } from 'lucide-react';
@@ -52,11 +52,11 @@ export default async function DashboardProductsPage() {
         <div className="flex items-center justify-between">
              {/* The header is now handled by the layout */}
              <div/>
-            <Link href="/dashboard/products/new" passHref>
-              <Button>
+            <Button asChild>
+              <Link href="/dashboard/products/new">
                 <PlusCircle /> Add Product
-              </Button>
-            </Link>
+              </Link>
+            </Button>
         </div>
         <ProductsDataTable columns={columns} data={products} />
     </div>

@@ -2,7 +2,7 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
-import { demoProducts, demoRetailers, demoCustomer } from '@/server/demo/demo-data';
+import { demoProducts, demoRetailers, demoCustomer } from '@/lib/demo/demo-data';
 import { productConverter, retailerConverter, reviewConverter } from '@/firebase/converters';
 import { WriteBatch } from 'firebase-admin/firestore';
 import { updateProductEmbeddings } from '@/ai/flows/update-product-embeddings';

@@ -18,7 +18,7 @@ import Image from 'next/image';
 import { MapPin, Minus, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useHydrated } from '@/hooks/use-hydrated';
-import { demoRetailers } from '@/server/demo/demo-data';
+import { demoRetailers } from '@/lib/demo/demo-data';
 import { Retailer } from '@/types/domain';
 
 export function CartSheet() {
