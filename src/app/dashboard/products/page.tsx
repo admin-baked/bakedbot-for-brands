@@ -52,9 +52,9 @@ export default async function DashboardProductsPage() {
         <div className="flex items-center justify-between">
              {/* The header is now handled by the layout */}
              <div/>
-            <Link href="/dashboard/products/new">
-              <Button>
-                  <PlusCircle className="mr-2" /> Add Product
+            <Link href="/dashboard/products/new" passHref>
+              <Button asChild>
+                <a><PlusCircle /> Add Product</a>
               </Button>
             </Link>
         </div>
