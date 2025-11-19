@@ -19,11 +19,6 @@ import { devPersonas, DEV_PERSONA_OPTIONS, type DevPersonaKey } from '@/lib/dev-
 import { Briefcase, Building, Loader2, User, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-// Guard to ensure this component is not included in production builds
-if (process.env.NODE_ENV === 'production') {
-  throw new Error('DevLoginButton is not allowed in production.');
-}
-
 const personaIcons: Record<string, React.ElementType> = {
   brand: Briefcase,
   dispensary: Building,
@@ -36,6 +31,11 @@ export default function DevLoginButton() {
   const { auth } = useFirebase();
   const { toast } = useToast();
   const router = useRouter();
+
+  // This component should not render anything in a production environment.
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
 
   const handleDevLogin = async (persona: DevPersonaKey) => {
     if (!auth) {

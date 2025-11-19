@@ -12,6 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { sendSignInLinkToEmail } from 'firebase/auth';
 import { useState } from 'react';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 export default function DispensaryLoginPage() {
   const { auth } = useFirebase();
   const { toast } = useToast();
@@ -78,18 +80,21 @@ export default function DispensaryLoginPage() {
                </Button>
             </form>
           )}
-           <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+           {!isProd && (
+            <>
+                <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                        Or for development
+                        </span>
+                    </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                    Or for development
-                    </span>
-                </div>
-            </div>
-            {/* Dev login is a temporary convenience for local development */}
-            <DevLoginButton />
+                <DevLoginButton />
+            </>
+           )}
         </CardContent>
       </Card>
     </div>
