@@ -23,7 +23,7 @@ import { createSocialMediaImage, type ImageFormState } from '@/app/dashboard/con
 import { updateProductFeedback } from '@/app/products/[id]/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ChatbotIcon } from './chatbot-icon';
-import { defaultChatbotIcon } from '@/lib/data';
+import { defaultChatbotIcon } from '@/lib/demo/demo-data';
 import OnboardingFlow from './chatbot/onboarding-flow';
 import ChatMessages from './chatbot/chat-messages';
 import ChatProductCarousel from './chatbot/chat-product-carousel';
@@ -493,5 +493,3 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
         </>
       );
 }
-
-    
