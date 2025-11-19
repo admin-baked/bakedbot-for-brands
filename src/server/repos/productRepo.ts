@@ -93,6 +93,13 @@ export function makeProductRepo(db: Firestore) {
     },
 
     /**
+     * Deletes a product document.
+     */
+    async delete(id: string): Promise<void> {
+        await productCollection.doc(id).delete();
+    },
+
+    /**
      * Updates or clears the embedding for a specific product.
      */
     async updateEmbedding(productId: string, embeddingData: ReviewSummaryEmbedding | null): Promise<void> {
