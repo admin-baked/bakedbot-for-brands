@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import Link from 'next/link';
 
 export const columns: ColumnDef<Product>[] = [
   {
@@ -90,8 +91,10 @@ export const columns: ColumnDef<Product>[] = [
                     Copy product ID
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                    <Pencil className="mr-2 h-4 w-4" /> Edit product
+                <DropdownMenuItem asChild>
+                    <Link href={`/dashboard/products/${product.id}/edit`}>
+                        <Pencil className="mr-2 h-4 w-4" /> Edit product
+                    </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-destructive">
                     <Trash2 className="mr-2 h-4 w-4" /> Delete product

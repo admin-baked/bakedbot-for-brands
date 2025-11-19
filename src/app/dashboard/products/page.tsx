@@ -8,6 +8,7 @@ import { ProductsDataTable } from './components/products-data-table';
 import { columns } from './components/products-table-columns';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,8 +38,10 @@ export default async function DashboardProductsPage() {
         <div className="flex items-center justify-between">
              {/* The header is now handled by the layout */}
              <div/>
-            <Button>
-                <PlusCircle className="mr-2" /> Add Product
+            <Button asChild>
+                <Link href="/dashboard/products/new">
+                    <PlusCircle className="mr-2" /> Add Product
+                </Link>
             </Button>
         </div>
         <ProductsDataTable columns={columns} data={products} />
