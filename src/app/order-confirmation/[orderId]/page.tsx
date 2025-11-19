@@ -165,7 +165,7 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
                          {retailer ? (
                              <>
                                 <p className="font-bold">{retailer.name}</p>
-                                <p className="text-sm text-muted-foreground">{retailer.address}, {retailer.city}, {retailer.state} {retailer.zip}</p>
+                                <p className="text-sm text-muted-foreground">{retailer.address}, ${retailer.city}, ${retailer.state} ${retailer.zip}</p>
                              </>
                          ): (
                              <p className="text-sm text-muted-foreground">Loading location details...</p>
