@@ -5,25 +5,25 @@ import { CheckCircle, BarChart, ShoppingBag, Lightbulb } from 'lucide-react';
 import Image from "next/image";
 import Link from 'next/link';
 
-const features = [
-  {
-    icon: ShoppingBag,
-    title: 'Headless Product Menu',
-    description: 'A fully customizable, embeddable menu system that works with any website or platform.',
-  },
-  {
-    icon: Lightbulb,
-    title: 'AI Budtender Chatbot',
-    description: 'Guide customers to the perfect product with an AI assistant that understands their needs.',
-  },
-  {
-    icon: BarChart,
-    title: 'Actionable Insights',
-    description: 'Understand customer behavior and product performance with a clear, concise dashboard.',
-  },
-];
-
 export default function BrandsHomepage() {
+  const features = [
+    {
+      icon: ShoppingBag,
+      title: 'Headless Product Menu',
+      description: 'A fully customizable, embeddable menu system that works with any website or platform.',
+    },
+    {
+      icon: Lightbulb,
+      title: 'AI Budtender Chatbot',
+      description: 'Guide customers to the perfect product with an AI assistant that understands their needs.',
+    },
+    {
+      icon: BarChart,
+      title: 'Actionable Insights',
+      description: 'Understand customer behavior and product performance with a clear, concise dashboard.',
+    },
+  ];
+
   return (
     <>
       {/* Hero Section */}
