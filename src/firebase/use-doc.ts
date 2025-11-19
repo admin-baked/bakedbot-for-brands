@@ -1,9 +1,9 @@
 
 import { useEffect, useState } from 'react';
 
-type UseDocResult<T = any> = {
+export type UseDocResult<T = any> = {
   data: T | null;
-  loading: boolean;
+  isLoading: boolean;
   error: Error | null;
 };
 
@@ -11,16 +11,16 @@ type UseDocResult<T = any> = {
  * Temporary stub for useDoc.
  * Replace with real Firestore doc fetching logic when ready.
  */
-export function useDoc<T = any>(): UseDocResult<T> {
+export function useDoc<T = any>(_ref: unknown): UseDocResult<T> {
   const [state, setState] = useState<UseDocResult<T>>({
     data: null,
-    loading: false,
+    isLoading: true,
     error: null,
   });
 
   useEffect(() => {
-    // no-op for now
-    setState((prev) => ({ ...prev, loading: false }));
+    // no-op stub
+    setState((prev) => ({ ...prev, isLoading: false }));
   }, []);
 
   return state;
