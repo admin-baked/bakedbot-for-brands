@@ -14,7 +14,7 @@ import { DollarSign, Loader2, Upload, Wand2, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import type { Product } from '@/firebase/converters';
-import { defaultChatbotIcon } from '@/lib/data';
+import { defaultChatbotIcon } from '@/lib/demo/demo-data';
 
 function SubmitButton({ action, type }: { action: (payload: FormData) => void, type: 'description' | 'image' }) {
   const { pending } = useFormStatus();
