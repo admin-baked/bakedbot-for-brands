@@ -11,6 +11,7 @@ import { demoProducts, demoCustomer } from '@/lib/data';
 import type { Product, Review } from '@/types/domain';
 import { FeedbackSchema } from '@/types/actions';
 import { reviewConverter as clientReviewConverter } from '@/firebase/converters';
+import { requireUser } from '@/server/auth/auth';
 
 
 const reviewConverter: FirestoreDataConverter<Review> = {
@@ -91,21 +92,16 @@ export async function updateProductFeedback(
   }
   
   const { productId, feedbackType } = validatedFields.data;
-  const { firestore, auth: adminAuth } = await createServerClient();
-  const sessionCookie = cookies().get('__session')?.value;
-  if (!sessionCookie) {
-    return { error: true, message: 'You must be logged in to provide feedback.' };
-  }
-
-  let decodedToken;
+  
+  let user;
   try {
-    decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
-  } catch (error) {
-    console.error("Feedback Auth Error:", error);
-    return { error: true, message: 'Authentication failed.' };
+      user = await requireUser();
+  } catch(e) {
+      return { error: true, message: 'You must be logged in to provide feedback.' };
   }
   
-  const userId = decodedToken.uid;
+  const { firestore } = await createServerClient();
+  const userId = user.uid;
   const productRef = firestore.doc(`products/${productId}`);
   const feedbackRef = firestore.doc(`products/${productId}/feedback/${userId}`);
 

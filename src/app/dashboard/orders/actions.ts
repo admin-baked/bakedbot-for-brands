@@ -1,14 +1,15 @@
+
 // src/app/dashboard/orders/actions.ts
 'use server';
 
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
-import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { OrderStatus, OrderDoc, Retailer } from '@/types/domain';
 import { sendOrderEmail } from '@/lib/email/send-order-email';
 import { retailerConverter } from '@/firebase/converters';
+import { requireUser } from '@/server/auth/auth';
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
     submitted: ['confirmed', 'cancelled'],
@@ -32,26 +33,16 @@ export async function updateOrderStatus(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const { auth, firestore } = await createServerClient();
-  const sessionCookie = cookies().get('__session')?.value;
-  if (!sessionCookie) {
-    return { error: true, message: 'Authentication required.' };
-  }
-
-  let decodedToken;
+  
+  let user;
   try {
-    decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-  } catch {
-    return { error: true, message: 'Invalid session.' };
+      user = await requireUser(['dispensary', 'owner']);
+  } catch(error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      return { error: true, message: errorMessage };
   }
-
-  // 1. Authorization: Ensure user has the correct role and locationId
-  const userRole = decodedToken.role;
-  const userLocationId = decodedToken.locationId;
-
-  if (userRole !== 'dispensary' || !userLocationId) {
-    return { error: true, message: 'You are not authorized to update orders.' };
-  }
+  
+  const userLocationId = user.locationId;
   
   const validatedFields = StatusUpdateSchema.safeParse(Object.fromEntries(formData.entries()));
 
@@ -60,6 +51,7 @@ export async function updateOrderStatus(
   }
   
   const { orderId, newStatus } = validatedFields.data;
+  const { firestore } = await createServerClient();
   const orderRef = firestore.collection('orders').doc(orderId);
 
   try {

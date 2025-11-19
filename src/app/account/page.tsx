@@ -1,5 +1,5 @@
+
 import { createServerClient } from '@/firebase/server-client';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { orderConverter, retailerConverter, type OrderDoc, type Retailer } from '@/firebase/converters';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -8,6 +8,7 @@ import CustomerAccountView from './components/customer-account-view';
 import BrandAccountView from './components/brand-account-view';
 import { makeBrandRepo } from '@/server/repos/brandRepo';
 import type { Brand } from '@/types/domain';
+import { requireUser } from '@/server/auth/auth';
 
 async function getAccountData(uid: string, role: string, brandId?: string | null, locationId?: string | null) {
     const { firestore } = await createServerClient();
@@ -41,28 +42,22 @@ async function getAccountData(uid: string, role: string, brandId?: string | null
 
 
 export default async function AccountPage() {
-    const { auth } = await createServerClient();
-    const sessionCookie = cookies().get('__session')?.value;
-    if (!sessionCookie) {
-        redirect('/customer-login');
-    }
-
-    let decodedToken;
+    let user;
     try {
-        decodedToken = await auth.verifySessionCookie(sessionCookie, true);
+        user = await requireUser();
     } catch (error) {
         redirect('/customer-login');
     }
 
-    const { uid, role, brandId, locationId, name, email } = decodedToken;
+    const { uid, role, brandId, locationId, name, email } = user;
     
     if (!role) {
         redirect('/onboarding');
     }
 
-    const accountData = await getAccountData(uid, role, brandId, locationId);
+    const accountData = await getAccountData(uid, role as string, brandId, locationId);
 
-    if (role === 'customer' && accountData.orders && accountData.retailers) {
+    if (role === 'customer' && accountData.orders && account.retailers) {
         return <CustomerAccountView user={{name, email}} orders={accountData.orders} retailers={accountData.retailers} />;
     }
     
