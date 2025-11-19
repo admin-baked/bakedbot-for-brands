@@ -3,10 +3,10 @@
 
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
-import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { redirect } from 'next/navigation';
+import { requireUser } from '@/server/auth/auth';
 
 const ProductSchema = z.object({
   id: z.string().optional(),
@@ -28,21 +28,16 @@ export async function saveProduct(
   prevState: ProductFormState,
   formData: FormData
 ): Promise<ProductFormState> {
-  const { auth } = await createServerClient();
-  const sessionCookie = cookies().get('__session')?.value;
-  if (!sessionCookie) {
-    return { error: true, message: 'You must be logged in.' };
-  }
-
-  let decodedToken;
+  let user;
   try {
-    decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-  } catch {
-    return { error: true, message: 'Invalid session.' };
+    user = await requireUser(['brand', 'owner']);
+  } catch (error) {
+    return { error: true, message: 'Unauthorized.' };
   }
-
-  if (decodedToken.role !== 'brand' && decodedToken.role !== 'owner') {
-    return { error: true, message: 'You are not authorized to save products.' };
+  
+  const brandId = user.brandId;
+  if (!brandId) {
+    return { error: true, message: 'Your account is not associated with a brand.' };
   }
 
   const validatedFields = ProductSchema.safeParse(Object.fromEntries(formData.entries()));
@@ -56,12 +51,6 @@ export async function saveProduct(
   }
 
   const { id: productId, ...productData } = validatedFields.data;
-  const brandId = decodedToken.brandId;
-
-  if (!brandId) {
-    return { error: true, message: 'Your account is not associated with a brand.' };
-  }
-
   const { firestore } = await createServerClient();
   const productRepo = makeProductRepo(firestore);
   
@@ -73,14 +62,14 @@ export async function saveProduct(
     };
     
     if (productId) {
-      // Update existing product
+      // Update: Ensure user owns this product
       const existingProduct = await productRepo.getById(productId);
       if (existingProduct?.brandId !== brandId) {
         return { error: true, message: 'You do not have permission to edit this product.' };
       }
       await productRepo.update(productId, dataToSave);
     } else {
-      // Create new product
+      // Create
       await productRepo.create(dataToSave);
     }
   } catch (error) {
