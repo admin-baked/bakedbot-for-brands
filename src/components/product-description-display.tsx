@@ -4,28 +4,41 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { type GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import { Button } from '@/components/ui/button';
-import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon } from 'lucide-react';
+import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon, Save, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { useFormState, useFormStatus } from 'react-dom';
 import { useEffect, useTransition } from 'react';
 import { updateProductFeedback } from '@/app/products/[id]/actions';
 import { useUser } from '@/firebase/auth/use-user';
+import { applyGeneratedContentToProduct, type ApplyContentFormState } from '@/app/dashboard/content/actions';
 
 interface ProductDescriptionDisplayProps {
   productDescription: (GenerateProductDescriptionOutput & { productId?: string }) | null;
 }
 
 const initialFeedbackState = { message: '', error: false };
+const initialApplyState: ApplyContentFormState = { message: '', error: false };
 
+function SaveButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button size="sm" type="submit" disabled={pending}>
+            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Save to Product
+        </Button>
+    )
+}
 
 export default function ProductDescriptionDisplay({ productDescription }: ProductDescriptionDisplayProps) {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
+  
   const [feedbackState, submitFeedbackAction] = useFormState(updateProductFeedback, initialFeedbackState);
-  const [isFeedbackPending, startTransition] = useTransition();
-  const { pending: isContentPending } = useFormStatus();
+  const [applyState, submitApplyAction] = useFormState(applyGeneratedContentToProduct, initialApplyState);
 
+  const [isFeedbackPending, startFeedbackTransition] = useTransition();
+  const { pending: isContentPending } = useFormStatus();
 
   useEffect(() => {
     if (feedbackState.message) {
@@ -36,6 +49,16 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
       });
     }
   }, [feedbackState, toast]);
+
+  useEffect(() => {
+    if (applyState.message) {
+      toast({
+        title: applyState.error ? 'Error' : 'Success',
+        description: applyState.message,
+        variant: applyState.error ? 'destructive' : 'default',
+      });
+    }
+  }, [applyState, toast]);
 
   const handleCopy = () => {
     if (productDescription?.description) {
@@ -105,12 +128,13 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
     const formData = new FormData();
     formData.append('productId', productDescription.productId);
     formData.append('feedbackType', feedback);
-    startTransition(() => {
+    startFeedbackTransition(() => {
         submitFeedbackAction(formData)
     });
   };
   
   const hasContent = productDescription && (productDescription.description || productDescription.imageUrl);
+  const canSaveChanges = productDescription?.productId && productDescription?.description;
 
   return (
     <Card className="flex flex-col @container">
@@ -169,11 +193,16 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
                         <ThumbsDown className="h-4 w-4 text-red-500"/>
                     </Button>
                 </div>
+                {canSaveChanges && (
+                    <form action={submitApplyAction}>
+                        <input type="hidden" name="productId" value={productDescription.productId} />
+                        <input type="hidden" name="description" value={productDescription.description} />
+                        <SaveButton />
+                    </form>
+                )}
              </div>
         </CardFooter>
         )}
     </Card>
   );
 }
-
-    
