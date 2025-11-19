@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
-import { isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink } from 'firebase/auth';
+import { isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -48,6 +49,18 @@ export default function CustomerLoginPage() {
       }
     }
   }, [auth, router, toast]);
+  
+  const handleGoogleSignIn = async () => {
+    if (!auth) return;
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      toast({ title: 'Signed In!', description: 'You have successfully signed in with Google.' });
+      router.push('/account');
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Google Sign-In Error', description: error.message });
+    }
+  };
 
   const handleMagicLinkSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +113,23 @@ export default function CustomerLoginPage() {
             Sign in to view your order history and manage preferences.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                <Image src="https://storage.googleapis.com/stedi-assets/misc/google-icon.svg" alt="Google icon" width={16} height={16} className="mr-2"/>
+                 Sign in with Google
+            </Button>
+
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                    Or with email
+                    </span>
+                </div>
+            </div>
+
           {isLinkSent ? (
             <div className="text-center" data-testid="magic-link-sent-card">
               <h2 className="text-xl font-semibold">Check Your Inbox!</h2>
@@ -134,7 +163,7 @@ export default function CustomerLoginPage() {
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
                         <span className="bg-background px-2 text-muted-foreground">
-                        Or continue with
+                        Or for development
                         </span>
                     </div>
                 </div>

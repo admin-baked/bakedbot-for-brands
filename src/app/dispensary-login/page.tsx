@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
-import { isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -72,6 +73,26 @@ export default function DispensaryLoginPage() {
       setIsSubmitting(false);
     }
   };
+
+  const handleGoogleSignIn = async () => {
+    if (!auth) return;
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const additionalUserInfo = getAdditionalUserInfo(result);
+      
+      toast({ title: 'Signed In!', description: 'Welcome to BakedBot AI.' });
+      
+      if (additionalUserInfo?.isNewUser) {
+        router.push('/onboarding');
+      } else {
+        router.push('/dashboard');
+      }
+
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Google Sign-In Error', description: error.message });
+    }
+  };
   
   if (isCompletingSignIn) {
     return (
@@ -98,55 +119,70 @@ export default function DispensaryLoginPage() {
             {isSignUp ? 'Sign up to manage your location.' : "Manage your location's orders and settings."}
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Work Email Address</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="manager@dispensary.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSignUp ? 'Sign Up' : 'Login'}
+         <CardContent className="space-y-4">
+             <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                <Image src="https://storage.googleapis.com/stedi-assets/misc/google-icon.svg" alt="Google icon" width={16} height={16} className="mr-2"/>
+                 Sign in with Google
             </Button>
-            <Button type="button" variant="link" size="sm" onClick={() => setIsSignUp(!isSignUp)}>
-                {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-            </Button>
-          </CardFooter>
-        </form>
-        {!isProd && (
-            <CardContent>
-                <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                        Or for development
-                        </span>
-                    </div>
+
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
                 </div>
-                <DevLoginButton />
-            </CardContent>
-           )}
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                    Or with email
+                    </span>
+                </div>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                <Label htmlFor="email">Work Email Address</Label>
+                <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="manager@dispensary.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                />
+                </div>
+                <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                />
+                </div>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSignUp ? 'Sign Up' : 'Login'}
+                </Button>
+            </form>
+        </CardContent>
+        <CardFooter className="flex-col gap-4">
+            <Button type="button" variant="link" size="sm" onClick={() => setIsSignUp(!isSignUp)}>
+                    {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+            </Button>
+            {!isProd && (
+                <>
+                    <div className="relative w-full">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                            Or for development
+                            </span>
+                        </div>
+                    </div>
+                    <DevLoginButton />
+                </>
+            )}
+        </CardFooter>
       </Card>
     </div>
   );
