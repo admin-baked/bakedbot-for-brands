@@ -9,11 +9,13 @@ import BrandAccountView from './components/brand-account-view';
 import { makeBrandRepo } from '@/server/repos/brandRepo';
 import type { Brand } from '@/types/domain';
 import { requireUser } from '@/server/auth/auth';
+import { cookies } from 'next/headers';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
-async function getAccountData(uid: string, role: string, brandId?: string | null, locationId?: string | null) {
+async function getAccountData(uid?: string | null, role?: string | null, brandId?: string | null, locationId?: string | null) {
     const { firestore } = await createServerClient();
     
-    if (role === 'customer') {
+    if (role === 'customer' && uid) {
         const ordersQuery = query(
             (collection as any)(firestore, 'orders'),
             where('userId', '==', uid)
@@ -36,22 +38,49 @@ async function getAccountData(uid: string, role: string, brandId?: string | null
         return { brand, orders: null, retailers: null }; // Ensure consistent shape
     }
 
-    // Default for dispensary or other roles
+    // Handle demo mode user (no UID)
+     if (!uid) {
+        const brandRepo = makeBrandRepo(firestore);
+        const brand = await brandRepo.getById(DEMO_BRAND_ID);
+        return { brand, orders: [], retailers: [] };
+    }
+
+    // Default for other roles
     return { brand: null, orders: [], retailers: [] };
 }
 
 
 export default async function AccountPage() {
     let user;
+    let isDemoUser = false;
     try {
         user = await requireUser();
     } catch (error) {
+        // If user is not authenticated, check if we are in demo mode.
+        if (cookies().get('isDemo')?.value === 'true') {
+            isDemoUser = true;
+            user = null; // explicitly null
+        } else {
+             // If not demo mode and no user, redirect to login.
+            redirect('/customer-login');
+        }
+    }
+
+    // User is not logged in but is in demo mode.
+    if (isDemoUser && !user) {
+        const demoAccountData = await getAccountData(null, 'brand', DEMO_BRAND_ID);
+         return <BrandAccountView user={{ name: "Demo Brand", email: "demo@bakedbot.ai", role: "brand" }} brand={demoAccountData.brand} />;
+    }
+
+    // Authenticated user flow
+    if (!user) {
+        // This should not be reached due to the redirect above, but it's a safeguard.
         redirect('/customer-login');
     }
 
     const { uid, role, brandId, locationId, name, email } = user;
     
-    if (!role) {
+    if (!role && !isDemoUser) {
         redirect('/onboarding');
     }
 
