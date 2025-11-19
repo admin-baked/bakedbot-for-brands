@@ -3,7 +3,9 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore'
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
+
 export { FirebaseProvider, useFirebase, useAuth, useFirestore, useFirebaseApp } from './provider';
 export { FirebaseClientProvider } from './client-provider';
 export { useCollection } from './firestore/use-collection';
@@ -20,26 +22,50 @@ interface FirebaseSdks {
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase(): FirebaseSdks {
-  if (getApps().length > 0) {
-    // If already initialized, return the SDKs with the already initialized App
-    return getSdks(getApp());
+  const isBrowser = typeof window !== 'undefined';
+  
+  if (!isBrowser) {
+    throw new Error("Firebase can only be initialized on the client.");
+  }
+
+  // Pass the public site key to the provider
+  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+  if (!recaptchaSiteKey) {
+    console.warn("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. App Check will not be enabled.");
   }
   
-  // Important! initializeApp() is called without any arguments because Firebase App Hosting
-  // integrates with the initializeApp() function to provide the environment variables needed to
-  // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-  // without arguments.
+  (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NODE_ENV === 'development';
+
+  if (getApps().length > 0) {
+    const app = getApp();
+    if (recaptchaSiteKey) {
+        try {
+            initializeAppCheck(app, {
+                provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+                isTokenAutoRefreshEnabled: true,
+            });
+        } catch (e) {
+            console.warn("Failed to initialize App Check, it might already be initialized.", e);
+        }
+    }
+    return getSdks(app);
+  }
+  
   let firebaseApp;
   try {
-    // Attempt to initialize via Firebase App Hosting environment variables
     firebaseApp = initializeApp();
   } catch (e) {
-    // Only warn in production because it's normal to use the firebaseConfig to initialize
-    // during development
     if (process.env.NODE_ENV === "production") {
       console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
     }
     firebaseApp = initializeApp(firebaseConfig);
+  }
+  
+  if (recaptchaSiteKey) {
+      initializeAppCheck(firebaseApp, {
+        provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
   }
 
   return getSdks(firebaseApp);
