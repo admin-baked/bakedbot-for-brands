@@ -6,7 +6,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { FieldValue } from 'firebase-admin/firestore';
-import type { OrderStatus, OrderDoc } from '@/types/domain';
+import type { OrderStatus, OrderDoc, Retailer } from '@/types/domain';
 import { sendOrderEmail } from '@/lib/email/send-order-email';
 import { retailerConverter } from '@/firebase/converters';
 
@@ -94,8 +94,8 @@ export async function updateOrderStatus(
     const updatedOrderSnap = await orderRef.get();
     const updatedOrder = updatedOrderSnap.data() as OrderDoc;
 
-    const retailerSnap = await firestore.collection('dispensaries').doc(updatedOrder.retailerId).withConverter(retailerConverter).get();
-    const retailer = retailerSnap.data();
+    const retailerSnap = await firestore.collection('dispensaries').doc(updatedOrder.retailerId).withConverter(retailerConverter as any).get();
+    const retailer = retailerSnap.data() as Retailer;
 
     if (retailer) {
       await sendOrderEmail({

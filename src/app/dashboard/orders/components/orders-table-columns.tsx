@@ -60,7 +60,7 @@ export const columns: ColumnDef<OrderDoc>[] = [
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <div className="font-mono text-sm">#{row.getValue('id').substring(0, 7)}</div>,
+    cell: ({ row }) => <div className="font-mono text-sm">#{String(row.getValue('id')).substring(0, 7)}</div>,
   },
   {
     accessorKey: 'createdAt',

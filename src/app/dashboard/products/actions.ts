@@ -66,16 +66,22 @@ export async function saveProduct(
   const productRepo = makeProductRepo(firestore);
   
   try {
+    const dataToSave = {
+      ...productData,
+      brandId,
+      imageHint: productData.imageHint ?? '',
+    };
+    
     if (productId) {
       // Update existing product
       const existingProduct = await productRepo.getById(productId);
       if (existingProduct?.brandId !== brandId) {
         return { error: true, message: 'You do not have permission to edit this product.' };
       }
-      await productRepo.update(productId, { ...productData, brandId });
+      await productRepo.update(productId, dataToSave);
     } else {
       // Create new product
-      await productRepo.create({ ...productData, brandId });
+      await productRepo.create(dataToSave);
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';

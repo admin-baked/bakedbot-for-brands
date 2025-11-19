@@ -1,4 +1,3 @@
-
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { demoProducts, demoRetailers, demoCustomer } from '@/lib/data';
@@ -35,7 +34,7 @@ async function getMenuData(brandId: string) {
             const productRepo = makeProductRepo(firestore);
             
             const reviewsQuery = query(
-                collectionGroup(firestore, 'reviews').withConverter(reviewConverter as any), 
+                (firestore as any).collectionGroup('reviews').withConverter(reviewConverter as any), 
                 orderBy('createdAt', 'desc'), 
                 limit(10)
             );

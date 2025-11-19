@@ -1,13 +1,13 @@
-
 import { createServerClient } from '@/firebase/server-client';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { orderConverter, retailerConverter, type OrderDoc, type Retailer, type Brand } from '@/firebase/converters';
+import { orderConverter, retailerConverter, type OrderDoc, type Retailer } from '@/firebase/converters';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { DocumentData } from 'firebase-admin/firestore';
 import CustomerAccountView from './components/customer-account-view';
 import BrandAccountView from './components/brand-account-view';
 import { makeBrandRepo } from '@/server/repos/brandRepo';
+import type { Brand } from '@/types/domain';
 
 async function getAccountData(uid: string, role: string, brandId?: string | null, locationId?: string | null) {
     const { firestore } = await createServerClient();
@@ -20,27 +20,23 @@ async function getAccountData(uid: string, role: string, brandId?: string | null
 
         const [ordersSnap, retailersSnap] = await Promise.all([
             getDocs(ordersQuery),
-            firestore.collection('dispensaries').withConverter(retailerConverter).get()
+            firestore.collection('dispensaries').withConverter(retailerConverter as any).get()
         ]);
         
         const orders = ordersSnap.docs.map((doc: DocumentData) => doc.data()) as OrderDoc[];
         const retailers = retailersSnap.docs.map((doc: DocumentData) => doc.data()) as Retailer[];
         
-        return { orders, retailers };
+        return { orders, retailers, brand: null }; // Ensure consistent shape
     }
     
     if (role === 'brand' && brandId) {
         const brandRepo = makeBrandRepo(firestore);
         const brand = await brandRepo.getById(brandId);
-        return { brand };
+        return { brand, orders: null, retailers: null }; // Ensure consistent shape
     }
 
-    if (role === 'dispensary' && locationId) {
-        // In the future, we might fetch specific dispensary settings here
-        return { brand: null }; // Placeholder
-    }
-    
-    return {};
+    // Default for dispensary or other roles
+    return { brand: null, orders: [], retailers: [] };
 }
 
 
@@ -66,10 +62,10 @@ export default async function AccountPage() {
 
     const accountData = await getAccountData(uid, role, brandId, locationId);
 
-    if (role === 'customer') {
-        return <CustomerAccountView user={{name, email}} {...accountData} />;
+    if (role === 'customer' && accountData.orders && accountData.retailers) {
+        return <CustomerAccountView user={{name, email}} orders={accountData.orders} retailers={accountData.retailers} />;
     }
     
     // For Brand and Dispensary users
-    return <BrandAccountView user={{ name, email, role }} brand={accountData.brand as Brand | null} />;
+    return <BrandAccountView user={{ name, email, role }} brand={accountData.brand} />;
 }

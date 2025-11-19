@@ -15,16 +15,17 @@ export function ProductCard({ product }: { product: Product }) {
   const { toast } = useToast();
 
   const priceDisplay = useMemo(() => {
-    const hasPricing = product.prices && Object.keys(product.prices).length > 0;
+    const prices = product.prices ?? {};
+    const hasPricing = Object.keys(prices).length > 0;
     
     // If a location is selected, show its specific price.
-    if (selectedRetailerId && hasPricing && product.prices[selectedRetailerId]) {
-        return `$${product.prices[selectedRetailerId].toFixed(2)}`;
+    if (selectedRetailerId && hasPricing && prices[selectedRetailerId]) {
+        return `$${prices[selectedRetailerId].toFixed(2)}`;
     }
     
     // If no location is selected but there are multiple prices, show a range.
     if (!selectedRetailerId && hasPricing) {
-        const priceValues = Object.values(product.prices);
+        const priceValues = Object.values(prices);
         if (priceValues.length > 0) {
             const minPrice = Math.min(...priceValues);
             const maxPrice = Math.max(...priceValues);

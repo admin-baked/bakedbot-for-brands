@@ -3,9 +3,9 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { CheckCircle, ShoppingCart, CookingPot, PackageCheck, PartyPopper } from "lucide-react";
+import { CheckCircle, ShoppingCart, CookingPot, PackageCheck, PartyPopper, XCircle } from "lucide-react";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { orderConverter, retailerConverter, type OrderDoc, type OrderStatus } from "@/firebase/converters";
+import { orderConverter, retailerConverter, type OrderDoc } from "@/firebase/converters";
 import { doc } from 'firebase/firestore';
 import { useFirebase } from "@/firebase/provider";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { type OrderStatus } from "@/types/domain";
 
 const statusSteps: OrderStatus[] = ['submitted', 'confirmed', 'ready', 'completed'];
 
@@ -180,4 +181,3 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
         </div>
     )
 }
-
