@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -9,12 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useUser } from '@/firebase/auth/use-user';
 import { useToast } from '@/hooks/use-toast';
 import { demoRetailers } from '@/lib/data';
-import type { Retailer } from '@/types/domain';
 import DevLoginButton from '@/components/dev-login-button';
 import { useFormState } from 'react-dom';
 import { completeOnboarding, type OnboardingState } from './actions';
-import { useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PartyPopper } from 'lucide-react';
 import { SubmitButton } from './components/submit-button';
 
 type OnboardingStep = 'role' | 'location' | 'products' | 'done';
@@ -37,8 +35,6 @@ export default function OnboardingClientPage() {
 
   const [formState, formAction] = useFormState(completeOnboarding, initialState);
 
-  // For the onboarding UI, it's sufficient to use the static demo data
-  // for location selection.
   const locations = demoRetailers; 
   const areLocationsLoading = false;
 
@@ -47,12 +43,8 @@ export default function OnboardingClientPage() {
       if (formState.error) {
         toast({ variant: 'destructive', title: 'Onboarding Failed', description: formState.message });
       } else {
-        toast({ title: 'Onboarding Complete!', description: 'Redirecting you to your dashboard...' });
+        toast({ title: 'Onboarding Complete!', description: 'Your account is ready.' });
         setStep('done');
-        // Redirect after a short delay
-        setTimeout(() => {
-            router.push('/dashboard');
-        }, 2000);
       }
     }
   }, [formState, toast, router]);
@@ -104,21 +96,24 @@ export default function OnboardingClientPage() {
          return (
           <CardContent className="text-center" data-testid="onboarding-step-products">
             <h3 className="font-semibold text-lg">You're all set!</h3>
-            <p className="text-muted-foreground mt-2">We're ready to create your personalized dashboard.</p>
+            <p className="text-muted-foreground mt-2">Click the button below to create your account and go to your personalized dashboard.</p>
           </CardContent>
         );
       case 'done':
         return (
-            <CardContent className="text-center">
-                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-                <h3 className="font-semibold text-lg">Finalizing your setup...</h3>
-                <p className="text-muted-foreground mt-2">Please wait while we redirect you.</p>
+            <CardContent className="text-center space-y-4">
+                <PartyPopper className="mx-auto h-12 w-12 text-green-500" />
+                <h3 className="font-semibold text-lg">Setup Complete!</h3>
+                <p className="text-muted-foreground">Your account has been configured. Welcome to BakedBot AI.</p>
+                <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
             </CardContent>
         )
     }
   };
   
   const canProceed = step === 'role' ? !!selectedRole : step === 'location' ? !!selectedLocationId : false;
+  const isFinalStep = step === 'products';
+  const isDoneStep = step === 'done';
 
   return (
     <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
@@ -139,24 +134,24 @@ export default function OnboardingClientPage() {
             </CardContent>
         ) : (
             <form action={formAction}>
-                 {/* Hidden inputs to pass data to the server action */}
                 <input type="hidden" name="role" value={selectedRole || ''} />
                 <input type="hidden" name="locationId" value={selectedLocationId || ''} />
 
                 {renderStep()}
 
-                <CardFooter className="flex justify-end gap-2">
-                    {step !== 'products' && step !== 'done' && (
-                        <Button type="button" onClick={handleNext} disabled={!canProceed}>Continue</Button>
-                    )}
-                    {step === 'products' && (
-                       <SubmitButton />
-                    )}
-                </CardFooter>
+                {!isDoneStep && (
+                    <CardFooter className="flex justify-end gap-2">
+                        {!isFinalStep && (
+                            <Button type="button" onClick={handleNext} disabled={!canProceed}>Continue</Button>
+                        )}
+                        {isFinalStep && (
+                           <SubmitButton />
+                        )}
+                    </CardFooter>
+                )}
             </form>
         )}
       </Card>
     </div>
   );
 }
-
