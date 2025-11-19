@@ -1,6 +1,12 @@
 {
   "placeholderImages": [
     {
+      "id": "homeHero",
+      "description": "A hero image showing the AI Budtender experience on a mobile phone.",
+      "imageUrl": "/images/ai-budtender-hero.png",
+      "imageHint": "AI budtender"
+    },
+    {
       "id": "heroImage",
       "description": "A hero image showing a chatbot on a mobile phone.",
       "imageUrl": "https://images.unsplash.com/photo-1551650975-87deedd944c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjaGF0Ym90JTIwbW9iaWxlfGVufDB8fHx8MTc2MjQ0ODc4NHww&ixlib=rb-4.1.0&q=80&w=1080",
