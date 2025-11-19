@@ -132,8 +132,12 @@ export default function Header() {
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                                    <DropdownMenuItem onClick={() => router.push('/account')}>
                                         <User className="mr-2" />
+                                        Account Details
+                                    </DropdownMenuItem>
+                                     <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                                        <Briefcase className="mr-2" />
                                         Dashboard
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
@@ -193,6 +197,7 @@ export default function Header() {
                                     <>
                                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                                         <DropdownMenuItem onClick={() => router.push('/dashboard')}>Dashboard</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push('/account')}>Account Details</DropdownMenuItem>
                                         <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                                     </>
                                 ) : hydrated && !user ? (
