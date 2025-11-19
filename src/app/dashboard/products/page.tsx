@@ -9,6 +9,7 @@ import { columns } from './components/products-table-columns';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export default async function DashboardProductsPage() {
         const { firestore } = await createServerClient();
         const productRepo = makeProductRepo(firestore);
         // In a real app, you'd get the brandId from the user's session
-        const brandId = 'default'; 
+        const brandId = DEMO_BRAND_ID; 
         products = await productRepo.getAllByBrand(brandId);
     } catch (error) {
         console.error("Failed to fetch products for dashboard:", error);

@@ -3,11 +3,12 @@ import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { demoProducts, demoRetailers, demoCustomer } from '@/lib/data';
 import type { Product, Retailer, Review } from '@/types/domain';
-import { collectionGroup, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { reviewConverter } from '@/firebase/converters';
 import { DocumentData } from 'firebase-admin/firestore';
 import MenuLayoutClient from './menu-layout-client';
 import { cookies } from 'next/headers';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -24,7 +25,7 @@ async function getMenuData(brandId: string) {
     let reviews: Review[];
     // Centralized decision: A session is "demo" if the cookie is set, or if the brandId is 'default'.
     const isDemoByCookie = cookies().get('isDemo')?.value === 'true';
-    const isDemo = isDemoByCookie || brandId === 'default' || !brandId;
+    const isDemo = isDemoByCookie || brandId === DEMO_BRAND_ID || !brandId;
 
     if (isDemo) {
         products = demoProducts;
@@ -62,7 +63,7 @@ async function getMenuData(brandId: string) {
     const featuredProducts = [...products].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 10);
 
     return {
-        brandId: isDemo ? 'default' : brandId,
+        brandId: isDemo ? DEMO_BRAND_ID : brandId,
         products,
         locations,
         reviews,
@@ -73,7 +74,7 @@ async function getMenuData(brandId: string) {
 
 
 export default async function MenuLayout({ children, params }: MenuLayoutProps) {
-  const effectiveBrandId = params.brandId || 'default';
+  const effectiveBrandId = params.brandId || DEMO_BRAND_ID;
   const menuData = await getMenuData(effectiveBrandId);
 
   return (
