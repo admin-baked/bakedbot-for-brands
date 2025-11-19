@@ -1,58 +1,34 @@
 
 'use client';
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useFormState } from 'react-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { saveProduct, type ProductFormState } from '../actions';
 import type { Product } from '@/types/domain';
 import { SubmitButton } from '@/app/dashboard/ceo/components/submit-button';
 import Link from 'next/link';
+import { Textarea } from '@/components/ui/textarea';
 
-const ProductSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(3, 'Product name must be at least 3 characters.'),
-  description: z.string().min(10, 'Description must be at least 10 characters.'),
-  category: z.string().min(2, 'Category is required.'),
-  price: z.coerce.number().positive('Price must be a positive number.'),
-  imageUrl: z.string().url('Please enter a valid image URL.'),
-  imageHint: z.string().optional(),
-});
-
-type ProductFormValues = z.infer<typeof ProductSchema>;
+const initialState: ProductFormState = { message: '', error: false };
 
 interface ProductFormProps {
   product?: Product | null;
 }
 
-const initialState: ProductFormState = { message: '', error: false };
-
 export function ProductForm({ product }: ProductFormProps) {
   const [state, formAction] = useFormState(saveProduct, initialState);
   const { toast } = useToast();
-
-  const form = useForm<ProductFormValues>({
-    resolver: zodResolver(ProductSchema),
-    defaultValues: product || {
-      name: '',
-      description: '',
-      category: '',
-      price: 0,
-      imageUrl: '',
-      imageHint: '',
-    },
-  });
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (state.message && state.error) {
+    // Only show toast for general (non-field) errors.
+    // Field errors are displayed inline by the form.
+    if (state.message && state.error && !state.fieldErrors) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -62,8 +38,7 @@ export function ProductForm({ product }: ProductFormProps) {
   }, [state, toast]);
 
   return (
-    <Form {...form}>
-      <form action={formAction}>
+      <form ref={formRef} action={formAction}>
         {product && <input type="hidden" name="id" value={product.id} />}
         <Card>
           <CardHeader>
@@ -73,73 +48,37 @@ export function ProductForm({ product }: ProductFormProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Product Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Cosmic Caramels" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Describe the product..." {...field} rows={4} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <FormControl>
-                        <Input placeholder="e.g., Edibles" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                 <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Base Price</FormLabel>
-                    <FormControl>
-                        <Input type="number" step="0.01" placeholder="25.00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
+            <div className="space-y-2">
+                <Label htmlFor="name">Product Name</Label>
+                <Input id="name" name="name" placeholder="e.g., Cosmic Caramels" defaultValue={product?.name || ''} />
+                {state.fieldErrors?.name && <p className="text-sm text-destructive">{state.fieldErrors.name[0]}</p>}
             </div>
-             <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl>
-                    <Input type="url" placeholder="https://example.com/image.png" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea id="description" name="description" placeholder="Describe the product..." defaultValue={product?.description || ''} rows={4} />
+                 {state.fieldErrors?.description && <p className="text-sm text-destructive">{state.fieldErrors.description[0]}</p>}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Input id="category" name="category" placeholder="e.g., Edibles" defaultValue={product?.category || ''} />
+                    {state.fieldErrors?.category && <p className="text-sm text-destructive">{state.fieldErrors.category[0]}</p>}
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="price">Base Price</Label>
+                    <Input id="price" name="price" type="number" step="0.01" placeholder="25.00" defaultValue={product?.price || ''} />
+                    {state.fieldErrors?.price && <p className="text-sm text-destructive">{state.fieldErrors.price[0]}</p>}
+                </div>
+            </div>
+             <div className="space-y-2">
+                  <Label htmlFor="imageUrl">Image URL</Label>
+                  <Input id="imageUrl" name="imageUrl" type="url" placeholder="https://example.com/image.png" defaultValue={product?.imageUrl || ''} />
+                  {state.fieldErrors?.imageUrl && <p className="text-sm text-destructive">{state.fieldErrors.imageUrl[0]}</p>}
+            </div>
+             <div className="space-y-2">
+                  <Label htmlFor="imageHint">Image Hint (for AI)</Label>
+                  <Input id="imageHint" name="imageHint" placeholder="e.g., cannabis edible" defaultValue={product?.imageHint || ''} />
+            </div>
           </CardContent>
           <CardFooter className="justify-end gap-2">
             <Button variant="ghost" asChild>
@@ -149,6 +88,5 @@ export function ProductForm({ product }: ProductFormProps) {
           </CardFooter>
         </Card>
       </form>
-    </Form>
   );
 }

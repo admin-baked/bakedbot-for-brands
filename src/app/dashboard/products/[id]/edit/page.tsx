@@ -2,22 +2,24 @@
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { ProductForm } from '../../components/product-form';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { requireUser } from '@/server/auth/auth';
 
 export default async function EditProductPage({ params }: { params: { id: string } }) {
-  const { auth, firestore } = await createServerClient();
-  const sessionCookie = cookies().get('__session')?.value;
-  if (!sessionCookie) redirect('/brand-login');
-
-  let decodedToken;
+  let user;
   try {
-    decodedToken = await auth.verifySessionCookie(sessionCookie, true);
+    user = await requireUser(['brand', 'owner']);
   } catch {
     redirect('/brand-login');
   }
 
-  const brandId = decodedToken.brandId;
+  const brandId = user.brandId;
+  if (!brandId) {
+    // Should not happen if role is brand, but a good safeguard.
+    redirect('/dashboard');
+  }
+  
+  const { firestore } = await createServerClient();
   const productRepo = makeProductRepo(firestore);
   const product = await productRepo.getById(params.id);
 

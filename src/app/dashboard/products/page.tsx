@@ -10,6 +10,8 @@ import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { DEMO_BRAND_ID } from '@/lib/config';
+import { requireUser } from '@/server/auth/auth';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,15 +23,27 @@ export default async function DashboardProductsPage() {
   if (isDemo) {
     products = demoProducts;
   } else {
+    let brandId: string | null = null;
+    try {
+        const user = await requireUser(['brand', 'owner']);
+        brandId = user.brandId;
+    } catch (error) {
+        redirect('/brand-login');
+    }
+
+    if (!brandId) {
+        // This case should ideally not be hit if role is 'brand'
+        // but it's a good safeguard.
+        return <p>You are not associated with a brand.</p>
+    }
+
     try {
         const { firestore } = await createServerClient();
         const productRepo = makeProductRepo(firestore);
-        // In a real app, you'd get the brandId from the user's session
-        const brandId = DEMO_BRAND_ID; 
         products = await productRepo.getAllByBrand(brandId);
     } catch (error) {
         console.error("Failed to fetch products for dashboard:", error);
-        // Fallback to demo data on error
+        // Fallback to demo data on error for resilience, though you might want a proper error page
         products = demoProducts;
     }
   }
