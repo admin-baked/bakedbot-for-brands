@@ -9,13 +9,14 @@ import { useRouter } from 'next/navigation';
 import { useCheckoutData } from './checkout-layout-client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { MapPin } from 'lucide-react';
+import type { Retailer } from '@/types/domain';
 
 export default function CheckoutPage() {
   const { cartItems, getCartTotal, selectedRetailerId } = useStore();
   const { locations } = useCheckoutData();
   const router = useRouter();
 
-  const selectedRetailer = locations.find(loc => loc.id === selectedRetailerId);
+  const selectedRetailer = locations.find((loc: Retailer) => loc.id === selectedRetailerId);
 
   const { subtotal, taxes, total } = getCartTotal();
 
@@ -79,4 +80,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
 
