@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Database } from 'lucide-react';
 import Link from 'next/link';
 import type { Product } from '@/types/domain';
-import { useCookieStore } from '@/lib/cookie-storage';
+import { useStore } from '@/hooks/use-store';
 
 const ProductSkeleton = () => (
     <div className="bg-card rounded-lg shadow-lg overflow-hidden border">
@@ -33,7 +33,7 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ products, isLoading }: ProductGridProps) {
-  const { isDemo } = useCookieStore();
+  const { isDemo } = useStore();
   
   if (isLoading) {
     return (

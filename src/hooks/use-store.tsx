@@ -13,6 +13,7 @@ export interface StoreState {
   _hasHydrated: boolean;
   cartItems: CartItem[];
   isCartSheetOpen: boolean;
+  selectedRetailerId: string | null;
   
   // From legacy cookie-store
   theme: Theme;
@@ -25,6 +26,7 @@ export interface StoreState {
   // Actions
   setHasHydrated: (hydrated: boolean) => void;
   setCartSheetOpen: (isOpen: boolean) => void;
+  setSelectedRetailerId: (id: string | null) => void;
   setTheme: (theme: Theme) => void;
   setMenuStyle: (style: 'default' | 'alt') => void;
   setFavoriteRetailerId: (id: string | null) => void;
@@ -48,6 +50,7 @@ export const useStore = create<StoreState>()(
       _hasHydrated: false,
       cartItems: [],
       isCartSheetOpen: false,
+      selectedRetailerId: null,
 
       // UI Preferences
       theme: 'green',
@@ -60,6 +63,7 @@ export const useStore = create<StoreState>()(
       // Actions
       setHasHydrated: (hydrated: boolean) => set({ _hasHydrated: hydrated }),
       setCartSheetOpen: (isOpen: boolean) => set({ isCartSheetOpen: isOpen }),
+      setSelectedRetailerId: (id) => set({ selectedRetailerId: id }),
       setTheme: (theme) => set({ theme }),
       setMenuStyle: (style) => set({ menuStyle: style }),
       setFavoriteRetailerId: (id) => set({ favoriteRetailerId: id }),
@@ -136,6 +140,7 @@ export const useStore = create<StoreState>()(
         favoriteRetailerId: state.favoriteRetailerId,
         chatExperience: state.chatExperience,
         isDemo: state.isDemo,
+        selectedRetailerId: state.selectedRetailerId,
       }),
     }
   )
