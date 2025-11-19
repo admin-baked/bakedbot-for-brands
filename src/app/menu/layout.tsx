@@ -22,6 +22,7 @@ async function getMenuData(brandId: string) {
     let products: Product[];
     let locations: Retailer[];
     let reviews: Review[];
+    // Centralized decision: A session is "demo" if the cookie is set, or if the brandId is 'default'.
     const isDemo = cookies().get('isUsingDemoData')?.value === 'true' || brandId === 'default' || !brandId;
 
     if (isDemo) {
@@ -65,7 +66,7 @@ async function getMenuData(brandId: string) {
         locations,
         reviews,
         featuredProducts,
-        isDemo,
+        isDemo, // Pass the final decision to the client
     };
 }
 

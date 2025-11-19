@@ -3,6 +3,8 @@
 import { useCookieStore } from "@/lib/cookie-storage";
 
 // This hook now acts as a simple proxy to the Zustand cookie store.
+// The source of truth for the 'isDemo' state is now determined on the server
+// and synced to the cookie store by the MenuLayoutClient.
 export function useDemoMode() {
   const { isDemo, setIsDemo } = useCookieStore();
   return { isDemo, setIsDemo };
