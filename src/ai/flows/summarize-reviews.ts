@@ -1,4 +1,5 @@
 
+'use server';
 
 /**
  * @fileOverview An AI flow that summarizes customer reviews for a product.
@@ -7,8 +8,6 @@
  * - SummarizeReviewsInput - The input type for the summarizeReviews function.
  * - SummarizeReviewsOutput - The return type for the summarizeReviews function.
  */
-
-'use server';
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
