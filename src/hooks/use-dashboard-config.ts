@@ -18,6 +18,7 @@ export type NavLink = {
 const navConfig: Record<string, NavLink[]> = {
   brand: [
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your brand activity.', icon: 'LayoutDashboard' },
+    { href: '/dashboard/analytics', label: 'Analytics', description: 'Explore sales data and product performance.', icon: 'BarChart3' },
     { href: '/dashboard/products', label: 'Products', description: 'Manage your product catalog.', icon: 'Box' },
     { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare' },
     { href: '/account', label: 'Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
@@ -34,6 +35,7 @@ const navConfig: Record<string, NavLink[]> = {
   // 'owner' or 'admin' role
   admin: [
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your brand activity.', icon: 'LayoutDashboard' },
+    { href: '/dashboard/analytics', label: 'Analytics', description: 'Explore sales data and product performance.', icon: 'BarChart3' },
     { href: '/dashboard/products', label: 'Products', description: 'Manage your product catalog.', icon: 'Box' },
     { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare' },
     { href: '/dashboard/orders', label: 'Customer Orders', description: 'View and manage incoming online orders.', icon: 'Package' },
