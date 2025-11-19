@@ -3,14 +3,14 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import DevLoginButton from '@/components/dev-login-button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
-import { sendSignInLinkToEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -19,27 +19,34 @@ export default function BrandLoginPage() {
   const { auth } = useFirebase();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
-  const [isLinkSent, setIsLinkSent] = useState(false);
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
 
-  const handleMagicLinkSignIn = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !email) return;
+    if (!auth || !email || !password) return;
 
     setIsSubmitting(true);
-    const actionCodeSettings = {
-      url: `${window.location.origin}/dashboard`, // Redirect to dashboard after sign-in
-      handleCodeInApp: true,
-    };
-
     try {
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      window.localStorage.setItem('emailForSignIn', email);
-      setIsLinkSent(true);
-      toast({ title: 'Magic Link Sent!', description: `A sign-in link has been sent to ${email}.` });
+      if (isSignUp) {
+        // Handle user registration
+        await createUserWithEmailAndPassword(auth, email, password);
+        toast({ title: 'Account Created!', description: 'Redirecting you to onboarding...' });
+        // After sign-up, user is auto-logged in, redirect to onboarding
+        router.push('/onboarding');
+      } else {
+        // Handle user login
+        await signInWithEmailAndPassword(auth, email, password);
+        toast({ title: 'Login Successful!', description: 'Redirecting to your dashboard...' });
+        router.push('/dashboard');
+      }
     } catch (error: any) {
-      console.error('Magic link error', error);
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      console.error(`${isSignUp ? 'Sign up' : 'Login'} error`, error);
+      const friendlyMessage = error.message.includes('auth/invalid-credential') 
+        ? 'Invalid email or password.'
+        : error.message;
+      toast({ variant: 'destructive', title: 'Authentication Error', description: friendlyMessage });
     } finally {
       setIsSubmitting(false);
     }
@@ -49,54 +56,60 @@ export default function BrandLoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Brand Login</CardTitle>
+          <CardTitle className="text-2xl">{isSignUp ? 'Create a Brand Account' : 'Brand Login'}</CardTitle>
           <CardDescription>
-            Access your dashboard to manage your brand and products.
+            {isSignUp ? 'Sign up to manage your brand and products.' : 'Access your dashboard to manage your brand.'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {isLinkSent ? (
-            <div className="text-center" data-testid="magic-link-sent-card">
-              <h2 className="text-xl font-semibold">Check Your Inbox!</h2>
-              <p className="mt-2 text-muted-foreground">
-                We've sent a magic sign-in link to <strong>{email}</strong>. Click the link in the email to access your dashboard.
-              </p>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Business Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="manager@yourbrand.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
-          ) : (
-            <form onSubmit={handleMagicLinkSignIn} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Business Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="manager@yourbrand.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                Send Magic Link
-              </Button>
-            </form>
-          )}
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-4">
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSignUp ? 'Sign Up' : 'Login'}
+            </Button>
+            <Button type="button" variant="link" size="sm" onClick={() => setIsSignUp(!isSignUp)}>
+                {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+            </Button>
+          </CardFooter>
+        </form>
 
-          {!isProd && (
-            <>
-                <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                    Or for development
-                    </span>
-                </div>
-                </div>
-                <DevLoginButton />
-            </>
-          )}
-        </CardContent>
+        {!isProd && (
+          <CardContent>
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or for development
+                </span>
+              </div>
+            </div>
+            <DevLoginButton />
+          </CardContent>
+        )}
       </Card>
     </div>
   );

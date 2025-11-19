@@ -2,16 +2,16 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication Flows', () => {
-  test('dispensary login with magic link', async ({ page }) => {
+  test('dispensary login with email and password', async ({ page }) => {
     await page.goto('/dispensary-login');
 
     await page.fill('input[name="email"]', 'dispensary@bakedbot.ai');
-    await page.getByRole('button', { name: 'Send Magic Link' }).click();
+    await page.fill('input[type="password"]', 'password');
+    await page.getByRole('button', { name: 'Login' }).click();
 
-    const magicLinkCard = page.getByTestId('magic-link-sent-card');
-    await expect(magicLinkCard).toBeVisible();
-    await expect(magicLinkCard.locator('h2')).toHaveText('Check Your Inbox!');
-    await expect(magicLinkCard.locator('strong')).toHaveText('dispensary@bakedbot.ai');
+    // After login, it should redirect to the dashboard
+    await expect(page).toHaveURL('/dashboard');
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   });
 
   test('brand login with dev login button', async ({ page }) => {
