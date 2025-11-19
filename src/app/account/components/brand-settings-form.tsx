@@ -16,6 +16,8 @@ import { themes } from '@/lib/themes';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Box, LayoutGrid } from 'lucide-react';
 
 const initialState: BrandSettingsFormState = {
   message: '',
@@ -30,7 +32,7 @@ export default function BrandSettingsForm({ brand }: BrandSettingsFormProps) {
   const [state, formAction] = useFormState(updateBrandSettings, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const { theme, setTheme } = useStore();
+  const { theme, setTheme, menuStyle, setMenuStyle } = useStore();
 
   useEffect(() => {
     if (state.message) {
@@ -60,6 +62,29 @@ export default function BrandSettingsForm({ brand }: BrandSettingsFormProps) {
             <Input id="logoUrl" name="logoUrl" defaultValue={brand.logoUrl || ''} placeholder="https://example.com/logo.png"/>
              {state.fieldErrors?.logoUrl && <p className="text-sm text-destructive">{state.fieldErrors.logoUrl[0]}</p>}
           </div>
+          
+          <Separator />
+
+          <div className="space-y-3">
+             <Label>Menu Layout</Label>
+             <RadioGroup value={menuStyle} onValueChange={(value) => setMenuStyle(value as 'default' | 'alt')} className="grid grid-cols-2 gap-4">
+                <div>
+                    <RadioGroupItem value="default" id="style-default" className="peer sr-only" />
+                    <Label htmlFor="style-default" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                        <LayoutGrid className="mb-3 h-6 w-6" />
+                        Standard Grid
+                    </Label>
+                </div>
+                 <div>
+                    <RadioGroupItem value="alt" id="style-alt" className="peer sr-only" />
+                     <Label htmlFor="style-alt" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                        <Box className="mb-3 h-6 w-6" />
+                        Tiled by Category
+                    </Label>
+                </div>
+             </RadioGroup>
+          </div>
+
           <Separator />
           <div className="space-y-3">
              <Label>Theme</Label>
