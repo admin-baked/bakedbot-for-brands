@@ -36,6 +36,7 @@ const navConfig: Record<string, NavLink[]> = {
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your brand activity.', icon: 'LayoutDashboard' },
     { href: '/dashboard/products', label: 'Products', description: 'Manage your product catalog.', icon: 'Box' },
     { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare' },
+    { href: '/dashboard/orders', label: 'Customer Orders', description: 'View and manage incoming online orders.', icon: 'Package' },
     { href: '/account', label: 'Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
     { href: '/dashboard/ceo', label: 'Admin Console', description: 'Manage data and AI features.', icon: 'Shield' },
   ]

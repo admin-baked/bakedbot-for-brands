@@ -65,7 +65,6 @@ export type Retailer = {
 
 export type Location = Retailer & { zipCode?: string };
 
-
 export type Order = {
   id: string;
   customer: string;
@@ -87,7 +86,7 @@ export type Review = {
 };
 
 // This is a simple type for the server action's return value.
-export type OrderStatus = 'submitted' | 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+export type OrderStatus = 'submitted' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
 
 // Type for the Order document stored in Firestore
 export type OrderDoc = {
