@@ -28,7 +28,6 @@ import OnboardingFlow from './chatbot/onboarding-flow';
 import ChatMessages from './chatbot/chat-messages';
 import ChatProductCarousel from './chatbot/chat-product-carousel';
 import { useUser } from '@/firebase/auth/use-user';
-import { useCookieStore } from '@/lib/cookie-storage';
 
 
 type Message = {
@@ -89,7 +88,7 @@ const ChatWindow = ({
   chatMode: 'chat' | 'image';
   onFeedback: (productId: string, type: 'like' | 'dislike') => void;
 }) => {
-  const { chatExperience } = useCookieStore();
+  const { chatExperience } = useStore();
   
   return (
     <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-popover border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
@@ -173,7 +172,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
-  const { chatExperience } = useCookieStore();
+  const { chatExperience } = useStore();
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();

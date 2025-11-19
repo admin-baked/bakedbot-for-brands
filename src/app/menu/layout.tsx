@@ -1,3 +1,4 @@
+
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { demoProducts, demoRetailers, demoCustomer } from '@/lib/data';
@@ -22,7 +23,8 @@ async function getMenuData(brandId: string) {
     let locations: Retailer[];
     let reviews: Review[];
     // Centralized decision: A session is "demo" if the cookie is set, or if the brandId is 'default'.
-    const isDemo = cookies().get('isUsingDemoData')?.value === 'true' || brandId === 'default' || !brandId;
+    const isDemoByCookie = cookies().get('isDemo')?.value === 'true';
+    const isDemo = isDemoByCookie || brandId === 'default' || !brandId;
 
     if (isDemo) {
         products = demoProducts;

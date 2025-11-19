@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { updateBrandSettings, type BrandSettingsFormState } from '../actions';
 import { type Brand } from '@/types/domain';
 import { SubmitButton } from './submit-button';
-import { useCookieStore } from '@/lib/cookie-storage';
+import { useStore } from '@/hooks/use-store';
 import { themes } from '@/lib/themes';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
@@ -30,7 +30,7 @@ export default function BrandSettingsForm({ brand }: BrandSettingsFormProps) {
   const [state, formAction] = useFormState(updateBrandSettings, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const { theme, setTheme } = useCookieStore();
+  const { theme, setTheme } = useStore();
 
   useEffect(() => {
     if (state.message) {

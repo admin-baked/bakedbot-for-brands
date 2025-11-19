@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import * as LucideIcons from 'lucide-react';
-import { useCookieStore } from '@/lib/cookie-storage';
+import { useStore } from '@/hooks/use-store';
 
 export type NavLink = {
   href: string;
@@ -48,7 +48,7 @@ const navConfig: Record<string, NavLink[]> = {
  */
 export function useDashboardConfig() {
   const { user } = useUser();
-  const { isCeoMode } = useCookieStore();
+  const { isCeoMode } = useStore();
   
   const userRole = (user as any)?.customClaims?.role || 'customer';
 

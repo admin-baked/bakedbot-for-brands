@@ -10,7 +10,7 @@ import { FloatingCartPill } from '@/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { useMenuData } from '@/app/menu/menu-layout-client';
-import { useCookieStore } from '@/lib/cookie-storage';
+import { useStore } from '@/hooks/use-store';
 import { ProductCarousel } from '@/components/product-carousel';
 
 function TiledMenuPageContents() {
@@ -65,7 +65,7 @@ function TiledMenuPageContents() {
 export default function MenuPageContents() {
   const hydrated = useHydrated();
   const { products, locations, reviews, featuredProducts, brandId } = useMenuData();
-  const { menuStyle } = useCookieStore();
+  const { menuStyle } = useStore();
 
   const isLoading = !hydrated;
 
@@ -103,4 +103,3 @@ export default function MenuPageContents() {
     </>
   );
 }
-
