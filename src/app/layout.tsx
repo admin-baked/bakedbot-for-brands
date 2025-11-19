@@ -2,9 +2,10 @@
 import type { Metadata } from "next";
 import React from "react";
 import "./globals.css";
-import { Providers } from "@/app/providers";
 import Header from "@/components/header";
 import { Footer } from "@/components/footer";
+import { ThemeProvider } from "@/components/theme-provider";
+import { FirebaseClientProvider } from "@/firebase/client-provider";
 
 export const metadata: Metadata = {
   title: "BakedBot AI",
@@ -19,11 +20,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <Providers>
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-        </Providers>
+        <FirebaseClientProvider>
+            <ThemeProvider>
+                <Header />
+                <main className="flex-1">{children}</main>
+                <Footer />
+            </ThemeProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );
