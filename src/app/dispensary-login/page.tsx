@@ -1,4 +1,3 @@
-
 'use client';
 
 import DevLoginButton from '@/components/dev-login-button';
@@ -8,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { useState } from 'react';
+import { isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -21,7 +21,31 @@ export default function DispensaryLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompletingSignIn, setIsCompletingSignIn] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+
+
+  useEffect(() => {
+    if (auth && isSignInWithEmailLink(auth, window.location.href)) {
+      let emailForSignIn = window.localStorage.getItem('emailForSignIn');
+      if (!emailForSignIn) {
+        emailForSignIn = window.prompt('Please provide your email for confirmation');
+      }
+      if (emailForSignIn) {
+        setIsCompletingSignIn(true);
+        signInWithEmailLink(auth, emailForSignIn, window.location.href)
+          .then((result) => {
+            window.localStorage.removeItem('emailForSignIn');
+            toast({ title: 'Success!', description: 'You have been signed in.' });
+            router.push('/dashboard');
+          })
+          .catch((error) => {
+            toast({ variant: 'destructive', title: 'Sign-in Failed', description: 'The sign-in link is invalid or has expired.' });
+            setIsCompletingSignIn(false);
+          });
+      }
+    }
+  }, [auth, router, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +73,22 @@ export default function DispensaryLoginPage() {
     }
   };
   
+  if (isCompletingSignIn) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+        <Card className="w-full max-w-md text-center">
+            <CardHeader>
+                <CardTitle>Completing Sign-In</CardTitle>
+                <CardDescription>Please wait while we securely sign you in...</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+            </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md">

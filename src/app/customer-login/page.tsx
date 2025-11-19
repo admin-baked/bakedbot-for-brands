@@ -1,4 +1,3 @@
-
 'use client';
 
 import DevLoginButton from '@/components/dev-login-button';
@@ -8,17 +7,47 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
-import { sendSignInLinkToEmail } from 'firebase/auth';
-import { useState } from 'react';
+import { isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink } from 'firebase/auth';
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const isProd = process.env.NODE_ENV === 'production';
 
 export default function CustomerLoginPage() {
   const { auth } = useFirebase();
+  const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [isLinkSent, setIsLinkSent] = useState(false);
+  const [isCompletingSignIn, setIsCompletingSignIn] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // This effect runs on the client after the component mounts.
+    // It checks if the user is returning from the magic link email.
+    if (auth && isSignInWithEmailLink(auth, window.location.href)) {
+      let emailForSignIn = window.localStorage.getItem('emailForSignIn');
+      if (!emailForSignIn) {
+        // This can happen if the user opens the link on a different device.
+        emailForSignIn = window.prompt('Please provide your email for confirmation');
+      }
+
+      if (emailForSignIn) {
+        setIsCompletingSignIn(true);
+        signInWithEmailLink(auth, emailForSignIn, window.location.href)
+          .then((result) => {
+            window.localStorage.removeItem('emailForSignIn');
+            toast({ title: 'Success!', description: 'You have been signed in.' });
+            router.push('/account'); // Redirect to account page after successful login
+          })
+          .catch((error) => {
+            toast({ variant: 'destructive', title: 'Sign-in Failed', description: 'The sign-in link is invalid or has expired.' });
+            setIsCompletingSignIn(false);
+          });
+      }
+    }
+  }, [auth, router, toast]);
 
   const handleMagicLinkSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +55,9 @@ export default function CustomerLoginPage() {
 
     setIsSubmitting(true);
     const actionCodeSettings = {
-        url: `${window.location.origin}/`, // Redirect back to homepage after sign-in
+        // The URL to redirect to after the user clicks the link in the email.
+        // It's important this is the same page so we can complete the sign-in.
+        url: window.location.href, 
         handleCodeInApp: true,
     };
 
@@ -42,6 +73,23 @@ export default function CustomerLoginPage() {
         setIsSubmitting(false);
     }
   };
+
+  if (isCompletingSignIn) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+        <Card className="w-full max-w-md text-center">
+            <CardHeader>
+                <CardTitle>Completing Sign-In</CardTitle>
+                <CardDescription>Please wait while we securely sign you in...</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+            </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
