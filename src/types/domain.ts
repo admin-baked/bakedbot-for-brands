@@ -34,7 +34,7 @@ export type Product = {
   name: string;
   category: string;
   price: number;
-  prices: { [retailerId: string]: number };
+  prices?: { [retailerId: string]: number };
   imageUrl: string;
   imageHint: string;
   description: string;
