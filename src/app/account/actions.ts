@@ -66,7 +66,7 @@ export async function updateBrandSettings(
 
     await brandRepo.update(brandId, updatePayload);
 
-    revalidatePath('/dashboard/settings');
+    revalidatePath('/account');
     revalidatePath(`/menu/${brandId}`);
 
     return { error: false, message: 'Brand settings updated successfully!' };
@@ -113,7 +113,7 @@ export async function updateChatbotSettings(
         
         await brandRepo.update(brandId, { chatbotConfig: validatedFields.data });
 
-        revalidatePath('/dashboard/settings');
+        revalidatePath('/account');
 
         return { error: false, message: 'Chatbot settings updated successfully!' };
     } catch (error) {

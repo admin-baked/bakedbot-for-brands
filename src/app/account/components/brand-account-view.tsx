@@ -1,41 +1,33 @@
 
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import BrandSettingsForm from '@/app/account/components/brand-settings-form';
+import ChatbotSettingsForm from '@/app/account/components/chatbot-settings-form';
+import { type Brand } from '@/types/domain';
 
 interface BrandAccountViewProps {
   user: { name?: string | null; email?: string | null, role?: string | null };
+  brand: Brand | null;
 }
 
-const getInitials = (name?: string | null) => {
-  if (!name) return 'U';
-  return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-};
-
-export default function BrandAccountView({ user }: BrandAccountViewProps) {
+export default function BrandAccountView({ user, brand }: BrandAccountViewProps) {
   return (
-    <div className="container mx-auto max-w-lg py-12 px-4">
-      <Card>
-        <CardHeader className="items-center text-center">
-          <Avatar className="h-24 w-24 text-3xl">
-            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-          </Avatar>
-          <CardTitle className="mt-4 text-2xl">{user.name || 'Account'}</CardTitle>
-          <CardDescription>{user.email}</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center">
-            <p className="text-sm text-muted-foreground">Your role is: <span className="font-semibold capitalize text-foreground">{user.role}</span></p>
-        </CardContent>
-        <CardFooter className="flex-col gap-2">
-          <Button asChild className="w-full">
-            <Link href="/dashboard">Go to Dashboard</Link>
-          </Button>
-          <Button variant="outline" className="w-full">Edit Profile</Button>
-        </CardFooter>
-      </Card>
+    <div className="container mx-auto max-w-5xl py-12 px-4">
+      <div className="space-y-2 mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">My Account</h1>
+        <p className="text-muted-foreground">
+          Manage your profile, brand, and AI settings. You are signed in as {user.email}.
+        </p>
+      </div>
+
+      {brand ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          <BrandSettingsForm brand={brand} />
+          <ChatbotSettingsForm brand={brand} />
+        </div>
+      ) : (
+        <p>No brand or dispensary settings available.</p>
+      )}
     </div>
   );
 }

@@ -134,7 +134,7 @@ export default function Header() {
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => router.push('/account')}>
                                         <User className="mr-2" />
-                                        Account Details
+                                        My Account
                                     </DropdownMenuItem>
                                      <DropdownMenuItem onClick={() => router.push('/dashboard')}>
                                         <Briefcase className="mr-2" />
