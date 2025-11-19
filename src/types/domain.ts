@@ -1,3 +1,4 @@
+
 // src/types/domain.ts
 
 import { Timestamp } from 'firebase/firestore';
@@ -132,3 +133,4 @@ export type UserInteraction = {
   query: string;
   recommendedProductIds?: string[];
 };
+
