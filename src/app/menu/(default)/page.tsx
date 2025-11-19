@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +15,7 @@ import { useCookieStore } from '@/lib/cookie-storage';
 
 export default function MenuPageContents() {
   const hydrated = useHydrated();
+  // Now consumes data from the new, clean context.
   const { products, locations, reviews, featuredProducts, brandId } = useMenuData();
   const { menuStyle } = useCookieStore();
 

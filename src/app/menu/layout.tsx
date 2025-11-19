@@ -3,10 +3,11 @@ import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { demoProducts, demoRetailers, demoCustomer } from '@/lib/data';
 import type { Product, Retailer, Review } from '@/types/domain';
-import { collectionGroup, getDocs, query, orderBy, limit, DocumentData as AdminDocumentData } from 'firebase/firestore';
+import { collectionGroup, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { reviewConverter } from '@/firebase/converters';
 import { DocumentData } from 'firebase-admin/firestore';
 import MenuLayoutClient from './menu-layout-client';
+import { cookies } from 'next/headers';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -21,10 +22,9 @@ async function getMenuData(brandId: string) {
     let products: Product[];
     let locations: Retailer[];
     let reviews: Review[];
-    let isDemo = false;
+    const isDemo = cookies().get('isUsingDemoData')?.value === 'true' || brandId === 'default' || !brandId;
 
-    if (brandId === 'default' || !brandId) {
-        isDemo = true;
+    if (isDemo) {
         products = demoProducts;
         locations = demoRetailers;
         reviews = demoCustomer.reviews as Review[];
@@ -34,7 +34,7 @@ async function getMenuData(brandId: string) {
             const productRepo = makeProductRepo(firestore);
             
             const reviewsQuery = query(
-                (collectionGroup as any)(firestore, 'reviews').withConverter(reviewConverter as any), 
+                collectionGroup(firestore, 'reviews').withConverter(reviewConverter as any), 
                 orderBy('createdAt', 'desc'), 
                 limit(10)
             );
@@ -47,11 +47,10 @@ async function getMenuData(brandId: string) {
 
             products = fetchedProducts;
             locations = locationsSnap.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() })) as Retailer[];
-            reviews = reviewsSnap.docs.map((doc: AdminDocumentData) => doc.data()) as Review[];
+            reviews = reviewsSnap.docs.map((doc: DocumentData) => doc.data()) as Review[];
 
         } catch (error) {
             console.error(`[MenuLayout] Failed to fetch data for brand ${brandId}:`, error);
-            isDemo = true;
             products = demoProducts;
             locations = demoRetailers;
             reviews = demoCustomer.reviews as Review[];
