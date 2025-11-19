@@ -25,6 +25,7 @@ export interface ServerOrderPayload {
     }>;
     customer: { name: string; email: string };
     retailerId: string;
+    brandId: string; // Added brandId
     totals: { subtotal: number; tax: number; total: number };
 }
 
@@ -62,11 +63,27 @@ export async function submitOrder(clientPayload: ClientOrderInput) {
             }
         });
 
+        if (productsById.size === 0) {
+            throw new Error('No valid products found for the items in the cart.');
+        }
+
+        // Determine the brandId from the first product in the cart.
+        // This assumes all items in a single order belong to the same brand.
+        const firstProduct = productsById.get(clientPayload.items[0].productId);
+        if (!firstProduct) {
+             throw new Error('Could not identify product to determine brand.');
+        }
+        const brandId = firstProduct.brandId;
+
+
         let subtotal = 0;
         const finalItems = clientPayload.items.map(item => {
             const product = productsById.get(item.productId);
             if (!product) {
                 throw new Error(`Product with ID ${item.productId} not found during order processing.`);
+            }
+            if (product.brandId !== brandId) {
+                throw new Error('All items in an order must belong to the same brand.');
             }
             const price = product.prices?.[clientPayload.retailerId] ?? product.price;
             subtotal += price * item.qty;
@@ -83,6 +100,7 @@ export async function submitOrder(clientPayload: ClientOrderInput) {
 
         const serverPayload: ServerOrderPayload = {
             ...clientPayload,
+            brandId, // Include brandId in the payload
             items: finalItems,
             totals: { subtotal, tax, total },
         };

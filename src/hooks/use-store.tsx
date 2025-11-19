@@ -19,7 +19,6 @@ export interface StoreState {
   menuStyle: 'default' | 'alt';
   favoriteRetailerId: string | null;
   chatExperience: 'default' | 'classic';
-  isDemo: boolean;
   isCeoMode: boolean; // Not persisted
 
   // Actions
@@ -30,7 +29,6 @@ export interface StoreState {
   setMenuStyle: (style: 'default' | 'alt') => void;
   setFavoriteRetailerId: (id: string | null) => void;
   setChatExperience: (experience: 'default' | 'classic') => void;
-  setIsDemo: (isDemo: boolean) => void;
   setIsCeoMode: (isCeo: boolean) => void;
   
   // Cart Actions
@@ -56,7 +54,6 @@ export const useStore = create<StoreState>()(
       menuStyle: 'default',
       favoriteRetailerId: null,
       chatExperience: 'default',
-      isDemo: true,
       isCeoMode: false,
 
       // Actions
@@ -67,7 +64,6 @@ export const useStore = create<StoreState>()(
       setMenuStyle: (style) => set({ menuStyle: style }),
       setFavoriteRetailerId: (id) => set({ favoriteRetailerId: id }),
       setChatExperience: (experience) => set({ chatExperience: experience }),
-      setIsDemo: (isDemo) => set({ isDemo }),
       setIsCeoMode: (isCeo) => set({ isCeoMode: isCeo }),
       
       // Cart Actions
@@ -138,7 +134,6 @@ export const useStore = create<StoreState>()(
         menuStyle: state.menuStyle,
         favoriteRetailerId: state.favoriteRetailerId,
         chatExperience: state.chatExperience,
-        isDemo: state.isDemo,
         selectedRetailerId: state.selectedRetailerId,
       }),
     }
