@@ -5,7 +5,6 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Product } from '@/types/domain';
 import type { Theme } from '@/lib/themes';
-import { useToast } from '@/hooks/use-toast';
 
 export type CartItem = Product & { quantity: number };
 
