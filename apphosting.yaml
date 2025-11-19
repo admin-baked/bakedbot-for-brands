@@ -2,16 +2,9 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
   maxInstances: 1
-  # Add environment variables for your backend.
-  # https://firebase.google.com/docs/app-hosting/configure#environment-variables
   env:
     - variable: FIREBASE_SERVICE_ACCOUNT_KEY
-      # The value can be the full base64 encoded string of your service account
-      # key, or you can use Secret Manager.
-      # https://firebase.google.com/docs/app-hosting/configure#secret-manager
       secret: FIREBASE_SERVICE_ACCOUNT_KEY
     - variable: SENDGRID_API_KEY
       secret: SENDGRID_API_KEY
@@ -21,3 +14,16 @@ runConfig:
       value: "BakedBot Orders"
     - variable: RECAPTCHA_SITE_KEY
       secret: RECAPTCHA_SITE_KEY
+
+rewrites:
+  - source: /api/health
+    function: health
+
+  - source: /api/cannmenus/brands
+    function: brands
+
+  - source: /api/cannmenus/retailers
+    function: retailers
+
+  - source: /api/cannmenus/products
+    function: products
