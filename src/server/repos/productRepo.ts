@@ -6,7 +6,7 @@ import { productConverter } from '@/firebase/converters';
 
 
 export function makeProductRepo(db: Firestore) {
-  const productCollection = db.collection('products').withConverter(productConverter);
+  const productCollection = db.collection('products').withConverter(productConverter as any);
 
   return {
     /**
@@ -50,7 +50,7 @@ export function makeProductRepo(db: Firestore) {
         return [];
       }
       
-      return snapshot.docs.map(doc => doc.data());
+      return snapshot.docs.map(doc => doc.data() as Product);
     },
 
     /**
@@ -64,7 +64,7 @@ export function makeProductRepo(db: Firestore) {
             console.log(`No products found for brandId: ${effectiveBrandId}`);
             return [];
         }
-        return snapshot.docs.map(doc => doc.data());
+        return snapshot.docs.map(doc => doc.data() as Product);
     },
 
     /**
@@ -75,7 +75,7 @@ export function makeProductRepo(db: Firestore) {
         if (snapshot.empty) {
             return [];
         }
-        return snapshot.docs.map(doc => doc.data());
+        return snapshot.docs.map(doc => doc.data() as Product);
     },
 
      /**
