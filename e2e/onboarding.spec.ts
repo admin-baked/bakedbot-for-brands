@@ -24,8 +24,11 @@ test.describe('Onboarding Flow', () => {
     await expect(page.getByTestId('onboarding-step-products')).toBeVisible();
     await page.getByRole('button', { name: 'Finish & Go to Dashboard' }).click();
     
-    // 5. Final Assertion: Verify redirection to the dashboard
-    // The user should now be at the main dashboard and NOT the onboarding page.
+    // 5. Assert that the "Done" step is shown with a clear CTA
+    await expect(page.getByText('Setup Complete!')).toBeVisible();
+    await page.getByRole('button', { name: 'Go to Dashboard' }).click();
+
+    // 6. Final Assertion: Verify redirection to the dashboard
     await expect(page).toHaveURL('/dashboard');
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
     await expect(page.getByText("Welcome to BakedBot!")).not.toBeVisible();

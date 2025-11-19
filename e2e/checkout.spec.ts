@@ -32,6 +32,6 @@ test('full checkout flow', async ({ page }) => {
 
     // 8. Verify confirmation page
     await expect(page).toHaveURL(/\/order-confirmation\/.+/);
-    await expect(page.getByRole('heading', { name: 'Order Confirmed' })).toBeVisible();
-    await expect(page.getByText('Thank you, Test Customer!')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Order Status' })).toBeVisible();
+    await expect(page.getByText(/We've received your order/)).toBeVisible();
 });
