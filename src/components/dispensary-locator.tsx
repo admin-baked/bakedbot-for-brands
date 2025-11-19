@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -24,10 +25,9 @@ interface DispensaryLocatorProps {
 
 export default function DispensaryLocator({ locations = [], isLoading = false }: DispensaryLocatorProps) {
   const { selectedRetailerId, setSelectedRetailerId } = useStore();
-  const { favoriteRetailerId, setFavoriteRetailerId } = useCookieStore();
+  const { favoriteRetailerId, setFavoriteRetailerId, _hasHydrated } = useCookieStore();
   const firebase = useOptionalFirebase();
   const { toast } = useToast();
-  const hydrated = useHydrated();
   
   const user = firebase?.user ?? null;
   const firestore = firebase?.firestore ?? null;
@@ -40,6 +40,15 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
       setSortedLocations(locations);
     }
   }, [locations]);
+  
+  // New effect to sync favorite retailer on component mount
+  useEffect(() => {
+    if (_hasHydrated) {
+        if (!selectedRetailerId && favoriteRetailerId) {
+            setSelectedRetailerId(favoriteRetailerId);
+        }
+    }
+  }, [_hasHydrated, selectedRetailerId, favoriteRetailerId, setSelectedRetailerId]);
 
   const handleFindClosest = () => {
     if (!navigator.geolocation) {
@@ -127,8 +136,8 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
                   ))
                 ) : displayLocations.map(loc => {
                     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.name}, ${loc.address}, ${loc.city}, ${loc.state} ${loc.zip}`)}`;
-                    const isFavorite = hydrated && favoriteRetailerId === loc.id;
-                    const isSelected = hydrated && selectedRetailerId === loc.id;
+                    const isFavorite = _hasHydrated && favoriteRetailerId === loc.id;
+                    const isSelected = _hasHydrated && selectedRetailerId === loc.id;
                     return (
                     <Card 
                         key={loc.id}
