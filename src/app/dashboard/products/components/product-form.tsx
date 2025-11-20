@@ -9,18 +9,21 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { saveProduct, type ProductFormState } from '../actions';
-import type { Product } from '@/types/domain';
+import type { Product, Brand } from '@/types/domain';
 import { SubmitButton } from '@/app/dashboard/ceo/components/submit-button';
 import Link from 'next/link';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const initialState: ProductFormState = { message: '', error: false };
 
 interface ProductFormProps {
   product?: Product | null;
+  userRole?: string | null;
+  brands?: Brand[];
 }
 
-export function ProductForm({ product }: ProductFormProps) {
+export function ProductForm({ product, userRole, brands = [] }: ProductFormProps) {
   const [state, formAction] = useFormState(saveProduct, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
@@ -48,6 +51,21 @@ export function ProductForm({ product }: ProductFormProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
+            {userRole === 'owner' && !product && (
+                 <div className="space-y-2">
+                    <Label htmlFor="brandId">Brand</Label>
+                     <Select name="brandId" required>
+                        <SelectTrigger id="brandId">
+                            <SelectValue placeholder="Select a brand for this product" />
+                        </SelectTrigger>
+                        <SelectContent>
+                           {brands.map((brand) => (
+                                <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                           ))}
+                        </SelectContent>
+                    </Select>
+                 </div>
+            )}
             <div className="space-y-2">
                 <Label htmlFor="name">Product Name</Label>
                 <Input id="name" name="name" placeholder="e.g., Cosmic Caramels" defaultValue={product?.name || ''} />
