@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { devPersonas, DEV_PERSONA_OPTIONS, type DevPersonaKey } from '@/lib/dev-personas';
 import { Briefcase, Building, Loader2, User, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 const personaIcons: Record<string, React.ElementType> = {
   brand: Briefcase,

@@ -22,6 +22,7 @@ test.describe('Onboarding Flow', () => {
 
     // 4. Step 2: The next step is now the "products" / finish step for brand owners
     await expect(page.getByTestId('onboarding-step-products')).toBeVisible();
+    // This is the final submission step
     await page.getByRole('button', { name: 'Finish & Go to Dashboard' }).click();
     
     // 5. Assert that the "Done" step is shown with a clear CTA

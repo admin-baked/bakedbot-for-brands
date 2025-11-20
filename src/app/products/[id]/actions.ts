@@ -12,6 +12,7 @@ import type { Product, Review } from '@/types/domain';
 import { FeedbackSchema } from '@/types/actions';
 import { reviewConverter as clientReviewConverter } from '@/firebase/converters';
 import { requireUser } from '@/server/auth/auth';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 
 const reviewConverter: FirestoreDataConverter<Review> = {
@@ -63,7 +64,7 @@ export async function getReviewSummary(input: {
       return null;
     }
 
-    const brandId = product.brandId || 'bakedbot-brand-id';
+    const brandId = product.brandId || DEMO_BRAND_ID;
 
     const summary = await runSummarizeReviews({ productId, brandId, reviewTexts: reviews.map(r => r.text), productName: product.name });
     return summary;

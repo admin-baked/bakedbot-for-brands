@@ -15,6 +15,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import type { Retailer } from '@/types/domain';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 interface DispensaryLocatorProps {
   locations?: Retailer[];

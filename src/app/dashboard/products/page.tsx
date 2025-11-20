@@ -11,11 +11,12 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { requireUser } from '@/server/auth/auth';
 import { redirect } from 'next/navigation';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardProductsPage() {
-  const isDemo = cookies().get('isDemo')?.value === 'true';
+  const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
   
   let products: Product[] = [];
   

@@ -16,16 +16,16 @@ test('full checkout flow', async ({ page }) => {
     // 4. Verify item is in cart by checking the pill
     const cartPill = page.getByTestId('cart-pill');
     await expect(cartPill).toContainText('View Cart');
-    await expect(cartPill.locator('span').last()).toContainText('1');
+    await expect(cartPill.locator('span').first()).toContainText('1');
 
-    // 5. Go to checkout
-    await page.goto('/checkout');
+    // 5. Go to checkout by clicking the cart pill
+    await cartPill.click();
+    await page.getByRole('button', { name: 'Proceed to Checkout' }).click();
+    await expect(page).toHaveURL('/checkout');
     
     // 6. Fill out the form
     await page.fill('input[name="customerName"]', 'Test Customer');
     await page.fill('input[name="customerEmail"]', 'test@example.com');
-    await page.fill('input[name="customerPhone"]', '555-555-5555');
-    await page.fill('input[name="customerBirthDate"]', '1990-01-01');
 
     // 7. Submit the order
     await page.getByRole('button', { name: 'Place Order' }).click();
