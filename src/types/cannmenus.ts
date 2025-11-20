@@ -1,4 +1,3 @@
-
 // src/types/cannmenus.ts
 
 export type BrandDoc = {
