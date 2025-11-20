@@ -1,3 +1,4 @@
+
 // src/app/dashboard/orders/actions.ts
 'use server';
 
@@ -87,27 +88,28 @@ export async function updateOrderStatus(
     const updatedOrder = updatedOrderSnap.data() as OrderDoc;
 
     if (!updatedOrder.brandId) {
-        throw new Error('Order is missing brandId, cannot send order email.');
-    }
+        console.warn('Order is missing brandId, cannot send order email.');
+        // Don't throw, just log and continue. The primary action (status update) succeeded.
+    } else {
+        const serverOrderPayload: ServerOrderPayload = {
+          ...(updatedOrder as any),
+          brandId: updatedOrder.brandId,
+        };
 
-    const serverOrderPayload: ServerOrderPayload = {
-      ...(updatedOrder as any),
-      brandId: updatedOrder.brandId, // now guaranteed non-undefined
-    };
+        const retailerSnap = await firestore.collection('dispensaries').doc(updatedOrder.retailerId).withConverter(retailerConverter as any).get();
+        const retailer = retailerSnap.data() as Retailer;
 
-    const retailerSnap = await firestore.collection('dispensaries').doc(updatedOrder.retailerId).withConverter(retailerConverter as any).get();
-    const retailer = retailerSnap.data() as Retailer;
-
-    if (retailer) {
-      await sendOrderEmail({
-        to: updatedOrder.customer.email,
-        subject: `Your order #${orderId.substring(0, 7)} is now ${newStatus}!`,
-        orderId: orderId,
-        order: serverOrderPayload,
-        retailer: retailer,
-        recipientType: 'customer',
-        updateInfo: { newStatus },
-      });
+        if (retailer) {
+          await sendOrderEmail({
+            to: updatedOrder.customer.email,
+            subject: `Your order #${orderId.substring(0, 7)} is now ${newStatus}!`,
+            orderId: orderId,
+            order: serverOrderPayload,
+            retailer: retailer,
+            recipientType: 'customer',
+            updateInfo: { newStatus },
+          });
+        }
     }
 
     revalidatePath('/dashboard/orders');

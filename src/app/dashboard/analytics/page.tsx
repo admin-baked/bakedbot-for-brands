@@ -1,3 +1,4 @@
+
 // src/app/dashboard/analytics/page.tsx
 import { requireUser } from '@/server/auth/auth';
 import { redirect } from 'next/navigation';
@@ -42,4 +43,3 @@ export default async function DashboardAnalyticsPage() {
     </Suspense>
   );
 }
-

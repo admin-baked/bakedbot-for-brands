@@ -1,3 +1,4 @@
+
 // src/types/domain.ts
 
 import { Timestamp } from 'firebase/firestore';
@@ -92,7 +93,7 @@ export type OrderStatus = 'submitted' | 'confirmed' | 'ready' | 'completed' | 'c
 // Type for the Order document stored in Firestore
 export type OrderDoc = {
   id: string; // Add id to the type
-  brandId?: string;
+  brandId: string;
   userId: string; // Now required
   customer: {
       name: string;
