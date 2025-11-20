@@ -18,6 +18,8 @@ const ProductSchema = z.object({
   price: z.coerce.number().positive('Price must be a positive number.'),
   imageUrl: z.string().url('Please enter a valid image URL.'),
   imageHint: z.string().optional(),
+  // Add brandId to the schema for owner-role submissions
+  brandId: z.string().optional(),
 });
 
 export type ProductFormState = {
@@ -37,7 +39,19 @@ export async function saveProduct(
     return { error: true, message: 'Unauthorized.' };
   }
   
-  const brandId = user.brandId;
+  let brandId: string | null = null;
+
+  if (user.role === 'owner') {
+    // For owners, brandId comes from the form.
+    brandId = formData.get('brandId') as string;
+    if (!brandId) {
+        return { error: true, message: 'As an owner, you must select a brand.' };
+    }
+  } else {
+    // For brand managers, it comes from their token.
+    brandId = user.brandId;
+  }
+
   if (!brandId) {
     return { error: true, message: 'Your account is not associated with a brand.' };
   }
@@ -59,14 +73,14 @@ export async function saveProduct(
   try {
     const dataToSave = {
       ...productData,
-      brandId,
+      brandId: brandId, // Use the determined brandId
       imageHint: productData.imageHint ?? '',
     };
     
     if (productId) {
       // Update: Ensure user owns this product
       const existingProduct = await productRepo.getById(productId);
-      if (existingProduct?.brandId !== brandId) {
+      if (existingProduct?.brandId !== brandId && user.role !== 'owner') {
         return { error: true, message: 'You do not have permission to edit this product.' };
       }
       await productRepo.update(productId, dataToSave);
@@ -94,7 +108,7 @@ export async function deleteProduct(productId: string): Promise<ProductFormState
     }
 
     const brandId = user.brandId;
-    if (!brandId) {
+    if (!brandId && user.role !== 'owner') {
         return { error: true, message: 'You are not associated with a brand.' };
     }
     
@@ -108,7 +122,11 @@ export async function deleteProduct(productId: string): Promise<ProductFormState
 
         // Security check: Verify the product belongs to the user's brand before deleting.
         const product = await productRepo.getById(productId);
-        if (!product || product.brandId !== brandId) {
+        if (!product) {
+            return { error: true, message: 'Product not found.' };
+        }
+
+        if (user.role !== 'owner' && product.brandId !== brandId) {
             return { error: true, message: 'Forbidden: You do not have permission to delete this product.' };
         }
 
