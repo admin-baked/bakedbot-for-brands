@@ -1,3 +1,4 @@
+
 // src/types/cannmenus.ts
 
 export type BrandDoc = {
@@ -35,12 +36,15 @@ export type RetailerDoc = {
   name: string;
   state: string;
   city: string;
+  postal_code: string;
+  country: string;
+  street_address: string;
   website_url?: string;
+  homepage_url: string | null;
+  menu_url: string | null;
+  menu_discovery_status: "pending" | "found" | "failed";
   is_priority?: boolean;
   platform_guess?: "dutchie" | "jane" | "bespoke" | "unknown";
-  homepage_url?: string;
-  menu_url?: string | null;
-  menu_discovery_status?: "pending" | "found" | "failed";
   createdAt?: Date;
   updatedAt?: Date;
 };
