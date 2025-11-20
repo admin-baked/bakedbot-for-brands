@@ -8,13 +8,61 @@ export async function GET(req: NextRequest) {
   const search = req.nextUrl.searchParams.get("search") ?? "";
 
   if (!CANNMENUS_API_BASE || !CANNMENUS_API_KEY) {
+    const allRetailers = [
+      {
+        id: "retailer-chi-001",
+        name: "Green Planet Dispensary",
+        slug: "green-planet-dispensary",
+        address: {
+          street: "420 W Cloud St",
+          city: "Chicago",
+          state: "IL",
+          postalCode: "60601",
+        },
+        geo: {
+          lat: 41.8853,
+          lng: -87.6216,
+        },
+        phone: "(312) 555-0111",
+        website: "https://greenplanet.example.com",
+        carriesBrands: ["jeeter-demo", "stiiizy-demo"],
+      },
+      {
+        id: "retailer-det-001",
+        name: "Motor City Remedies",
+        slug: "motor-city-remedies",
+        address: {
+          street: "313 Gratiot Ave",
+          city: "Detroit",
+          state: "MI",
+          postalCode: "48226",
+        },
+        geo: {
+          lat: 42.3347,
+          lng: -83.0469,
+        },
+        phone: "(313) 555-0199",
+        website: "https://motorcityremedies.example.com",
+        carriesBrands: ["jeeter-demo"],
+      },
+    ];
+
+    const normalizedQuery = search.trim().toLowerCase();
+    const items = normalizedQuery
+      ? allRetailers.filter((r) =>
+          `${r.name} ${r.slug} ${r.address.city} ${r.address.state}`
+            .toLowerCase()
+            .includes(normalizedQuery)
+        )
+      : allRetailers;
+
     return NextResponse.json(
       {
         source: "next-api:cannmenus:retailers (stub)",
         query: search,
-        items: [],
+        items,
         warning:
-          "CANNMENUS_API_BASE or CANNMENUS_API_KEY not configured; returning stub.",
+          "Using in-memory stub data because CANNMENUS_API_BASE / CANNMENUS_API_KEY are not configured.",
       },
       { status: 200 }
     );
