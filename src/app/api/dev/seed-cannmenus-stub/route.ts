@@ -52,12 +52,11 @@ const stubRetailers: RetailerDoc[] = [
     id: "retailer-chi-001",
     name: "Green Planet Dispensary",
     slug: "green-planet-dispensary",
-    address: {
-      street: "420 W Cloud St",
-      city: "Chicago",
-      state: "IL",
-      postalCode: "60601",
-    },
+    street_address: "420 W Cloud St",
+    city: "Chicago",
+    state: "IL",
+    postal_code: "60601",
+    country: "US",
     geo: {
       lat: 41.8853,
       lng: -87.6216,
@@ -65,17 +64,18 @@ const stubRetailers: RetailerDoc[] = [
     phone: "(312) 555-0111",
     homepage_url: "https://greenplanet.example.com",
     carriesBrands: ["jeeter-demo", "stiiizy-demo"],
+    menu_url: null,
+    menu_discovery_status: 'pending',
   },
   {
     id: "retailer-det-001",
     name: "Motor City Remedies",
     slug: "motor-city-remedies",
-    address: {
-      street: "313 Gratiot Ave",
-      city: "Detroit",
-      state: "MI",
-      postalCode: "48226",
-    },
+    street_address: "313 Gratiot Ave",
+    city: "Detroit",
+    state: "MI",
+    postal_code: "48226",
+    country: "US",
     geo: {
       lat: 42.3347,
       lng: -83.0469,
@@ -83,6 +83,8 @@ const stubRetailers: RetailerDoc[] = [
     phone: "(313) 555-0199",
     homepage_url: "https://motorcityremedies.example.com",
     carriesBrands: ["jeeter-demo"],
+    menu_url: null,
+    menu_discovery_status: 'pending',
   },
 ];
 
@@ -101,6 +103,8 @@ const stubProducts: ProductDoc[] = [
       "https://images.unsplash.com/photo-1513639725746-c5d3e861f32a?auto=format&fit=crop&w=600&q=80",
     tags: ["infused", "potent"],
     retailerIds: ["retailer-chi-001", "retailer-det-001"],
+    sku_id: 'jeeter-gelato-1g-preroll',
+    canonical_name: "Jeeter Gelato Infused Pre-roll 1g",
   },
   {
     id: "jeeter-strawberry-shortcake-5pk",
@@ -116,6 +120,8 @@ const stubProducts: ProductDoc[] = [
       "https://images.unsplash.com/photo-1545243424-0ce743321e11?auto=format&fit=crop&w=600&q=80",
     tags: ["infused", "5-pack"],
     retailerIds: ["retailer-chi-001"],
+    sku_id: 'jeeter-strawberry-shortcake-5pk',
+    canonical_name: 'Jeeter Strawberry Shortcake Infused 5-Pack',
   },
   {
     id: "stiiizy-king-louis-pod-1g",
@@ -131,6 +137,8 @@ const stubProducts: ProductDoc[] = [
       "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=600&q=80",
     tags: ["pod", "indica"],
     retailerIds: ["retailer-chi-001"],
+    sku_id: 'stiiizy-king-louis-pod-1g',
+    canonical_name: 'STIIIZY King Louis XIII Pod 1g',
   },
   {
     id: "stiiizy-og-kush-flower-3.5",
@@ -146,6 +154,8 @@ const stubProducts: ProductDoc[] = [
       "https://images.unsplash.com/photo-1511715282680-fbf93a50e721?auto=format&fit=crop&w=600&q=80",
     tags: ["eighth", "hybrid"],
     retailerIds: ["retailer-chi-001", "retailer-det-001"],
+    sku_id: 'stiiizy-og-kush-flower-3.5',
+    canonical_name: 'STIIIZY OG Kush Flower 3.5g',
   },
 ];
 
