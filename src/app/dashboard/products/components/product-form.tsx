@@ -51,10 +51,10 @@ export function ProductForm({ product, userRole, brands = [] }: ProductFormProps
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
-            {userRole === 'owner' && !product && (
+            {userRole === 'owner' && (
                  <div className="space-y-2">
                     <Label htmlFor="brandId">Brand</Label>
-                     <Select name="brandId" required>
+                     <Select name="brandId" required defaultValue={product?.brandId}>
                         <SelectTrigger id="brandId">
                             <SelectValue placeholder="Select a brand for this product" />
                         </SelectTrigger>
