@@ -1,4 +1,3 @@
-
 // src/app/dashboard/orders/page.tsx
 import { redirect } from 'next/navigation';
 import OrdersDashboardClient from './components/orders-dashboard-client';
