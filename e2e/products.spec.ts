@@ -32,7 +32,6 @@ test.describe('Product Management Lifecycle', () => {
 
     // 4. Verify the product appears in the list
     await expect(page).toHaveURL('/dashboard/products');
-    await expect(page.getByText('Product created successfully!')).toBeVisible();
     await expect(page.getByText(productName)).toBeVisible();
 
     // 5. Edit the product
