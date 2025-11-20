@@ -3,49 +3,15 @@
 
 import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
-import { FieldValue } from 'firebase-admin/firestore';
-import { sendOrderEmail } from '@/lib/email/send-order-email';
-import type { Retailer, Product } from '@/firebase/converters';
-import { makeProductRepo } from '@/server/repos/productRepo';
-import { applyCoupon } from './applyCoupon';
 import { redirect } from 'next/navigation';
+import type { CartItem } from '@/hooks/use-store';
 
 export interface ClientOrderInput {
-    items: {
-        productId: string;
-        cannmenusProductId?: string;
-        name: string;
-        sku?: string;
-        quantity: number;
-        unitPrice: number;
-    }[];
+    items: CartItem[];
     customer: { name: string; email: string; phone: string; };
     retailerId: string;
-    organizationId: string;
-    couponCode?: string; // Coupon code is optional
-}
-
-export interface ServerOrderPayload {
-    items: Array<{
-      productId: string;
-      name: string;
-      qty: number;
-      price: number;
-    }>;
-    customer: { name: string; email: string };
-    retailerId: string;
-    brandId: string;
-    totals: {
-        subtotal: number;
-        tax: number;
-        discount: number;
-        fees: number;
-        total: number;
-    };
-    coupon?: {
-        code: string;
-        discount: number;
-    };
+    organizationId: string; // This is the brandId
+    couponCode?: string;
 }
 
 export async function submitOrder(clientPayload: ClientOrderInput) {
@@ -63,15 +29,17 @@ export async function submitOrder(clientPayload: ClientOrderInput) {
     }
 
     const subtotal = clientPayload.items.reduce(
-        (sum, i) => sum + i.unitPrice * i.quantity,
+        (sum, i) => sum + i.price * i.quantity,
         0
       );
     
-    // TODO: real tax/fee calc
+    // TODO: This should be replaced with a real tax/fee calculation service
+    // For now, we'll assume they are included in the price or are zero.
     const tax = 0;
     const fees = 0;
     const total = subtotal + tax + fees;
 
+    // The base URL of the application, used to construct API routes for fetch.
     const apiBaseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
 
     try {
@@ -81,6 +49,7 @@ export async function submitOrder(clientPayload: ClientOrderInput) {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
+                // Pass cookies to the API route to maintain session context if needed
                 Cookie: cookies().toString(),
               },
               body: JSON.stringify({
@@ -93,7 +62,12 @@ export async function submitOrder(clientPayload: ClientOrderInput) {
                   phone: clientPayload.customer.phone,
                   uid: userId,
                 },
-                items: clientPayload.items,
+                items: clientPayload.items.map(item => ({
+                    productId: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    unitPrice: item.price,
+                })),
                 subtotal,
                 tax,
                 fees,
@@ -109,14 +83,13 @@ export async function submitOrder(clientPayload: ClientOrderInput) {
             throw new Error(json.error || "Failed to start Smokey Pay checkout");
           }
         
-          // If CannPay gives a hosted checkout URL, send user there
+          // If CannPay provides a hosted checkout URL, redirect the user to it.
           if (json.checkoutUrl) {
             redirect(json.checkoutUrl);
           }
         
-          // Otherwise, redirect to your own confirmation / status page,
-          // where a client-side component will complete the CannPay flow with intentId.
-          return { ok: true, orderId: json.orderId };
+          // Otherwise, the frontend will handle the intent. Redirect to our confirmation page.
+          return { ok: true, orderId: json.orderId, userId };
 
     } catch(e: any) {
         console.error("ORDER_SUBMISSION_FAILED:", e);
