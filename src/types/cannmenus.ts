@@ -55,3 +55,26 @@ export type RetailerDoc = {
   createdAt?: Date;
   updatedAt?: Date;
 };
+
+// ---- Embeddings for RAG over CannMenus data ----
+
+export type CannmenusEmbeddingDoc = {
+  id: string; // same as productId or a composite key
+  type: "product" | "brand" | "retailer";
+  refId: string; // e.g. productId
+  brandId?: string;
+  retailerIds?: string[];
+
+  // The text we embedded (for debugging)
+  text: string;
+
+  // Vector embedding
+  embedding: number[];
+
+  // Basic filters / metadata
+  tags?: string[];
+  markets?: string[]; // e.g. ["CA", "IL"]
+
+  createdAt?: Date;
+  updatedAt?: Date;
+};
