@@ -1,3 +1,4 @@
+
 // src/server/events/emitter.ts
 'use server';
 
@@ -6,23 +7,27 @@ import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { Agent, EventType } from '@/types/domain';
 
+export interface EmitEventInput {
+  orgId: string;
+  type: EventType;
+  agent: Agent | 'system';
+  refId?: string | null;
+  data?: any;
+}
+
 /**
  * Emits an event to the Event Spine for a given organization.
  * This is the central function for all agent and system event logging.
  *
- * @param orgId - The ID of the organization (brand) this event belongs to.
- * @param type - The type of event (e.g., 'checkout.started').
- * @param agent - The agent responsible for the event, or 'system'.
- * @param data - The payload containing event-specific details.
- * @param refId - An optional reference ID (e.g., orderId, customerId).
+ * @param input - The structured input for the event.
  */
-export async function emitEvent(
-  orgId: string,
-  type: EventType,
-  agent: Agent | 'system',
-  data: any,
-  refId: string | null = null
-): Promise<void> {
+export async function emitEvent({
+  orgId,
+  type,
+  agent,
+  refId = null,
+  data = {},
+}: EmitEventInput): Promise<void> {
   if (!orgId) {
     console.warn('emitEvent called without an orgId. Skipping.');
     return;
@@ -35,7 +40,7 @@ export async function emitEvent(
     await eventRef.set({
       type,
       agent,
-      orgId,
+      orgId, // Denormalize for collection group queries
       refId,
       data,
       timestamp: FieldValue.serverTimestamp(),

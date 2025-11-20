@@ -1,3 +1,4 @@
+
 // src/types/domain.ts
 
 import { Timestamp } from 'firebase/firestore';
@@ -153,7 +154,15 @@ export type UserInteraction = {
 
 // --- Event Spine ---
 
-export type Agent = 'smokey' | 'craig' | 'reach' | 'pops' | 'ezal' | 'mrs_parker' | 'money_mike' | 'deebo';
+export type Agent =
+  | 'smokey'
+  | 'reach'
+  | 'craig'
+  | 'pops'
+  | 'ezal'
+  | 'mrs_parker'
+  | 'money_mike'
+  | 'deebo';
 
 export type EventType =
   // Reach
@@ -163,10 +172,12 @@ export type EventType =
   | 'cart.updated'
   | 'checkout.started'
   | 'checkout.intentCreated'
-  // Webhooks / System
   | 'checkout.paid'
+  | 'checkout.failed'
+  // Order Fulfillment
   | 'order.readyForPickup'
   | 'order.completed'
+  // SaaS Billing
   | 'subscription.planSelected'
   | 'subscription.paymentAuthorized'
   | 'subscription.updated'

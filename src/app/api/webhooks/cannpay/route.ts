@@ -1,8 +1,10 @@
+
 // src/app/api/webhooks/cannpay/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/firebase/server-client";
-import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { emitEvent } from "@/server/events/emitter";
+import type { EventType } from "@/types/domain";
 
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
@@ -39,8 +41,7 @@ export async function POST(req: NextRequest) {
 
     let paymentStatus: string = "pending";
     let orderStatus: string = "pending";
-    let eventType: 'checkout.paid' | 'order.readyForPickup' | 'order.completed' | null = null;
-
+    let eventType: EventType | null = null;
 
     switch (status) {
       case "authorized":
@@ -48,17 +49,19 @@ export async function POST(req: NextRequest) {
       case "paid":
         paymentStatus = "paid";
         orderStatus = "ready_for_pickup";
-        eventType = 'checkout.paid';
+        eventType = "checkout.paid";
         break;
       case "failed":
       case "declined":
       case "canceled":
         paymentStatus = status;
         orderStatus = "canceled";
+        eventType = "checkout.failed";
         break;
       default:
         paymentStatus = status || "pending";
         orderStatus = "pending";
+        break;
     }
 
     await orderRef.set(
@@ -66,19 +69,30 @@ export async function POST(req: NextRequest) {
         paymentIntentId: intentId,
         paymentStatus,
         status: orderStatus,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
         lastPaymentEvent: event,
       },
       { merge: true }
     );
     
-    // Emit a specific event if the payment was successful
     if (eventType) {
-        await emitEvent(organizationId, eventType, 'system', {
-            orderId,
-            intentId,
-            status,
-        }, orderId);
+        await emitEvent({
+            orgId: organizationId,
+            type: eventType,
+            agent: 'smokey',
+            refId: orderId,
+            data: { paymentStatus, orderStatus, intentId },
+        });
+
+        if (eventType === 'checkout.paid') {
+            await emitEvent({
+                orgId: organizationId,
+                type: 'order.readyForPickup',
+                agent: 'smokey',
+                refId: orderId,
+                data: { paymentStatus },
+            });
+        }
     }
 
 
@@ -91,3 +105,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
