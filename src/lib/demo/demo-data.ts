@@ -9,7 +9,7 @@ export const defaultChatbotIcon = 'https://storage.googleapis.com/stedi-assets/m
 
 export const demoProducts: Product[] = [
     {
-      id: '1',
+      id: 'demo-1',
       name: 'Cosmic Caramels',
       category: 'Edibles',
       price: 25.00,
@@ -22,7 +22,7 @@ export const demoProducts: Product[] = [
       brandId: 'default',
     },
     {
-      id: '2',
+      id: 'demo-2',
       name: 'Giggle Gummies',
       category: 'Edibles',
       price: 22.00,
@@ -35,7 +35,7 @@ export const demoProducts: Product[] = [
       brandId: 'default',
     },
     {
-      id: '3',
+      id: 'demo-3',
       name: 'Stardust Suckers',
       category: 'Edibles',
       price: 18.00,
@@ -48,7 +48,7 @@ export const demoProducts: Product[] = [
       brandId: 'default',
     },
     {
-      id: '4',
+      id: 'demo-4',
       name: 'OG Galaxy',
       category: 'Flower',
       price: 55.00,
@@ -61,7 +61,7 @@ export const demoProducts: Product[] = [
       brandId: 'default',
     },
     {
-      id: '5',
+      id: 'demo-5',
       name: 'Nebula Nugs',
       category: 'Flower',
       price: 60.00,
@@ -74,7 +74,7 @@ export const demoProducts: Product[] = [
       brandId: 'default',
     },
     {
-        id: '6',
+        id: 'demo-6',
         name: 'Supernova Haze',
         category: 'Flower',
         price: 58.00,
@@ -87,7 +87,7 @@ export const demoProducts: Product[] = [
         brandId: 'default',
     },
     {
-        id: '7',
+        id: 'demo-7',
         name: 'Vaporwave Voyage',
         category: 'Vapes',
         price: 45.00,
@@ -100,7 +100,7 @@ export const demoProducts: Product[] = [
         brandId: 'default',
     },
     {
-        id: '8',
+        id: 'demo-8',
         name: 'Comet Stick',
         category: 'Vapes',
         price: 42.00,
@@ -113,7 +113,7 @@ export const demoProducts: Product[] = [
         brandId: 'default',
     },
      {
-        id: '9',
+        id: 'demo-9',
         name: 'Pulsar Pod',
         category: 'Vapes',
         price: 48.00,
@@ -187,19 +187,21 @@ export const demoCustomer = {
         { id: 'demo2', userId: 'demoUser', createdAt: Timestamp.now(), status: 'ready', totals: { total: 88.00 } },
     ] as Partial<OrderDoc>[],
     reviews: [
-        { id: 'rev1', productId: '1', userId: 'demoUser1', brandId: 'bakedbot-brand-id', rating: 5, text: 'Absolutely love the Cosmic Caramels! Perfect for relaxing after a long day. The taste is amazing and the effects are smooth.', createdAt: Timestamp.fromDate(new Date('2024-05-20T19:30:00Z')) },
-        { id: 'rev2', productId: '4', userId: 'demoUser2', brandId: 'bakedbot-brand-id', rating: 4, text: 'OG Galaxy is a classic for a reason. Great for winding down and getting a good night\'s sleep. A bit harsh on the throat sometimes.', createdAt: Timestamp.fromDate(new Date('2024-05-21T12:00:00Z')) },
-        { id: 'rev3', productId: '1', userId: 'demoUser3', brandId: 'bakedbot-brand-id', rating: 4, text: 'These are tasty but sometimes inconsistent in potency. One piece was much stronger than another from the same batch.', createdAt: Timestamp.fromDate(new Date('2024-05-22T14:15:00Z')) },
-        { id: 'rev4', productId: '2', userId: 'demoUser4', brandId: 'bakedbot-brand-id', rating: 5, text: 'Giggle Gummies are my go-to for social events. They make me feel so talkative and happy without any anxiety. Highly recommend!', createdAt: Timestamp.fromDate(new Date('2024-05-22T18:45:00Z')) },
-        { id: 'rev5', productId: '7', userId: 'demoUser1', brandId: 'bakedbot-brand-id', rating: 3, text: 'The Vaporwave Voyage pen is convenient, but the flavor is a bit artificial for my taste. The effects are okay, but not very long-lasting.', createdAt: Timestamp.fromDate(new Date('2024-05-23T09:00:00Z')) },
-        { id: 'rev6', productId: '4', userId: 'demoUser5', brandId: 'bakedbot-brand-id', rating: 5, text: 'The best indica I have ever had. Knocks me right out and helps with my insomnia. A true 5-star flower.', createdAt: Timestamp.fromDate(new Date('2024-05-23T21:00:00Z')) },
-        { id: 'rev7', productId: '2', userId: 'demoUser2', brandId: 'bakedbot-brand-id', rating: 4, text: 'Fun for a party, but be careful not to take too many! They can be a bit more potent than you expect.', createdAt: Timestamp.fromDate(new Date('2024-05-24T16:20:00Z')) },
-        { id: 'rev8', productId: '5', userId: 'demoUser6', brandId: 'bakedbot-brand-id', rating: 5, text: 'Nebula Nugs are absolutely top-tier. The crystal coating is insane and the high is both euphoric and relaxing. Worth every penny.', createdAt: Timestamp.fromDate(new Date('2024-05-25T11:10:00Z')) },
-        { id: 'rev9', productId: '9', userId: 'demoUser7', brandId: 'bakedbot-brand-id', rating: 4, text: 'Pulsar Pod gives a great, clean, energetic high. Perfect for getting chores done or going for a hike. Flavor is a little lemony for me.', createdAt: Timestamp.fromDate(new Date('2024-05-26T08:00:00Z')) },
-        { id: 'rev10', productId: '6', userId: 'demoUser1', brandId: 'bakedbot-brand-id', rating: 5, text: 'Supernova Haze is a fantastic daytime strain. It really helps me focus and feel creative without any jitters. Has become a staple in my routine.', createdAt: Timestamp.fromDate(new Date('2024-05-27T13:40:00Z')) },
+        { id: 'rev1', productId: 'demo-1', userId: 'demoUser1', brandId: 'bakedbot-brand-id', rating: 5, text: 'Absolutely love the Cosmic Caramels! Perfect for relaxing after a long day. The taste is amazing and the effects are smooth.', createdAt: Timestamp.fromDate(new Date('2024-05-20T19:30:00Z')) },
+        { id: 'rev2', productId: 'demo-4', userId: 'demoUser2', brandId: 'bakedbot-brand-id', rating: 4, text: 'OG Galaxy is a classic for a reason. Great for winding down and getting a good night\'s sleep. A bit harsh on the throat sometimes.', createdAt: Timestamp.fromDate(new Date('2024-05-21T12:00:00Z')) },
+        { id: 'rev3', productId: 'demo-1', userId: 'demoUser3', brandId: 'bakedbot-brand-id', rating: 4, text: 'These are tasty but sometimes inconsistent in potency. One piece was much stronger than another from the same batch.', createdAt: Timestamp.fromDate(new Date('2024-05-22T14:15:00Z')) },
+        { id: 'rev4', productId: 'demo-2', userId: 'demoUser4', brandId: 'bakedbot-brand-id', rating: 5, text: 'Giggle Gummies are my go-to for social events. They make me feel so talkative and happy without any anxiety. Highly recommend!', createdAt: Timestamp.fromDate(new Date('2024-05-22T18:45:00Z')) },
+        { id: 'rev5', productId: 'demo-7', userId: 'demoUser1', brandId: 'bakedbot-brand-id', rating: 3, text: 'The Vaporwave Voyage pen is convenient, but the flavor is a bit artificial for my taste. The effects are okay, but not very long-lasting.', createdAt: Timestamp.fromDate(new Date('2024-05-23T09:00:00Z')) },
+        { id: 'rev6', productId: 'demo-4', userId: 'demoUser5', brandId: 'bakedbot-brand-id', rating: 5, text: 'The best indica I have ever had. Knocks me right out and helps with my insomnia. A true 5-star flower.', createdAt: Timestamp.fromDate(new Date('2024-05-23T21:00:00Z')) },
+        { id: 'rev7', productId: 'demo-2', userId: 'demoUser2', brandId: 'bakedbot-brand-id', rating: 4, text: 'Fun for a party, but be careful not to take too many! They can be a bit more potent than you expect.', createdAt: Timestamp.fromDate(new Date('2024-05-24T16:20:00Z')) },
+        { id: 'rev8', productId: 'demo-5', userId: 'demoUser6', brandId: 'bakedbot-brand-id', rating: 5, text: 'Nebula Nugs are absolutely top-tier. The crystal coating is insane and the high is both euphoric and relaxing. Worth every penny.', createdAt: Timestamp.fromDate(new Date('2024-05-25T11:10:00Z')) },
+        { id: 'rev9', productId: 'demo-9', userId: 'demoUser7', brandId: 'bakedbot-brand-id', rating: 4, text: 'Pulsar Pod gives a great, clean, energetic high. Perfect for getting chores done or going for a hike. Flavor is a little lemony for me.', createdAt: Timestamp.fromDate(new Date('2024-05-26T08:00:00Z')) },
+        { id: 'rev10', productId: 'demo-6', userId: 'demoUser1', brandId: 'bakedbot-brand-id', rating: 5, text: 'Supernova Haze is a fantastic daytime strain. It really helps me focus and feel creative without any jitters. Has become a staple in my routine.', createdAt: Timestamp.fromDate(new Date('2024-05-27T13:40:00Z')) },
     ] as Partial<Review>[],
     interactions: [
-        { brandId: 'default', recommendedProductIds: ['1', '2'] },
-        { brandId: 'default', recommendedProductIds: ['4'] }
+        { brandId: 'default', recommendedProductIds: ['demo-1', 'demo-2'] },
+        { brandId: 'default', recommendedProductIds: ['demo-4'] }
     ] as Partial<UserInteraction>[],
 };
+
+    

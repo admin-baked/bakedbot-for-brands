@@ -14,7 +14,7 @@ export interface StoreState {
   isCartSheetOpen: boolean;
   selectedRetailerId: string | null;
   
-  // From legacy cookie-store
+  // UI Preferences
   theme: Theme;
   menuStyle: 'default' | 'alt';
   favoriteRetailerId: string | null;
@@ -62,7 +62,8 @@ export const useStore = create<StoreState>()(
       setSelectedRetailerId: (id) => set({ selectedRetailerId: id }),
       setTheme: (theme) => set({ theme }),
       setMenuStyle: (style) => set({ menuStyle: style }),
-      setFavoriteRetailerId: (id) => set({ favoriteRetailerId: id }),
+      // When a user favorites a location, also select it for the current session.
+      setFavoriteRetailerId: (id) => set({ favoriteRetailerId: id, selectedRetailerId: id }),
       setChatExperience: (experience) => set({ chatExperience: experience }),
       setIsCeoMode: (isCeo) => set({ isCeoMode: isCeo }),
       
@@ -139,3 +140,5 @@ export const useStore = create<StoreState>()(
     }
   )
 );
+
+    

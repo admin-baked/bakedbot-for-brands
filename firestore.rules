@@ -89,11 +89,10 @@ service cloud.firestore {
           isOwner(resource.data.userId) || 
           // The dispensary manager fulfilling the order.
           isDispensaryManager(resource.data.retailerId) ||
-          // The brand manager who owns the product(s) in the order.
-          // This requires checking the brandId on the product documents.
-          isBrandManager(resource.data.brandId) ||
           // A global owner/admin.
           isRole('owner');
     }
   }
 }
+
+    
