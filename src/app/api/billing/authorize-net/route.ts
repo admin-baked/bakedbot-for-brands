@@ -32,9 +32,10 @@ function getAuthNetBaseUrl() {
 
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
+  let body: SubscribeBody | null = null;
 
   try {
-    const body = (await req.json()) as SubscribeBody;
+    body = (await req.json()) as SubscribeBody;
 
     if (!body.organizationId || !body.planId || typeof body.locationCount !== "number") {
       return NextResponse.json(
@@ -46,9 +47,16 @@ export async function POST(req: NextRequest) {
     const orgId = body.organizationId;
     const planId = body.planId;
 
+    await emitEvent({
+      orgId,
+      type: "subscription.planSelected",
+      agent: "money_mike",
+      data: { planId, locationCount: body.locationCount },
+    });
+
     if (planId === "enterprise") {
       return NextResponse.json(
-        { error: "Enterprise billing is handled via a custom agreement." },
+        { error: "Enterprise billing is handled via custom agreement." },
         { status: 400 }
       );
     }
@@ -60,7 +68,6 @@ export async function POST(req: NextRequest) {
 
     const amount = computeMonthlyAmount(planId, body.locationCount);
     
-    // Firestore references
     const subscriptionRef = db
       .collection("organizations")
       .doc(orgId)
@@ -73,8 +80,6 @@ export async function POST(req: NextRequest) {
       .collection("subscriptionHistory")
       .doc();
 
-
-    // --- FREE PLAN: no Authorize.Net call, just persist state ---
     if (amount === 0) {
       const subDoc = {
         planId,
@@ -88,27 +93,18 @@ export async function POST(req: NextRequest) {
       };
 
       await subscriptionRef.set(subDoc, { merge: true });
-
-      const historyDoc = {
+      await historyRef.set({
         ...subDoc,
         event: "plan_changed",
         reason: "user_selected_free_plan",
         at: FieldValue.serverTimestamp(),
-      };
-      await historyRef.set(historyDoc);
-      
-      await emitEvent(orgId, 'subscription.updated', 'system', historyDoc, orgId);
-
-      return NextResponse.json({
-        success: true,
-        free: true,
-        planId,
-        amount,
       });
+      
+      await emitEvent({ orgId, type: 'subscription.updated', agent: 'money_mike', refId: subscriptionRef.id, data: { ...subDoc, reason: "free_plan" } });
+
+      return NextResponse.json({ success: true, free: true, planId, amount });
     }
 
-
-    // --- PAID PLANS: need Authorize.Net + opaqueData ---
     if (!body.opaqueData) {
       return NextResponse.json(
         { error: "Paid plans require payment token (opaqueData) from Accept.js." },
@@ -128,166 +124,86 @@ export async function POST(req: NextRequest) {
     }
 
     const baseUrl = getAuthNetBaseUrl();
-
-    // Step 1: create customer profile
     const customerProfilePayload = {
-      createCustomerProfileRequest: {
-        merchantAuthentication: {
-          name: apiLoginId,
-          transactionKey,
-        },
-        profile: {
-          merchantCustomerId: orgId,
-          description: `Org ${orgId} – BakedBot subscription`,
-          email: body.customer?.email,
-          paymentProfiles: [
-            {
-              billTo: {
-                firstName: body.customer?.fullName,
-                company: body.customer?.company,
-                zip: body.customer?.zip,
-              },
-              payment: {
-                opaqueData: {
-                  dataDescriptor: body.opaqueData.dataDescriptor,
-                  dataValue: body.opaqueData.dataValue,
-                },
-              },
+        createCustomerProfileRequest: {
+            merchantAuthentication: { name: apiLoginId, transactionKey },
+            profile: {
+                merchantCustomerId: orgId,
+                description: `Org ${orgId} – BakedBot subscription`,
+                email: body.customer?.email,
+                paymentProfiles: [{
+                    billTo: { firstName: body.customer?.fullName, company: body.customer?.company, zip: body.customer?.zip },
+                    payment: { opaqueData: { dataDescriptor: body.opaqueData.dataDescriptor, dataValue: body.opaqueData.dataValue } },
+                }],
             },
-          ],
+            validationMode: (process.env.AUTHNET_ENV || "sandbox").toLowerCase() === "production" ? "liveMode" : "testMode",
         },
-        validationMode:
-          (process.env.AUTHNET_ENV || "sandbox").toLowerCase() === "production"
-            ? "liveMode"
-            : "testMode",
-      },
     };
 
-    const profileResp = await fetch(baseUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(customerProfilePayload),
-    });
-
+    const profileResp = await fetch(baseUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(customerProfilePayload) });
     const profileJson: any = await profileResp.json().catch(() => null);
 
     if (profileJson?.messages?.resultCode !== "Ok") {
-      console.error("Authorize.Net profile creation failed", profileJson);
-      return NextResponse.json(
-        { error: "Failed to create customer profile with Authorize.Net" },
-        { status: 502 }
-      );
+        console.error("Authorize.Net profile creation failed", profileJson);
+        await emitEvent({ orgId, type: 'subscription.failed', agent: 'money_mike', data: { stage: "profile_creation", planId, amount, response: profileJson }});
+        return NextResponse.json({ error: "Failed to create customer profile with Authorize.Net" }, { status: 502 });
     }
 
     const customerProfileId = profileJson.customerProfileId;
-    const customerPaymentProfileId =
-      profileJson.customerPaymentProfileIdList?.[0] ??
-      profileJson.customerPaymentProfileIdList?.customerPaymentProfileId;
+    const customerPaymentProfileId = profileJson.customerPaymentProfileIdList?.[0] ?? profileJson.customerPaymentProfileIdList?.customerPaymentProfileId;
 
     if (!customerProfileId || !customerPaymentProfileId) {
-      console.error("Missing profile IDs from Authorize.Net", profileJson);
-      return NextResponse.json(
-        { error: "Payment profile missing from Authorize.Net response" },
-        { status: 502 }
-      );
+        console.error("Missing profile IDs from Authorize.Net", profileJson);
+        return NextResponse.json({ error: "Payment profile missing from Authorize.Net response" }, { status: 502 });
     }
 
-    // Step 2: ARB subscription
     const today = new Date();
     const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
     const startDateStr = startDate.toISOString().slice(0, 10);
-
     const subscriptionName = `BakedBot – ${plan.name} – Org ${orgId}`;
 
     const createSubPayload = {
       ARBCreateSubscriptionRequest: {
-        merchantAuthentication: {
-          name: apiLoginId,
-          transactionKey,
-        },
+        merchantAuthentication: { name: apiLoginId, transactionKey },
         subscription: {
           name: subscriptionName,
-          paymentSchedule: {
-            interval: {
-              length: 1,
-              unit: "months",
-            },
-            startDate: startDateStr,
-            totalOccurrences: 9999,
-          },
+          paymentSchedule: { interval: { length: 1, unit: "months" }, startDate: startDateStr, totalOccurrences: 9999 },
           amount,
           trialAmount: 0,
-          profile: {
-            customerProfileId,
-            customerPaymentProfileId,
-          },
-          customer: {
-            id: orgId,
-            email: body.customer?.email,
-          },
+          profile: { customerProfileId, customerPaymentProfileId },
+          customer: { id: orgId, email: body.customer?.email },
         },
       },
     };
 
-    const subResp = await fetch(baseUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(createSubPayload),
-    });
-
+    const subResp = await fetch(baseUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(createSubPayload) });
     const subJson: any = await subResp.json().catch(() => null);
 
     if (subJson?.messages?.resultCode !== "Ok") {
       console.error("Authorize.Net subscription creation failed", subJson);
-      return NextResponse.json(
-        { error: "Failed to create subscription with Authorize.Net" },
-        { status: 502 }
-      );
+      await emitEvent({ orgId, type: 'subscription.failed', agent: 'money_mike', data: { stage: "subscription_creation", planId, amount, response: subJson }});
+      return NextResponse.json({ error: "Failed to create subscription with Authorize.Net" }, { status: 502 });
     }
 
     const providerSubscriptionId = subJson.subscriptionId;
-
-     const subDoc = {
-      planId,
-      locationCount: body.locationCount,
-      amount,
-      provider: "authorizenet",
-      providerSubscriptionId,
-      customerProfileId,
-      customerPaymentProfileId,
-      status: "active",
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+    const subDoc = {
+      planId, locationCount: body.locationCount, amount, provider: "authorizenet",
+      providerSubscriptionId, customerProfileId, customerPaymentProfileId, status: "active",
+      createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
     };
 
     await subscriptionRef.set(subDoc, { merge: true });
-    
-    const historyDoc = {
-      ...subDoc,
-      event: "plan_changed",
-      reason: "user_subscribed",
-      at: FieldValue.serverTimestamp(),
-    };
-    await historyRef.set(historyDoc);
+    await historyRef.set({ ...subDoc, event: "plan_changed", reason: "user_subscribed", at: FieldValue.serverTimestamp() });
 
-    await emitEvent(orgId, 'subscription.updated', 'system', historyDoc, providerSubscriptionId);
-    await emitEvent(orgId, 'subscription.paymentAuthorized', 'system', subJson, providerSubscriptionId);
+    await emitEvent({ orgId, type: 'subscription.paymentAuthorized', agent: 'money_mike', refId: subscriptionRef.id, data: { planId, amount, providerSubscriptionId }});
+    await emitEvent({ orgId, type: 'subscription.updated', agent: 'money_mike', refId: subscriptionRef.id, data: subDoc });
 
-
-    return NextResponse.json({
-      success: true,
-      free: false,
-      planId,
-      amount,
-      providerSubscriptionId,
-      customerProfileId,
-      customerPaymentProfileId,
-    });
+    return NextResponse.json({ success: true, free: false, planId, amount, providerSubscriptionId, customerProfileId, customerPaymentProfileId });
   } catch (err: any) {
     console.error("authorize-net:subscription_error", err);
-    return NextResponse.json(
-      { error: err?.message || "Unexpected error creating subscription" },
-      { status: 500 }
-    );
+    if (body?.organizationId) {
+      await emitEvent({ orgId: body.organizationId, type: 'subscription.failed', agent: 'money_mike', data: { error: err?.message || String(err), planId: body.planId }});
+    }
+    return NextResponse.json({ error: err?.message || "Unexpected error creating subscription" }, { status: 500 });
   }
 }

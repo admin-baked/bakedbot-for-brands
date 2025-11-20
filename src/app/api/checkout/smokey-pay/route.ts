@@ -1,7 +1,8 @@
+
 // src/app/api/checkout/smokey-pay/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/firebase/server-client";
-import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { emitEvent } from "@/server/events/emitter";
 
 type CheckoutItem = {
@@ -33,9 +34,10 @@ interface SmokeyPayBody {
 
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
+  let body: SmokeyPayBody | null = null;
 
   try {
-    const body = (await req.json()) as SmokeyPayBody;
+    body = (await req.json()) as SmokeyPayBody;
 
     if (
       !body.organizationId ||
@@ -52,16 +54,17 @@ export async function POST(req: NextRequest) {
     }
 
     const currency = body.currency || "USD";
+    const orgId = body.organizationId;
 
     // 1) Create order doc in Firestore (pending)
     const orderRef = db
       .collection("organizations")
-      .doc(body.organizationId)
+      .doc(orgId)
       .collection("orders")
       .doc();
 
     const orderData = {
-      brandId: body.organizationId,
+      brandId: orgId,
       dispensaryId: body.dispensaryId,
       customerId: body.customer.uid || null,
       customerEmail: body.customer.email,
@@ -76,25 +79,23 @@ export async function POST(req: NextRequest) {
         unitPrice: i.unitPrice,
         subtotal: i.quantity * i.unitPrice,
       })),
-      subtotal: body.subtotal,
-      tax: body.tax,
-      fees: body.fees,
-      total: body.total,
-      currency,
-      paymentProvider: "cannpay",
-      paymentIntentId: null,
-      paymentStatus: "pending",
-      fulfillmentType: "pickup",
-      pickupLocationId: body.pickupLocationId,
-      pickupEtaMinutes: null,
-      status: "pending",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      subtotal: body.subtotal, tax: body.tax, fees: body.fees, total: body.total,
+      currency, paymentProvider: "cannpay", paymentIntentId: null, paymentStatus: "pending",
+      fulfillmentType: "pickup", pickupLocationId: body.pickupLocationId, pickupEtaMinutes: null,
+      status: "pending", createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
     };
 
     await orderRef.set(orderData);
-    await emitEvent(body.organizationId, 'checkout.started', 'system', orderData, orderRef.id);
-
+    await emitEvent({
+      orgId,
+      type: "checkout.started",
+      agent: "smokey",
+      refId: orderRef.id,
+      data: {
+        total: body.total, currency, dispensaryId: body.dispensaryId,
+        pickupLocationId: body.pickupLocationId, itemCount: body.items.length,
+      },
+    });
 
     // 2) Call CannPay to create a payment intent
     const appKey = process.env.CANPAY_APP_KEY;
@@ -105,28 +106,14 @@ export async function POST(req: NextRequest) {
 
     if (!appKey || !apiSecret || !integratorId) {
       console.error("CannPay config missing");
-      return NextResponse.json(
-        { error: "Smokey Pay is not configured on the server." },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Smokey Pay is not configured on the server." }, { status: 500 });
     }
 
     const intentPayload = {
-      amount: body.total,
-      currency,
-      order_id: orderRef.id,
-      brand_id: body.organizationId,
-      dispensary_id: body.dispensaryId,
-      integrator_id: integratorId,
-      internal_version: internalVersion,
-      customer: {
-        email: body.customer.email,
-        name: body.customer.name,
-        phone: body.customer.phone,
-      },
-      metadata: {
-        pickup_location_id: body.pickupLocationId,
-      },
+      amount: body.total, currency, order_id: orderRef.id, brand_id: orgId,
+      dispensary_id: body.dispensaryId, integrator_id: integratorId, internal_version: internalVersion,
+      customer: { email: body.customer.email, name: body.customer.name, phone: body.customer.phone },
+      metadata: { pickup_location_id: body.pickupLocationId },
       redirect_urls: {
         success: `${process.env.APP_BASE_URL}/order-confirmation/${orderRef.id}`,
         cancel: `${process.env.APP_BASE_URL}/checkout?canceled=1`,
@@ -135,11 +122,7 @@ export async function POST(req: NextRequest) {
 
     const resp = await fetch(`${baseUrl}/integrator/authorize`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-APP-KEY": appKey,
-        "X-API-SECRET": apiSecret, // or HMAC signature in real implementation
-      },
+      headers: { "Content-Type": "application/json", "X-APP-KEY": appKey, "X-API-SECRET": apiSecret },
       body: JSON.stringify(intentPayload),
     });
 
@@ -147,45 +130,24 @@ export async function POST(req: NextRequest) {
 
     if (!resp.ok || !json?.data?.intent_id) {
       console.error("CannPay authorize failed", json);
-      await orderRef.update({
-        paymentStatus: "failed",
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-
-      return NextResponse.json(
-        { error: "Failed to create Smokey Pay intent." },
-        { status: 502 }
-      );
+      await orderRef.update({ paymentStatus: "failed", updatedAt: FieldValue.serverTimestamp() });
+      await emitEvent({ orgId, type: 'checkout.failed', agent: 'smokey', refId: orderRef.id, data: { reason: "cannpay_authorize_failed", response: json }});
+      return NextResponse.json({ error: "Failed to create Smokey Pay intent." }, { status: 502 });
     }
 
     const intentId = json.data.intent_id;
     const checkoutUrl = json.data.checkout_url || null;
 
-    // 3) Update order with intent info and emit event
-    await orderRef.update({
-      paymentIntentId: intentId,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    await orderRef.update({ paymentIntentId: intentId, updatedAt: FieldValue.serverTimestamp() });
     
-    await emitEvent(body.organizationId, 'checkout.intentCreated', 'smokey', {
-      orderId: orderRef.id,
-      intentId,
-      checkoutUrl,
-      amount: body.total
-    }, orderRef.id);
+    await emitEvent({ orgId, type: 'checkout.intentCreated', agent: 'smokey', refId: orderRef.id, data: { intentId, checkoutUrl, total: body.total }});
 
-
-    return NextResponse.json({
-      success: true,
-      orderId: orderRef.id,
-      intentId,
-      checkoutUrl,
-    });
+    return NextResponse.json({ success: true, orderId: orderRef.id, intentId, checkoutUrl });
   } catch (err: any) {
     console.error("smokey-pay:checkout_error", err);
-    return NextResponse.json(
-      { error: err?.message || "Unexpected error creating Smokey Pay checkout" },
-      { status: 500 }
-    );
+    if (body?.organizationId) {
+        await emitEvent({ orgId: body.organizationId, type: 'checkout.failed', agent: 'smokey', data: { error: err?.message || String(err) }});
+    }
+    return NextResponse.json({ error: err?.message || "Unexpected error creating Smokey Pay checkout" }, { status: 500 });
   }
 }
