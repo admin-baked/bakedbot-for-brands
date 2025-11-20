@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/server/auth/auth';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 const ProductSchema = z.object({
   id: z.string().optional(),

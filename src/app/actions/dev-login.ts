@@ -3,6 +3,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { devPersonas, type DevPersonaKey } from '@/lib/dev-personas';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 /**
  * A DEVELOPMENT-ONLY server action to generate a custom Firebase auth token for a given persona.
