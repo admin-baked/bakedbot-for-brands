@@ -79,7 +79,7 @@ export function makeBrandRepo(db: Firestore) {
                 const newKey = prefix ? `${prefix}.${key}` : key;
                 if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof FieldValue)) {
                     flattenObject(value, newKey);
-                } else {
+                } else if (value !== undefined) { // Ensure undefined values aren't sent
                     updatePayload[newKey] = value;
                 }
             });
