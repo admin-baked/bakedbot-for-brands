@@ -52,11 +52,8 @@ export async function POST(req: NextRequest) {
         break;
       case "failed":
       case "declined":
-        paymentStatus = "failed";
-        orderStatus = "canceled";
-        break;
       case "canceled":
-        paymentStatus = "canceled";
+        paymentStatus = status;
         orderStatus = "canceled";
         break;
       default:
