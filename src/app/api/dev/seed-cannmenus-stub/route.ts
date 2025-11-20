@@ -63,7 +63,7 @@ const stubRetailers: RetailerDoc[] = [
       lng: -87.6216,
     },
     phone: "(312) 555-0111",
-    website: "https://greenplanet.example.com",
+    homepage_url: "https://greenplanet.example.com",
     carriesBrands: ["jeeter-demo", "stiiizy-demo"],
   },
   {
@@ -81,7 +81,7 @@ const stubRetailers: RetailerDoc[] = [
       lng: -83.0469,
     },
     phone: "(313) 555-0199",
-    website: "https://motorcityremedies.example.com",
+    homepage_url: "https://motorcityremedies.example.com",
     carriesBrands: ["jeeter-demo"],
   },
 ];
@@ -89,8 +89,8 @@ const stubRetailers: RetailerDoc[] = [
 const stubProducts: ProductDoc[] = [
   {
     id: "jeeter-gelato-1g-preroll",
+    brand_id: "jeeter-demo",
     brandId: "jeeter-demo",
-    brandSlug: "jeeter",
     name: "Jeeter Gelato Infused Pre-roll 1g",
     category: "Pre-rolls",
     strainType: "Hybrid",
@@ -104,8 +104,8 @@ const stubProducts: ProductDoc[] = [
   },
   {
     id: "jeeter-strawberry-shortcake-5pk",
+    brand_id: "jeeter-demo",
     brandId: "jeeter-demo",
-    brandSlug: "jeeter",
     name: "Jeeter Strawberry Shortcake Infused 5-Pack",
     category: "Pre-rolls",
     strainType: "Hybrid",
@@ -119,8 +119,8 @@ const stubProducts: ProductDoc[] = [
   },
   {
     id: "stiiizy-king-louis-pod-1g",
+    brand_id: "stiiizy-demo",
     brandId: "stiiizy-demo",
-    brandSlug: "stiiizy",
     name: "STIIIZY King Louis XIII Pod 1g",
     category: "Vapes",
     strainType: "Indica",
@@ -134,8 +134,8 @@ const stubProducts: ProductDoc[] = [
   },
   {
     id: "stiiizy-og-kush-flower-3.5",
+    brand_id: "stiiizy-demo",
     brandId: "stiiizy-demo",
-    brandSlug: "stiiizy",
     name: "STIIIZY OG Kush Flower 3.5g",
     category: "Flower",
     strainType: "Hybrid",
