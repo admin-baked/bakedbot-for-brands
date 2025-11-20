@@ -20,7 +20,6 @@ export interface StoreState {
   favoriteRetailerId: string | null;
   chatExperience: 'default' | 'classic';
   isCeoMode: boolean; // Not persisted
-  isDemo: boolean; // Not persisted
 
   // Actions
   setHasHydrated: (hydrated: boolean) => void;
@@ -31,7 +30,6 @@ export interface StoreState {
   setFavoriteRetailerId: (id: string | null) => void;
   setChatExperience: (experience: 'default' | 'classic') => void;
   setIsCeoMode: (isCeo: boolean) => void;
-  setIsDemo: (isDemo: boolean) => void;
   
   // Cart Actions
   addToCart: (product: Product, retailerId?: string | null) => void;
@@ -57,7 +55,6 @@ export const useStore = create<StoreState>()(
       favoriteRetailerId: null,
       chatExperience: 'default',
       isCeoMode: false,
-      isDemo: false, // Start with isDemo as false
 
       // Actions
       setHasHydrated: (hydrated: boolean) => set({ _hasHydrated: hydrated }),
@@ -68,7 +65,6 @@ export const useStore = create<StoreState>()(
       setFavoriteRetailerId: (id) => set({ favoriteRetailerId: id }),
       setChatExperience: (experience) => set({ chatExperience: experience }),
       setIsCeoMode: (isCeo) => set({ isCeoMode: isCeo }),
-      setIsDemo: (isDemo) => set({ isDemo }),
       
       // Cart Actions
       addToCart: (product, retailerId) =>

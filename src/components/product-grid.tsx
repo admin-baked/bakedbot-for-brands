@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Database } from 'lucide-react';
 import Link from 'next/link';
 import type { Product } from '@/types/domain';
-import { useStore } from '@/hooks/use-store';
+import { useDemoMode } from '@/context/demo-mode';
 
 const ProductSkeleton = () => (
     <div className="bg-card rounded-lg shadow-lg overflow-hidden border">
@@ -33,7 +33,7 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ products, isLoading }: ProductGridProps) {
-  const { isDemo } = useStore();
+  const { isDemo } = useDemoMode();
   
   if (isLoading) {
     return (
@@ -53,13 +53,13 @@ export function ProductGrid({ products, isLoading }: ProductGridProps) {
         <p className="mt-2 text-sm text-muted-foreground">
             {isDemo 
                 ? "There are no products in the demo data set."
-                : "Your live product catalog is empty."
+                : "This brand's live product catalog appears to be empty."
             }
         </p>
          <p className="mt-1 text-sm text-muted-foreground">
              {isDemo
-                ? "Check your demo data source."
-                : <>You can switch to Demo Mode or <Link href="/dashboard/settings#data" className="text-primary underline">import your products</Link> in the dashboard.</>
+                ? "You can import products in the Admin Console."
+                : <>Brand managers can add products in the <Link href="/dashboard/products" className="text-primary underline">dashboard</Link>.</>
             }
         </p>
       </div>
