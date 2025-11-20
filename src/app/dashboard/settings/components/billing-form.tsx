@@ -1,0 +1,297 @@
+
+// src/app/dashboard/settings/components/billing-form.tsx
+"use client";
+
+import { useState, useMemo } from "react";
+import { PLANS, PlanId, computeMonthlyAmount } from "@/lib/plans";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+
+type BillingFormProps = {
+  organizationId: string;
+  locationCount: number;
+  customerEmail?: string;
+  customerName?: string;
+  customerCompany?: string;
+  customerZip?: string;
+};
+
+declare global {
+  interface Window {
+    Accept: any; // Authorize.Net Accept.js global
+  }
+}
+
+export function BillingForm(props: BillingFormProps) {
+  const { organizationId, locationCount } = props;
+  const { toast } = useToast();
+
+  const [planId, setPlanId] = useState<PlanId>("free");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const amount = useMemo(() => {
+    try {
+      if (planId === "enterprise") return 0;
+      return computeMonthlyAmount(planId, locationCount);
+    } catch {
+      return 0;
+    }
+  }, [planId, locationCount]);
+
+  // Basic card form; in production you might use Accept Hosted instead
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState(""); // MMYY
+  const [cvv, setCvv] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (planId === "enterprise") {
+      toast({
+        title: "Enterprise plan",
+        description: "We’ll contact you to finalize an enterprise agreement.",
+      });
+      return;
+    }
+
+    if (amount === 0) {
+      // Hit the API to register free plan, no card
+      setIsSubmitting(true);
+      try {
+        const resp = await fetch("/api/billing/authorize-net", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            organizationId,
+            planId,
+            locationCount,
+          }),
+        });
+
+        const json = await resp.json();
+
+        if (!resp.ok || !json.success) {
+          throw new Error(json.error || "Failed to activate free plan");
+        }
+
+        toast({
+          title: "Free plan activated",
+          description: "You’re now on the Free plan.",
+        });
+
+        // TODO: refresh subscription state from Firestore
+      } catch (err: any) {
+        toast({
+          title: "Error",
+          description: err?.message || "Failed to update plan",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+
+      return;
+    }
+
+    // Paid plans require card + Accept.js
+    if (!window.Accept) {
+      toast({
+        title: "Payment library not loaded",
+        description: "Please wait a moment and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!cardNumber || !expiry || !cvv) {
+      toast({
+        title: "Missing card details",
+        description: "Enter your card number, expiry, and CVV.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const [expMonth, expYear] = [expiry.slice(0, 2), expiry.slice(2)];
+
+    const authData = {
+      clientKey: process.env.NEXT_PUBLIC_AUTHNET_CLIENT_KEY,
+      apiLoginID: process.env.NEXT_PUBLIC_AUTHNET_API_LOGIN_ID,
+    };
+
+    const cardData = {
+      cardNumber,
+      month: expMonth,
+      year: expYear,
+      cardCode: cvv,
+    };
+
+    setIsSubmitting(true);
+
+    window.Accept.dispatchData(
+      { authData, cardData },
+      async (response: any) => {
+        if (response.messages.resultCode === "Error") {
+          console.error("Accept.js error", response);
+          setIsSubmitting(false);
+          toast({
+            title: "Card error",
+            description: response.messages.message[0]?.text || "Payment error",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const opaqueData = response.opaqueData;
+
+        try {
+          const resp = await fetch("/api/billing/authorize-net", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              organizationId,
+              planId,
+              locationCount,
+              opaqueData,
+              customer: {
+                fullName: props.customerName,
+                email: props.customerEmail,
+                company: props.customerCompany,
+                zip: props.customerZip,
+              },
+            }),
+          });
+
+          const json = await resp.json();
+
+          if (!resp.ok || !json.success) {
+            throw new Error(json.error || "Subscription setup failed");
+          }
+
+          toast({
+            title: "Subscription active",
+            description: `You’re now on the ${PLANS[planId].name} plan – $${amount}/month.`,
+          });
+
+          // TODO: after Firestore save, re-fetch subscription info
+        } catch (err: any) {
+          toast({
+            title: "Error",
+            description: err?.message || "Failed to create subscription",
+            variant: "destructive",
+          });
+        } finally {
+          setIsSubmitting(false);
+        }
+      }
+    );
+  }
+
+  return (
+    <Card className="p-6 space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold">Billing & Subscription</h2>
+        <p className="text-sm text-muted-foreground">
+          Choose your plan based on active locations. Authorize.Net handles the monthly billing.
+        </p>
+      </div>
+
+      <form className="space-y-6" onSubmit={handleSubmit}>
+        <div className="space-y-3">
+          <Label className="text-sm">Choose your plan</Label>
+          <RadioGroup value={planId} onValueChange={(v) => setPlanId(v as PlanId)}>
+            {Object.values(PLANS).map((plan) => (
+              <div
+                key={plan.id}
+                className="flex items-center justify-between rounded-lg border p-3 space-x-3"
+              >
+                <div className="flex items-center space-x-3">
+                  <RadioGroupItem value={plan.id} id={`plan-${plan.id}`} />
+                  <div>
+                    <Label htmlFor={`plan-${plan.id}`} className="font-medium">
+                      {plan.name}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">{plan.description}</p>
+                  </div>
+                </div>
+                {plan.id !== "enterprise" && (
+                  <div className="text-right">
+                    <div className="text-sm font-semibold">
+                      ${computeMonthlyAmount(plan.id, locationCount).toFixed(2)}/mo
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {plan.includedLocations} locations included
+                      {plan.extraPerLocation
+                        ? `, $${plan.extraPerLocation}/mo each extra`
+                        : ""}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </RadioGroup>
+        </div>
+
+        {planId !== "free" && planId !== "enterprise" && (
+          <div className="space-y-4">
+            <Label className="text-sm">Payment details</Label>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="cardNumber">Card number</Label>
+                <Input
+                  id="cardNumber"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                  placeholder="4111 1111 1111 1111"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="expiry">Expiry (MMYY)</Label>
+                <Input
+                  id="expiry"
+                  value={expiry}
+                  onChange={(e) => setExpiry(e.target.value.replace(/\D/g, ""))}
+                  maxLength={4}
+                  placeholder="0527"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="cvv">CVV</Label>
+                <Input
+                  id="cvv"
+                  type="password"
+                  value={cvv}
+                  onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
+                  maxLength={4}
+                  placeholder="123"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Active locations: <span className="font-semibold">{locationCount}</span>
+            {planId !== "enterprise" && (
+              <>
+                <br />
+                Billed monthly:{" "}
+                <span className="font-semibold">
+                  ${amount.toFixed(2)}
+                </span>
+              </>
+            )}
+          </div>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Processing..." : "Update subscription"}
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
