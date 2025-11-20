@@ -1,3 +1,4 @@
+
 // src/app/api/cannmenus/semantic-search/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
