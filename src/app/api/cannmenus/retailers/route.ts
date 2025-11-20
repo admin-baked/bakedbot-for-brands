@@ -1,3 +1,4 @@
+
 // src/app/api/cannmenus/retailers/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
@@ -6,7 +7,9 @@ const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
 
 export async function GET(req: NextRequest) {
   const search = req.nextUrl.searchParams.get("search") ?? "";
+  const brandId = req.nextUrl.searchParams.get("brandId") ?? "";
 
+  // ===== STUB MODE =====
   if (!CANNMENUS_API_BASE || !CANNMENUS_API_KEY) {
     const allRetailers = [
       {
@@ -48,18 +51,23 @@ export async function GET(req: NextRequest) {
     ];
 
     const normalizedQuery = search.trim().toLowerCase();
-    const items = normalizedQuery
-      ? allRetailers.filter((r) =>
-          `${r.name} ${r.slug} ${r.address.city} ${r.address.state}`
-            .toLowerCase()
-            .includes(normalizedQuery)
-        )
-      : allRetailers;
+
+    let items = allRetailers;
+
+    if (brandId) {
+      items = items.filter((r) => r.carriesBrands.includes(brandId));
+    } else if (normalizedQuery) {
+      items = items.filter((r) =>
+        `${r.name} ${r.slug} ${r.address.city} ${r.address.state}`
+          .toLowerCase()
+          .includes(normalizedQuery)
+      );
+    }
 
     return NextResponse.json(
       {
         source: "next-api:cannmenus:retailers (stub)",
-        query: search,
+        query: { search, brandId },
         items,
         warning:
           "Using in-memory stub data because CANNMENUS_API_BASE / CANNMENUS_API_KEY are not configured.",
@@ -68,11 +76,11 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // ===== REAL MODE (for later) =====
   try {
     const url = new URL("/retailers", CANNMENUS_API_BASE);
-    if (search.trim()) {
-      url.searchParams.set("search", search.trim());
-    }
+    if (search.trim()) url.searchParams.set("search", search.trim());
+    if (brandId.trim()) url.searchParams.set("brandId", brandId.trim());
 
     const upstreamRes = await fetch(url.toString(), {
       method: "GET",
