@@ -1,4 +1,3 @@
-
 // src/server/agents/moneyMike.ts
 import { createServerClient } from "@/firebase/server-client";
 import { EventType } from "@/types/domain";

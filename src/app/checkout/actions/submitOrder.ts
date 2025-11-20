@@ -88,8 +88,8 @@ export async function submitOrder(clientPayload: ClientOrderInput) {
             redirect(json.checkoutUrl);
           }
         
-          // Otherwise, the frontend will handle the intent. Redirect to our confirmation page.
-          return { ok: true, orderId: json.orderId, userId };
+          // Fallback redirect to our confirmation page.
+          redirect(`/order-confirmation/${json.orderId}`);
 
     } catch(e: any) {
         console.error("ORDER_SUBMISSION_FAILED:", e);
