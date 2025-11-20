@@ -1,18 +1,22 @@
 
 'use client';
 
-import { Skeleton } from '@/components/ui/skeleton';
 import { HeroSlider } from '@/components/hero-slider';
 import DispensaryLocator from '@/components/dispensary-locator';
 import { ProductGrid } from '@/components/product-grid';
 import RecentReviewsFeed from '@/components/recent-reviews-feed';
 import { FloatingCartPill } from '@/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
-import { useHydrated } from '@/hooks/use-hydrated';
 import { useMenuData } from '@/app/menu/menu-layout-client';
 import { useStore } from '@/hooks/use-store';
 import { ProductCarousel } from '@/components/product-carousel';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useHydrated } from '@/hooks/use-hydrated';
 
+
+/**
+ * This component renders the tiled/carousel-based menu layout.
+ */
 function TiledMenuPageContents() {
   const { products, featuredProducts, reviews, brandId, locations } = useMenuData();
   const hydrated = useHydrated();
@@ -28,17 +32,7 @@ function TiledMenuPageContents() {
   }, {} as Record<string, typeof products>);
 
   if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 space-y-12 py-8">
-        <Skeleton className="w-full h-80 rounded-lg" />
-        <Skeleton className="w-full h-48 rounded-lg" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => (
-            <Skeleton key={i} className="h-96 w-full" />
-          ))}
-        </div>
-      </div>
-    );
+    return <MenuPageSkeleton />;
   }
 
   return (
@@ -61,33 +55,21 @@ function TiledMenuPageContents() {
   );
 }
 
-
-export default function MenuPageContents() {
+/**
+ * The main client component that decides which menu layout to render.
+ */
+export default function MenuPageClient({ brandId }: { brandId: string }) {
   const hydrated = useHydrated();
-  const { products, locations, reviews, featuredProducts, brandId } = useMenuData();
+  const { products, locations, reviews, featuredProducts } = useMenuData();
   const { menuStyle } = useStore();
-
   const isLoading = !hydrated;
 
-  // Render tiled layout if selected
   if (hydrated && menuStyle === 'alt') {
-    return (
-        <TiledMenuPageContents />
-    );
+    return <TiledMenuPageContents />;
   }
 
   if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 space-y-12 py-8">
-        <Skeleton className="w-full h-80 rounded-lg" />
-        <Skeleton className="w-full h-48 rounded-lg" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => (
-            <Skeleton key={i} className="h-96 w-full" />
-          ))}
-        </div>
-      </div>
-    );
+    return <MenuPageSkeleton />;
   }
   
   return (
@@ -102,4 +84,22 @@ export default function MenuPageContents() {
       <Chatbot products={featuredProducts} brandId={brandId} />
     </>
   );
+}
+
+
+/**
+ * A shared skeleton component for loading states.
+ */
+function MenuPageSkeleton() {
+    return (
+      <div className="container mx-auto px-4 space-y-12 py-8">
+        <Skeleton className="w-full h-80 rounded-lg" />
+        <Skeleton className="w-full h-48 rounded-lg" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <Skeleton key={i} className="h-96 w-full" />
+          ))}
+        </div>
+      </div>
+    );
 }
