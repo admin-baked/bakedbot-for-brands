@@ -1,3 +1,4 @@
+
 // src/app/api/cannmenus/brands/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
@@ -7,15 +8,14 @@ const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
 export async function GET(req: NextRequest) {
   const search = req.nextUrl.searchParams.get("search") ?? "";
 
-  // If not configured yet, return a stub so the dev console still works
+  // ===== STUB MODE: no CannMenus config yet =====
   if (!CANNMENUS_API_BASE || !CANNMENUS_API_KEY) {
-    // Simple in-memory stub brands
     const allBrands = [
       {
         id: "jeeter-demo",
-        name: "Jeeter",
         slug: "jeeter",
-        description: "Iconic infused pre-rolls and cannabis products.",
+        name: "Jeeter",
+        description: "Iconic infused pre-rolls and other cannabis products.",
         logoUrl:
           "https://images.unsplash.com/photo-1513639725746-c5d3e861f32a?auto=format&fit=crop&w=400&q=80",
         heroImageUrl:
@@ -29,8 +29,8 @@ export async function GET(req: NextRequest) {
       },
       {
         id: "stiiizy-demo",
-        name: "STIIIZY",
         slug: "stiiizy",
+        name: "STIIIZY",
         description: "Pods, flower, and more from STIIIZY.",
         logoUrl:
           "https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&w=400&q=80",
@@ -45,12 +45,10 @@ export async function GET(req: NextRequest) {
       },
     ];
 
-    const normalizedQuery = search.trim().toLowerCase();
-    const items = normalizedQuery
+    const normalized = search.trim().toLowerCase();
+    const items = normalized
       ? allBrands.filter((b) =>
-          `${b.name} ${b.slug}`
-            .toLowerCase()
-            .includes(normalizedQuery)
+          `${b.name} ${b.slug}`.toLowerCase().includes(normalized)
         )
       : allBrands;
 
@@ -66,11 +64,10 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // ===== REAL MODE: talk to CannMenus once configured =====
   try {
     const url = new URL("/brands", CANNMENUS_API_BASE);
-    if (search.trim()) {
-      url.searchParams.set("search", search.trim());
-    }
+    if (search.trim()) url.searchParams.set("search", search.trim());
 
     const upstreamRes = await fetch(url.toString(), {
       method: "GET",
@@ -100,7 +97,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: json?.error ?? `CannMenus error (status ${upstreamRes.status})`,
+          error:
+            json?.error ?? `CannMenus error (status ${upstreamRes.status})`,
           data: json,
         },
         { status: upstreamRes.status }
@@ -112,7 +110,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: err?.message ?? "Unknown error talking to CannMenus brands API",
+        error:
+          err?.message ?? "Unknown error talking to CannMenus brands API",
       },
       { status: 500 }
     );
