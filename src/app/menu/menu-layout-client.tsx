@@ -2,7 +2,7 @@
 'use client';
 
 import { useHydrated } from '@/hooks/use-hydrated';
-import { useStore } from '@/hooks/use-store';
+import { useDemoMode } from '@/context/demo-mode';
 import { useEffect } from 'react';
 import type { Product, Retailer, Review } from '@/types/domain';
 
@@ -38,7 +38,7 @@ export const useMenuData = () => {
  * with the cookie-based store.
  */
 export default function MenuLayoutClient({ children, initialData }: { children: React.ReactNode, initialData: MenuData }) {
-  const { setIsDemo } = useStore();
+  const { setIsDemo } = useDemoMode();
   const hydrated = useHydrated();
 
   // Effect to sync the server-determined demo status with the client-side cookie store.
