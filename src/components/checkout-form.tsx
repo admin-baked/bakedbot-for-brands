@@ -49,9 +49,10 @@ type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 interface CheckoutFormProps {
   onOrderSuccess: (orderId: string, userId?: string) => void;
   selectedRetailer: Retailer;
+  couponCode?: string;
 }
 
-export function CheckoutForm({ onOrderSuccess, selectedRetailer }: CheckoutFormProps) {
+export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: CheckoutFormProps) {
   const { user } = useUser();
   const { cartItems } = useStore();
   const [isPending, startTransition] = useTransition();
@@ -87,8 +88,6 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer }: CheckoutFormP
     }
     
     startTransition(async () => {
-      // The client now sends a much simpler, more secure payload.
-      // It only sends the product ID and quantity. No prices or totals.
       const orderInput: ClientOrderInput = {
         items: cartItems.map(item => ({
             productId: item.id,
@@ -99,6 +98,7 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer }: CheckoutFormP
             email: data.customerEmail
         },
         retailerId: selectedRetailer.id,
+        couponCode: couponCode || undefined,
       };
 
       try {

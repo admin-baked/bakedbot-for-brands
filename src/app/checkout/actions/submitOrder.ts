@@ -8,12 +8,13 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { sendOrderEmail } from '@/lib/email/send-order-email';
 import type { Retailer, Product } from '@/firebase/converters';
 import { makeProductRepo } from '@/server/repos/productRepo';
-
+import { applyCoupon } from './applyCoupon';
 
 export interface ClientOrderInput {
     items: { productId: string; qty: number }[];
     customer: { name: string; email: string; };
     retailerId: string;
+    couponCode?: string; // Coupon code is optional
 }
 
 export interface ServerOrderPayload {
@@ -25,8 +26,17 @@ export interface ServerOrderPayload {
     }>;
     customer: { name: string; email: string };
     retailerId: string;
-    brandId: string; // Added brandId
-    totals: { subtotal: number; tax: number; total: number };
+    brandId: string;
+    totals: {
+        subtotal: number;
+        tax: number;
+        discount: number;
+        total: number;
+    };
+    coupon?: {
+        code: string;
+        discount: number;
+    };
 }
 
 export async function submitOrder(clientPayload: ClientOrderInput) {
@@ -67,14 +77,11 @@ export async function submitOrder(clientPayload: ClientOrderInput) {
             throw new Error('No valid products found for the items in the cart.');
         }
 
-        // Determine the brandId from the first product in the cart.
-        // This assumes all items in a single order belong to the same brand.
         const firstProduct = productsById.get(clientPayload.items[0].productId);
         if (!firstProduct) {
              throw new Error('Could not identify product to determine brand.');
         }
         const brandId = firstProduct.brandId;
-
 
         let subtotal = 0;
         const finalItems = clientPayload.items.map(item => {
@@ -94,25 +101,48 @@ export async function submitOrder(clientPayload: ClientOrderInput) {
                 price: price,
             };
         });
+        
+        let discount = 0;
+        let couponResult;
+        if (clientPayload.couponCode) {
+            couponResult = await applyCoupon(clientPayload.couponCode, { subtotal, brandId });
+            if (couponResult.success) {
+                discount = couponResult.discountAmount;
+            } else {
+                // Return an error to the client if the coupon is invalid
+                return { ok: false, error: couponResult.message };
+            }
+        }
 
-        const tax = subtotal * 0.15;
-        const total = subtotal + tax;
+        const totalBeforeTax = subtotal - discount;
+        const tax = totalBeforeTax * 0.15;
+        const total = totalBeforeTax + tax;
 
         const serverPayload: ServerOrderPayload = {
             ...clientPayload,
-            brandId, // Include brandId in the payload
+            brandId,
             items: finalItems,
-            totals: { subtotal, tax, total },
+            totals: { subtotal, tax, discount, total },
+            ...(couponResult?.success && {
+                coupon: { code: couponResult.code, discount: couponResult.discountAmount }
+            })
         };
         
         const orderRef = firestore.collection('orders').doc();
-        await orderRef.set({
+        
+        const orderData = {
             ...serverPayload,
             userId,
             createdAt: FieldValue.serverTimestamp(),
-            status: 'submitted',
-            mode: clientPayload.items.some(item => item.productId.startsWith('demo-')) ? 'demo' : 'live',
-        });
+            status: 'submitted' as const,
+            mode: clientPayload.items.some(item => item.productId.startsWith('demo-')) ? 'demo' as const : 'live' as const,
+        };
+        // Remove undefined coupon field if it exists
+        if (!orderData.coupon) {
+            delete (orderData as any).coupon;
+        }
+
+        await orderRef.set(orderData);
         
         await Promise.all([
              sendOrderEmail({
