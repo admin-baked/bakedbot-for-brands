@@ -19,12 +19,12 @@ type SendArgs = {
 
 const generateHtml = (args: SendArgs): string => {
     const { order, orderId, recipientType, retailer, updateInfo } = args;
-    const itemsHtml = order.items.map((item: { name: string; qty: number; price: number }) => `
+    const itemsHtml = order.items.map((item) => `
         <tr>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.qty}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${item.price.toFixed(2)}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${(item.price * item.qty).toFixed(2)}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${(item.price * item.quantity).toFixed(2)}</td>
         </tr>
     `).join('');
 
@@ -63,6 +63,10 @@ const generateHtml = (args: SendArgs): string => {
             : `The following order has been placed by <strong>${order.customer.name} (${order.customer.email})</strong> for pickup.`;
     }
 
+    const subtotal = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const taxes = subtotal * 0.15; // Example tax
+    const total = subtotal + taxes;
+
 
     return `
       <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
@@ -85,9 +89,9 @@ const generateHtml = (args: SendArgs): string => {
         </table>
 
         <div style="text-align: right; margin-bottom: 20px;">
-            <p>Subtotal: $${order.totals.subtotal.toFixed(2)}</p>
-            <p>Tax (est.): $${order.totals.tax.toFixed(2)}</p>
-            <p style="font-size: 1.2em; font-weight: bold;">Total: $${order.totals.total.toFixed(2)}</p>
+            <p>Subtotal: $${subtotal.toFixed(2)}</p>
+            <p>Tax (est.): $${taxes.toFixed(2)}</p>
+            <p style="font-size: 1.2em; font-weight: bold;">Total: $${total.toFixed(2)}</p>
         </div>
 
         <div style="background: #f9f9f9; padding: 15px; border-radius: 5px;">

@@ -1,3 +1,4 @@
+
 // src/app/checkout/actions/submitOrder.ts
 'use server';
 
@@ -14,7 +15,35 @@ export interface ClientOrderInput {
     couponCode?: string;
 }
 
-export async function submitOrder(clientPayload: ClientOrderInput) {
+// Re-exporting this type for use in other server-side components.
+export type ServerOrderPayload = {
+    brandId: string;
+    retailerId: string;
+    items: Array<{
+      productId: string;
+      name: string;
+      price: number;
+      quantity: number;
+    }>;
+    customer: {
+        name: string;
+        email: string;
+    };
+    totals: {
+        subtotal: number;
+        tax: number;
+        total: number;
+    }
+};
+
+export type SubmitOrderResult = {
+  ok: boolean;
+  error?: string;
+  orderId?: string;
+  userId?: string;
+};
+
+export async function submitOrder(clientPayload: ClientOrderInput): Promise<SubmitOrderResult> {
     const { auth } = await createServerClient();
     const sessionCookie = cookies().get('__session')?.value;
     let userId = null;
@@ -90,6 +119,10 @@ export async function submitOrder(clientPayload: ClientOrderInput) {
         
           // Fallback redirect to our confirmation page.
           redirect(`/order-confirmation/${json.orderId}`);
+          
+          // This part is now unreachable due to the redirect, but we keep the shape
+          // for type consistency in case the redirect logic changes.
+          return { ok: true, orderId: json.orderId, userId: userId || 'anonymous' }
 
     } catch(e: any) {
         console.error("ORDER_SUBMISSION_FAILED:", e);

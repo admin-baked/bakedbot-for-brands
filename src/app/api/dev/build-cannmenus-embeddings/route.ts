@@ -156,12 +156,12 @@ export async function POST(_req: NextRequest) {
       const productId = productDoc.id;
 
       const brand =
-        product.brandId && brandById.has(product.brandId)
-          ? brandById.get(product.brandId)!
+        product.brand_id && brandById.has(product.brand_id)
+          ? brandById.get(product.brand_id)!
           : null;
 
       const retailers =
-        product.retailerIds?.map((rid) => retailerById.get(rid)).filter(Boolean as any) ??
+        product.retailerIds?.map((rid: string) => retailerById.get(rid)).filter(Boolean as any) ??
         [];
 
       const text = buildProductText(product, brand, retailers as RetailerDoc[]);
@@ -185,7 +185,7 @@ export async function POST(_req: NextRequest) {
         id: docId,
         type: "product",
         refId: productId,
-        brandId: product.brandId,
+        brandId: product.brand_id,
         retailerIds: product.retailerIds ?? [],
         text,
         embedding,

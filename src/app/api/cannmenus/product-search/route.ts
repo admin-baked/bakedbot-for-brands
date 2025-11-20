@@ -214,7 +214,7 @@ export async function POST(req: NextRequest) {
 
         const retailersFull =
           product.retailerIds
-            ?.map((rid) => retailerById.get(rid))
+            ?.map((rid: string) => retailerById.get(rid))
             .filter(Boolean as any) ?? [];
 
         const retailersLimited =

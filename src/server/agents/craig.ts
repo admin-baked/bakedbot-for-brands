@@ -67,13 +67,13 @@ async function handleCheckoutPaid(orgId: string, event: any) {
     .doc(orgId)
     .collection("orders")
     .doc(orderId)
-    .withConverter(orderConverter)
+    .withConverter(orderConverter as any)
     .get();
 
   if (!orderSnap.exists) return;
   const order = orderSnap.data() as OrderDoc;
   
-  const retailerSnap = await db.collection('dispensaries').doc(order.retailerId).withConverter(retailerConverter).get();
+  const retailerSnap = await db.collection('dispensaries').doc(order.retailerId).withConverter(retailerConverter as any).get();
   if (!retailerSnap.exists) {
       console.error(`Craig: Retailer ${order.retailerId} not found for order ${orderId}`);
       return;
