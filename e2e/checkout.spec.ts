@@ -10,7 +10,7 @@ test('full checkout flow', async ({ page }) => {
     await expect(page.getByTestId('location-card-1')).toHaveClass(/ring-primary/);
 
     // 3. Find the "Cosmic Caramels" product card and add it to cart
-    const productCard = page.getByTestId('product-card-1');
+    const productCard = page.getByTestId('product-card-demo-1');
     await productCard.locator('button', { hasText: 'Add' }).click();
 
     // 4. Verify item is in cart by checking the pill
@@ -26,6 +26,9 @@ test('full checkout flow', async ({ page }) => {
     // 6. Fill out the form
     await page.fill('input[name="customerName"]', 'Test Customer');
     await page.fill('input[name="customerEmail"]', 'test@example.com');
+    await page.fill('input[name="customerPhone"]', '555-123-4567');
+    await page.fill('input[name="customerBirthDate"]', '1990-01-01');
+
 
     // 7. Submit the order
     await page.getByRole('button', { name: 'Place Order' }).click();
