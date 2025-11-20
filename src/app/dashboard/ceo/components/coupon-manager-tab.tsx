@@ -10,16 +10,16 @@ import { createCoupon, type ActionResult } from '../actions';
 import { SubmitButton } from './submit-button';
 import { useEffect, useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { makeBrandRepo } from '@/server/repos/brandRepo';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { collection } from 'firebase/firestore';
-import { couponConverter, type Coupon, type Brand } from '@/firebase/converters';
+import { collection, query, type Query } from 'firebase/firestore';
+import { couponConverter, type Coupon } from '@/firebase/converters';
 import { useFirebase } from '@/firebase/provider';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { DollarSign, Percent } from 'lucide-react';
 import { DEMO_BRAND_ID } from '@/lib/config';
+import type { Brand } from '@/types/domain';
 
 const initialState: ActionResult = { message: '', error: false };
 
@@ -28,11 +28,11 @@ export default function CouponManagerTab() {
   const { toast } = useToast();
   const [formState, formAction] = useFormState(createCoupon, initialState);
 
-  const couponsQuery = firestore ? collection(firestore, 'coupons').withConverter(couponConverter as any) : null;
+  const couponsQuery: Query<Coupon> | null = firestore ? query(collection(firestore, 'coupons').withConverter(couponConverter as any)) : null;
   const { data: coupons, isLoading: couponsLoading } = useCollection<Coupon>(couponsQuery);
   
-  const brandsQuery = firestore ? collection(firestore, 'brands') : null;
-  const { data: brands, isLoading: brandsLoading } = useCollection<Brand>(brandsQuery);
+  const brandsQuery = firestore ? query(collection(firestore, 'brands')) : null;
+  const { data: brands, isLoading: brandsLoading } = useCollection<Brand>(brandsQuery as Query<Brand> | null);
 
   useEffect(() => {
     if (formState.message) {

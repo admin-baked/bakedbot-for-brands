@@ -1,3 +1,4 @@
+
 // src/types/cannmenus.ts
 
 export type BrandDoc = {
@@ -13,24 +14,39 @@ export type BrandDoc = {
     instagram?: string;
   };
   markets?: string[];
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: any; // Loosening type for now
+  updatedAt?: any;
 };
 
 export type ProductDoc = {
+  // Original fields
   brand_id: string;
   sku_id: string;
   canonical_name: string;
   alt_names?: string[];
-  category?: string;
   sub_category?: string;
   size?: string;
   thc_min?: number;
   thc_max?: number;
   barcodes?: string[];
+
+  // Fields added to satisfy route and component usage
+  id: string;
+  brandId?: string; // camelCase alias
+  retailerIds?: string[];
+  name: string;
+  category?: string;
+  strainType?: string | null;
+  thcPercent?: number | null;
+  cbdPercent?: number | null;
+  tags?: string[];
+  imageUrl?: string;
+  price?: number;
+  createdAt?: any;
 };
 
 export type RetailerDoc = {
+  // Original fields
   id: string;
   name: string;
   state: string;
@@ -38,14 +54,32 @@ export type RetailerDoc = {
   postal_code: string;
   country: string;
   street_address: string;
-  website_url?: string;
   homepage_url: string | null;
   menu_url: string | null;
   menu_discovery_status: "pending" | "found" | "failed";
   is_priority?: boolean;
   platform_guess?: "dutchie" | "jane" | "bespoke" | "unknown";
-  createdAt?: Date;
-  updatedAt?: Date;
+  
+  // Fields added for compatibility
+  slug?: string;
+  website_url?: string;
+  address?: {
+    street?: string;
+    street1?: string;
+    street2?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    [key: string]: any;
+  };
+  geo?: {
+    lat?: number,
+    lng?: number,
+  }
+  phone?: string;
+  carriesBrands?: string[];
+  createdAt?: any;
+  updatedAt?: any;
 };
 
 export type MenuSourceDoc = {
@@ -54,18 +88,18 @@ export type MenuSourceDoc = {
   source_type: "website" | "weedmaps" | "leafly";
   url: string;
   platform: "dutchie" | "jane" | "bespoke" | "unknown" | "weedmaps" | "leafly";
-  last_success_at?: Date;
+  last_success_at?: any;
   last_status: "ok" | "blocked" | "error" | "pending";
   last_hash?: string;
-  created_at?: Date;
-  updated_at?: Date;
+  created_at?: any;
+  updated_at?: any;
 };
 
 export type RawMenuSnapshotDoc = {
   id: string;
   dispensary_id: string;
   source_id: string;
-  taken_at: Date;
+  taken_at: any;
   hash: string;
   raw_payload: string | Record<string, any>; // Can be HTML string or JSON object
   parse_status: "pending" | "parsed" | "failed";
@@ -81,8 +115,8 @@ export type AvailabilityDoc = {
   price: number;
   sale_price?: number | null;
   in_stock: boolean;
-  last_seen_at: Date;
-  first_seen_at?: Date;
+  last_seen_at: any;
+  first_seen_at?: any;
 };
 
 
@@ -105,6 +139,6 @@ export type CannmenusEmbeddingDoc = {
   tags?: string[];
   markets?: string[]; // e.g. ["CA", "IL"]
 
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: any;
+  updatedAt?: any;
 };

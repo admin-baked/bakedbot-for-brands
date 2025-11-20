@@ -66,7 +66,7 @@ export async function updateOrderStatus(
       const order = orderDoc.data() as OrderDoc;
 
       // 3. Authorization part 2: Check if this manager can access this specific order
-      if (order.retailerId !== userLocationId) {
+      if (user.role !== 'owner' && order.retailerId !== userLocationId) {
         throw new Error("You do not have permission to modify this order.");
       }
 
@@ -93,7 +93,6 @@ export async function updateOrderStatus(
     } else {
         const serverOrderPayload: ServerOrderPayload = {
           ...(updatedOrder as any),
-          brandId: updatedOrder.brandId,
         };
 
         const retailerSnap = await firestore.collection('dispensaries').doc(updatedOrder.retailerId).withConverter(retailerConverter as any).get();
