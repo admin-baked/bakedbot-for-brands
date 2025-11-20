@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { Providers } from './providers';
 import Header from '@/components/header';
 import { Footer } from '@/components/footer';
+import Script from 'next/script';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -28,6 +29,10 @@ export default function RootLayout({
             <Footer />
           </div>
         </Providers>
+        <Script
+          src="https://js.authorize.net/v3/AcceptUI.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
