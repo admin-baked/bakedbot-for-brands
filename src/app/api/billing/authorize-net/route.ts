@@ -1,6 +1,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { computeMonthlyAmount, PLANS, PlanId } from "@/lib/plans";
+import { createServerClient } from "@/firebase/server-client";
+import { FieldValue } from "firebase-admin/firestore";
 
 type OpaqueData = {
   dataDescriptor: string;
@@ -28,6 +30,8 @@ function getAuthNetBaseUrl() {
 }
 
 export async function POST(req: NextRequest) {
+  const { firestore: db } = await createServerClient();
+
   try {
     const body = (await req.json()) as SubscribeBody;
 
@@ -37,18 +41,75 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    
+    const orgId = body.organizationId;
+    const planId = body.planId;
 
-    // Enterprise is not self-serve
-    if (body.planId === "enterprise") {
+    if (planId === "enterprise") {
       return NextResponse.json(
         { error: "Enterprise billing is handled via a custom agreement." },
         { status: 400 }
       );
     }
 
-    const plan = PLANS[body.planId];
+    const plan = PLANS[planId];
     if (!plan) {
       return NextResponse.json({ error: "Unknown planId." }, { status: 400 });
+    }
+
+    const amount = computeMonthlyAmount(planId, body.locationCount);
+    
+    // Firestore references
+    const subscriptionRef = db
+      .collection("organizations")
+      .doc(orgId)
+      .collection("subscription")
+      .doc("current");
+      
+    const historyRef = db
+      .collection("organizations")
+      .doc(orgId)
+      .collection("subscriptionHistory")
+      .doc();
+
+
+    // --- FREE PLAN: no Authorize.Net call, just persist state ---
+    if (amount === 0) {
+      const subDoc = {
+        planId,
+        locationCount: body.locationCount,
+        amount,
+        provider: "none",
+        providerSubscriptionId: null,
+        status: "active",
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+
+      await subscriptionRef.set(subDoc, { merge: true });
+
+      await historyRef.set({
+        ...subDoc,
+        event: "plan_changed",
+        reason: "user_selected_free_plan",
+        at: FieldValue.serverTimestamp(),
+      });
+
+      return NextResponse.json({
+        success: true,
+        free: true,
+        planId,
+        amount,
+      });
+    }
+
+
+    // --- PAID PLANS: need Authorize.Net + opaqueData ---
+    if (!body.opaqueData) {
+      return NextResponse.json(
+        { error: "Paid plans require payment token (opaqueData) from Accept.js." },
+        { status: 400 }
+      );
     }
 
     const apiLoginId = process.env.AUTHNET_API_LOGIN_ID;
@@ -62,33 +123,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Compute monthly amount based on plan + locations
-    const amount = computeMonthlyAmount(body.planId, body.locationCount);
-
-    // Free plan: no Authorize.Net call, just mark subscription internally
-    if (amount === 0) {
-      // TODO: Save free subscription in Firestore for organizationId
-      // e.g. create `subscriptions` doc with planId = "free" and status "active"
-      return NextResponse.json({
-        success: true,
-        planId: body.planId,
-        amount,
-        subscriptionId: null,
-        providerSubscriptionId: null,
-        free: true,
-      });
-    }
-
-    if (!body.opaqueData) {
-      return NextResponse.json(
-        { error: "Paid plans require payment token (opaqueData) from Accept.js." },
-        { status: 400 }
-      );
-    }
-
     const baseUrl = getAuthNetBaseUrl();
 
-    // Step 1: Create Customer Profile with payment profile
+    // Step 1: create customer profile
     const customerProfilePayload = {
       createCustomerProfileRequest: {
         merchantAuthentication: {
@@ -96,8 +133,8 @@ export async function POST(req: NextRequest) {
           transactionKey,
         },
         profile: {
-          merchantCustomerId: body.organizationId,
-          description: `Org ${body.organizationId} – BakedBot subscription`,
+          merchantCustomerId: orgId,
+          description: `Org ${orgId} – BakedBot subscription`,
           email: body.customer?.email,
           paymentProfiles: [
             {
@@ -129,6 +166,7 @@ export async function POST(req: NextRequest) {
     });
 
     const profileJson: any = await profileResp.json().catch(() => null);
+
     if (profileJson?.messages?.resultCode !== "Ok") {
       console.error("Authorize.Net profile creation failed", profileJson);
       return NextResponse.json(
@@ -150,12 +188,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Step 2: ARB (subscription) creation
+    // Step 2: ARB subscription
     const today = new Date();
     const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-    const startDateStr = startDate.toISOString().slice(0, 10); // YYYY-MM-DD
+    const startDateStr = startDate.toISOString().slice(0, 10);
 
-    const subscriptionName = `BakedBot – ${plan.name} – Org ${body.organizationId}`;
+    const subscriptionName = `BakedBot – ${plan.name} – Org ${orgId}`;
 
     const createSubPayload = {
       ARBCreateSubscriptionRequest: {
@@ -180,7 +218,7 @@ export async function POST(req: NextRequest) {
             customerPaymentProfileId,
           },
           customer: {
-            id: body.organizationId,
+            id: orgId,
             email: body.customer?.email,
           },
         },
@@ -205,23 +243,36 @@ export async function POST(req: NextRequest) {
 
     const providerSubscriptionId = subJson.subscriptionId;
 
-    // TODO: Persist subscription in Firestore for this org:
-    //  - planId
-    //  - amount
-    //  - locationCount
-    //  - provider = "authorizenet"
-    //  - providerSubscriptionId
-    //  - customerProfileId / customerPaymentProfileId
-    //  - status = "active"
+     const subDoc = {
+      planId,
+      locationCount: body.locationCount,
+      amount,
+      provider: "authorizenet",
+      providerSubscriptionId,
+      customerProfileId,
+      customerPaymentProfileId,
+      status: "active",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    await subscriptionRef.set(subDoc, { merge: true });
+    await historyRef.set({
+      ...subDoc,
+      event: "plan_changed",
+      reason: "user_subscribed",
+      at: FieldValue.serverTimestamp(),
+    });
+
 
     return NextResponse.json({
       success: true,
-      planId: body.planId,
+      free: false,
+      planId,
       amount,
       providerSubscriptionId,
       customerProfileId,
       customerPaymentProfileId,
-      free: false,
     });
   } catch (err: any) {
     console.error("authorize-net:subscription_error", err);
