@@ -2,14 +2,13 @@
 
 import DevLoginButton from '@/components/dev-login-button';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
-import { isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -20,97 +19,64 @@ export default function CustomerLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
-  const [isLinkSent, setIsLinkSent] = useState(false);
-  const [isCompletingSignIn, setIsCompletingSignIn] = useState(false);
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    // This effect runs on the client after the component mounts.
-    // It checks if the user is returning from the magic link email.
-    if (auth && isSignInWithEmailLink(auth, window.location.href)) {
-      let emailForSignIn = window.localStorage.getItem('emailForSignIn');
-      if (!emailForSignIn) {
-        // This can happen if the user opens the link on a different device.
-        emailForSignIn = window.prompt('Please provide your email for confirmation');
-      }
-
-      if (emailForSignIn) {
-        setIsCompletingSignIn(true);
-        signInWithEmailLink(auth, emailForSignIn, window.location.href)
-          .then((result) => {
-            window.localStorage.removeItem('emailForSignIn');
-            toast({ title: 'Success!', description: 'You have been signed in.' });
-            router.push('/account'); // Redirect to account page after successful login
-          })
-          .catch((error) => {
-            toast({ variant: 'destructive', title: 'Sign-in Failed', description: 'The sign-in link is invalid or has expired.' });
-            setIsCompletingSignIn(false);
-          });
-      }
-    }
-  }, [auth, router, toast]);
+  const [isSignUp, setIsSignUp] = useState(false);
   
   const handleGoogleSignIn = async () => {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      toast({ title: 'Signed In!', description: 'You have successfully signed in with Google.' });
-      router.push('/account');
+      const result = await signInWithPopup(auth, provider);
+      const additionalUserInfo = getAdditionalUserInfo(result);
+      
+      toast({ title: 'Signed In!', description: 'Welcome to BakedBot AI.' });
+      
+      if (additionalUserInfo?.isNewUser) {
+        router.push('/onboarding');
+      } else {
+        router.push('/account');
+      }
+
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Google Sign-In Error', description: error.message });
     }
   };
 
-  const handleMagicLinkSignIn = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !email) return;
+    if (!auth || !email || !password) return;
 
     setIsSubmitting(true);
-    const actionCodeSettings = {
-        // The URL to redirect to after the user clicks the link in the email.
-        // It's important this is the same page so we can complete the sign-in.
-        url: window.location.href, 
-        handleCodeInApp: true,
-    };
-
     try {
-        await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-        window.localStorage.setItem('emailForSignIn', email);
-        setIsLinkSent(true);
-        toast({ title: 'Magic Link Sent!', description: `A sign-in link has been sent to ${email}.` });
+      if (isSignUp) {
+        await createUserWithEmailAndPassword(auth, email, password);
+        toast({ title: 'Account Created!', description: 'Redirecting you to onboarding...' });
+        router.push('/onboarding');
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+        toast({ title: 'Login Successful!', description: 'Redirecting...' });
+        router.push('/account');
+      }
     } catch (error: any) {
-        console.error('Magic link error', error);
-        toast({ variant: 'destructive', title: 'Error', description: error.message });
+      console.error(`${isSignUp ? 'Sign up' : 'Login'} error`, error);
+      const friendlyMessage = error.message.includes('auth/invalid-credential') 
+        ? 'Invalid email or password.'
+        : error.message;
+      toast({ variant: 'destructive', title: 'Authentication Error', description: friendlyMessage });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
-
-  if (isCompletingSignIn) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-        <Card className="w-full max-w-md text-center">
-            <CardHeader>
-                <CardTitle>Completing Sign-In</CardTitle>
-                <CardDescription>Please wait while we securely sign you in...</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-            </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Customer Login</CardTitle>
+          <CardTitle className="text-2xl">{isSignUp ? 'Create an Account' : 'Customer Login'}</CardTitle>
           <CardDescription>
-            Sign in to view your order history and manage preferences.
+            {isSignUp ? 'Sign up to get started.' : 'Sign in to view your order history and manage preferences.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -130,15 +96,7 @@ export default function CustomerLoginPage() {
                 </div>
             </div>
 
-          {isLinkSent ? (
-            <div className="text-center" data-testid="magic-link-sent-card">
-              <h2 className="text-xl font-semibold">Check Your Inbox!</h2>
-              <p className="mt-2 text-muted-foreground">
-                We've sent a magic sign-in link to <strong>{email}</strong>. Click the link in the email to complete your login.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleMagicLinkSignIn} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
                <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
@@ -150,27 +108,41 @@ export default function CustomerLoginPage() {
                     required
                 />
                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                </div>
                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                   Send Magic Link
+                   {isSignUp ? 'Sign Up' : 'Login'}
                </Button>
             </form>
-          )}
-           {!isProd && (
-            <>
-                <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                        Or for development
-                        </span>
-                    </div>
-                </div>
-                <DevLoginButton />
-            </>
-           )}
         </CardContent>
+         <CardFooter className="flex-col gap-4">
+            <Button type="button" variant="link" size="sm" onClick={() => setIsSignUp(!isSignUp)}>
+                {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+            </Button>
+             {!isProd && (
+                <>
+                    <div className="relative w-full">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                            Or for development
+                            </span>
+                        </div>
+                    </div>
+                    <DevLoginButton />
+                </>
+            )}
+        </CardFooter>
       </Card>
     </div>
   );
