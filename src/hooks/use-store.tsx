@@ -20,7 +20,7 @@ export interface StoreState {
   favoriteRetailerId: string | null;
   chatExperience: 'default' | 'classic';
   isCeoMode: boolean; // Not persisted
-  isDemo: boolean; // Add isDemo back
+  isDemo: boolean; // Not persisted
 
   // Actions
   setHasHydrated: (hydrated: boolean) => void;
@@ -31,7 +31,7 @@ export interface StoreState {
   setFavoriteRetailerId: (id: string | null) => void;
   setChatExperience: (experience: 'default' | 'classic') => void;
   setIsCeoMode: (isCeo: boolean) => void;
-  setIsDemo: (isDemo: boolean) => void; // Add setIsDemo back
+  setIsDemo: (isDemo: boolean) => void;
   
   // Cart Actions
   addToCart: (product: Product, retailerId?: string | null) => void;
@@ -57,7 +57,7 @@ export const useStore = create<StoreState>()(
       favoriteRetailerId: null,
       chatExperience: 'default',
       isCeoMode: false,
-      isDemo: false, // Add isDemo back
+      isDemo: false, // Start with isDemo as false
 
       // Actions
       setHasHydrated: (hydrated: boolean) => set({ _hasHydrated: hydrated }),
@@ -68,7 +68,7 @@ export const useStore = create<StoreState>()(
       setFavoriteRetailerId: (id) => set({ favoriteRetailerId: id }),
       setChatExperience: (experience) => set({ chatExperience: experience }),
       setIsCeoMode: (isCeo) => set({ isCeoMode: isCeo }),
-      setIsDemo: (isDemo) => set({ isDemo }), // Add setIsDemo back
+      setIsDemo: (isDemo) => set({ isDemo }),
       
       // Cart Actions
       addToCart: (product, retailerId) =>
@@ -125,21 +125,20 @@ export const useStore = create<StoreState>()(
       },
     }),
     {
-      name: 'bakedbot-storage', 
+      name: 'bakedbot-ui-preferences', 
       storage: createJSONStorage(() => localStorage), 
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);
         }
       },
-      // IMPORTANT: Only persist UI preferences, not transactional state like the cart.
+      // Persist UI preferences but exclude transactional state like cart or CEO mode.
       partialize: (state) => ({
         theme: state.theme,
         menuStyle: state.menuStyle,
         favoriteRetailerId: state.favoriteRetailerId,
         chatExperience: state.chatExperience,
         selectedRetailerId: state.selectedRetailerId,
-        isDemo: state.isDemo, // Persist isDemo
       }),
     }
   )
