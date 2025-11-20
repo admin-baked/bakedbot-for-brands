@@ -1,3 +1,4 @@
+
 // src/app/api/cannmenus/product-search/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
@@ -207,8 +208,8 @@ export async function POST(req: NextRequest) {
         const product = productById.get(s.refId);
         if (!product) return null;
 
-        const brand = product.brandId
-          ? brandById.get(product.brandId) ?? null
+        const brand = product.brand_id
+          ? brandById.get(product.brand_id) ?? null
           : null;
 
         const retailersFull =
