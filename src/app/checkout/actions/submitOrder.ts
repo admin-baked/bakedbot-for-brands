@@ -46,7 +46,7 @@ export type SubmitOrderResult = {
 export async function submitOrder(clientPayload: ClientOrderInput): Promise<SubmitOrderResult> {
     const { auth } = await createServerClient();
     const sessionCookie = cookies().get('__session')?.value;
-    let userId = null;
+    let userId: string | null = null;
     if (sessionCookie) {
         try {
             const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
