@@ -22,6 +22,7 @@ import { Loader2, Send } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import type { Retailer } from '@/firebase/converters';
 import { useToast } from '@/hooks/use-toast';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 const phoneRegex = new RegExp(
   /^([+]?[\s0-9]+)?(\d{3}|[(]\d{3}[)])?[\s-]?(\d{3})[\s-]?(\d{4})$/
@@ -54,7 +55,7 @@ interface CheckoutFormProps {
 
 export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: CheckoutFormProps) {
   const { user } = useUser();
-  const { cartItems } = useStore();
+  const { cartItems, clearCart } = useStore();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -68,7 +69,6 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
     },
   });
 
-  // Pre-fill form with user data if available
   useEffect(() => {
     if (user) {
       form.reset({
@@ -88,16 +88,18 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
     }
     
     startTransition(async () => {
+      // The first item in the cart determines the brand for the whole order.
+      const organizationId = cartItems[0]?.brandId || DEMO_BRAND_ID;
+
       const orderInput: ClientOrderInput = {
-        items: cartItems.map(item => ({
-            productId: item.id,
-            qty: item.quantity,
-        })),
+        items: cartItems,
         customer: {
             name: data.customerName,
-            email: data.customerEmail
+            email: data.customerEmail,
+            phone: data.customerPhone,
         },
         retailerId: selectedRetailer.id,
+        organizationId: organizationId,
         couponCode: couponCode || undefined,
       };
 
@@ -105,6 +107,7 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
         const result = await submitOrder(orderInput);
 
         if (result.ok && result.orderId) {
+          clearCart();
           onOrderSuccess(result.orderId, result.userId);
         } else {
           toast({ variant: 'destructive', title: 'Order Submission Failed', description: result.error || 'Could not submit order. Please try again.' });
