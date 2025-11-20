@@ -1,8 +1,8 @@
-
 // src/app/api/webhooks/cannpay/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/firebase/server-client";
 import * as admin from "firebase-admin";
+import { emitEvent } from "@/server/events/emitter";
 
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
@@ -39,6 +39,8 @@ export async function POST(req: NextRequest) {
 
     let paymentStatus: string = "pending";
     let orderStatus: string = "pending";
+    let eventType: 'checkout.paid' | 'order.readyForPickup' | 'order.completed' | null = null;
+
 
     switch (status) {
       case "authorized":
@@ -46,6 +48,7 @@ export async function POST(req: NextRequest) {
       case "paid":
         paymentStatus = "paid";
         orderStatus = "ready_for_pickup";
+        eventType = 'checkout.paid';
         break;
       case "failed":
       case "declined":
@@ -71,6 +74,16 @@ export async function POST(req: NextRequest) {
       },
       { merge: true }
     );
+    
+    // Emit a specific event if the payment was successful
+    if (eventType) {
+        await emitEvent(organizationId, eventType, 'system', {
+            orderId,
+            intentId,
+            status,
+        }, orderId);
+    }
+
 
     return NextResponse.json({ received: true });
   } catch (err: any) {

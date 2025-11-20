@@ -1,8 +1,8 @@
-
 // src/app/api/checkout/smokey-pay/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/firebase/server-client";
 import * as admin from "firebase-admin";
+import { emitEvent } from "@/server/events/emitter";
 
 type CheckoutItem = {
   productId: string;
@@ -93,6 +93,8 @@ export async function POST(req: NextRequest) {
     };
 
     await orderRef.set(orderData);
+    await emitEvent(body.organizationId, 'checkout.started', 'system', orderData, orderRef.id);
+
 
     // 2) Call CannPay to create a payment intent
     const appKey = process.env.CANPAY_APP_KEY;
@@ -109,7 +111,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Payload shape will depend on real CannPay docs – this is the pattern
     const intentPayload = {
       amount: body.total,
       currency,
@@ -126,7 +127,6 @@ export async function POST(req: NextRequest) {
       metadata: {
         pickup_location_id: body.pickupLocationId,
       },
-      // success/cancel URLs you can use for redirect if CannPay supports hosted checkout
       redirect_urls: {
         success: `${process.env.APP_BASE_URL}/order-confirmation/${orderRef.id}`,
         cancel: `${process.env.APP_BASE_URL}/checkout?canceled=1`,
@@ -147,7 +147,6 @@ export async function POST(req: NextRequest) {
 
     if (!resp.ok || !json?.data?.intent_id) {
       console.error("CannPay authorize failed", json);
-      // Mark order as failed
       await orderRef.update({
         paymentStatus: "failed",
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -162,11 +161,19 @@ export async function POST(req: NextRequest) {
     const intentId = json.data.intent_id;
     const checkoutUrl = json.data.checkout_url || null;
 
-    // 3) Update order with intent info
+    // 3) Update order with intent info and emit event
     await orderRef.update({
       paymentIntentId: intentId,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+    
+    await emitEvent(body.organizationId, 'checkout.intentCreated', 'smokey', {
+      orderId: orderRef.id,
+      intentId,
+      checkoutUrl,
+      amount: body.total
+    }, orderRef.id);
+
 
     return NextResponse.json({
       success: true,
