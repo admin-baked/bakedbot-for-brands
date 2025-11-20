@@ -191,6 +191,7 @@ export default function Header() {
                                         <DropdownMenuLabel>Login / Register</DropdownMenuLabel>
                                         <DropdownMenuItem onClick={() => router.push('/customer-login')}>Customer Login</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push('/brand-login')}>Brand Login</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => router.push('/dispensary-login')}>Dispensary Login</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push('/onboarding')}>Get Started</DropdownMenuItem>
                                     </>
                                 ) : null}
