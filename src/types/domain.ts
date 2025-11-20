@@ -90,6 +90,17 @@ export type Review = {
 // This is a simple type for the server action's return value.
 export type OrderStatus = 'submitted' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
 
+export type Coupon = {
+    id: string;
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number; // e.g., 20 for 20% or 10 for $10
+    expiresAt?: Timestamp;
+    uses: number;
+    maxUses?: number;
+    brandId: string;
+};
+
 // Type for the Order document stored in Firestore
 export type OrderDoc = {
   id: string; // Add id to the type
@@ -108,7 +119,12 @@ export type OrderDoc = {
   totals: {
       subtotal: number;
       tax: number;
+      discount: number;
       total: number;
+  };
+  coupon?: {
+    code: string;
+    discount: number;
   };
   retailerId: string; // Renamed from locationId
   createdAt: Timestamp;

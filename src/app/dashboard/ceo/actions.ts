@@ -3,10 +3,12 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { demoProducts, demoRetailers, demoCustomer } from '@/lib/demo/demo-data';
-import { productConverter, retailerConverter, reviewConverter } from '@/firebase/converters';
-import { WriteBatch } from 'firebase-admin/firestore';
+import { couponConverter, productConverter, retailerConverter, reviewConverter } from '@/firebase/converters';
+import { FieldValue } from 'firebase-admin/firestore';
 import { updateProductEmbeddings } from '@/ai/flows/update-product-embeddings';
 import { makeProductRepo } from '@/server/repos/productRepo';
+import { z } from 'zod';
+import { requireUser } from '@/server/auth/auth';
 
 
 // --- Data Manager Actions ---
@@ -53,7 +55,7 @@ export async function importDemoData(): Promise<ActionResult> {
 export async function clearAllData(): Promise<ActionResult> {
     try {
         const { firestore } = await createServerClient();
-        const collectionsToDelete = ['products', 'dispensaries', 'orders'];
+        const collectionsToDelete = ['products', 'dispensaries', 'orders', 'coupons'];
         const batchSize = 100;
 
         for (const collectionName of collectionsToDelete) {
@@ -130,4 +132,49 @@ export async function initializeAllEmbeddings(): Promise<EmbeddingActionResult> 
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     throw new Error(`Initialization failed: ${errorMessage}`);
   }
+}
+
+// --- Coupon Management Actions ---
+
+const CouponSchema = z.object({
+    code: z.string().min(4, 'Code must be at least 4 characters.').max(20).transform(val => val.toUpperCase()),
+    type: z.enum(['percentage', 'fixed']),
+    value: z.coerce.number().positive('Value must be a positive number.'),
+    brandId: z.string().min(1, 'Brand association is required.'),
+});
+
+export async function createCoupon(prevState: ActionResult, formData: FormData): Promise<ActionResult> {
+    try {
+        await requireUser(['owner']);
+        const validatedFields = CouponSchema.safeParse(Object.fromEntries(formData.entries()));
+
+        if (!validatedFields.success) {
+            const firstError = Object.values(validatedFields.error.flatten().fieldErrors)[0]?.[0];
+            return { error: true, message: firstError || 'Invalid data.' };
+        }
+
+        const { code, type, value, brandId } = validatedFields.data;
+        const { firestore } = await createServerClient();
+        const couponsRef = firestore.collection('coupons');
+        
+        // Check if code already exists
+        const existing = await couponsRef.where('code', '==', code).limit(1).get();
+        if (!existing.empty) {
+            return { error: true, message: 'This coupon code already exists.' };
+        }
+
+        await couponsRef.add({
+            code,
+            type,
+            value,
+            brandId,
+            uses: 0,
+            createdAt: FieldValue.serverTimestamp(),
+        });
+
+        return { error: false, message: `Coupon "${code}" created successfully!` };
+
+    } catch (e: any) {
+        return { error: true, message: e.message || 'Failed to create coupon.' };
+    }
 }
