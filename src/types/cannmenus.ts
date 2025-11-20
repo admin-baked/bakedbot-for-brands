@@ -18,19 +18,16 @@ export type BrandDoc = {
 };
 
 export type ProductDoc = {
-  id: string; // This is the SKU ID in the new model, e.g., 'sku_40tons_gg4_3_5g'
-  brandId: string;
-  canonicalName: string;
-  altNames?: string[];
+  brand_id: string;
+  sku_id: string;
+  canonical_name: string;
+  alt_names?: string[];
   category?: string;
-  subCategory?: string;
+  sub_category?: string;
   size?: string;
-  thcMin?: number;
-  thcMax?: number;
+  thc_min?: number;
+  thc_max?: number;
   barcodes?: string[];
-  imageUrl?: string; // Canonical image
-  createdAt?: Date;
-  updatedAt?: Date;
 };
 
 export type RetailerDoc = {
@@ -38,48 +35,51 @@ export type RetailerDoc = {
   name: string;
   state: string;
   city: string;
-  websiteUrl?: string;
-  isPriority?: boolean;
-  platformGuess?: 'dutchie' | 'jane' | 'bespoke' | 'unknown';
+  website_url?: string;
+  is_priority?: boolean;
+  platform_guess?: "dutchie" | "jane" | "bespoke" | "unknown";
+  homepage_url?: string;
+  menu_url?: string | null;
+  menu_discovery_status?: "pending" | "found" | "failed";
   createdAt?: Date;
   updatedAt?: Date;
 };
 
 export type MenuSourceDoc = {
   id: string;
-  dispensaryId: string;
-  sourceType: 'website' | 'weedmaps' | 'leafly';
+  dispensary_id: string;
+  source_type: "website" | "weedmaps" | "leafly";
   url: string;
-  platform: 'dutchie' | 'jane' | 'bespoke' | 'unknown' | 'weedmaps' | 'leafly';
-  lastSuccessAt?: Date;
-  lastStatus: 'ok' | 'blocked' | 'error' | 'pending';
-  lastHash?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  platform: "dutchie" | "jane" | "bespoke" | "unknown" | "weedmaps" | "leafly";
+  last_success_at?: Date;
+  last_status: "ok" | "blocked" | "error" | "pending";
+  last_hash?: string;
+  created_at?: Date;
+  updated_at?: Date;
 };
 
 export type RawMenuSnapshotDoc = {
   id: string;
-  dispensaryId: string;
-  sourceId: string;
-  takenAt: Date;
+  dispensary_id: string;
+  source_id: string;
+  taken_at: Date;
   hash: string;
-  rawPayload: string | Record<string, any>; // Can be HTML string or JSON object
-  parseStatus: 'pending' | 'parsed' | 'failed';
-  errorMessage?: string | null;
+  raw_payload: string | Record<string, any>; // Can be HTML string or JSON object
+  parse_status: "pending" | "parsed" | "failed";
+  error_message?: string | null;
 };
 
 export type AvailabilityDoc = {
   id: string; // A unique ID for this availability record, e.g., hash(skuId + dispensaryId)
-  brandId: string;
-  skuId: string;
-  dispensaryId: string;
-  sourceType: 'website' | 'weedmaps' | 'leafly';
+  brand_id: string;
+  sku_id: string;
+  dispensary_id: string;
+  source_type: "website" | "weedmaps" | "leafly";
   price: number;
-  salePrice?: number | null;
-  inStock: boolean;
-  lastSeenAt: Date;
-  firstSeenAt?: Date;
+  sale_price?: number | null;
+  in_stock: boolean;
+  last_seen_at: Date;
+  first_seen_at?: Date;
 };
 
 

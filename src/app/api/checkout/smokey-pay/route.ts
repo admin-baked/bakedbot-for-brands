@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       .doc();
 
     const orderData = {
-      brandId: orgId,
+      brandId: orgId, // Denormalize brandId for easier queries
       dispensaryId: body.dispensaryId,
       customerId: body.customer.uid || null,
       customerEmail: body.customer.email,
