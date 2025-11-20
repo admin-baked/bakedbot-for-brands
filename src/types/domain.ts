@@ -1,4 +1,3 @@
-
 // src/types/domain.ts
 
 import { Timestamp } from 'firebase/firestore';
@@ -150,4 +149,36 @@ export type UserInteraction = {
   interactionDate: Timestamp;
   query: string;
   recommendedProductIds?: string[];
+};
+
+// --- Event Spine ---
+
+export type Agent = 'smokey' | 'craig' | 'reach' | 'pops' | 'ezal' | 'mrs_parker' | 'money_mike' | 'deebo';
+
+export type EventType =
+  // Reach
+  | 'reach.entry'
+  // Smokey
+  | 'recommendation.shown'
+  | 'cart.updated'
+  | 'checkout.started'
+  | 'checkout.intentCreated'
+  // Webhooks / System
+  | 'checkout.paid'
+  | 'order.readyForPickup'
+  | 'order.completed'
+  | 'subscription.planSelected'
+  | 'subscription.paymentAuthorized'
+  | 'subscription.updated'
+  | 'subscription.failed';
+
+
+export type AppEvent = {
+  id: string;
+  type: EventType;
+  agent: Agent | 'system';
+  orgId: string;
+  refId: string | null; // orderId, subscriptionId, customerId, etc.
+  data: any; // The event payload
+  timestamp: Timestamp;
 };

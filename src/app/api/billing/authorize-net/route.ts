@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { computeMonthlyAmount, PLANS, PlanId } from "@/lib/plans";
 import { createServerClient } from "@/firebase/server-client";
 import { FieldValue } from "firebase-admin/firestore";
+import { emitEvent } from "@/server/events/emitter";
 
 type OpaqueData = {
   dataDescriptor: string;
@@ -88,12 +89,15 @@ export async function POST(req: NextRequest) {
 
       await subscriptionRef.set(subDoc, { merge: true });
 
-      await historyRef.set({
+      const historyDoc = {
         ...subDoc,
         event: "plan_changed",
         reason: "user_selected_free_plan",
         at: FieldValue.serverTimestamp(),
-      });
+      };
+      await historyRef.set(historyDoc);
+      
+      await emitEvent(orgId, 'subscription.updated', 'system', historyDoc, orgId);
 
       return NextResponse.json({
         success: true,
@@ -257,12 +261,17 @@ export async function POST(req: NextRequest) {
     };
 
     await subscriptionRef.set(subDoc, { merge: true });
-    await historyRef.set({
+    
+    const historyDoc = {
       ...subDoc,
       event: "plan_changed",
       reason: "user_subscribed",
       at: FieldValue.serverTimestamp(),
-    });
+    };
+    await historyRef.set(historyDoc);
+
+    await emitEvent(orgId, 'subscription.updated', 'system', historyDoc, providerSubscriptionId);
+    await emitEvent(orgId, 'subscription.paymentAuthorized', 'system', subJson, providerSubscriptionId);
 
 
     return NextResponse.json({
