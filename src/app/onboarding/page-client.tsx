@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -12,11 +12,19 @@ import { demoRetailers } from '@/lib/demo/demo-data';
 import DevLoginButton from '@/components/dev-login-button';
 import { useFormState } from 'react-dom';
 import { completeOnboarding, type OnboardingState } from './actions';
-import { Loader2, PartyPopper } from 'lucide-react';
+import { Loader2, PartyPopper, Building, Search } from 'lucide-react';
 import { SubmitButton } from './components/submit-button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
-type OnboardingStep = 'role' | 'location' | 'products' | 'done';
+type OnboardingStep = 'role' | 'location' | 'brand-search' | 'done';
 type UserRole = 'brand' | 'dispensary' | 'customer';
+
+interface CannMenusBrand {
+    id: string;
+    name: string;
+    logoUrl?: string;
+}
 
 const initialState: OnboardingState = {
   message: '',
@@ -29,6 +37,10 @@ export default function OnboardingClientPage() {
   const [step, setStep] = useState<OnboardingStep>('role');
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<CannMenusBrand | null>(null);
+  const [brandSearchQuery, setBrandSearchQuery] = useState('');
+  const [brandSearchResults, setBrandSearchResults] = useState<CannMenusBrand[]>([]);
+  const [isSearching, startSearchTransition] = useTransition();
 
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
@@ -50,16 +62,41 @@ export default function OnboardingClientPage() {
     }
   }, [formState, toast, router]);
 
+  useEffect(() => {
+    if (brandSearchQuery.length > 2) {
+      startSearchTransition(async () => {
+        const res = await fetch(`/api/cannmenus/brands?search=${encodeURIComponent(brandSearchQuery)}`);
+        if (res.ok) {
+          const json = await res.json();
+          setBrandSearchResults(json.items || []);
+        }
+      });
+    } else {
+      setBrandSearchResults([]);
+    }
+  }, [brandSearchQuery]);
 
   const handleNext = () => {
     if (step === 'role' && selectedRole) {
-      if (selectedRole === 'brand' || selectedRole === 'customer') {
-        setStep('products');
-      } else {
-        setStep('location');
+      if (selectedRole === 'brand') setStep('brand-search');
+      else if (selectedRole === 'dispensary') setStep('location');
+      else {
+        // Customer role can skip to the end
+        const formData = new FormData();
+        formData.append('role', 'customer');
+        formAction(formData);
       }
+    } else if (step === 'brand-search' && selectedBrand) {
+        const formData = new FormData();
+        formData.append('role', 'brand');
+        formData.append('brandId', selectedBrand.id);
+        formData.append('brandName', selectedBrand.name);
+        formAction(formData);
     } else if (step === 'location' && selectedLocationId) {
-      setStep('products');
+        const formData = new FormData();
+        formData.append('role', 'dispensary');
+        formData.append('locationId', selectedLocationId);
+        formAction(formData);
     }
   };
 
@@ -78,26 +115,57 @@ export default function OnboardingClientPage() {
             </div>
           </CardContent>
         );
+      case 'brand-search':
+        return (
+            <CardContent className="space-y-4" data-testid="onboarding-step-brand-search">
+                <h3 className="font-semibold text-lg">Claim Your Brand</h3>
+                <p className="text-sm text-muted-foreground">Search for your brand in the CannMenus directory to link your account.</p>
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                    <Input 
+                        placeholder="Search for your brand..."
+                        className="pl-10"
+                        value={brandSearchQuery}
+                        onChange={e => setBrandSearchQuery(e.target.value)}
+                    />
+                </div>
+                <ScrollArea className="h-60 rounded-md border">
+                    <div className="p-2 space-y-1">
+                    {isSearching && <div className="p-4 text-center text-sm text-muted-foreground">Searching...</div>}
+                    {!isSearching && brandSearchResults.map(brand => (
+                        <Button
+                            key={brand.id}
+                            variant={selectedBrand?.id === brand.id ? 'secondary' : 'ghost'}
+                            className="w-full justify-start h-auto"
+                            onClick={() => setSelectedBrand(brand)}
+                        >
+                            {brand.logoUrl && <img src={brand.logoUrl} alt={brand.name} className="w-8 h-8 mr-3 rounded-md object-contain" />}
+                            {brand.name}
+                        </Button>
+                    ))}
+                    {!isSearching && brandSearchResults.length === 0 && brandSearchQuery.length > 2 && (
+                         <div className="p-4 text-center text-sm text-muted-foreground">No brands found. Try a different search.</div>
+                    )}
+                    </div>
+                </ScrollArea>
+            </CardContent>
+        );
       case 'location':
         return (
           <CardContent className="space-y-4" data-testid="onboarding-step-location">
             <h3 className="font-semibold text-lg">Which location do you manage?</h3>
-            <Select onValueChange={(value) => setSelectedLocationId(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder={areLocationsLoading ? "Loading..." : "Choose your location..."} />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((loc) => <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+             <div className="relative">
+                <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                <Select onValueChange={(value) => setSelectedLocationId(value)}>
+                <SelectTrigger className="pl-10">
+                    <SelectValue placeholder={areLocationsLoading ? "Loading..." : "Choose your location..."} />
+                </SelectTrigger>
+                <SelectContent>
+                    {locations.map((loc) => <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>)}
+                </SelectContent>
+                </Select>
+            </div>
             {selectedLocationId && <p className="text-sm text-muted-foreground">You selected: {locations.find(l => l.id === selectedLocationId)?.name}</p>}
-          </CardContent>
-        );
-      case 'products':
-         return (
-          <CardContent className="text-center" data-testid="onboarding-step-products">
-            <h3 className="font-semibold text-lg">You're all set!</h3>
-            <p className="text-muted-foreground mt-2">Click the button below to create your account and go to your personalized dashboard.</p>
           </CardContent>
         );
       case 'done':
@@ -112,8 +180,11 @@ export default function OnboardingClientPage() {
     }
   };
   
-  const canProceed = step === 'role' ? !!selectedRole : step === 'location' ? !!selectedLocationId : false;
-  const isFinalStep = step === 'products';
+  const canProceed = 
+      (step === 'role' && !!selectedRole) ||
+      (step === 'location' && !!selectedLocationId) ||
+      (step === 'brand-search' && !!selectedBrand);
+
   const isDoneStep = step === 'done';
 
   return (
@@ -134,23 +205,16 @@ export default function OnboardingClientPage() {
                  {!isProd && <DevLoginButton />}
             </CardContent>
         ) : (
-            <form action={formAction}>
-                <input type="hidden" name="role" value={selectedRole || ''} />
-                <input type="hidden" name="locationId" value={selectedLocationId || ''} />
-
+            <>
                 {renderStep()}
-
                 {!isDoneStep && (
                     <CardFooter className="flex justify-end gap-2">
-                        {!isFinalStep && (
-                            <Button type="button" onClick={handleNext} disabled={!canProceed}>Continue</Button>
-                        )}
-                        {isFinalStep && (
-                           <SubmitButton />
-                        )}
+                        <Button type="button" onClick={handleNext} disabled={!canProceed}>
+                           {selectedRole === 'customer' ? 'Finish & Go to Account' : 'Finish & Go to Dashboard'}
+                        </Button>
                     </CardFooter>
                 )}
-            </form>
+            </>
         )}
       </Card>
     </div>
