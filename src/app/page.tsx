@@ -3,9 +3,13 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from 'next/link';
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import Chatbot from "@/components/chatbot";
+import { demoProducts } from "@/lib/demo/demo-data";
+import { DEMO_BRAND_ID } from "@/lib/config";
 
 export default function BrandsHomepage() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'homeHero');
+  const featuredProducts = [...demoProducts].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 10);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
@@ -233,8 +237,7 @@ export default function BrandsHomepage() {
           </div>
         </section>
       </main>
+      <Chatbot products={featuredProducts} brandId={DEMO_BRAND_ID} />
     </div>
   );
 }
-
-    
