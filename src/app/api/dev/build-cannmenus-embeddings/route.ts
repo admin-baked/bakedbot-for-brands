@@ -11,9 +11,8 @@ import {
   RetailerDoc,
   CannmenusEmbeddingDoc,
 } from "@/types/cannmenus";
-
-// Reuse your existing embedding util
 import { generateEmbedding } from "@/ai/utils/generate-embedding";
+import { requireUser } from "@/server/auth/auth";
 
 // ---- Firebase Admin bootstrap (server-side only) ----
 
@@ -109,9 +108,11 @@ function buildProductText(
 
 // ---- Route implementation ----
 
-// POST /api/dev/build-cannmenus-embeddings
 export async function POST(_req: NextRequest) {
   try {
+    // Secure the endpoint by requiring an 'owner' role.
+    await requireUser(['owner']);
+
     const db = getDb();
 
     const productsSnap = await db.collection("cannmenus_products").get();
@@ -221,12 +222,13 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json(summary, { status: 200 });
   } catch (err: any) {
     console.error("Error building CannMenus embeddings:", err);
+    const status = err.message.includes("Unauthorized") ? 401 : 500;
     return NextResponse.json(
       {
         ok: false,
         error: err?.message ?? "Unknown error building CannMenus embeddings",
       },
-      { status: 500 }
+      { status }
     );
   }
 }
