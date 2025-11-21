@@ -28,6 +28,7 @@ import OnboardingFlow from './chatbot/onboarding-flow';
 import ChatMessages from './chatbot/chat-messages';
 import ChatProductCarousel from './chatbot/chat-product-carousel';
 import { useUser } from '@/firebase/auth/use-user';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 
 type Message = {
@@ -94,17 +95,19 @@ const ChatWindow = ({
     <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-popover border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
       <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
         
-        {chatExperience === 'default' && (
-          <div className={cn(hasStartedChat && "border-b")}>
-            <ChatProductCarousel products={products} onAskSmokey={onAskSmokey} isCompact={hasStartedChat} onFeedback={onFeedback} />
+        {chatExperience === 'default' && hasStartedChat && (
+          <div className="border-b">
+            <ChatProductCarousel products={products} onAskSmokey={onAskSmokey} isCompact={true} onFeedback={onFeedback} />
           </div>
         )}
         
         <div className="flex-1 min-h-0">
             {!hasStartedChat ? (
-                <div className="p-4 text-center h-full flex flex-col justify-center items-center">
-                    <h2 className="text-lg font-semibold">Welcome to your virtual budtender 🌿</h2>
-                    <p className="text-muted-foreground text-sm mt-1 mb-4">How can I help you find your bliss?</p>
+                <div className="p-4 h-full flex flex-col justify-center">
+                    <div className="text-center mb-6">
+                        <h2 className="text-lg font-semibold">Welcome to your virtual budtender 🌿</h2>
+                        <p className="text-muted-foreground text-sm mt-1">How can I help you find your bliss?</p>
+                    </div>
                     <div className="w-full space-y-2">
                        <Button className="w-full" onClick={startOnboarding}>
                             <HelpCircle className="mr-2" /> Find product recommendations
@@ -113,6 +116,16 @@ const ChatWindow = ({
                             Just ask me a question <ChevronRight className="ml-1" />
                        </Button>
                     </div>
+                    <Collapsible className="mt-4">
+                        <CollapsibleTrigger asChild>
+                           <Button variant="link" className="text-xs text-muted-foreground">Discover Products</Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <div className="pt-2">
+                               <ChatProductCarousel products={products} onAskSmokey={onAskSmokey} isCompact={true} onFeedback={onFeedback} />
+                            </div>
+                        </CollapsibleContent>
+                    </Collapsible>
                 </div>
             ) : isOnboarding ? (
                 <OnboardingFlow onComplete={onOnboardingComplete} />
