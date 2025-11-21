@@ -4,4 +4,4 @@
 // These URLs point to publicly accessible files in a Google Cloud Storage bucket.
 export const defaultLogo = 'https://minoritycannabis.org/wp-content/uploads/2025/03/att.yne0IiSw3BIPejWlvseVXNlEGfA5E9CjF7HO2ecLTGQ.jpeg';
 
-export const defaultChatbotIcon = 'https://storage.googleapis.com/stedi-assets/misc/smokey-icon-1.png';
+export const defaultChatbotIcon = 'https://storage.googleapis.com/stedi-assets/misc/baked-bot-hero-image-2.png';
