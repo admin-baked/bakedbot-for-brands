@@ -10,68 +10,13 @@ export async function GET(req: NextRequest) {
 
   // ===== STUB MODE =====
   if (!CANNMENUS_API_BASE || !CANNMENUS_API_KEY) {
-    const allRetailers = [
-      {
-        id: "retailer-chi-001",
-        name: "Green Planet Dispensary",
-        slug: "green-planet-dispensary",
-        address: {
-          street: "420 W Cloud St",
-          city: "Chicago",
-          state: "IL",
-          postalCode: "60601",
-        },
-        geo: {
-          lat: 41.8853,
-          lng: -87.6216,
-        },
-        phone: "(312) 555-0111",
-        website: "https://greenplanet.example.com",
-        carriesBrands: ["jeeter-demo", "stiiizy-demo"],
-      },
-      {
-        id: "retailer-det-001",
-        name: "Motor City Remedies",
-        slug: "motor-city-remedies",
-        address: {
-          street: "313 Gratiot Ave",
-          city: "Detroit",
-          state: "MI",
-          postalCode: "48226",
-        },
-        geo: {
-          lat: 42.3347,
-          lng: -83.0469,
-        },
-        phone: "(313) 555-0199",
-        website: "https://motorcityremedies.example.com",
-        carriesBrands: ["jeeter-demo"],
-      },
-    ];
-
-    const normalizedQuery = search.trim().toLowerCase();
-
-    let items = allRetailers;
-
-    if (brandId) {
-      items = items.filter((r) => r.carriesBrands.includes(brandId));
-    } else if (normalizedQuery) {
-      items = items.filter((r) =>
-        `${r.name} ${r.slug} ${r.address.city} ${r.address.state}`
-          .toLowerCase()
-          .includes(normalizedQuery)
-      );
-    }
-
     return NextResponse.json(
       {
         source: "next-api:cannmenus:retailers (stub)",
-        query: { search, brandId },
-        items,
-        warning:
-          "Using in-memory stub data because CANNMENUS_API_BASE / CANNMENUS_API_KEY are not configured.",
+        error:
+          "Missing CANNMENUS_API_BASE or CANNMENUS_API_KEY environment variables.",
       },
-      { status: 200 }
+      { status: 500 }
     );
   }
 

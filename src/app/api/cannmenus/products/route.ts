@@ -11,100 +11,13 @@ export async function GET(req: NextRequest) {
 
   // ===== STUB MODE =====
   if (!CANNMENUS_API_BASE || !CANNMENUS_API_KEY) {
-    const allProducts = [
-      {
-        id: "jeeter-gelato-1g-preroll",
-        brandId: "jeeter-demo",
-        brandSlug: "jeeter",
-        name: "Jeeter Gelato Infused Pre-roll 1g",
-        category: "Pre-rolls",
-        strainType: "Hybrid",
-        thcPercent: 31.2,
-        cbdPercent: 0.1,
-        size: "1g",
-        imageUrl:
-          "https://images.unsplash.com/photo-1513639725746-c5d3e861f32a?auto=format&fit=crop&w=600&q=80",
-        tags: ["infused", "potent"],
-        retailerIds: ["retailer-chi-001", "retailer-det-001"],
-      },
-      {
-        id: "jeeter-strawberry-shortcake-5pk",
-        brandId: "jeeter-demo",
-        brandSlug: "jeeter",
-        name: "Jeeter Strawberry Shortcake Infused 5-Pack",
-        category: "Pre-rolls",
-        strainType: "Hybrid",
-        thcPercent: 32.5,
-        cbdPercent: 0.1,
-        size: "5 x 0.5g",
-        imageUrl:
-          "https://images.unsplash.com/photo-1545243424-0ce743321e11?auto=format&fit=crop&w=600&q=80",
-        tags: ["infused", "5-pack"],
-        retailerIds: ["retailer-chi-001"],
-      },
-      {
-        id: "stiiizy-king-louis-pod-1g",
-        brandId: "stiiizy-demo",
-        brandSlug: "stiiizy",
-        name: "STIIIZY King Louis XIII Pod 1g",
-        category: "Vapes",
-        strainType: "Indica",
-        thcPercent: 85.0,
-        cbdPercent: 0.0,
-        size: "1g",
-        imageUrl:
-          "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=600&q=80",
-        tags: ["pod", "indica"],
-        retailerIds: ["retailer-chi-001"],
-      },
-      {
-        id: "stiiizy-og-kush-flower-3.5",
-        brandId: "stiiizy-demo",
-        brandSlug: "stiiizy",
-        name: "STIIIZY OG Kush Flower 3.5g",
-        category: "Flower",
-        strainType: "Hybrid",
-        thcPercent: 27.0,
-        cbdPercent: 0.1,
-        size: "3.5g",
-        imageUrl:
-          "https://images.unsplash.com/photo-1511715282680-fbf93a50e721?auto=format&fit=crop&w=600&q=80",
-        tags: ["eighth", "hybrid"],
-        retailerIds: ["retailer-chi-001", "retailer-det-001"],
-      },
-    ];
-
-    const normSearch = search.trim().toLowerCase();
-
-    let items = allProducts;
-
-    if (brandId) {
-      items = items.filter(
-        (p) => p.brandId === brandId || p.brandSlug === brandId
-      );
-    }
-
-    if (retailerId) {
-      items = items.filter((p) => p.retailerIds?.includes(retailerId));
-    }
-
-    if (normSearch) {
-      items = items.filter((p) =>
-        `${p.name} ${p.category} ${p.strainType}`
-          .toLowerCase()
-          .includes(normSearch)
-      );
-    }
-
     return NextResponse.json(
       {
         source: "next-api:cannmenus:products (stub)",
-        query: { search, brandId, retailerId },
-        items,
-        warning:
-          "Using in-memory stub data because CANNMENUS_API_BASE / CANNMENUS_API_KEY are not configured.",
+        error:
+          "Missing CANNMENUS_API_BASE or CANNMENUS_API_KEY environment variables.",
       },
-      { status: 200 }
+      { status: 500 }
     );
   }
 
