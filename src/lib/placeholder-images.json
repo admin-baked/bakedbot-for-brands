@@ -3,7 +3,7 @@
     {
       "id": "homeHero",
       "description": "A hero image showing the AI Budtender experience on a mobile phone.",
-      "imageUrl": "https://images.unsplash.com/photo-1551650975-87deedd944c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjaGF0Ym90JTIwbW9iaWxlfGVufDB8fHx8MTc2MjQ0ODc4NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://storage.googleapis.com/stedi-assets/misc/baked-bot-hero-image-2.png",
       "imageHint": "AI budtender"
     },
     {

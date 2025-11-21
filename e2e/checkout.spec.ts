@@ -6,11 +6,11 @@ test('full checkout flow', async ({ page }) => {
     await page.goto('/menu/default');
 
     // 2. Select a location
-    await page.getByTestId('location-card-1').click();
-    await expect(page.getByTestId('location-card-1')).toHaveClass(/ring-primary/);
+    await page.getByTestId('location-card-disp-ny-alta-dispensary').click();
+    await expect(page.getByTestId('location-card-disp-ny-alta-dispensary')).toHaveClass(/ring-primary/);
 
-    // 3. Find the "Cosmic Caramels" product card and add it to cart
-    const productCard = page.getByTestId('product-card-demo-1');
+    // 3. Find the product card and add it to cart
+    const productCard = page.getByTestId('product-card-demo-40t-gg4');
     await productCard.locator('button', { hasText: 'Add' }).click();
 
     // 4. Verify item is in cart by checking the pill
@@ -30,11 +30,17 @@ test('full checkout flow', async ({ page }) => {
     await page.fill('input[name="customerBirthDate"]', '1990-01-01');
 
 
-    // 7. Submit the order
+    // 7. Submit the order - this will now redirect to an external site
+    // so we can't easily assert the confirmation page content directly.
+    // Instead, we can listen for the new page (popup) that opens.
+    const pagePromise = page.context().waitForEvent('page');
     await page.getByRole('button', { name: 'Place Order' }).click();
+    
+    // 8. Verify a new tab was opened for the payment flow.
+    const newPage = await pagePromise;
+    await expect(newPage).toHaveURL(/http(s)?:\/\/sandbox.authorizenet.com\/.*/);
 
-    // 8. Verify confirmation page
-    await expect(page).toHaveURL(/\/order-confirmation\/.+/);
-    await expect(page.getByRole('heading', { name: 'Order Status' })).toBeVisible();
-    await expect(page.getByText(/We've received your order/)).toBeVisible();
+    // If we wanted to test the full flow, we'd need to mock the redirect
+    // or handle the multi-page context, but for now, confirming the redirect
+    // to the payment provider is a good end-to-end signal.
 });
