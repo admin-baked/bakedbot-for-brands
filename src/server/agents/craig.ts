@@ -1,4 +1,3 @@
-
 // src/server/agents/craig.ts
 import { createServerClient } from "@/firebase/server-client";
 import { EventType } from "@/types/domain";
@@ -6,6 +5,7 @@ import { sendOrderEmail } from "@/lib/email/send-order-email";
 import type { OrderDoc, Retailer } from "@/types/domain";
 import type { ServerOrderPayload } from "@/app/checkout/actions/submitOrder";
 import { orderConverter, retailerConverter } from "@/firebase/converters";
+import { FieldValue } from "firebase-admin/firestore";
 
 
 const HANDLED_TYPES: EventType[] = [
@@ -15,27 +15,41 @@ const HANDLED_TYPES: EventType[] = [
 
 export async function handleCraigEvent(orgId: string, eventId: string) {
   const { firestore: db } = await createServerClient();
+  const agentId = 'craig';
 
-  const eventSnap = await db
-    .collection("organizations")
-    .doc(orgId)
-    .collection("events")
-    .doc(eventId)
-    .get();
+  const eventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
+  const eventSnap = await eventRef.get();
 
   if (!eventSnap.exists) return;
   const event = eventSnap.data() as any;
 
-  if (!HANDLED_TYPES.includes(event.type)) return;
+  if (event.processedBy && event.processedBy[agentId]) {
+    // This agent has already handled this event.
+    return;
+  }
+  
+  if (!HANDLED_TYPES.includes(event.type)) {
+    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
+    return;
+  }
 
-  switch (event.type as EventType) {
-    case "subscription.updated":
-      await handleSubscriptionUpdated(orgId, event);
-      break;
+  try {
+    switch (event.type as EventType) {
+      case "subscription.updated":
+        await handleSubscriptionUpdated(orgId, event);
+        break;
 
-    case "checkout.paid":
-      await handleCheckoutPaid(orgId, event);
-      break;
+      case "checkout.paid":
+        await handleCheckoutPaid(orgId, event);
+        break;
+    }
+    // Mark as successfully processed
+    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
+
+  } catch (error) {
+    console.error(`[${agentId}] Error processing event ${eventId}:`, error);
+    // Optionally mark as failed
+    await eventRef.set({ processedBy: { [agentId]: `failed_at_${new Date().toISOString()}` } }, { merge: true });
   }
 }
 
