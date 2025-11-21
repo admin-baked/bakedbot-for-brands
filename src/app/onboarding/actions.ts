@@ -11,6 +11,8 @@ import { makeBrandRepo } from '@/server/repos/brandRepo';
 const OnboardingSchema = z.object({
   role: z.enum(['brand', 'dispensary', 'customer']),
   locationId: z.string().optional(),
+  brandId: z.string().optional(), // CannMenus Brand ID
+  brandName: z.string().optional(), // Brand Name from CannMenus
 });
 
 // Define the state for the form
@@ -28,10 +30,7 @@ export async function completeOnboarding(prevState: OnboardingState, formData: F
     return { error: true, message: errorMessage };
   }
   
-  const validatedFields = OnboardingSchema.safeParse({
-    role: formData.get('role'),
-    locationId: formData.get('locationId'),
-  });
+  const validatedFields = OnboardingSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {
     return {
@@ -40,14 +39,17 @@ export async function completeOnboarding(prevState: OnboardingState, formData: F
     };
   }
 
-  const { role, locationId } = validatedFields.data;
+  const { role, locationId, brandId, brandName } = validatedFields.data;
   const { uid, email, name: displayName } = user;
+
+  // If role is 'brand', the brandId from CannMenus is now the primary ID.
+  const effectiveBrandId = role === 'brand' ? brandId : null;
 
   const userProfileData: Record<string, any> = {
     email,
     displayName,
     role,
-    brandId: role === 'brand' ? uid : null,
+    brandId: effectiveBrandId,
     locationId: role === 'dispensary' ? locationId : null,
   };
 
@@ -69,12 +71,15 @@ export async function completeOnboarding(prevState: OnboardingState, formData: F
       // 1. Set the user document in Firestore
       transaction.set(userDocRef, filteredProfileData, { merge: true });
       
-      // 2. If the user is a new brand owner, create their brand document.
-      if (role === 'brand') {
-        const newBrandDocRef = firestore.collection('brands').doc(uid);
-        const newBrandName = displayName ? `${displayName}'s Brand` : 'My New Brand';
-        // Use the create method from the repo which includes default configs.
-        transaction.set(newBrandDocRef, brandRepo.createPayload(newBrandName));
+      // 2. If the user claimed a brand, create their brand document using the CannMenus ID.
+      if (role === 'brand' && brandId && brandName) {
+        const newBrandDocRef = firestore.collection('brands').doc(brandId);
+        const existingBrand = await transaction.get(newBrandDocRef);
+
+        // Only create the brand doc if it doesn't already exist to prevent overwriting.
+        if (!existingBrand.exists) {
+            transaction.set(newBrandDocRef, brandRepo.createPayload(brandName));
+        }
       }
     });
 
