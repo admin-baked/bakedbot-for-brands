@@ -1,3 +1,4 @@
+
 // src/app/api/cannmenus/retailers/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   const resp = await fetch(url.toString(), {
     headers: {
-      "Authorization": `Bearer ${apiKey}`,
+      "Authorization": apiKey,
       "accept": "application/json",
     },
   });
