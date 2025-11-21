@@ -105,8 +105,8 @@ const ChatWindow = ({
             {!hasStartedChat ? (
                 <div className="p-4 h-full flex flex-col justify-center">
                     <div className="text-center mb-6">
-                        <h2 className="text-lg font-semibold">Welcome to your virtual budtender 🌿</h2>
-                        <p className="text-muted-foreground text-sm mt-1">How can I help you find your bliss?</p>
+                        <h2 className="text-lg font-semibold">Hi, I'm Smokey.</h2>
+                        <p className="text-muted-foreground text-sm mt-1">How can I help you?</p>
                     </div>
                     <div className="w-full space-y-2">
                        <Button className="w-full" onClick={startOnboarding}>
