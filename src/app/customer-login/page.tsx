@@ -1,4 +1,3 @@
-
 'use client';
 
 import DevLoginButton from '@/components/dev-login-button';
@@ -24,21 +23,25 @@ export default function CustomerLoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   
+  const handleAuthSuccess = async (user: any) => {
+    const idTokenResult = await user.getIdTokenResult();
+    const isNewUser = getAdditionalUserInfo({user, providerId: ''})?.isNewUser;
+    
+    // If user has no role or is brand new, send to onboarding.
+    if (!idTokenResult.claims.role || isNewUser) {
+        router.push('/onboarding');
+    } else {
+        router.push('/account'); // Customers go to their account page
+    }
+  };
+  
   const handleGoogleSignIn = async () => {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      const additionalUserInfo = getAdditionalUserInfo(result);
-      
       toast({ title: 'Signed In!', description: 'Welcome to BakedBot AI.' });
-      
-      if (additionalUserInfo?.isNewUser) {
-        router.push('/onboarding');
-      } else {
-        router.push('/account');
-      }
-
+      await handleAuthSuccess(result.user);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Google Sign-In Error', description: error.message });
     }
@@ -51,13 +54,13 @@ export default function CustomerLoginPage() {
     setIsSubmitting(true);
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         toast({ title: 'Account Created!', description: 'Redirecting you to onboarding...' });
-        router.push('/onboarding');
+        await handleAuthSuccess(userCredential.user);
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         toast({ title: 'Login Successful!', description: 'Redirecting...' });
-        router.push('/account');
+        await handleAuthSuccess(userCredential.user);
       }
     } catch (error: any) {
       console.error(`${isSignUp ? 'Sign up' : 'Login'} error`, error);

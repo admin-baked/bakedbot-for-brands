@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -24,6 +23,18 @@ export default function BrandLoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
+  const handleAuthSuccess = async (user: any) => {
+    const idTokenResult = await user.getIdTokenResult();
+    const isNewUser = getAdditionalUserInfo({user, providerId: ''})?.isNewUser;
+    
+    // If user has no role or is brand new, send to onboarding.
+    if (!idTokenResult.claims.role || isNewUser) {
+        router.push('/onboarding');
+    } else {
+        router.push('/dashboard');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth || !email || !password) return;
@@ -31,16 +42,13 @@ export default function BrandLoginPage() {
     setIsSubmitting(true);
     try {
       if (isSignUp) {
-        // Handle user registration
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         toast({ title: 'Account Created!', description: 'Redirecting you to onboarding...' });
-        // After sign-up, user is auto-logged in, redirect to onboarding
-        router.push('/onboarding');
+        await handleAuthSuccess(userCredential.user);
       } else {
-        // Handle user login
-        await signInWithEmailAndPassword(auth, email, password);
-        toast({ title: 'Login Successful!', description: 'Redirecting to your dashboard...' });
-        router.push('/dashboard');
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        toast({ title: 'Login Successful!', description: 'Redirecting...' });
+        await handleAuthSuccess(userCredential.user);
       }
     } catch (error: any) {
       console.error(`${isSignUp ? 'Sign up' : 'Login'} error`, error);
@@ -58,18 +66,8 @@ export default function BrandLoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      const additionalUserInfo = getAdditionalUserInfo(result);
-      
       toast({ title: 'Signed In!', description: 'Welcome to BakedBot AI.' });
-      
-      // If the user is new, send them to onboarding to select a role.
-      // Otherwise, go to the dashboard.
-      if (additionalUserInfo?.isNewUser) {
-        router.push('/onboarding');
-      } else {
-        router.push('/dashboard');
-      }
-
+      await handleAuthSuccess(result.user);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Google Sign-In Error', description: error.message });
     }

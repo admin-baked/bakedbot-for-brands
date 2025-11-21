@@ -1,4 +1,3 @@
-
 'use client';
 
 import DevLoginButton from '@/components/dev-login-button';
@@ -8,9 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
-import { isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
-import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -23,31 +21,19 @@ export default function DispensaryLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCompletingSignIn, setIsCompletingSignIn] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
-
-  useEffect(() => {
-    if (auth && isSignInWithEmailLink(auth, window.location.href)) {
-      let emailForSignIn = window.localStorage.getItem('emailForSignIn');
-      if (!emailForSignIn) {
-        emailForSignIn = window.prompt('Please provide your email for confirmation');
-      }
-      if (emailForSignIn) {
-        setIsCompletingSignIn(true);
-        signInWithEmailLink(auth, emailForSignIn, window.location.href)
-          .then((result) => {
-            window.localStorage.removeItem('emailForSignIn');
-            toast({ title: 'Success!', description: 'You have been signed in.' });
-            router.push('/dashboard');
-          })
-          .catch((error) => {
-            toast({ variant: 'destructive', title: 'Sign-in Failed', description: 'The sign-in link is invalid or has expired.' });
-            setIsCompletingSignIn(false);
-          });
-      }
+  const handleAuthSuccess = async (user: any) => {
+    const idTokenResult = await user.getIdTokenResult();
+    const isNewUser = getAdditionalUserInfo({user, providerId: ''})?.isNewUser;
+    
+    // If user has no role or is brand new, send to onboarding.
+    if (!idTokenResult.claims.role || isNewUser) {
+        router.push('/onboarding');
+    } else {
+        router.push('/dashboard');
     }
-  }, [auth, router, toast]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,13 +42,13 @@ export default function DispensaryLoginPage() {
     setIsSubmitting(true);
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         toast({ title: 'Account Created!', description: 'Redirecting you to onboarding...' });
-        router.push('/onboarding');
+        await handleAuthSuccess(userCredential.user);
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         toast({ title: 'Login Successful!', description: 'Redirecting to your dashboard...' });
-        router.push('/dashboard');
+        await handleAuthSuccess(userCredential.user);
       }
     } catch (error: any) {
       console.error(`${isSignUp ? 'Sign up' : 'Login'} error`, error);
@@ -80,37 +66,13 @@ export default function DispensaryLoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      const additionalUserInfo = getAdditionalUserInfo(result);
-      
       toast({ title: 'Signed In!', description: 'Welcome to BakedBot AI.' });
-      
-      if (additionalUserInfo?.isNewUser) {
-        router.push('/onboarding');
-      } else {
-        router.push('/dashboard');
-      }
-
+      await handleAuthSuccess(result.user);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Google Sign-In Error', description: error.message });
     }
   };
   
-  if (isCompletingSignIn) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-        <Card className="w-full max-w-md text-center">
-            <CardHeader>
-                <CardTitle>Completing Sign-In</CardTitle>
-                <CardDescription>Please wait while we securely sign you in...</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-            </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md">
