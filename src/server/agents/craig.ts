@@ -48,7 +48,7 @@ export async function handleCraigEvent(orgId: string, eventId: string) {
 
   } catch (error) {
     console.error(`[${agentId}] Error processing event ${eventId}:`, error);
-    // Optionally mark as failed
+    // On failure, mark with a failed status for inspection.
     await eventRef.set({ processedBy: { [agentId]: `failed_at_${new Date().toISOString()}` } }, { merge: true });
   }
 }
