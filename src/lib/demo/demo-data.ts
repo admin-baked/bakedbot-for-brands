@@ -4,7 +4,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Timestamp } from 'firebase/firestore';
 
 // This is now exported so the chatbot can use it as a fallback.
-export const defaultChatbotIcon = 'https://storage.googleapis.com/stedi-assets/misc/baked-bot-hero-image-2.png';
+export const defaultChatbotIcon = 'https://bakedbot.ai/wp-content/uploads/2025/11/founding-citrcle.png';
 
 // Also exporting defaultLogo from here for consistency in demo setup.
 export const defaultLogo = 'https://minoritycannabis.org/wp-content/uploads/2025/03/att.yne0IiSw3BIPejWlvseVXNlEGfA5E9CjF7HO2ecLTGQ.jpeg';

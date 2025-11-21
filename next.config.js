@@ -16,6 +16,14 @@ const nextConfig = {
         protocol: "https",
         hostname: "storage.googleapis.com",
       },
+      {
+        protocol: "https",
+        hostname: "minoritycannabis.org",
+      },
+      {
+        protocol: "https",
+        hostname: "bakedbot.ai",
+      },
     ],
   },
 };
