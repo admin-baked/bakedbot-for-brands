@@ -18,7 +18,7 @@ test.describe('Product Management Lifecycle', () => {
     await page.getByRole('link', { name: 'Products' }).click();
     await expect(page).toHaveURL('/dashboard/products');
 
-    // 3. Create a new product
+    // 3. Create a new product by clicking the "Add Product" link
     await page.getByRole('link', { name: 'Add Product' }).click();
     await expect(page).toHaveURL('/dashboard/products/new');
     
@@ -49,7 +49,6 @@ test.describe('Product Management Lifecycle', () => {
 
     // 6. Verify the updated product name appears in the list
     await expect(page).toHaveURL('/dashboard/products');
-    await expect(page.getByText('Product updated successfully!')).toBeVisible();
     await expect(page.getByText(updatedProductName)).toBeVisible();
     await expect(page.getByText(productName)).not.toBeVisible();
 

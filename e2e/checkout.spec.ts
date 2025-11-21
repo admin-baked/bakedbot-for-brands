@@ -30,17 +30,16 @@ test('full checkout flow', async ({ page }) => {
     await page.fill('input[name="customerBirthDate"]', '1990-01-01');
 
 
-    // 7. Submit the order - this will now redirect to an external site
-    // so we can't easily assert the confirmation page content directly.
-    // Instead, we can listen for the new page (popup) that opens.
+    // 7. Submit the order. The action now redirects to a payment provider.
+    // Instead of waiting for a navigation on the same page, we listen for the new page event.
     const pagePromise = page.context().waitForEvent('page');
     await page.getByRole('button', { name: 'Place Order' }).click();
     
     // 8. Verify a new tab was opened for the payment flow.
     const newPage = await pagePromise;
-    await expect(newPage).toHaveURL(/http(s)?:\/\/sandbox.authorizenet.com\/.*/);
+    // Allow for both sandbox and production URLs
+    await expect(newPage).toHaveURL(/https:\/\/.*\.authorizenet\.com\/.*/);
 
-    // If we wanted to test the full flow, we'd need to mock the redirect
-    // or handle the multi-page context, but for now, confirming the redirect
-    // to the payment provider is a good end-to-end signal.
+    // Close the new page to clean up
+    await newPage.close();
 });
