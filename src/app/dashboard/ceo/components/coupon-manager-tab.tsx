@@ -27,8 +27,14 @@ export default function CouponManagerTab() {
   const { firestore } = useFirebase();
   const { toast } = useToast();
   const [formState, formAction] = useFormState(createCoupon, initialState);
-
-  const couponsQuery: Query<Coupon> | null = firestore ? query(collection(firestore, 'coupons').withConverter(couponConverter as any)) : null;
+  
+  // Correctly construct the typed query
+  const couponsQuery = useMemo(() => {
+    if (!firestore) return null;
+    const couponsCol = collection(firestore, 'coupons').withConverter(couponConverter);
+    return query(couponsCol);
+  }, [firestore]);
+  
   const { data: coupons, isLoading: couponsLoading } = useCollection<Coupon>(couponsQuery);
   
   const brandsQuery = firestore ? query(collection(firestore, 'brands')) : null;
