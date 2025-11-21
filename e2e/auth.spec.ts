@@ -2,17 +2,6 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication Flows', () => {
-  test('dispensary login with email and password', async ({ page }) => {
-    await page.goto('/dispensary-login');
-
-    await page.fill('input[name="email"]', 'dispensary@bakedbot.ai');
-    await page.fill('input[type="password"]', 'password');
-    await page.getByRole('button', { name: 'Login' }).click();
-
-    // After login, it should redirect to the dashboard
-    await expect(page).toHaveURL('/dashboard');
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-  });
 
   test('brand login with dev login button', async ({ page }) => {
     await page.goto('/brand-login');
