@@ -2,7 +2,6 @@
 // src/app/api/dev/build-cannmenus-embeddings/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { initializeApp, cert, getApps, App } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
 import {
@@ -13,46 +12,9 @@ import {
 } from "@/types/cannmenus";
 import { generateEmbedding } from "@/ai/utils/generate-embedding";
 import { requireUser } from "@/server/auth/auth";
+import { createServerClient } from "@/firebase/server-client";
 
-// ---- Firebase Admin bootstrap (server-side only) ----
-
-let adminApp: App | null = null;
-
-function getAdminApp(): App {
-  if (adminApp) return adminApp;
-
-  if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-    throw new Error(
-      "FIREBASE_SERVICE_ACCOUNT_KEY env var is not set (needed for admin in build-cannmenus-embeddings)."
-    );
-  }
-
-  const serviceAccount = JSON.parse(
-    Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, "base64").toString(
-      "utf8"
-    )
-  );
-
-  const existing = getApps()[0];
-  if (existing) {
-    adminApp = existing;
-    return existing;
-  }
-
-  adminApp = initializeApp({
-    credential: cert(serviceAccount as any),
-  });
-
-  return adminApp!;
-}
-
-function getDb() {
-  const app = getAdminApp();
-  return getFirestore(app);
-}
-
-// ---- Helper: build the text we embed for a product ----
-
+// Helper to build the text we embed for a product
 function buildProductText(
   product: ProductDoc,
   brand: BrandDoc | null,
@@ -93,8 +55,8 @@ function buildProductText(
   if (retailers.length) {
     const retailerSummaries = retailers.map((r) => {
       const addrParts: string[] = [];
-      if (r.address?.city) addrParts.push(r.address.city);
-      if (r.address?.state) addrParts.push(r.address.state);
+      if (r.city) addrParts.push(r.city);
+      if (r.state) addrParts.push(r.state);
       return `${r.name}${addrParts.length ? ` (${addrParts.join(", ")})` : ""}`;
     });
 
@@ -106,14 +68,13 @@ function buildProductText(
   return parts.join("\n");
 }
 
-// ---- Route implementation ----
-
+// Route implementation
 export async function POST(_req: NextRequest) {
   try {
     // Secure the endpoint by requiring an 'owner' role.
     await requireUser(['owner']);
 
-    const db = getDb();
+    const { firestore: db } = await createServerClient();
 
     const productsSnap = await db.collection("cannmenus_products").get();
     if (productsSnap.empty) {
