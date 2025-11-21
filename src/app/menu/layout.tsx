@@ -19,16 +19,50 @@ interface MenuLayoutProps {
     };
 }
 
+// Function to map CannMenus product format to our internal Product type
+function mapCannMenusProduct(item: any, brandId: string): Product {
+    const prices: Record<string, number> = {};
+    if (item.prices) {
+        for (const retailerId in item.prices) {
+            prices[retailerId] = item.prices[retailerId].price;
+        }
+    }
+  
+    return {
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        price: item.price ?? 0, // Fallback price
+        prices: prices,
+        imageUrl: item.image ?? 'https://picsum.photos/seed/default/400/400',
+        imageHint: 'cannabis product',
+        description: item.description ?? '',
+        brandId,
+    };
+}
+
 async function getMenuData(brandId: string) {
     let products: Product[];
     let locations: Retailer[];
     let reviews: Review[];
-    // Centralized decision: A session is "demo" if the cookie is set, or if the brandId is 'default'.
-    const isDemoByCookie = cookies().get('isUsingDemoData')?.value === 'true';
-    const isDemo = isDemoByCookie || brandId === DEMO_BRAND_ID || !brandId;
+    const isDemo = cookies().get('isUsingDemoData')?.value === 'true' || brandId === DEMO_BRAND_ID || !brandId;
 
     if (isDemo) {
-        products = demoProducts;
+        // For the demo, fetch live 40 Tons data from the API route
+        try {
+            const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
+            const res = await fetch(`${baseUrl}/api/cannmenus/product-search`, { next: { revalidate: 60 }});
+            const json = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(json.error || 'Failed to fetch demo products');
+            }
+            products = (json.data || []).map((item: any) => mapCannMenusProduct(item, DEMO_BRAND_ID));
+        } catch (error) {
+            console.error(`[MenuLayout] Failed to fetch live demo data:`, error);
+            products = demoProducts; // Fallback to stubs on error
+        }
+        
         locations = demoRetailers;
         reviews = demoCustomer.reviews as Review[];
     } else {
@@ -68,7 +102,7 @@ async function getMenuData(brandId: string) {
         locations,
         reviews,
         featuredProducts,
-        isDemo, // Pass the final decision to the client
+        isDemo,
     };
 }
 
@@ -83,3 +117,4 @@ export default async function MenuLayout({ children, params }: MenuLayoutProps) 
     </MenuLayoutClient>
   );
 }
+
