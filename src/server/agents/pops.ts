@@ -21,18 +21,22 @@ function toDateKey(ts: FirebaseFirestore.Timestamp | Date) {
 
 export async function handlePopsEvent(orgId: string, eventId: string) {
   const { firestore: db } = await createServerClient();
+  const agentId = 'pops';
 
-  const eventSnap = await db
-    .collection("organizations")
-    .doc(orgId)
-    .collection("events")
-    .doc(eventId)
-    .get();
+  const eventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
+  const eventSnap = await eventRef.get();
 
   if (!eventSnap.exists) return;
   const event = eventSnap.data() as any;
 
-  if (!HANDLED_TYPES.includes(event.type)) return;
+  if (event.processedBy && event.processedBy[agentId]) {
+    return;
+  }
+
+  if (!HANDLED_TYPES.includes(event.type)) {
+     await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
+    return;
+  }
 
   const createdAt: FirebaseFirestore.Timestamp =
     event.timestamp || FieldValue.serverTimestamp();
@@ -44,58 +48,66 @@ export async function handlePopsEvent(orgId: string, eventId: string) {
     .collection("analytics")
     .doc(`daily-${dateKey}`);
 
-  await db.runTransaction(async (tx) => {
-    const snap = await tx.get(dailyRef);
-    const current = (snap.exists ? snap.data() : {}) as any;
+  try {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(dailyRef);
+      const current = (snap.exists ? snap.data() : {}) as any;
 
-    const totals = current.totals || {};
-    const channels = current.channels || {};
-    const subscription = current.subscription || {};
+      const totals = current.totals || {};
+      const channels = current.channels || {};
+      const subscription = current.subscription || {};
 
-    switch (event.type as EventType) {
-      case "reach.entry": {
-        const channel = event.data?.channel || "unknown";
-        const ch = channels[channel] || { sessions: 0, checkoutsStarted: 0, paidCheckouts: 0 };
-        ch.sessions += 1;
-        channels[channel] = ch;
-        break;
+      switch (event.type as EventType) {
+        case "reach.entry": {
+          const channel = event.data?.channel || "unknown";
+          const ch = channels[channel] || { sessions: 0, checkoutsStarted: 0, paidCheckouts: 0 };
+          ch.sessions += 1;
+          channels[channel] = ch;
+          break;
+        }
+
+        case "checkout.started": {
+          totals.checkoutsStarted = (totals.checkoutsStarted || 0) + 1;
+          break;
+        }
+
+        case "checkout.paid": {
+          totals.paidCheckouts = (totals.paidCheckouts || 0) + 1;
+          totals.orders = (totals.orders || 0) + 1;
+          const amount = event.data?.total ?? 0;
+          totals.gmv = (totals.gmv || 0) + amount;
+          break;
+        }
+
+        case "checkout.failed": {
+          totals.failedCheckouts = (totals.failedCheckouts || 0) + 1;
+          break;
+        }
+
+        case "subscription.updated": {
+          subscription.currentPlanId = event.data?.planId || subscription.currentPlanId || null;
+          subscription.currentAmount = event.data?.amount ?? subscription.currentAmount ?? null;
+          break;
+        }
       }
 
-      case "checkout.started": {
-        totals.checkoutsStarted = (totals.checkoutsStarted || 0) + 1;
-        break;
-      }
+      tx.set(
+        dailyRef,
+        {
+          date: `${dateKey.slice(0, 4)}-${dateKey.slice(4, 6)}-${dateKey.slice(6, 8)}`,
+          totals,
+          channels,
+          subscription,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
 
-      case "checkout.paid": {
-        totals.paidCheckouts = (totals.paidCheckouts || 0) + 1;
-        totals.orders = (totals.orders || 0) + 1;
-        const amount = event.data?.total ?? 0;
-        totals.gmv = (totals.gmv || 0) + amount;
-        break;
-      }
+    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
 
-      case "checkout.failed": {
-        totals.failedCheckouts = (totals.failedCheckouts || 0) + 1;
-        break;
-      }
-
-      case "subscription.updated": {
-        subscription.currentPlanId = event.data?.planId || subscription.currentPlanId || null;
-        subscription.currentAmount = event.data?.amount ?? subscription.currentAmount ?? null;
-        break;
-      }
-    }
-
-    tx.set(
-      dailyRef,
-      {
-        date: `${dateKey.slice(0, 4)}-${dateKey.slice(4, 6)}-${dateKey.slice(6, 8)}`,
-        totals,
-        channels,
-        subscription,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-  });
+  } catch(error) {
+    console.error(`[${agentId}] Error processing event ${eventId}:`, error);
+    await eventRef.set({ processedBy: { [agentId]: `failed_at_${new Date().toISOString()}` } }, { merge: true });
+  }
 }
