@@ -1,4 +1,3 @@
-
 // src/app/api/cannmenus/products/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
@@ -111,7 +110,7 @@ export async function GET(req: NextRequest) {
 
   // ===== REAL MODE (for later) =====
   try {
-    const url = new URL("/products", CANNMENUS_API_BASE);
+    const url = new URL("/v1/products", CANNMENUS_API_BASE);
     if (search.trim()) url.searchParams.set("search", search.trim());
     if (brandId.trim()) url.searchParams.set("brandId", brandId.trim());
     if (retailerId.trim()) url.searchParams.set("retailerId", retailerId.trim());
@@ -120,7 +119,7 @@ export async function GET(req: NextRequest) {
       method: "GET",
       headers: {
         Accept: "application/json",
-        Authorization: `Bearer ${CANNMENUS_API_KEY}`,
+        "X-API-Key": CANNMENUS_API_KEY,
       },
     });
 
