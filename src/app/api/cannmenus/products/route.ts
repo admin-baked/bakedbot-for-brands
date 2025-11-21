@@ -1,10 +1,11 @@
+
 // src/app/api/cannmenus/products/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-const CANNMENUS_API_BASE = process.env.CANNMENUS_API_BASE;
-const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
-
 export async function GET(req: NextRequest) {
+  const CANNMENUS_API_BASE = process.env.CANNMENUS_API_BASE;
+  const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
+
   const search = req.nextUrl.searchParams.get("search") ?? "";
   const brandId = req.nextUrl.searchParams.get("brandId") ?? "";
   const retailerId = req.nextUrl.searchParams.get("retailerId") ?? "";
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
       {
         source: "next-api:cannmenus:products (stub)",
         error:
-          "Missing CANNMENUS_API_BASE or CANNMENUS_API_KEY environment variables.",
+          "Missing CANNMENUS_API_BASE or CANNMENUS_API_KEY environment variables. Please configure them in your deployment settings.",
       },
       { status: 500 }
     );
