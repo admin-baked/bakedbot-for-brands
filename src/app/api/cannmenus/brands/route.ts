@@ -1,4 +1,3 @@
-
 // src/app/api/cannmenus/brands/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
@@ -66,14 +65,14 @@ export async function GET(req: NextRequest) {
 
   // ===== REAL MODE: talk to CannMenus once configured =====
   try {
-    const url = new URL("/brands", CANNMENUS_API_BASE);
+    const url = new URL("/v1/brands", CANNMENUS_API_BASE);
     if (search.trim()) url.searchParams.set("search", search.trim());
 
     const upstreamRes = await fetch(url.toString(), {
       method: "GET",
       headers: {
         Accept: "application/json",
-        Authorization: `Bearer ${CANNMENUS_API_KEY}`,
+        "X-API-Key": CANNMENUS_API_KEY,
       },
     });
 
