@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const base = process.env.CANNMENUS_API_BASE;
+  const base = process.env.CANNMENUS_API_BASE || process.env.CANNMENUS_API_URL;
   const apiKey = process.env.CANNMENUS_API_KEY;
 
   if (!base || !apiKey) {
@@ -22,8 +22,9 @@ export async function GET(req: NextRequest) {
 
   const resp = await fetch(url.toString(), {
     headers: {
-      "x-api-key": apiKey,
-      "accept": "application/json",
+      "Accept": "application/json",
+      "User-Agent": "BakedBot/1.0",
+      "X-Token": apiKey.trim().replace(/^['"']|['"']$/g, ""),
     },
   });
 
