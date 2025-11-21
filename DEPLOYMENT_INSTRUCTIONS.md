@@ -9,6 +9,7 @@ The application's server-side logic and security features require secret keys th
 1.  `FIREBASE_SERVICE_ACCOUNT_KEY`: Credentials for the Firebase Admin SDK to communicate with your Firebase project securely.
 2.  `SENDGRID_API_KEY`: The API key for the SendGrid service to send order confirmation emails.
 3.  `RECAPTCHA_SITE_KEY`: The **secret** key for reCAPTCHA v3, used by Firebase App Check to verify requests.
+4.  `CANNMENUS_API_KEY`: The API key for the CannMenus service to fetch product and retailer data.
 
 The `apphosting.yaml` file has been configured to use these keys by referencing them as secrets. Your final task is to create these secrets in Google Cloud Secret Manager so that App Hosting can access them during runtime.
 
@@ -69,7 +70,19 @@ You must convert the multi-line JSON file into a single-line Base64 string.
 
 ---
 
-## Step 3: Create the `RECAPTCHA_SITE_KEY` Secret for App Check
+## Step 3: Create the `CANNMENUS_API_KEY` Secret
+
+1.  Navigate to the Google Cloud Console for your project.
+2.  Go to **Security > Secret Manager**.
+3.  Click **CREATE SECRET**.
+4.  **Name:** `CANNMENUS_API_KEY`
+5.  **Secret value:** Paste your CannMenus API key (`e13ed642...`).
+6.  Leave replication policy as "Automatic".
+7.  Click **CREATE SECRET**.
+
+---
+
+## Step 4: Create the `RECAPTCHA_SITE_KEY` Secret for App Check
 
 This step is vital for backend security.
 
@@ -94,8 +107,8 @@ This step is vital for backend security.
 
 ---
 
-## Step 4: Deploy the Application
+## Step 5: Deploy the Application
 
-Once all three secrets (`FIREBASE_SERVICE_ACCOUNT_KEY`, `SENDGRID_API_KEY`, and `RECAPTCHA_SITE_KEY`) are created in Secret Manager, you can deploy the application.
+Once all four secrets (`FIREBASE_SERVICE_ACCOUNT_KEY`, `SENDGRID_API_KEY`, `CANNMENUS_API_KEY`, and `RECAPTCHA_SITE_KEY`) are created in Secret Manager, you can deploy the application.
 
 The `apphosting.yaml` file will automatically instruct Firebase App Hosting to find these secrets by name and securely inject them as environment variables into your application's runtime. Your backend is now protected by App Check.
