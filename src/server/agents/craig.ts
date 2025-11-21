@@ -23,12 +23,13 @@ export async function handleCraigEvent(orgId: string, eventId: string) {
   if (!eventSnap.exists) return;
   const event = eventSnap.data() as any;
 
+  // Check if this agent has already handled this event.
   if (event.processedBy && event.processedBy[agentId]) {
-    // This agent has already handled this event.
     return;
   }
   
   if (!HANDLED_TYPES.includes(event.type)) {
+    // Mark as processed even if not handled to prevent re-scanning
     await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
     return;
   }
