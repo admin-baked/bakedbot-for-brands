@@ -460,7 +460,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
     return (
         <>
           <div className="fixed bottom-6 right-6 z-50">
-             <Button size="icon" className="h-16 w-16 rounded-full shadow-lg overflow-hidden p-0" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
+             <Button size="icon" className="h-20 w-20 rounded-full shadow-lg overflow-hidden p-0 bg-transparent hover:bg-transparent" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
               {isOpen ? (
                 <X className="h-8 w-8" />
               ) : (
@@ -493,3 +493,5 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
         </>
       );
 }
+
+    
