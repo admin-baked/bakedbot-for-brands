@@ -1,14 +1,15 @@
-# Use the official Playwright image which comes with browsers and dependencies.
-FROM mcr.microsoft.com/playwright:v1.45.1-jammy
+
+# Use the official Playwright image which has all the necessary dependencies.
+FROM mcr.microsoft.com/playwright:v1.44.0-jammy
 
 # Set the working directory inside the container.
 WORKDIR /app
 
-# Copy application files into the container.
+# Copy application code to the container.
 COPY . .
 
-# Install project dependencies.
+# Install npm dependencies.
 RUN npm ci
 
-# Run the end-to-end tests.
-CMD ["npx", "playwright", "test"]
+# Run the Playwright tests. The 'npm run test:e2e' command will be executed.
+CMD ["npm", "run", "test:e2e"]
