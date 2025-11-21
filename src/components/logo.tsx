@@ -10,7 +10,7 @@ type Props = {
   className?: string
 }
 
-export default function Logo({ height = 13, priority = true, className }: Props) {
+export default function Logo({ height = 11, priority = true, className }: Props) {
   const width = Math.round(height * 5); // Adjust ratio as needed for your asset
 
   return (
