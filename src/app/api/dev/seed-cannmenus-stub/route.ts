@@ -3,12 +3,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { BrandDoc, ProductDoc, RetailerDoc } from "@/types/cannmenus";
-
-// NOTE: This assumes you have a Firebase Admin helper.
-// You may need to tweak these imports to match your project’s server-client.ts.
 import { createServerClient } from "@/firebase/server-client";
-import { getFirestore } from "firebase-admin/firestore";
-
+import { requireUser } from "@/server/auth/auth";
 
 // ---- Stub data (mirror what we used in the API routes) ----
 
@@ -161,9 +157,11 @@ const stubProducts: ProductDoc[] = [
 
 // ---- Route ----
 
-// I’m making this POST-only so you don’t accidentally seed on page load.
 export async function POST(_req: NextRequest) {
   try {
+    // Secure the endpoint by requiring an 'owner' role.
+    await requireUser(['owner']);
+
     const { firestore } = await createServerClient();
     const now = new Date();
 
@@ -227,12 +225,13 @@ export async function POST(_req: NextRequest) {
     );
   } catch (err: any) {
     console.error("Error seeding CannMenus stub:", err);
+    const status = err.message.includes("Unauthorized") ? 401 : 500;
     return NextResponse.json(
       {
         ok: false,
         error: err?.message ?? "Unknown error seeding CannMenus stub",
       },
-      { status: 500 }
+      { status }
     );
   }
 }
