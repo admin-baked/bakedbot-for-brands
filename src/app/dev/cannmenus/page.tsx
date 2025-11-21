@@ -2,6 +2,13 @@
 "use client";
 
 import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Loader2 } from "lucide-react";
+
 
 type Mode = "brand" | "dispensary";
 
@@ -71,7 +78,7 @@ async function runApiFetch(
       };
     }
   
-    return { ok: true, status: res.status, data: json };
+    return { ok: true, status: res.status, data: json.data || json };
   }
 
 export default function CannMenusDevPage() {
@@ -128,13 +135,13 @@ export default function CannMenusDevPage() {
       const resp = await fetch(url.toString());
       const json = await resp.json();
 
-      if (json.ok === false) { // Handle stubs and errors
+      if (json.ok === false) { 
         throw new Error(json.error || json.warning || "Products error");
       }
 
       const items: Product[] = json.items || json.data?.data || json.data || [];
       setProducts(items);
-      setRaw(json); // Also show the raw product response
+      setRaw(json); 
     } catch (e: any) {
       setError(e.message || "Failed to load products");
     } finally {
@@ -143,173 +150,127 @@ export default function CannMenusDevPage() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-8">
+    <main className="container max-w-4xl mx-auto p-4 md:p-8 space-y-8">
       <header className="space-y-2">
-        <h1 className="text-2xl font-bold">CannMenus Dev Console</h1>
-        <p className="text-sm text-muted-foreground">
-          Internal testing page for the Next.js API proxies.
+        <h1 className="text-3xl font-bold tracking-tight">CannMenus Dev Console</h1>
+        <p className="text-muted-foreground">
+          Internal testing page for the Next.js API proxies to the live CannMenus API.
         </p>
       </header>
-
-      {/* Search mode */}
-      <section className="space-y-2">
-        <div className="font-medium">Search mode</div>
-        <div className="flex gap-4">
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input
-              type="radio"
-              checked={mode === "brand"}
-              onChange={() => setMode("brand")}
-            />
-            <span>Brand</span>
-          </label>
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input
-              type="radio"
-              checked={mode === "dispensary"}
-              onChange={() => setMode("dispensary")}
-            />
-            <span>Dispensary</span>
-          </label>
-        </div>
-      </section>
-
-      {/* Search input */}
-      <form onSubmit={onSearch} className="flex gap-3 items-center">
-        <input
-          className="border border-gray-300 rounded px-3 py-2 flex-1 text-sm"
-          placeholder={
-            mode === "brand"
-              ? "Search brands (e.g. 'STIIIZY')…"
-              : "Search dispensaries (e.g. 'Chicago')…"
-          }
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <button
-          type="submit"
-          className="px-4 py-2 rounded bg-black text-white text-sm disabled:opacity-60"
-          disabled={loading}
-        >
-          {loading ? "Loading…" : "Search"}
-        </button>
-      </form>
+      
+      <Card>
+          <CardHeader>
+              <CardTitle>Search</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={onSearch} className="space-y-4">
+                <div className="space-y-2">
+                    <Label>Search Mode</Label>
+                    <RadioGroup defaultValue="brand" onValueChange={(v: Mode) => setMode(v)} className="flex gap-4">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="brand" id="r-brand" />
+                            <Label htmlFor="r-brand">Brand</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="dispensary" id="r-dispensary" />
+                            <Label htmlFor="r-dispensary">Dispensary</Label>
+                        </div>
+                    </RadioGroup>
+                </div>
+                <div className="flex gap-2">
+                    <Input
+                        placeholder={
+                            mode === "brand"
+                            ? "Search brands (e.g. 'STIIIZY')"
+                            : "Search dispensaries (e.g. 'Chicago')"
+                        }
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        />
+                    <Button type="submit" disabled={loading} className="min-w-[100px]">
+                        {loading ? <Loader2 className="animate-spin" /> : "Search"}
+                    </Button>
+                </div>
+            </form>
+          </CardContent>
+      </Card>
 
       {error && (
-        <div className="text-sm text-red-600">
-          Error: {error}
+        <div className="text-sm text-destructive p-4 border border-destructive/50 rounded-md bg-destructive/10">
+          <strong>Error:</strong> {error}
         </div>
       )}
 
       {/* Search results */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-sm">Results</h2>
-          <span className="text-xs text-muted-foreground">
-            {results.length} item{results.length === 1 ? "" : "s"}
-          </span>
-        </div>
+        <h2 className="text-xl font-semibold">Results ({results.length})</h2>
 
-        <div className="space-y-2 max-h-72 overflow-auto border border-gray-200 rounded p-2">
+        <div className="space-y-2 max-h-72 overflow-auto border rounded-md p-2 bg-muted/50">
           {results.map((r) => {
             const label = r.name || r.title || `ID ${r.id}`;
             const isSelected = mode === "dispensary" && r.id === selectedRetailer;
-
             return (
-              <button
+              <Button
                 key={r.id}
-                type="button"
+                variant={isSelected ? 'secondary' : 'ghost'}
                 onClick={() => {
                   if (mode === "dispensary") {
                     setSelectedRetailer(r.id);
                   }
                 }}
-                className={`w-full text-left border rounded px-3 py-2 text-sm ${
-                  mode === "dispensary"
-                    ? isSelected
-                      ? "bg-black text-white border-black"
-                      : "bg-white hover:bg-gray-50"
-                    : "bg-white"
-                }`}
+                className="w-full justify-start h-auto"
               >
-                <div className="font-medium truncate">{label}</div>
-                <div className="text-xs text-muted-foreground">
-                  ID: {r.id}
-                </div>
-              </button>
+                  <div className="flex-1 text-left">
+                    <div className="font-medium truncate">{label}</div>
+                    <div className="text-xs text-muted-foreground">ID: {r.id}</div>
+                  </div>
+              </Button>
             );
           })}
-
           {!results.length && !loading && (
-            <div className="text-xs text-muted-foreground">
-              No results yet. Run a search.
+            <div className="text-center text-sm p-8 text-muted-foreground">
+              No results yet. Run a search above.
             </div>
           )}
-           {loading && (
-            <div className="text-xs text-muted-foreground">
-              Loading...
+           {loading && !results.length && (
+            <div className="text-center text-sm p-8 text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="animate-spin" /> Loading...
             </div>
           )}
         </div>
       </section>
 
-      {/* Retailer → Products */}
       {mode === "dispensary" && (
-        <section className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="text-sm font-medium">
-              Load products for selected dispensary
-            </div>
-            {selectedRetailer && (
-              <span className="text-xs text-muted-foreground">
-                Retailer ID: {selectedRetailer}
-              </span>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={loadProducts}
-            className="px-4 py-2 rounded bg-black text-white text-sm disabled:opacity-60"
-            disabled={!selectedRetailer || loading}
-          >
-            {loading ? "Loading…" : "Load Products"}
-          </button>
-        </section>
+        <Card>
+            <CardHeader>
+                <CardTitle>Load Products</CardTitle>
+                <CardDescription>
+                    {selectedRetailer 
+                        ? `Load products for retailer: ${selectedRetailer}` 
+                        : "Select a dispensary from the results above to load its product menu."}
+                </CardDescription>
+            </CardHeader>
+            <CardFooter>
+                 <Button onClick={loadProducts} disabled={!selectedRetailer || loading}>
+                    {loading ? <Loader2 className="animate-spin" /> : "Load Products"}
+                </Button>
+            </CardFooter>
+        </Card>
       )}
 
-      {/* Products */}
       {products.length > 0 && (
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-sm">Products</h2>
-            <span className="text-xs text-muted-foreground">
-              Showing {Math.min(products.length, 40)} of {products.length}
-            </span>
-          </div>
-          <div className="space-y-2 max-h-[32rem] overflow-auto border border-gray-200 rounded p-2">
+          <h2 className="text-xl font-semibold">Products ({products.length})</h2>
+          <div className="space-y-2 max-h-[32rem] overflow-auto border rounded-md p-2 bg-muted/50">
             {products.slice(0, 40).map((p, idx) => (
-              <div
-                key={p.id ?? idx}
-                className="border rounded px-3 py-2 text-sm bg-white"
-              >
-                <div className="font-medium">
-                  {p.name || p.title || "Untitled product"}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {p.brand || p.brand_name || ""}
-                </div>
-                {p.price && (
-                  <div className="text-xs mt-1">
-                    ${p.price}
-                  </div>
-                )}
+              <div key={p.id ?? idx} className="rounded-md border bg-background px-3 py-2 text-sm">
+                <div className="font-medium">{p.name || p.title || "Untitled product"}</div>
+                <div className="text-xs text-muted-foreground">{p.brand || p.brand_name || ""}</div>
+                {p.price && (<div className="text-xs mt-1 font-semibold">${p.price}</div>)}
               </div>
             ))}
             {products.length > 40 && (
-              <div className="text-sm text-muted-foreground">
-                Truncated for display. Data looks good though.
-              </div>
+              <div className="text-center text-sm p-4 text-muted-foreground">And {products.length - 40} more...</div>
             )}
           </div>
         </section>
@@ -318,11 +279,12 @@ export default function CannMenusDevPage() {
        {raw && (
         <section className="mt-6">
           <h2 className="text-xl font-semibold mb-2">Raw API Response</h2>
-          <pre className="w-full min-h-[120px] text-xs bg-gray-50 border rounded p-3 overflow-auto">
+          <pre className="w-full min-h-[120px] text-xs bg-muted rounded-md p-3 overflow-auto">
             {JSON.stringify(raw, null, 2)}
           </pre>
         </section>
        )}
-    </div>
+    </main>
   );
 }
+
