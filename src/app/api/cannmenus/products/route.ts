@@ -3,77 +3,38 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const CANNMENUS_API_BASE = process.env.CANNMENUS_API_BASE;
-  const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
+  const base = process.env.CANNMENUS_API_BASE;
+  const apiKey = process.env.CANNMENUS_API_KEY;
 
-  const search = req.nextUrl.searchParams.get("search") ?? "";
-  const brandId = req.nextUrl.searchParams.get("brandId") ?? "";
-  const retailerId = req.nextUrl.searchParams.get("retailerId") ?? "";
-
-  // ===== STUB MODE =====
-  if (!CANNMENUS_API_BASE || !CANNMENUS_API_KEY) {
+  if (!base || !apiKey) {
+    console.error("CannMenus env missing", { hasBase: !!base, hasKey: !!apiKey });
     return NextResponse.json(
       {
-        source: "next-api:cannmenus:products (stub)",
-        error:
-          "Missing CANNMENUS_API_BASE or CANNMENUS_API_KEY environment variables. Please configure them in your deployment settings.",
+        source: "next-api:cannmenus:products (error)",
+        error: "Missing CANNMENUS_API_BASE or CANNMENUS_API_KEY environment variables.",
       },
       { status: 500 }
     );
   }
 
-  // ===== REAL MODE (for later) =====
-  try {
-    const url = new URL("/v1/products", CANNMENUS_API_BASE);
-    if (search.trim()) url.searchParams.set("search", search.trim());
-    if (brandId.trim()) url.searchParams.set("brandId", brandId.trim());
-    if (retailerId.trim()) url.searchParams.set("retailerId", retailerId.trim());
+  const url = new URL("/v1/products", base);
+  url.search = req.nextUrl.searchParams.toString();
 
-    const upstreamRes = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "X-API-Key": CANNMENUS_API_KEY,
-      },
-    });
+  const resp = await fetch(url.toString(), {
+    headers: {
+      "x-api-key": apiKey,
+      "accept": "application/json",
+    },
+  });
 
-    const text = await upstreamRes.text();
-    const contentType = upstreamRes.headers.get("content-type") ?? "";
+  const data = await resp.json();
 
-    if (!contentType.includes("application/json")) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `CannMenus non-JSON response (status ${upstreamRes.status})`,
-          bodySnippet: text.slice(0, 200),
-        },
-        { status: 502 }
-      );
-    }
-
-    const json = JSON.parse(text);
-
-    if (!upstreamRes.ok) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            json?.error ?? `CannMenus error (status ${upstreamRes.status})`,
-          data: json,
-        },
-        { status: upstreamRes.status }
-      );
-    }
-
-    return NextResponse.json(json, { status: 200 });
-  } catch (err: any) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          err?.message ?? "Unknown error talking to CannMenus products API",
-      },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(
+    {
+      source: "next-api:cannmenus:products (live)",
+      status: resp.status,
+      data,
+    },
+    { status: resp.status }
+  );
 }

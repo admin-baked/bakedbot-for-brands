@@ -3,73 +3,41 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const CANNMENUS_API_BASE = process.env.CANNMENUS_API_BASE;
-  const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
+  const base = process.env.CANNMENUS_API_BASE;
+  const apiKey = process.env.CANNMENUS_API_KEY;
 
-  const search = req.nextUrl.searchParams.get("search") ?? "";
-
-  // ===== STUB MODE: no CannMenus config yet =====
-  if (!CANNMENUS_API_BASE || !CANNMENUS_API_KEY) {
-    return NextResponse.json(
-        {
-          source: "next-api:cannmenus:brands (stub)",
-          error:
-            "Missing CANNMENUS_API_BASE or CANNMENUS_API_KEY environment variables. Please configure them in your deployment settings.",
-        },
-        { status: 500 }
-      );
-  }
-
-  // ===== REAL MODE: talk to CannMenus once configured =====
-  try {
-    const url = new URL("/v1/brands", CANNMENUS_API_BASE);
-    if (search.trim()) url.searchParams.set("search", search.trim());
-
-    const upstreamRes = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "X-API-Key": CANNMENUS_API_KEY,
-      },
-    });
-
-    const text = await upstreamRes.text();
-    const contentType = upstreamRes.headers.get("content-type") ?? "";
-
-    if (!contentType.includes("application/json")) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `CannMenus non-JSON response (status ${upstreamRes.status})`,
-          bodySnippet: text.slice(0, 200),
-        },
-        { status: 502 }
-      );
-    }
-
-    const json = JSON.parse(text);
-
-    if (!upstreamRes.ok) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            json?.error ?? `CannMenus error (status ${upstreamRes.status})`,
-          data: json,
-        },
-        { status: upstreamRes.status }
-      );
-    }
-
-    return NextResponse.json(json, { status: 200 });
-  } catch (err: any) {
+  if (!base || !apiKey) {
+    console.error("CannMenus env missing", { hasBase: !!base, hasKey: !!apiKey });
     return NextResponse.json(
       {
-        ok: false,
-        error:
-          err?.message ?? "Unknown error talking to CannMenus brands API",
+        source: "next-api:cannmenus:brands (error)",
+        error: "Missing CANNMENUS_API_BASE or CANNMENUS_API_KEY environment variables.",
       },
       { status: 500 }
     );
   }
+
+  const searchParams = req.nextUrl.searchParams;
+  const url = new URL("/v1/brands", base);
+  // forward any query params to CannMenus
+  url.search = searchParams.toString();
+
+  const resp = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      "x-api-key": apiKey,
+      "accept": "application/json",
+    },
+  });
+
+  const data = await resp.json();
+
+  return NextResponse.json(
+    {
+      source: "next-api:cannmenus:brands (live)",
+      status: resp.status,
+      data,
+    },
+    { status: resp.status }
+  );
 }
