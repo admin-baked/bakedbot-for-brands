@@ -76,6 +76,8 @@ const recommendProductsPrompt = ai.definePrompt({
 
   If you cannot find a suitable product from the list, inform the user that you couldn't find a good match and ask them to rephrase their request.
   `,
+  // Right-size the model for this specific task to improve cost and latency.
+  model: 'googleai/gemini-1.0-pro',
 });
 
 const recommendProductsFlow = ai.defineFlow(
