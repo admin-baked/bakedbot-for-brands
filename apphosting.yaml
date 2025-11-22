@@ -12,8 +12,8 @@ runConfig:
       value: "orders@bakedbot.ai"
     - variable: SENDGRID_FROM_NAME
       value: "BakedBot Orders"
-    - variable: RECAPTCHA_SITE_KEY
-      secret: RECAPTCHA_SITE_KEY
+    - variable: RECAPTCHA_SECRET_KEY
+      secret: RECAPTCHA_SECRET_KEY
     - variable: CANNMENUS_API_BASE
       value: "https://api.cannmenus.com"
     - variable: CANNMENUS_API_KEY
