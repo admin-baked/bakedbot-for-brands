@@ -4,7 +4,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { initializeAllEmbeddings, type EmbeddingActionResult } from '../actions';
+import { initializeAllEmbeddings, type EmbeddingActionResult } from '../../ceo/actions';
 import { BrainCircuit, Check, Loader2, ServerCrash, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
