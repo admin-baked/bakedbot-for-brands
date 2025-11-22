@@ -3,20 +3,19 @@
 
 import { useHydrated } from '@/hooks/use-hydrated';
 import { useStore } from '@/hooks/use-store';
-import MenuPageClient from './menu-page-client';
 import RootHomepage from './root-homepage';
+import BrandMenuPage from './menu/[brandId]/page';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 export default function RootOrMenuPage() {
-  const { _hasHydrated } = useStore();
+  const { isDemo } = useStore();
+  const hydrated = useHydrated();
 
-  // This is a simple client-side check to see if a brand experience should be shown.
-  // We are not using brandId from the URL on the root page, so it's a simplified check.
-  // In a real multi-tenant app, this would be driven by the domain or a URL parameter.
-  const isMenu = _hasHydrated;
-
-  if (isMenu) {
-    // This component renders the default "BakedBot" brand menu experience.
-    return <MenuPageClient brandId="default" />;
+  // If the user has explicitly enabled demo mode, we show the demo brand menu.
+  // Otherwise, we show the marketing homepage.
+  if (hydrated && isDemo) {
+    // We pass the brandId for the demo experience.
+    return <BrandMenuPage params={{ brandId: DEMO_BRAND_ID }} />;
   }
   
   return <RootHomepage />;
