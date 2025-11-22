@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -12,13 +12,15 @@ import { demoRetailers } from '@/lib/demo/demo-data';
 import DevLoginButton from '@/components/dev-login-button';
 import { useFormState } from 'react-dom';
 import { completeOnboarding, type OnboardingState } from './actions';
-import { Loader2, PartyPopper, Building, Search } from 'lucide-react';
+import { Loader2, PartyPopper, Building, Search, PencilLine } from 'lucide-react';
 import { SubmitButton } from './components/submit-button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useDemoMode } from '@/context/demo-mode';
 
-type OnboardingStep = 'role' | 'location' | 'brand-search' | 'done';
-type UserRole = 'brand' | 'dispensary' | 'customer';
+type OnboardingStep = 'role' | 'location' | 'brand-claim' | 'brand-manual' | 'done';
+type UserRole = 'brand' | 'dispensary' | 'customer' | 'skip';
+type ClaimMethod = 'claim' | 'manual';
 
 interface CannMenusBrand {
     id: string;
@@ -36,20 +38,28 @@ const isProd = process.env.NODE_ENV === 'production';
 export default function OnboardingClientPage() {
   const [step, setStep] = useState<OnboardingStep>('role');
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const [claimMethod, setClaimMethod] = useState<ClaimMethod | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<CannMenusBrand | null>(null);
   const [brandSearchQuery, setBrandSearchQuery] = useState('');
   const [brandSearchResults, setBrandSearchResults] = useState<CannMenusBrand[]>([]);
   const [isSearching, startSearchTransition] = useTransition();
 
+  const { isDemo } = useDemoMode();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
 
   const [formState, formAction] = useFormState(completeOnboarding, initialState);
+  
+  const formRef = useRef<HTMLFormElement>(null);
 
-  const locations = demoRetailers; 
-  const areLocationsLoading = false;
+  // Set initial search query for demo mode
+  useEffect(() => {
+    if (isDemo) {
+        setBrandSearchQuery('40 Tons');
+    }
+  }, [isDemo]);
 
   useEffect(() => {
     if (formState.message) {
@@ -77,28 +87,30 @@ export default function OnboardingClientPage() {
   }, [brandSearchQuery]);
 
   const handleNext = () => {
-    if (step === 'role' && selectedRole) {
-      if (selectedRole === 'brand') setStep('brand-search');
-      else if (selectedRole === 'dispensary') setStep('location');
-      else {
-        // Customer role can skip to the end
+    if (!formRef.current) return;
+    
+    // Simulate form submission to trigger the server action
+    const formData = new FormData(formRef.current);
+    if (selectedRole) formData.set('role', selectedRole);
+    if (selectedBrand) {
+        formData.set('brandId', selectedBrand.id);
+        formData.set('brandName', selectedBrand.name);
+    }
+    if (selectedLocationId) formData.set('locationId', selectedLocationId);
+
+    formAction(formData);
+  };
+  
+  const handleRoleSelect = (role: UserRole) => {
+    setSelectedRole(role);
+    if (role === 'brand' || role === 'dispensary') {
+        // Show choice for brand/dispensary
+    } else { // Customer or skip
         const formData = new FormData();
-        formData.append('role', 'customer');
-        formAction(formData);
-      }
-    } else if (step === 'brand-search' && selectedBrand) {
-        const formData = new FormData();
-        formData.append('role', 'brand');
-        formData.append('brandId', selectedBrand.id);
-        formData.append('brandName', selectedBrand.name);
-        formAction(formData);
-    } else if (step === 'location' && selectedLocationId) {
-        const formData = new FormData();
-        formData.append('role', 'dispensary');
-        formData.append('locationId', selectedLocationId);
+        formData.append('role', role);
         formAction(formData);
     }
-  };
+  }
 
   const renderStep = () => {
     switch (step) {
@@ -107,17 +119,15 @@ export default function OnboardingClientPage() {
           <CardContent className="space-y-4" data-testid="onboarding-step-role">
             <h3 className="font-semibold text-lg">First, what is your role?</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {['Brand Owner / Manager', 'Dispensary Manager', 'Customer'].map((role) => (
-                <Button key={role} variant={selectedRole === role.split(' ')[0].toLowerCase() ? 'default' : 'outline'} onClick={() => setSelectedRole(role.split(' ')[0].toLowerCase() as UserRole)}>
-                  {role}
-                </Button>
-              ))}
+              <Button variant={selectedRole === 'brand' ? 'default' : 'outline'} onClick={() => handleRoleSelect('brand')}>Brand Owner / Manager</Button>
+              <Button variant={selectedRole === 'dispensary' ? 'default' : 'outline'} onClick={() => handleRoleSelect('dispensary')}>Dispensary Manager</Button>
+              <Button variant={selectedRole === 'customer' ? 'default' : 'outline'} onClick={() => handleRoleSelect('customer')}>Customer</Button>
             </div>
           </CardContent>
         );
-      case 'brand-search':
+      case 'brand-claim':
         return (
-            <CardContent className="space-y-4" data-testid="onboarding-step-brand-search">
+            <CardContent className="space-y-4">
                 <h3 className="font-semibold text-lg">Claim Your Brand</h3>
                 <p className="text-sm text-muted-foreground">Search for your brand in the CannMenus directory to link your account.</p>
                 <div className="relative">
@@ -127,6 +137,7 @@ export default function OnboardingClientPage() {
                         className="pl-10"
                         value={brandSearchQuery}
                         onChange={e => setBrandSearchQuery(e.target.value)}
+                        data-ai-hint="search 40 Tons"
                     />
                 </div>
                 <ScrollArea className="h-60 rounded-md border">
@@ -139,33 +150,52 @@ export default function OnboardingClientPage() {
                             className="w-full justify-start h-auto"
                             onClick={() => setSelectedBrand(brand)}
                         >
-                            {brand.logoUrl && <img src={brand.logoUrl} alt={brand.name} className="w-8 h-8 mr-3 rounded-md object-contain" />}
+                            {brand.logoUrl && <img src={brand.logoUrl} alt={brand.name} className="w-8 h-8 mr-3 rounded-md object-contain bg-white p-1" />}
                             {brand.name}
                         </Button>
                     ))}
                     {!isSearching && brandSearchResults.length === 0 && brandSearchQuery.length > 2 && (
-                         <div className="p-4 text-center text-sm text-muted-foreground">No brands found. Try a different search.</div>
+                         <div className="p-4 text-center text-sm text-muted-foreground">No brands found. Try manual entry.</div>
                     )}
                     </div>
                 </ScrollArea>
             </CardContent>
         );
+       case 'brand-manual':
+        return (
+             <CardContent className="space-y-4">
+                <h3 className="font-semibold text-lg">Add Your Brand Details</h3>
+                <p className="text-sm text-muted-foreground">Enter your basic info to get started. You can add more later.</p>
+                <div className="space-y-2">
+                    <Label htmlFor="manualBrandName">Brand Name</Label>
+                    <Input name="manualBrandName" id="manualBrandName" placeholder="e.g., Cosmic Cannabis Co." />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="manualProductName">First Product Name</Label>
+                    <Input name="manualProductName" id="manualProductName" placeholder="e.g., Nebula Nugs" />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="manualDispensaryName">First Retail Partner</Label>
+                    <Input name="manualDispensaryName" id="manualDispensaryName" placeholder="e.g., The Green Planet" />
+                </div>
+            </CardContent>
+        );
       case 'location':
         return (
-          <CardContent className="space-y-4" data-testid="onboarding-step-location">
+          <CardContent className="space-y-4">
             <h3 className="font-semibold text-lg">Which location do you manage?</h3>
              <div className="relative">
                 <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                <Select onValueChange={(value) => setSelectedLocationId(value)}>
+                <Select onValueChange={(value) => setSelectedLocationId(value)} name="locationId">
                 <SelectTrigger className="pl-10">
-                    <SelectValue placeholder={areLocationsLoading ? "Loading..." : "Choose your location..."} />
+                    <SelectValue placeholder={"Select a location..."} />
                 </SelectTrigger>
                 <SelectContent>
-                    {locations.map((loc) => <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>)}
+                    {demoRetailers.map((loc) => <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>)}
                 </SelectContent>
                 </Select>
             </div>
-            {selectedLocationId && <p className="text-sm text-muted-foreground">You selected: {locations.find(l => l.id === selectedLocationId)?.name}</p>}
+            {selectedLocationId && <p className="text-sm text-muted-foreground">You selected: {demoRetailers.find(l => l.id === selectedLocationId)?.name}</p>}
           </CardContent>
         );
       case 'done':
@@ -183,40 +213,62 @@ export default function OnboardingClientPage() {
   const canProceed = 
       (step === 'role' && !!selectedRole) ||
       (step === 'location' && !!selectedLocationId) ||
-      (step === 'brand-search' && !!selectedBrand);
-
+      (step === 'brand-claim' && !!selectedBrand) ||
+      step === 'brand-manual';
+      
   const isDoneStep = step === 'done';
+
+  const renderRoleChoice = () => (
+     <CardContent className="space-y-4">
+        <h3 className="font-semibold text-lg">How would you like to add your {selectedRole}?</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button variant={claimMethod === 'claim' ? 'default' : 'outline'} onClick={() => { setClaimMethod('claim'); setStep(selectedRole === 'brand' ? 'brand-claim' : 'location'); }}>
+                <Search className="mr-2 h-4 w-4" /> Claim from Directory
+            </Button>
+             <Button variant={claimMethod === 'manual' ? 'default' : 'outline'} onClick={() => { setClaimMethod('manual'); setStep(selectedRole === 'brand' ? 'brand-manual' : 'location'); }}>
+                <PencilLine className="mr-2 h-4 w-4" /> Enter Manually
+            </Button>
+        </div>
+    </CardContent>
+  );
 
   return (
     <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl">Welcome to BakedBot!</CardTitle>
-          <CardDescription>Let's get your account set up in just a few steps.</CardDescription>
-        </CardHeader>
-        
-        {isUserLoading ? (
-             <CardContent className="text-center">
-                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-             </CardContent>
-        ) : !user ? (
-            <CardContent className="text-center">
-                <p className="mb-4 text-muted-foreground">Please sign in to continue onboarding.</p>
-                 {!isProd && <DevLoginButton />}
-            </CardContent>
-        ) : (
-            <>
-                {renderStep()}
-                {!isDoneStep && (
-                    <CardFooter className="flex justify-end gap-2">
-                        <Button type="button" onClick={handleNext} disabled={!canProceed}>
-                           {selectedRole === 'customer' ? 'Finish & Go to Account' : 'Finish & Go to Dashboard'}
-                        </Button>
-                    </CardFooter>
-                )}
-            </>
-        )}
-      </Card>
+      <form ref={formRef} action={handleNext}>
+        <Card className="w-full max-w-2xl">
+            <CardHeader className="text-center">
+            <CardTitle className="text-3xl">Welcome to BakedBot!</CardTitle>
+            <CardDescription>Let's get your account set up in just a few steps.</CardDescription>
+            </CardHeader>
+            
+            {isUserLoading ? (
+                <CardContent className="text-center">
+                    <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+                </CardContent>
+            ) : !user ? (
+                <CardContent className="text-center">
+                    <p className="mb-4 text-muted-foreground">Please sign in to continue onboarding.</p>
+                    {!isProd && <DevLoginButton />}
+                </CardContent>
+            ) : (
+                <>
+                    {step === 'role' && renderStep()}
+                    {selectedRole && !claimMethod && step === 'role' && renderRoleChoice()}
+                    {(step === 'brand-claim' || step === 'brand-manual' || step === 'location') && renderStep()}
+                    {isDoneStep && renderStep()}
+                    
+                    {!isDoneStep && (
+                        <CardFooter className="flex justify-between gap-2">
+                             <Button type="button" variant="ghost" onClick={() => formAction(Object.assign(new FormData(), { role: 'skip'}))}>
+                                Skip for now
+                             </Button>
+                            <SubmitButton disabled={!canProceed} />
+                        </CardFooter>
+                    )}
+                </>
+            )}
+        </Card>
+      </form>
     </div>
   );
 }
