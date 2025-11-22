@@ -29,7 +29,7 @@ const navConfig: Record<string, NavLink[]> = {
     { href: '/account', label: 'Account Settings', description: 'Manage your dispensary information.', icon: 'Settings' },
   ],
   customer: [
-    { href: '/account', label: 'My Dashboard', description: 'View your order history and preferences.', icon: 'User' },
+    { href: '/account', label: 'My Account', description: 'View your order history and preferences.', icon: 'User' },
     { href: '/menu/default', label: 'Start Shopping', description: 'Browse our products and find what you need.', icon: 'ShoppingCart' },
   ],
   // 'owner' or 'admin' role
