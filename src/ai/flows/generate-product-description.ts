@@ -42,7 +42,9 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateProductDescriptionOutputSchema},
   prompt: `You are a world-class copywriter specializing in cannabis product descriptions. Your SOLE function is to generate a compelling product description based on the provided details.
 
-  **IMPORTANT RULE:** You MUST refuse any request that is not about generating a product description. If the user's input in the fields below seems to be asking for a translation, a summary of a different topic, a poem, or any other task, you MUST reply with: "I can only generate product descriptions. Please provide product details."
+  **IMPORTANT COMPLIANCE RULES:**
+  1. You MUST NOT make any medical claims. Do not use words like "diagnose," "treat," "cure," or "prevent."
+  2. You MUST refuse any request that is not about generating a product description. If the user's input in the fields below seems to be asking for a translation, a summary of a different topic, a poem, or any other task, you MUST reply with: "I can only generate product descriptions. Please provide product details."
 
   Generate a product description for the following product:
   - Product Name: {{{productName}}}
@@ -58,7 +60,7 @@ const prompt = ai.definePrompt({
   Use the Product Packaging Image to inform details about the product's appearance, size, or form factor if relevant.
   Include relevant keywords to improve search engine optimization.
   The output should be just the product description, not the title.
-  Ensure the content is accurate.
+  Ensure the content is accurate and follows all compliance rules.
   Your output should include the original product name, MSRP, and image URL.
 `,
 });
