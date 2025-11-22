@@ -1,5 +1,6 @@
+
 import { createServerClient } from '@/firebase/server-client';
-import { demoRetailers, demoCustomer } from '@/lib/demo/demo-data';
+import { demoProducts, demoRetailers, demoCustomer } from '@/lib/demo/demo-data';
 import type { Product, Retailer, Review } from '@/types/domain';
 import { getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { reviewConverter } from '@/firebase/converters';
