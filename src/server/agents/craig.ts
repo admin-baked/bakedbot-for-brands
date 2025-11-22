@@ -4,7 +4,7 @@ import { createServerClient } from "@/firebase/server-client";
 import { EventType } from "@/types/domain";
 import { sendOrderEmail } from "@/lib/email/send-order-email";
 import type { OrderDoc, Retailer } from "@/types/domain";
-import type { ServerOrderPayload } from "@/app/checkout/actions/submitOrder";
+import type { ServerOrderPayload } from "@/types/domain";
 import { orderConverter, retailerConverter } from "@/firebase/converters";
 import { FieldValue } from "firebase-admin/firestore";
 
