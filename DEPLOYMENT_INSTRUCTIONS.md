@@ -121,7 +121,23 @@ The public **Site Key** must be set as a standard environment variable in your A
 
 ---
 
-## Step 5: Deploy the Application
+## Step 5: (Optional) Set Up App Check Debug Token for Development
+
+If you are running the app in a local development environment or a preview environment like Firebase Studio, App Check will block requests because the domain (`localhost` or a temporary URL) is not on your reCAPTCHA allowed list. To fix this:
+
+1.  Run the app in your development environment.
+2.  Open the browser's developer console. You will see a message like: `App Check debug token: <A-LONG-TOKEN-STRING>`.
+3.  Copy that entire token string.
+4.  Go to your **Firebase Console → Build → App Check**.
+5.  Select the **Web app**.
+6.  Click the three-dots menu (`⋮`) and choose **Manage debug tokens**.
+7.  Click **Add debug token** and paste the token you copied.
+
+This tells App Check to trust requests coming from your specific browser, allowing you to test authentication and other Firebase features without disabling enforcement.
+
+---
+
+## Step 6: Deploy the Application
 
 Once all secrets and the environment variable are configured, you can deploy the application.
 
