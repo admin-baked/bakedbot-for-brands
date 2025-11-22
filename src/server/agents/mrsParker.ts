@@ -1,8 +1,8 @@
-
 // src/server/agents/mrsParker.ts
 import { createServerClient } from "@/firebase/server-client";
 import { EventType } from "@/types/domain";
 import { FieldValue } from "firebase-admin/firestore";
+import { deeboCheckMessage } from "./deebo";
 
 const HANDLED_TYPES: EventType[] = [
   "checkout.paid",
@@ -37,6 +37,26 @@ function computeTier(points: number): string {
   if (points >= 300) return "Regular";
   return "New";
 }
+
+async function sendSms(orgId: string, state: string, phone: string, message: string) {
+    // 1. Ask Deebo for permission first.
+    const complianceCheck = await deeboCheckMessage({
+      orgId,
+      channel: "sms",
+      stateCode: state,
+      content: message,
+    });
+  
+    if (!complianceCheck.ok) {
+      console.log(`Mrs. Parker: [Blocked] SMS to ${phone} blocked by Deebo. Reason: ${complianceCheck.reason}`);
+      return; // Stop if compliance check fails
+    }
+  
+    // 2. If compliant, send the SMS (placeholder).
+    // TODO: integrate with Twilio or another SMS provider.
+    console.log(`Mrs. Parker: [Action] Would send SMS to ${phone}: "${message}"`);
+}
+  
 
 export async function handleMrsParkerEvent(orgId: string, eventId: string) {
   const { firestore: db } = await createServerClient();
@@ -103,6 +123,15 @@ export async function handleMrsParkerEvent(orgId: string, eventId: string) {
       const newPoints = (current.points || 0) + earnedPoints;
       const tier = computeTier(newPoints);
 
+      // Check if this is the first order to send a welcome SMS.
+      const isFirstOrder = !current.totalOrders || current.totalOrders === 0;
+
+      if (isFirstOrder && order.customerPhone) {
+        const welcomeMessage = `Welcome to the ${orgId} family! You've earned ${earnedPoints} points on your first order. Thanks for your business!`;
+        // We can call the SMS function directly from here, within the transaction's scope.
+        await sendSms(orgId, "NY", order.customerPhone, welcomeMessage);
+      }
+      
       tx.set(
         loyaltyRef,
         {
