@@ -8,9 +8,12 @@ let app: App;
 function getServiceAccount() {
   const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   if (!b64) {
-    // In a production environment with App Hosting, this env var is set automatically.
-    // Locally, you might need a .env.local file.
-    return null; // Return null to indicate it's not set
+    // This is now a fatal error because the Admin SDK needs credentials to perform
+    // operations like minting custom tokens for dev login.
+    throw new Error(
+      "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. " +
+      "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
+    );
   }
   const json = Buffer.from(b64, "base64").toString("utf8");
   return JSON.parse(json);
@@ -19,15 +22,15 @@ function getServiceAccount() {
 /**
  * Creates a server-side Firebase client (admin SDK).
  * This function is idempotent, ensuring the app is initialized only once.
+ * It now requires the service account key to be present.
  * @returns An object with the Firestore and Auth admin clients.
  */
 export async function createServerClient() {
-  if (!getApps().length) {
+  if (getApps().length === 0) {
     const serviceAccount = getServiceAccount();
-    // If service account is available, initialize with it.
-    // Otherwise, initialize without args, relying on App Hosting's auto-config.
-    const credential = serviceAccount ? { credential: cert(serviceAccount) } : {};
-    app = initializeApp(credential);
+    app = initializeApp({
+      credential: cert(serviceAccount)
+    });
   } else {
     app = getApps()[0]!;
   }

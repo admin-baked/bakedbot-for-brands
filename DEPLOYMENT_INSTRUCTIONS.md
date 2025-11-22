@@ -1,4 +1,3 @@
-
 # Deployment Instructions for Firebase App Hosting
 
 This document provides the final, critical steps required to securely configure and deploy this application on Firebase App Hosting.
@@ -7,7 +6,7 @@ This document provides the final, critical steps required to securely configure 
 
 The application's server-side logic and security features require secret keys that cannot be stored directly in the code. These include:
 
-1.  `FIREBASE_SERVICE_ACCOUNT_KEY`: Credentials for the Firebase Admin SDK to communicate with your Firebase project securely.
+1.  `FIREBASE_SERVICE_ACCOUNT_KEY`: **(Required)** Credentials for the Firebase Admin SDK to communicate with your Firebase project securely. This is necessary for features like the "Dev Login" to work.
 2.  `SENDGRID_API_KEY`: The API key for the SendGrid service to send order confirmation emails.
 3.  `RECAPTCHA_SECRET_KEY`: The **secret** key for reCAPTCHA v3, used by Firebase App Check to verify requests.
 4.  `CANNMENUS_API_KEY`: The API key for the CannMenus service to fetch product and retailer data.
@@ -23,7 +22,7 @@ The `apphosting.yaml` file has been configured to use these secrets. Your final 
 
 ## Step 1: Create the `FIREBASE_SERVICE_ACCOUNT_KEY` Secret
 
-This secret contains the JSON key for a service account, encoded in Base64.
+This secret contains the JSON key for a service account, encoded in Base64. **This is mandatory for the backend to initialize correctly.**
 
 ### A. Get the Service Account JSON Key
 
