@@ -87,7 +87,7 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
                     quantity: item.quantity,
                     unitPrice: item.price,
                 })),
-                subtotal,
+                subtotal: subtotalAfterDiscount,
                 tax,
                 fees,
                 total,

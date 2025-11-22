@@ -34,7 +34,7 @@ test.describe('Authentication Flows', () => {
 
     // 5. Assert that the user is redirected to the homepage
     await page.waitForURL('**/');
-    await expect(page.getByRole('heading', { name: /Keep the customer/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Keep the customer in your brand funnel/i })).toBeVisible();
     
     // 6. Assert that trying to access a protected route redirects to login
     await page.goto('/dashboard');
