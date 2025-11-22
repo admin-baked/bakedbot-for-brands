@@ -1,4 +1,3 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -28,5 +27,5 @@ const nextConfig = {
   },
 };
 
-// Invalidate cache
+// Invalidate cache and trigger a rebuild.
 module.exports = nextConfig;
