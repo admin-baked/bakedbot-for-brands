@@ -1,3 +1,4 @@
+
 // src/server/agents/moneyMike.ts
 import { createServerClient } from "@/firebase/server-client";
 import { EventType } from "@/types/domain";
@@ -7,6 +8,22 @@ const HANDLED_TYPES: EventType[] = [
   "subscription.updated",
   "subscription.failed",
 ];
+
+async function handleDeadLetter(orgId: string, eventId: string, eventData: any, error: any) {
+    const { firestore: db } = await createServerClient();
+    const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
+    const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
+
+    const batch = db.batch();
+    batch.set(dlqRef, {
+        ...eventData,
+        _failedAt: FieldValue.serverTimestamp(),
+        _error: error?.message || String(error),
+        _agentId: 'money_mike',
+    });
+    batch.delete(originalEventRef);
+    await batch.commit();
+}
 
 export async function handleMoneyMikeEvent(orgId: string, eventId: string) {
   const { firestore: db } = await createServerClient();
@@ -64,6 +81,6 @@ export async function handleMoneyMikeEvent(orgId: string, eventId: string) {
 
   } catch (error) {
      console.error(`[${agentId}] Error processing event ${eventId}:`, error);
-    await eventRef.set({ processedBy: { [agentId]: `failed_at_${new Date().toISOString()}` } }, { merge: true });
+     await handleDeadLetter(orgId, eventId, event, error);
   }
 }

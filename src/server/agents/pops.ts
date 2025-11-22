@@ -1,3 +1,4 @@
+
 // src/server/agents/pops.ts
 import { createServerClient } from "@/firebase/server-client";
 import { EventType } from "@/types/domain";
@@ -10,6 +11,22 @@ const HANDLED_TYPES: EventType[] = [
   "checkout.failed",
   "subscription.updated",
 ];
+
+async function handleDeadLetter(orgId: string, eventId: string, eventData: any, error: any) {
+    const { firestore: db } = await createServerClient();
+    const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
+    const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
+
+    const batch = db.batch();
+    batch.set(dlqRef, {
+        ...eventData,
+        _failedAt: FieldValue.serverTimestamp(),
+        _error: error?.message || String(error),
+        _agentId: 'pops',
+    });
+    batch.delete(originalEventRef);
+    await batch.commit();
+}
 
 function toDateKey(ts: FirebaseFirestore.Timestamp | Date) {
   const d = ts instanceof Date ? ts : ts.toDate();
@@ -110,6 +127,6 @@ export async function handlePopsEvent(orgId: string, eventId: string) {
 
   } catch(error) {
     console.error(`[${agentId}] Error processing event ${eventId}:`, error);
-    await eventRef.set({ processedBy: { [agentId]: `failed_at_${new Date().toISOString()}` } }, { merge: true });
+    await handleDeadLetter(orgId, eventId, event, error);
   }
 }
