@@ -119,7 +119,7 @@ export type OrderDoc = {
   totals: {
       subtotal: number;
       tax: number;
-      discount: number;
+      discount?: number;
       total: number;
   };
   coupon?: {

@@ -20,7 +20,7 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   // Ensure the user has the right to access this brand's data.
   // Although the page is protected, it's good practice to secure the action too.
   const user = await requireUser(['brand', 'owner']);
-  if (user.brandId !== brandId) {
+  if (user.brandId !== brandId && user.role !== 'owner') {
     throw new Error('Forbidden: You do not have permission to access this data.');
   }
 
@@ -28,7 +28,9 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
 
   const ordersQuery = firestore.collection('orders')
     .where('brandId', '==', brandId)
-    .where('status', '==', 'completed')
+    // In a real scenario, you'd likely filter for completed orders.
+    // For this demo, we'll include all non-cancelled to show more data.
+    .where('status', 'in', ['submitted', 'confirmed', 'ready', 'completed'])
     .withConverter(orderConverter as any);
   
   const ordersSnap = await ordersQuery.get();
@@ -64,7 +66,7 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     });
   });
 
-  const averageOrderValue = totalRevenue / totalOrders;
+  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
   
   const salesByProduct = Array.from(salesByProductMap.values())
     .sort((a, b) => b.revenue - a.revenue)

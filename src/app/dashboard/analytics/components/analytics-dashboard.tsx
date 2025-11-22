@@ -29,7 +29,7 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${initialData.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-            <p className="text-xs text-muted-foreground">From all completed orders.</p>
+            <p className="text-xs text-muted-foreground">From all non-cancelled orders.</p>
           </CardContent>
         </Card>
         <Card>
@@ -39,7 +39,7 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{initialData.totalOrders.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Number of completed transactions.</p>
+            <p className="text-xs text-muted-foreground">Number of non-cancelled orders.</p>
           </CardContent>
         </Card>
         <Card>
@@ -61,7 +61,7 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
             Top Selling Products by Revenue
           </CardTitle>
           <CardDescription>
-            This chart shows your top 10 products based on total revenue from completed orders.
+            This chart shows your top 10 products based on total revenue.
           </CardDescription>
         </CardHeader>
         <CardContent>
