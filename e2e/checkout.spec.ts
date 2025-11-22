@@ -1,4 +1,3 @@
-
 import { test, expect } from '@playwright/test';
 
 test('full checkout flow', async ({ page }) => {
