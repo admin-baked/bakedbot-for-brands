@@ -68,7 +68,7 @@ export default function OnboardingClientPage() {
         const res = await fetch(`/api/cannmenus/brands?search=${encodeURIComponent(brandSearchQuery)}`);
         if (res.ok) {
           const json = await res.json();
-          setBrandSearchResults(json.items || []);
+          setBrandSearchResults(json.data?.items || []);
         }
       });
     } else {

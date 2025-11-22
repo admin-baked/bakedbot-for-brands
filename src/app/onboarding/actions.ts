@@ -40,7 +40,7 @@ export async function completeOnboarding(prevState: OnboardingState, formData: F
   }
 
   const { role, locationId, brandId, brandName } = validatedFields.data;
-  const { uid, email, name: displayName } = user;
+  const { uid, email, displayName } = user;
 
   // If role is 'brand', the brandId from CannMenus is now the primary ID.
   const effectiveBrandId = role === 'brand' ? brandId : null;
