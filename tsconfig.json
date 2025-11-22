@@ -39,6 +39,8 @@
     "node_modules",
     "playwright-report",
     "_app",
-    "functions"
+    "functions",
+    "firestore.rules",
+    "seed-dispensaries-40tons-ny.js"
   ]
 }

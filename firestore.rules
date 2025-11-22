@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -41,6 +40,12 @@ service cloud.firestore {
       allow write: if false; // All location management must be done via Server Actions.
     }
 
+    match /coupons/{couponId} {
+      // Coupons are read-only from the client. Creation is handled by a secure admin action.
+      allow read: if true;
+      allow write: if false;
+    }
+
     // --- User-Specific Data ---
     match /users/{userId} {
       // A user can read/update their own profile. An 'owner' can manage any user.
@@ -66,7 +71,12 @@ service cloud.firestore {
             allow write: if isOwner(userId);
         }
         
-        // AI embeddings are public-readable, but only server-writable (via Admin SDK).
+        // Review summaries and embeddings are public-readable, but only server-writable.
+        match /reviewSummaries/{docId} {
+            allow read: if true;
+            allow write: if false;
+        }
+
         match /productReviewEmbeddings/{docId} {
             allow read: if true;
             allow write: if false;
