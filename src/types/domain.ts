@@ -1,4 +1,3 @@
-
 // src/types/domain.ts
 
 import { Timestamp } from 'firebase/firestore';
@@ -27,6 +26,7 @@ export type Brand = {
 // This type now represents a document in the 'productReviewEmbeddings' subcollection.
 export type ReviewSummaryEmbedding = {
   productId: string; // Denormalized for collection group queries
+  brandId: string; // Denormalized for filtering
   model: string;
   embedding: number[];
   reviewCount: number;
@@ -123,6 +123,7 @@ export type OrderDoc = {
       subtotal: number;
       tax: number;
       discount?: number;
+      fees?: number;
       total: number;
   };
   coupon?: {
@@ -145,7 +146,7 @@ export type ServerOrderPayload = {
   }>;
   customer: { name: string; email: string; };
   retailerId: string;
-  totals: { subtotal: number; tax: number; total: number };
+  totals: { subtotal: number; tax: number; total: number; discount?: number; fees?: number };
 }
 
 

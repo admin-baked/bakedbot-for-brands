@@ -1,4 +1,3 @@
-
 // src/app/api/checkout/smokey-pay/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/firebase/server-client";
@@ -60,6 +59,12 @@ export async function POST(req: NextRequest) {
     const orderRef = db
       .collection("orders")
       .doc();
+    
+    const itemsTotal = body.items.reduce(
+        (acc, item) => acc + item.unitPrice * item.quantity,
+        0
+    );
+    const rawDiscount = itemsTotal - body.subtotal;
 
     const orderData = {
       brandId: orgId, // Denormalize brandId for easier queries
@@ -82,10 +87,11 @@ export async function POST(req: NextRequest) {
         tax: body.tax, 
         fees: body.fees, 
         total: body.total,
+        discount: rawDiscount > 0 ? rawDiscount : 0,
       },
-      coupon: body.items.reduce((acc, item) => acc + (item.price * item.quantity), 0) - body.subtotal > 0 ? {
+      coupon: rawDiscount > 0 ? {
           code: 'PROMO', // Placeholder
-          discount: body.items.reduce((acc, item) => acc + (item.price * item.quantity), 0) - body.subtotal
+          discount: rawDiscount
       } : undefined,
       retailerId: body.pickupLocationId,
       createdAt: FieldValue.serverTimestamp(),
