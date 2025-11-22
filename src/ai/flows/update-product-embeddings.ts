@@ -119,6 +119,7 @@ export async function updateProductEmbeddings(input: UpdateProductEmbeddingsInpu
 
     // 4. Save the new embedding and summary to the new versioned subcollection
     await productRepo.updateEmbedding(productId, {
+        brandId: product.brandId, // Include the brandId here
         model,
         embedding: embedding,
         reviewCount: reviews.length,

@@ -120,6 +120,7 @@ export function makeProductRepo(db: Firestore) {
         const payload: ReviewSummaryEmbedding = {
             ...embeddingData,
             productId: productId,
+            brandId: embeddingData.brandId, // Ensure brandId is part of the payload
         };
         
         await embeddingDocRef.set(payload);
