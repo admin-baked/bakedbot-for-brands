@@ -1,5 +1,4 @@
 
-import 'server-only';
 import { Firestore, FieldValue } from 'firebase-admin/firestore';
 import type { Brand } from '@/types/domain';
 import { defaultLogo } from '@/lib/demo/demo-data';
@@ -39,8 +38,15 @@ export function makeBrandRepo(db: Firestore) {
     /**
      * Creates a new brand document in Firestore.
      */
-    async create(id: string, data: Omit<Brand, 'id'>): Promise<Brand> {
-        const brandData: Brand = { id, ...defaultBrand, ...data, id };
+    async create(id: string, data: Partial<Omit<Brand, 'id'>>): Promise<Brand> {
+        const defaultPayload = this.createPayload(data.name || "New Brand", data.logoUrl);
+
+        const brandData: Brand = {
+            ...defaultPayload,
+            ...data,
+            id,
+        };
+
         await brandCollection.doc(id).set(brandData);
         return brandData;
     },
