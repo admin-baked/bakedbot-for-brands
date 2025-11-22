@@ -1,7 +1,5 @@
-
 import { createServerClient } from '@/firebase/server-client';
-import { makeProductRepo } from '@/server/repos/productRepo';
-import { demoProducts, demoRetailers, demoCustomer } from '@/lib/demo/demo-data';
+import { demoRetailers, demoCustomer } from '@/lib/demo/demo-data';
 import type { Product, Retailer, Review } from '@/types/domain';
 import { getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { reviewConverter } from '@/firebase/converters';
@@ -41,63 +39,64 @@ function mapCannMenusProduct(item: any, brandId: string): Product {
     };
 }
 
+
 async function getMenuData(brandId: string) {
     let products: Product[];
     let locations: Retailer[];
     let reviews: Review[];
-    const isDemo = cookies().get('isUsingDemoData')?.value === 'true' || brandId === DEMO_BRAND_ID || !brandId;
+    const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
 
-    if (isDemo) {
-        // For the demo, fetch live 40 Tons data from the API route
-        try {
-            const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
-            const res = await fetch(`${baseUrl}/api/cannmenus/product-search`, { next: { revalidate: 60 }});
-            const json = await res.json();
-            
-            if (!res.ok) {
-                throw new Error(json.error || 'Failed to fetch demo products');
-            }
-            products = (json.data || []).map((item: any) => mapCannMenusProduct(item, DEMO_BRAND_ID));
-        } catch (error) {
-            console.error(`[MenuLayout] Failed to fetch live demo data:`, error);
-            products = demoProducts; // Fallback to stubs on error
-        }
+    // Simplified logic: 'default' is always demo. Live brands use their ID.
+    const effectiveBrandId = isDemo ? DEMO_BRAND_ID : brandId;
+
+    try {
+        const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
         
+        // Use a different API endpoint for the demo vs live brands
+        const apiPath = effectiveBrandId === DEMO_BRAND_ID 
+            ? '/api/cannmenus/product-search' // 40 Tons demo
+            : `/api/cannmenus/products?brands=${effectiveBrandId}`; // Live brand data
+        
+        const res = await fetch(`${baseUrl}${apiPath}`, { next: { revalidate: 60 } });
+        const json = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(json.error || `Failed to fetch products for brand ${effectiveBrandId}`);
+        }
+
+        // The CannMenus API has a different structure for list vs search
+        const productItems = json.data?.items || json.data || [];
+        products = productItems.map((item: any) => mapCannMenusProduct(item, effectiveBrandId));
+
+        // For now, locations and reviews are still using stub/internal data.
+        // This can be migrated in a future step.
+        const { firestore } = await createServerClient();
+        const reviewsQuery = query(
+            (firestore as any).collectionGroup('reviews').withConverter(reviewConverter as any), 
+            orderBy('createdAt', 'desc'), 
+            limit(10)
+        );
+
+        const [locationsSnap, reviewsSnap] = await Promise.all([
+            firestore.collection('dispensaries').get(),
+            getDocs(reviewsQuery as any),
+        ]);
+
+        locations = locationsSnap.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() })) as Retailer[];
+        reviews = reviewsSnap.docs.map((doc: DocumentData) => doc.data()) as Review[];
+
+    } catch (error) {
+        console.error(`[MenuLayout] Failed to fetch live data for brand ${effectiveBrandId}:`, error);
+        // Fallback to local demo data ONLY if live fetch fails.
+        products = demoProducts;
         locations = demoRetailers;
         reviews = demoCustomer.reviews as Review[];
-    } else {
-        try {
-            const { firestore } = await createServerClient();
-            const productRepo = makeProductRepo(firestore);
-            
-            const reviewsQuery = query(
-                (firestore as any).collectionGroup('reviews').withConverter(reviewConverter as any), 
-                orderBy('createdAt', 'desc'), 
-                limit(10)
-            );
-
-            const [fetchedProducts, locationsSnap, reviewsSnap] = await Promise.all([
-                productRepo.getAllByBrand(brandId),
-                firestore.collection('dispensaries').get(),
-                getDocs(reviewsQuery as any),
-            ]);
-
-            products = fetchedProducts;
-            locations = locationsSnap.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() })) as Retailer[];
-            reviews = reviewsSnap.docs.map((doc: DocumentData) => doc.data()) as Review[];
-
-        } catch (error) {
-            console.error(`[MenuLayout] Failed to fetch data for brand ${brandId}:`, error);
-            products = demoProducts;
-            locations = demoRetailers;
-            reviews = demoCustomer.reviews as Review[];
-        }
     }
-
+    
     const featuredProducts = [...products].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 10);
 
     return {
-        brandId: isDemo ? DEMO_BRAND_ID : brandId,
+        brandId: effectiveBrandId,
         products,
         locations,
         reviews,
@@ -117,4 +116,3 @@ export default async function MenuLayout({ children, params }: MenuLayoutProps) 
     </MenuLayoutClient>
   );
 }
-

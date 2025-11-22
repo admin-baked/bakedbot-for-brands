@@ -1,4 +1,3 @@
-
 import 'server-only';
 import { Firestore, FieldValue } from 'firebase-admin/firestore';
 import type { Brand } from '@/types/domain';
@@ -6,6 +5,7 @@ import { defaultLogo } from '@/lib/demo/demo-data';
 import type { DeepPartial } from '@/types/utils';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
+// The default brand config is used as a fallback if a brand doc doesn't exist.
 const defaultBrand: Brand = {
   id: DEMO_BRAND_ID,
   name: 'BakedBot',
@@ -35,19 +35,24 @@ export function makeBrandRepo(db: Firestore) {
         };
     },
 
+    /**
+     * Retrieves a single brand by its ID. Falls back to a default configuration.
+     */
     async getById(id: string): Promise<Brand> {
+      // Treat 'default' and empty IDs as a request for the demo brand.
       const brandId = id === DEMO_BRAND_ID || !id ? DEMO_BRAND_ID : id;
       
       try {
         const snap = await brandCollection.doc(brandId).get();
         if (!snap.exists) {
           console.warn(`Brand document for ID "${brandId}" not found. Falling back to default brand config.`);
-          // If the default doc doesn't exist, create it.
+          // If the default doc doesn't exist, create it for next time.
           if (brandId === DEMO_BRAND_ID) {
             await brandCollection.doc(DEMO_BRAND_ID).set(defaultBrand);
             return defaultBrand;
           }
-          return defaultBrand;
+          // Return the default object but don't save it under the non-existent ID.
+          return { ...defaultBrand, id: brandId, name: 'Unknown Brand' };
         }
         
         const data = snap.data();
@@ -57,7 +62,7 @@ export function makeBrandRepo(db: Firestore) {
         } as Brand;
       } catch (error) {
         console.error(`Error fetching brand with ID "${brandId}":`, error);
-        return defaultBrand;
+        return { ...defaultBrand, id: brandId };
       }
     },
     
@@ -86,8 +91,11 @@ export function makeBrandRepo(db: Firestore) {
         };
 
         flattenObject(data);
+        
+        // Add an updated timestamp automatically
+        updatePayload['updatedAt'] = FieldValue.serverTimestamp();
 
-        await brandCollection.doc(id).update(updatePayload);
+        await brandCollection.doc(id).set(updatePayload, { merge: true });
     }
   };
 }
