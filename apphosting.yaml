@@ -19,16 +19,24 @@ runConfig:
       value: "https://api.cannmenus.com"
     - variable: CANNMENUS_API_KEY
       secret: CANNMENUS_API_KEY
+    - variable: AUTHNET_API_LOGIN_ID
+      secret: AUTHNET_API_LOGIN_ID
+    - variable: AUTHNET_TRANSACTION_KEY
+      secret: AUTHNET_TRANSACTION_KEY
+    - variable: AUTHNET_ENV
+      value: "sandbox" # Use "production" for live
+    - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
+      secret: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
+    - variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
+      secret: AUTHNET_API_LOGIN_ID
+    # App Check needs the public key to be an env var
+    - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+      secret: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 
-rewrites:
-  - source: /api/health
-    function: health
-
-  - source: /api/cannmenus/brands
-    function: brands
-
-  - source: /api/cannmenus/retailers
-    function: retailers
-
-  - source: /api/cannmenus/products
-    function: products
+# Serve all traffic from the Next.js backend.
+# This is a sensible default for most web apps.
+# For more advanced configurations, see the documentation.
+# https://firebase.google.com/docs/app-hosting/configure-backend
+# rewrites:
+#   - source: /.*
+#     destination: /_next/server/server.js
