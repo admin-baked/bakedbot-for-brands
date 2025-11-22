@@ -1,34 +1,42 @@
 
+// src/app/dashboard/content/page.tsx
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { demoProducts } from '@/lib/demo/demo-data';
 import PageClient from './page-client';
 import { cookies } from 'next/headers';
 import { DEMO_BRAND_ID } from '@/lib/config';
+import { requireUser } from '@/server/auth/auth';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProductContentGeneratorPage() {
+    let user;
+    try {
+        user = await requireUser(['brand', 'owner']);
+    } catch {
+        redirect('/brand-login');
+    }
+
     const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
     let products = [];
     let areProductsLoading = true;
-
-    // This logic remains the same, but the component it renders (`PageClient`) will
-    // now correctly be part of the dashboard layout.
+    
+    let brandId: string;
     if (isDemo) {
+        brandId = DEMO_BRAND_ID;
         products = demoProducts;
         areProductsLoading = false;
     } else {
+        brandId = user.brandId || DEMO_BRAND_ID;
         try {
             const { firestore } = await createServerClient();
             const productRepo = makeProductRepo(firestore);
-            // In a real app, you'd get the brandId from the user's session
-            const brandId = DEMO_BRAND_ID; 
             products = await productRepo.getAllByBrand(brandId);
         } catch (error) {
             console.error("Failed to fetch products for content generator:", error);
-            // Fallback to demo data on error
-            products = demoProducts;
+            products = demoProducts; // Fallback to demo
         } finally {
             areProductsLoading = false;
         }
