@@ -17,6 +17,7 @@ import { SubmitButton } from './components/submit-button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useDemoMode } from '@/context/demo-mode';
+import { Label } from '@/components/ui/label';
 
 type OnboardingStep = 'role' | 'location' | 'brand-claim' | 'brand-manual' | 'done';
 type UserRole = 'brand' | 'dispensary' | 'customer' | 'skip';
