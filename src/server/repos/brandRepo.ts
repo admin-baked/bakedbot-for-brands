@@ -37,6 +37,15 @@ export function makeBrandRepo(db: Firestore) {
     },
 
     /**
+     * Creates a new brand document in Firestore.
+     */
+    async create(id: string, data: Omit<Brand, 'id'>): Promise<Brand> {
+        const brandData: Brand = { id, ...defaultBrand, ...data, id };
+        await brandCollection.doc(id).set(brandData);
+        return brandData;
+    },
+
+    /**
      * Retrieves a single brand by its ID. Falls back to a default configuration.
      */
     async getById(id: string): Promise<Brand> {
