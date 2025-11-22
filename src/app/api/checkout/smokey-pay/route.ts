@@ -1,4 +1,3 @@
-
 // src/app/api/checkout/smokey-pay/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/firebase/server-client";
