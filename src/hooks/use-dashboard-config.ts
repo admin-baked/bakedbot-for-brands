@@ -21,7 +21,7 @@ const navConfig: Record<string, NavLink[]> = {
     { href: '/dashboard/playbooks', label: 'Playbooks', description: 'Manage your AI agents and automations.', icon: 'Bot' },
     { href: '/dashboard/analytics', label: 'Analytics', description: 'Explore sales data and product performance.', icon: 'BarChart3' },
     { href: '/dashboard/products', label: 'Products', description: 'Manage your product catalog.', icon: 'Box' },
-    { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare', hidden: true },
+    { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare' },
     { href: '/account', label: 'Account Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
   ],
   dispensary: [
