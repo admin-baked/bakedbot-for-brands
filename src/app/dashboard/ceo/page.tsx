@@ -1,4 +1,3 @@
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DataManagerTab from "./components/data-manager-tab";
 import AISearchIndexTab from "./components/ai-search-index-tab";
