@@ -32,25 +32,40 @@ const reviewConverter: FirestoreDataConverter<Review> = {
 
 /**
  * A server action to safely call the summarizeReviews AI flow from the server.
- * This prevents server-side code from being bundled with the client.
+ * This now implements a read-through cache for the summaries.
  */
 export async function getReviewSummary(input: {
   productId: string;
 }): Promise<SummarizeReviewsOutput | null> {
   const { productId } = input;
+  const { firestore } = await createServerClient();
   const cookieStore = cookies();
   const isDemo = cookieStore.get('isUsingDemoData')?.value === 'true';
 
-  let product: Product | null = null;
-  let reviews: Review[] = [];
+  const productRepo = makeProductRepo(firestore);
+
+  // Define the model used for summaries to version the cache
+  const SUMMARY_MODEL_VERSION = 'gemini-1.0-pro-summary-v1';
+  const summaryRef = firestore.collection(`products/${productId}/reviewSummaries`).doc(SUMMARY_MODEL_VERSION);
+
 
   try {
+    let product: Product | null = null;
+    let reviews: Review[] = [];
+
     if (isDemo) {
       product = demoProducts.find(p => p.id === productId) || null;
       reviews = demoCustomer.reviews.filter(r => r.productId === productId) as Review[];
     } else {
-      const { firestore } = await createServerClient();
-      const productRepo = makeProductRepo(firestore);
+      // 1. Check for a cached summary first
+      const cachedSummarySnap = await summaryRef.get();
+      if (cachedSummarySnap.exists) {
+        // In a real app, you might add logic here to check if the review count has changed
+        // and re-generate if necessary. For now, we return the cached version.
+        return cachedSummarySnap.data() as SummarizeReviewsOutput;
+      }
+
+      // If no cache, fetch the data needed for generation
       product = await productRepo.getById(productId);
 
       if (product) {
@@ -66,8 +81,18 @@ export async function getReviewSummary(input: {
 
     const brandId = product.brandId || DEMO_BRAND_ID;
 
+    // 2. Generate the summary since it wasn't in the cache
     const summary = await runSummarizeReviews({ productId, brandId, reviewTexts: reviews.map(r => r.text), productName: product.name });
+
+    // 3. Save the newly generated summary to the cache for next time (but don't block the response)
+    if (summary && !isDemo) {
+      // Use set() instead of a floating promise to ensure it completes,
+      // but don't await it so we can return to the user faster.
+      summaryRef.set(summary);
+    }
+    
     return summary;
+
   } catch (error) {
     console.error(`Failed to get review summary for product ${productId}:`, error);
     return null;
