@@ -29,7 +29,9 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
         try {
             // The `self` property is a reference to the window object in browsers.
             // This is a common pattern for setting debug tokens in development.
-            (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NODE_ENV === 'development';
+            if (process.env.NODE_ENV === 'development') {
+              (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+            }
 
             initializeAppCheck(firebaseServices.firebaseApp, {
                 provider: new ReCaptchaV3Provider(recaptchaSiteKey),
