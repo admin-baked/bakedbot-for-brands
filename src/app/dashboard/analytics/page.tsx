@@ -32,7 +32,9 @@ export default async function DashboardAnalyticsPage() {
 
   const brandId = user.brandId;
   if (!brandId) {
-    return <p>You are not associated with a brand.</p>;
+    // This could happen if an 'owner' without a brandId lands here.
+    // In a real app, you might have an org selector. For now, we'll show an empty state.
+     return <AnalyticsDashboard initialData={{ totalRevenue: 0, totalOrders: 0, averageOrderValue: 0, salesByProduct: [] }} />;
   }
 
   const analyticsData = await getAnalyticsData(brandId);

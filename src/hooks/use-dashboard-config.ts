@@ -33,7 +33,7 @@ const navConfig: Record<string, NavLink[]> = {
     { href: '/menu/default', label: 'Start Shopping', description: 'Browse our products and find what you need.', icon: 'ShoppingCart' },
   ],
   // 'owner' or 'admin' role
-  admin: [
+  owner: [
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your brand activity.', icon: 'LayoutDashboard' },
     { href: '/dashboard/analytics', label: 'Analytics', description: 'Explore sales data and product performance.', icon: 'BarChart3' },
     { href: '/dashboard/products', label: 'Products', description: 'Manage your product catalog.', icon: 'Box' },
@@ -52,12 +52,12 @@ export function useDashboardConfig() {
   const { user } = useUser();
   const { isCeoMode } = useStore();
   
-  const userRole = (user as any)?.customClaims?.role || 'customer';
+  const userRole = (user as any)?.role || 'customer';
 
   const navLinks = useMemo(() => {
     // CEO mode grants admin-level navigation
     if (isCeoMode) {
-        return navConfig.admin;
+        return navConfig.owner;
     }
     return navConfig[userRole] || navConfig.customer;
   }, [userRole, isCeoMode]);
