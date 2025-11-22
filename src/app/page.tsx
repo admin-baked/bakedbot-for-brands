@@ -7,14 +7,15 @@ import MenuPageClient from './menu-page-client';
 import RootHomepage from './root-homepage';
 
 export default function RootOrMenuPage() {
-  const { _hasHydrated, selectedRetailerId } = useStore();
+  const { _hasHydrated } = useStore();
 
-  const isMenu = _hasHydrated && selectedRetailerId;
+  // This is a simple client-side check to see if a brand experience should be shown.
+  // We are not using brandId from the URL on the root page, so it's a simplified check.
+  // In a real multi-tenant app, this would be driven by the domain or a URL parameter.
+  const isMenu = _hasHydrated;
 
   if (isMenu) {
-    // This assumes `useMenuData` can be called by `MenuPageClient`.
-    // It's important that `MenuPageClient` is a child of `MenuLayout`
-    // which seems to be the case based on your structure.
+    // This component renders the default "BakedBot" brand menu experience.
     return <MenuPageClient brandId="default" />;
   }
   
