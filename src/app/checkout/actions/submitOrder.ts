@@ -6,6 +6,8 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
 import { redirect } from 'next/navigation';
 import type { CartItem } from '@/hooks/use-store';
+import { applyCoupon } from './applyCoupon';
+import type { ServerOrderPayload as ServerOrderPayloadType } from '@/types/domain';
 
 export interface ClientOrderInput {
     items: CartItem[];
@@ -15,26 +17,7 @@ export interface ClientOrderInput {
     couponCode?: string;
 }
 
-// Re-exporting this type for use in other server-side components.
-export type ServerOrderPayload = {
-    brandId: string;
-    retailerId: string;
-    items: Array<{
-      productId: string;
-      name: string;
-      price: number;
-      quantity: number;
-    }>;
-    customer: {
-        name: string;
-        email: string;
-    };
-    totals: {
-        subtotal: number;
-        tax: number;
-        total: number;
-    }
-};
+export type ServerOrderPayload = ServerOrderPayloadType;
 
 export type SubmitOrderResult = {
   ok: boolean;
@@ -62,11 +45,18 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
         0
       );
     
-    // TODO: This should be replaced with a real tax/fee calculation service
-    // For now, we'll assume they are included in the price or are zero.
-    const tax = 0;
+    let discount = 0;
+    if (clientPayload.couponCode) {
+        const couponResult = await applyCoupon(clientPayload.couponCode, { subtotal, brandId: clientPayload.organizationId });
+        if (couponResult.success) {
+            discount = couponResult.discountAmount;
+        }
+    }
+    
+    const subtotalAfterDiscount = subtotal - discount;
+    const tax = subtotalAfterDiscount > 0 ? subtotalAfterDiscount * 0.15 : 0;
     const fees = 0;
-    const total = subtotal + tax + fees;
+    const total = subtotalAfterDiscount + tax + fees;
 
     // The base URL of the application, used to construct API routes for fetch.
     const apiBaseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
