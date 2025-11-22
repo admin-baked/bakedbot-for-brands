@@ -59,7 +59,7 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
     const total = subtotalAfterDiscount + tax + fees;
 
     // The base URL of the application, used to construct API routes for fetch.
-    const apiBaseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
+    const apiBaseUrl = process.env.APP_BASE_URL || 'http://localhost:3001';
 
     try {
         const res = await fetch(

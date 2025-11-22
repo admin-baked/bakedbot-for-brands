@@ -63,9 +63,9 @@ const generateHtml = (args: SendArgs): string => {
             : `The following order has been placed by <strong>${order.customer.name} (${order.customer.email})</strong> for pickup.`;
     }
 
-    const subtotal = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-    const taxes = subtotal * 0.15; // Example tax
-    const total = subtotal + taxes;
+    const subtotal = order.totals.subtotal;
+    const taxes = order.totals.tax; 
+    const total = order.totals.total;
 
 
     return `
