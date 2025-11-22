@@ -1,3 +1,4 @@
+
 // src/types/domain.ts
 
 import { Timestamp } from 'firebase/firestore';
@@ -45,13 +46,6 @@ export type Product = {
   likes?: number;
   dislikes?: number;
   brandId: string;
-  // This is now deprecated and will be removed in a future step.
-  // We are migrating to the subcollection model.
-  reviewSummaryEmbedding?: {
-    embedding: number[];
-    reviewCount: number;
-    updatedAt: Date;
-  };
 };
 
 
@@ -142,6 +136,18 @@ export type OrderDoc = {
   updatedAt?: Timestamp; // For tracking status changes
 };
 
+export type ServerOrderPayload = {
+  items: Array<{
+    productId: string;
+    name: string;
+    qty: number;
+    price: number;
+  }>;
+  customer: { name: string; email: string; };
+  retailerId: string;
+  totals: { subtotal: number; tax: number; total: number };
+}
+
 
 // Type for the OrderItem sub-collection documents
 export type OrderItemDoc = {
@@ -201,4 +207,57 @@ export type AppEvent = {
   refId: string | null; // orderId, subscriptionId, customerId, etc.
   data: any; // The event payload
   timestamp: Timestamp;
+};
+
+
+// --- Deebo Regulation OS ---
+
+export type Jurisdiction = {
+  id: string; // e.g. 'us-ca'
+  name: string;
+  type: 'state' | 'federal' | 'messaging_standard';
+  status: 'active' | 'pending' | 'sunset';
+  default_channels: string[];
+};
+
+export type RegulationSource = {
+  id: string;
+  jurisdiction_id: string;
+  title: string;
+  source_type: 'pdf_upload' | 'pdf_url' | 'html_url';
+  url?: string;
+  file_path?: string;
+  effective_date: Timestamp;
+  last_amended_date: Timestamp;
+  canonical: boolean;
+  topics: string[];
+  hash: string;
+};
+
+export type ComplianceRule = {
+  id: string;
+  jurisdiction_id: string;
+  source_id: string;
+  category: 'marketing' | 'age_verification' | 'packaging_labeling' | 'pos' | 'delivery' | 'testing' | 'recordkeeping';
+  channel: 'web' | 'sms' | 'email' | 'social' | 'billboard';
+  severity: 'block' | 'warn' | 'info';
+  condition: Record<string, any>;
+  constraint: Record<string, any>;
+  message_template: string;
+  effective_date: Timestamp;
+  sunset_date?: Timestamp;
+  version: number;
+};
+
+export type RulePack = {
+  id: string;
+  jurisdiction_id: string;
+  name: string;
+  channels: string[];
+  categories: string[];
+  rule_ids: string[];
+  model_version?: string;
+  status: 'draft' | 'active' | 'deprecated';
+  created_by: string;
+  approved_by?: string;
 };

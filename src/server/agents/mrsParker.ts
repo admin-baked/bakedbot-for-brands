@@ -1,3 +1,4 @@
+
 // src/server/agents/mrsParker.ts
 import { createServerClient } from "@/firebase/server-client";
 import { EventType } from "@/types/domain";
@@ -75,7 +76,7 @@ export async function handleMrsParkerEvent(orgId: string, eventId: string) {
 
   if (!HANDLED_TYPES.includes(event.type)) {
      // Mark as processed even if not handled to prevent re-scanning
-    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
+     await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
     return;
   }
   
