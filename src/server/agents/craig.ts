@@ -12,6 +12,7 @@ import { FieldValue } from "firebase-admin/firestore";
 const HANDLED_TYPES: EventType[] = [
   "subscription.updated",
   "checkout.paid",
+  "order.readyForPickup",
 ];
 
 async function handleDeadLetter(orgId: string, eventId: string, eventData: any, error: any) {
@@ -60,6 +61,10 @@ export async function handleCraigEvent(orgId: string, eventId: string) {
 
       case "checkout.paid":
         await handleCheckoutPaid(orgId, event);
+        break;
+      
+      case "order.readyForPickup":
+        // Add more handlers as needed, e.g. for status updates
         break;
     }
     // Mark as successfully processed
