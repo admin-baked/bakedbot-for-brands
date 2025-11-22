@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, type UserCredential } from 'firebase/auth';
 import Image from 'next/image';
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -24,9 +24,9 @@ export default function BrandLoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
-  const handleAuthSuccess = async (user: any) => {
-    const idTokenResult = await user.getIdTokenResult();
-    const isNewUser = getAdditionalUserInfo({user, providerId: ''})?.isNewUser;
+  const handleAuthSuccess = async (userCredential: UserCredential) => {
+    const idTokenResult = await userCredential.user.getIdTokenResult();
+    const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
     
     // If user has no role or is brand new, send to onboarding.
     if (!idTokenResult.claims.role || isNewUser) {
@@ -45,11 +45,11 @@ export default function BrandLoginPage() {
       if (isSignUp) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         toast({ title: 'Account Created!', description: 'Redirecting you to onboarding...' });
-        await handleAuthSuccess(userCredential.user);
+        await handleAuthSuccess(userCredential);
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         toast({ title: 'Login Successful!', description: 'Redirecting...' });
-        await handleAuthSuccess(userCredential.user);
+        await handleAuthSuccess(userCredential);
       }
     } catch (error: any) {
       console.error(`${isSignUp ? 'Sign up' : 'Login'} error`, error);
@@ -68,7 +68,7 @@ export default function BrandLoginPage() {
     try {
       const result = await signInWithPopup(auth, provider);
       toast({ title: 'Signed In!', description: 'Welcome to BakedBot AI.' });
-      await handleAuthSuccess(result.user);
+      await handleAuthSuccess(result);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Google Sign-In Error', description: error.message });
     }

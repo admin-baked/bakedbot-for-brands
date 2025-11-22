@@ -22,9 +22,9 @@ const generateHtml = (args: SendArgs): string => {
     const itemsHtml = order.items.map((item) => `
         <tr>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.qty}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${item.price.toFixed(2)}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${(item.price * item.quantity).toFixed(2)}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${(item.price * item.qty).toFixed(2)}</td>
         </tr>
     `).join('');
 
