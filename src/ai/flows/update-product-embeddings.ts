@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { generateEmbedding } from '@/ai/utils/generate-embedding';
-import type { Review, ReviewSummaryEmbedding } from '@/types/domain';
+import type { Review } from '@/types/domain';
 import { reviewConverter } from '@/firebase/converters';
 
 // --- Input and Output Schemas for the Server Action ---
@@ -30,6 +30,8 @@ const UpdateProductEmbeddingsOutputSchema = z.object({
 export type UpdateProductEmbeddingsOutput = z.infer<typeof UpdateProductEmbeddingsOutputSchema>;
 
 // --- AI Prompts ---
+
+const EMBEDDING_MODEL_NAME = 'text-embedding-004';
 
 // This prompt is specifically tuned to generate a summary for embedding purposes.
 const summarizeReviewsForEmbeddingPrompt = ai.definePrompt(
@@ -61,6 +63,7 @@ const generateEmbeddingFromReviewsFlow = ai.defineFlow(
     outputSchema: z.object({
       summary: z.string(),
       embedding: z.array(z.number()),
+      model: z.string(),
     }),
   },
   async ({ productName, reviewTexts }) => {
@@ -78,7 +81,7 @@ const generateEmbeddingFromReviewsFlow = ai.defineFlow(
     // 2. Generate the vector embedding from the summary
     const embedding = await generateEmbedding(summaryText);
     
-    return { summary: summaryText, embedding };
+    return { summary: summaryText, embedding, model: EMBEDDING_MODEL_NAME };
   }
 );
 
@@ -109,21 +112,23 @@ export async function updateProductEmbeddings(input: UpdateProductEmbeddingsInpu
     }
 
     // 3. Call the pure AI flow to get the summary and embedding
-    const { summary, embedding } = await generateEmbeddingFromReviewsFlow({
+    const { summary, embedding, model } = await generateEmbeddingFromReviewsFlow({
         productName: product.name,
         reviewTexts: reviews.map(r => r.text)
     });
 
-    // 4. Save the new embedding and summary to the product document
+    // 4. Save the new embedding and summary to the new versioned subcollection
     await productRepo.updateEmbedding(productId, {
+        model,
         embedding: embedding,
         reviewCount: reviews.length,
         updatedAt: new Date(),
+        summary: summary,
     });
     
     return {
         productId,
-        status: 'Embedding updated.',
+        status: `Embedding updated for model ${model}.`,
         reviewCount: reviews.length,
         summary: summary,
     };

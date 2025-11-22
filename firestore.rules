@@ -77,6 +77,11 @@ service cloud.firestore {
     match /{path=**}/reviews/{reviewId} {
       allow read: if true;
     }
+
+     // This collection group query is necessary for vector search.
+    match /{path=**}/productReviewEmbeddings/{docId} {
+      allow read: if true;
+    }
     
     // --- Orders Collection ---
     match /orders/{orderId} {
