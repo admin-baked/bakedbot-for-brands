@@ -13,9 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { Retailer } from '@/types/domain';
-import { useHydrated } from '@/hooks/use-hydrated';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DEMO_BRAND_ID } from '@/lib/config';
 
 interface DispensaryLocatorProps {
   locations?: Retailer[];
@@ -53,7 +51,7 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
         }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [_hasHydrated, selectedRetailerId, favoriteRetailerId]);
+  }, [_hasHydrated, favoriteRetailerId]);
 
   const handleFindClosest = () => {
     if (!navigator.geolocation) {
