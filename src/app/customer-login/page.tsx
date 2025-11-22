@@ -44,6 +44,10 @@ export default function CustomerLoginPage() {
       toast({ title: 'Signed In!', description: 'Welcome to BakedBot AI.' });
       await handleAuthSuccess(result);
     } catch (error: any) {
+      // Don't show an error toast if the user simply closes the popup
+      if (error.code === 'auth/popup-closed-by-user') {
+        return;
+      }
       toast({ variant: 'destructive', title: 'Google Sign-In Error', description: error.message });
     }
   };
