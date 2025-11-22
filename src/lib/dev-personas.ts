@@ -1,5 +1,6 @@
+
 // src/lib/dev-personas.ts
-export type DevPersonaKey = 'brand' | 'dispensary' | 'customer' | 'onboarding';
+export type DevPersonaKey = 'brand' | 'dispensary' | 'customer' | 'onboarding' | 'owner';
 
 // Note: The UID is a hard-coded, non-sensitive identifier for development purposes.
 // It allows us to consistently target the same user record in Firebase Auth.
@@ -7,7 +8,7 @@ export type DevPersona = {
   uid: string;
   email: string;
   displayName: string;
-  role: 'brand' | 'dispensary' | 'customer' | null;
+  role: 'brand' | 'dispensary' | 'customer' | 'owner' | null;
   brandId: string | null;
   locationId: string | null;
 };
@@ -28,7 +29,7 @@ export const devPersonas: Record<DevPersonaKey, DevPersona> = {
         displayName: 'Dispensary Manager',
         role: 'dispensary',
         brandId: null,
-        locationId: '1', // The Green Spot
+        locationId: 'bayside-cannabis',
     },
     customer: {
         uid: 'dev-customer-user',
@@ -43,6 +44,14 @@ export const devPersonas: Record<DevPersonaKey, DevPersona> = {
         email: 'onboarding@bakedbot.ai',
         displayName: 'New User',
         role: null, // No role assigned yet
+        brandId: null,
+        locationId: null,
+    },
+    owner: {
+        uid: 'dev-owner-user',
+        email: 'owner@bakedbot.ai',
+        displayName: 'Platform Owner',
+        role: 'owner',
         brandId: null,
         locationId: null,
     }

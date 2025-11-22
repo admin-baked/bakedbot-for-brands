@@ -6,13 +6,20 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/server/auth/auth';
 import { makeBrandRepo } from '@/server/repos/brandRepo';
+import { makeProductRepo } from '@/server/repos/productRepo';
+import { FieldValue } from 'firebase-admin/firestore';
 
 // Define the schema for the form data
 const OnboardingSchema = z.object({
-  role: z.enum(['brand', 'dispensary', 'customer']),
+  role: z.enum(['brand', 'dispensary', 'customer', 'skip']),
+  // CannMenus selection
   locationId: z.string().optional(),
-  brandId: z.string().optional(), // CannMenus Brand ID
-  brandName: z.string().optional(), // Brand Name from CannMenus
+  brandId: z.string().optional(),
+  brandName: z.string().optional(),
+  // Manual entry fields
+  manualBrandName: z.string().optional(),
+  manualProductName: z.string().optional(),
+  manualDispensaryName: z.string().optional(),
 });
 
 // Define the state for the form
@@ -39,51 +46,73 @@ export async function completeOnboarding(prevState: OnboardingState, formData: F
     };
   }
 
-  const { role, locationId, brandId, brandName } = validatedFields.data;
+  const { role, locationId, brandId, brandName, manualBrandName, manualProductName, manualDispensaryName } = validatedFields.data;
   const { uid, email, displayName } = user;
 
-  // If role is 'brand', the brandId from CannMenus is now the primary ID.
-  const effectiveBrandId = role === 'brand' ? brandId : null;
+  const { auth, firestore } = await createServerClient();
+  const userDocRef = firestore.collection('users').doc(uid);
+  const brandRepo = makeBrandRepo(firestore);
 
-  const userProfileData: Record<string, any> = {
-    email,
-    displayName,
-    role,
-    brandId: effectiveBrandId,
-    locationId: role === 'dispensary' ? locationId : null,
-  };
-
-  const claims = {
-    role,
-    brandId: userProfileData.brandId,
-    locationId: userProfileData.locationId,
-  };
-  
-  const filteredClaims = Object.fromEntries(Object.entries(claims).filter(([_, v]) => v !== null));
-  const filteredProfileData = Object.fromEntries(Object.entries(userProfileData).filter(([_, v]) => v !== null));
+  let finalBrandId: string | null = null;
+  let finalBrandName: string | null = null;
+  let finalRole: 'brand' | 'dispensary' | 'customer' | null = role === 'skip' ? 'customer' : role; // Default skipped users to customer
 
   try {
-    const { auth, firestore } = await createServerClient();
-    const userDocRef = firestore.collection('users').doc(uid);
-    const brandRepo = makeBrandRepo(firestore);
-    
-    await firestore.runTransaction(async (transaction) => {
-      // 1. Set the user document in Firestore
-      transaction.set(userDocRef, filteredProfileData, { merge: true });
-      
-      // 2. If the user claimed a brand, create their brand document using the CannMenus ID.
-      if (role === 'brand' && brandId && brandName) {
-        const newBrandDocRef = firestore.collection('brands').doc(brandId);
-        const existingBrand = await transaction.get(newBrandDocRef);
+    // Handle brand creation/linking
+    if (role === 'brand') {
+      if (brandId && brandName) { // Claimed from CannMenus
+        finalBrandId = brandId;
+        finalBrandName = brandName;
+        const brandRef = firestore.collection('brands').doc(finalBrandId);
+        const brandSnap = await brandRef.get();
+        if (!brandSnap.exists) {
+          await brandRepo.create(finalBrandId, { name: finalBrandName });
+        }
+      } else if (manualBrandName) { // Manual entry
+        finalBrandId = `brand-${uid.substring(0, 8)}`; // Generate a unique-ish ID
+        finalBrandName = manualBrandName;
+        await brandRepo.create(finalBrandId, { name: finalBrandName });
 
-        // Only create the brand doc if it doesn't already exist to prevent overwriting.
-        if (!existingBrand.exists) {
-            transaction.set(newBrandDocRef, brandRepo.createPayload(brandName));
+        // If they added a product/dispensary, create those too
+        if (manualProductName) {
+            const productRepo = makeProductRepo(firestore);
+            await productRepo.create({
+                name: manualProductName,
+                brandId: finalBrandId,
+                category: 'Sample',
+                price: 0,
+                description: 'This is a sample product added during onboarding.',
+                imageUrl: 'https://picsum.photos/seed/sample/400/400',
+                imageHint: 'product sample',
+            });
+        }
+        if (manualDispensaryName) {
+            await firestore.collection('dispensaries').add({
+                name: manualDispensaryName,
+                // Add default fields for the dispensary
+                brandIds: [finalBrandId],
+                city: 'Your City',
+                state: 'NY',
+            });
         }
       }
-    });
-
-    // This must happen after the transaction for consistency
+    }
+    
+    // Set user profile and claims
+    const userProfileData: Record<string, any> = {
+      email,
+      displayName,
+      role: finalRole,
+      brandId: finalBrandId,
+      locationId: role === 'dispensary' ? locationId : null,
+    };
+    
+    const claims = { role: finalRole, brandId: finalBrandId, locationId: userProfileData.locationId };
+    
+    const filteredClaims = Object.fromEntries(Object.entries(claims).filter(([_, v]) => v !== null));
+    const filteredProfileData = Object.fromEntries(Object.entries(userProfileData).filter(([_, v]) => v !== null));
+    
+    await userDocRef.set(filteredProfileData, { merge: true });
     await auth.setCustomUserClaims(uid, filteredClaims);
 
     // Revalidate paths that depend on user role
