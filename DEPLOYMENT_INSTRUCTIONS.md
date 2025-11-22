@@ -8,10 +8,11 @@ The application's server-side logic and security features require secret keys th
 
 1.  `FIREBASE_SERVICE_ACCOUNT_KEY`: Credentials for the Firebase Admin SDK to communicate with your Firebase project securely.
 2.  `SENDGRID_API_KEY`: The API key for the SendGrid service to send order confirmation emails.
-3.  `RECAPTCHA_SITE_KEY`: The **secret** key for reCAPTCHA v3, used by Firebase App Check to verify requests.
+3.  `RECAPTCHA_SECRET_KEY`: The **secret** key for reCAPTCHA v3, used by Firebase App Check to verify requests.
 4.  `CANNMENUS_API_KEY`: The API key for the CannMenus service to fetch product and retailer data.
+5.  `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`: The **public site key** for reCAPTCHA v3, required by the client-side code.
 
-The `apphosting.yaml` file has been configured to use these keys by referencing them as secrets. Your final task is to create these secrets in Google Cloud Secret Manager so that App Hosting can access them during runtime.
+The `apphosting.yaml` file has been configured to use the secrets. Your final task is to create these secrets and environment variables in Google Cloud so that App Hosting can access them during runtime.
 
 ---
 
@@ -76,15 +77,15 @@ You must convert the multi-line JSON file into a single-line Base64 string.
 2.  Go to **Security > Secret Manager**.
 3.  Click **CREATE SECRET**.
 4.  **Name:** `CANNMENUS_API_KEY`
-5.  **Secret value:** Paste your CannMenus API key (`e13ed642...`).
+5.  **Secret value:** Paste your CannMenus API key.
 6.  Leave replication policy as "Automatic".
 7.  Click **CREATE SECRET**.
 
 ---
 
-## Step 4: Create the `RECAPTCHA_SITE_KEY` Secret for App Check
+## Step 4: Configure App Check (reCAPTCHA v3)
 
-This step is vital for backend security.
+This step is vital for backend security and involves two parts: a **Secret Key** for the backend and a **Site Key** for the frontend.
 
 ### A. Get Your reCAPTCHA v3 Keys
 
@@ -93,22 +94,35 @@ This step is vital for backend security.
 3.  **reCAPTCHA type:** Select **reCAPTCHA v3**.
 4.  **Domains:** Add the domain of your deployed Firebase App Hosting backend (e.g., `your-app-name.web.app`).
 5.  Accept the terms and submit.
-6.  You will be given a **Site Key** and a **Secret Key**. You need the **Secret Key** for this step.
+6.  You will be given a **Site Key** (public) and a **Secret Key**. You need both.
 
-### B. Create the Secret in Secret Manager
+### B. Create the `RECAPTCHA_SECRET_KEY` Secret
 
 1.  Navigate to the Google Cloud Console for your project.
 2.  Go to **Security > Secret Manager**.
 3.  Click **CREATE SECRET**.
-4.  **Name:** `RECAPTCHA_SITE_KEY`
-5.  **Secret value:** Paste the **Secret Key** you just obtained from the reCAPTCHA admin console.
+4.  **Name:** `RECAPTCHA_SECRET_KEY`
+5.  **Secret value:** Paste the **Secret Key** you just obtained.
 6.  Leave replication policy as "Automatic".
 7.  Click **CREATE SECRET**.
+
+### C. Set the `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` Environment Variable
+
+The public **Site Key** must be set as a standard environment variable in your App Hosting backend configuration.
+
+1.  Navigate to your **Firebase project**.
+2.  Go to **Build > App Hosting**.
+3.  Select your backend.
+4.  Go to the **Settings** tab.
+5.  Under **Environment variables**, click **Add variable**.
+6.  **Variable:** `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
+7.  **Value:** Paste the **Site Key** you obtained from the reCAPTCHA admin console.
+8.  Save your changes.
 
 ---
 
 ## Step 5: Deploy the Application
 
-Once all four secrets (`FIREBASE_SERVICE_ACCOUNT_KEY`, `SENDGRID_API_KEY`, `CANNMENUS_API_KEY`, and `RECAPTCHA_SITE_KEY`) are created in Secret Manager, you can deploy the application.
+Once all secrets and the environment variable are configured, you can deploy the application.
 
-The `apphosting.yaml` file will automatically instruct Firebase App Hosting to find these secrets by name and securely inject them as environment variables into your application's runtime. Your backend is now protected by App Check.
+The `apphosting.yaml` file will automatically instruct Firebase App Hosting to find these secrets by name and securely inject them, while the Next.js runtime will pick up the public environment variable. Your backend is now protected by App Check.
