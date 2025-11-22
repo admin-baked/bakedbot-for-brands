@@ -20,7 +20,7 @@ const navConfig: Record<string, NavLink[]> = {
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your brand activity.', icon: 'LayoutDashboard' },
     { href: '/dashboard/analytics', label: 'Analytics', description: 'Explore sales data and product performance.', icon: 'BarChart3' },
     { href: '/dashboard/products', label: 'Products', description: 'Manage your product catalog.', icon: 'Box' },
-    { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare' },
+    { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare', hidden: true },
     { href: '/account', label: 'Account Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
   ],
   dispensary: [
@@ -32,7 +32,7 @@ const navConfig: Record<string, NavLink[]> = {
     { href: '/account', label: 'My Account', description: 'View your order history and preferences.', icon: 'User' },
     { href: '/menu/default', label: 'Start Shopping', description: 'Browse our products and find what you need.', icon: 'ShoppingCart' },
   ],
-  // 'owner' or 'admin' role
+  // 'owner' or 'admin' role has access to all features
   owner: [
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your brand activity.', icon: 'LayoutDashboard' },
     { href: '/dashboard/analytics', label: 'Analytics', description: 'Explore sales data and product performance.', icon: 'BarChart3' },
@@ -55,8 +55,8 @@ export function useDashboardConfig() {
   const userRole = (user as any)?.role || 'customer';
 
   const navLinks = useMemo(() => {
-    // CEO mode grants admin-level navigation
-    if (isCeoMode) {
+    // A user with the 'owner' role or in 'CEO Mode' gets full access
+    if (userRole === 'owner' || isCeoMode) {
         return navConfig.owner;
     }
     return navConfig[userRole] || navConfig.customer;

@@ -18,7 +18,8 @@ test.describe('Dashboard Functionality', () => {
 
     // Verify the quick link cards are present
     await expect(page.getByRole('heading', { name: 'Manage Products' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'AI Content Suite' })).toBeVisible();
+    // The "AI Content Suite" is now hidden for standard brand roles
+    await expect(page.getByRole('heading', { name: 'AI Content Suite' })).not.toBeVisible();
     await expect(page.getByRole('heading', { name: 'Brand Settings' })).toBeVisible();
   });
 
@@ -33,10 +34,8 @@ test.describe('Dashboard Functionality', () => {
     await expect(page).toHaveURL('/dashboard/products');
     await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible();
 
-    // Navigate to Content AI
-    await page.getByRole('link', { name: 'Content AI' }).click();
-    await expect(page).toHaveURL('/dashboard/content');
-    await expect(page.getByRole('heading', { name: 'Content AI' })).toBeVisible();
+    // Verify "Content AI" link is NOT visible for this role
+    await expect(page.getByRole('link', { name: 'Content AI' })).not.toBeVisible();
   });
 
 });
