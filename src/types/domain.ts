@@ -23,11 +23,14 @@ export type Brand = {
   };
 };
 
-// Type for the review summary embedding stored on a Product
+// This type now represents a document in the 'productReviewEmbeddings' subcollection.
 export type ReviewSummaryEmbedding = {
+  productId: string; // Denormalized for collection group queries
+  model: string;
   embedding: number[];
   reviewCount: number;
   updatedAt: Date;
+  summary: string; // The summary text that was embedded
 };
 
 export type Product = {
@@ -42,8 +45,15 @@ export type Product = {
   likes?: number;
   dislikes?: number;
   brandId: string;
-  reviewSummaryEmbedding?: ReviewSummaryEmbedding; // Add embedding field
+  // This is now deprecated and will be removed in a future step.
+  // We are migrating to the subcollection model.
+  reviewSummaryEmbedding?: {
+    embedding: number[];
+    reviewCount: number;
+    updatedAt: Date;
+  };
 };
+
 
 // Renamed from Location to Retailer
 export type Retailer = {

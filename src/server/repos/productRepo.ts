@@ -31,27 +31,29 @@ export function makeProductRepo(db: Firestore) {
      * Performs a vector search on product review embeddings.
      * Finds products with reviews that are semantically similar to the user's query.
      */
-    async searchByVector(query: string, brandId: string, limit: number = 10): Promise<Product[]> {
-      // Ensure brandId is valid, fallback to 'default' if necessary.
+    async searchByVector(query: string, brandId: string, limit: number = 5): Promise<Product[]> {
       const effectiveBrandId = brandId && brandId.trim() !== '' ? brandId : DEMO_BRAND_ID;
-
       const queryEmbedding = await generateEmbedding(query);
 
-      const vectorQuery = productCollection
+      // Perform a collection group query on the embeddings subcollection.
+      const vectorQuery = db.collectionGroup('productReviewEmbeddings')
         .where('brandId', '==', effectiveBrandId)
-        .where('reviewSummaryEmbedding.embedding', '!=', null)
-        .findNearest('reviewSummaryEmbedding.embedding', queryEmbedding, {
+        .findNearest('embedding', queryEmbedding, {
           limit,
           distanceMeasure: 'COSINE',
         });
       
       const snapshot = await vectorQuery.get();
-
+      
       if (snapshot.empty) {
         return [];
       }
+
+      // We get back the embedding docs, now fetch the full product docs.
+      const productIds = snapshot.docs.map(doc => doc.data().productId);
+      const productSnaps = await db.getAll(...productIds.map(id => productCollection.doc(id)));
       
-      return snapshot.docs.map(doc => doc.data() as Product);
+      return productSnaps.map(snap => snap.data() as Product).filter(Boolean);
     },
 
     /**
@@ -102,18 +104,25 @@ export function makeProductRepo(db: Firestore) {
 
     /**
      * Updates or clears the embedding for a specific product.
+     * This now writes to a versioned subcollection.
      */
-    async updateEmbedding(productId: string, embeddingData: ReviewSummaryEmbedding | null): Promise<void> {
-        const docRef = this.getRef(productId)
+    async updateEmbedding(productId: string, embeddingData: Omit<ReviewSummaryEmbedding, 'productId'> | null): Promise<void> {
         if (embeddingData === null) {
-            await docRef.update({
-                reviewSummaryEmbedding: FieldValue.delete(),
-            });
-        } else {
-            await docRef.update({
-                reviewSummaryEmbedding: embeddingData,
-            });
+            // In a real app, you might want a strategy to delete old embeddings.
+            // For now, we'll just log it.
+            console.log(`Clearing embeddings for product ${productId} is a no-op in this version.`);
+            return;
         }
+
+        const modelName = embeddingData.model;
+        const embeddingDocRef = productCollection.doc(productId).collection('productReviewEmbeddings').doc(modelName);
+
+        const payload: ReviewSummaryEmbedding = {
+            ...embeddingData,
+            productId: productId,
+        };
+        
+        await embeddingDocRef.set(payload);
     }
   };
 }
