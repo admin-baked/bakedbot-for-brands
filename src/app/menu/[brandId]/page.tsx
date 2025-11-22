@@ -73,16 +73,17 @@ function TiledMenuPageContents() {
 }
 
 
-export default function BrandMenuPage({ params }: { params: { brandId: string } }) {
+export default function BrandMenuPage() {
   const hydrated = useHydrated();
   const { products, locations, reviews, featuredProducts, brandId } = useMenuData();
   const { menuStyle } = useStore();
   const isLoading = !hydrated;
 
+  // Render tiled/carousel layout if selected in user preferences
   if (hydrated && menuStyle === 'alt') {
     return <TiledMenuPageContents />;
   }
-
+  
   if (isLoading) {
     return <MenuPageSkeleton />;
   }
