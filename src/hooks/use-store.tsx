@@ -19,8 +19,8 @@ export interface StoreState {
   menuStyle: 'default' | 'alt';
   favoriteRetailerId: string | null;
   chatExperience: 'default' | 'classic';
-  isCeoMode: boolean; // Not persisted
-  isDemo: boolean; // Not persisted
+  isCeoMode: boolean;
+  isDemo: boolean; 
 
   // Actions
   setHasHydrated: (hydrated: boolean) => void;
@@ -133,14 +133,14 @@ export const useStore = create<StoreState>()(
           state.setHasHydrated(true);
         }
       },
-      // Persist UI preferences but exclude transactional state like cart or CEO mode.
+      // Persist UI preferences but exclude transactional state like cart.
       partialize: (state) => ({
         theme: state.theme,
         menuStyle: state.menuStyle,
         favoriteRetailerId: state.favoriteRetailerId,
         chatExperience: state.chatExperience,
-        selectedRetailerId: state.selectedRetailerId,
-        isDemo: state.isDemo, // Now persisting demo mode
+        isCeoMode: state.isCeoMode, // Persist CEO mode
+        isDemo: state.isDemo,
       }),
     }
   )
