@@ -6,7 +6,8 @@ runConfig:
   # and as a standard environment variable for the Firebase Admin SDK to initialize App Check.
   env:
     - variable: FIREBASE_SERVICE_ACCOUNT_KEY
-      secret: FIREBASE_SERVICE_ACCOUNT_KEY
+      secret: BAKEDBOT_SERVICE_ACCOUNT_KEY
+      availability: [RUNTIME]
     - variable: SENDGRID_API_KEY
       secret: SENDGRID_API_KEY
     - variable: SENDGRID_FROM_EMAIL
