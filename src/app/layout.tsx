@@ -5,7 +5,7 @@ import './globals.css';
 import { Inter, Teko } from 'next/font/google';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { cn } from '@/lib/utils';
+import { Providers } from '@/providers';
 
 export const metadata: Metadata = {
   title: 'BakedBot AI',
@@ -39,11 +39,13 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-screen flex flex-col">
-        <Header />
-        <div className="flex-1">
-          {children}
-        </div>
-        <Footer />
+        <Providers>
+          <Header />
+          <div className="flex-1">
+            {children}
+          </div>
+          <Footer />
+        </Providers>
       </body>
     </html>
   );

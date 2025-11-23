@@ -1,25 +1,12 @@
+
 'use client';
 
 import React from 'react';
-import AppThemeProvider from '@/components/AppThemeProvider';
-import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { Toaster } from '@/components/ui/toaster';
-import { CartSheet } from '@/components/cart-sheet';
-import { DemoModeProvider } from '@/context/demo-mode';
 
 /**
- * This component centralizes all the global context providers for the application.
+ * A placeholder provider component that simply renders its children.
+ * This will be built out to include Theme, Firebase, and other global providers.
  */
 export function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <FirebaseClientProvider>
-      <DemoModeProvider>
-        <AppThemeProvider>
-          {children}
-          <Toaster />
-          <CartSheet />
-        </AppThemeProvider>
-      </DemoModeProvider>
-    </FirebaseClientProvider>
-  );
+  return <>{children}</>;
 }
