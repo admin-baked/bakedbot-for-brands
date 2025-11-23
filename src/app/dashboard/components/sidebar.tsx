@@ -70,7 +70,7 @@ export function DashboardSidebar() {
         <SidebarMenu>
           {navLinks.filter(link => !link.hidden).map((link) => {
             const Icon = (LucideIcons as any)[link.icon] || LucideIcons.Folder;
-            const isActive = pathname === link.href;
+            const isActive = link.href === '/dashboard' ? pathname === link.href : pathname.startsWith(link.href);
             return (
               <SidebarMenuItem key={link.href}>
                 <SidebarMenuButton asChild isActive={isActive}>
