@@ -3,11 +3,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Inter, Teko } from 'next/font/google';
+import { Providers } from '@/providers';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { Providers } from '@/providers';
-import Chatbot from '@/components/chatbot';
-import { demoProducts } from '@/lib/demo/demo-data';
 
 export const metadata: Metadata = {
   title: 'BakedBot AI',
@@ -34,11 +32,8 @@ export default function RootLayout({
       <body className="font-sans min-h-screen flex flex-col">
         <Providers>
           <Header />
-          <div className="flex-1">
-            {children}
-          </div>
+          <div className="flex-1">{children}</div>
           <Footer />
-          <Chatbot products={demoProducts} brandId="default" />
         </Providers>
       </body>
     </html>
