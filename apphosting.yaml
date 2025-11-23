@@ -1,3 +1,4 @@
+
 # Settings to manage and configure a Firebase App Hosting backend.
 # https://firebase.google.com/docs/app-hosting/configure
 
@@ -5,7 +6,7 @@ runConfig:
   # The RECAPTCHA_SECRET_KEY is needed both as a secret for some GCP services
   # and as a standard environment variable for the Firebase Admin SDK to initialize App Check.
   env:
-    - variable: FIREBASE_SERVICE_ACCOUNT_KEY
+    - variable: BAKEDBOT_SERVICE_ACCOUNT_KEY
       secret: BAKEDBOT_SERVICE_ACCOUNT_KEY
       availability: [RUNTIME]
     - variable: SENDGRID_API_KEY
