@@ -1,22 +1,10 @@
 // app/layout.tsx
 import type { Metadata } from 'next';
-import { Inter, Teko } from 'next/font/google';
 import './globals.css';
-import { Providers } from '@/providers';
-import Header from '@/components/header';
+import { Inter, Teko } from 'next/font/google';
+import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { cn } from '@/lib/utils';
-
-const fontSans = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
-
-const fontDisplay = Teko({
-  subsets: ["latin"],
-  variable: "--font-teko",
-  weight: ['300', '400', '500', '600', '700'],
-});
 
 
 export const metadata: Metadata = {
@@ -24,7 +12,16 @@ export const metadata: Metadata = {
   description: 'BakedBot AI – Agentic Commerce OS for Cannabis',
 };
 
-const isDevBypass = process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true';
+const fontSans = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+});
+
+const fontDisplay = Teko({
+  subsets: ['latin'],
+  variable: '--font-teko',
+  weight: ['300', '400', '500', '600', '700'],
+});
 
 export default function RootLayout({
   children,
@@ -32,20 +29,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable, fontDisplay.variable)}>
-      <body>
-         {isDevBypass && (
-          <div className="w-full bg-yellow-400 text-black text-center text-sm py-1 font-semibold">
-            DEV AUTH BYPASS ENABLED
-          </div>
-        )}
-        <Providers>
-            <div className="flex flex-col min-h-screen">
-                <Header />
-                <main className="flex-1">{children}</main>
-                <Footer />
-            </div>
-        </Providers>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={cn(
+        "min-h-screen bg-background font-sans antialiased",
+        fontSans.variable,
+        fontDisplay.variable
+      )}
+    >
+      <body className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1">
+          {children}
+        </div>
+        <Footer />
       </body>
     </html>
   );
