@@ -1,12 +1,86 @@
-/* src/app/globals.css */
 
-html,
-body {
-  padding: 0;
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 142 80% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 142 80% 5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 142 80% 5%;
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 142 20% 90%;
+    --secondary-foreground: 142 80% 15%;
+    --muted: 142 20% 90%;
+    --muted-foreground: 142 80% 30%;
+    --accent: 142.1 70.2% 46.3%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 142 20% 80%;
+    --input: 142 20% 85%;
+    --ring: 142.1 76.2% 36.3%;
+    --radius: 0.5rem;
+    --chart-1: 142 76% 36%;
+    --chart-2: 142 66% 46%;
+    --chart-3: 142 56% 56%;
+    --chart-4: 142 46% 66%;
+    --chart-5: 142 36% 76%;
+    --sidebar-background: 142 30% 96%;
+    --sidebar-border: 142 30% 90%;
+    --sidebar-foreground: 142 80% 5%;
+    --sidebar-primary: 142.1 76.2% 36.3%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 142.1 70.2% 46.3%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-ring: 142.1 76.2% 36.3%;
+  }
+
+  .dark {
+    --background: 142 80% 4%;
+    --foreground: 0 0% 98%;
+    --card: 142 80% 4%;
+    --card-foreground: 0 0% 98%;
+    --popover: 142 80% 4%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 142 70% 10%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 142 70% 10%;
+    --muted-foreground: 142 20% 60%;
+    --accent: 142.1 70.2% 46.3%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 142 70% 10%;
+    --input: 142 70% 10%;
+    --ring: 142.1 76.2% 36.3%;
+    --chart-1: 142 76% 36%;
+    --chart-2: 142 66% 46%;
+    --chart-3: 142 56% 56%;
+    --chart-4: 142 46% 66%;
+    --chart-5: 142 36% 76%;
+    --sidebar-background: 142 70% 6%;
+    --sidebar-border: 142 70% 10%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 142.1 76.2% 36.3%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 142.1 70.2% 46.3%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-ring: 142.1 76.2% 36.3%;
+  }
 }
-
-a {
-  color: inherit;
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
