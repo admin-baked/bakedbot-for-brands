@@ -20,6 +20,7 @@ import { useStore } from '@/hooks/use-store';
 import { useDemoMode } from '@/context/demo-mode';
 import { useHydrated } from '@/hooks/use-hydrated';
 
+const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === 'true';
 
 export function Header() {
     const { getItemCount, setCartSheetOpen } = useStore();
@@ -120,7 +121,7 @@ export function Header() {
                     <Separator orientation="vertical" className="h-6 hidden md:block"/>
 
                     <div className="hidden md:flex items-center gap-2">
-                        {hydrated && user ? (
+                        {authEnabled && hydrated && user ? (
                              <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                      <Button variant="ghost" className="flex items-center gap-2">
@@ -148,7 +149,7 @@ export function Header() {
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                              </DropdownMenu>
-                        ) : hydrated && !user ? (
+                        ) : authEnabled && hydrated && !user ? (
                             <>
                                 <Button variant="ghost" asChild>
                                     <Link href="/customer-login">
@@ -161,6 +162,10 @@ export function Header() {
                                     </Link>
                                 </Button>
                             </>
+                        ) : !authEnabled ? (
+                             <Button asChild>
+                                <Link href={'/menu/default'}>Get Started</Link>
+                            </Button>
                         ) : (
                             <div className="h-10 w-44" /> // Placeholder to prevent layout shift
                         )}
@@ -182,18 +187,20 @@ export function Header() {
                                      </DropdownMenuItem>
                                 ))}
                                 <DropdownMenuSeparator />
-                                {hydrated && user ? (
+                                {authEnabled && hydrated && user ? (
                                     <>
                                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                                         <DropdownMenuItem onClick={() => router.push('/dashboard')}>Dashboard</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push('/account')}>Account Details</DropdownMenuItem>
                                         <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                                     </>
-                                ) : hydrated && !user ? (
+                                ) : authEnabled && hydrated && !user ? (
                                     <>
                                         <DropdownMenuItem onClick={() => router.push('/customer-login')}>Login</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => router.push('/onboarding')}>Get Started</DropdownMenuItem>
                                     </>
+                                ) : !authEnabled ? (
+                                    <DropdownMenuItem onClick={() => router.push('/menu/default')}>Get Started</DropdownMenuItem>
                                 ) : null}
                                 <DropdownMenuSeparator />
                                 <div className="p-2">
