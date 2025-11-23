@@ -332,7 +332,6 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
           {isOpen && products && (
             <ChatWindow
               products={products}
-              brandId={brandId}
               onAskSmokey={handleAskSmokey}
               hasStartedChat={hasStartedChat}
               startOnboarding={startOnboarding}
