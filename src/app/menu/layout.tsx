@@ -51,7 +51,7 @@ async function getMenuData(brandId: string) {
     const effectiveBrandId = isDemo ? DEMO_BRAND_ID : brandId;
 
     try {
-        const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
+        const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3001';
         
         // Use a different API endpoint for the demo vs live brands
         const apiPath = effectiveBrandId === DEMO_BRAND_ID 
@@ -66,7 +66,7 @@ async function getMenuData(brandId: string) {
         }
 
         // The CannMenus API has a different structure for list vs search
-        const productItems = json.data?.items || json.data || [];
+        const productItems = json.data?.items || json.data?.data || [];
         products = productItems.map((item: any) => mapCannMenusProduct(item, effectiveBrandId));
 
         // For now, locations and reviews are still using stub/internal data.
