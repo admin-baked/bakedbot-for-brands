@@ -2,7 +2,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import OnboardingClientPage from './page-client';
+import { OnboardingPageClient } from '@/onboarding/page-client';
 import { Loader2 } from 'lucide-react';
 
 function OnboardingLoading() {
@@ -16,7 +16,7 @@ function OnboardingLoading() {
 export default function OnboardingPage() {
     return (
         <Suspense fallback={<OnboardingLoading />}>
-            <OnboardingClientPage />
+            <OnboardingPageClient />
         </Suspense>
     );
 }

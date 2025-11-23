@@ -36,7 +36,7 @@ const initialState: OnboardingState = {
 
 const isProd = process.env.NODE_ENV === 'production';
 
-export default function OnboardingClientPage() {
+export function OnboardingPageClient() {
   const [step, setStep] = useState<OnboardingStep>('role');
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [claimMethod, setClaimMethod] = useState<ClaimMethod | null>(null);
@@ -76,10 +76,12 @@ export default function OnboardingClientPage() {
   useEffect(() => {
     if (brandSearchQuery.length > 2) {
       startSearchTransition(async () => {
-        const res = await fetch(`/api/cannmenus/brands?search=${encodeURIComponent(brandSearchQuery)}`);
+        const res = await fetch(`/api/cannmenus/brands?q=${encodeURIComponent(brandSearchQuery)}`);
         if (res.ok) {
           const json = await res.json();
-          setBrandSearchResults(json.data?.items || []);
+          // The API response structure is { data: { items: [] } }
+          const items = json?.data?.items || json?.brands || [];
+          setBrandSearchResults(items);
         }
       });
     } else {
@@ -104,12 +106,14 @@ export default function OnboardingClientPage() {
   
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role);
-    if (role === 'brand' || role === 'dispensary') {
-        // Show choice for brand/dispensary
+    if (role === 'brand') {
+      setStep('brand-claim'); // Go directly to brand options
+    } else if (role === 'dispensary') {
+      setStep('location');
     } else { // Customer or skip
-        const formData = new FormData();
-        formData.append('role', role);
-        formAction(formData);
+      const formData = new FormData();
+      formData.append('role', role);
+      formAction(formData);
     }
   }
 
@@ -160,11 +164,16 @@ export default function OnboardingClientPage() {
                     )}
                     </div>
                 </ScrollArea>
+                <div className="text-center">
+                    <Button variant="link" size="sm" onClick={() => setStep('brand-manual')}>
+                       Can't find your brand? Add it manually
+                    </Button>
+                </div>
             </CardContent>
         );
        case 'brand-manual':
         return (
-             <CardContent className="space-y-4">
+             <CardContent className="space-y-4" data-testid="onboarding-step-products">
                 <h3 className="font-semibold text-lg">Add Your Brand Details</h3>
                 <p className="text-sm text-muted-foreground">Enter your basic info to get started. You can add more later.</p>
                 <div className="space-y-2">
@@ -172,11 +181,11 @@ export default function OnboardingClientPage() {
                     <Input name="manualBrandName" id="manualBrandName" placeholder="e.g., Cosmic Cannabis Co." />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="manualProductName">First Product Name</Label>
+                    <Label htmlFor="manualProductName">First Product Name (Optional)</Label>
                     <Input name="manualProductName" id="manualProductName" placeholder="e.g., Nebula Nugs" />
                 </div>
                  <div className="space-y-2">
-                    <Label htmlFor="manualDispensaryName">First Retail Partner</Label>
+                    <Label htmlFor="manualDispensaryName">First Retail Partner (Optional)</Label>
                     <Input name="manualDispensaryName" id="manualDispensaryName" placeholder="e.g., The Green Planet" />
                 </div>
             </CardContent>
@@ -212,30 +221,23 @@ export default function OnboardingClientPage() {
   };
   
   const canProceed = 
-      (step === 'role' && !!selectedRole) ||
+      step === 'role' ||
       (step === 'location' && !!selectedLocationId) ||
       (step === 'brand-claim' && !!selectedBrand) ||
       step === 'brand-manual';
       
   const isDoneStep = step === 'done';
 
-  const renderRoleChoice = () => (
-     <CardContent className="space-y-4">
-        <h3 className="font-semibold text-lg">How would you like to add your {selectedRole}?</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button variant={claimMethod === 'claim' ? 'default' : 'outline'} onClick={() => { setClaimMethod('claim'); setStep(selectedRole === 'brand' ? 'brand-claim' : 'location'); }}>
-                <Search className="mr-2 h-4 w-4" /> Claim from Directory
-            </Button>
-             <Button variant={claimMethod === 'manual' ? 'default' : 'outline'} onClick={() => { setClaimMethod('manual'); setStep(selectedRole === 'brand' ? 'brand-manual' : 'location'); }}>
-                <PencilLine className="mr-2 h-4 w-4" /> Enter Manually
-            </Button>
-        </div>
-    </CardContent>
-  );
+  const handleBack = () => {
+    if (step === 'brand-claim' || step === 'brand-manual' || step === 'location') {
+        setSelectedRole(null);
+        setStep('role');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
-      <form ref={formRef} action={handleNext}>
+      <form ref={formRef} action={formAction}>
         <Card className="w-full max-w-2xl">
             <CardHeader className="text-center">
             <CardTitle className="text-3xl">Welcome to BakedBot!</CardTitle>
@@ -249,21 +251,18 @@ export default function OnboardingClientPage() {
             ) : !user ? (
                 <CardContent className="text-center">
                     <p className="mb-4 text-muted-foreground">Please sign in to continue onboarding.</p>
-                    {!isProd && <DevLoginButton />}
+                    {!isProd && <DevLoginButton personaKey="onboarding" />}
                 </CardContent>
             ) : (
                 <>
-                    {step === 'role' && renderStep()}
-                    {selectedRole && !claimMethod && step === 'role' && renderRoleChoice()}
-                    {(step === 'brand-claim' || step === 'brand-manual' || step === 'location') && renderStep()}
-                    {isDoneStep && renderStep()}
+                    {renderStep()}
                     
                     {!isDoneStep && (
                         <CardFooter className="flex justify-between gap-2">
-                             <Button type="button" variant="ghost" onClick={() => formAction(Object.assign(new FormData(), { role: 'skip'}))}>
-                                Skip for now
+                             <Button type="button" variant="ghost" onClick={handleBack} disabled={step === 'role'}>
+                                Back
                              </Button>
-                            <SubmitButton disabled={!canProceed} />
+                            <Button type="button" onClick={handleNext} disabled={!canProceed}>Continue</Button>
                         </CardFooter>
                     )}
                 </>
