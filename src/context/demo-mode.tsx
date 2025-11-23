@@ -13,8 +13,7 @@ const DemoModeContext = createContext<DemoModeContextType | undefined>(undefined
 
 /**
  * This provider centralizes the logic for handling demo mode.
- * It reads the initial state from the Zustand store and provides
- * a consistent way for any component to read or update the demo mode status.
+ * It reads the initial state from the stub Zustand store.
  */
 export function DemoModeProvider({ children }: { children: ReactNode }) {
   const { isDemo, setIsDemo } = useStore();

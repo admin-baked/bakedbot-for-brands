@@ -1,10 +1,10 @@
 
 'use client';
-import { useFirebase } from '@/firebase/provider'
+import { useFirebase } from '@/firebase/provider';
 
 /**
  * Hook specifically for accessing the authenticated user's state.
- * This provides the User object, loading status, and any auth errors.
+ * This is a STUB that always returns a logged-out state for now.
  */
 export const useUser = () => {
   const { user, isUserLoading, userError } = useFirebase();
