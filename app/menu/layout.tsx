@@ -58,7 +58,7 @@ export default async function MenuLayout({
   params: { brandId: string };
 }) {
   const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
-  const menuData = await getMenuData(params.brandId || 'default', isDemo);
+  const menuData = await getMenuData(params.brandId, isDemo);
 
   return (
     <MenuLayoutClient initialData={menuData}>
