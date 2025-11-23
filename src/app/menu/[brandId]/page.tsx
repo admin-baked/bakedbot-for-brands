@@ -1,4 +1,3 @@
-
 // src/app/menu/[brandId]/page.tsx
 'use client';
 

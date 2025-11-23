@@ -45,7 +45,7 @@ export const useStore = create<StoreState & StoreActions>()(
       selectedRetailerId: null,
       favoriteRetailerId: null,
       theme: 'green',
-      menuStyle: 'grid',
+      menuStyle: 'alt',
       isDemo: true,
       isCeoMode: false,
       _hasHydrated: false,
