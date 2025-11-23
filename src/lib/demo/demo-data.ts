@@ -113,5 +113,3 @@ export const demoCustomer = {
         { brandId: 'default', recommendedProductIds: ['demo-40t-og-preroll'] }
     ] as Partial<UserInteraction>[],
 };
-
-    

@@ -68,7 +68,7 @@ export function ProductCard({ product }: { product: Product }) {
   
   return (
     <div data-testid={`product-card-${product.id}`} className="bg-card text-card-foreground rounded-lg overflow-hidden flex flex-col group border">
-      <Link href={`/menu/${product.brandId}/products/${product.id}`} className="block">
+      <Link href={`/menu/${product.brandId || 'default'}/products/${product.id}`} className="block">
         <div className="relative h-48">
             <Image
                 src={product.imageUrl}
@@ -87,7 +87,7 @@ export function ProductCard({ product }: { product: Product }) {
         )}
         
         <h3 className="text-lg font-bold mt-1 mb-2 line-clamp-2">
-            <Link href={`/menu/${product.brandId}/products/${product.id}`} className="hover:underline">
+            <Link href={`/menu/${product.brandId || 'default'}/products/${product.id}`} className="hover:underline">
              {product.name}
             </Link>
         </h3>

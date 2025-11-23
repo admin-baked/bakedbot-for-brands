@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { defaultChatbotIcon } from '@/lib/data';
+import { defaultChatbotIcon } from '@/lib/demo/demo-data';
 import { useStore } from '@/hooks/use-store';
 
 export function ChatbotIcon() {
