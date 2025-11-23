@@ -119,62 +119,11 @@ export default function Header() {
                     <Separator orientation="vertical" className="h-6 hidden md:block"/>
 
                     <div className="hidden md:flex items-center gap-2">
-                        {hydrated && user ? (
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                     <Button variant="ghost" className="flex items-center gap-2">
-                                        <Avatar className="h-7 w-7">
-                                            <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
-                                        </Avatar>
-                                        My Account
-                                     </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => router.push('/account')}>
-                                        <User className="mr-2" />
-                                        My Account
-                                    </DropdownMenuItem>
-                                     <DropdownMenuItem onClick={() => router.push('/dashboard')}>
-                                        <Briefcase className="mr-2" />
-                                        Dashboard
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={handleSignOut}>
-                                        <LogOut className="mr-2" />
-                                        Sign Out
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                             </DropdownMenu>
-                        ) : hydrated && !user ? (
-                            <>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost">Login</Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>Login As</DropdownMenuLabel>
-                                        <DropdownMenuItem onClick={() => router.push('/customer-login')}>
-                                            <UserCircle className="mr-2" /> Customer
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push('/brand-login')}>
-                                            <Briefcase className="mr-2" /> Brand
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push('/dispensary-login')}>
-                                            <Building className="mr-2" /> Dispensary
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                <Button asChild>
-                                    <Link href="/onboarding">
-                                    Get Started
-                                    </Link>
-                                </Button>
-                            </>
-                        ) : (
-                            <div className="h-10 w-44" /> // Placeholder to prevent layout shift
-                        )}
+                        <Button asChild>
+                            <Link href="/onboarding">
+                            Get Started
+                            </Link>
+                        </Button>
                     </div>
 
                     {/* Mobile Menu */}
@@ -193,22 +142,7 @@ export default function Header() {
                                      </DropdownMenuItem>
                                 ))}
                                 <DropdownMenuSeparator />
-                                {hydrated && user ? (
-                                    <>
-                                        <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                                        <DropdownMenuItem onClick={() => router.push('/dashboard')}>Dashboard</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push('/account')}>Account Details</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
-                                    </>
-                                ) : hydrated && !user ? (
-                                    <>
-                                        <DropdownMenuLabel>Login / Register</DropdownMenuLabel>
-                                        <DropdownMenuItem onClick={() => router.push('/customer-login')}>Customer Login</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push('/brand-login')}>Brand Login</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push('/dispensary-login')}>Dispensary Login</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push('/onboarding')}>Get Started</DropdownMenuItem>
-                                    </>
-                                ) : null}
+                                <DropdownMenuItem onClick={() => router.push('/onboarding')}>Get Started</DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <div className="p-2">
                                      <div className="flex items-center justify-between gap-2">

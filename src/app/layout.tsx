@@ -1,17 +1,16 @@
 
-// src/app/layout.tsx
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import './globals.css';
 import { Providers } from '@/providers';
 import Header from '@/components/header';
 import { Footer } from '@/components/footer';
+import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'BakedBot AI',
-  description: 'Agentic Commerce OS for Cannabis',
+  description: 'Headless menu & AI budtender for cannabis brands',
 };
 
 export default function RootLayout({
