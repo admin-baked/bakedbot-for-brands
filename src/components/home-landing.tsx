@@ -1,4 +1,3 @@
-
 // components/home-landing.tsx
 import { BotMessageSquare, Store, Users } from 'lucide-react';
 import Image from 'next/image';
