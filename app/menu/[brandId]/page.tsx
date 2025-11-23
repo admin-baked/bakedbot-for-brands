@@ -4,7 +4,7 @@
 import { HeroSlider } from '@/components/hero-slider';
 import DispensaryLocator from '@/components/dispensary-locator';
 import { ProductGrid } from '@/app/product-grid';
-import { useMenuData } from '@/app/menu/menu-layout-client';
+import { useMenuData } from '../menu-layout-client';
 import RecentReviewsFeed from '@/components/recent-reviews-feed';
 import { FloatingCartPill } from '@/components/floating-cart-pill';
 import Chatbot from '@/components/chatbot';
