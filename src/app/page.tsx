@@ -8,12 +8,16 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Chatbot from "@/components/chatbot";
 import { demoProducts } from "@/lib/demo/demo-data";
 import { DEMO_BRAND_ID } from "@/lib/config";
+import Header from "@/components/header";
+import { Footer } from "@/components/footer";
 
 export default function RootHomepage() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'homeHero');
   const featuredProducts = [...demoProducts].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 10);
 
   return (
+    <>
+    <Header />
     <div className="min-h-screen bg-background text-foreground font-sans">
       <main>
         {/* Hero – AI Budtender widget as the star */}
@@ -241,5 +245,7 @@ export default function RootHomepage() {
       </main>
       <Chatbot products={featuredProducts} brandId={DEMO_BRAND_ID} />
     </div>
+    <Footer />
+    </>
   );
 }
