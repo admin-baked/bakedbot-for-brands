@@ -12,7 +12,7 @@ type OnboardingAnswers = {
     social: string | null;
 };
 
-const moods = [ "Relax / Chill", "Sleep / Calm", "Creative Flow", "Social / Talkative", "Pain Relief", "Focus / Productivity", "Energy / Motivation", ];
+const moods = [ "Relax / Chill", "Sleep / Calm", "Creative Flow", "Social / Talkative", "Pain Relief", "Focus / Productivity", ];
 
 const OnboardingFlow = ({ onComplete }: { onComplete: (answers: OnboardingAnswers) => void }) => {
     const [step, setStep] = useState<OnboardingStep>('mood');

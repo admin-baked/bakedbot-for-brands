@@ -16,7 +16,7 @@ interface StoreState {
   theme: Theme;
   menuStyle: MenuStyle;
   isDemo: boolean;
-  isCeoMode: boolean;
+  chatExperience: 'default' | 'v1';
   _hasHydrated: boolean;
 }
 
@@ -33,7 +33,7 @@ interface StoreActions {
   setTheme: (theme: Theme) => void;
   setMenuStyle: (style: MenuStyle) => void;
   setIsDemo: (isDemo: boolean) => void;
-  toggleCeoMode: () => void;
+  setChatExperience: (exp: 'default' | 'v1') => void;
   setHasHydrated: (hydrated: boolean) => void;
 }
 
@@ -47,7 +47,7 @@ export const useStore = create<StoreState & StoreActions>()(
       theme: 'green',
       menuStyle: 'alt',
       isDemo: true,
-      isCeoMode: false,
+      chatExperience: 'default',
       _hasHydrated: false,
 
       addToCart: (product, retailerId) => {
@@ -96,7 +96,7 @@ export const useStore = create<StoreState & StoreActions>()(
       setTheme: (theme) => set({ theme }),
       setMenuStyle: (style) => set({ menuStyle: style }),
       setIsDemo: (isDemo) => set({ isDemo }),
-      toggleCeoMode: () => set(state => ({ isCeoMode: !state.isCeoMode })),
+      setChatExperience: (exp) => set({ chatExperience: exp }),
       setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
     }),
     {
