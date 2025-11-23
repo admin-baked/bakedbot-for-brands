@@ -1,7 +1,7 @@
 // src/components/demo-menu-page.tsx
 'use client';
 
-import { useMenuData } from '@/app/menu/menu-layout-client';
+import { useMenuData } from '../../app/menu/menu-layout-client';
 import DispensaryLocator from '@/components/dispensary-locator';
 import { ProductGrid } from '@/app/product-grid';
 import RecentReviewsFeed from '@/components/recent-reviews-feed';
