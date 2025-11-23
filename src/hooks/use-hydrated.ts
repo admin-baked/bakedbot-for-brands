@@ -14,5 +14,3 @@ export function useHydrated() {
   }, []);
   return hydrated;
 }
-
-    
