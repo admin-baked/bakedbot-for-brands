@@ -1,19 +1,34 @@
 // src/app/page.tsx
+
 export default function HomePage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-6">
-      <h1 className="text-4xl font-bold text-center">
-        BakedBot AI – Agentic Commerce OS for Cannabis
+    <main
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.5rem',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+      }}
+    >
+      <h1 style={{ fontSize: '2.5rem', fontWeight: 700, textAlign: 'center' }}>
+        BakedBot AI – Homepage
       </h1>
-      <p className="max-w-xl text-center text-lg text-gray-600">
-        Your AI workforce for cannabis brands: Smokey, Craig, Pops, Ezal, Deebo,
-        Money Mike, and Mrs. Parker all under one roof.
+      <p style={{ maxWidth: 600, textAlign: 'center', fontSize: '1.1rem' }}>
+        If you can read this, the App Router is happy and "/" is no longer a 404.
       </p>
       <a
-        href="/menu/default"
-        className="px-6 py-3 rounded-full border text-base font-medium hover:opacity-80 transition"
+        href="/menu"
+        style={{
+          padding: '0.75rem 1.5rem',
+          borderRadius: 999,
+          border: '1px solid black',
+          fontSize: '1rem',
+        }}
       >
-        View Demo Menu
+        Go to /menu
       </a>
     </main>
   );
