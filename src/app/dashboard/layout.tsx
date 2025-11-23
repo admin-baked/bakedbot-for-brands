@@ -1,15 +1,20 @@
 
-'use client';
-
-import { DashboardSidebar } from '@/components/dashboard-sidebar';
+import { redirect } from 'next/navigation';
+import { requireUser } from '@/server/auth/auth';
+import { DashboardSidebar } from '@/components/dashboard/sidebar';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { DashboardHeader } from '@/components/dashboard-header';
+import { DashboardHeader } from '@/components/dashboard/header';
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  try {
+    await requireUser(); // Secure the entire dashboard
+  } catch (error) {
+    redirect('/brand-login'); // If bypass is off and no user, redirect
+  }
   
   return (
     <SidebarProvider>

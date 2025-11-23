@@ -5,6 +5,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
 import { DecodedIdToken } from 'firebase-admin/auth';
+import { devPersonas } from '@/lib/dev-personas';
 
 // Define the roles used in the application for type safety.
 export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
@@ -12,12 +13,39 @@ export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
 /**
  * A server-side utility to require an authenticated user and optionally enforce roles.
  * This function centralizes session verification for all Server Actions.
+ * In development, it uses a bypass to return a default persona.
  *
  * @param requiredRoles - An optional array of roles. If provided, the user must have one of these roles.
  * @returns The decoded token of the authenticated user.
  * @throws An error if the user is not authenticated or does not have the required role.
  */
 export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToken> {
+
+  // --- DEVELOPMENT BYPASS ---
+  // If the bypass environment variable is set, return a mock user.
+  // This allows development on protected routes without a live login.
+  if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true') {
+    const persona = devPersonas['brand']; // Default to brand owner for dev
+    const mockToken: DecodedIdToken = {
+        aud: 'mock-aud',
+        auth_time: Date.now() / 1000,
+        exp: Date.now() / 1000 + 3600,
+        firebase: { identities: {}, sign_in_provider: 'custom' },
+        iat: Date.now() / 1000,
+        iss: 'mock-iss',
+        sub: persona.uid,
+        uid: persona.uid,
+        // Custom claims
+        email: persona.email,
+        name: persona.displayName,
+        role: persona.role,
+        brandId: persona.brandId,
+        locationId: persona.locationId,
+    };
+    return mockToken;
+  }
+  
+  // --- PRODUCTION LOGIC ---
   const sessionCookie = cookies().get('__session')?.value;
   if (!sessionCookie) {
     throw new Error('Unauthorized: No session cookie found.');

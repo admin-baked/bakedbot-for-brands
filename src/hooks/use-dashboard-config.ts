@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -18,11 +17,9 @@ export type NavLink = {
 const navConfig: Record<string, NavLink[]> = {
   brand: [
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your brand activity.', icon: 'LayoutDashboard' },
-    { href: '/dashboard/playbooks', label: 'Playbooks', description: 'Manage your AI agents and automations.', icon: 'BotMessageSquare' },
-    { href: '/dashboard/analytics', label: 'Analytics', description: 'Explore sales data and product performance.', icon: 'BarChart3' },
     { href: '/dashboard/products', label: 'Products', description: 'Manage your product catalog.', icon: 'Box' },
-    { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare' },
-    { href: '/account', label: 'Account Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
+    { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare', hidden: true }, // Hidden for now
+    { href: '/account', label: 'Brand Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
   ],
   dispensary: [
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your dispensary activity.', icon: 'LayoutDashboard' },

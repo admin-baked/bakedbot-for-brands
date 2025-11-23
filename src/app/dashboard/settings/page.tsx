@@ -1,4 +1,3 @@
-
 import { redirect } from 'next/navigation';
 
 // All settings have been centralized to the /account page.

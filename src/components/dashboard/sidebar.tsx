@@ -1,0 +1,116 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarTrigger,
+  SidebarFooter,
+} from '@/components/ui/sidebar';
+import Logo from '@/components/logo';
+import { useUser } from '@/firebase/auth/use-user';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useFirebase } from '@/firebase/provider';
+import { useToast } from '@/hooks/use-toast';
+import { signOut } from 'firebase/auth';
+import { Button } from '@/components/ui/button';
+import { LogOut } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { useDashboardConfig } from '@/hooks/use-dashboard-config';
+import { ForwardRefExoticComponent, RefAttributes } from 'react';
+
+export function DashboardSidebar() {
+  const pathname = usePathname();
+  const { user } = useUser();
+  const { auth } = useFirebase();
+  const { toast } = useToast();
+  const { navLinks } = useDashboardConfig();
+
+  const handleSignOut = async () => {
+    if (!auth) return;
+    try {
+      await signOut(auth);
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully logged out.",
+      });
+      // Redirect to login page after sign out
+      window.location.href = '/brand-login';
+    } catch (error) {
+      console.error('Sign out error', error);
+      toast({
+        variant: "destructive",
+        title: "Sign Out Error",
+        description: "Could not sign you out. Please try again.",
+      });
+    }
+  };
+
+  const getInitials = (email?: string | null) => {
+    if (!email) return 'U';
+    return email.substring(0, 2).toUpperCase();
+  };
+
+  return (
+    <Sidebar>
+      <SidebarHeader>
+        <Logo />
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarMenu>
+          {navLinks.filter(link => !link.hidden).map((link) => {
+            const Icon = (LucideIcons as any)[link.icon] || LucideIcons.Folder;
+            const isActive = link.href === '/dashboard' ? pathname === link.href : pathname.startsWith(link.href);
+            return (
+              <SidebarMenuItem key={link.href}>
+                <SidebarMenuButton asChild isActive={isActive}>
+                  <Link href={link.href}>
+                    <Icon />
+                    <span>{link.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarContent>
+      <SidebarFooter>
+        {user && (
+           <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <div className="flex items-center gap-3 cursor-pointer p-2 rounded-md hover:bg-muted">
+                     <Avatar className="h-8 w-8">
+                        <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                    </Avatar>
+                    <div className='overflow-hidden'>
+                        <p className="text-sm font-medium truncate">{user.displayName || 'My Account'}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    </div>
+                </div>
+            </DropdownMenuTrigger>
+             <DropdownMenuContent side="right" align="start">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => window.location.assign('/account')}>Account</DropdownMenuItem>
+                <DropdownMenuItem>Support</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+           </DropdownMenu>
+        )}
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
