@@ -26,6 +26,7 @@ const personaIcons: Record<string, React.ElementType> = {
   dispensary: Building,
   customer: User,
   onboarding: UserPlus,
+  owner: User,
 };
 
 export default function DevLoginButton() {
