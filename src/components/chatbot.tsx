@@ -2,33 +2,22 @@
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent, useTransition, useCallback } from 'react';
-import { useFormState } from 'react-dom';
-import Image from 'next/image';
-import { Bot, MessageSquare, Send, X, ShoppingCart, Minus, Plus, ThumbsUp, ThumbsDown, ChevronDown, Wand2, Sparkles, Loader2, Download, Share2, HelpCircle, ChevronRight } from 'lucide-react';
+import { Bot, MessageSquare, Send, X, ThumbsUp, ThumbsDown, Wand2, Sparkles, HelpCircle, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { type Product } from '@/types/domain';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 import { useStore } from '@/hooks/use-store';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { recommendProducts, type RecommendProductsOutput } from '@/ai/ai-powered-product-recommendations';
-import { getReviewSummary } from '@/app/products/[id]/actions';
-import type { SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { createSocialMediaImage, type ImageFormState } from '@/app/dashboard/content/actions';
-import { updateProductFeedback } from '@/app/products/[id]/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ChatbotIcon } from './chatbot-icon';
-import { defaultChatbotIcon } from '@/lib/demo/demo-data';
 import OnboardingFlow from './chatbot/onboarding-flow';
 import ChatMessages from './chatbot/chat-messages';
 import ChatProductCarousel from './chatbot/chat-product-carousel';
-import { useUser } from '@/firebase/auth/use-user';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { demoProducts } from '@/lib/demo/demo-data'; // For mock response
 
 
 type Message = {
@@ -37,12 +26,6 @@ type Message = {
   sender: 'user' | 'bot';
   productSuggestions?: (Product & { reasoning: string })[];
   imageUrl?: string;
-};
-
-const initialImageState: ImageFormState = {
-    message: '',
-    imageUrl: null,
-    error: false,
 };
 
 type OnboardingAnswers = {
@@ -54,7 +37,6 @@ type OnboardingAnswers = {
 
 const ChatWindow = ({
   products,
-  brandId,
   onAskSmokey,
   hasStartedChat,
   startOnboarding,
@@ -72,7 +54,6 @@ const ChatWindow = ({
   onFeedback,
 }: {
   products: Product[];
-  brandId: string;
   onAskSmokey: (product: Product) => void;
   hasStartedChat: boolean;
   startOnboarding: () => void;
@@ -160,7 +141,7 @@ const ChatWindow = ({
                 <Input
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    placeholder={chatMode === 'image' ? "What do you love about the brand?" : 'Type a message...'}
+                    placeholder={chatMode === 'image' ? "Describe a scene..." : 'Type a message...'}
                     className="flex-1"
                     autoComplete="off"
                     disabled={isBotTyping}
@@ -193,17 +174,6 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  const { user } = useUser();
-  const [userProfile, setUserProfile] = useState<any>(null);
-
-  useEffect(() => {
-    if (user) {
-      user.getIdTokenResult().then((idTokenResult) => {
-        setUserProfile(idTokenResult.claims);
-      });
-    }
-  }, [user]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -233,7 +203,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
     if (newChatMode === 'image') {
         const botMessage: Message = { 
             id: Date.now(), 
-            text: `Let's create some magic! ✨ What do you love about the brand?`, 
+            text: `Let's create some magic! ✨ Describe a scene for the brand.`, 
             sender: 'bot' 
           };
         setMessages(prev => [...prev, botMessage]);
@@ -241,105 +211,54 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
   }
 
   const handleAskSmokey = useCallback(async (product: Product) => {
+    // This is a placeholder for a real AI call.
     setChatMode('chat');
     setIsOnboarding(false);
     if (!hasStartedChat) {
         setHasStartedChat(true);
     }
 
-    const userMessage: Message = { id: Date.now(), text: `Tell me what people are saying about the ${product.name}.`, sender: 'user' };
+    const userMessage: Message = { id: Date.now(), text: `Tell me about ${product.name}.`, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
   
     setIsBotTyping(true);
   
-    try {
-      const summaryResult = await getReviewSummary({ productId: product.id });
-      
-      if (!summaryResult) {
-          throw new Error('Summary result was null.');
-      }
+    setTimeout(() => {
+        const botResponseText = `The ${product.name} is a fantastic choice! It's a ${product.category} known for its relaxing and euphoric effects. People often say it's great for unwinding after a long day. Would you like to add it to your cart?`;
+        const botMessage: Message = { 
+            id: Date.now() + 1, 
+            text: botResponseText, 
+            sender: 'bot'
+        };
+        setMessages(prev => [...prev, botMessage]);
+        setIsBotTyping(false);
+    }, 1500);
 
-      let botResponseText = `Here's what people are saying about **${product.name}**:\n\n`;
-      botResponseText += `${summaryResult.summary}\n\n`;
-  
-      if (summaryResult.pros && summaryResult.pros.length > 0) {
-        botResponseText += `**Pros:**\n${summaryResult.pros.map(p => `- ${p}`).join('\n')}\n\n`;
-      }
-      if (summaryResult.cons && summaryResult.cons.length > 0) {
-        botResponseText += `**Cons:**\n${summaryResult.cons.map(c => `- ${c}`).join('\n')}\n\n`;
-      }
-      botResponseText += `Does this sound like a good fit, or would you like to know more?`;
-  
-      const botMessage: Message = { 
-        id: Date.now() + 1, 
-        text: botResponseText, 
-        sender: 'bot'
-      };
-      setMessages(prev => [...prev, botMessage]);
-  
-    } catch (error) {
-      console.error("Failed to get review summary:", error);
-      const errorMessage: Message = {
-        id: Date.now() + 1,
-        text: `I'm sorry, I couldn't fetch the review summary for ${product.name} right now. It is great for anyone looking for a relaxing and euphoric experience, though!`,
-        sender: 'bot',
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsBotTyping(false);
-    }
   }, [hasStartedChat, brandId]);
 
   const handleOnboardingComplete = useCallback(async (answers: OnboardingAnswers) => {
     setIsOnboarding(false);
     setIsBotTyping(true);
-
-    const query = `I want to feel ${answers.mood}. I'm a ${answers.experience} user and I'll be ${answers.social === 'Solo' ? 'by myself' : 'with friends'}.`;
     
     const userMessage: Message = { id: Date.now(), text: "I've answered the questions!", sender: 'user' };
     setMessages([userMessage]);
 
-    if (!products) {
-        const errorMessage: Message = {
-            id: Date.now() + 1,
-            text: "I'm sorry, I can't see the product list right now. Please try again in a moment.",
-            sender: 'bot',
-        };
-        setMessages(prev => [...prev, errorMessage]);
-        setIsBotTyping(false);
-        return;
-    }
-
-    try {
-        const result: RecommendProductsOutput = await recommendProducts({
-            query: query,
-            brandId: brandId
-        });
-        
-        const recommendedProductDetails = result.products.map(recommendedProd => {
-            const fullProduct = products.find(p => p.id === recommendedProd.productId);
-            return fullProduct ? { ...fullProduct, reasoning: recommendedProd.reasoning } : null;
-        }).filter((p): p is Product & { reasoning: string } => p !== null);
-
+    // MOCK AI RESPONSE
+    setTimeout(() => {
         const botMessage: Message = {
             id: Date.now() + 1,
-            text: result.overallReasoning || "Here are some recommendations based on your preferences:",
+            text: `Based on your preferences for a ${answers.mood} vibe, here are a few products I think you'll love. I've picked a variety for you to explore.`,
             sender: 'bot',
-            productSuggestions: recommendedProductDetails.length > 0 ? recommendedProductDetails : undefined,
+            productSuggestions: [
+                {...demoProducts[0], reasoning: "A classic choice for deep relaxation that matches the 'chill' mood you're after."},
+                {...demoProducts[2], reasoning: "This vape is perfect for a social setting, offering a happy and euphoric high."},
+                {...demoProducts[3], reasoning: "A tasty edible for a consistent and enjoyable experience, great for beginners."},
+            ]
         };
         setMessages(prev => [...prev, botMessage]);
-
-    } catch (error) {
-        console.error("Failed to get recommendations after onboarding:", error);
-        const errorMessage: Message = {
-            id: Date.now() + 1,
-            text: "I'm sorry, I'm having a little trouble finding recommendations right now. Feel free to ask me about a specific product!",
-            sender: 'bot',
-        };
-        setMessages(prev => [...prev, errorMessage]);
-    } finally {
         setIsBotTyping(false);
-    }
+    }, 2000);
+
   }, [products, brandId]);
 
   const handleSendMessage = useCallback(async (e: FormEvent) => {
@@ -354,104 +273,32 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
       setIsOnboarding(false);
     }
   
-    const currentInput = inputValue;
     setInputValue('');
     setIsBotTyping(true);
 
-    if (chatMode === 'image') {
-        const logoDataUri = defaultChatbotIcon;
-        
-        const formData = new FormData();
-        formData.append('productName', 'Brand Image');
-        formData.append('features', currentInput); 
-        formData.append('brandVoice', 'Creative');
-        formData.append('logoDataUri', logoDataUri);
-        
-        const result = await createSocialMediaImage(initialImageState, formData);
-
-        if (result.error || !result.imageUrl) {
-            const errorMessage: Message = {
-                id: Date.now() + 1,
-                text: `I had trouble creating that image. ${result.message}`,
-                sender: 'bot',
-              };
-              setMessages((prev) => [...prev, errorMessage]);
-        } else {
-            const imageMessage: Message = {
-                id: Date.now() + 1,
-                text: "Here's the magic I came up with! ✨ What do you think?",
-                sender: 'bot',
-                imageUrl: result.imageUrl
-            }
-            setMessages((prev) => [...prev, imageMessage]);
-        }
-        setIsBotTyping(false);
-        setChatMode('chat');
-        return;
-    }
-  
-    if (!products) {
-        const errorMessage: Message = {
-            id: Date.now() + 1,
-            text: "I'm sorry, I can't see the product list right now. Please try again in a moment.",
-            sender: 'bot',
-        };
-        setMessages(prev => [...prev, errorMessage]);
-        setIsBotTyping(false);
-        return;
-    }
-    
-    try {
-      const result: RecommendProductsOutput = await recommendProducts({
-        query: currentInput,
-        brandId: brandId,
-      });
-        
-      const recommendedProductDetails = result.products.map(recommendedProd => {
-        const fullProduct = products.find(p => p.id === recommendedProd.productId);
-        return fullProduct ? { ...fullProduct, reasoning: recommendedProd.reasoning } : null;
-      }).filter((p): p is Product & { reasoning: string } => p !== null);
-
+    // MOCK AI RESPONSE
+    setTimeout(() => {
       const botMessage: Message = {
         id: Date.now() + 1,
-        text: result.overallReasoning || "Here are some recommendations based on your query:",
+        text: "Based on your request, I've found a few excellent matches from our catalog. Take a look!",
         sender: 'bot',
-        productSuggestions: recommendedProductDetails.length > 0 ? recommendedProductDetails : undefined,
+        productSuggestions: [
+            {...demoProducts[0], reasoning: "This one is a perfect match for its relaxing effects."},
+            {...demoProducts[1], reasoning: "A convenient option with similar vibes."},
+        ]
       };
-  
       setMessages((prev) => [...prev, botMessage]);
-  
-    } catch (error) {
-      console.error("Failed to get recommendations:", error);
-      const errorMessage: Message = {
-        id: Date.now() + 1,
-        text: "I'm sorry, I'm having a little trouble thinking right now. Please try again in a moment.",
-        sender: 'bot',
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
       setIsBotTyping(false);
-    }
+    }, 2000);
+
   }, [inputValue, isBotTyping, hasStartedChat, chatMode, products, brandId]);
 
   const handleFeedback = (productId: string, type: 'like' | 'dislike') => {
     startTransition(async () => {
-        const formData = new FormData();
-        formData.append('productId', productId);
-        formData.append('feedbackType', type);
-        const result = await updateProductFeedback(null, formData);
-        if (!result.error) {
-            toast({
-                title: 'Feedback Submitted!',
-                description: `Thanks for letting us know you ${type}d the product.`,
-            });
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Submission Failed',
-                description: result.message,
-            });
-        }
+        toast({
+            title: 'Feedback Submitted (Demo)',
+            description: `In production, your feedback for product #${productId.slice(0, 5)} would be saved.`,
+        });
     });
   };
   
@@ -475,7 +322,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
           <div className="fixed bottom-6 right-6 z-50">
              <Button size="icon" className="h-20 w-20 rounded-full shadow-lg overflow-hidden p-0 bg-transparent hover:bg-transparent" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
               {isOpen ? (
-                <X className="h-8 w-8" />
+                <X className="h-8 w-8 text-primary" />
               ) : (
                 <ChatbotIcon />
               )}
