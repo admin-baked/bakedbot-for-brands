@@ -1,4 +1,3 @@
-
 // src/onboarding/page-client.tsx
 'use client';
 
@@ -61,9 +60,8 @@ export function OnboardingPageClient() {
   }
 
   async function handleFinish() {
-    // FUTURE: call a server action to create Brand doc, set claims, etc.
-    // For now, we just bounce them into the demo console.
-    window.location.href = '/menu/default';
+    // For now just send them to the dashboard stub
+    window.location.href = '/dashboard';
   }
 
   return (
