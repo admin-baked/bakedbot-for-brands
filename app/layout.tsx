@@ -2,6 +2,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Inter, Teko } from 'next/font/google';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -38,8 +40,12 @@ export default function RootLayout({
         fontDisplay.variable
       )}
     >
-      <body>
-        {children}
+      <body className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1">
+          {children}
+        </div>
+        <Footer />
       </body>
     </html>
   );
