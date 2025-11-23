@@ -11,7 +11,7 @@ type BrandResult = {
   market: string | null;
 };
 
-type Step = 'role' | 'brand-search' | 'review';
+type Step = 'role' | 'brand-search' | 'manual' | 'review';
 
 export function OnboardingPageClient() {
   const { user, loginAs } = useDevAuth();
@@ -23,6 +23,11 @@ export function OnboardingPageClient() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<BrandResult[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<BrandResult | null>(null);
+
+  // New state for manual brand entry
+  const [manualBrandName, setManualBrandName] = useState('');
+  const [manualMarket, setManualMarket] = useState('');
+  const [manualWebsite, setManualWebsite] = useState('');
 
   async function searchBrands(term: string) {
     setLoading(true);
@@ -107,7 +112,7 @@ export function OnboardingPageClient() {
           <h2 className="font-display text-xl">Find your brand</h2>
           <p className="text-sm text-gray-600">
             Start typing your brand name. We&apos;ll search the CannMenus brand
-            directory. If you don&apos;t see it, you can add it manually later.
+            directory.
           </p>
 
           <div className="flex gap-2">
@@ -136,7 +141,7 @@ export function OnboardingPageClient() {
           <div className="space-y-2">
             {results.length === 0 && !loading && query && (
               <p className="text-xs text-gray-500">
-                No brands found yet. Check spelling or add manually in the next step.
+                No brands found yet. Check spelling or add manually.
               </p>
             )}
             <ul className="space-y-2">
@@ -162,44 +167,140 @@ export function OnboardingPageClient() {
                 </li>
               ))}
             </ul>
+             <button
+                type="button"
+                onClick={() => {
+                  setSelectedBrand(null);
+                  setManualBrandName(query); // prefill with what they typed
+                  setStep('manual');
+                }}
+                className="text-xs text-green-700 hover:underline"
+              >
+                Can’t find your brand? Add it manually.
+              </button>
           </div>
         </section>
       )}
 
+      {step === 'manual' && (
+        <section className="space-y-4">
+            <h2 className="font-display text-xl">Add your brand manually</h2>
+            <p className="text-sm text-gray-600">
+            We&apos;ll create a workspace for your brand even if it isn&apos;t in the
+            CannMenus directory yet. Our team can map it to the directory later.
+            </p>
+
+            <div className="space-y-3">
+            <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-700">
+                Brand name *
+                </label>
+                <input
+                type="text"
+                value={manualBrandName}
+                onChange={(e) => setManualBrandName(e.target.value)}
+                className="w-full border rounded-xl px-3 py-2 text-sm"
+                placeholder="e.g. 40 Tons"
+                />
+            </div>
+
+            <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-700">
+                Primary market (state / region)
+                </label>
+                <input
+                type="text"
+                value={manualMarket}
+                onChange={(e) => setManualMarket(e.target.value)}
+                className="w-full border rounded-xl px-3 py-2 text-sm"
+                placeholder="e.g. CA, IL, MI"
+                />
+            </div>
+
+            <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-700">
+                Website (optional)
+                </label>
+                <input
+                type="url"
+                value={manualWebsite}
+                onChange={(e) => setManualWebsite(e.target.value)}
+                className="w-full border rounded-xl px-3 py-2 text-sm"
+                placeholder="https://yourbrand.com"
+                />
+            </div>
+            </div>
+
+            <div className="flex gap-2">
+            <button
+                type="button"
+                onClick={() => setStep('brand-search')}
+                className="px-4 py-2 rounded-full border text-sm"
+            >
+                Back to search
+            </button>
+            <button
+                type="button"
+                disabled={!manualBrandName.trim()}
+                onClick={() => {
+                // Treat manual brand like a "selectedBrand" with a special source
+                setSelectedBrand({
+                    id: 'manual', // server action will replace this with real ID
+                    name: manualBrandName.trim(),
+                    market: manualMarket.trim() || null,
+                });
+                setStep('review');
+                }}
+                className="px-5 py-2 rounded-full bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-60"
+            >
+                Continue
+            </button>
+            </div>
+        </section>
+        )}
+
       {step === 'review' && (
         <section className="space-y-4">
-          <h2 className="font-display text-xl">Review & finish</h2>
-          <div className="border rounded-2xl px-4 py-3 space-y-2">
+            <h2 className="font-display text-xl">Review & finish</h2>
+
+            <div className="border rounded-2xl px-4 py-3 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Role</span>
-              <span className="font-medium capitalize">{role ?? 'not set'}</span>
+                <span className="text-gray-500">Role</span>
+                <span className="font-medium capitalize">{role ?? 'not set'}</span>
             </div>
+
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Brand</span>
-              <span className="font-medium">
-                {selectedBrand ? selectedBrand.name : 'Not selected (demo mode)'}
-              </span>
+                <span className="text-gray-500">Brand</span>
+                <span className="font-medium">
+                {selectedBrand ? selectedBrand.name : 'Not selected'}
+                </span>
             </div>
+
+            {selectedBrand?.id === 'manual' && (
+                <p className="text-xs text-amber-600">
+                This brand will be created manually and flagged for verification.
+                </p>
+            )}
+
             {user && (
-              <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Dev user</span>
                 <span className="font-medium">{user.email}</span>
-              </div>
+                </div>
             )}
-          </div>
+            </div>
+             <p className="text-xs text-gray-500">
+                In production this step would create your Brand workspace, link it to
+                your CannMenus brand ID, and connect it to Smokey, Craig, and Pops.
+            </p>
 
-          <p className="text-xs text-gray-500">
-            In production this step would create your Brand workspace, link it to
-            your CannMenus brand ID, and connect it to Smokey, Craig, and Pops.
-          </p>
-
-          <button
-            type="button"
-            onClick={handleFinish}
-            className="px-5 py-2 rounded-full bg-green-600 text-white text-sm font-medium hover:bg-green-700"
-          >
-            Finish & open demo console
-          </button>
+            <button
+                type="button"
+                onClick={handleFinish}
+                className="px-5 py-2 rounded-full bg-green-600 text-white text-sm font-medium hover:bg-green-700"
+            >
+                Finish & open demo console
+            </button>
         </section>
       )}
     </main>
