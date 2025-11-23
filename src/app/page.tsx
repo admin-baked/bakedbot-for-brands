@@ -28,7 +28,7 @@ export default function HomePage() {
           fontSize: '1rem',
         }}
       >
-        Go to /menu
+        Go to /menu/default
       </a>
     </main>
   );
