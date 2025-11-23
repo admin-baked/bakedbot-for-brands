@@ -103,9 +103,6 @@ export default function Header() {
                         </div>
                     )}
                     <Separator orientation="vertical" className="h-6 hidden md:block" />
-                    <Button variant="ghost" size="icon">
-                        <Search className="h-5 w-5" />
-                    </Button>
                     
                     <Button variant="ghost" size="icon" className="relative" onClick={() => setCartSheetOpen(true)}>
                        <ShoppingBag className="h-5 w-5" />
