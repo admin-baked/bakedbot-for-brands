@@ -29,7 +29,11 @@ const personaIcons: Record<string, React.ElementType> = {
   owner: User,
 };
 
-export default function DevLoginButton() {
+interface DevLoginButtonProps {
+    personaKey?: DevPersonaKey;
+}
+
+export default function DevLoginButton({ personaKey }: DevLoginButtonProps) {
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
   const { auth } = useFirebase();
   const { toast } = useToast();
@@ -56,9 +60,9 @@ export default function DevLoginButton() {
       
       // Determine redirection based on persona
       if (persona === 'onboarding') {
-        router.push('/onboarding');
+        router.refresh(); // Refresh the current page to re-evaluate user state
       } else if (persona === 'customer') {
-        router.push('/');
+        router.push('/account');
       } else {
         router.push('/dashboard');
       }
@@ -70,6 +74,23 @@ export default function DevLoginButton() {
     }
   };
 
+  // If a specific persona key is provided, render a single button
+  if (personaKey) {
+      return (
+        <Button 
+            variant="outline" 
+            className="w-full" 
+            data-testid={`dev-login-button-${personaKey}`}
+            onClick={() => handleDevLogin(personaKey)}
+            disabled={!!isSubmitting}
+        >
+             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+             Login as New User (Dev)
+        </Button>
+      )
+  }
+
+  // Otherwise, render the full dropdown
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
