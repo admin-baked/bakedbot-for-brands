@@ -3,7 +3,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { defaultLogo } from "@/lib/data"
+import { defaultLogo } from "@/lib/demo/demo-data";
 
 type Props = {
   height?: number
