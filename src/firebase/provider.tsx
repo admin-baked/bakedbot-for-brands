@@ -1,12 +1,12 @@
 
 'use client';
 
-import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useState, useMemo } from 'react';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth, User } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
-
-// This is a STUB implementation for our stable restoration process.
+import { onIdTokenChanged, getIdTokenResult } from 'firebase/auth';
+import { useStore } from '@/hooks/use-store';
 
 export interface FirebaseServices {
   firebaseApp: FirebaseApp | null;
@@ -19,15 +19,70 @@ export interface FirebaseServices {
 
 export const FirebaseContext = createContext<FirebaseServices | undefined>(undefined);
 
-export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+interface FirebaseProviderProps {
+  children: ReactNode;
+  firebaseApp: FirebaseApp | null;
+  auth: Auth | null;
+  firestore: Firestore | null;
+}
+
+export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, firebaseApp, auth, firestore }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
+  const [userError, setUserError] = useState<Error | null>(null);
+  const setFavoriteRetailerId = useStore(state => state.setFavoriteRetailerId);
+
+  useEffect(() => {
+    if (!auth) {
+      setIsUserLoading(false);
+      return;
+    }
+
+    const unsubscribe = onIdTokenChanged(
+        auth,
+        async (user) => {
+            try {
+                if (user) {
+                    const idTokenResult = await getIdTokenResult(user, true); // Force refresh of claims
+                    const claims = idTokenResult.claims;
+                    // Add custom claims to the user object for easier access
+                    const userWithClaims = { ...user, ...claims } as any;
+                    setUser(userWithClaims);
+
+                    // Sync favorite retailer ID from claims to Zustand store
+                    if (claims.favoriteRetailerId) {
+                      setFavoriteRetailerId(claims.favoriteRetailerId as string);
+                    }
+
+                } else {
+                    setUser(null);
+                }
+            } catch (error) {
+                console.error('Error getting ID token result:', error);
+                setUserError(error instanceof Error ? error : new Error('An unknown authentication error occurred.'));
+            } finally {
+                setIsUserLoading(false);
+            }
+        },
+        (error) => {
+            console.error('Authentication state error:', error);
+            setUserError(error);
+            setIsUserLoading(false);
+        }
+    );
+
+    return () => unsubscribe();
+  }, [auth, setFavoriteRetailerId]);
+
+
   const contextValue = useMemo((): FirebaseServices => ({
-    firebaseApp: null,
-    firestore: null,
-    auth: null,
-    user: null, // Always returns a logged-out user for now
-    isUserLoading: false, // Always returns false for now
-    userError: null,
-  }), []);
+    firebaseApp,
+    firestore,
+    auth,
+    user,
+    isUserLoading,
+    userError,
+  }), [firebaseApp, firestore, auth, user, isUserLoading, userError]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -39,15 +94,11 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 export const useFirebase = (): FirebaseServices => {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
-    // Return a safe fallback to prevent crashes on public pages.
-    return {
-      firebaseApp: null,
-      firestore: null,
-      auth: null,
-      user: null,
-      isUserLoading: false,
-      userError: null,
-    };
+    throw new Error('useFirebase must be used within a FirebaseProvider');
   }
   return context;
 };
+
+export const useAuth = (): Auth | null => useFirebase().auth;
+export const useFirestore = (): Firestore | null => useFirebase().firestore;
+export const useFirebaseApp = (): FirebaseApp | null => useFirebase().firebaseApp;
