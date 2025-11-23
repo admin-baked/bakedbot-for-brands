@@ -7,6 +7,7 @@ import { ProductGrid } from '@/app/product-grid';
 import { useMenuData } from '@/app/menu/menu-layout-client';
 import RecentReviewsFeed from '@/components/recent-reviews-feed';
 import { FloatingCartPill } from '@/components/floating-cart-pill';
+import Chatbot from '@/components/chatbot';
 import { ProductCarousel } from '@/components/product-carousel';
 import { useStore } from '@/hooks/use-store';
 import { useHydrated } from '@/hooks/use-hydrated';
@@ -37,6 +38,7 @@ export default function BrandMenuPage() {
         )}
       </main>
       <FloatingCartPill />
+      <Chatbot products={products} brandId={brandId} />
     </>
   );
 }
