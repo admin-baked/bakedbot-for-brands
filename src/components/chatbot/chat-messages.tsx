@@ -132,7 +132,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
                     {message.imageUrl && (
                         <div className="mt-2 space-y-2">
                             <div className="relative aspect-square w-full max-w-xs overflow-hidden rounded-lg border">
-                                <Image src={message.imageUrl} alt="Generated brand image" fill className="object-cover" data-ai-hint="brand social media" />
+                                <Image src={message.imageUrl} alt="Generated brand image" fill className="object-cover" data-ai-hint="social media post" />
                             </div>
                             <Button size="sm" variant="outline" className="w-full" onClick={() => handleShare(message)}>
                                 <Share2 className="mr-2 h-4 w-4" />
