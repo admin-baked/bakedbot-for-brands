@@ -20,31 +20,6 @@ export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
  * @throws An error if the user is not authenticated or does not have the required role.
  */
 export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToken> {
-
-  // --- DEVELOPMENT BYPASS ---
-  // If the bypass environment variable is set, return a mock user.
-  // This allows development on protected routes without a live login.
-  if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true') {
-    const persona = devPersonas['brand']; // Default to brand owner for dev
-    const mockToken: DecodedIdToken = {
-        aud: 'mock-aud',
-        auth_time: Date.now() / 1000,
-        exp: Date.now() / 1000 + 3600,
-        firebase: { identities: {}, sign_in_provider: 'custom' },
-        iat: Date.now() / 1000,
-        iss: 'mock-iss',
-        sub: persona.uid,
-        uid: persona.uid,
-        // Custom claims
-        email: persona.email,
-        name: persona.displayName,
-        role: persona.role,
-        brandId: persona.brandId,
-        locationId: persona.locationId,
-    };
-    return mockToken;
-  }
-  
   // --- PRODUCTION LOGIC ---
   const sessionCookie = cookies().get('__session')?.value;
   if (!sessionCookie) {
