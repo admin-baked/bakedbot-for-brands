@@ -1,14 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* src/app/globals.css */
 
 html,
 body {
   padding: 0;
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 a {
-  text-decoration: none;
+  color: inherit;
 }
