@@ -1,4 +1,4 @@
-// components/header.tsx
+// src/components/header.tsx
 
 export function Header() {
   return (
@@ -7,7 +7,7 @@ export function Header() {
         BakedBot AI
       </div>
       <nav className="text-sm flex gap-4">
-        <a href="/menu/default" className="hover:underline">
+        <a href="/menu" className="hover:underline">
           Menu
         </a>
         <a href="/dashboard" className="hover:underline">
