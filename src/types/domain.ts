@@ -1,3 +1,4 @@
+
 // src/types/domain.ts
 
 import { Timestamp } from 'firebase/firestore';
