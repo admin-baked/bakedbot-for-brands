@@ -6,6 +6,8 @@ import { getFirestore } from "firebase-admin/firestore";
 let app: App;
 
 function getServiceAccount() {
+  // The key is now directly passed as a Base64 string from the secret manager
+  // into this environment variable by App Hosting.
   const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   if (!b64) {
     // This is now a fatal error because the Admin SDK needs credentials to perform
