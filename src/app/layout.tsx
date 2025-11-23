@@ -1,3 +1,4 @@
+
 // app/layout.tsx
 import type { Metadata } from 'next';
 import './globals.css';
@@ -5,7 +6,6 @@ import { Inter, Teko } from 'next/font/google';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { cn } from '@/lib/utils';
-
 
 export const metadata: Metadata = {
   title: 'BakedBot AI',
