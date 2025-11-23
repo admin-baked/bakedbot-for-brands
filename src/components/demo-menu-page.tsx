@@ -3,40 +3,8 @@
 
 import { useState } from 'react';
 import { SmokeyWidget } from '@/components/smokey-widget';
-
-type Dispensary = {
-  id: string;
-  name: string;
-  address: string;
-  cityState: string;
-};
-
-const DISPENSARIES: Dispensary[] = [
-  {
-    id: 'alta',
-    name: 'Alta Dispensary',
-    address: '52 Kenmare Street',
-    cityState: 'New York, NY 10012',
-  },
-  {
-    id: 'bayside',
-    name: 'Bayside Cannabis',
-    address: '224-15 Union Turnpike',
-    cityState: 'Oakland Garden, NY 11364',
-  },
-  {
-    id: 'biggas',
-    name: 'Big Gas',
-    address: '98 N Chestnut St',
-    cityState: 'New Paltz, NY 12561',
-  },
-  {
-    id: 'bloom',
-    name: 'Bloom Bros',
-    address: '442 Broadway',
-    cityState: 'Menands, NY 12204',
-  },
-];
+import { demoRetailers, demoProducts } from '@/lib/demo/demo-data';
+import { ProductGrid } from '@/app/product-grid';
 
 type DemoMenuPageProps = {
   brandId?: string;
@@ -85,7 +53,7 @@ export function DemoMenuPage({ brandId = 'default' }: DemoMenuPageProps) {
 
         <div className="overflow-x-auto pb-2">
           <div className="flex gap-4 min-w-full">
-            {DISPENSARIES.map((d) => (
+            {demoRetailers.map((d) => (
               <article
                 key={d.id}
                 className="min-w-[260px] border rounded-2xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
@@ -96,7 +64,7 @@ export function DemoMenuPage({ brandId = 'default' }: DemoMenuPageProps) {
                     <h3 className="font-display text-lg">{d.name}</h3>
                   </div>
                   <p className="text-sm text-gray-700">{d.address}</p>
-                  <p className="text-sm text-gray-500">{d.cityState}</p>
+                  <p className="text-sm text-gray-500">{d.city}, {d.state} {d.zip}</p>
                 </div>
                 <button
                   type="button"
@@ -110,20 +78,12 @@ export function DemoMenuPage({ brandId = 'default' }: DemoMenuPageProps) {
         </div>
       </section>
 
-      {/* Lower content rail (images / promos) */}
-      <section className="space-y-3">
+      {/* Lower content rail (products) */}
+       <section className="space-y-3">
         <h2 className="font-display text-xl">
-          Featured Brand Content
+          Featured Products
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="h-40 rounded-2xl bg-gray-200 overflow-hidden" />
-          <div className="h-40 rounded-2xl bg-gray-200 overflow-hidden" />
-          <div className="h-40 rounded-2xl bg-gray-200 overflow-hidden" />
-        </div>
-        <p className="text-xs text-gray-500">
-          In your live deployment this rail pulls real campaign assets and
-          product imagery from your brand library.
-        </p>
+        <ProductGrid products={demoProducts} isLoading={false} />
       </section>
 
       {/* Smokey widget in bottom-right */}
