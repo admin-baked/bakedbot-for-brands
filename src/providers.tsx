@@ -1,9 +1,26 @@
-// src/providers.tsx
+
 'use client';
 
-import type { ReactNode } from 'react';
+import React from 'react';
+import { ThemeProvider } from '@/components/theme-provider';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { Toaster } from '@/components/ui/toaster';
+import { CartSheet } from '@/components/cart-sheet';
+import { DemoModeProvider } from '@/context/demo-mode';
 
-export function Providers({ children }: { children: ReactNode }) {
-  // No FirebaseProvider, no ThemeProvider yet – just pass children through
-  return <>{children}</>;
+/**
+ * This component centralizes all the global context providers for the application.
+ */
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <FirebaseClientProvider>
+      <DemoModeProvider>
+        <ThemeProvider>
+          {children}
+          <Toaster />
+          <CartSheet />
+        </ThemeProvider>
+      </DemoModeProvider>
+    </FirebaseClientProvider>
+  );
 }
