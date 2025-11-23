@@ -20,8 +20,8 @@ const config = {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-sans)"],
-        teko: ["var(--font-teko)"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        teko: ["var(--font-teko)", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
