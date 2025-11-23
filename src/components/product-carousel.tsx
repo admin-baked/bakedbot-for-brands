@@ -41,7 +41,7 @@ const ProductCarouselCard = ({ product }: { product: Product }) => {
 
     return (
         <div className="bg-card text-card-foreground rounded-lg overflow-hidden flex flex-col group h-full">
-            <Link href={`/menu/${product.brandId}/products/${product.id}`} className="block">
+            <Link href={`/menu/${product.brandId || 'default'}/products/${product.id}`} className="block">
                 <div className="relative h-40">
                     <Image
                         src={product.imageUrl}
@@ -56,7 +56,7 @@ const ProductCarouselCard = ({ product }: { product: Product }) => {
             
             <div className="p-3 flex-1 flex flex-col">
                 <h3 className="text-sm font-semibold mt-1 mb-2 line-clamp-2 leading-tight flex-1">
-                    <Link href={`/menu/${product.brandId}/products/${product.id}`} className="hover:underline">
+                    <Link href={`/menu/${product.brandId || 'default'}/products/${product.id}`} className="hover:underline">
                         {product.name}
                     </Link>
                 </h3>

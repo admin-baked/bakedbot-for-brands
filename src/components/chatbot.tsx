@@ -465,7 +465,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
     setIsOnboarding(false);
     const botMessage: Message = { 
       id: Date.now(), 
-      text: `Of course! What's on your mind? You can ask me about specific products or tell me what you're looking for.`, 
+      text: `Of course! What's on your mind? You can ask me about a specific product or tell me what you're looking for.`, 
       sender: 'bot' 
     };
     setMessages([botMessage]);
@@ -506,5 +506,3 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
         </>
       );
 }
-
-    

@@ -51,12 +51,14 @@ async function getMenuData(brandId: string) {
     const effectiveBrandId = isDemo ? DEMO_BRAND_ID : brandId;
 
     try {
+        if (effectiveBrandId === DEMO_BRAND_ID) {
+            // Force demo data for the 'default' brand ID
+            throw new Error('Using demo data for default brand.');
+        }
+
         const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3001';
         
-        // Use a different API endpoint for the demo vs live brands
-        const apiPath = effectiveBrandId === DEMO_BRAND_ID 
-            ? '/api/cannmenus/product-search' // 40 Tons demo
-            : `/api/cannmenus/products?brands=${effectiveBrandId}`; // Live brand data
+        const apiPath = `/api/cannmenus/products?brands=${effectiveBrandId}`;
         
         const res = await fetch(`${baseUrl}${apiPath}`, { next: { revalidate: 60 } });
         const json = await res.json();
@@ -65,12 +67,9 @@ async function getMenuData(brandId: string) {
             throw new Error(json.error || `Failed to fetch products for brand ${effectiveBrandId}`);
         }
 
-        // The CannMenus API has a different structure for list vs search
         const productItems = json.data?.items || json.data?.data || [];
         products = productItems.map((item: any) => mapCannMenusProduct(item, effectiveBrandId));
 
-        // For now, locations and reviews are still using stub/internal data.
-        // This can be migrated in a future step.
         const { firestore } = await createServerClient();
         const reviewsQuery = query(
             (firestore as any).collectionGroup('reviews').withConverter(reviewConverter as any), 
@@ -87,8 +86,9 @@ async function getMenuData(brandId: string) {
         reviews = reviewsSnap.docs.map((doc: DocumentData) => doc.data()) as Review[];
 
     } catch (error) {
-        console.error(`[MenuLayout] Failed to fetch live data for brand ${effectiveBrandId}:`, error);
-        // Fallback to local demo data ONLY if live fetch fails.
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[MenuLayout] Could not fetch live data, falling back to local demo data. Reason: ${error instanceof Error ? error.message : 'Unknown'}`);
+        }
         products = demoProducts;
         locations = demoRetailers;
         reviews = demoCustomer.reviews as Review[];
@@ -102,7 +102,7 @@ async function getMenuData(brandId: string) {
         locations,
         reviews,
         featuredProducts,
-        isDemo,
+        isDemo: effectiveBrandId === DEMO_BRAND_ID,
     };
 }
 
