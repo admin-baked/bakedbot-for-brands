@@ -1,4 +1,3 @@
-
 // app/layout.tsx
 import type { Metadata } from 'next';
 import './globals.css';
@@ -12,15 +11,14 @@ export const metadata: Metadata = {
   description: 'BakedBot AI – Agentic Commerce OS for Cannabis',
 };
 
-const fontSans = Inter({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-sans',
+  variable: '--font-inter',
 });
 
-const fontDisplay = Teko({
+const teko = Teko({
   subsets: ['latin'],
   variable: '--font-teko',
-  weight: ['300', '400', '500', '600', '700'],
 });
 
 export default function RootLayout({
@@ -29,16 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={cn(
-        "min-h-screen bg-background font-sans antialiased",
-        fontSans.variable,
-        fontDisplay.variable
-      )}
-    >
-      <body className="min-h-screen flex flex-col">
+    <html lang="en" className={`${inter.variable} ${teko.variable}`}>
+      <body className="font-sans min-h-screen flex flex-col">
         <Providers>
           <Header />
           <div className="flex-1">
