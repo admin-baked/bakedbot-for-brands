@@ -1,3 +1,4 @@
+
 // components/footer.tsx
 export function Footer() {
   return (
