@@ -10,7 +10,6 @@ import { cookies } from 'next/headers';
 import { demoProducts, demoCustomer } from '@/lib/demo/demo-data';
 import type { Product, Review } from '@/types/domain';
 import { FeedbackSchema } from '@/types/actions';
-import { reviewConverter as clientReviewConverter } from '@/firebase/converters';
 import { requireUser } from '@/server/auth/auth';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
@@ -168,7 +167,7 @@ export async function updateProductFeedback(
     });
 
     const productDoc = await productRef.get();
-    revalidatePath(`/menu/${productDoc.data()?.brandId}/products/${productId}`);
+    revalidatePath(`/menu/${productDoc.data()?.brandId || 'default'}/products/${productId}`);
     revalidatePath('/dashboard');
 
     return { error: false, message: 'Thanks for your feedback!' };
