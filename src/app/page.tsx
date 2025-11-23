@@ -20,7 +20,7 @@ export default function HomePage() {
         If you can read this, the App Router is happy and "/" is no longer a 404.
       </p>
       <a
-        href="/menu"
+        href="/menu/default"
         style={{
           padding: '0.75rem 1.5rem',
           borderRadius: 999,
