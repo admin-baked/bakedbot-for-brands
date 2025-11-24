@@ -1,16 +1,28 @@
 
-'use server';
+// app/dashboard/page.tsx
+import DashboardPageComponent from "./page-client";
+import { getPlaybookDraftsForDashboard } from "./actions";
+import { requireUser } from "@/server/auth/auth";
+import { redirect } from "next/navigation";
 
-import DashboardPageComponent from '@/app/dashboard/page-client';
-import { getPlaybooksForDashboard } from '@/app/dashboard/actions';
 
-// This is now a Server Component that fetches data and passes it to the client.
 export default async function DashboardPage() {
-  
-  // Fetch live playbook data from the stubbed action.
-  const playbooks = await getPlaybooksForDashboard();
+  let user;
+  try {
+    // This requires a user, but we don't enforce a role on the main dashboard page
+    user = await requireUser();
+  } catch (error) {
+    // If no user, send them to the brand login page
+    redirect('/brand-login');
+  }
+
+  const brandId = user.brandId || "demo-brand";
+  const playbooks = await getPlaybookDraftsForDashboard(brandId);
 
   return (
-      <DashboardPageComponent initialPlaybooks={playbooks} />
+    <DashboardPageComponent
+      brandId={brandId}
+      initialPlaybooks={playbooks}
+    />
   );
 }
