@@ -264,25 +264,30 @@ export type RulePack = {
   approved_by?: string;
 };
 
-// --- Agentic Playbooks ---
-export type PlaybookTriggerType = 'signal' | 'automation';
+// --- Playbooks & Agent OS ---
 
 export type PlaybookDraft = {
   id: string;
   name: string;
   description: string;
-  type: PlaybookTriggerType;
+  type: 'signal' | 'automation';
   agents: string[];
   signals: string[];
   targets: string[];
   constraints: string[];
 };
 
+export type PlaybookKind = 'signal' | 'automation';
+
 export type Playbook = {
   id: string;
+  brandId: string;
   name: string;
-  type: 'signal' | 'automation';
+  description?: string;
+  kind: PlaybookKind; // e.g. 'signal' or 'automation'
   tags: string[];
   enabled: boolean;
-  createdAt: Timestamp;
+  // Timestamps are optional for now so we don't break anything if absent
+  createdAt?: Date;
+  updatedAt?: Date;
 };
