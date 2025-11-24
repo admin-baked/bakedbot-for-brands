@@ -1,4 +1,3 @@
-
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Lightbulb, Package, PenSquare, Settings } from 'lucide-react';
 import Link from 'next/link';
