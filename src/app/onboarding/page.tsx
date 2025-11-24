@@ -1,7 +1,6 @@
-
 // src/app/onboarding/page.tsx
-import { OnboardingPageClient } from '@/onboarding/page-client';
 
 export default function OnboardingPage() {
-  return <OnboardingPageClient />;
+  // This page is temporarily disabled and will be replaced by the new onboarding flow.
+  return null;
 }
