@@ -1,16 +1,10 @@
-// src/app/page.tsx
+
 export default function HomePage() {
   return (
-    <main className="p-6 space-y-4">
-      <h1 className="text-3xl font-bold">BakedBot AI</h1>
-      <p className="text-muted-foreground">
-        Agentic Commerce OS for cannabis brands.
-      </p>
-      <p>
-        <a href="/dashboard" className="underline">
-          Go to dashboard
-        </a>
-      </p>
+    <main style={{ minHeight: "100vh", padding: "2rem" }}>
+      <h1>BakedBot AI</h1>
+      <p>Agentic Commerce OS for cannabis brands.</p>
+      <a href="/dashboard">Go to dashboard</a>
     </main>
   );
 }
