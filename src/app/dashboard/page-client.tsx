@@ -1,17 +1,15 @@
-
 'use client';
 
 import * as React from 'react';
-import type { Playbook } from '@/types/domain';
+import type { Playbook, PlaybookDraft } from '@/types/domain';
 import { savePlaybookDraft } from './actions';
-
-// For the client UI we allow a flexible draft shape.
-// Server side still uses the strict schema type.
-type PlaybookDraft = any;
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 type DashboardPageClientProps = {
-  initialPlaybooks?: Playbook[];
-  drafts?: PlaybookDraft[];
+  initialPlaybooks: Playbook[];
+  drafts: PlaybookDraft[];
 };
 
 type SuggestedPlaybook = {
@@ -32,23 +30,28 @@ export default function DashboardPageComponent({
   const [suggested, setSuggested] = React.useState<SuggestedPlaybook | null>(
     null,
   );
-  const [draftList, setDraftList] = React.useState(initialDrafts);
+  const [draftList, setDraftList] = React.useState<PlaybookDraft[]>(initialDrafts);
   const [isSaving, startSaving] = React.useTransition();
   const [saveStatus, setSaveStatus] =
     React.useState<'idle' | 'saved' | 'error'>('idle');
 
   // Combine drafts and playbooks into a single list for rendering.
-  const combinedList = React.useMemo(() => {
-    // Type guard to ensure we are working with a valid draft structure.
-    const validDrafts: (Playbook & { isDraft: boolean })[] = draftList.map((d: any) => ({
+  const combinedList: (Playbook | (PlaybookDraft & { isDraft: boolean }))[] = React.useMemo(() => {
+    const validDrafts: (PlaybookDraft & { isDraft: boolean })[] = draftList.map((d: any) => ({
       id: d.id,
       brandId: d.brandId || 'demo-brand',
       name: d.name,
       description: d.description,
-      kind: 'automation', // Assume drafts are automations for now
+      kind: 'automation',
       tags: d.tags || [],
-      enabled: false, // Drafts are never enabled
-      isDraft: true, // Custom property to identify drafts
+      enabled: false, 
+      isDraft: true,
+      type: d.type,
+      signals: d.signals,
+      targets: d.targets,
+      constraints: d.constraints,
+      createdAt: d.createdAt,
+      updatedAt: d.updatedAt,
     }));
     return [...validDrafts, ...list];
   }, [list, draftList]);
@@ -61,7 +64,6 @@ export default function DashboardPageComponent({
       return;
     }
 
-    // super simple heuristic parser – just to make the UX feel real.
     const lower = trimmed.toLowerCase();
     const agents: string[] = [];
     const tags: string[] = [];
@@ -95,13 +97,49 @@ export default function DashboardPageComponent({
       tags: Array.from(new Set(tags)),
     });
     
-    // Reset save status when a new draft is created
     setSaveStatus('idle');
+  }
+  
+  const handleSaveDraft = () => {
+    if (!suggested) return;
+    setSaveStatus('idle');
+    startSaving(async () => {
+      try {
+        const result = await savePlaybookDraft({
+          name: suggested.name,
+          description: suggested.description,
+          agents: suggested.agents,
+          tags: suggested.tags,
+        });
+
+        setSaveStatus('saved');
+
+        setDraftList((prev) => [
+          {
+            id: result?.id ?? `local_${Date.now()}`,
+            brandId: 'demo-brand',
+            name: suggested.name,
+            description: suggested.description,
+            agents: suggested.agents,
+            tags: suggested.tags,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            type: 'automation',
+            signals: [],
+            targets: [],
+            constraints: [],
+          },
+          ...prev,
+        ]);
+      } catch (e) {
+        console.error('Failed to save draft', e);
+        setSaveStatus('error');
+      }
+    });
   }
 
   return (
     <div className="space-y-8">
-      {/* Heading */}
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           Playbooks Dashboard
@@ -111,13 +149,12 @@ export default function DashboardPageComponent({
         </p>
       </header>
 
-      {/* Build Your AI Agent Workforce */}
-      <section className="rounded-2xl border px-4 py-4 md:px-6 md:py-5 bg-background/80 space-y-3">
+      <section className="rounded-2xl border bg-card px-4 py-4 md:px-6 md:py-5 space-y-3">
         <div className="space-y-1">
-          <h2 className="text-sm font-semibold">
+          <h2 className="font-semibold">
             Build your AI agent workforce
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Describe a task, and we&apos;ll turn it into a Playbook your agents
             can run.
           </p>
@@ -127,103 +164,64 @@ export default function DashboardPageComponent({
           onSubmit={handleSuggest}
           className="flex flex-col gap-2 md:flex-row"
         >
-          <input
+          <Input
             type="text"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="e.g., Watch competitor prices in Chicago and alert me when they undercut our 1g vapes."
-            className="flex-1 rounded-lg border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           />
-          <button
+          <Button
             type="submit"
-            className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 whitespace-nowrap"
+            className="whitespace-nowrap"
           >
             Create draft
-          </button>
+          </Button>
         </form>
 
         {suggested && (
-          <div className="mt-2 rounded-xl border bg-muted/50 px-3 py-3 text-xs space-y-3">
+          <div className="mt-2 rounded-xl border bg-muted/50 px-3 py-3 text-sm space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="font-semibold truncate">
                 Draft: {suggested.name}
               </div>
-              <span className="rounded-full border border-emerald-500/70 px-2 py-0.5 text-[10px] uppercase tracking-wide text-emerald-700 bg-emerald-50">
+              <Badge variant="outline" className="border-primary/70 text-primary bg-primary/10">
                 Preview only
-              </span>
+              </Badge>
             </div>
 
             <p className="text-muted-foreground">{suggested.description}</p>
 
             <div className="flex flex-wrap gap-1">
               {suggested.agents.map((a) => (
-                <span
-                  key={a}
-                  className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-800"
-                >
+                <Badge key={a} variant="secondary">
                   {a}
-                </span>
+                </Badge>
               ))}
               {suggested.tags.map((tag: string) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground"
-                >
+                <Badge key={tag} variant="outline">
                   {tag}
-                </span>
+                </Badge>
               ))}
             </div>
 
             <div className="flex items-center justify-between gap-2 pt-1">
-              <button
+              <Button
                 type="button"
                 disabled={isSaving}
-                onClick={() => {
-                  if (!suggested) return;
-                  setSaveStatus('idle');
-                  startSaving(async () => {
-                    try {
-                      const result = await savePlaybookDraft({
-                        name: suggested.name,
-                        description: suggested.description,
-                        agents: suggested.agents,
-                        tags: suggested.tags,
-                      });
-
-                      setSaveStatus('saved');
-
-                      // Optimistically add to local draft list so it shows immediately
-                      setDraftList((prev) => [
-                        {
-                          id: result?.id ?? `local_${Date.now()}`,
-                          brandId: 'demo-brand',
-                          name: suggested.name,
-                          description: suggested.description,
-                          agents: suggested.agents,
-                          tags: suggested.tags,
-                          createdAt: new Date(),
-                        },
-                        ...prev,
-                      ]);
-                    } catch (e) {
-                      console.error('Failed to save draft', e);
-                      setSaveStatus('error');
-                    }
-                  });
-                }}
-                className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                onClick={handleSaveDraft}
+                size="sm"
               >
                 {isSaving ? 'Saving…' : 'Save draft'}
-              </button>
+              </Button>
 
-              <div className="text-[11px] text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 {saveStatus === 'saved' && (
-                  <span className="text-emerald-700">
+                  <span className="text-green-600">
                     Draft saved! It has been added to your list below.
                   </span>
                 )}
                 {saveStatus === 'error' && (
-                  <span className="text-red-600">
+                  <span className="text-destructive">
                     Something went wrong saving the draft.
                   </span>
                 )}
@@ -233,33 +231,29 @@ export default function DashboardPageComponent({
         )}
       </section>
 
-      {/* Existing Playbooks list */}
       <section className="space-y-3">
         {combinedList.length > 0 ? (
           <ul className="space-y-3">
             {combinedList.map((pb: any) => (
               <li
                 key={pb.id}
-                className="rounded-2xl border px-4 py-4 bg-background/80 text-sm"
+                className="rounded-2xl border bg-card px-4 py-4 text-sm"
               >
                 <div className="flex items-center justify-between">
                     <div className="font-medium">{pb.name}</div>
-                    {pb.isDraft && <span className="text-xs uppercase tracking-wider font-semibold text-amber-600">Draft</span>}
+                    {pb.isDraft && <Badge variant="outline" className="text-amber-600 border-amber-500/70 bg-amber-50">Draft</Badge>}
                 </div>
                 {pb.description && (
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {pb.description}
                   </p>
                 )}
                 {Array.isArray(pb.tags) && pb.tags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {pb.tags.map((tag: string) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground"
-                      >
+                      <Badge key={tag} variant="secondary">
                         {tag}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 )}
@@ -267,9 +261,8 @@ export default function DashboardPageComponent({
             ))}
           </ul>
         ) : (
-          <div className="rounded-xl border p-4 text-sm text-muted-foreground bg-background/80">
-            No playbooks to show yet. This is where your agents and automations
-            will live once we wire live data.
+          <div className="rounded-xl border p-4 text-sm text-muted-foreground bg-card">
+            No playbooks to show yet. Create a draft above to get started.
           </div>
         )}
       </section>
