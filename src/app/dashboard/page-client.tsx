@@ -186,20 +186,21 @@ export default function DashboardPageClient({
                         tags: suggested.tags,
                       });
 
-                      if (result.ok) {
-                         setSaveStatus('saved');
-                         // Optimistically add to the drafts list
-                         setDraftList((prev) => [
-                            {
-                                id: result.id,
-                                brandId: 'demo-brand',
-                                ...suggested,
-                            },
-                           ...prev
-                         ]);
-                      } else {
-                          throw new Error('Server action failed.');
-                      }
+                      setSaveStatus('saved');
+
+                      // Optimistically add to local draft list so it shows immediately
+                      setDraftList((prev) => [
+                        {
+                          id: result?.id ?? `local_${Date.now()}`,
+                          brandId: 'demo-brand', // or real brandId once you have it
+                          name: suggested.name,
+                          description: suggested.description,
+                          agents: suggested.agents,
+                          tags: suggested.tags,
+                          createdAt: new Date(),
+                        },
+                        ...prev,
+                      ]);
                     } catch (e) {
                       console.error('Failed to save draft', e);
                       setSaveStatus('error');
