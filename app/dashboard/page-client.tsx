@@ -6,11 +6,13 @@ import * as React from "react";
 type DashboardPageClientProps = {
   brandId: string;
   initialPlaybooks?: any[];
+  debug?: string | null;
 };
 
 export default function DashboardPageClient({
   brandId,
   initialPlaybooks,
+  debug,
 }: DashboardPageClientProps) {
   const [list] = React.useState<any[]>(initialPlaybooks ?? []);
 
@@ -51,6 +53,12 @@ export default function DashboardPageClient({
           </div>
         )}
       </section>
+      
+      {debug && (
+        <p className="mt-4 text-xs text-muted-foreground">
+          Debug: {debug}
+        </p>
+      )}
     </div>
   );
 }
