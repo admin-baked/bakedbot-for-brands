@@ -102,7 +102,7 @@ const config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), require('@tailwindcss/container-queries')],
+  plugins: [require("tailwindcss-animate")],
 }
 
 export default config
