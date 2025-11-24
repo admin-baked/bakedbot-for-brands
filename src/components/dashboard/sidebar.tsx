@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -10,10 +9,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import Logo from '@/components/logo';
@@ -23,11 +18,9 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { signOut } from 'firebase/auth';
-import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
-import { ForwardRefExoticComponent, RefAttributes } from 'react';
 
 export function DashboardSidebar() {
   const rawPathname = usePathname();
@@ -35,7 +28,17 @@ export function DashboardSidebar() {
   const { user } = useUser();
   const { auth } = useFirebase();
   const { toast } = useToast();
-  const { navLinks } = useDashboardConfig();
+  
+  const links = [
+    { label: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' },
+    { label: 'Smokey Chat', href: '/dashboard/chat', icon: 'BotMessageSquare' },
+    { label: 'The Sanctum', href: '/dashboard/sanctum', icon: 'Shield' },
+    { label: 'Knowledge Base', href: '/dashboard/knowledge', icon: 'Book' },
+    { label: 'Smokey Growth Engine', href: '/dashboard/growth', icon: 'Sparkles' },
+    { label: 'Campaigns', href: '/dashboard/campaigns', icon: 'Mails', locked: true },
+    { label: 'Playbooks', href: '/dashboard/playbooks', icon: 'ListPlay' },
+    { label: 'Settings', href: '/dashboard/settings', icon: 'Settings' },
+  ];
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -69,9 +72,12 @@ export function DashboardSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {navLinks.filter(link => !link.hidden).map((link) => {
+          {links.map((link) => {
             const Icon = (LucideIcons as any)[link.icon] || LucideIcons.Folder;
-            const isActive = link.href === '/dashboard' ? pathname === link.href : pathname.startsWith(link.href);
+             const isActive =
+              link.href === '/dashboard'
+                ? pathname === link.href
+                : pathname.startsWith(link.href);
             return (
               <SidebarMenuItem key={link.href}>
                 <SidebarMenuButton asChild isActive={isActive}>
