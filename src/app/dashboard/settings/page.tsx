@@ -1,36 +1,85 @@
 
 // src/app/dashboard/settings/page.tsx
-import { createServerClient } from '@/firebase/server-client';
-import { makeBrandRepo } from '@/server/repos/brandRepo';
-import BrandSettingsForm from '@/app/account/components/brand-settings-form';
-import ChatbotSettingsForm from '@/app/account/components/chatbot-settings-form';
-import { requireUser } from '@/server/auth/auth';
-import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
-export default async function DashboardSettingsPage() {
-  let user;
-  try {
-    user = await requireUser(['brand', 'owner']);
-  } catch (error) {
-    return redirect('/brand-login');
-  }
-
-  const brandId = user.brandId;
-  if (!brandId) {
-    return <p>Your account is not associated with a brand.</p>;
-  }
-
-  const { firestore } = await createServerClient();
-  const brandRepo = makeBrandRepo(firestore);
-  const brand = await brandRepo.getById(brandId);
-  
+export default function DashboardSettingsPage() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-      <BrandSettingsForm brand={brand} />
-      <ChatbotSettingsForm brand={brand} />
-    </div>
+    <main className="max-w-5xl mx-auto px-4 py-10 space-y-8">
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-[0.2em] text-gray-400">
+          Dashboard · Settings
+        </p>
+        <h1 className="font-display text-3xl">
+          Workspace Settings
+        </h1>
+        <p className="text-sm text-gray-600 max-w-2xl">
+          Configure your headless menu, Smokey (AI budtender), and other
+          workspace defaults. This is the control room for how BakedBot shows
+          up on your brand sites and in retail partner menus.
+        </p>
+      </header>
+
+      <section className="border rounded-2xl bg-white px-5 py-4 space-y-3">
+        <h2 className="font-display text-xl">Headless Menu</h2>
+        <p className="text-sm text-gray-600 max-w-xl">
+          Control the default demo menu and routing for your brand&apos;s
+          headless experience powered by CannMenus and Smokey.
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-2 text-sm">
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-700">
+              Default demo menu route
+            </label>
+            <input
+              type="text"
+              defaultValue="/menu/default"
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-700">
+              Product locator route
+            </label>
+            <input
+              type="text"
+              defaultValue="/product-locator"
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="border rounded-2xl bg-white px-5 py-4 space-y-3">
+        <h2 className="font-display text-xl">Smokey (AI Budtender)</h2>
+        <p className="text-sm text-gray-600 max-w-xl">
+          Define Smokey&apos;s persona, tone, and guardrails for your brand.
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-2 text-sm">
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-700">
+              Display name
+            </label>
+            <input
+              type="text"
+              defaultValue="Smokey"
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-700">
+              Persona tagline
+            </label>
+            <input
+              type="text"
+              defaultValue="Friendly, compliance-safe cannabis guide."
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }
-
