@@ -1,3 +1,4 @@
+
 // src/firebase/server-client.ts
 import { cert, getApps, getApp, initializeApp, App } from "firebase-admin/app";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
@@ -9,26 +10,11 @@ if (!getApps().length) {
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
   if (!serviceAccountJson) {
-    // In a non-production environment, we can fall back to default credentials.
-    // This often works in local dev environments or CI.
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn(
-        'FIREBASE_SERVICE_ACCOUNT_KEY is not set. Falling back to default credentials. ' +
-        'This is expected for local development but will fail in production. ' +
-        'See DEPLOYMENT_INSTRUCTIONS.md for more details.'
-      );
-      app = initializeApp();
-    } else {
-      // In production, this is a fatal error.
-      throw new Error(
-        "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. " +
-        "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
-      );
-    }
+    // Fallback for local dev or environments without the secret.
+    // This will attempt to use Google Application Default Credentials.
+    app = initializeApp();
   } else {
-    // In Firebase Hosting, the key is a Base64 string, not a JSON string.
-    // In local dev with a .env file, we've also Base64 encoded it.
-    // So, we must decode it first.
+    // In Firebase Hosting or when the secret is set, decode and use it.
     const decodedJson = Buffer.from(serviceAccountJson, "base64").toString("utf-8");
     const serviceAccount = JSON.parse(decodedJson);
 
@@ -41,7 +27,6 @@ if (!getApps().length) {
   app = getApp();
 }
 
-// Explicit named exports that TS can see
 export const firebaseAdminApp: App = app;
 export const firestore: Firestore = getFirestore(app);
 export const auth: Auth = getAuth(app);
