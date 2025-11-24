@@ -1,6 +1,8 @@
+
 // src/app/onboarding/page.tsx
+import { OnboardingPageClient } from './page-client';
 
 export default function OnboardingPage() {
-  // This page is temporarily disabled and will be replaced by the new onboarding flow.
-  return null;
+  // This page has been simplified to only render the client component.
+  return <OnboardingPageClient />;
 }
