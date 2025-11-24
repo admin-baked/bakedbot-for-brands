@@ -2,19 +2,18 @@
 "use client";
 
 import * as React from "react";
-import type { PlaybookDraft } from "./playbooks/schemas";
 import { savePlaybookDraft } from "./actions";
 
 type DashboardPageClientProps = {
   brandId: string;
-  initialPlaybooks: PlaybookDraft[];
+  initialPlaybooks?: any[];
 };
 
 export default function DashboardPageComponent({
   brandId,
   initialPlaybooks,
 }: DashboardPageClientProps) {
-  const [list, setList] = React.useState<PlaybookDraft[]>(initialPlaybooks);
+  const [list, setList] = React.useState<any[]>(initialPlaybooks ?? []);
   const [isSaving, startSaving] = React.useTransition();
 
   const [name, setName] = React.useState("");
@@ -37,7 +36,7 @@ export default function DashboardPageComponent({
         });
         
         if (draft) {
-          setList((prev) => [draft, ...prev.filter(Boolean)]);
+          setList((prev) => [draft as any, ...prev.filter(Boolean)]);
         }
 
         // Reset form
