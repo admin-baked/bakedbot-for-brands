@@ -10,17 +10,32 @@ import {
 } from "firebase-admin/app";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
 import { getAuth, Auth } from "firebase-admin/auth";
+import { z } from 'zod';
+
+// Validate essential server-side environment variables at startup.
+const EnvSchema = z.object({
+  FIREBASE_SERVICE_ACCOUNT_KEY: z.string().min(10, 'The service account key is missing or too short.'),
+});
+
+const _env = EnvSchema.safeParse(process.env);
+
+if (!_env.success) {
+  console.error(
+    '[env-validation] Invalid environment variables:',
+    _env.error.flatten().fieldErrors
+  );
+  throw new Error('Invalid server environment configuration. Check your .env/.secrets.');
+}
+
+// Export the validated environment variables for use in other server-side modules.
+export const env = _env.data;
+
 
 let app: App;
 
 function getServiceAccount() {
-  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (!serviceAccountKey) {
-    throw new Error(
-      "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. " +
-      "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
-    );
-  }
+  // The key is now validated by Zod at module load time.
+  const serviceAccountKey = env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
   // The key is expected to be a Base64 encoded JSON string.
   // This is consistent with how App Hosting injects secrets.
