@@ -17,6 +17,15 @@ const nextConfig = {
       }
     ],
   },
+  experimental: {
+    // Ignore the e2e directory to prevent dev server restarts
+    // when working with Playwright tests.
+    outputFileTracingExcludes: {
+      '*': [
+        './e2e/**/*',
+      ],
+    },
+  },
   async headers() {
     return [
       {
