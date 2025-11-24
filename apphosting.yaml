@@ -6,6 +6,9 @@ runConfig:
     # Bind the env var FIREBASE_SERVICE_ACCOUNT_KEY to the Secret Manager secret
     - variable: FIREBASE_SERVICE_ACCOUNT_KEY
       secret: FIREBASE_SERVICE_ACCOUNT_KEY
+      availability:
+        - BUILD
+        - RUNTIME
     - variable: SENDGRID_API_KEY
       secret: SENDGRID_API_KEY
     - variable: SENDGRID_FROM_EMAIL
