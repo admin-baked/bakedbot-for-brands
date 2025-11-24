@@ -1,16 +1,13 @@
-
 'use client';
 
 import * as React from 'react';
+import type { Playbook } from '@/types/domain';
 
 type DashboardPageClientProps = {
-  // Keep this loose for now so TS and Gemini don't block you
-  playbooks?: any[];
+  playbooks?: Playbook[];
 };
 
-export default function DashboardPageClient({
-  playbooks,
-}: DashboardPageClientProps) {
+export default function DashboardPageClient({ playbooks }: DashboardPageClientProps) {
   const list = Array.isArray(playbooks) ? playbooks : [];
 
   return (
