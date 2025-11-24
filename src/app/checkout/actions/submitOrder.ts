@@ -1,11 +1,10 @@
-
 // src/app/checkout/actions/submitOrder.ts
 'use server';
 
 import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
 import { redirect } from 'next/navigation';
-import type { CartItem } from '@/hooks/use-store';
+import type { CartItem } from '@/types/domain';
 import { applyCoupon } from './applyCoupon';
 import type { ServerOrderPayload as ServerOrderPayloadType } from '@/types/domain';
 

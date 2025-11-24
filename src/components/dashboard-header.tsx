@@ -5,7 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 
 export function DashboardHeader() {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname ?? '';
   const { navLinks } = useDashboardConfig();
 
   // Find the current nav link based on the path.
