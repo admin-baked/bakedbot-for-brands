@@ -2,8 +2,8 @@
 'use server';
 
 import type { Playbook, PlaybookDraft } from '@/types/domain';
-
-const DEMO_BRAND_ID = 'demo-brand';
+import { createServerClient } from '@/firebase/server-client';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
 // Simple feature flag: do we have admin creds or not?
 const HAS_SERVICE_ACCOUNT =
@@ -11,10 +11,11 @@ const HAS_SERVICE_ACCOUNT =
   process.env.FIREBASE_SERVICE_ACCOUNT_KEY !== '';
 
 type PlaybookDraftInput = {
+  brandId: string;
   name: string;
-  description: string;
-  agents: string[];
-  tags: string[];
+  description?: string;
+  agents?: string[];
+  tags?: string[];
 };
 
 // ----- Live / stubbed playbooks (unchanged) -----
@@ -74,31 +75,51 @@ export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
 
 export async function savePlaybookDraft(
   input: PlaybookDraftInput,
-  brandId: string = DEMO_BRAND_ID,
-) {
+): Promise<PlaybookDraft | null> {
   if (!HAS_SERVICE_ACCOUNT) {
     console.warn(
       '[dashboard] FIREBASE_SERVICE_ACCOUNT_KEY not set; skipping Firestore write and returning stub id.',
     );
-    return { ok: true as const, id: `local_${Date.now()}`, stub: true as const };
+    // Return a shape that matches PlaybookDraft but indicates it's a stub
+    return {
+        ...input,
+        id: `local_${Date.now()}`,
+        status: 'draft',
+        type: 'generic',
+        signals: [],
+        targets: [],
+        constraints: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    }
   }
 
   try {
-    const { firestore } = await import('@/firebase/server-client');
+    const { firestore } = createServerClient();
     const now = new Date();
 
-    const docRef = await firestore
+    const collectionRef = firestore
       .collection('brands')
-      .doc(brandId)
-      .collection('playbookDrafts')
-      .add({
+      .doc(input.brandId)
+      .collection('playbookDrafts');
+      
+    const docRef = collectionRef.doc();
+    
+    const draftToSave: Omit<PlaybookDraft, 'id'> = {
         ...input,
-        brandId,
+        status: 'draft',
+        type: 'generic',
+        signals: [],
+        targets: [],
+        constraints: [],
         createdAt: now,
         updatedAt: now,
-      });
+    }
 
-    return { ok: true as const, id: docRef.id, stub: false as const };
+    await docRef.set(draftToSave);
+    
+    return { ...draftToSave, id: docRef.id };
+
   } catch (err) {
     console.error('Error saving playbook draft', err);
     throw err;
@@ -116,7 +137,7 @@ export async function getPlaybookDraftsForDashboard(
   }
 
   try {
-    const { firestore } = await import('@/firebase/server-client');
+    const { firestore } = createServerClient();
 
     const snap = await firestore
       .collection('brands')
@@ -127,7 +148,7 @@ export async function getPlaybookDraftsForDashboard(
       .get();
 
     const drafts: PlaybookDraft[] = snap.docs.map((doc: any) => {
-      const data = doc.data() as any;
+      const data = doc.data();
 
       return {
         id: doc.id,
@@ -144,6 +165,7 @@ export async function getPlaybookDraftsForDashboard(
           data.updatedAt instanceof Date
             ? data.updatedAt
             : data.updatedAt?.toDate?.(),
+        status: data.status ?? 'draft',
         type: data.type ?? 'automation',
         signals: data.signals ?? [],
         targets: data.targets ?? [],
