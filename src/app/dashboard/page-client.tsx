@@ -115,7 +115,7 @@ export default function DashboardPageClient({
           </h2>
           <p className="text-xs text-muted-foreground">
             Describe a task, and we&apos;ll turn it into a Playbook your agents
-            can run. This is a local preview for now – AI + saving comes next.
+            can run.
           </p>
         </div>
 
