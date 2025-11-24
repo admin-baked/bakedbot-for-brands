@@ -19,9 +19,8 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { signOut } from 'firebase/auth';
-import { LogOut } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
-import { useDashboardConfig } from '@/hooks/use-dashboard-config';
+import { LogOut, BotMessageSquare, LayoutDashboard, Settings } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export function DashboardSidebar() {
   const rawPathname = usePathname();
@@ -29,7 +28,12 @@ export function DashboardSidebar() {
   const { user } = useUser();
   const { auth } = useFirebase();
   const { toast } = useToast();
-  const { navLinks } = useDashboardConfig();
+
+  const links = [
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Playbooks', href: '/dashboard/playbooks', icon: BotMessageSquare },
+    { label: 'Settings', href: '/dashboard/settings', icon: Settings },
+  ];
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -39,7 +43,6 @@ export function DashboardSidebar() {
         title: "Signed Out",
         description: "You have been successfully logged out.",
       });
-      // Redirect to login page after sign out
       window.location.href = '/brand-login';
     } catch (error) {
       console.error('Sign out error', error);
@@ -63,9 +66,9 @@ export function DashboardSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {navLinks.filter(link => !link.hidden).map((link) => {
-            const Icon = (LucideIcons as any)[link.icon] || LucideIcons.Folder;
-             const isActive =
+          {links.map((link) => {
+            const Icon = link.icon;
+            const isActive =
               link.href === '/dashboard'
                 ? pathname === link.href
                 : pathname.startsWith(link.href);
