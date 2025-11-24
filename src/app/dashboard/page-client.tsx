@@ -16,9 +16,9 @@ type SuggestedPlaybook = {
 };
 
 export default function DashboardPageClient({
-  initialPlaybooks,
+  initialPlaybooks = [],
 }: DashboardPageClientProps) {
-  const [list, setList] = React.useState(Array.isArray(initialPlaybooks) ? initialPlaybooks : []);
+  const [list, setList] = React.useState<Playbook[]>(initialPlaybooks);
 
   const [prompt, setPrompt] = React.useState('');
   const [suggested, setSuggested] = React.useState<SuggestedPlaybook | null>(
@@ -167,6 +167,18 @@ export default function DashboardPageClient({
                         tags: suggested.tags,
                       });
                       setSaveStatus('saved');
+                      setList((prev) => [
+                        {
+                          id: `draft_${Date.now()}`,
+                          brandId: 'demo-brand',
+                          name: suggested.name,
+                          description: suggested.description,
+                          kind: 'automation', // Placeholder kind
+                          tags: suggested.tags,
+                          enabled: false,
+                        },
+                        ...prev,
+                      ]);
                     } catch (e) {
                       console.error('Failed to save draft', e);
                       setSaveStatus('error');
