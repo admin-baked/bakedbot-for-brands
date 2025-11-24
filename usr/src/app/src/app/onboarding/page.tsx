@@ -1,4 +1,3 @@
-
 // src/app/onboarding/page.tsx
 'use client';
 
@@ -94,7 +93,7 @@ export default function OnboardingPage() {
     <section className="space-y-4">
       <h2 className="font-semibold text-xl">Find your {role}</h2>
       <p className="text-sm text-muted-foreground">
-        Start typing your {role} name. We'll search the CannMenus directory.
+        Start typing your {role} name. We&apos;ll search the CannMenus directory.
       </p>
       <div className="flex gap-2">
         <Input
@@ -124,7 +123,7 @@ export default function OnboardingPage() {
   const renderManualStep = () => (
     <section className="space-y-4">
       <h2 className="font-semibold text-xl">Add your details manually</h2>
-      <p className="text-sm text-muted-foreground">We'll create a new workspace for you.</p>
+      <p className="text-sm text-muted-foreground">We&apos;ll create a new workspace for you.</p>
       {role === 'brand' && (
         <div className="space-y-4">
             <Input name="manualBrandName" placeholder="Your Brand Name" value={manualBrandName} onChange={e => setManualBrandName(e.target.value)} />
@@ -148,7 +147,7 @@ export default function OnboardingPage() {
 
     return (
         <section className="space-y-4">
-        <h2 className="font-semibold text-xl">Review & Finish</h2>
+        <h2 className="font-semibold text-xl">Review &amp; Finish</h2>
         <div className="border rounded-lg p-4 space-y-2">
           <div className="flex justify-between text-sm"><span className="text-muted-foreground">Role:</span><span className="font-semibold capitalize">{role}</span></div>
           {hasSelection && (
@@ -180,7 +179,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-lg space-y-8">
         <div className="text-center">
             <h1 className="text-3xl font-bold tracking-tight">Welcome to BakedBot AI</h1>
-            <p className="text-muted-foreground">Let's get your workspace set up.</p>
+            <p className="text-muted-foreground">Let&apos;s get your workspace set up.</p>
         </div>
         {step === 'role' && renderRoleSelection()}
         {step === 'brand-search' && renderSearchStep()}
