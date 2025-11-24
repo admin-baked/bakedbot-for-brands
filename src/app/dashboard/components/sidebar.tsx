@@ -30,7 +30,8 @@ import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 import { ForwardRefExoticComponent, RefAttributes } from 'react';
 
 export function DashboardSidebar() {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname ?? '';
   const { user } = useUser();
   const { auth } = useFirebase();
   const { toast } = useToast();

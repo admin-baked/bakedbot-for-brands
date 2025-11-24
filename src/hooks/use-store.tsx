@@ -16,6 +16,7 @@ interface StoreState {
   theme: Theme;
   menuStyle: MenuStyle;
   isDemo: boolean;
+  isCeoMode: boolean;
   chatExperience: 'default' | 'v1';
   _hasHydrated: boolean;
 }
@@ -47,6 +48,7 @@ export const useStore = create<StoreState & StoreActions>()(
       theme: 'green',
       menuStyle: 'alt',
       isDemo: true,
+      isCeoMode: false,
       chatExperience: 'default',
       _hasHydrated: false,
 
