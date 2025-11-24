@@ -1,3 +1,7 @@
+// TEMP: disabled while stabilizing dashboard.
+// Remove this comment and restore when we align the types.
+
+// export {} as never;
 
 "use server";
 
@@ -91,14 +95,15 @@ export async function getPlaybookDraftsForDashboard(
       .get();
   
     // Loosened the mapping to prevent type errors during the fix
-    const drafts = snap.docs.map((doc: any) => {
+    const drafts: any[] = snap.docs.map((doc: any) => {
       const data = doc.data() ?? {};
   
       return {
         id: doc.id,
+        type: 'automation',
         ...data,
-      };
-    }) as any[];
+      } as any;
+    });
   
     return drafts;
 }
