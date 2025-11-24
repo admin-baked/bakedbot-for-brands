@@ -1,40 +1,52 @@
 
 'use server';
 
-import type { Playbook, PlaybookDraft } from '@/types/domain';
-import { DEMO_BRAND_ID } from '@/lib/config';
 import { createServerClient } from '@/firebase/server-client';
-import { requireUser } from '@/server/auth/auth';
+import type { Playbook, PlaybookDraft } from '@/types/domain';
 import { FieldValue } from 'firebase-admin/firestore';
+import { requireUser } from '@/server/auth/auth';
 
+const DEMO_BRAND_ID = 'demo-brand';
 
-// This function now correctly matches the name used in the page component.
+// ----- Types used by the actions -----
+
+type PlaybookDraftInput = {
+  name: string;
+  description: string;
+  agents: string[];
+  tags: string[];
+};
+
+// ----- Stubbed live playbooks (unchanged) -----
+
 export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
-  // PHASE 2A: stub implementation that can be swapped for Firestore later.
-  // Shape matches the Playbook type and the UI you already built.
+  // For now this is stub/demo data. It's working, so we keep it.
+  const brandId = DEMO_BRAND_ID;
 
   const demoPlaybooks: Playbook[] = [
     {
       id: 'abandon-browse-cart-saver',
-      brandId: DEMO_BRAND_ID,
+      brandId,
       name: 'abandon-browse-cart-saver',
-      description: 'Recover abandoned carts via email/SMS and on-site prompts.',
+      description:
+        'Recover abandoned carts via email/SMS and on-site prompts.',
       kind: 'signal',
       tags: ['retention', 'recovery', 'sms', 'email', 'on-site'],
       enabled: true,
     },
     {
       id: 'competitor-price-drop-watch',
-      brandId: DEMO_BRAND_ID,
+      brandId,
       name: 'competitor-price-drop-watch',
-      description: 'Monitor competitor price drops and suggest experiments.',
+      description:
+        'Monitor competitor price drops and suggest experiments.',
       kind: 'signal',
       tags: ['competitive', 'pricing', 'experiments'],
       enabled: true,
     },
     {
       id: 'new-subscriber-welcome-series',
-      brandId: DEMO_BRAND_ID,
+      brandId,
       name: 'new-subscriber-welcome-series',
       description:
         'Onboard new subscribers with a 5-part welcome flow.',
@@ -44,7 +56,7 @@ export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
     },
     {
       id: 'win-back-lapsed-customers',
-      brandId: DEMO_BRAND_ID,
+      brandId,
       name: 'win-back-lapsed-customers',
       description:
         'Re-engage customers who have not ordered in 60+ days.',
@@ -57,71 +69,77 @@ export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
   return demoPlaybooks;
 }
 
+// ----- Persisting drafts -----
 
-type PlaybookDraftInput = {
-  name: string;
-  description: string;
-  agents: string[];
-  tags: string[];
-};
-
-export async function savePlaybookDraft(input: PlaybookDraftInput) {
+export async function savePlaybookDraft(
+  input: PlaybookDraftInput,
+) {
   const { firestore } = await createServerClient();
   const user = await requireUser(['brand', 'owner']);
   const brandId = user.brandId || DEMO_BRAND_ID;
 
-  const newDraftRef = firestore.collection(`brands/${brandId}/playbookDrafts`).doc();
+  try {
+    const docRef = await firestore
+      .collection('brands')
+      .doc(brandId)
+      .collection('playbookDrafts')
+      .add({
+        ...input,
+        brandId,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
 
-  await newDraftRef.set({
-    ...input,
-    brandId,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
-  });
-
-  return {
-    ok: true,
-    id: newDraftRef.id,
-  };
+    return { ok: true as const, id: docRef.id };
+  } catch (err) {
+    console.error('Error saving playbook draft', err);
+    // We re-throw so the client can show the red error message.
+    throw err;
+  }
 }
-
 
 export async function getPlaybookDraftsForDashboard(
   brandId?: string,
 ): Promise<PlaybookDraft[]> {
+  const { firestore } = await createServerClient();
   const user = await requireUser(['brand', 'owner']);
+  // Use the passed brandId, fallback to user's brandId, then to demo
   const effectiveBrandId = brandId || user.brandId || DEMO_BRAND_ID;
 
   try {
-    const { firestore } = await createServerClient();
     const snap = await firestore
-      .collection(`brands/${effectiveBrandId}/playbookDrafts`)
+      .collection('brands')
+      .doc(effectiveBrandId)
+      .collection('playbookDrafts')
       .orderBy('createdAt', 'desc')
       .limit(20)
       .get();
 
     const drafts: PlaybookDraft[] = snap.docs.map((doc) => {
-      const data = doc.data();
+      const data = doc.data() as any;
 
       return {
         id: doc.id,
         brandId: effectiveBrandId,
         name: data.name ?? 'untitled-playbook',
         description: data.description ?? '',
-        agents: data.agents ?? [],
-        tags: data.tags ?? [],
-        createdAt: data.createdAt?.toDate
-          ? data.createdAt.toDate()
-          : undefined,
-        updatedAt: data.updatedAt?.toDate
-          ? data.updatedAt.toDate()
-          : undefined,
+        agents: Array.isArray(data.agents) ? data.agents : [],
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        createdAt:
+          data.createdAt instanceof Date
+            ? data.createdAt
+            : data.createdAt?.toDate?.(),
+        updatedAt:
+          data.updatedAt instanceof Date
+            ? data.updatedAt
+            : data.updatedAt?.toDate?.(),
       };
     });
 
     return drafts;
   } catch (err) {
     console.error('Failed to load playbook drafts for dashboard', err);
+    // Important: we *don’t* throw here, we just return [] so the page still loads.
     return [];
   }
 }

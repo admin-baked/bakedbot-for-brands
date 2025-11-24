@@ -1,24 +1,28 @@
-// src/app/dashboard/page.tsx
 
+// src/app/dashboard/page.tsx
+import { redirect } from 'next/navigation';
+import { requireUser } from '@/server/auth/auth';
 import DashboardPageClient from './page-client';
 import {
   getPlaybooksForDashboard,
   getPlaybookDraftsForDashboard,
 } from './actions';
-import { requireUser } from '@/server/auth/auth';
-import { redirect } from 'next/navigation';
 
 export default async function DashboardPage() {
   let user;
   try {
+    // This page is protected; only brand and owner roles can access it.
     user = await requireUser(['brand', 'owner']);
-  } catch {
+  } catch (error) {
+    // If auth fails, redirect to the appropriate login page.
     redirect('/brand-login');
   }
 
+  // Fetch both sets of data in parallel.
+  // getPlaybookDraftsForDashboard will internally use the user's brandId.
   const [playbooks, drafts] = await Promise.all([
     getPlaybooksForDashboard(),
-    getPlaybookDraftsForDashboard(user.brandId),
+    getPlaybookDraftsForDashboard(),
   ]);
 
   return (
