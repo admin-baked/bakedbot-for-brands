@@ -5,10 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
-    "build": "npm run check:structure && next build",
+    "build": "npm run check:all && next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit",
     "test:e2e": "playwright test",
     "deploy-functions": "firebase deploy --only functions",
     "init-embeddings": "npx tsx scripts/init-review-embeddings.ts",
@@ -16,7 +15,10 @@
     "audit:deep": "bash ./scripts/audit-code.sh",
     "pre-publish": "bash ./scripts/pre-publish.sh",
     "check:structure": "node scripts/check-app-structure.mjs",
-    "typecheck": "tsc --noEmit"
+    "check:types": "tsc --noEmit",
+    "check:lint": "next lint",
+    "check:routes": "node scripts/check-routes.mjs",
+    "check:all": "npm run check:structure && npm run check:types && npm run check:lint"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.2.0",
