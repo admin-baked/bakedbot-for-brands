@@ -2,9 +2,9 @@
 'use server';
 
 import type { Playbook } from '@/types/domain';
+import { DEMO_BRAND_ID } from '@/lib/config';
 
-const DEMO_BRAND_ID = 'demo-brand';
-
+// This function now correctly matches the name used in the page component.
 export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
   // PHASE 2A: stub implementation that can be swapped for Firestore later.
   // Shape matches the Playbook type and the UI you already built.
