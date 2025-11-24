@@ -35,9 +35,10 @@ export default function DashboardPageComponent({
           agents: [], // wire up later
           tags: [],   // wire up later
         });
-
-        // Update local list
-        setList((prev) => [draft, ...prev]);
+        
+        if (draft) {
+          setList((prev) => [draft, ...prev.filter(Boolean)]);
+        }
 
         // Reset form
         setName("");
@@ -87,26 +88,35 @@ export default function DashboardPageComponent({
 
       {/* Draft list */}
       <section className="space-y-3">
-        {list.length > 0 ? (
+        {Array.isArray(list) && list.filter(Boolean).length > 0 ? (
           <ul className="space-y-2">
-            {list.map((pb) => (
-              <li
-                key={pb.id}
-                className="rounded-xl border p-3 text-sm flex justify-between"
-              >
-                <div>
-                  <div className="font-medium">{pb.name}</div>
-                  {pb.description && (
-                    <p className="text-xs text-muted-foreground">
-                      {pb.description}
-                    </p>
-                  )}
-                </div>
-                <span className="text-[10px] uppercase text-muted-foreground">
-                  {pb.status}
-                </span>
-              </li>
-            ))}
+            {list
+              .filter(Boolean)
+              .map((pb: any, idx: number) => {
+                const id = pb?.id ?? idx;
+                const name = pb?.name ?? "Untitled playbook";
+                const description = pb?.description ?? "";
+                const status = pb?.status ?? "draft";
+
+                return (
+                  <li
+                    key={id}
+                    className="rounded-xl border p-3 text-sm flex justify-between"
+                  >
+                    <div>
+                      <div className="font-medium">{name}</div>
+                      {description && (
+                        <p className="text-xs text-muted-foreground">
+                          {description}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-[10px] uppercase text-muted-foreground">
+                      {status}
+                    </span>
+                  </li>
+                );
+              })}
           </ul>
         ) : (
           <div className="rounded-xl border p-4 text-sm text-muted-foreground">
