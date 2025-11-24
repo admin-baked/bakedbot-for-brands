@@ -3,9 +3,10 @@
 
 import * as React from 'react';
 import type { Playbook } from '@/types/domain';
+import { savePlaybookDraft } from './actions';
 
 type DashboardPageClientProps = {
-  initialPlaybooks?: Playbook[];
+  playbooks?: Playbook[];
 };
 
 type SuggestedPlaybook = {
@@ -23,6 +24,11 @@ export default function DashboardPageClient({
   const [prompt, setPrompt] = React.useState('');
   const [suggested, setSuggested] = React.useState<SuggestedPlaybook | null>(
     null,
+  );
+  
+  const [isSaving, startSaving] = React.useTransition();
+  const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saved' | 'error'>(
+    'idle',
   );
 
   function handleSuggest(e: React.FormEvent) {
@@ -66,6 +72,9 @@ export default function DashboardPageClient({
       agents: Array.from(new Set(agents)),
       tags: Array.from(new Set(tags)),
     });
+    
+    // Reset save status when a new draft is created
+    setSaveStatus('idle');
   }
 
   return (
@@ -112,7 +121,7 @@ export default function DashboardPageClient({
         </form>
 
         {suggested && (
-          <div className="mt-2 rounded-xl border bg-muted/50 px-3 py-3 text-xs space-y-2">
+          <div className="mt-2 rounded-xl border bg-muted/50 px-3 py-3 text-xs space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="font-semibold truncate">
                 Draft: {suggested.name}
@@ -121,7 +130,9 @@ export default function DashboardPageClient({
                 Preview only
               </span>
             </div>
+
             <p className="text-muted-foreground">{suggested.description}</p>
+
             <div className="flex flex-wrap gap-1">
               {suggested.agents.map((a) => (
                 <span
@@ -139,6 +150,47 @@ export default function DashboardPageClient({
                   {tag}
                 </span>
               ))}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => {
+                  if (!suggested) return;
+                  setSaveStatus('idle');
+                  startSaving(async () => {
+                    try {
+                      await savePlaybookDraft({
+                        name: suggested.name,
+                        description: suggested.description,
+                        agents: suggested.agents,
+                        tags: suggested.tags,
+                      });
+                      setSaveStatus('saved');
+                    } catch (e) {
+                      console.error('Failed to save draft', e);
+                      setSaveStatus('error');
+                    }
+                  });
+                }}
+                className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {isSaving ? 'Saving…' : 'Save draft'}
+              </button>
+
+              <div className="text-[11px] text-muted-foreground">
+                {saveStatus === 'saved' && (
+                  <span className="text-emerald-700">
+                    Draft saved (stub). We&apos;ll wire Firestore next.
+                  </span>
+                )}
+                {saveStatus === 'error' && (
+                  <span className="text-red-600">
+                    Something went wrong saving the draft.
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}
