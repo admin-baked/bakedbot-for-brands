@@ -22,18 +22,14 @@ function getServiceAccount() {
     );
   }
 
+  // The key is expected to be a Base64 encoded JSON string.
+  // This is consistent with how App Hosting injects secrets.
   try {
-    // First, try to parse it directly as JSON (for local dev using .env.local)
-    return JSON.parse(serviceAccountKey);
-  } catch (e) {
-    // If that fails, assume it's a Base64 encoded string (for production/App Hosting)
-    try {
-      const json = Buffer.from(serviceAccountKey, "base64").toString("utf8");
-      return JSON.parse(json);
-    } catch (decodeError) {
-      console.error("Failed to parse service account key from Base64.", decodeError);
-      throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not valid JSON or a valid Base64-encoded JSON string.");
-    }
+    const json = Buffer.from(serviceAccountKey, "base64").toString("utf8");
+    return JSON.parse(json);
+  } catch (decodeError) {
+    console.error("Failed to parse service account key from Base64.", decodeError);
+    throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not a valid Base64-encoded JSON string.");
   }
 }
 
