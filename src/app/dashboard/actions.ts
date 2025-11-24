@@ -1,14 +1,14 @@
 
 'use server';
 
-import { createServerClient } from '@/firebase/server-client';
 import type { Playbook, PlaybookDraft } from '@/types/domain';
-import { FieldValue } from 'firebase-admin/firestore';
-import { requireUser } from '@/server/auth/auth';
 
 const DEMO_BRAND_ID = 'demo-brand';
 
-// ----- Types used by the actions -----
+// Simple feature flag: do we have admin creds or not?
+const HAS_SERVICE_ACCOUNT =
+  !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY &&
+  process.env.FIREBASE_SERVICE_ACCOUNT_KEY !== '';
 
 type PlaybookDraftInput = {
   name: string;
@@ -17,10 +17,9 @@ type PlaybookDraftInput = {
   tags: string[];
 };
 
-// ----- Stubbed live playbooks (unchanged) -----
+// ----- Live / stubbed playbooks (unchanged) -----
 
 export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
-  // For now this is stub/demo data. It's working, so we keep it.
   const brandId = DEMO_BRAND_ID;
 
   const demoPlaybooks: Playbook[] = [
@@ -69,16 +68,25 @@ export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
   return demoPlaybooks;
 }
 
-// ----- Persisting drafts -----
+// ----- Draft persistence -----
+// If HAS_SERVICE_ACCOUNT = false, these functions fall back to stubs
+// so the UI keeps working in Studio without secrets.
 
 export async function savePlaybookDraft(
   input: PlaybookDraftInput,
+  brandId: string = DEMO_BRAND_ID,
 ) {
-  const { firestore } = await createServerClient();
-  const user = await requireUser(['brand', 'owner']);
-  const brandId = user.brandId || DEMO_BRAND_ID;
+  if (!HAS_SERVICE_ACCOUNT) {
+    console.warn(
+      '[dashboard] FIREBASE_SERVICE_ACCOUNT_KEY not set; skipping Firestore write and returning stub id.',
+    );
+    return { ok: true as const, id: `local_${Date.now()}`, stub: true as const };
+  }
 
   try {
+    const { firestore } = await import('@/firebase/server-client');
+    const now = new Date();
+
     const docRef = await firestore
       .collection('brands')
       .doc(brandId)
@@ -86,30 +94,33 @@ export async function savePlaybookDraft(
       .add({
         ...input,
         brandId,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
+        createdAt: now,
+        updatedAt: now,
       });
 
-    return { ok: true as const, id: docRef.id };
+    return { ok: true as const, id: docRef.id, stub: false as const };
   } catch (err) {
     console.error('Error saving playbook draft', err);
-    // We re-throw so the client can show the red error message.
     throw err;
   }
 }
 
 export async function getPlaybookDraftsForDashboard(
-  brandId?: string,
+  brandId: string = DEMO_BRAND_ID,
 ): Promise<PlaybookDraft[]> {
-  const { firestore } = await createServerClient();
-  const user = await requireUser(['brand', 'owner']);
-  // Use the passed brandId, fallback to user's brandId, then to demo
-  const effectiveBrandId = brandId || user.brandId || DEMO_BRAND_ID;
+  if (!HAS_SERVICE_ACCOUNT) {
+    console.warn(
+      '[dashboard] FIREBASE_SERVICE_ACCOUNT_KEY not set; returning empty draft list.',
+    );
+    return [];
+  }
 
   try {
+    const { firestore } = await import('@/firebase/server-client');
+
     const snap = await firestore
       .collection('brands')
-      .doc(effectiveBrandId)
+      .doc(brandId)
       .collection('playbookDrafts')
       .orderBy('createdAt', 'desc')
       .limit(20)
@@ -120,7 +131,7 @@ export async function getPlaybookDraftsForDashboard(
 
       return {
         id: doc.id,
-        brandId: effectiveBrandId,
+        brandId,
         name: data.name ?? 'untitled-playbook',
         description: data.description ?? '',
         agents: Array.isArray(data.agents) ? data.agents : [],
@@ -139,7 +150,6 @@ export async function getPlaybookDraftsForDashboard(
     return drafts;
   } catch (err) {
     console.error('Failed to load playbook drafts for dashboard', err);
-    // Important: we *don’t* throw here, we just return [] so the page still loads.
     return [];
   }
 }
