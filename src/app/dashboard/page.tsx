@@ -1,35 +1,37 @@
-
-// app/dashboard/page.tsx
-import DashboardPageClient from "./page-client";
+import DashboardPageComponent from "./page-client";
 import { createServerClient } from "@/firebase/server-client";
 
-export default async function DashboardPage() {
-  // TODO: real brand from auth/session
-  const brandId = "demo-brand";
+export const dynamic = "force-dynamic";
 
-  let playbooks: any[] = [];
-  let debug: string | null = null;
+export default async function DashboardPage() {
+  const brandId = "demo-brand"; // TODO: wire this to real brand from auth/session
+
+  let initialPlaybooks: any[] = [];
 
   try {
     const { firestore } = createServerClient();
 
     const snap = await firestore
-      .collection("playbookDrafts") // or "playbooks" if that's your real collection
-      .limit(20)
+      .collection("playbookDrafts")
+      .where("brandId", "==", brandId)
       .get();
 
-    playbooks = snap.docs.map((doc: any) => ({
+    initialPlaybooks = snap.docs.map((doc) => ({
       id: doc.id,
       ...(doc.data() ?? {}),
     }));
 
-    debug = `Loaded ${snap.size} docs from 'playbookDrafts'. brandId on page: '${brandId}'.`;
-  } catch (err: any) {
-    console.error("Failed to load playbooks for dashboard", err);
-    debug = `Error loading playbooks: ${err?.message ?? String(err)}`;
+    console.log(
+      `Dashboard debug: loaded ${initialPlaybooks.length} playbook drafts for brand ${brandId}`
+    );
+  } catch (err) {
+    console.error("Dashboard debug: error loading playbook drafts", err);
   }
 
   return (
-    <DashboardPageClient
+    <DashboardPageComponent
       brandId={brandId}
-      initialPlaybooks={play
+      initialPlaybooks={initialPlaybooks}
+    />
+  );
+}
