@@ -1,3 +1,4 @@
+
 // src/app/onboarding/page.tsx
 'use client';
 
@@ -114,7 +115,7 @@ export default function OnboardingPage() {
           </Button>
         ))}
          <Button variant="link" size="sm" onClick={() => setStep('manual')}>
-            Can’t find your {role}? Add it manually.
+            Can&apos;t find your {role}? Add it manually.
         </Button>
       </div>
     </section>
