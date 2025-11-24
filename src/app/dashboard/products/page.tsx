@@ -31,7 +31,7 @@ export default async function DashboardProductsPage() {
         redirect('/brand-login');
     }
 
-    if (!brandId) {
+    if (!brandId && user.role !== 'owner') {
         // This case should ideally not be hit if role is 'brand'
         // but it's a good safeguard.
         return <p>You are not associated with a brand.</p>
@@ -40,7 +40,12 @@ export default async function DashboardProductsPage() {
     try {
         const { firestore } = await createServerClient();
         const productRepo = makeProductRepo(firestore);
-        products = await productRepo.getAllByBrand(brandId);
+        if (user.role === 'owner') {
+            // Owner sees all products
+            products = await productRepo.getAll();
+        } else if (brandId) {
+            products = await productRepo.getAllByBrand(brandId);
+        }
     } catch (error) {
         console.error("Failed to fetch products for dashboard:", error);
         // Fallback to demo data on error for resilience, though you might want a proper error page
