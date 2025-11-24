@@ -1,3 +1,4 @@
+
 import 'server-only';
 
 import { Firestore } from 'firebase-admin/firestore';
@@ -23,7 +24,7 @@ export function makePlaybookRepo(db: Firestore) {
           return [];
         }
 
-        return snapshot.docs.map(doc => doc.data());
+        return snapshot.docs.map(doc => doc.data() as Playbook);
       } catch (error) {
         console.error(`Failed to get playbooks for brand ${effectiveBrandId}:`, error);
         // In case of error (e.g., permissions), return an empty array to prevent crashes.
