@@ -5,6 +5,10 @@ import { suggestPlaybook as suggestPlaybookFlow } from "@/ai/flows/suggest-playb
 import type { Playbook, PlaybookDraft as PlaybookDraftType } from "@/types/domain";
 import { requireUser } from "@/server/auth/auth";
 import { z } from "zod";
+import { createServerClient } from "@/firebase/server-client";
+import { makePlaybookRepo } from "@/server/repos/playbookRepo";
+import { cookies } from "next/headers";
+import { DEMO_BRAND_ID } from "@/lib/config";
 
 
 // --- Zod Schemas and Types ---
@@ -73,51 +77,29 @@ export async function createPlaybookSuggestion(
     }
 }
 
+/**
+ * Fetches the playbooks for the currently authenticated brand user.
+ * It is secure and uses the user's claims to determine the brand ID.
+ */
+export async function getPlaybooksForBrand(): Promise<Playbook[]> {
+    let brandId: string;
+    const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
 
-const DEMO_BRAND_ID = 'demo-brand';
-
-export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
-  // PHASE 2A: stub implementation that can be swapped for Firestore later.
-  // Shape matches the Playbook type and the UI you already built.
-
-  const demoPlaybooks: Playbook[] = [
-    {
-      id: 'abandon-browse-cart-saver',
-      brandId: DEMO_BRAND_ID,
-      name: 'abandon-browse-cart-saver',
-      description: 'Recover abandoned carts via email/SMS and on-site prompts.',
-      kind: 'signal',
-      tags: ['retention', 'recovery', 'sms', 'email', 'on-site'],
-      enabled: true,
-    },
-    {
-      id: 'competitor-price-drop-watch',
-      brandId: DEMO_BRAND_ID,
-      name: 'competitor-price-drop-watch',
-      description: 'Monitor competitor price drops and suggest experiments.',
-      kind: 'signal',
-      tags: ['competitive', 'pricing', 'experiments'],
-      enabled: true,
-    },
-    {
-      id: 'new-subscriber-welcome-series',
-      brandId: DEMO_BRAND_ID,
-      name: 'new-subscriber-welcome-series',
-      description: 'Onboard new subscribers with a 5-part welcome flow.',
-      kind: 'automation',
-      tags: ['email', 'onboarding', 'engagement'],
-      enabled: false,
-    },
-    {
-      id: 'win-back-lapsed-customers',
-      brandId: DEMO_BRAND_ID,
-      name: 'win-back-lapsed-customers',
-      description: 'Re-engage customers who have not ordered in 60+ days.',
-      kind: 'signal',
-      tags: ['retention', 'sms', 'discounts'],
-      enabled: true,
-    },
-  ];
-
-  return demoPlaybooks;
+    if (isDemo) {
+        brandId = DEMO_BRAND_ID;
+    } else {
+        try {
+            // This will throw if the user is not authenticated or lacks the required role.
+            const user = await requireUser(['brand', 'owner']);
+            brandId = user.brandId || DEMO_BRAND_ID; // Fallback to demo if owner has no brandId
+        } catch (error) {
+            console.error("Authentication error in getPlaybooksForBrand:", error);
+            // Return an empty array for unauthenticated users to prevent crashes.
+            return [];
+        }
+    }
+  
+    const { firestore } = await createServerClient();
+    const playbookRepo = makePlaybookRepo(firestore);
+    return await playbookRepo.getAllByBrand(brandId);
 }

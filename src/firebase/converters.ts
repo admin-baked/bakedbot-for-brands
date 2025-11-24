@@ -5,10 +5,10 @@ import {
   QueryDocumentSnapshot,
   SnapshotOptions,
 } from "firebase/firestore";
-import type { Product, Retailer, OrderDoc, Review, UserInteraction, Location, Coupon } from '@/types/domain';
+import type { Product, Retailer, OrderDoc, Review, UserInteraction, Location, Coupon, Playbook } from '@/types/domain';
 
 // Re-export the types so they can be imported from this module
-export type { Product, Retailer, OrderDoc, Review, UserInteraction, Location, Coupon };
+export type { Product, Retailer, OrderDoc, Review, UserInteraction, Location, Coupon, Playbook };
 
 
 // ---- Generic helpers ----
@@ -29,6 +29,8 @@ export const orderConverter = makeConverter<OrderDoc>();
 export const reviewConverter = makeConverter<Review>();
 export const interactionConverter = makeConverter<UserInteraction>();
 export const couponConverter = makeConverter<Coupon>();
+export const playbookConverter = makeConverter<Playbook>();
+
 export const retailerConverter: FirestoreDataConverter<Retailer> = {
   toFirestore(retailer: Retailer) {
     const { id, ...rest } = retailer;
@@ -54,5 +56,3 @@ export const retailerConverter: FirestoreDataConverter<Retailer> = {
     };
   },
 };
-
-    
