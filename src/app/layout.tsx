@@ -36,7 +36,7 @@ export default function RootLayout({
             <AppThemeProvider>
                 <div className="flex-1 flex flex-col">
                   <Header />
-                  {children}
+                  <div className="flex-1">{children}</div>
                   <Footer />
                 </div>
             </AppThemeProvider>
