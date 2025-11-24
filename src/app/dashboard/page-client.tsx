@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -21,10 +20,13 @@ export default function DashboardPageClient({
   initialPlaybooks = [],
   drafts = [],
 }: DashboardPageClientProps) {
+  const list = initialPlaybooks;
+  const [draftList, setDraftList] = React.useState(drafts);
+
   // Combine drafts and playbooks into a single list for rendering.
   const combinedList = React.useMemo(() => {
     // Type guard to ensure we are working with a valid draft structure.
-    const validDrafts: Playbook[] = drafts.map(d => ({
+    const validDrafts: Playbook[] = draftList.map(d => ({
       id: d.id,
       brandId: d.brandId || 'demo-brand',
       name: d.name,
@@ -34,11 +36,9 @@ export default function DashboardPageClient({
       enabled: false, // Drafts are never enabled
       isDraft: true, // Custom property to identify drafts
     }));
-    return [...validDrafts, ...initialPlaybooks];
-  }, [initialPlaybooks, drafts]);
-  
-  const [list, setList] = React.useState<any[]>(combinedList);
-  
+    return [...validDrafts, ...list];
+  }, [list, draftList]);
+
   const [prompt, setPrompt] = React.useState('');
   const [suggested, setSuggested] = React.useState<SuggestedPlaybook | null>(
     null,
@@ -179,26 +179,27 @@ export default function DashboardPageClient({
                   setSaveStatus('idle');
                   startSaving(async () => {
                     try {
-                      await savePlaybookDraft({
+                      const result = await savePlaybookDraft({
                         name: suggested.name,
                         description: suggested.description,
                         agents: suggested.agents,
                         tags: suggested.tags,
                       });
-                      setSaveStatus('saved');
-                      setList((prev) => [
-                        {
-                          id: `draft_${Date.now()}`,
-                          brandId: 'demo-brand',
-                          name: suggested.name,
-                          description: suggested.description,
-                          kind: 'automation', // Placeholder kind
-                          tags: suggested.tags,
-                          enabled: false,
-                          isDraft: true,
-                        },
-                        ...prev,
-                      ]);
+
+                      if (result.ok) {
+                         setSaveStatus('saved');
+                         // Optimistically add to the drafts list
+                         setDraftList((prev) => [
+                            {
+                                id: result.id,
+                                brandId: 'demo-brand',
+                                ...suggested,
+                            },
+                           ...prev
+                         ]);
+                      } else {
+                          throw new Error('Server action failed.');
+                      }
                     } catch (e) {
                       console.error('Failed to save draft', e);
                       setSaveStatus('error');
@@ -229,9 +230,9 @@ export default function DashboardPageClient({
 
       {/* Existing Playbooks list */}
       <section className="space-y-3">
-        {list.length > 0 ? (
+        {combinedList.length > 0 ? (
           <ul className="space-y-3">
-            {list.map((pb) => (
+            {combinedList.map((pb: any) => (
               <li
                 key={pb.id}
                 className="rounded-2xl border px-4 py-4 bg-background/80 text-sm"
