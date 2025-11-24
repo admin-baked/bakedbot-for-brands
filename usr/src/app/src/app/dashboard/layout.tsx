@@ -1,9 +1,8 @@
 
-'use client';
-
-import { DashboardSidebar } from '@/components/dashboard/sidebar';
-import { DashboardHeader } from '@/components/dashboard/header';
+// src/app/dashboard/layout.tsx
 import type { ReactNode } from 'react';
+import { DashboardSidebar } from '@/components/dashboard/sidebar';
+import { DashboardTopbar } from '@/components/dashboard/topbar';
 
 export default function DashboardLayout({
   children,
@@ -11,16 +10,17 @@ export default function DashboardLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="flex min-h-screen">
-        <DashboardSidebar />
-        <main className="flex-1 md:pl-60">
-          <header className="sticky top-0 z-10 border-b bg-background/80 px-4 py-4 backdrop-blur sm:px-6">
-            <DashboardHeader />
-          </header>
-          <div className="px-4 py-5 sm:px-6 lg:px-8">
-            {children}
-          </div>
+    <div className="flex h-screen bg-[#0b090e] text-zinc-50">
+      {/* Left sidebar */}
+      <DashboardSidebar />
+
+      {/* Main column */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <DashboardTopbar />
+
+        <main className="flex-1 overflow-y-auto bg-[#0b090e]">
+          {/* Page-level content like Playbooks grid goes here */}
+          {children}
         </main>
       </div>
     </div>
