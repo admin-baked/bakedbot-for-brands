@@ -14,7 +14,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-10">
-      <DashboardPageClient initialPlaybooks={playbooks} drafts={drafts} />
+      <DashboardPageClient playbooks={playbooks} drafts={drafts} />
     </main>
   );
 }
