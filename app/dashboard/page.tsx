@@ -10,17 +10,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import Logo from '@/components/logo';
-import { Bot, ChevronDown, ListPlay, Search, Sparkles } from 'lucide-react';
-import Link from 'next/link';
-import { useUser } from '@/firebase/auth/use-user';
-import { useFirebase } from '@/firebase/provider';
-import { signOut } from 'firebase/auth';
-import { useToast } from '@/hooks/use-toast';
+import { Bot, ChevronDown, List, Search, Sparkles } from 'lucide-react';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 
 type Playbook = {
@@ -104,8 +95,7 @@ export default function DashboardPage() {
   const [playbooks, setPlaybooks] = useState(initialPlaybooks);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const { navLinks } = useDashboardConfig();
-
+  
   const filteredPlaybooks = playbooks.filter((pb) => {
     if (statusFilter === 'active' && !pb.enabled) return false;
     if (statusFilter === 'disabled' && pb.enabled) return false;
