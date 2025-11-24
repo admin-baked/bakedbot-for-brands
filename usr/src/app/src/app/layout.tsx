@@ -2,6 +2,9 @@
 
 import "./globals.css";
 import type { ReactNode } from "react";
+import { Providers } from "@/app/providers";
+import { AppLayout } from "@/components/AppLayout";
+
 
 export const metadata = {
   title: "BakedBot AI",
@@ -10,8 +13,14 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <Providers>
+            <AppLayout>
+                {children}
+            </AppLayout>
+        </Providers>
+      </body>
     </html>
   );
 }
