@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { Bot, ChevronDown, Search, Sparkles } from 'lucide-react';
-import { createPlaybookSuggestion, type SuggestionFormState } from './actions';
+import { createPlaybookSuggestion, type SuggestionFormState } from './playbooks/actions';
 import { PlaybookSuggestionDialog } from './components/playbook-suggestion-dialog';
 import type { Playbook } from '@/types/domain';
 
@@ -24,7 +24,7 @@ const initialSuggestionState: SuggestionFormState = {
 }
 
 function PlaybookCard({ playbook, onToggle }: { playbook: Playbook; onToggle: () => void; }) {
-  const kindLabel = playbook.type === 'signal' ? 'SIGNAL' : 'AUTOMATION';
+  const kindLabel = playbook.kind === 'signal' ? 'SIGNAL' : 'AUTOMATION';
 
   return (
     <article className="bg-card/5 border border-border rounded-2xl px-4 py-4 flex flex-col gap-3">
