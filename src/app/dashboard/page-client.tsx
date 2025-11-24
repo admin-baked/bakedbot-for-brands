@@ -1,14 +1,15 @@
+
 'use client';
 
 import * as React from 'react';
 import type { Playbook } from '@/types/domain';
 
 type DashboardPageClientProps = {
-  playbooks?: Playbook[];
+  initialPlaybooks?: Playbook[];
 };
 
-export default function DashboardPageClient({ playbooks }: DashboardPageClientProps) {
-  const list = Array.isArray(playbooks) ? playbooks : [];
+export default function DashboardPageClient({ initialPlaybooks }: DashboardPageClientProps) {
+  const playbooks = initialPlaybooks ?? [];
 
   return (
     <div className="space-y-6">
@@ -22,9 +23,9 @@ export default function DashboardPageClient({ playbooks }: DashboardPageClientPr
         </p>
       </header>
 
-      {list.length > 0 ? (
+      {playbooks.length > 0 ? (
         <ul className="space-y-2">
-          {list.map((pb: any, idx: number) => (
+          {playbooks.map((pb: any, idx: number) => (
             <li
               key={pb.id ?? pb.slug ?? idx}
               className="rounded-xl border p-4 text-sm bg-background"

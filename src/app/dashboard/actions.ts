@@ -3,6 +3,26 @@
 
 import type { Playbook } from '@/types/domain';
 import { DEMO_BRAND_ID } from '@/lib/config';
+import { z } from "zod";
+
+export const PlaybookDraftSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(2),
+  description: z.string().optional(),
+  kind: z.string().optional(),
+  status: z.enum(["draft", "active"]).default("draft"),
+});
+
+export type PlaybookDraft = z.infer<typeof PlaybookDraftSchema>;
+
+export const SuggestPlaybookInputSchema = z.object({
+  goal: z.string().min(4),
+  brandId: z.string().optional(),
+  context: z.string().optional(),
+});
+
+export type SuggestPlaybookInput = z.infer<typeof SuggestPlaybookInputSchema>;
+
 
 // This function now correctly matches the name used in the page component.
 export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
