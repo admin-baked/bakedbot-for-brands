@@ -1,11 +1,13 @@
+
 'use client';
 
 import * as React from 'react';
-import type { Playbook } from '@/types/domain';
+import type { Playbook, PlaybookDraft } from '@/types/domain';
 import { savePlaybookDraft } from './actions';
 
 type DashboardPageClientProps = {
   initialPlaybooks?: Playbook[];
+  drafts?: PlaybookDraft[];
 };
 
 type SuggestedPlaybook = {
@@ -17,9 +19,26 @@ type SuggestedPlaybook = {
 
 export default function DashboardPageClient({
   initialPlaybooks = [],
+  drafts = [],
 }: DashboardPageClientProps) {
-  const [list, setList] = React.useState<Playbook[]>(initialPlaybooks);
-
+  // Combine drafts and playbooks into a single list for rendering.
+  const combinedList = React.useMemo(() => {
+    // Type guard to ensure we are working with a valid draft structure.
+    const validDrafts: Playbook[] = drafts.map(d => ({
+      id: d.id,
+      brandId: d.brandId || 'demo-brand',
+      name: d.name,
+      description: d.description,
+      kind: 'automation', // Assume drafts are automations for now
+      tags: d.tags || [],
+      enabled: false, // Drafts are never enabled
+      isDraft: true, // Custom property to identify drafts
+    }));
+    return [...validDrafts, ...initialPlaybooks];
+  }, [initialPlaybooks, drafts]);
+  
+  const [list, setList] = React.useState<any[]>(combinedList);
+  
   const [prompt, setPrompt] = React.useState('');
   const [suggested, setSuggested] = React.useState<SuggestedPlaybook | null>(
     null,
@@ -176,6 +195,7 @@ export default function DashboardPageClient({
                           kind: 'automation', // Placeholder kind
                           tags: suggested.tags,
                           enabled: false,
+                          isDraft: true,
                         },
                         ...prev,
                       ]);
@@ -193,7 +213,7 @@ export default function DashboardPageClient({
               <div className="text-[11px] text-muted-foreground">
                 {saveStatus === 'saved' && (
                   <span className="text-emerald-700">
-                    Draft saved (stub). We&apos;ll wire Firestore next.
+                    Draft saved! It has been added to your list below.
                   </span>
                 )}
                 {saveStatus === 'error' && (
@@ -216,7 +236,10 @@ export default function DashboardPageClient({
                 key={pb.id}
                 className="rounded-2xl border px-4 py-4 bg-background/80 text-sm"
               >
-                <div className="font-medium">{pb.name}</div>
+                <div className="flex items-center justify-between">
+                    <div className="font-medium">{pb.name}</div>
+                    {pb.isDraft && <span className="text-xs uppercase tracking-wider font-semibold text-amber-600">Draft</span>}
+                </div>
                 {pb.description && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     {pb.description}
