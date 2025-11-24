@@ -23,6 +23,7 @@ if (!getApps().length) {
       projectId: serviceAccount.project_id,
     });
   } else {
+    // Fallback if you *really* have no key configured
     app = initializeApp({
       credential: applicationDefault(),
     });
@@ -35,9 +36,5 @@ const firestore: Firestore = getFirestore(app);
 const auth: Auth = getAuth(app);
 
 export function createServerClient() {
-  return {
-    app,
-    firestore,
-    auth,
-  };
+  return { app, firestore, auth };
 }
