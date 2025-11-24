@@ -56,7 +56,7 @@ export async function getPlaybooksForDashboard(): Promise<any[]> {
 export async function savePlaybookDraft(
     input: any,
   ): Promise<PlaybookDraft | null> {
-    const { firestore } = createServerClient();
+    const { firestore } = await createServerClient();
     const now = new Date();
   
     const collectionRef = firestore.collection('brands').doc(input.brandId).collection('playbookDrafts');
@@ -84,7 +84,7 @@ export async function getPlaybookDraftsForDashboard(
     brandId: string,
   ): Promise<any[]> {
   
-    const { firestore } = createServerClient();
+    const { firestore } = await createServerClient();
   
     const snap = await firestore
       .collection('brands')

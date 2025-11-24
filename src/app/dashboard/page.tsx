@@ -9,14 +9,14 @@ export default async function DashboardPage() {
   let initialPlaybooks: any[] = [];
 
   try {
-    const { firestore } = createServerClient();
+    const { firestore } = await createServerClient();
 
     const snap = await firestore
       .collection("playbookDrafts")
       .where("brandId", "==", brandId)
       .get();
 
-    initialPlaybooks = snap.docs.map((doc) => ({
+    initialPlaybooks = snap.docs.map((doc: any) => ({
       id: doc.id,
       ...(doc.data() ?? {}),
     }));
