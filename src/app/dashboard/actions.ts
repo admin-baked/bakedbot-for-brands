@@ -4,6 +4,8 @@
 import type { Playbook, PlaybookDraft } from '@/types/domain';
 import { DEMO_BRAND_ID } from '@/lib/config';
 import { createServerClient } from '@/firebase/server-client';
+import { requireUser } from '@/server/auth/auth';
+import { FieldValue } from 'firebase-admin/firestore';
 
 
 // This function now correctly matches the name used in the page component.
@@ -64,25 +66,36 @@ type PlaybookDraftInput = {
 };
 
 export async function savePlaybookDraft(input: PlaybookDraftInput) {
-  // PHASE 2B: stub only – safe to call from the client.
-  // This is the seam where we’ll later write to Firestore.
-  console.log('Saving playbook draft (stub):', input);
+  const { firestore } = await createServerClient();
+  const user = await requireUser(['brand', 'owner']);
+  const brandId = user.brandId || DEMO_BRAND_ID;
 
-  // Example shape you might return
+  const newDraftRef = firestore.collection(`brands/${brandId}/playbookDrafts`).doc();
+
+  await newDraftRef.set({
+    ...input,
+    brandId,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
   return {
     ok: true,
-    id: `draft_${Date.now()}`,
+    id: newDraftRef.id,
   };
 }
 
 
 export async function getPlaybookDraftsForDashboard(
-  brandId: string = DEMO_BRAND_ID,
+  brandId?: string,
 ): Promise<PlaybookDraft[]> {
+  const user = await requireUser(['brand', 'owner']);
+  const effectiveBrandId = brandId || user.brandId || DEMO_BRAND_ID;
+
   try {
     const { firestore } = await createServerClient();
     const snap = await firestore
-      .collection(`brands/${brandId}/playbookDrafts`)
+      .collection(`brands/${effectiveBrandId}/playbookDrafts`)
       .orderBy('createdAt', 'desc')
       .limit(20)
       .get();
@@ -92,7 +105,7 @@ export async function getPlaybookDraftsForDashboard(
 
       return {
         id: doc.id,
-        brandId,
+        brandId: effectiveBrandId,
         name: data.name ?? 'untitled-playbook',
         description: data.description ?? '',
         agents: data.agents ?? [],
