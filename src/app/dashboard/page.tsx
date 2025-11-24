@@ -1,7 +1,7 @@
 
 // src/app/dashboard/page.tsx
 
-import { listPlaybooksForBrand, Playbook } from '@/server/repos/playbookRepo';
+import { listPlaybooksForBrand, Playbook, seedDemoPlaybooks } from '@/server/repos/playbookRepo';
 
 const FALLBACK_PLAYBOOKS: Playbook[] = [
   {
@@ -40,6 +40,9 @@ export default async function DashboardPage() {
   let playbooks: Playbook[] = [];
 
   try {
+    // Seed the data first (this is idempotent, it won't duplicate)
+    await seedDemoPlaybooks(brandId);
+    // Then fetch the data
     playbooks = await listPlaybooksForBrand(brandId);
   } catch (err) {
     console.error('Failed to load playbooks for brand', brandId, err);
@@ -209,7 +212,8 @@ export default async function DashboardPage() {
 
           <p className="mt-3 text-[0.7rem] text-slate-500">
             Later, this panel can pull live status from each agent service
-            (queue depth, recent actions, error rate) via Firestore or a metrics store.
+            (queue depth, recent actions, error rate) via Firestore or a
+            metrics collection.
           </p>
         </div>
       </section>
