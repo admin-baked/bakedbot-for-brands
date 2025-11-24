@@ -70,10 +70,11 @@ export function Header() {
                     <Logo />
                     <nav className="hidden md:flex items-center gap-4">
                         {navLinks.map((link) => {
-                          const isActive =
+                          const isActive = !!pathname && (
                               link.href === '/'
                                 ? pathname === '/'
-                                : pathname?.startsWith(link.href);
+                                : pathname.startsWith(link.href)
+                          );
                           return (
                             <Link
                                 key={link.href}
