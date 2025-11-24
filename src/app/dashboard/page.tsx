@@ -1,16 +1,17 @@
 // app/dashboard/page.tsx
 
+'use server';
+
 import { getPlaybooksForDashboard } from './actions';
 import { DashboardPlaybooksClient } from './playbooks-client';
 
+// This is now a Server Component that fetches data and passes it to the client.
 export default async function DashboardPage() {
+  
+  // Fetch live playbook data from the stubbed action.
   const playbooks = await getPlaybooksForDashboard();
 
   return (
-    <div className="flex min-h-screen bg-[#0c0707] text-gray-100">
-      {/* If you already have a DashboardSidebar layout, you can use it here.
-         For now, we'll just render the client block. */}
       <DashboardPlaybooksClient initialPlaybooks={playbooks} />
-    </div>
   );
 }
