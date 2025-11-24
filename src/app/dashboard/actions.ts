@@ -126,7 +126,7 @@ export async function getPlaybookDraftsForDashboard(
       .limit(20)
       .get();
 
-    const drafts: PlaybookDraft[] = snap.docs.map((doc) => {
+    const drafts: PlaybookDraft[] = snap.docs.map((doc: any) => {
       const data = doc.data() as any;
 
       return {
