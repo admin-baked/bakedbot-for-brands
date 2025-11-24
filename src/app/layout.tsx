@@ -1,7 +1,6 @@
 
 import type { ReactNode } from "react";
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
+import { AppLayout } from "@/components/AppLayout";
 import { Providers } from "@/app/providers";
 import "./globals.css";
 
@@ -15,9 +14,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <body>
         <Providers>
-          <Header />
-          {children}
-          <Footer />
+          <AppLayout>{children}</AppLayout>
         </Providers>
       </body>
     </html>
