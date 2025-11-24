@@ -21,7 +21,9 @@ const PlaybookDraftSchema = z.object({
 });
 
 const SuggestPlaybookInputSchema = z.object({
-  command: z.string().describe('The user\'s natural language command.'),
+  goal: z.string().min(4),
+  brandId: z.string().optional(),
+  context: z.string().optional(),
 });
 export type SuggestPlaybookInput = z.infer<typeof SuggestPlaybookInputSchema>;
 
@@ -52,8 +54,9 @@ export async function createPlaybookSuggestion(
     }
 
     try {
-        const validatedInput = SuggestPlaybookInputSchema.parse({ command });
-        const suggestion = await suggestPlaybookFlow(validatedInput);
+        const suggestion = await suggestPlaybookFlow({
+          goal: command,
+        });
         const validatedSuggestion = PlaybookDraftSchema.parse(suggestion);
         
         return {
