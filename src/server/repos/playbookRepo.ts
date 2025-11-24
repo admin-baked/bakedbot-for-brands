@@ -56,7 +56,7 @@ export async function seedDemoPlaybooks(brandId: string): Promise<void> {
 
   const batch = firestore.batch();
 
-  const docs: Omit<Playbook, 'id'> & { id: string }[] = [
+  const docs: Playbook[] = [
     {
       id: 'launch-drop-chicago',
       name: 'Launch Drop · Chicago',
@@ -82,7 +82,7 @@ export async function seedDemoPlaybooks(brandId: string): Promise<void> {
 
   for (const pb of docs) {
     const ref = col.doc(pb.id);
-    batch.set(ref, {
+    batch.set({
       name: pb.name,
       status: pb.status,
       channel: pb.channel,

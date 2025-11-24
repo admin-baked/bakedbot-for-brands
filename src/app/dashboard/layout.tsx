@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 export default function DashboardLayout({
   children,
 }: {
-  children: React.Node;
+  children: ReactNode;
 }) {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
