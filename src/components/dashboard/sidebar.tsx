@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -28,17 +29,7 @@ export function DashboardSidebar() {
   const { user } = useUser();
   const { auth } = useFirebase();
   const { toast } = useToast();
-  
-  const links = [
-    { label: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' },
-    { label: 'Smokey Chat', href: '/dashboard/chat', icon: 'BotMessageSquare' },
-    { label: 'The Sanctum', href: '/dashboard/sanctum', icon: 'Shield' },
-    { label: 'Knowledge Base', href: '/dashboard/knowledge', icon: 'Book' },
-    { label: 'Smokey Growth Engine', href: '/dashboard/growth', icon: 'Sparkles' },
-    { label: 'Campaigns', href: '/dashboard/campaigns', icon: 'Mails', locked: true },
-    { label: 'Playbooks', href: '/dashboard/playbooks', icon: 'ListPlay' },
-    { label: 'Settings', href: '/dashboard/settings', icon: 'Settings' },
-  ];
+  const { navLinks } = useDashboardConfig();
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -72,7 +63,7 @@ export function DashboardSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {links.map((link) => {
+          {navLinks.filter(link => !link.hidden).map((link) => {
             const Icon = (LucideIcons as any)[link.icon] || LucideIcons.Folder;
              const isActive =
               link.href === '/dashboard'
