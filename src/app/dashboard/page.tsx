@@ -1,16 +1,17 @@
 
-'use server';
+// src/app/dashboard/page.tsx
 
-import DashboardPageComponent from './page-client';
-import { getPlaybooksForDashboard } from './actions';
+import DashboardPageClient from './page-client';
+// import { getPlaybooksForDashboard } from './actions'; // optional later
 
-// This is now a Server Component that fetches data and passes it to the client.
 export default async function DashboardPage() {
-  
-  // Fetch live playbook data from the stubbed action.
-  const playbooks = await getPlaybooksForDashboard();
+  // TODO: wire real data later
+  // const playbooks = await getPlaybooksForDashboard();
+  const playbooks: any[] = [];
 
   return (
-      <DashboardPageComponent initialPlaybooks={playbooks} />
+    <main className="max-w-6xl mx-auto px-4 py-10">
+      <DashboardPageClient playbooks={playbooks} />
+    </main>
   );
 }
