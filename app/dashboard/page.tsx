@@ -12,15 +12,20 @@ export default async function DashboardPage() {
   try {
     const { firestore } = createServerClient();
 
-    const snap = await firestore
-      .collection("playbookDrafts") // or "playbooks" if that’s your collection
-      .where("brandId", "==", brandId)
-      .get();
+    // Only attempt to fetch data if the Firestore client was initialized
+    if (firestore) {
+        const snap = await firestore
+          .collection("playbookDrafts") // or "playbooks" if that’s your collection
+          .where("brandId", "==", brandId)
+          .get();
 
-    playbooks = snap.docs.map((doc: any) => ({
-      id: doc.id,
-      ...(doc.data() ?? {}),
-    }));
+        playbooks = snap.docs.map((doc: any) => ({
+          id: doc.id,
+          ...(doc.data() ?? {}),
+        }));
+    } else {
+        console.warn("DashboardPage: Firestore client not available. Rendering with empty data.");
+    }
   } catch (err) {
     console.error("Failed to load playbooks for dashboard", err);
     // we just fall back to the empty list
