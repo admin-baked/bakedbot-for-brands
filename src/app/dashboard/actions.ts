@@ -5,11 +5,6 @@ import type { Playbook, PlaybookDraft } from '@/types/domain';
 import { createServerClient } from '@/firebase/server-client';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
-// Simple feature flag: do we have admin creds or not?
-const HAS_SERVICE_ACCOUNT =
-  !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY &&
-  process.env.FIREBASE_SERVICE_ACCOUNT_KEY !== '';
-
 type PlaybookDraftInput = {
   brandId: string;
   name: string;
@@ -76,24 +71,7 @@ export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
 export async function savePlaybookDraft(
   input: PlaybookDraftInput,
 ): Promise<PlaybookDraft | null> {
-  if (!HAS_SERVICE_ACCOUNT) {
-    console.warn(
-      '[dashboard] FIREBASE_SERVICE_ACCOUNT_KEY not set; skipping Firestore write and returning stub id.',
-    );
-    // Return a shape that matches PlaybookDraft but indicates it's a stub
-    return {
-        ...input,
-        id: `local_${Date.now()}`,
-        status: 'draft',
-        type: 'generic',
-        signals: [],
-        targets: [],
-        constraints: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    }
-  }
-
+  
   try {
     const { firestore } = createServerClient();
     const now = new Date();
@@ -129,12 +107,6 @@ export async function savePlaybookDraft(
 export async function getPlaybookDraftsForDashboard(
   brandId: string = DEMO_BRAND_ID,
 ): Promise<PlaybookDraft[]> {
-  if (!HAS_SERVICE_ACCOUNT) {
-    console.warn(
-      '[dashboard] FIREBASE_SERVICE_ACCOUNT_KEY not set; returning empty draft list.',
-    );
-    return [];
-  }
 
   try {
     const { firestore } = createServerClient();
@@ -148,28 +120,22 @@ export async function getPlaybookDraftsForDashboard(
       .get();
 
     const drafts: PlaybookDraft[] = snap.docs.map((doc: any) => {
-      const data = doc.data();
+      const data = doc.data() ?? {};
 
       return {
         id: doc.id,
-        brandId,
-        name: data.name ?? 'untitled-playbook',
-        description: data.description ?? '',
-        agents: Array.isArray(data.agents) ? data.agents : [],
-        tags: Array.isArray(data.tags) ? data.tags : [],
-        createdAt:
-          data.createdAt instanceof Date
-            ? data.createdAt
-            : data.createdAt?.toDate?.(),
-        updatedAt:
-          data.updatedAt instanceof Date
-            ? data.updatedAt
-            : data.updatedAt?.toDate?.(),
-        status: data.status ?? 'draft',
-        type: data.type ?? 'automation',
+        brandId: data.brandId ?? brandId,
+        name: data.name ?? 'Untitled playbook',
+        description: data.description ?? "",
+        status: data.status ?? "draft",
+        type: data.type ?? "generic",
+        agents: data.agents ?? [],
+        tags: data.tags ?? [],
         signals: data.signals ?? [],
         targets: data.targets ?? [],
         constraints: data.constraints ?? [],
+        createdAt: data.createdAt?.toDate() ?? new Date(),
+        updatedAt: data.updatedAt?.toDate() ?? new Date(),
       };
     });
 

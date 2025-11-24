@@ -1,4 +1,3 @@
-
 // src/firebase/server-client.ts
 import { cert, getApps, getApp, initializeApp, App } from "firebase-admin/app";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
@@ -10,8 +9,12 @@ if (!getApps().length) {
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
   if (!serviceAccountJson) {
-    // Fallback: will try to use default credentials (local dev)
-    app = initializeApp();
+    // This is now a fatal error because the Admin SDK needs credentials to perform
+    // operations like minting custom tokens for dev login.
+    throw new Error(
+      "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. " +
+      "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
+    );
   } else {
     // In Firebase Hosting, the key is a Base64 string, not a JSON string.
     // In local dev with a .env file, we've also Base64 encoded it.

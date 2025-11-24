@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import type { PlaybookDraft } from "./playbooks/schemas";
-import { savePlaybookDraft } from "./playbooks/actions";
+import { savePlaybookDraft } from "./actions";
 
 type DashboardPageClientProps = {
   brandId: string;
