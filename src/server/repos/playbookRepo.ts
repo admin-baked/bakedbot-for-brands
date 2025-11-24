@@ -82,7 +82,7 @@ export async function seedDemoPlaybooks(brandId: string): Promise<void> {
 
   for (const pb of docs) {
     const ref = col.doc(pb.id);
-    batch.set({
+    batch.set(ref, {
       name: pb.name,
       status: pb.status,
       channel: pb.channel,
