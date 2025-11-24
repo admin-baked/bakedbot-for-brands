@@ -4,7 +4,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { DEMO_BRAND_ID } from '@/lib/config';
 import { demoProducts, demoRetailers } from '@/lib/demo/demo-data';
 import { productConverter, retailerConverter, reviewConverter, type Product, type Retailer, type Review } from '@/firebase/converters';
-import MenuLayoutClient from '@/app/menu/menu-layout-client';
+import MenuLayoutClient from './menu-layout-client';
 import { cookies } from 'next/headers';
 import type { DocumentData } from 'firebase-admin/firestore';
 import Chatbot from '@/components/chatbot';
@@ -22,7 +22,7 @@ async function getMenuData(brandId: string) {
     if (isDemo) {
         products = demoProducts;
         locations = demoRetailers;
-        reviews = demoCustomer.reviews as Review[];
+        reviews = [] as Review[]; // Use empty array as demoCustomer is not available here
         featuredProducts = [demoProducts[0], demoProducts[1], demoProducts[2]];
     } else {
         try {
@@ -48,7 +48,7 @@ async function getMenuData(brandId: string) {
             // Fallback to demo data on any error
             products = demoProducts;
             locations = demoRetailers;
-            reviews = demoCustomer.reviews as Review[];
+            reviews = [] as Review[]; // Use empty array as demoCustomer is not available here
             featuredProducts = [demoProducts[0], demoProducts[1], demoProducts[2]];
         }
     }
@@ -75,4 +75,3 @@ export default async function MenuLayout({
       </MenuLayoutClient>
   );
 }
-
