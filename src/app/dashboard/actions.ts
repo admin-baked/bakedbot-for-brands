@@ -1,7 +1,10 @@
+
 'use server';
 
-import type { Playbook } from '@/types/domain';
+import type { Playbook, PlaybookDraft } from '@/types/domain';
 import { DEMO_BRAND_ID } from '@/lib/config';
+import { createServerClient } from '@/firebase/server-client';
+
 
 // This function now correctly matches the name used in the page component.
 export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
@@ -31,7 +34,8 @@ export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
       id: 'new-subscriber-welcome-series',
       brandId: DEMO_BRAND_ID,
       name: 'new-subscriber-welcome-series',
-      description: 'Onboard new subscribers with a 5-part welcome flow.',
+      description:
+        'Onboard new subscribers with a 5-part welcome flow.',
       kind: 'automation',
       tags: ['email', 'onboarding', 'engagement'],
       enabled: false,
@@ -40,7 +44,8 @@ export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
       id: 'win-back-lapsed-customers',
       brandId: DEMO_BRAND_ID,
       name: 'win-back-lapsed-customers',
-      description: 'Re-engage customers who have not ordered in 60+ days.',
+      description:
+        'Re-engage customers who have not ordered in 60+ days.',
       kind: 'signal',
       tags: ['retention', 'sms', 'discounts'],
       enabled: true,
@@ -68,4 +73,42 @@ export async function savePlaybookDraft(input: PlaybookDraftInput) {
     ok: true,
     id: `draft_${Date.now()}`,
   };
+}
+
+
+export async function getPlaybookDraftsForDashboard(
+  brandId: string = DEMO_BRAND_ID,
+): Promise<PlaybookDraft[]> {
+  try {
+    const { firestore } = await createServerClient();
+    const snap = await firestore
+      .collection(`brands/${brandId}/playbookDrafts`)
+      .orderBy('createdAt', 'desc')
+      .limit(20)
+      .get();
+
+    const drafts: PlaybookDraft[] = snap.docs.map((doc) => {
+      const data = doc.data();
+
+      return {
+        id: doc.id,
+        brandId,
+        name: data.name ?? 'untitled-playbook',
+        description: data.description ?? '',
+        agents: data.agents ?? [],
+        tags: data.tags ?? [],
+        createdAt: data.createdAt?.toDate
+          ? data.createdAt.toDate()
+          : undefined,
+        updatedAt: data.updatedAt?.toDate
+          ? data.updatedAt.toDate()
+          : undefined,
+      };
+    });
+
+    return drafts;
+  } catch (err) {
+    console.error('Failed to load playbook drafts for dashboard', err);
+    return [];
+  }
 }
