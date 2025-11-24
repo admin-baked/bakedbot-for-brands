@@ -12,25 +12,34 @@ import { getAuth, Auth } from "firebase-admin/auth";
 
 let app: App;
 
-if (!getApps().length) {
+function getServiceAccount() {
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
-  if (serviceAccountJson) {
-    try {
-      const serviceAccount = JSON.parse(serviceAccountJson);
+  if (!serviceAccountJson) {
+    console.warn("FIREBASE_SERVICE_ACCOUNT_KEY is not set. Falling back to default credentials.");
+    return null;
+  }
 
-      app = initializeApp({
-        credential: cert(serviceAccount),
-        projectId: serviceAccount.project_id,
-      });
-    } catch (e) {
-        console.warn("Could not parse FIREBASE_SERVICE_ACCOUNT_KEY. Falling back to default credentials.", e);
-        app = initializeApp({
-            credential: applicationDefault(),
-        });
-    }
+  try {
+    // The environment variable now contains the raw JSON string, so we just parse it.
+    return JSON.parse(serviceAccountJson);
+  } catch (e) {
+    console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY JSON.", e);
+    // If parsing fails, it's a critical error.
+    throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_KEY. Could not parse JSON.");
+  }
+}
+
+if (!getApps().length) {
+  const serviceAccount = getServiceAccount();
+
+  if (serviceAccount) {
+    app = initializeApp({
+      credential: cert(serviceAccount),
+      projectId: serviceAccount.project_id,
+    });
   } else {
-    // Fallback if you *really* have no key configured
+    // This fallback is crucial for local development where ADC is often used.
     app = initializeApp({
       credential: applicationDefault(),
     });
