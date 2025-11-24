@@ -16,6 +16,7 @@ import { Bot, ChevronDown, Search, Sparkles } from 'lucide-react';
 import { createPlaybookSuggestion, type SuggestionFormState } from './playbooks/actions';
 import { PlaybookSuggestionDialog } from './components/playbook-suggestion-dialog';
 import type { Playbook } from '@/types/domain';
+import { Badge } from '@/components/ui/badge';
 
 const initialSuggestionState: SuggestionFormState = {
   message: '',
@@ -49,11 +50,16 @@ function PlaybookCard({ playbook, onToggle }: { playbook: Playbook; onToggle: ()
       <div className="text-sm font-semibold break-words text-foreground">
         {playbook.name}
       </div>
+       {playbook.description && (
+        <p className="text-xs text-muted-foreground">
+          {playbook.description}
+        </p>
+      )}
       <div className="flex flex-wrap gap-1 mt-1">
         {playbook.tags.map((tag) => (
-          <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+          <Badge key={tag} variant="secondary">
             {tag}
-          </span>
+          </Badge>
         ))}
       </div>
     </article>
@@ -106,8 +112,6 @@ export default function DashboardPageComponent({ initialPlaybooks }: DashboardPa
         suggestion={suggestionState.suggestion}
       />
       <main className="flex-1 overflow-y-auto space-y-8">
-        {/* The header is now handled by the layout */}
-
         {/* Build your AI Agent Workforce */}
         <form action={formAction}>
             <section className="bg-muted/40 border border-dashed rounded-2xl px-6 py-5 flex flex-col gap-3">
