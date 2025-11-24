@@ -1,8 +1,10 @@
+// src/app/layout.tsx
 
-import type { ReactNode } from "react";
-import { AppLayout } from "@/components/AppLayout";
-import { Providers } from "@/app/providers";
 import "./globals.css";
+import type { ReactNode } from "react";
+import { Providers } from "@/app/providers";
+import { AppLayout } from "@/components/AppLayout";
+
 
 export const metadata = {
   title: "BakedBot AI",
@@ -14,7 +16,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <body>
         <Providers>
-          <AppLayout>{children}</AppLayout>
+            <AppLayout>
+                {children}
+            </AppLayout>
         </Providers>
       </body>
     </html>
