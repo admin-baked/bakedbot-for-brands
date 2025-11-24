@@ -1,3 +1,4 @@
+
 // app/dashboard/page.tsx
 import DashboardPageClient from "./page-client";
 import { createServerClient } from "@/firebase/server-client";
