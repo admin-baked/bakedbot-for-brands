@@ -10,7 +10,7 @@ import { savePlaybookDraft } from './actions';
 type PlaybookDraft = any;
 
 type DashboardPageClientProps = {
-  playbooks?: Playbook[];
+  initialPlaybooks?: Playbook[];
   drafts?: PlaybookDraft[];
 };
 
@@ -21,11 +21,11 @@ type SuggestedPlaybook = {
   tags: string[];
 };
 
-export default function DashboardPageClient({
-  playbooks,
+export default function DashboardPageComponent({
+  initialPlaybooks,
   drafts,
 }: DashboardPageClientProps) {
-  const list = Array.isArray(playbooks) ? playbooks : [];
+  const list = Array.isArray(initialPlaybooks) ? initialPlaybooks : [];
   const initialDrafts = Array.isArray(drafts) ? drafts : [];
 
   const [prompt, setPrompt] = React.useState('');
@@ -164,7 +164,7 @@ export default function DashboardPageClient({
                   {a}
                 </span>
               ))}
-              {suggested.tags.map((tag) => (
+              {suggested.tags.map((tag: string) => (
                 <span
                   key={tag}
                   className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground"
@@ -196,7 +196,7 @@ export default function DashboardPageClient({
                       setDraftList((prev) => [
                         {
                           id: result?.id ?? `local_${Date.now()}`,
-                          brandId: 'demo-brand', // This will be updated by server data on refresh
+                          brandId: 'demo-brand',
                           name: suggested.name,
                           description: suggested.description,
                           agents: suggested.agents,
