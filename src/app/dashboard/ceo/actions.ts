@@ -64,7 +64,7 @@ export async function clearAllData(): Promise<ActionResult> {
 
             while ((snapshot = await query.get()).size > 0) {
                 const batch = firestore.batch();
-                snapshot.docs.forEach(doc => {
+                snapshot.docs.forEach((doc: any) => {
                     batch.delete(doc.ref);
                 });
                 await batch.commit();
@@ -75,7 +75,7 @@ export async function clearAllData(): Promise<ActionResult> {
         let reviewsSnapshot;
         while ((reviewsSnapshot = await reviewsQuery.get()).size > 0) {
             const batch = firestore.batch();
-            reviewsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+            reviewsSnapshot.docs.forEach((doc: any) => batch.delete(doc.ref));
             await batch.commit();
         }
 
@@ -83,7 +83,7 @@ export async function clearAllData(): Promise<ActionResult> {
         let feedbackSnapshot;
          while ((feedbackSnapshot = await feedbackQuery.get()).size > 0) {
             const batch = firestore.batch();
-            feedbackSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+            feedbackSnapshot.docs.forEach((doc: any) => batch.delete(doc.ref));
             await batch.commit();
         }
 

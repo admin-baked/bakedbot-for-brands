@@ -57,7 +57,7 @@ export async function updateOrderStatus(
 
   try {
     // 2. Transaction: Read and write atomically to prevent race conditions
-    await firestore.runTransaction(async (transaction) => {
+    await firestore.runTransaction(async (transaction: any) => {
       const orderDoc = await transaction.get(orderRef);
       if (!orderDoc.exists) {
         throw new Error('Order not found.');

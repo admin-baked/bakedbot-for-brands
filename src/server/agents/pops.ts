@@ -68,7 +68,7 @@ export async function handlePopsEvent(orgId: string, eventId: string) {
     .doc(`daily-${dateKey}`);
 
   try {
-    await db.runTransaction(async (tx) => {
+    await db.runTransaction(async (tx: any) => {
       const snap = await tx.get(dailyRef);
       const current = (snap.exists ? snap.data() : {}) as any;
 

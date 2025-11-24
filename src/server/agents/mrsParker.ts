@@ -115,7 +115,7 @@ export async function handleMrsParkerEvent(orgId: string, eventId: string) {
     const total = order.total || 0;
     const earnedPoints = Math.round(total); // 1 point per $ for now
 
-    await db.runTransaction(async (tx) => {
+    await db.runTransaction(async (tx: any) => {
       const snap = await tx.get(loyaltyRef);
       const current = (snap.exists ? snap.data() : {}) as any;
 

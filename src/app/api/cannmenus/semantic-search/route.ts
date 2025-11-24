@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       textPreview?: string;
     }[] = [];
 
-    snap.forEach((doc) => {
+    snap.forEach((doc: any) => {
       const data = doc.data() as CannmenusEmbeddingDoc;
 
       // Optional filters

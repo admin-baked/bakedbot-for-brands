@@ -11,7 +11,17 @@ if (!getApps().length) {
   app = getApp();
 }
 
-// Explicit named exports that TS can see
+// Explicit named exports so TS can see them
 export const firebaseAdminApp: App = app;
 export const firestore: Firestore = getFirestore(app);
 export const auth: Auth = getAuth(app);
+
+// Backwards-compatible helper used all over the codebase
+export async function createServerClient() {
+  // You can extend this later with per-request context if needed
+  return {
+    app: firebaseAdminApp,
+    firestore,
+    auth,
+  };
+}

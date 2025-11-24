@@ -69,7 +69,7 @@ export async function getReviewSummary(input: {
 
       if (product) {
           const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter).get();
-          reviews = reviewsSnap.docs.map(d => d.data());
+          reviews = reviewsSnap.docs.map((d: any) => d.data());
       }
     }
 
@@ -132,15 +132,15 @@ export async function updateProductFeedback(
   const feedbackRef = firestore.doc(`products/${productId}/feedback/${userId}`);
 
   try {
-    await firestore.runTransaction(async (transaction: Transaction) => {
+    await firestore.runTransaction(async (transaction: any) => {
       const feedbackDoc = await transaction.get(feedbackRef);
       const productDoc = await transaction.get(productRef);
 
-      if (!productDoc.exists) {
+      if (!(productDoc as any).exists) {
         throw new Error('Product not found.');
       }
       
-      const existingVote = feedbackDoc.exists ? feedbackDoc.data()?.vote : null;
+      const existingVote = (feedbackDoc as any).exists ? (feedbackDoc as any).data()?.vote : null;
 
       let likeIncrement = 0;
       let dislikeIncrement = 0;
@@ -167,7 +167,7 @@ export async function updateProductFeedback(
     });
 
     const productDoc = await productRef.get();
-    revalidatePath(`/menu/${productDoc.data()?.brandId || 'default'}/products/${productId}`);
+    revalidatePath(`/menu/${(productDoc.data() as any)?.brandId || 'default'}/products/${productId}`);
     revalidatePath('/dashboard');
 
     return { error: false, message: 'Thanks for your feedback!' };

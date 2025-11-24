@@ -91,14 +91,14 @@ export async function POST(_req: NextRequest) {
     // Preload brands into a map
     const brandsSnap = await db.collection("cannmenus_brands").get();
     const brandById = new Map<string, BrandDoc>();
-    brandsSnap.forEach((doc) => {
+    brandsSnap.forEach((doc: any) => {
       brandById.set(doc.id, doc.data() as BrandDoc);
     });
 
     // Preload retailers into a map
     const retailersSnap = await db.collection("cannmenus_retailers").get();
     const retailerById = new Map<string, RetailerDoc>();
-    retailersSnap.forEach((doc) => {
+    retailersSnap.forEach((doc: any) => {
       retailerById.set(doc.id, doc.data() as RetailerDoc);
     });
 
