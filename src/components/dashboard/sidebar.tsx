@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -11,6 +10,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  SidebarTrigger,
+  SidebarRail,
 } from '@/components/ui/sidebar';
 import Logo from '@/components/logo';
 import { useUser } from '@/firebase/auth/use-user';
@@ -19,8 +20,9 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { signOut } from 'firebase/auth';
-import { LogOut, BotMessageSquare, LayoutDashboard, Settings } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { LogOut, PanelLeft } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 
 export function DashboardSidebar() {
   const rawPathname = usePathname();
@@ -28,12 +30,7 @@ export function DashboardSidebar() {
   const { user } = useUser();
   const { auth } = useFirebase();
   const { toast } = useToast();
-
-  const links = [
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'Playbooks', href: '/dashboard/playbooks', icon: BotMessageSquare },
-    { label: 'Settings', href: '/dashboard/settings', icon: Settings },
-  ];
+  const { navLinks } = useDashboardConfig();
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -43,6 +40,7 @@ export function DashboardSidebar() {
         title: "Signed Out",
         description: "You have been successfully logged out.",
       });
+      // Redirect to login page after sign out
       window.location.href = '/brand-login';
     } catch (error) {
       console.error('Sign out error', error);
@@ -62,19 +60,19 @@ export function DashboardSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <Logo />
+        <div className="flex items-center justify-between">
+            <Logo />
+            <SidebarTrigger className="md:hidden" />
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {links.map((link) => {
-            const Icon = link.icon;
-            const isActive =
-              link.href === '/dashboard'
-                ? pathname === link.href
-                : pathname.startsWith(link.href);
+          {navLinks.filter(link => !link.hidden).map((link) => {
+            const Icon = (LucideIcons as any)[link.icon] || LucideIcons.Folder;
+            const isActive = link.href === '/dashboard' ? pathname === link.href : pathname.startsWith(link.href);
             return (
               <SidebarMenuItem key={link.href}>
-                <SidebarMenuButton asChild isActive={isActive}>
+                <SidebarMenuButton asChild isActive={isActive} tooltip={link.label}>
                   <Link href={link.href}>
                     <Icon />
                     <span>{link.label}</span>
@@ -89,11 +87,11 @@ export function DashboardSidebar() {
         {user && (
            <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-3 cursor-pointer p-2 rounded-md hover:bg-muted">
+                <div className="flex items-center gap-3 cursor-pointer p-2 rounded-md hover:bg-sidebar-accent">
                      <Avatar className="h-8 w-8">
                         <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
                     </Avatar>
-                    <div className='overflow-hidden'>
+                    <div className='overflow-hidden group-data-[collapsible=icon]:hidden'>
                         <p className="text-sm font-medium truncate">{user.displayName || 'My Account'}</p>
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>
@@ -113,6 +111,9 @@ export function DashboardSidebar() {
            </DropdownMenu>
         )}
       </SidebarFooter>
+      <SidebarRail>
+        <PanelLeft className="size-4 text-sidebar-foreground" />
+      </SidebarRail>
     </Sidebar>
   );
 }

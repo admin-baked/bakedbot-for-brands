@@ -1,11 +1,10 @@
-
-// app/layout.tsx
+// src/app/layout.tsx
 import type { Metadata } from 'next';
 import './globals.css';
 import { Inter, Teko } from 'next/font/google';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
 import { Providers } from '@/providers';
+import { cn } from '@/lib/utils';
+import AppThemeProvider from '@/components/AppThemeProvider';
 
 export const metadata: Metadata = {
   title: 'BakedBot AI',
@@ -28,14 +27,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${teko.variable}`}>
-      <body className="font-sans min-h-screen flex flex-col">
+    <html lang="en" className={cn(inter.variable, teko.variable, 'green')} suppressHydrationWarning>
+      <body className="font-sans min-h-screen flex flex-col bg-background text-foreground">
         <Providers>
-          <Header />
-          <div className="flex-1">
-            {children}
-          </div>
-          <Footer />
+            <AppThemeProvider>
+                <div className="flex-1 flex flex-col">{children}</div>
+            </AppThemeProvider>
         </Providers>
       </body>
     </html>

@@ -1,4 +1,3 @@
-
 import { createServerClient } from '@/firebase/server-client';
 import { cookies } from 'next/headers';
 import { makeProductRepo } from '@/server/repos/productRepo';
@@ -23,23 +22,19 @@ export default async function DashboardProductsPage() {
   if (isDemo) {
     products = demoProducts;
   } else {
-    let brandId: string | null = null;
     try {
         const user = await requireUser(['brand', 'owner']);
-        brandId = user.brandId;
-    } catch (error) {
-        redirect('/brand-login');
-    }
+        const brandId = user.brandId;
 
-    if (!brandId && user.role !== 'owner') {
-        // This case should ideally not be hit if role is 'brand'
-        // but it's a good safeguard.
-        return <p>You are not associated with a brand.</p>
-    }
+        if (!brandId && user.role !== 'owner') {
+            // This case should ideally not be hit if role is 'brand'
+            // but it's a good safeguard.
+            return <p>You are not associated with a brand.</p>
+        }
 
-    try {
         const { firestore } = await createServerClient();
         const productRepo = makeProductRepo(firestore);
+        
         if (user.role === 'owner') {
             // Owner sees all products
             products = await productRepo.getAll();
@@ -47,6 +42,9 @@ export default async function DashboardProductsPage() {
             products = await productRepo.getAllByBrand(brandId);
         }
     } catch (error) {
+        if ((error as Error).message.includes('Unauthorized')) {
+             redirect('/brand-login');
+        }
         console.error("Failed to fetch products for dashboard:", error);
         // Fallback to demo data on error for resilience, though you might want a proper error page
         products = demoProducts;
