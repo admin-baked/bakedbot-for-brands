@@ -6,7 +6,7 @@ import type { Playbook, PlaybookDraft } from '@/types/domain';
 import { savePlaybookDraft } from './actions';
 
 type DashboardPageClientProps = {
-  initialPlaybooks?: Playbook[];
+  playbooks?: Playbook[];
   drafts?: PlaybookDraft[];
 };
 
@@ -18,16 +18,25 @@ type SuggestedPlaybook = {
 };
 
 export default function DashboardPageClient({
-  initialPlaybooks = [],
-  drafts = [],
+  playbooks,
+  drafts,
 }: DashboardPageClientProps) {
-  const list = initialPlaybooks;
-  const [draftList, setDraftList] = React.useState(drafts);
+  const list = Array.isArray(playbooks) ? playbooks : [];
+  const initialDrafts = Array.isArray(drafts) ? drafts : [];
+
+  const [prompt, setPrompt] = React.useState('');
+  const [suggested, setSuggested] = React.useState<SuggestedPlaybook | null>(
+    null,
+  );
+  const [draftList, setDraftList] = React.useState(initialDrafts);
+  const [isSaving, startSaving] = React.useTransition();
+  const [saveStatus, setSaveStatus] =
+    React.useState<'idle' | 'saved' | 'error'>('idle');
 
   // Combine drafts and playbooks into a single list for rendering.
   const combinedList = React.useMemo(() => {
     // Type guard to ensure we are working with a valid draft structure.
-    const validDrafts: Playbook[] = draftList.map(d => ({
+    const validDrafts: (Playbook & { isDraft: boolean })[] = draftList.map(d => ({
       id: d.id,
       brandId: d.brandId || 'demo-brand',
       name: d.name,
@@ -39,16 +48,6 @@ export default function DashboardPageClient({
     }));
     return [...validDrafts, ...list];
   }, [list, draftList]);
-
-  const [prompt, setPrompt] = React.useState('');
-  const [suggested, setSuggested] = React.useState<SuggestedPlaybook | null>(
-    null,
-  );
-  
-  const [isSaving, startSaving] = React.useTransition();
-  const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saved' | 'error'>(
-    'idle',
-  );
 
   function handleSuggest(e: React.FormEvent) {
     e.preventDefault();
@@ -193,7 +192,7 @@ export default function DashboardPageClient({
                       setDraftList((prev) => [
                         {
                           id: result?.id ?? `local_${Date.now()}`,
-                          brandId: 'demo-brand', // or real brandId once you have it
+                          brandId: 'demo-brand', // This will be updated by server data on refresh
                           name: suggested.name,
                           description: suggested.description,
                           agents: suggested.agents,
@@ -273,4 +272,3 @@ export default function DashboardPageClient({
     </div>
   );
 }
-    

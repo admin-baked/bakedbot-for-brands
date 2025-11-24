@@ -5,11 +5,20 @@ import {
   getPlaybooksForDashboard,
   getPlaybookDraftsForDashboard,
 } from './actions';
+import { requireUser } from '@/server/auth/auth';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardPage() {
+  let user;
+  try {
+    user = await requireUser(['brand', 'owner']);
+  } catch {
+    redirect('/brand-login');
+  }
+
   const [playbooks, drafts] = await Promise.all([
     getPlaybooksForDashboard(),
-    getPlaybookDraftsForDashboard(),
+    getPlaybookDraftsForDashboard(user.brandId),
   ]);
 
   return (
