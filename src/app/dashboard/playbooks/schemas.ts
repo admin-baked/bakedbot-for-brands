@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// This Zod schema now matches the more detailed PlaybookDraft type.
 export const PlaybookDraftSchema = z.object({
   id: z.string().describe('A unique, URL-safe slug for the playbook, based on its name.'),
   name: z.string().describe('A short, descriptive name for the playbook (e.g., "Competitor Price Watch").'),
