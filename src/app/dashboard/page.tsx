@@ -1,11 +1,35 @@
 
-// src/app/dashboard/page.tsx
-import DashboardWelcome from '@/components/dashboard/dashboard-welcome';
+// app/dashboard/page.tsx
+import DashboardPageClient from "./page-client";
+import { createServerClient } from "@/firebase/server-client";
 
-/**
- * The main entry point for the `/dashboard` route.
- * This component now renders a welcoming UI with quick links to other sections.
- */
-export default function DashboardPage() {
-  return <DashboardWelcome />;
-}
+export default async function DashboardPage() {
+  // TODO: real brand from auth/session
+  const brandId = "demo-brand";
+
+  let playbooks: any[] = [];
+  let debug: string | null = null;
+
+  try {
+    const { firestore } = createServerClient();
+
+    const snap = await firestore
+      .collection("playbookDrafts") // or "playbooks" if that's your real collection
+      .limit(20)
+      .get();
+
+    playbooks = snap.docs.map((doc: any) => ({
+      id: doc.id,
+      ...(doc.data() ?? {}),
+    }));
+
+    debug = `Loaded ${snap.size} docs from 'playbookDrafts'. brandId on page: '${brandId}'.`;
+  } catch (err: any) {
+    console.error("Failed to load playbooks for dashboard", err);
+    debug = `Error loading playbooks: ${err?.message ?? String(err)}`;
+  }
+
+  return (
+    <DashboardPageClient
+      brandId={brandId}
+      initialPlaybooks={play

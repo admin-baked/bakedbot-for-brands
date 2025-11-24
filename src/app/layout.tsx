@@ -1,3 +1,4 @@
+
 // src/app/layout.tsx
 import type { Metadata } from 'next';
 import './globals.css';
@@ -5,6 +6,8 @@ import { Inter, Teko } from 'next/font/google';
 import { Providers } from '@/providers';
 import { cn } from '@/lib/utils';
 import AppThemeProvider from '@/components/AppThemeProvider';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
 
 export const metadata: Metadata = {
   title: 'BakedBot AI',
@@ -31,7 +34,11 @@ export default function RootLayout({
       <body className="font-sans min-h-screen flex flex-col bg-background text-foreground">
         <Providers>
             <AppThemeProvider>
-                <div className="flex-1 flex flex-col">{children}</div>
+                <div className="flex-1 flex flex-col">
+                  <Header />
+                  {children}
+                  <Footer />
+                </div>
             </AppThemeProvider>
         </Providers>
       </body>
