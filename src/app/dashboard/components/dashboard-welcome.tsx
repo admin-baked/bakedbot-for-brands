@@ -1,21 +1,25 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Lightbulb, Package, PenSquare, Settings } from 'lucide-react';
 import Link from 'next/link';
+import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 
-const features = [
+const baseFeatures = [
   {
+    key: 'products',
     title: 'Manage Products',
     description: 'View, add, and edit your product catalog.',
     icon: Package,
     href: '/dashboard/products',
   },
   {
+    key: 'content',
     title: 'AI Content Suite',
     description: 'Generate product descriptions, social images, and summarize reviews.',
     icon: PenSquare,
     href: '/dashboard/content',
   },
   {
+    key: 'settings',
     title: 'Brand Settings',
     description: 'Customize your brand name, logo, and chatbot personality.',
     icon: Settings,
@@ -24,6 +28,12 @@ const features = [
 ];
 
 export default function DashboardWelcome() {
+    const { navLinks } = useDashboardConfig();
+
+    const accessibleFeatures = baseFeatures.filter(feature => 
+        navLinks.some(navLink => navLink.href.startsWith(feature.href))
+    );
+
   return (
     <div className="flex flex-col gap-6">
       <div className="space-y-1">
@@ -33,7 +43,7 @@ export default function DashboardWelcome() {
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {features.map((feature) => (
+        {accessibleFeatures.map((feature) => (
           <Link key={feature.href} href={feature.href} className="group">
             <Card className="h-full transition-all group-hover:border-primary group-hover:shadow-lg">
               <CardHeader className="flex flex-row items-center gap-4">
