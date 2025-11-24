@@ -1,9 +1,10 @@
+
 import DashboardPageComponent from "./page-client";
 import { createServerClient } from "@/firebase/server-client";
 import type { PlaybookDraft } from "./playbooks/schemas";
 
 export default async function DashboardPage() {
-  const { firestore } = await createServerClient();
+  const { firestore } = createServerClient();
 
   // TODO: replace with real brandId from auth/session
   const brandId = "demo-brand";
