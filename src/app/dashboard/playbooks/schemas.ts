@@ -26,3 +26,12 @@ export const PlaybookDraftSchema = z.object({
 });
 
 export type PlaybookDraft = z.infer<typeof PlaybookDraftSchema>;
+
+// Add these:
+export const SuggestPlaybookInputSchema = z.object({
+  goal: z.string().min(4),
+  brandId: z.string().optional(),
+  context: z.string().optional(),
+});
+
+export type SuggestPlaybookInput = z.infer<typeof SuggestPlaybookInputSchema>;

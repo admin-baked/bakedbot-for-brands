@@ -42,7 +42,7 @@ Based on this command, populate all fields of the PlaybookDraft object.
 });
 
 
-const suggestPlaybookFlow = ai.defineFlow(
+export const suggestPlaybookFlow = ai.defineFlow(
   {
     name: 'suggestPlaybookFlow',
     inputSchema: SuggestPlaybookInputSchema,
