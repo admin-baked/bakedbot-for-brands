@@ -1,35 +1,46 @@
 "use server";
 
-import { PlaybookDraftSchema, type PlaybookDraft } from "./schemas";
-import { createServerClient } from "@/firebase/server-client";
+import { SuggestPlaybookInputSchema } from "./schemas";
+import type { SuggestPlaybookInput } from "./schemas";
+import { suggestPlaybookFlow } from "@/ai/flows/suggest-playbook"; // if you have it
 
-export async function savePlaybookDraft(input: {
-  brandId: string;
-  name: string;
-  description?: string;
-  agents?: string[];
-  tags?: string[];
-}): Promise<PlaybookDraft> {
-  const { firestore } = await createServerClient();
+export type SuggestionFormState = {
+  status: "idle" | "submitting" | "success" | "error";
+  error?: string;
+  suggestion?: string;
+};
 
-  // Let Zod handle defaults + type safety
-  const baseDraft = PlaybookDraftSchema.parse({
-    ...input,
-    status: "draft",
-  });
+export async function createPlaybookSuggestion(
+  prevState: SuggestionFormState,
+  formData: FormData
+): Promise<SuggestionFormState> {
+  try {
+    const input: SuggestPlaybookInput = {
+      goal: formData.get("goal")?.toString() ?? "",
+      brandId: formData.get("brandId")?.toString() ?? undefined,
+      context: formData.get("context")?.toString() ?? undefined,
+    };
 
-  const now = new Date();
-  const collectionRef = firestore.collection("playbookDrafts");
-  const docRef = collectionRef.doc();
+    const parsed = SuggestPlaybookInputSchema.parse(input);
 
-  const draftToSave: PlaybookDraft = {
-    ...baseDraft,
-    id: docRef.id,
-    createdAt: baseDraft.createdAt ?? now,
-    updatedAt: now,
-  };
+    // If you have an AI flow, call it; otherwise just echo
+    if (typeof suggestPlaybookFlow === "function") {
+      const result = await suggestPlaybookFlow(parsed);
+      return {
+        status: "success",
+        suggestion: result?.name ?? "",
+      };
+    }
 
-  await docRef.set(draftToSave);
-
-  return draftToSave;
+    return {
+      status: "success",
+      suggestion: parsed.goal,
+    };
+  } catch (err: any) {
+    console.error("createPlaybookSuggestion error", err);
+    return {
+      status: "error",
+      error: "Failed to generate suggestion.",
+    };
+  }
 }
