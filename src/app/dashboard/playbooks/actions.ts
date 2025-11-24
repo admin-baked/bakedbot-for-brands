@@ -1,50 +1,35 @@
-'use server';
+"use server";
 
-import { suggestPlaybook as suggestPlaybookFlow } from "@/ai/flows/suggest-playbook";
-import { PlaybookDraftSchema, type SuggestPlaybookInput, type PlaybookDraft } from "./schemas";
+import { PlaybookDraftSchema, type PlaybookDraft } from "./schemas";
+import { createServerClient } from "@/firebase/server-client";
 
-// --- Server Actions ---
+export async function savePlaybookDraft(input: {
+  brandId: string;
+  name: string;
+  description?: string;
+  agents?: string[];
+  tags?: string[];
+}): Promise<PlaybookDraft> {
+  const { firestore } = await createServerClient();
 
-export type SuggestionFormState = {
-    message: string;
-    error: boolean;
-    suggestion?: PlaybookDraft;
-};
+  // Let Zod handle defaults + type safety
+  const baseDraft = PlaybookDraftSchema.parse({
+    ...input,
+    status: "draft",
+  });
 
-/**
- * A Server Action that takes form data, calls the AI flow to suggest a playbook,
- * and returns the result to be used by the form state.
- */
-export async function createPlaybookSuggestion(
-    prevState: SuggestionFormState,
-    formData: FormData
-): Promise<SuggestionFormState> {
-    const command = formData.get('command') as string;
+  const now = new Date();
+  const collectionRef = firestore.collection("playbookDrafts");
+  const docRef = collectionRef.doc();
 
-    if (!command || command.trim().length < 10) {
-        return {
-            message: 'Please provide a more detailed command for the AI.',
-            error: true,
-        };
-    }
+  const draftToSave: PlaybookDraft = {
+    ...baseDraft,
+    id: docRef.id,
+    createdAt: baseDraft.createdAt ?? now,
+    updatedAt: now,
+  };
 
-    try {
-        const suggestion = await suggestPlaybookFlow({
-          goal: command,
-        });
-        
-        // Ensure the AI's output conforms to our schema before sending it to the client.
-        const validatedSuggestion = PlaybookDraftSchema.parse(suggestion);
-        
-        return {
-            message: 'Suggestion generated successfully!',
-            error: false,
-            suggestion: validatedSuggestion,
-        };
-    } catch (e: any) {
-        return {
-            message: `AI generation failed: ${e.message}`,
-            error: true,
-        };
-    }
+  await docRef.set(draftToSave);
+
+  return draftToSave;
 }
