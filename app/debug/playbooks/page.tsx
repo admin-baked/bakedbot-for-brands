@@ -1,55 +1,53 @@
 
 // app/debug/playbooks/page.tsx
+import React from 'react';
+import { createServerClient } from '@/firebase/server-client';
 
-import { listPlaybooksForBrand, Playbook } from '@/server/repos/playbookRepo';
+export const dynamic = 'force-dynamic'; // avoid static export surprises
 
-async function getPlaybookData() {
-    try {
-        // Fetching for a hard-coded brandId for debugging purposes.
-        const brandId = 'demo-brand';
-        const playbooks = await listPlaybooksForBrand(brandId);
-        return { playbooks, error: null };
-    } catch (error) {
-        console.error("Error fetching playbooks for debug page:", error);
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-        return { playbooks: [], error: errorMessage };
-    }
-}
-
+type Playbook = {
+  id: string;
+  [key: string]: unknown;
+};
 
 export default async function DebugPlaybooksPage() {
-  const { playbooks, error } = await getPlaybookData();
+  let playbooks: Playbook[] = [];
+  let error: string | null = null;
+
+  try {
+    const { firestore } = await createServerClient();
+
+    // Using Admin SDK style API (firestore.collection(...).get())
+    const snapshot = await firestore.collection('playbooks').get();
+
+    playbooks = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Playbook[];
+  } catch (err) {
+    error = err instanceof Error ? err.message : String(err);
+  }
 
   return (
-    <main className="min-h-screen w-full bg-background p-6">
-      <div className="max-w-4xl mx-auto">
-        <header className="mb-6">
-            <h1 className="text-2xl font-bold">Playbook Debug View</h1>
-            <p className="text-sm text-muted-foreground">
-                This page fetches and displays playbook data directly from Firestore for debugging.
-            </p>
-        </header>
+    <main className="min-h-screen bg-slate-950 text-slate-50 p-8">
+      <h1 className="text-2xl font-semibold mb-4">Debug: Playbooks</h1>
 
-        {error && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-                <p className="font-bold">An error occurred:</p>
-                <p>{error}</p>
-            </div>
-        )}
-
-        <div className="space-y-4">
-          {playbooks.map(pb => (
-            <div key={pb.id} className="rounded-lg border bg-card p-4">
-              <pre className="text-xs">{JSON.stringify(pb, null, 2)}</pre>
-            </div>
-          ))}
-          {playbooks.length === 0 && !error && (
-            <div className="text-center py-10 border border-dashed rounded-lg">
-                <p>No playbooks found for brand 'demo-brand'.</p>
-            </div>
-          )}
+      {error ? (
+        <div className="rounded-lg border border-red-500/60 bg-red-500/10 p-4 text-red-200">
+          <p className="font-mono text-sm">Error loading playbooks:</p>
+          <p className="mt-1 font-mono text-xs break-words">{error}</p>
         </div>
-      </div>
+      ) : (
+        <div className="rounded-lg border border-slate-700 bg-slate-900/70 p-4">
+          <p className="text-sm text-slate-300 mb-2">
+            Fetched <span className="font-mono">{playbooks.length}</span>{' '}
+            playbook(s) from Firestore:
+          </p>
+          <pre className="mt-2 max-h-[60vh] overflow-auto rounded bg-black/60 p-3 text-xs font-mono">
+            {JSON.stringify(playbooks, null, 2)}
+          </pre>
+        </div>
+      )}
     </main>
   );
 }
