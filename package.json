@@ -18,7 +18,8 @@
     "check:types": "tsc --noEmit",
     "check:lint": "next lint",
     "check:routes": "node scripts/check-routes.mjs",
-    "check:all": "npm run check:structure && npm run check:types && npm run check:lint"
+    "check:all": "npm run check:structure && npm run check:types && npm run check:lint",
+    "check:env": "node -e \"import('./dist/config/env.js').catch(e => { console.error(e); process.exit(1) })\""
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.2.0",
