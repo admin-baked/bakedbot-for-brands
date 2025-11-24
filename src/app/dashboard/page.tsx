@@ -1,37 +1,53 @@
 
 // src/app/dashboard/page.tsx
 
-export default function DashboardPage() {
-  // Static placeholder data for now – safe, no Firestore dependency.
-  const playbooks = [
-    {
-      id: 'pb-1',
-      name: 'Launch Drop · Chicago',
-      status: 'active' as const,
-      channel: 'Email + SMS',
-      runsLast7d: 12,
-    },
-    {
-      id: 'pb-2',
-      name: 'Menu SEO · Headless',
-      status: 'active' as const,
-      channel: 'Smokey · Menu',
-      runsLast7d: 34,
-    },
-    {
-      id: 'pb-3',
-      name: 'Compliance Watch · IL',
-      status: 'paused' as const,
-      channel: 'Deebo',
-      runsLast7d: 3,
-    },
-  ];
+import { listPlaybooksForBrand, Playbook } from '@/server/repos/playbookRepo';
 
-  const agents = [
-    { name: 'Smokey', role: 'Menus + product education', status: 'online' as const },
-    { name: 'Craig', role: 'Email + SMS follow-ups', status: 'idle' as const },
-    { name: 'Deebo', role: 'Regulation OS + content checks', status: 'watching' as const },
-  ];
+const FALLBACK_PLAYBOOKS: Playbook[] = [
+  {
+    id: 'pb-1',
+    name: 'Launch Drop · Chicago',
+    status: 'active',
+    channel: 'Email + SMS',
+    runsLast7d: 12,
+  },
+  {
+    id: 'pb-2',
+    name: 'Menu SEO · Headless',
+    status: 'active',
+    channel: 'Smokey · Menu',
+    runsLast7d: 34,
+  },
+  {
+    id: 'pb-3',
+    name: 'Compliance Watch · IL',
+    status: 'paused',
+    channel: 'Deebo',
+    runsLast7d: 3,
+  },
+];
+
+const AGENTS = [
+  { name: 'Smokey', role: 'Menus + product education', status: 'online' as const },
+  { name: 'Craig', role: 'Email + SMS follow-ups', status: 'idle' as const },
+  { name: 'Deebo', role: 'Regulation OS + content checks', status: 'watching' as const },
+];
+
+export default async function DashboardPage() {
+  // 🔧 Temporary hard-coded brand until we thread real brandId through
+  const brandId = 'demo-brand';
+
+  let playbooks: Playbook[] = [];
+
+  try {
+    playbooks = await listPlaybooksForBrand(brandId);
+  } catch (err) {
+    console.error('Failed to load playbooks for brand', brandId, err);
+  }
+
+  if (!playbooks || playbooks.length === 0) {
+    playbooks = FALLBACK_PLAYBOOKS;
+  }
 
   return (
     <div className="space-y-6">
@@ -60,6 +76,7 @@ export default function DashboardPage() {
             Agent signals · last 7 days
           </div>
           <div className="mt-3 flex items-baseline gap-2">
+            {/* still static for now; we’ll later compute from events */}
             <span className="text-2xl font-semibold text-slate-50">49</span>
             <span className="text-[0.7rem] text-slate-400">
               automated touchpoints
@@ -73,7 +90,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-emerald-700/40 bg-emerald-950/20 p-4">
           <div className="flex items-center justify-between">
             <div className="text-xs font-medium uppercase tracking-[0.18em] text-emerald-300">
-              Compliance & health
+              Compliance &amp; health
             </div>
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
           </div>
@@ -158,7 +175,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-2 space-y-2 text-xs">
-            {agents.map((agent) => (
+            {AGENTS.map((agent) => (
               <div
                 key={agent.name}
                 className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2"
@@ -192,8 +209,7 @@ export default function DashboardPage() {
 
           <p className="mt-3 text-[0.7rem] text-slate-500">
             Later, this panel can pull live status from each agent service
-            (queue depth, recent actions, error rate) via Firestore or a
-            metrics collection.
+            (queue depth, recent actions, error rate) via Firestore or a metrics store.
           </p>
         </div>
       </section>
