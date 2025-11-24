@@ -1,7 +1,7 @@
 
 'use server';
 
-import DashboardPageComponent from './page-client';
+import DashboardPageComponent from '@/app/dashboard/page-client';
 import { getPlaybooksForBrand } from '@/app/dashboard/actions';
 
 // This is now a Server Component that fetches data and passes it to the client.
