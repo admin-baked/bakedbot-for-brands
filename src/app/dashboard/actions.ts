@@ -1,10 +1,35 @@
 
 'use server';
 
-import { suggestPlaybook } from "@/ai/flows/suggest-playbook";
-import type { PlaybookDraft, Playbook } from "@/types/domain";
+import { suggestPlaybook as suggestPlaybookFlow } from "@/ai/flows/suggest-playbook";
+import type { Playbook, PlaybookDraft as PlaybookDraftType } from "@/types/domain";
 import { requireUser } from "@/server/auth/auth";
 import { createServerClient } from "@/firebase/server-client";
+import { z } from "zod";
+
+
+// --- Zod Schemas and Types (moved from the AI flow file) ---
+
+// Zod schema for the PlaybookDraft, aligning with the type in `domain.ts`
+export const PlaybookDraftSchema = z.object({
+  id: z.string().describe('A unique, URL-safe slug for the playbook, based on its name.'),
+  name: z.string().describe('A short, descriptive name for the playbook (e.g., "Competitor Price Watch").'),
+  description: z.string().describe('A one-sentence summary of what this playbook does.'),
+  type: z.enum(['signal', 'automation']).describe('The trigger type for the playbook. Use "signal" for event-driven workflows (e.g., cart abandoned) and "automation" for scheduled tasks (e.g., daily report).'),
+  agents: z.array(z.string()).describe('A list of AI agent names (like "Ezal", "Craig", "Pops") required to execute this playbook.'),
+  signals: z.array(z.string()).describe('A list of event names or signals that trigger this playbook (e.g., "competitor.price.changed", "cart.abandoned"). Leave empty for time-based automations.'),
+  targets: z.array(z.string()).describe('The primary nouns or entities the playbook operates on (e.g., "competitors", "new subscribers", "1g vapes").'),
+  constraints: z.array(z.string()).describe('Key constraints or conditions mentioned (e.g., "in Chicago", "undercut price").'),
+});
+export type PlaybookDraft = z.infer<typeof PlaybookDraftSchema>;
+
+export const SuggestPlaybookInputSchema = z.object({
+  command: z.string().describe('The user\'s natural language command.'),
+});
+export type SuggestPlaybookInput = z.infer<typeof SuggestPlaybookInputSchema>;
+
+
+// --- Server Actions ---
 
 export type SuggestionFormState = {
     message: string;
@@ -30,11 +55,14 @@ export async function createPlaybookSuggestion(
     }
 
     try {
-        const suggestion = await suggestPlaybook({ command });
+        const validatedInput = SuggestPlaybookInputSchema.parse({ command });
+        const suggestion = await suggestPlaybookFlow(validatedInput);
+        const validatedSuggestion = PlaybookDraftSchema.parse(suggestion);
+        
         return {
             message: 'Suggestion generated successfully!',
             error: false,
-            suggestion,
+            suggestion: validatedSuggestion,
         };
     } catch (e: any) {
         return {
@@ -43,6 +71,7 @@ export async function createPlaybookSuggestion(
         };
     }
 }
+
 
 /**
  * Securely fetches all playbooks for the currently authenticated user's brand.
@@ -53,14 +82,10 @@ export async function getPlaybooksForBrand(): Promise<Playbook[]> {
         const brandId = user.brandId;
         
         if (!brandId) {
-            // This can happen for 'owner' roles without a brand context
-            // or misconfigured 'brand' roles. Return empty for now.
             return [];
         }
 
         const { firestore } = await createServerClient();
-        // The instructions specify `/brands/{brandId}/playbooks`, but agent code uses `/organizations`.
-        // Sticking to the most recent guidance. We will assume organizations is the correct path for now.
         const playbooksRef = firestore.collection(`organizations/${brandId}/playbooks`);
         const snapshot = await playbooksRef.orderBy('name').get();
         
@@ -74,8 +99,6 @@ export async function getPlaybooksForBrand(): Promise<Playbook[]> {
         } as Playbook));
 
     } catch (error) {
-        // If the user isn't authenticated or doesn't have the right role, this will throw.
-        // We'll catch it and return an empty array to prevent crashing the page.
         console.error("Failed to fetch playbooks:", error);
         return [];
     }
