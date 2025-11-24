@@ -1,15 +1,23 @@
+
 // app/dashboard/page.tsx
 import DashboardPageComponent from "./page-client";
-import { createServerClient } from "@/firebase/server-client";
-import type { PlaybookDraft } from "./playbooks/schemas";
 import { getPlaybookDraftsForDashboard } from "./actions";
+import { requireUser } from "@/server/auth/auth";
+import { redirect } from "next/navigation";
+
 
 export default async function DashboardPage() {
-  
-  // TODO: replace with real brandId from auth/session
-  const brandId = "demo-brand";
-  const playbooks = await getPlaybookDraftsForDashboard(brandId);
+  let user;
+  try {
+    // This requires a user, but we don't enforce a role on the main dashboard page
+    user = await requireUser();
+  } catch (error) {
+    // If no user, send them to the brand login page
+    redirect('/brand-login');
+  }
 
+  const brandId = user.brandId || "demo-brand";
+  const playbooks = await getPlaybookDraftsForDashboard(brandId);
 
   return (
     <DashboardPageComponent
