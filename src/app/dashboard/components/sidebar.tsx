@@ -10,10 +10,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import Logo from '@/components/logo';
@@ -23,11 +19,9 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { signOut } from 'firebase/auth';
-import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
-import { ForwardRefExoticComponent, RefAttributes } from 'react';
 
 export function DashboardSidebar() {
   const rawPathname = usePathname();

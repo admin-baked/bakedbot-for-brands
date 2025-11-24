@@ -3,18 +3,17 @@
 
 import * as React from "react";
 import type { Playbook } from '@/types/domain';
-import DashboardWelcome from "@/components/dashboard/dashboard-welcome";
+import { DashboardPlaybooksClient } from './playbooks-client';
 
 type DashboardPageClientProps = {
   initialPlaybooks?: Playbook[];
 };
 
 export default function DashboardPageComponent({
-  initialPlaybooks: playbooks,
+  initialPlaybooks,
 }: DashboardPageClientProps) {
-  // For now, this component will just render a welcome message.
-  // The playbook logic will be re-integrated into its own dedicated page.
+  // The main dashboard now renders the playbooks client.
   return (
-    <DashboardWelcome />
+    <DashboardPlaybooksClient initialPlaybooks={initialPlaybooks || []} />
   );
 }
