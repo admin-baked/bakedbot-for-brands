@@ -50,3 +50,23 @@ export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
 
   return demoPlaybooks;
 }
+
+
+type PlaybookDraftInput = {
+  name: string;
+  description: string;
+  agents: string[];
+  tags: string[];
+};
+
+export async function savePlaybookDraft(input: PlaybookDraftInput) {
+  // PHASE 2B: stub only – safe to call from the client.
+  // This is the seam where we’ll later write to Firestore.
+  console.log('Saving playbook draft (stub):', input);
+
+  // Example shape you might return
+  return {
+    ok: true,
+    id: `draft_${Date.now()}`,
+  };
+}
