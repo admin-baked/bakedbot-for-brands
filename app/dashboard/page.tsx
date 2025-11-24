@@ -1,4 +1,4 @@
-
+// app/dashboard/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -11,13 +11,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { Bot, ChevronDown, List, Search, Sparkles } from 'lucide-react';
-import { useDashboardConfig } from '@/hooks/use-dashboard-config';
+import { Bot, ChevronDown, Search, Sparkles } from 'lucide-react';
+
+type PlaybookKind = 'signal' | 'automation';
+
+type PlaybookStatusFilter = 'all' | 'active' | 'disabled';
 
 type Playbook = {
   id: string;
   name: string;
-  kind: 'signal' | 'automation';
+  kind: PlaybookKind;
   tags: string[];
   enabled: boolean;
 };
@@ -93,13 +96,17 @@ function PlaybookCard({ playbook, onToggle }: { playbook: Playbook; onToggle: ()
 
 export default function DashboardPage() {
   const [playbooks, setPlaybooks] = useState(initialPlaybooks);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled'>('all');
+  const [statusFilter, setStatusFilter] =
+    useState<PlaybookStatusFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const filteredPlaybooks = playbooks.filter((pb) => {
     if (statusFilter === 'active' && !pb.enabled) return false;
     if (statusFilter === 'disabled' && pb.enabled) return false;
-    if (searchTerm && !pb.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+    if (
+      searchTerm &&
+      !pb.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ) {
       return false;
     }
     return true;
@@ -107,71 +114,73 @@ export default function DashboardPage() {
 
   const handleToggle = (id: string) => {
     setPlaybooks((prev) =>
-      prev.map((pb) => (pb.id === id ? { ...pb, enabled: !pb.enabled } : pb))
+      prev.map((pb) =>
+        pb.id === id ? { ...pb, enabled: !pb.enabled } : pb,
+      ),
     );
   };
-  
+
   return (
-    <main className="flex-1 overflow-y-auto px-8 py-8 space-y-8">
-        <section className="space-y-2">
-        <h1 className="text-2xl md:text-3xl font-semibold">
-            Good evening, Playbooks
-        </h1>
-        <p className="text-sm text-muted-foreground max-w-2xl">
-            Describe a task, and Smokey will build an autonomous agent
-            to handle it for you.
-        </p>
-        </section>
-
-        {/* Build your AI Agent Workforce */}
-        <section className="bg-muted/40 border border-dashed rounded-2xl px-6 py-5 flex flex-col gap-3">
-        <div className="flex justify-between items-center gap-4">
-            <div className="space-y-1">
-            <div className="text-sm tracking-wide text-primary font-semibold flex items-center gap-2">
-                <Sparkles className="h-5 w-5" />
-                <span className="uppercase">Build Your AI Agent Workforce</span>
-            </div>
-            <p className="text-sm text-muted-foreground max-w-lg">
-                Type what you want your agents to do. Smokey will propose
-                a Playbook and let you review before going live.
+        <main className="flex-1 overflow-y-auto px-8 py-8 space-y-8">
+          <section className="space-y-2">
+            <h1 className="text-2xl md:text-3xl font-semibold">
+              Good evening, Playbooks
+            </h1>
+            <p className="text-sm text-muted-foreground max-w-2xl">
+              Describe a task, and Smokey will build an autonomous agent
+              to handle it for you.
             </p>
-            </div>
-            <Button className="hidden md:inline-flex">
-            Create Agent
-            </Button>
-        </div>
+          </section>
 
-        <div className="flex gap-2 mt-1">
-            <div className="relative flex-1">
-            <Bot className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
-            <Input
-                type="text"
-                placeholder="e.g., Send a daily summary of cannabis industry news to my email."
-                className="pl-9"
-            />
+          {/* Build your AI Agent Workforce */}
+          <section className="bg-muted/40 border border-dashed rounded-2xl px-6 py-5 flex flex-col gap-3">
+            <div className="flex justify-between items-center gap-4">
+              <div className="space-y-1">
+                <div className="text-sm tracking-wide text-primary font-semibold flex items-center gap-2">
+                   <Sparkles className="h-5 w-5" />
+                  <span className="uppercase">Build Your AI Agent Workforce</span>
+                </div>
+                <p className="text-sm text-muted-foreground max-w-lg">
+                  Type what you want your agents to do. Smokey will propose
+                  a Playbook and let you review before going live.
+                </p>
+              </div>
+              <Button className="hidden md:inline-flex">
+                Create Agent
+              </Button>
             </div>
-            <Button className="inline-flex md:hidden">
-            Create
-            </Button>
-        </div>
-        </section>
 
-        {/* Filters + Playbooks list */}
-        <section className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-                type="text"
-                placeholder="Search playbooks..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-            />
+            <div className="flex gap-2 mt-1">
+              <div className="relative flex-1">
+                 <Bot className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                <Input
+                  type="text"
+                  placeholder="e.g., Send a daily summary of cannabis industry news to my email."
+                  className="pl-9"
+                />
+              </div>
+              <Button className="inline-flex md:hidden">
+                Create
+              </Button>
             </div>
-            <div className="flex items-center gap-3 text-sm">
-            <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">Status:</span>
+          </section>
+
+          {/* Filters + Playbooks list */}
+          <section className="space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="relative flex-1 max-w-md">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search playbooks..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">Status:</span>
                  <Button
                     variant={statusFilter === 'all' ? 'secondary' : 'ghost'}
                     size="sm"
@@ -193,23 +202,23 @@ export default function DashboardPage() {
                     >
                     Disabled
                  </Button>
+                </div>
+                <Button variant="outline">
+                  Create Manually
+                </Button>
+              </div>
             </div>
-            <Button variant="outline">
-                Create Manually
-            </Button>
-            </div>
-        </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredPlaybooks.map((pb) => (
-            <PlaybookCard
-                key={pb.id}
-                playbook={pb}
-                onToggle={() => handleToggle(pb.id)}
-            />
-            ))}
-        </div>
-        </section>
-    </main>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredPlaybooks.map((pb) => (
+                <PlaybookCard
+                  key={pb.id}
+                  playbook={pb}
+                  onToggle={() => handleToggle(pb.id)}
+                />
+              ))}
+            </div>
+          </section>
+        </main>
   );
 }
