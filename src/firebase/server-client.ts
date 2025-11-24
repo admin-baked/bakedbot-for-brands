@@ -1,3 +1,4 @@
+
 // src/firebase/server-client.ts
 import {
   getApps,
@@ -13,21 +14,8 @@ import { getAuth, Auth } from "firebase-admin/auth";
 let app: App;
 
 if (!getApps().length) {
-  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-
-  if (serviceAccountJson) {
-    const serviceAccount = JSON.parse(serviceAccountJson);
-
-    app = initializeApp({
-      credential: cert(serviceAccount),
-      projectId: serviceAccount.project_id,
-    });
-  } else {
-    // Fallback if you *really* have no key configured
-    app = initializeApp({
-      credential: applicationDefault(),
-    });
-  }
+  // In Firebase Studio / Hosting / Cloud env, this will use ADC.
+  app = initializeApp();
 } else {
   app = getApp();
 }
@@ -36,5 +24,9 @@ const firestore: Firestore = getFirestore(app);
 const auth: Auth = getAuth(app);
 
 export function createServerClient() {
-  return { app, firestore, auth };
+  return {
+    app,
+    firestore,
+    auth,
+  };
 }
