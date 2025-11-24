@@ -263,3 +263,17 @@ export type RulePack = {
   created_by: string;
   approved_by?: string;
 };
+
+// --- Agentic Playbooks ---
+export type PlaybookTriggerType = 'signal' | 'automation';
+
+export type PlaybookDraft = {
+  id: string;
+  name: string;
+  description: string;
+  type: PlaybookTriggerType;
+  agents: string[];
+  signals: string[];
+  targets: string[];
+  constraints: string[];
+};
