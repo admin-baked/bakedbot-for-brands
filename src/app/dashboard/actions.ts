@@ -77,7 +77,7 @@ export async function savePlaybookDraft(
 ): Promise<PlaybookDraft | null> {
   
   try {
-    const { firestore } = createServerClient();
+    const { firestore } = await createServerClient();
     const now = new Date();
 
     const collectionRef = firestore
@@ -111,10 +111,10 @@ export async function savePlaybookDraft(
 
 export async function getPlaybookDraftsForDashboard(
   brandId: string = DEMO_BRAND_ID,
-): Promise<PlaybookDraft[]> {
+): Promise<any[]> {
 
   try {
-    const { firestore } = createServerClient();
+    const { firestore } = await createServerClient();
 
     const snap = await firestore
       .collection('brands')
@@ -124,26 +124,14 @@ export async function getPlaybookDraftsForDashboard(
       .limit(20)
       .get();
 
-    const drafts: PlaybookDraft[] = snap.docs.map((doc: any) => {
+    const drafts = snap.docs.map((doc: any) => {
       const data = doc.data() ?? {};
 
       return {
         id: doc.id,
-        brandId: data.brandId ?? brandId,
-        name: data.name ?? 'Untitled playbook',
-        description: data.description ?? "",
-        kind: data.kind ?? "automation",
-        type: data.type ?? "automation",
-        enabled: data.enabled ?? false,
-        agents: data.agents ?? [],
-        tags: data.tags ?? [],
-        signals: data.signals ?? [],
-        targets: data.targets ?? [],
-        constraints: data.constraints ?? [],
-        createdAt: data.createdAt?.toDate() ?? new Date(),
-        updatedAt: data.updatedAt?.toDate() ?? new Date(),
-      } as PlaybookDraft;
-    });
+        ...data,
+      };
+    }) as any[];
 
     return drafts;
   } catch (err) {

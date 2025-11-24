@@ -14,7 +14,7 @@ export default async function EditProductPage({ params }: { params: { id: string
   }
 
   const brandId = user.brandId;
-  if (!brandId) {
+  if (!brandId && user.role !== 'owner') {
     // Should not happen if role is brand, but a good safeguard.
     redirect('/dashboard');
   }
@@ -24,7 +24,7 @@ export default async function EditProductPage({ params }: { params: { id: string
   const product = await productRepo.getById(params.id);
 
   // Security check: ensure the user is editing a product that belongs to their brand
-  if (!product || product.brandId !== brandId) {
+  if (!product || (user.role !== 'owner' && product.brandId !== brandId)) {
     return (
         <div className="mx-auto max-w-2xl">
             <h1 className="text-2xl font-bold">Product not found</h1>

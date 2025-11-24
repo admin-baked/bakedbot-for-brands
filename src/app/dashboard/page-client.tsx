@@ -3,7 +3,6 @@
 
 import * as React from "react";
 import { savePlaybookDraft } from "./actions";
-import type { PlaybookDraft } from "@/types/domain";
 
 type DashboardPageClientProps = {
   brandId: string;

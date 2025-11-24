@@ -1,5 +1,4 @@
-
-// app/dashboard/page.tsx
+// src/app/dashboard/page.tsx
 import DashboardPageComponent from "./page-client";
 import { getPlaybookDraftsForDashboard } from "./actions";
 import { requireUser } from "@/server/auth/auth";
