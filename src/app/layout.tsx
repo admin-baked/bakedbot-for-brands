@@ -4,17 +4,22 @@ import "./globals.css";
 import type { ReactNode } from "react";
 import { Providers } from "@/app/providers";
 import { AppLayout } from "@/components/AppLayout";
+import type { Metadata } from 'next';
 
 
-export const metadata = {
-  title: "BakedBot AI",
-  description: "Agentic Commerce OS for cannabis brands.",
+export const metadata: Metadata = {
+  title: 'BakedBot AI – Agentic Commerce OS for Cannabis',
+  description: 'Autonomous cannabis commerce powered by multi-agent AI.',
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className="min-h-screen bg-black text-white">
         <Providers>
             <AppLayout>
                 {children}
