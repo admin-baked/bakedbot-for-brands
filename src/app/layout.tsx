@@ -1,15 +1,12 @@
+
 // src/app/layout.tsx
-
-import "./globals.css";
-import type { ReactNode } from "react";
-import { Providers } from "@/app/providers";
-import { AppLayout } from "@/components/AppLayout";
 import type { Metadata } from 'next';
-
+import React from 'react';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'BakedBot AI – Agentic Commerce OS for Cannabis',
-  description: 'Autonomous cannabis commerce powered by multi-agent AI.',
+  title: 'BakedBot AI',
+  description: 'Agentic Commerce OS for Cannabis',
 };
 
 export default function RootLayout({
@@ -18,14 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-black text-white">
-        <Providers>
-            <AppLayout>
-                {children}
-            </AppLayout>
-        </Providers>
-      </body>
+    <html lang="en">
+      <body>{children}</body>
     </html>
   );
 }
