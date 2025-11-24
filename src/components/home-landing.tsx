@@ -1,33 +1,30 @@
-
 // src/components/home-landing.tsx
 import Link from 'next/link';
+import { Button } from './ui/button';
 
 export function HomeLanding() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-6 px-4 py-12">
-      <h1 className="font-teko text-4xl md:text-5xl font-semibold text-center">
-        BakedBot AI
+    <main className="min-h-[calc(100vh-10rem)] flex flex-col items-center justify-center gap-6 px-4 py-12">
+      <h1 className="font-teko text-4xl md:text-6xl font-bold text-center uppercase tracking-wider">
+        The Agentic Commerce OS <br/> for Cannabis Brands
       </h1>
 
-      <p className="font-sans text-lg md:text-xl max-w-2xl text-center text-muted-foreground">
-        Agentic Commerce OS for cannabis brands. Smokey (AI budtender), Craig
-        (marketer), Pops (analyst), Ezal (lookout), Deebo (compliance), Money
+      <p className="font-sans text-lg md:text-xl max-w-3xl text-center text-muted-foreground">
+        Smokey (AI budtender), Craig (marketer), Pops (analyst), Ezal (lookout), Deebo (compliance), Money
         Mike (pricing), and Mrs. Parker (loyalty) working your funnel 24/7.
       </p>
 
-      <div className="flex flex-wrap gap-3 justify-center">
-        <Link
-          href="/menu/default"
-          className="inline-flex items-center justify-center rounded-md border border-input bg-background px-5 py-2.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-        >
-          View Demo Menu
-        </Link>
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center justify-center rounded-md px-5 py-2.5 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          Open Operator Console
-        </Link>
+      <div className="flex flex-wrap gap-4 justify-center">
+        <Button asChild size="lg">
+          <Link href="/onboarding">
+            Get started free
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="lg">
+          <Link href="/menu/default">
+            View Live Demo
+          </Link>
+        </Button>
       </div>
     </main>
   );
