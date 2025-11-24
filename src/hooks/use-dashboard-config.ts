@@ -19,13 +19,13 @@ const navConfig: Record<string, NavLink[]> = {
   brand: [
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your brand activity.', icon: 'LayoutDashboard' },
     { href: '/dashboard/products', label: 'Products', description: 'Manage your product catalog.', icon: 'Box' },
-    { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare', hidden: true }, // Hidden for now
-    { href: '/account', label: 'Brand Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
+    { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare' },
+    { href: '/dashboard/settings', label: 'Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
   ],
   dispensary: [
     { href: '/dashboard', label: 'Dashboard', description: 'An overview of your dispensary activity.', icon: 'LayoutDashboard' },
     { href: '/dashboard/orders', label: 'Customer Orders', description: 'View and manage incoming online orders.', icon: 'Package' },
-    { href: '/account', label: 'Account Settings', description: 'Manage your dispensary information.', icon: 'Settings' },
+    { href: '/dashboard/settings', label: 'Settings', description: 'Manage your dispensary information.', icon: 'Settings' },
   ],
   customer: [
     { href: '/account', label: 'My Account', description: 'View your order history and preferences.', icon: 'User' },
@@ -39,7 +39,7 @@ const navConfig: Record<string, NavLink[]> = {
     { href: '/dashboard/products', label: 'Products', description: 'Manage your product catalog.', icon: 'Box' },
     { href: '/dashboard/content', label: 'Content AI', description: 'Generate descriptions, images, and review summaries.', icon: 'PenSquare' },
     { href: '/dashboard/orders', label: 'Customer Orders', description: 'View and manage incoming online orders.', icon: 'Package' },
-    { href: '/account', label: 'Account Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
+    { href: '/dashboard/settings', label: 'Settings', description: 'Manage brand identity and chatbot configuration.', icon: 'Settings' },
     { href: '/dashboard/ceo', label: 'Admin Console', description: 'Manage data and AI features.', icon: 'Shield' },
   ]
 };
