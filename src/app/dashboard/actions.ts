@@ -26,6 +26,7 @@ export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
       description:
         'Recover abandoned carts via email/SMS and on-site prompts.',
       kind: 'signal',
+      type: 'signal',
       tags: ['retention', 'recovery', 'sms', 'email', 'on-site'],
       enabled: true,
     },
@@ -36,6 +37,7 @@ export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
       description:
         'Monitor competitor price drops and suggest experiments.',
       kind: 'signal',
+      type: 'signal',
       tags: ['competitive', 'pricing', 'experiments'],
       enabled: true,
     },
@@ -46,6 +48,7 @@ export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
       description:
         'Onboard new subscribers with a 5-part welcome flow.',
       kind: 'automation',
+      type: 'automation',
       tags: ['email', 'onboarding', 'engagement'],
       enabled: false,
     },
@@ -56,6 +59,7 @@ export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
       description:
         'Re-engage customers who have not ordered in 60+ days.',
       kind: 'signal',
+      type: 'signal',
       tags: ['retention', 'sms', 'discounts'],
       enabled: true,
     },
@@ -85,8 +89,8 @@ export async function savePlaybookDraft(
     
     const draftToSave: Omit<PlaybookDraft, 'id'> = {
         ...input,
-        status: 'draft',
         kind: 'automation',
+        type: 'automation',
         enabled: false,
         signals: [],
         targets: [],
@@ -128,8 +132,8 @@ export async function getPlaybookDraftsForDashboard(
         brandId: data.brandId ?? brandId,
         name: data.name ?? 'Untitled playbook',
         description: data.description ?? "",
-        status: data.status ?? "draft",
         kind: data.kind ?? "automation",
+        type: data.type ?? "automation",
         enabled: data.enabled ?? false,
         agents: data.agents ?? [],
         tags: data.tags ?? [],
@@ -138,7 +142,7 @@ export async function getPlaybookDraftsForDashboard(
         constraints: data.constraints ?? [],
         createdAt: data.createdAt?.toDate() ?? new Date(),
         updatedAt: data.updatedAt?.toDate() ?? new Date(),
-      };
+      } as PlaybookDraft;
     });
 
     return drafts;
