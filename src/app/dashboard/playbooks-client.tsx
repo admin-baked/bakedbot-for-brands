@@ -66,11 +66,11 @@ function PlaybookCard({ playbook, onToggle }: { playbook: Playbook; onToggle: ()
   );
 }
 
-interface DashboardPageComponentProps {
+interface DashboardPlaybooksClientProps {
     initialPlaybooks: Playbook[];
 }
 
-export default function DashboardPageComponent({ initialPlaybooks }: DashboardPageComponentProps) {
+export function DashboardPlaybooksClient({ initialPlaybooks }: DashboardPlaybooksClientProps) {
   const [playbooks, setPlaybooks] = useState(initialPlaybooks);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
