@@ -277,3 +277,12 @@ export type PlaybookDraft = {
   targets: string[];
   constraints: string[];
 };
+
+export type Playbook = {
+  id: string;
+  name: string;
+  type: 'signal' | 'automation';
+  tags: string[];
+  enabled: boolean;
+  createdAt: Timestamp;
+};
