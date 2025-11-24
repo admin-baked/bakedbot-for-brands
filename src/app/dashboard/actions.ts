@@ -1,7 +1,7 @@
 
 'use server';
 
-import type { Playbook, PlaybookDraft } from '@/types/domain';
+import type { PlaybookDraft } from '@/types/domain';
 import { createServerClient } from '@/firebase/server-client';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
@@ -15,10 +15,10 @@ type PlaybookDraftInput = {
 
 // ----- Live / stubbed playbooks (unchanged) -----
 
-export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
+export async function getPlaybooksForDashboard(): Promise<any[]> {
   const brandId = DEMO_BRAND_ID;
 
-  const demoPlaybooks: Playbook[] = [
+  const demoPlaybooks = [
     {
       id: 'abandon-browse-cart-saver',
       brandId,
@@ -87,7 +87,7 @@ export async function savePlaybookDraft(
       
     const docRef = collectionRef.doc();
     
-    const draftToSave: Omit<PlaybookDraft, 'id'> = {
+    const draftToSave = {
         ...input,
         kind: 'automation',
         type: 'automation',
@@ -139,3 +139,4 @@ export async function getPlaybookDraftsForDashboard(
     return [];
   }
 }
+

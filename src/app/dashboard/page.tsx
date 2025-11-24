@@ -1,22 +1,24 @@
-// src/app/dashboard/page.tsx
-import DashboardPageComponent from "./page-client";
-import { getPlaybookDraftsForDashboard } from "./actions";
-import { requireUser } from "@/server/auth/auth";
-import { redirect } from "next/navigation";
 
+// app/dashboard/page.tsx
+import DashboardPageComponent from "./page-client";
+import { createServerClient } from "@/firebase/server-client";
 
 export default async function DashboardPage() {
-  let user;
-  try {
-    // This requires a user, but we don't enforce a role on the main dashboard page
-    user = await requireUser();
-  } catch (error) {
-    // If no user, send them to the brand login page
-    redirect('/brand-login');
-  }
+  const { firestore } = createServerClient();
 
-  const brandId = user.brandId || "demo-brand";
-  const playbooks = await getPlaybookDraftsForDashboard(brandId);
+  // TODO: real brandId from auth/session
+  const brandId = "demo-brand";
+
+  // You can swap this for a helper like getPlaybookDraftsForDashboard later.
+  const snap = await firestore
+    .collection("playbooks")
+    .where("brandId", "==", brandId)
+    .get();
+
+  const playbooks = snap.docs.map((doc: any) => ({
+    id: doc.id,
+    ...(doc.data() ?? {}),
+  }));
 
   return (
     <DashboardPageComponent
