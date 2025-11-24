@@ -1,4 +1,3 @@
-
 // src/firebase/server-client.ts
 import {
   getApps,
