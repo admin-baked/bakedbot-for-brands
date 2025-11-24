@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useFormState } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -11,8 +12,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { Bot, ChevronDown, ListPlay, Search, Sparkles } from 'lucide-react';
-import { useDashboardConfig } from '@/hooks/use-dashboard-config';
+import { Bot, ChevronDown, BotMessageSquare, Search, Sparkles } from 'lucide-react';
+import { createPlaybookSuggestion, type SuggestionFormState } from './actions';
+import { PlaybookSuggestionDialog } from './components/playbook-suggestion-dialog';
 
 type Playbook = {
   id: string;
@@ -53,6 +55,11 @@ const initialPlaybooks: Playbook[] = [
   },
 ];
 
+const initialSuggestionState: SuggestionFormState = {
+  message: '',
+  error: false,
+  suggestion: undefined,
+}
 
 function PlaybookCard({ playbook, onToggle }: { playbook: Playbook; onToggle: () => void; }) {
   const kindLabel = playbook.kind === 'signal' ? 'SIGNAL' : 'AUTOMATION';
@@ -95,7 +102,16 @@ export default function DashboardPage() {
   const [playbooks, setPlaybooks] = useState(initialPlaybooks);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
   
+  const [suggestionState, formAction] = useFormState(createPlaybookSuggestion, initialSuggestionState);
+
+  useEffect(() => {
+    if (suggestionState.suggestion) {
+      setIsSuggestionOpen(true);
+    }
+  }, [suggestionState.suggestion]);
+
   const filteredPlaybooks = playbooks.filter((pb) => {
     if (statusFilter === 'active' && !pb.enabled) return false;
     if (statusFilter === 'disabled' && pb.enabled) return false;
@@ -112,7 +128,13 @@ export default function DashboardPage() {
   };
   
   return (
-    <main className="flex-1 overflow-y-auto px-8 py-8 space-y-8">
+    <>
+      <PlaybookSuggestionDialog 
+        isOpen={isSuggestionOpen}
+        onOpenChange={setIsSuggestionOpen}
+        suggestion={suggestionState.suggestion}
+      />
+      <main className="flex-1 overflow-y-auto space-y-8">
         <section className="space-y-2">
         <h1 className="text-2xl md:text-3xl font-semibold">
             Good evening, Playbooks
@@ -124,37 +146,40 @@ export default function DashboardPage() {
         </section>
 
         {/* Build your AI Agent Workforce */}
-        <section className="bg-muted/40 border border-dashed rounded-2xl px-6 py-5 flex flex-col gap-3">
-        <div className="flex justify-between items-center gap-4">
-            <div className="space-y-1">
-            <div className="text-sm tracking-wide text-primary font-semibold flex items-center gap-2">
-                <Sparkles className="h-5 w-5" />
-                <span className="uppercase">Build Your AI Agent Workforce</span>
+        <form action={formAction}>
+            <section className="bg-muted/40 border border-dashed rounded-2xl px-6 py-5 flex flex-col gap-3">
+            <div className="flex justify-between items-center gap-4">
+                <div className="space-y-1">
+                <div className="text-sm tracking-wide text-primary font-semibold flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" />
+                    <span className="uppercase">Build Your AI Agent Workforce</span>
+                </div>
+                <p className="text-sm text-muted-foreground max-w-lg">
+                    Type what you want your agents to do. Smokey will propose
+                    a Playbook and let you review before going live.
+                </p>
+                </div>
+                <Button type="submit" className="hidden md:inline-flex">
+                Create Agent
+                </Button>
             </div>
-            <p className="text-sm text-muted-foreground max-w-lg">
-                Type what you want your agents to do. Smokey will propose
-                a Playbook and let you review before going live.
-            </p>
-            </div>
-            <Button className="hidden md:inline-flex">
-            Create Agent
-            </Button>
-        </div>
 
-        <div className="flex gap-2 mt-1">
-            <div className="relative flex-1">
-            <Bot className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
-            <Input
-                type="text"
-                placeholder="e.g., Send a daily summary of cannabis industry news to my email."
-                className="pl-9"
-            />
+            <div className="flex gap-2 mt-1">
+                <div className="relative flex-1">
+                <Bot className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                <Input
+                    type="text"
+                    name="command"
+                    placeholder="e.g., Send a daily summary of cannabis industry news to my email."
+                    className="pl-9"
+                />
+                </div>
+                <Button type="submit" className="inline-flex md:hidden">
+                Create
+                </Button>
             </div>
-            <Button className="inline-flex md:hidden">
-            Create
-            </Button>
-        </div>
-        </section>
+            </section>
+        </form>
 
         {/* Filters + Playbooks list */}
         <section className="space-y-4">
@@ -211,5 +236,6 @@ export default function DashboardPage() {
         </div>
         </section>
     </main>
+    </>
   );
 }
