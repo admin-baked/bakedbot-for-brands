@@ -1,9 +1,8 @@
-// app/dashboard/page.tsx
 
 'use server';
 
+import DashboardPageComponent from './page-client';
 import { getPlaybooksForDashboard } from './actions';
-import { DashboardPlaybooksClient } from './playbooks-client';
 
 // This is now a Server Component that fetches data and passes it to the client.
 export default async function DashboardPage() {
@@ -12,6 +11,6 @@ export default async function DashboardPage() {
   const playbooks = await getPlaybooksForDashboard();
 
   return (
-      <DashboardPlaybooksClient initialPlaybooks={playbooks} />
+      <DashboardPageComponent initialPlaybooks={playbooks} />
   );
 }
