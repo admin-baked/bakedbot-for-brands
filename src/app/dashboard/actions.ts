@@ -4,7 +4,6 @@
 import { suggestPlaybook as suggestPlaybookFlow } from "@/ai/flows/suggest-playbook";
 import type { Playbook, PlaybookDraft as PlaybookDraftType } from "@/types/domain";
 import { requireUser } from "@/server/auth/auth";
-import { createServerClient } from "@/firebase/server-client";
 import { z } from "zod";
 
 
@@ -75,33 +74,50 @@ export async function createPlaybookSuggestion(
 }
 
 
-/**
- * Securely fetches all playbooks for the currently authenticated user's brand.
- */
-export async function getPlaybooksForBrand(): Promise<Playbook[]> {
-    try {
-        const user = await requireUser(['brand', 'owner']);
-        const brandId = user.brandId;
-        
-        if (!brandId) {
-            return [];
-        }
+const DEMO_BRAND_ID = 'demo-brand';
 
-        const { firestore } = await createServerClient();
-        const playbooksRef = firestore.collection(`organizations/${brandId}/playbooks`);
-        const snapshot = await playbooksRef.orderBy('name').get();
-        
-        if (snapshot.empty) {
-            return [];
-        }
+export async function getPlaybooksForDashboard(): Promise<Playbook[]> {
+  // PHASE 2A: stub implementation that can be swapped for Firestore later.
+  // Shape matches the Playbook type and the UI you already built.
 
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Playbook));
+  const demoPlaybooks: Playbook[] = [
+    {
+      id: 'abandon-browse-cart-saver',
+      brandId: DEMO_BRAND_ID,
+      name: 'abandon-browse-cart-saver',
+      description: 'Recover abandoned carts via email/SMS and on-site prompts.',
+      kind: 'signal',
+      tags: ['retention', 'recovery', 'sms', 'email', 'on-site'],
+      enabled: true,
+    },
+    {
+      id: 'competitor-price-drop-watch',
+      brandId: DEMO_BRAND_ID,
+      name: 'competitor-price-drop-watch',
+      description: 'Monitor competitor price drops and suggest experiments.',
+      kind: 'signal',
+      tags: ['competitive', 'pricing', 'experiments'],
+      enabled: true,
+    },
+    {
+      id: 'new-subscriber-welcome-series',
+      brandId: DEMO_BRAND_ID,
+      name: 'new-subscriber-welcome-series',
+      description: 'Onboard new subscribers with a 5-part welcome flow.',
+      kind: 'automation',
+      tags: ['email', 'onboarding', 'engagement'],
+      enabled: false,
+    },
+    {
+      id: 'win-back-lapsed-customers',
+      brandId: DEMO_BRAND_ID,
+      name: 'win-back-lapsed-customers',
+      description: 'Re-engage customers who have not ordered in 60+ days.',
+      kind: 'signal',
+      tags: ['retention', 'sms', 'discounts'],
+      enabled: true,
+    },
+  ];
 
-    } catch (error) {
-        console.error("Failed to fetch playbooks:", error);
-        return [];
-    }
+  return demoPlaybooks;
 }
