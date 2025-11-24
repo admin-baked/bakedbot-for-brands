@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
-    "build": "next build",
+    "build": "npm run check:structure && next build",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
@@ -14,7 +14,9 @@
     "init-embeddings": "npx tsx scripts/init-review-embeddings.ts",
     "audit": "bash ./scripts/quick-audit.sh",
     "audit:deep": "bash ./scripts/audit-code.sh",
-    "pre-publish": "bash ./scripts/pre-publish.sh"
+    "pre-publish": "bash ./scripts/pre-publish.sh",
+    "check:structure": "node scripts/check-app-structure.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.2.0",
