@@ -144,6 +144,10 @@ export async function getPlaybookDraftsForDashboard(
           data.updatedAt instanceof Date
             ? data.updatedAt
             : data.updatedAt?.toDate?.(),
+        type: data.type ?? 'automation',
+        signals: data.signals ?? [],
+        targets: data.targets ?? [],
+        constraints: data.constraints ?? [],
       };
     });
 

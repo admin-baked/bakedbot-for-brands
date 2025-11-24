@@ -11,7 +11,7 @@ async function getBrands() {
     if (brandsSnap.empty) {
         return [];
     }
-    return brandsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Brand));
+    return brandsSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Brand));
 }
 
 export default async function NewProductPage() {

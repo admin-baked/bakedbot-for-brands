@@ -35,7 +35,7 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   
   const ordersSnap = await ordersQuery.get();
   
-  const orders = ordersSnap.docs.map(doc => doc.data()) as OrderDoc[];
+  const orders = ordersSnap.docs.map((doc: any) => doc.data()) as OrderDoc[];
 
   if (orders.length === 0) {
     return {
