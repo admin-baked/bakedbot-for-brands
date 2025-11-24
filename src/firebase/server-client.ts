@@ -9,12 +9,22 @@ if (!getApps().length) {
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
   if (!serviceAccountJson) {
-    // This is now a fatal error because the Admin SDK needs credentials to perform
-    // operations like minting custom tokens for dev login.
-    throw new Error(
-      "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. " +
-      "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
-    );
+    // In a non-production environment, we can fall back to default credentials.
+    // This often works in local dev environments or CI.
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(
+        'FIREBASE_SERVICE_ACCOUNT_KEY is not set. Falling back to default credentials. ' +
+        'This is expected for local development but will fail in production. ' +
+        'See DEPLOYMENT_INSTRUCTIONS.md for more details.'
+      );
+      app = initializeApp();
+    } else {
+      // In production, this is a fatal error.
+      throw new Error(
+        "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. " +
+        "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
+      );
+    }
   } else {
     // In Firebase Hosting, the key is a Base64 string, not a JSON string.
     // In local dev with a .env file, we've also Base64 encoded it.
