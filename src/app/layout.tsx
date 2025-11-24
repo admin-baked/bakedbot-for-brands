@@ -6,8 +6,6 @@ import { Inter, Teko } from 'next/font/google';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Providers } from '@/providers';
-import Chatbot from '@/components/chatbot';
-import { demoProducts } from '@/lib/demo/demo-data';
 
 export const metadata: Metadata = {
   title: 'BakedBot AI',
@@ -38,7 +36,6 @@ export default function RootLayout({
             {children}
           </div>
           <Footer />
-          <Chatbot products={demoProducts} brandId="default" />
         </Providers>
       </body>
     </html>
