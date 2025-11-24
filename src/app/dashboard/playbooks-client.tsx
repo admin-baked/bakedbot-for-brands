@@ -112,7 +112,7 @@ export function DashboardPlaybooksClient({ initialPlaybooks }: DashboardPlaybook
         suggestion={suggestionState.suggestion}
       />
       <main className="flex-1 overflow-y-auto space-y-8">
-        {/* Build your AI Agent Workforce */}
+        {/* Build Your AI Agent Workforce */}
         <form action={formAction}>
             <section className="bg-muted/40 border border-dashed rounded-2xl px-6 py-5 flex flex-col gap-3">
             <div className="flex justify-between items-center gap-4">
