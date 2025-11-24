@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -6,7 +5,7 @@ import type { Playbook } from '@/types/domain';
 import { savePlaybookDraft } from './actions';
 
 type DashboardPageClientProps = {
-  playbooks?: Playbook[];
+  initialPlaybooks?: Playbook[];
 };
 
 type SuggestedPlaybook = {
@@ -19,7 +18,7 @@ type SuggestedPlaybook = {
 export default function DashboardPageClient({
   initialPlaybooks,
 }: DashboardPageClientProps) {
-  const list = Array.isArray(initialPlaybooks) ? initialPlaybooks : [];
+  const [list, setList] = React.useState(Array.isArray(initialPlaybooks) ? initialPlaybooks : []);
 
   const [prompt, setPrompt] = React.useState('');
   const [suggested, setSuggested] = React.useState<SuggestedPlaybook | null>(
@@ -39,7 +38,7 @@ export default function DashboardPageClient({
       return;
     }
 
-    // super simple heuristic so the UX feels alive
+    // super simple heuristic parser – just to make the UX feel real.
     const lower = trimmed.toLowerCase();
     const agents: string[] = [];
     const tags: string[] = [];
