@@ -1,6 +1,5 @@
-'use server';
-
 import 'server-only';
+
 import { Firestore } from 'firebase-admin/firestore';
 import type { Playbook } from '@/types/domain';
 import { playbookConverter } from '@/firebase/converters';
