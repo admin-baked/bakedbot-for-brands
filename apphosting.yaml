@@ -2,12 +2,10 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 runConfig:
-  # The FIREBASE_SERVICE_ACCOUNT_KEY is needed both as a secret for some GCP services
-  # and as a standard environment variable for the Firebase Admin SDK to initialize.
+  # The FIREBASE_SERVICE_ACCOUNT_KEY is needed for the Firebase Admin SDK to initialize.
+  # It is provided directly by the App Hosting environment.
   env:
     - variable: FIREBASE_SERVICE_ACCOUNT_KEY
-      secret: bakedbot-service-account-key
-      availability: [RUNTIME]
     - variable: SENDGRID_API_KEY
       secret: SENDGRID_API_KEY
     - variable: SENDGRID_FROM_EMAIL
