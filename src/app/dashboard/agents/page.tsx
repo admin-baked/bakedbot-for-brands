@@ -1,5 +1,6 @@
+
 import type { Metadata } from 'next';
-import { AgentsGrid } from '@/components/dashboard/agents-grid';
+import { AgentsGrid } from '@/components/dashboard/agent-grid';
 
 export const metadata: Metadata = {
   title: 'Agents | BakedBot AI',
