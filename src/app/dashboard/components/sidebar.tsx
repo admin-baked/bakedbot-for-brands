@@ -22,6 +22,7 @@ import { signOut } from 'firebase/auth';
 import { LogOut } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
+import type { ElementType } from 'react';
 
 export function DashboardSidebar() {
   const rawPathname = usePathname();
@@ -64,7 +65,8 @@ export function DashboardSidebar() {
       <SidebarContent>
         <SidebarMenu>
           {navLinks.filter(link => !link.hidden).map((link) => {
-            const Icon = (LucideIcons as any)[link.icon] || LucideIcons.Folder;
+            const iconKey = (link.icon ?? 'Folder') as keyof typeof LucideIcons;
+            const Icon = (LucideIcons as any)[iconKey] || LucideIcons.Folder as ElementType;
             const isActive = link.href === '/dashboard' ? pathname === link.href : pathname.startsWith(link.href);
             return (
               <SidebarMenuItem key={link.href}>
@@ -87,7 +89,7 @@ export function DashboardSidebar() {
                      <Avatar className="h-8 w-8">
                         <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
                     </Avatar>
-                    <div className='overflow-hidden'>
+                    <div className='overflow-hidden group-data-[collapsible=icon]:hidden'>
                         <p className="text-sm font-medium truncate">{user.displayName || 'My Account'}</p>
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>

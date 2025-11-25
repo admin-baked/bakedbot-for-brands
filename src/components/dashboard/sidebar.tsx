@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 import {
   Sidebar,
   SidebarContent,
@@ -21,7 +21,8 @@ import { useToast } from '@/hooks/use-toast';
 import { signOut } from 'firebase/auth';
 import { LogOut } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import { useDashboardConfig } from '@/hooks/use-dashboard-config';
+import type { ElementType } from 'react';
+
 
 export function DashboardSidebar() {
   const { navLinks, currentLink } = useDashboardConfig();
@@ -63,7 +64,7 @@ export function DashboardSidebar() {
         <SidebarMenu>
           {navLinks.filter(link => !link.hidden).map((link) => {
             const iconKey = (link.icon ?? 'Folder') as keyof typeof LucideIcons;
-            const Icon = LucideIcons[iconKey] || LucideIcons.Folder;
+            const Icon = (LucideIcons as any)[iconKey] || LucideIcons.Folder as ElementType;
             return (
               <SidebarMenuItem key={link.href}>
                 <SidebarMenuButton asChild isActive={link.href === currentLink?.href}>
