@@ -36,4 +36,5 @@ const nextConfig = {
   },
 };
 
+// This comment is added to invalidate the build cache.
 module.exports = nextConfig;
