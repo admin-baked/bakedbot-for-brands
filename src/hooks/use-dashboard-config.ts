@@ -1,4 +1,3 @@
-
 'use client';
 
 import { usePathname } from 'next/navigation';
@@ -81,21 +80,26 @@ export function useDashboardConfig() {
         description: 'Internal tools, logs, and compliance debugging.',
         hidden: true,
       },
-    ].map((link) => ({
+    ],
+    []
+  );
+
+  const enhancedLinks = useMemo(
+    () =>
+      navLinks.map((link) => ({
         ...link,
         active:
           link.href === '/dashboard'
             ? pathname === '/dashboard'
             : !!pathname?.startsWith(link.href),
-    })),
-    [pathname]
+      })),
+    [navLinks, pathname]
   );
-
-  const currentLink =
-    navLinks.find((link) => link.active) ?? navLinks[0];
+  
+  const currentLink = enhancedLinks.find((link) => link.active) ?? navLinks[0];
 
   return {
-    navLinks,
+    navLinks: enhancedLinks,
     currentLink,
   };
 }
