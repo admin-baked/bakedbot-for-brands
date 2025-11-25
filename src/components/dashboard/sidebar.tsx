@@ -25,7 +25,7 @@ import type { ElementType } from 'react';
 
 
 export function DashboardSidebar() {
-  const { navLinks, currentLink } = useDashboardConfig();
+  const { navLinks, current } = useDashboardConfig();
   const { user } = useUser();
   const { auth } = useFirebase();
   const { toast } = useToast();
@@ -67,7 +67,7 @@ export function DashboardSidebar() {
             const Icon = (LucideIcons as any)[iconKey] || LucideIcons.Folder as ElementType;
             return (
               <SidebarMenuItem key={link.href}>
-                <SidebarMenuButton asChild isActive={link.href === currentLink?.href}>
+                <SidebarMenuButton asChild isActive={link.href === current?.href} tooltip={link.label}>
                   <Link href={link.href}>
                     <Icon />
                     <span>{link.label}</span>
