@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss"
 
 const config = {
@@ -22,7 +21,6 @@ const config = {
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
         display: ["var(--font-teko)", "system-ui", "sans-serif"],
-        teko: ["var(--font-teko)", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

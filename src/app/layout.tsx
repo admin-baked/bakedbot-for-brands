@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata } from 'next';
 import React from 'react';
+import { Inter, Teko } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { AppLayout } from '@/components/AppLayout';
@@ -10,6 +11,18 @@ import { makeProductRepo } from '@/server/repos/productRepo';
 import { demoProducts } from '@/lib/demo/demo-data';
 import { cookies } from 'next/headers';
 import { DEMO_BRAND_ID } from '@/lib/config';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+});
+
+const teko = Teko({
+  subsets: ['latin'],
+  variable: '--font-teko',
+  weight: ['400', '700'],
+});
+
 
 export const metadata: Metadata = {
   title: 'BakedBot AI',
@@ -43,8 +56,8 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-background text-foreground">
+    <html lang="en" className={`${inter.variable} ${teko.variable}`} suppressHydrationWarning>
+      <body className="font-sans min-h-screen bg-background text-foreground">
         <Providers>
             <AppLayout>
                 {children}
