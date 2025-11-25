@@ -118,7 +118,7 @@ export default function CheckoutPage() {
                 </Button>
             </div>
              {appliedDiscount && (
-                <p className="text-sm text-primary">Coupon "{appliedDiscount.code}" applied!</p>
+                <p className="text-sm text-primary">Coupon &quot;{appliedDiscount.code}&quot; applied!</p>
              )}
           </div>
           <div className="py-4 border-t border-dashed">
