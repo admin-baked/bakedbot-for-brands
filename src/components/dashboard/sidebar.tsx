@@ -24,10 +24,10 @@ import * as LucideIcons from 'lucide-react';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 
 export function DashboardSidebar() {
+  const { navLinks, currentLink } = useDashboardConfig();
   const { user } = useUser();
   const { auth } = useFirebase();
   const { toast } = useToast();
-  const { navLinks } = useDashboardConfig();
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -62,10 +62,11 @@ export function DashboardSidebar() {
       <SidebarContent>
         <SidebarMenu>
           {navLinks.filter(link => !link.hidden).map((link) => {
-            const Icon = (LucideIcons as any)[link.icon || 'Folder'];
+            const iconKey = (link.icon ?? 'Folder') as keyof typeof LucideIcons;
+            const Icon = LucideIcons[iconKey] || LucideIcons.Folder;
             return (
               <SidebarMenuItem key={link.href}>
-                <SidebarMenuButton asChild isActive={link.active} tooltip={link.label}>
+                <SidebarMenuButton asChild isActive={link.href === currentLink?.href}>
                   <Link href={link.href}>
                     <Icon />
                     <span>{link.label}</span>
