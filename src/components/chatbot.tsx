@@ -234,7 +234,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
         setIsBotTyping(false);
     }, 1500);
 
-  }, [hasStartedChat, brandId]);
+  }, [hasStartedChat]);
 
   const handleOnboardingComplete = useCallback(async (answers: OnboardingAnswers) => {
     setIsOnboarding(false);
@@ -259,7 +259,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
         setIsBotTyping(false);
     }, 2000);
 
-  }, [products, brandId]);
+  }, []);
 
   const handleSendMessage = useCallback(async (e: FormEvent) => {
     e.preventDefault();
@@ -291,7 +291,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
       setIsBotTyping(false);
     }, 2000);
 
-  }, [inputValue, isBotTyping, hasStartedChat, chatMode, products, brandId]);
+  }, [inputValue, isBotTyping, hasStartedChat]);
 
   const handleFeedback = (productId: string, type: 'like' | 'dislike') => {
     startTransition(async () => {
