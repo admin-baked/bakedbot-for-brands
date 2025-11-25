@@ -7,8 +7,8 @@ import * as LucideIcons from 'lucide-react';
 export type DashboardNavLink = {
   label: string;
   href: string;
-  icon?: keyof typeof LucideIcons;
-  description?: string;
+  icon: keyof typeof LucideIcons;
+  description: string;
   hidden?: boolean;
   active?: boolean;
 };
@@ -16,66 +16,38 @@ export type DashboardNavLink = {
 export function useDashboardConfig() {
   const pathname = usePathname();
 
-  const navLinks: DashboardNavLink[] = useMemo(
-    () => [
+  const navLinks: DashboardNavLink[] = useMemo(() => {
+    const links: DashboardNavLink[] = [
       {
         label: 'Overview',
         href: '/dashboard',
         icon: 'LayoutDashboard',
-        description: 'At-a-glance view of your agents and brand performance.',
+        description: 'High-level summary of agents, campaigns, and revenue.',
       },
       {
         label: 'Agents',
         href: '/dashboard/agents',
         icon: 'Bot',
-        description: 'Orchestrate Smokey, Craig, Pops, Ezal, Money Mike, Mrs. Parker, and Deebo.',
-      },
-      {
-        label: 'Playbooks',
-        href: '/dashboard/playbooks',
-        icon: 'Sparkles',
-        description: 'Reusable growth recipes and campaign templates.',
+        description: 'Configure and monitor your AI agents.',
       },
       {
         label: 'Account',
         href: '/account',
         icon: 'Settings',
-        description: 'Brand profile, billing, team, and authentication.',
+        description: 'Brand profile, billing, and configuration.',
       },
-      {
-        label: 'Product Locator',
-        href: '/product-locator',
-        icon: 'MapPin',
-        description: 'Where customers can buy your products.',
-        hidden: true,
-      },
-      {
-        label: 'Debug & Deebo',
-        href: '/debug/playbooks',
-        icon: 'Bug',
-        description: 'Internal tools, logs, and compliance debugging.',
-        hidden: true,
-      },
-    ],
-    []
-  );
+      // You can add more links here as needed
+    ];
 
-  const enhancedLinks = useMemo(
-    () =>
-      navLinks.map((link) => ({
-        ...link,
-        active:
-          link.href === '/'
-            ? pathname === '/'
-            : pathname === link.href || (link.href !== '/dashboard' && pathname.startsWith(`${link.href}/`)),
-      })),
-    [navLinks, pathname]
-  );
-  
-  const currentLink = enhancedLinks.find((link) => link.active) ?? navLinks[0];
+    return links.map((link) => ({
+      ...link,
+      active:
+        pathname === link.href ||
+        (link.href !== '/' && pathname.startsWith(link.href)),
+    }));
+  }, [pathname]);
 
-  return {
-    navLinks: enhancedLinks,
-    currentLink,
-  };
+  const current = navLinks.find((link) => link.active) ?? navLinks[0];
+
+  return { navLinks, current };
 }
