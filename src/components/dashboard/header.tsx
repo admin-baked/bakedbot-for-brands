@@ -5,15 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 
 export function DashboardHeader() {
-  const rawPathname = usePathname();
-  const pathname = rawPathname ?? '';
-  const { navLinks } = useDashboardConfig();
-
-  // Find the current nav link based on the path.
-  // For the root dashboard, it's a direct match. For others, we check if the path starts with the link's href.
-  const currentLink = navLinks.find(
-    (link) => (link.href === '/dashboard' ? pathname === link.href : pathname.startsWith(link.href))
-  );
+  const { currentLink } = useDashboardConfig();
 
   if (!currentLink) {
     return null; // Or a default header if you prefer
