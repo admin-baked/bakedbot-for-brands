@@ -75,7 +75,7 @@ export function useDashboardConfig() {
       active:
         link.href === '/dashboard'
           ? pathname === '/dashboard'
-          : pathname?.startsWith(link.href),
+          : !!pathname?.startsWith(link.href),
     }));
   }, [pathname]);
 
