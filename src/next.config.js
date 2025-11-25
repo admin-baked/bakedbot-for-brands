@@ -18,12 +18,6 @@ const nextConfig = {
     ],
   },
   experimental: {
-    // This is already here, which is great.
-    outputFileTracingExcludes: {
-      '*': [
-        './e2e/**/*',
-      ],
-    },
     // Adding this flag to help ensure Server Actions are correctly bundled.
     serverActions: true,
   },
