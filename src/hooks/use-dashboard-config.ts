@@ -77,7 +77,7 @@ export function useDashboardConfig() {
           ? pathname === '/dashboard'
           : !!pathname?.startsWith(link.href),
     }));
-  }, [pathname]);
+  }, [pathname]); // <-- This dependency was missing and is now restored.
 
   const currentLink =
     navLinks.find((link) => link.active) ?? navLinks[0];

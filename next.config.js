@@ -17,6 +17,10 @@ const nextConfig = {
       }
     ],
   },
+  experimental: {
+    // Adding this flag to help ensure Server Actions are correctly bundled.
+    serverActions: true,
+  },
   async headers() {
     return [
       {
@@ -31,5 +35,5 @@ const nextConfig = {
     ];
   },
 };
-
+// This comment is added to invalidate the build cache.
 module.exports = nextConfig;
