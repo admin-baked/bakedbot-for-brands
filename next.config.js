@@ -17,10 +17,6 @@ const nextConfig = {
       }
     ],
   },
-  experimental: {
-    // Adding this flag to help ensure Server Actions are correctly bundled.
-    serverActions: true,
-  },
   async headers() {
     return [
       {
