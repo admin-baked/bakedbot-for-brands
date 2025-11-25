@@ -1,95 +1,28 @@
 
-import { createServerClient } from '@/firebase/server-client';
-import { redirect } from 'next/navigation';
-import { orderConverter, retailerConverter, type OrderDoc, type Retailer } from '@/firebase/converters';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { DocumentData } from 'firebase-admin/firestore';
-import CustomerAccountView from './components/customer-account-view';
-import BrandAccountView from './components/brand-account-view';
-import { makeBrandRepo } from '@/server/repos/brandRepo';
-import type { Brand } from '@/types/domain';
-import { requireUser } from '@/server/auth/auth';
-import { cookies } from 'next/headers';
-import { DEMO_BRAND_ID } from '@/lib/config';
+import type { Metadata } from 'next';
 
-async function getAccountData(uid?: string | null, role?: string | null, brandId?: string | null, locationId?: string | null) {
-    const { firestore } = await createServerClient();
-    
-    if (role === 'customer' && uid) {
-        const ordersQuery = query(
-            (collection as any)(firestore, 'orders'),
-            where('userId', '==', uid)
-        ).withConverter(orderConverter);
+export const metadata: Metadata = {
+  title: 'Account | BakedBot AI',
+};
 
-        const [ordersSnap, retailersSnap] = await Promise.all([
-            getDocs(ordersQuery),
-            firestore.collection('dispensaries').withConverter(retailerConverter as any).get()
-        ]);
-        
-        const orders = ordersSnap.docs.map((doc: DocumentData) => doc.data()) as OrderDoc[];
-        const retailers = retailersSnap.docs.map((doc: DocumentData) => doc.data()) as Retailer[];
-        
-        return { orders, retailers, brand: null }; // Ensure consistent shape
-    }
-    
-    if ((role === 'brand' || role === 'owner') && brandId) {
-        const brandRepo = makeBrandRepo(firestore);
-        const brand = await brandRepo.getById(brandId);
-        return { brand, orders: null, retailers: null }; // Ensure consistent shape
-    }
+export const dynamic = 'force-dynamic';
 
-    // Handle demo mode user (no UID)
-     if (!uid) {
-        const brandRepo = makeBrandRepo(firestore);
-        const brand = await brandRepo.getById(DEMO_BRAND_ID);
-        return { brand, orders: [], retailers: [] };
-    }
+export default function AccountPage() {
+  return (
+    <main className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight">Account</h1>
+        <p className="text-sm text-muted-foreground">
+          Account settings and brand configuration will live here. This placeholder keeps the
+          dashboard navigation and build happy while we wire in the full experience.
+        </p>
+      </header>
 
-    // Default for other roles
-    return { brand: null, orders: [], retailers: [] };
-}
-
-
-export default async function AccountPage() {
-    let user;
-    let isDemoUser = false;
-    try {
-        user = await requireUser();
-    } catch (error) {
-        // If user is not authenticated, check if we are in demo mode.
-        if (cookies().get('isDemo')?.value === 'true') {
-            isDemoUser = true;
-            user = null; // explicitly null
-        } else {
-             // If not demo mode and no user, redirect to login.
-            redirect('/customer-login');
-        }
-    }
-
-    // User is not logged in but is in demo mode.
-    if (isDemoUser && !user) {
-        const demoAccountData = await getAccountData(null, 'brand', DEMO_BRAND_ID);
-         return <BrandAccountView user={{ name: "Demo Brand", email: "demo@bakedbot.ai", role: "brand" }} brand={demoAccountData.brand} />;
-    }
-
-    // Authenticated user flow
-    if (!user) {
-        // This should not be reached due to the redirect above, but it's a safeguard.
-        redirect('/customer-login');
-    }
-
-    const { uid, role, brandId, locationId, name, email } = user;
-    
-    if (!role && !isDemoUser) {
-        redirect('/onboarding');
-    }
-
-    const accountData = await getAccountData(uid, role as string, brandId, locationId);
-
-    if (role === 'customer' && accountData.orders && accountData.retailers) {
-        return <CustomerAccountView user={{name, email}} orders={accountData.orders} retailers={accountData.retailers} />;
-    }
-    
-    // For Brand and Dispensary users
-    return <BrandAccountView user={{ name, email, role }} brand={accountData.brand} />;
+      <section className="rounded-xl border border-border/60 bg-background/60 px-4 py-3 text-sm text-muted-foreground">
+        <p>
+          Coming soon: brand profile, jurisdictions, stack integrations, and team access controls.
+        </p>
+      </section>
+    </main>
+  );
 }
