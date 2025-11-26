@@ -8,7 +8,8 @@ import {
   cert,
 } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
+import { getAuth, DecodedIdToken } from "firebase-admin/auth";
+import { UserProfile } from "@/types/domain";
 
 let app: App;
 
@@ -47,4 +48,61 @@ export async function createServerClient() {
   const auth = getAuth(app);
   const firestore = getFirestore(app);
   return { auth, firestore };
+}
+
+/**
+ * Verify a Firebase ID token
+ */
+export async function verifyIdToken(token: string): Promise<DecodedIdToken> {
+  const { auth } = await createServerClient();
+  return auth.verifyIdToken(token);
+}
+
+/**
+ * Get user profile from Firestore by UID
+ */
+export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  const { firestore } = await createServerClient();
+  const userDoc = await firestore.collection('users').doc(uid).get();
+
+  if (!userDoc.exists) {
+    return null;
+  }
+
+  return userDoc.data() as UserProfile;
+}
+
+/**
+ * Get custom claims for a user
+ */
+export async function getUserClaims(uid: string): Promise<Record<string, any>> {
+  const { auth } = await createServerClient();
+  const user = await auth.getUser(uid);
+  return user.customClaims || {};
+}
+
+/**
+ * Set custom claims for a user (admin only)
+ */
+export async function setUserClaims(
+  uid: string,
+  claims: Record<string, any>
+): Promise<void> {
+  const { auth } = await createServerClient();
+  await auth.setCustomUserClaims(uid, claims);
+}
+
+/**
+ * Set user role (convenience function)
+ */
+export async function setUserRole(
+  uid: string,
+  role: 'brand' | 'dispensary' | 'customer' | 'owner',
+  additionalData?: { brandId?: string; locationId?: string }
+): Promise<void> {
+  const claims = {
+    role,
+    ...additionalData,
+  };
+  await setUserClaims(uid, claims);
 }
