@@ -78,12 +78,13 @@ export class TaskParser {
                 requiredTools: step.tools,
                 status: 'pending',
                 toolExecutions: [],
+                output: null, // Initialize as null
                 confidenceScore: 0.7, // Initial confidence
                 deeboReviewed: false,
                 dependsOn: step.dependsOn || []
             })),
             currentStepIndex: 0,
-            assignedAgents: [...new Set(taskPlan.steps.map(s => s.agentId))],
+            assignedAgents: Array.from(new Set(taskPlan.steps.map(s => s.agentId))),
             toolsUsed: [],
             confidenceScore: 0.7,
             deeboApproved: false,
