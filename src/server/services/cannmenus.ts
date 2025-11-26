@@ -1,4 +1,4 @@
-import { initializeFirebase } from '@/firebase';
+import { createServerClient } from '@/firebase/server-client';
 import { RetailerDoc, ProductDoc, CannMenusProduct } from '@/types/cannmenus';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -6,12 +6,6 @@ const CANNMENUS_BASE_URL = process.env.CANNMENUS_API_BASE || 'https://api.cannme
 const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
 
 export class CannMenusService {
-    private db;
-
-    constructor() {
-        const { firestore } = initializeFirebase();
-        this.db = firestore;
-    }
 
     /**
      * Sync menus for a specific brand
@@ -25,8 +19,7 @@ export class CannMenusService {
         // Step 1: Find retailers
         // In a real scenario, we might search for retailers carrying the brand specifically.
         // For now, we'll search for retailers in key markets or use a broad search if supported.
-        // CannMenus /v2/retailers doesn't filter by brand directly, but /v2/products does.
-        // So we might need to find products first to find retailers?
+        // CannMenus /v2/products does.
         // Actually, let's search for products by brand name to find which retailers carry them.
 
         const retailers = await this.findRetailersCarryingBrand(brandName);
@@ -109,22 +102,18 @@ export class CannMenusService {
     }
 
     private async storeRetailers(retailers: RetailerDoc[]) {
-        const batch = this.db.batch();
-        let count = 0;
+        const { firestore } = await createServerClient();
 
-        for (const retailer of retailers) {
-            const ref = this.db.collection('retailers').doc(retailer.id);
-            batch.set(ref, retailer, { merge: true });
-            count++;
-
-            if (count >= 400) { // Firestore batch limit is 500
-                await batch.commit();
-                count = 0;
-            }
-        }
-
-        if (count > 0) {
-            await batch.commit();
+        // Simplified chunking
+        const chunkSize = 400;
+        for (let i = 0; i < retailers.length; i += chunkSize) {
+            const chunk = retailers.slice(i, i + chunkSize);
+            const chunkBatch = firestore.batch();
+            chunk.forEach(retailer => {
+                const ref = firestore.collection('retailers').doc(retailer.id);
+                chunkBatch.set(ref, retailer, { merge: true });
+            });
+            await chunkBatch.commit();
         }
     }
 
@@ -178,37 +167,25 @@ export class CannMenusService {
     }
 
     private async storeProducts(products: ProductDoc[]) {
-        const batch = this.db.batch();
-        let count = 0;
+        const { firestore } = await createServerClient();
 
-        for (const product of products) {
-            // Use sku_id as document ID if unique enough, or a composite key
-            // For now, let's use a composite key of sku_id + brand_id to avoid collisions if sku_ids aren't global
-            // Actually, let's query if product exists to merge retailerIds
+        const chunkSize = 400;
+        for (let i = 0; i < products.length; i += chunkSize) {
+            const chunk = products.slice(i, i + chunkSize);
+            const chunkBatch = firestore.batch();
 
-            // Simplified: just overwrite for now, but in reality we'd want to merge retailerIds
-            // To keep it simple for Sprint 4, we'll just store them.
-            // Using a deterministic ID based on SKU would be better.
-            const docId = `${product.brand_id}_${product.sku_id}`;
-            const ref = this.db.collection('products').doc(docId);
+            chunk.forEach(product => {
+                const docId = `${product.brand_id}_${product.sku_id}`;
+                const ref = firestore.collection('products').doc(docId);
 
-            // We need to handle retailerIds merging carefully in a real app
-            // For now, we'll just set it.
-            batch.set(ref, {
-                ...product,
-                id: docId,
-                updatedAt: new Date()
-            }, { merge: true });
+                chunkBatch.set(ref, {
+                    ...product,
+                    id: docId,
+                    updatedAt: new Date()
+                }, { merge: true });
+            });
 
-            count++;
-            if (count >= 400) {
-                await batch.commit();
-                count = 0;
-            }
-        }
-
-        if (count > 0) {
-            await batch.commit();
+            await chunkBatch.commit();
         }
     }
 }
