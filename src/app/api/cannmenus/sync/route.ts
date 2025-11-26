@@ -1,22 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { CannMenusService } from '@/server/services/cannmenus';
+import { getUserFromRequest } from '@/server/auth/auth-helpers';
+import { requireBrandAccess, hasPermission } from '@/server/auth/rbac';
 
 export async function POST(req: NextRequest) {
     try {
-        const { auth } = await createServerClient();
+        // Authenticate user
+        const user = await getUserFromRequest(req);
 
-        // Get the token from the Authorization header
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const token = authHeader.split('Bearer ')[1];
-        const decodedToken = await auth.verifyIdToken(token);
+        // Check if user has permission to sync menus
+        if (!hasPermission(user, 'sync:menus')) {
+            return NextResponse.json(
+                { error: 'Forbidden: insufficient permissions' },
+                { status: 403 }
+            );
+        }
 
-        // Get brandId from request body or user claims
-        // For now, we expect brandId in the body, but verify user has access to it
+        // Get brandId from request body
         const body = await req.json();
         const { brandId } = body;
 
@@ -24,14 +29,17 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing brandId' }, { status: 400 });
         }
 
-        // TODO: Verify user has access to this brandId (RBAC)
-        // const user = await auth.getUser(decodedToken.uid);
-        // if (user.customClaims?.brandId !== brandId && user.customClaims?.role !== 'admin') { ... }
+        // Verify user has access to this brand
+        try {
+            requireBrandAccess(user, brandId);
+        } catch (error: any) {
+            return NextResponse.json(
+                { error: error.message },
+                { status: 403 }
+            );
+        }
 
-        const service = new CannMenusService();
-        // We need the brand name to search. For now, we'll fetch the brand doc or pass it in.
-        // Let's assume passed in for simplicity, or fetch it.
-        // Fetching brand name:
+        // Fetch brand details
         const { firestore } = await createServerClient();
         const brandDoc = await firestore.collection('brands').doc(brandId).get();
 
@@ -41,11 +49,16 @@ export async function POST(req: NextRequest) {
 
         const brandName = brandDoc.data()?.name;
 
+        // Execute sync
+        const service = new CannMenusService();
         const result = await service.syncMenusForBrand(brandId, brandName);
 
         return NextResponse.json({ success: true, data: result });
     } catch (error: any) {
         console.error('Error in sync route:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json(
+            { error: error.message || 'Internal server error' },
+            { status: 500 }
+        );
     }
 }
