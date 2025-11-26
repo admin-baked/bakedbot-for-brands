@@ -1,5 +1,5 @@
 
-import { AgentGrid } from '@/components/dashboard/agent-grid';
+import { AgentsGrid } from '@/components/dashboard/agent-grid';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 import { BarChart3, Sparkles, Users } from 'lucide-react';
@@ -25,7 +25,7 @@ export default function DashboardWelcome() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              This is your command center for <span className="font-medium text-foreground">autonomous cannabis commerce</span>. 
+              This is your command center for <span className="font-medium text-foreground">autonomous cannabis commerce</span>.
               Keep customers in your brand funnel while Smokey, Craig, Pops and crew handle the heavy lifting.
             </p>
             <p>
@@ -81,7 +81,7 @@ export default function DashboardWelcome() {
       </section>
 
       {/* Agent grid */}
-      <AgentGrid />
+      <AgentsGrid />
 
       {/* Optional “next steps” row */}
       <section className="grid gap-4 md:grid-cols-2">

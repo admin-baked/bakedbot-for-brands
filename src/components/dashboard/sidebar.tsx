@@ -1,6 +1,4 @@
 
-'use client';
-
 import Link from 'next/link';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 import {
@@ -22,6 +20,7 @@ import { signOut } from 'firebase/auth';
 import { LogOut } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import type { ElementType } from 'react';
+import { useUserRole } from '@/hooks/use-user-role';
 
 
 export function DashboardSidebar() {
@@ -29,6 +28,7 @@ export function DashboardSidebar() {
   const { user } = useUser();
   const { auth } = useFirebase();
   const { toast } = useToast();
+  const { loginRoute } = useUserRole();
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -38,8 +38,8 @@ export function DashboardSidebar() {
         title: "Signed Out",
         description: "You have been successfully logged out.",
       });
-      // Redirect to login page after sign out
-      window.location.href = '/brand-login';
+      // Redirect to role-specific login page after sign out
+      window.location.href = loginRoute;
     } catch (error) {
       console.error('Sign out error', error);
       toast({
@@ -80,30 +80,30 @@ export function DashboardSidebar() {
       </SidebarContent>
       <SidebarFooter>
         {user && (
-           <DropdownMenu>
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-3 cursor-pointer p-2 rounded-md hover:bg-muted">
-                     <Avatar className="h-8 w-8">
-                        <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
-                    </Avatar>
-                    <div className='overflow-hidden group-data-[collapsible=icon]:hidden'>
-                        <p className="text-sm font-medium truncate">{user.displayName || 'My Account'}</p>
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                    </div>
+              <div className="flex items-center gap-3 cursor-pointer p-2 rounded-md hover:bg-muted">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                </Avatar>
+                <div className='overflow-hidden group-data-[collapsible=icon]:hidden'>
+                  <p className="text-sm font-medium truncate">{user.displayName || 'My Account'}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </div>
+              </div>
             </DropdownMenuTrigger>
-             <DropdownMenuContent side="right" align="start">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => window.location.assign('/account')}>Account</DropdownMenuItem>
-                <DropdownMenuItem>Support</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </DropdownMenuItem>
+            <DropdownMenuContent side="right" align="start">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => window.location.assign('/account')}>Account</DropdownMenuItem>
+              <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </DropdownMenuItem>
             </DropdownMenuContent>
-           </DropdownMenu>
+          </DropdownMenu>
         )}
       </SidebarFooter>
     </Sidebar>

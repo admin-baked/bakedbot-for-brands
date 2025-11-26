@@ -15,6 +15,9 @@ import Image from 'next/image';
 
 const isProd = process.env.NODE_ENV === 'production';
 
+// Force dynamic rendering to avoid hydration errors with Firebase hooks
+export const dynamic = 'force-dynamic';
+
 export default function CustomerLoginPage() {
   const { auth } = useFirebase();
   const router = useRouter();
@@ -23,19 +26,33 @@ export default function CustomerLoginPage() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  
+
   const handleAuthSuccess = async (userCredential: UserCredential) => {
     const idTokenResult = await userCredential.user.getIdTokenResult();
     const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
-    
+    const userRole = idTokenResult.claims.role as string | undefined;
+
     // If user has no role or is brand new, send to onboarding.
-    if (!idTokenResult.claims.role || isNewUser) {
-        router.push('/onboarding');
+    if (!userRole || isNewUser) {
+      router.push('/onboarding');
+      return;
+    }
+
+    // Check if user has appropriate role for customer login
+    if (userRole === 'customer') {
+      router.push('/account');
+    } else if (userRole === 'brand' || userRole === 'dispensary' || userRole === 'owner') {
+      toast({
+        variant: 'default',
+        title: 'Business Account',
+        description: 'Redirecting to your dashboard.'
+      });
+      router.push('/dashboard');
     } else {
-        router.push('/account'); // Customers go to their account page
+      router.push('/account');
     }
   };
-  
+
   const handleGoogleSignIn = async () => {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
@@ -69,7 +86,7 @@ export default function CustomerLoginPage() {
       }
     } catch (error: any) {
       console.error(`${isSignUp ? 'Sign up' : 'Login'} error`, error);
-      const friendlyMessage = error.message.includes('auth/invalid-credential') 
+      const friendlyMessage = error.message.includes('auth/invalid-credential')
         ? 'Invalid email or password.'
         : error.message;
       toast({ variant: 'destructive', title: 'Authentication Error', description: friendlyMessage });
@@ -89,68 +106,68 @@ export default function CustomerLoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-                <Image src="https://storage.googleapis.com/stedi-assets/misc/google-icon.svg" alt="Google icon" width={16} height={16} className="mr-2"/>
-                 Sign in with Google
-            </Button>
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+            <Image src="https://storage.googleapis.com/stedi-assets/misc/google-icon.svg" alt="Google icon" width={16} height={16} className="mr-2" />
+            Sign in with Google
+          </Button>
 
-            <div className="relative">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or with email
+              </span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSignUp ? 'Sign Up' : 'Login'}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex-col gap-4">
+          <Button type="button" variant="link" size="sm" onClick={() => setIsSignUp(!isSignUp)}>
+            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+          </Button>
+          {!isProd && (
+            <>
+              <div className="relative w-full">
                 <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                  <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                    Or with email
-                    </span>
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or for development
+                  </span>
                 </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                />
-               </div>
-                <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
-                </div>
-               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                   {isSignUp ? 'Sign Up' : 'Login'}
-               </Button>
-            </form>
-        </CardContent>
-         <CardFooter className="flex-col gap-4">
-            <Button type="button" variant="link" size="sm" onClick={() => setIsSignUp(!isSignUp)}>
-                {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-            </Button>
-             {!isProd && (
-                <>
-                    <div className="relative w-full">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">
-                            Or for development
-                            </span>
-                        </div>
-                    </div>
-                    <DevLoginButton />
-                </>
-            )}
+              </div>
+              <DevLoginButton />
+            </>
+          )}
         </CardFooter>
       </Card>
     </div>
