@@ -1,12 +1,19 @@
-
 import type { Metadata } from 'next';
 import { AgentsGrid } from '@/components/dashboard/agent-grid';
+import { requireUser } from '@/server/auth/auth';
+import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'Agents | BakedBot AI',
 };
 
-export default function AgentsPage() {
+export default async function AgentsPage() {
+  try {
+    await requireUser(['brand', 'owner']);
+  } catch (error) {
+    redirect('/dashboard');
+  }
+
   return (
     <main className="flex flex-col gap-6 px-4 py-6 md:px-8">
       <header className="space-y-1">

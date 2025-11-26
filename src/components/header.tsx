@@ -18,45 +18,47 @@ import { useToast } from '@/hooks/use-toast';
 import { useStore } from '@/hooks/use-store';
 import { useDemoMode } from '@/context/demo-mode';
 import { useHydrated } from '@/hooks/use-hydrated';
+import { useUserRole } from '@/hooks/use-user-role';
 
 
 export function Header() {
     const { getItemCount, setCartSheetOpen } = useStore();
     const itemCount = getItemCount();
     const pathname = usePathname();
-    const { user, isUserLoading } = useUser();
+    const { user } = useUser();
     const { auth } = useFirebase();
     const router = useRouter();
     const { toast } = useToast();
     const { isDemo, setIsDemo } = useDemoMode();
     const hydrated = useHydrated();
+    const { canAccessDashboard, loginRoute } = useUserRole();
 
     const navLinks = [
         { href: '/', label: 'Home', icon: Home },
         { href: '/menu/default', label: 'Demo Menu', icon: TestTube2 },
         { href: '/product-locator', label: 'Product Locator', icon: Search },
     ];
-    
-     const handleSignOut = async () => {
+
+    const handleSignOut = async () => {
         if (!auth) return;
         try {
-          await signOut(auth);
-          toast({
-            title: "Signed Out",
-            description: "You have been successfully logged out.",
-          });
-          // Force a full page reload to clear all state
-          window.location.href = '/';
+            await signOut(auth);
+            toast({
+                title: "Signed Out",
+                description: "You have been successfully logged out.",
+            });
+            // Redirect to role-specific login page (captured before sign out)
+            window.location.href = loginRoute;
         } catch (error) {
-          console.error('Sign out error', error);
-           toast({
-            variant: "destructive",
-            title: "Sign Out Error",
-            description: "Could not sign you out. Please try again.",
-          });
+            console.error('Sign out error', error);
+            toast({
+                variant: "destructive",
+                title: "Sign Out Error",
+                description: "Could not sign you out. Please try again.",
+            });
         }
     };
-    
+
     const getInitials = (email?: string | null) => {
         if (!email) return 'U';
         return email.substring(0, 2).toUpperCase();
@@ -70,23 +72,23 @@ export function Header() {
                     <Logo />
                     <nav className="hidden md:flex items-center gap-4">
                         {navLinks.map((link) => {
-                          const isActive = !!pathname && (
-                              link.href === '/'
-                                ? pathname === '/'
-                                : pathname.startsWith(link.href)
-                          );
-                          return (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                className={cn(
-                                    "text-sm font-medium transition-colors hover:text-primary",
-                                    isActive ? "text-primary" : "text-muted-foreground"
-                                )}
-                            >
-                                {link.label}
-                            </Link>
-                          )
+                            const isActive = !!pathname && (
+                                link.href === '/'
+                                    ? pathname === '/'
+                                    : pathname.startsWith(link.href)
+                            );
+                            return (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className={cn(
+                                        "text-sm font-medium transition-colors hover:text-primary",
+                                        isActive ? "text-primary" : "text-muted-foreground"
+                                    )}
+                                >
+                                    {link.label}
+                                </Link>
+                            )
                         })}
                     </nav>
                 </div>
@@ -107,28 +109,28 @@ export function Header() {
                     <Button variant="ghost" size="icon">
                         <Search className="h-5 w-5" />
                     </Button>
-                    
+
                     <Button variant="ghost" size="icon" className="relative" onClick={() => setCartSheetOpen(true)}>
-                       <ShoppingBag className="h-5 w-5" />
-                       {hydrated && itemCount > 0 && (
-                           <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                               {itemCount}
-                           </span>
-                       )}
+                        <ShoppingBag className="h-5 w-5" />
+                        {hydrated && itemCount > 0 && (
+                            <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                                {itemCount}
+                            </span>
+                        )}
                     </Button>
-                    
-                    <Separator orientation="vertical" className="h-6 hidden md:block"/>
+
+                    <Separator orientation="vertical" className="h-6 hidden md:block" />
 
                     <div className="hidden md:flex items-center gap-2">
                         {hydrated && user ? (
-                             <DropdownMenu>
+                            <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                     <Button variant="ghost" className="flex items-center gap-2">
+                                    <Button variant="ghost" className="flex items-center gap-2">
                                         <Avatar className="h-7 w-7">
                                             <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
                                         </Avatar>
                                         My Account
-                                     </Button>
+                                    </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
@@ -137,27 +139,29 @@ export function Header() {
                                         <User className="mr-2" />
                                         Account Details
                                     </DropdownMenuItem>
-                                     <DropdownMenuItem onClick={() => router.push('/dashboard')}>
-                                        <User className="mr-2" />
-                                        Dashboard
-                                    </DropdownMenuItem>
+                                    {canAccessDashboard && (
+                                        <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                                            <User className="mr-2" />
+                                            Dashboard
+                                        </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={handleSignOut}>
                                         <LogOut className="mr-2" />
                                         Sign Out
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
-                             </DropdownMenu>
+                            </DropdownMenu>
                         ) : hydrated && !user ? (
                             <>
                                 <Button variant="ghost" asChild>
                                     <Link href="/customer-login">
-                                    Login
+                                        Login
                                     </Link>
                                 </Button>
                                 <Button asChild>
                                     <Link href="/onboarding">
-                                    Get Started
+                                        Get Started
                                     </Link>
                                 </Button>
                             </>
@@ -176,16 +180,18 @@ export function Header() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 {navLinks.map(link => (
-                                     <DropdownMenuItem key={link.href} onClick={() => router.push(link.href)}>
+                                    <DropdownMenuItem key={link.href} onClick={() => router.push(link.href)}>
                                         <link.icon className="mr-2 h-4 w-4" />
                                         {link.label}
-                                     </DropdownMenuItem>
+                                    </DropdownMenuItem>
                                 ))}
                                 <DropdownMenuSeparator />
                                 {hydrated && user ? (
                                     <>
                                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                                        <DropdownMenuItem onClick={() => router.push('/dashboard')}>Dashboard</DropdownMenuItem>
+                                        {canAccessDashboard && (
+                                            <DropdownMenuItem onClick={() => router.push('/dashboard')}>Dashboard</DropdownMenuItem>
+                                        )}
                                         <DropdownMenuItem onClick={() => router.push('/account')}>Account Details</DropdownMenuItem>
                                         <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                                     </>
@@ -197,7 +203,7 @@ export function Header() {
                                 ) : null}
                                 <DropdownMenuSeparator />
                                 <div className="p-2">
-                                     <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center justify-between gap-2">
                                         <Label htmlFor="demo-mode-switch-mobile" className="text-sm font-medium">Demo</Label>
                                         <Switch
                                             id="demo-mode-switch-mobile"
