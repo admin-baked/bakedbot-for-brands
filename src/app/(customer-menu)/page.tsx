@@ -35,7 +35,7 @@ export default function DispensarySelectionPage() {
         // Check for saved location first
         const saved = getSavedLocation();
         if (saved) {
-            setUserLocation(saved.coordinates);
+            setUserLocation({ lat: saved.coordinates.latitude, lng: saved.coordinates.longitude });
             await loadNearbyRetailers(saved.coordinates.latitude, saved.coordinates.longitude);
             return;
         }
@@ -43,7 +43,7 @@ export default function DispensarySelectionPage() {
         // Try to get user location
         const location = await getUserLocation();
         if (location) {
-            setUserLocation(location.coordinates);
+            setUserLocation({ lat: location.coordinates.latitude, lng: location.coordinates.longitude });
             saveLocation(location);
             await loadNearbyRetailers(location.coordinates.latitude, location.coordinates.longitude);
         } else {
@@ -76,7 +76,7 @@ export default function DispensarySelectionPage() {
         const location = await getLocationFromZipCode(zipCode);
 
         if (location) {
-            setUserLocation(location.coordinates);
+            setUserLocation({ lat: location.coordinates.latitude, lng: location.coordinates.longitude });
             saveLocation(location);
             await loadNearbyRetailers(location.coordinates.latitude, location.coordinates.longitude);
             setLocationMethod('auto');

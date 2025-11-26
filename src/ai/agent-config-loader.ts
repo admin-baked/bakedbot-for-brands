@@ -112,7 +112,7 @@ export class AgentConfigLoader {
     getAgentsByTool(toolId: string): AgentConfig[] {
         const agents: AgentConfig[] = [];
 
-        for (const [, config] of this.configs) {
+        for (const [, config] of Array.from(this.configs)) {
             if (config.tools.includes(toolId)) {
                 agents.push(config);
             }
@@ -121,13 +121,14 @@ export class AgentConfigLoader {
         return agents;
     }
 
+
     /**
      * Get agents by category
      */
     getAgentsByCategory(category: string): AgentConfig[] {
         const agents: AgentConfig[] = [];
 
-        for (const [, config] of this.configs) {
+        for (const [, config] of Array.from(this.configs)) {
             if (config.metadata.category === category) {
                 agents.push(config);
             }
