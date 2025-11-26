@@ -1,5 +1,7 @@
 // Task and task execution type definitions for the agentic platform
 
+import type { ToolCategory } from '@/types/tool';
+
 export type TaskStatus = 'draft' | 'planning' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
 export type StepStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
 export type ToolStatus = 'queued' | 'running' | 'success' | 'error' | 'cancelled';
@@ -98,7 +100,7 @@ export interface ToolExecution {
     // Tool info
     toolId: string;
     toolName: string;
-    toolCategory: 'research' | 'communication' | 'data' | 'integration' | 'analysis';
+    toolCategory: ToolCategory;
 
     // Execution
     status: ToolStatus;
