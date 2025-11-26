@@ -54,7 +54,7 @@ export const useStore = create<StoreState & StoreActions>()(
 
       addToCart: (product, retailerId) => {
         if (get().selectedRetailerId && get().selectedRetailerId !== retailerId) {
-            get().clearCart();
+          get().clearCart();
         }
         set((state) => {
           const existingItem = state.cartItems.find(item => item.id === product.id);
