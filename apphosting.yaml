@@ -34,6 +34,8 @@ runConfig:
     # App Check needs the public key to be an env var
     - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
       secret: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+    - variable: CLAUDE_API_KEY
+      secret: CLAUDE_API_KEY
 
 # Serve all traffic from the Next.js backend.
 # This is a sensible default for most web apps.
