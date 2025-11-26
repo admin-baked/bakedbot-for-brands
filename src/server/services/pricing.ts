@@ -1,21 +1,7 @@
 import { createServerClient } from '@/firebase/server-client';
 import { ProductDoc } from '@/types/cannmenus';
+import { PricingRecommendation } from '@/types/pricing';
 import { v4 as uuidv4 } from 'uuid';
-
-export type PricingRecommendation = {
-    id: string;
-    brandId: string;
-    productId: string;
-    productName: string;
-    currentPrice: number;
-    recommendedPrice: number;
-    marketAverage: number;
-    marketLow: number;
-    marketHigh: number;
-    reason: string;
-    status: 'pending' | 'applied' | 'dismissed';
-    createdAt: string;
-};
 
 export class PricingService {
 
