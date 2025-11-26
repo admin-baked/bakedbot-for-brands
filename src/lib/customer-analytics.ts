@@ -3,8 +3,10 @@
  * Customer behavior analytics and tracking
  */
 
-import { db } from '@/lib/firebase';
+import { initializeFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
+const { firestore: db } = initializeFirebase();
 
 export type AnalyticsEventType =
     | 'item_added'
