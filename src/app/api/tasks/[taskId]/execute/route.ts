@@ -4,6 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTaskEngine } from '@/server/tasks/task-engine';
 import type { Task } from '@/types/task';
+import { getUserFromRequest } from '@/server/auth/auth-helpers';
+import { canAccessBrand } from '@/server/auth/rbac';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,12 +14,29 @@ export async function POST(
     { params }: { params: { taskId: string } }
 ) {
     try {
+        // Authenticate user
+        const user = await getUserFromRequest(request);
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const task: Task = await request.json();
 
         if (!task || task.id !== params.taskId) {
             return NextResponse.json(
                 { error: 'Invalid task data' },
                 { status: 400 }
+            );
+        }
+
+        // Verify ownership or access
+        const isOwner = task.createdBy === user.uid;
+        const hasBrandAccess = task.brandId ? canAccessBrand(user, task.brandId) : false;
+
+        if (!isOwner && !hasBrandAccess) {
+            return NextResponse.json(
+                { error: 'Forbidden: You do not have permission to execute this task' },
+                { status: 403 }
             );
         }
 

@@ -29,6 +29,22 @@ export default function BrandLoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
 
   const handleAuthSuccess = async (userCredential: UserCredential) => {
+    // Get ID token
+    const idToken = await userCredential.user.getIdToken();
+
+    // Create server session
+    try {
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+    } catch (error) {
+      console.error('Failed to create session', error);
+      toast({ variant: 'destructive', title: 'Session Error', description: 'Failed to create server session.' });
+      return;
+    }
+
     const idTokenResult = await userCredential.user.getIdTokenResult();
     const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
     const userRole = idTokenResult.claims.role as string | undefined;

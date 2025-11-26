@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/firebase/server-client";
 import { FieldValue } from "firebase-admin/firestore";
 import { emitEvent } from "@/server/events/emitter";
+import { getUserFromRequest } from "@/server/auth/auth-helpers";
 
 type CheckoutItem = {
   productId: string;
@@ -53,6 +54,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Security Check: If UID is provided, verify it matches the authenticated user
+    if (body.customer.uid) {
+      const user = await getUserFromRequest(req);
+      if (!user || user.uid !== body.customer.uid) {
+        return NextResponse.json(
+          { error: "Unauthorized: User ID mismatch or unauthenticated" },
+          { status: 401 }
+        );
+      }
+    }
+
     const currency = body.currency || "USD";
     const orgId = body.organizationId;
 
@@ -60,10 +72,10 @@ export async function POST(req: NextRequest) {
     const orderRef = db
       .collection("orders")
       .doc();
-    
+
     const itemsTotal = body.items.reduce(
-        (acc, item) => acc + item.unitPrice * item.quantity,
-        0
+      (acc, item) => acc + item.unitPrice * item.quantity,
+      0
     );
     const rawDiscount = itemsTotal - body.subtotal;
 
@@ -72,8 +84,8 @@ export async function POST(req: NextRequest) {
       dispensaryId: body.dispensaryId,
       userId: body.customer.uid || null,
       customer: {
-          name: body.customer.name,
-          email: body.customer.email,
+        name: body.customer.name,
+        email: body.customer.email,
       },
       items: body.items.map((i) => ({
         productId: i.productId,
@@ -84,15 +96,15 @@ export async function POST(req: NextRequest) {
         price: i.unitPrice,
       })),
       totals: {
-        subtotal: body.subtotal, 
-        tax: body.tax, 
-        fees: body.fees, 
+        subtotal: body.subtotal,
+        tax: body.tax,
+        fees: body.fees,
         total: body.total,
         discount: rawDiscount > 0 ? rawDiscount : 0,
       },
       coupon: rawDiscount > 0 ? {
-          code: 'PROMO', // Placeholder
-          discount: rawDiscount
+        code: 'PROMO', // Placeholder
+        discount: rawDiscount
       } : undefined,
       retailerId: body.pickupLocationId,
       createdAt: FieldValue.serverTimestamp(),
@@ -124,17 +136,17 @@ export async function POST(req: NextRequest) {
     const isTestEnvironment = process.env.NODE_ENV !== 'production';
 
     if (isTestEnvironment) {
-        const fakeIntentId = `pi_${Date.now()}`;
-        // Redirect to a non-existent but verifiable page for the test runner.
-        const fakeCheckoutUrl = "https://example.com/pay"; 
-        
-        await orderRef.update({ paymentIntentId: fakeIntentId, updatedAt: FieldValue.serverTimestamp() });
-        
-        await emitEvent({ orgId, type: 'checkout.intentCreated', agent: 'smokey', refId: orderRef.id, data: { intentId: fakeIntentId, checkoutUrl: fakeCheckoutUrl, total: body.total }});
-        
-        return NextResponse.json({ success: true, orderId: orderRef.id, intentId: fakeIntentId, checkoutUrl: fakeCheckoutUrl });
+      const fakeIntentId = `pi_${Date.now()}`;
+      // Redirect to a non-existent but verifiable page for the test runner.
+      const fakeCheckoutUrl = "https://example.com/pay";
+
+      await orderRef.update({ paymentIntentId: fakeIntentId, updatedAt: FieldValue.serverTimestamp() });
+
+      await emitEvent({ orgId, type: 'checkout.intentCreated', agent: 'smokey', refId: orderRef.id, data: { intentId: fakeIntentId, checkoutUrl: fakeCheckoutUrl, total: body.total } });
+
+      return NextResponse.json({ success: true, orderId: orderRef.id, intentId: fakeIntentId, checkoutUrl: fakeCheckoutUrl });
     }
-    
+
     // --- REAL AUTHORIZE.NET LOGIC WOULD GO HERE ---
     // This part is now effectively skipped in non-production environments.
     return NextResponse.json({ error: "Live payment processing is not enabled in this environment." }, { status: 501 });
@@ -143,7 +155,7 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error("smokey-pay:checkout_error", err);
     if (body?.organizationId) {
-        await emitEvent({ orgId: body.organizationId, type: 'checkout.failed', agent: 'smokey', data: { error: err?.message || String(err) }});
+      await emitEvent({ orgId: body.organizationId, type: 'checkout.failed', agent: 'smokey', data: { error: err?.message || String(err) } });
     }
     return NextResponse.json({ error: err?.message || "Unexpected error creating Smokey Pay checkout" }, { status: 500 });
   }
