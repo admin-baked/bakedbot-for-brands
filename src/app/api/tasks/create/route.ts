@@ -4,24 +4,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTaskParser } from '@/server/tasks/task-parser';
 import { getTaskEngine } from '@/server/tasks/task-engine';
+import { getUserFromRequest } from '@/server/auth/auth-helpers';
+import { requireBrandAccess } from '@/server/auth/rbac';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
-        const { input, userId, brandId, executeImmediately } = body;
+        // Authenticate user
+        const user = await getUserFromRequest(request);
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
-        if (!input || !userId) {
+        const body = await request.json();
+        const { input, brandId, executeImmediately } = body;
+
+        if (!input) {
             return NextResponse.json(
-                { error: 'Missing required fields: input, userId' },
+                { error: 'Missing required fields: input' },
                 { status: 400 }
             );
         }
 
+        // Verify brand access if brandId is provided
+        if (brandId) {
+            try {
+                requireBrandAccess(user, brandId);
+            } catch (error: any) {
+                return NextResponse.json({ error: error.message }, { status: 403 });
+            }
+        }
+
         // Parse the natural language input into a structured task
+        // Use the authenticated user's ID
         const parser = getTaskParser();
-        const task = await parser.parseTask(input, { userId, brandId });
+        const task = await parser.parseTask(input, {
+            userId: user.uid,
+            brandId: brandId || user.brandId
+        });
 
         // Optionally execute immediately
         if (executeImmediately) {

@@ -1,6 +1,7 @@
 // src/app/page.tsx
 import styles from './home.module.css';
 import Link from 'next/link';
+import { HeroInput } from '@/components/home/hero-input';
 
 export default function HomePage() {
   return (
@@ -23,10 +24,12 @@ export default function HomePage() {
             <button className={styles.navGhost}>
               Built for <span>&nbsp;cannabis brands &amp; retailers</span>
             </button>
-            <button className={styles.navPrimary}>
-              Book a demo
-              <span className={styles.arrow}>↗</span>
-            </button>
+            <Link href="/dashboard/tasks">
+              <button className={styles.navPrimary}>
+                Try Dashboard
+                <span className={styles.arrow}>↗</span>
+              </button>
+            </Link>
           </div>
         </div>
       </header>
@@ -47,6 +50,9 @@ export default function HomePage() {
                 BakedBot AI is the <strong>BrandOps OS for cannabis</strong> — headless menus, an AI Agent Budtender that lives on your site or ours, and natural-language automations that{" "}
                 <strong>research competitors, pitch dispensaries, and grow sell-through</strong> while you sleep.
               </p>
+
+              <HeroInput />
+
               <div className={styles.heroMetrics}>
                 <span className={styles.badge}>
                   <strong>3×</strong> visibility on Google
@@ -59,10 +65,11 @@ export default function HomePage() {
                 </span>
               </div>
               <div className={styles.heroCtas}>
-                <button className={styles.btnPrimary}>
-                  Launch on BakedBot
-                  <span>⚡</span>
-                </button>
+                <Link href="/dashboard/tasks">
+                  <button className={styles.btnSecondary}>
+                    View Dashboard Demo
+                  </button>
+                </Link>
                 <button className={styles.btnSecondary}>
                   <span className={styles.dot}></span>
                   Add Smokey to my site
