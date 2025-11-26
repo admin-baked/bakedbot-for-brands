@@ -1,4 +1,3 @@
-
 // src/types/cannmenus.ts
 
 export type BrandDoc = {
@@ -59,7 +58,7 @@ export type RetailerDoc = {
   menu_discovery_status: "pending" | "found" | "failed";
   is_priority?: boolean;
   platform_guess?: "dutchie" | "jane" | "bespoke" | "unknown";
-  
+
   // Fields added for compatibility
   slug?: string;
   website_url?: string;
@@ -141,4 +140,43 @@ export type CannmenusEmbeddingDoc = {
 
   createdAt?: any;
   updatedAt?: any;
+};
+
+// --- CannMenus API Response Types ---
+
+/**
+ * Product type from CannMenus /v2/products API
+ */
+export type CannMenusProduct = {
+  cann_sku_id: string;
+  brand_name: string | null;
+  brand_id: number;
+  url: string;
+  image_url: string;
+  product_name: string;
+  display_weight: string;
+  category: string;
+  percentage_thc: number | null;
+  percentage_cbd: number | null;
+  latest_price: number;
+  original_price: number;
+  medical: boolean;
+  recreational: boolean;
+};
+
+/**
+ * Chatbot-friendly product type that combines internal and CannMenus data
+ */
+export type ChatbotProduct = {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  imageUrl: string;
+  description?: string;
+  thcPercent?: number | null;
+  cbdPercent?: number | null;
+  displayWeight?: string;
+  url?: string;
+  reasoning?: string; // AI-generated reasoning for recommendation
 };

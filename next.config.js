@@ -11,10 +11,18 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'images.unsplash.com',
       },
-       {
+      {
         protocol: 'https',
         hostname: 'storage.googleapis.com',
-      }
+      },
+      {
+        protocol: 'https',
+        hostname: 'product-assets.iheartjane.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 's3-us-west-2.amazonaws.com',
+      },
     ],
   },
   async headers() {
