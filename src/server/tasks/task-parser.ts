@@ -58,8 +58,32 @@ export class TaskParser {
         const taskPlan = this.extractTaskPlan(content.text);
 
         // Create structured task
-        const task: Task = {
+        const taskId = uuidv4();
+        const steps = taskPlan.steps.map((step, index) => ({
             id: uuidv4(),
+            taskId,
+            stepNumber: index + 1,
+            description: step.description,
+            objective: step.objective,
+            agentId: step.agentId,
+            requiredTools: step.tools,
+            status: 'pending' as const,
+            toolExecutions: [],
+            output: null, // Initialize as null
+            confidenceScore: 0.7, // Initial confidence
+            deeboReviewed: false,
+            dependsOn: [] as string[] // Will be filled in next step
+        }));
+
+        // Now convert dependsOn from step numbers to step IDs
+        taskPlan.steps.forEach((planStep, index) => {
+            if (planStep.dependsOn && planStep.dependsOn.length > 0) {
+                steps[index].dependsOn = planStep.dependsOn.map((stepNum: number) => steps[stepNum].id);
+            }
+        });
+
+        const task: Task = {
+            id: taskId,
             name: taskPlan.name,
             description: taskPlan.description,
             originalPrompt: input,
@@ -68,21 +92,7 @@ export class TaskParser {
             createdAt: new Date(),
             updatedAt: new Date(),
             status: 'draft',
-            steps: taskPlan.steps.map((step, index) => ({
-                id: uuidv4(),
-                taskId: '', // Will be set when task is created
-                stepNumber: index + 1,
-                description: step.description,
-                objective: step.objective,
-                agentId: step.agentId,
-                requiredTools: step.tools,
-                status: 'pending',
-                toolExecutions: [],
-                output: null, // Initialize as null
-                confidenceScore: 0.7, // Initial confidence
-                deeboReviewed: false,
-                dependsOn: step.dependsOn || []
-            })),
+            steps,
             currentStepIndex: 0,
             assignedAgents: Array.from(new Set(taskPlan.steps.map(s => s.agentId))),
             toolsUsed: [],
@@ -104,11 +114,6 @@ export class TaskParser {
                 confidenceGrowth: 0
             }
         };
-
-        // Set task ID in steps
-        task.steps.forEach(step => {
-            step.taskId = task.id;
-        });
 
         return task;
     }

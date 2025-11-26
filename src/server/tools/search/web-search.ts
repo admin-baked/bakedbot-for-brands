@@ -172,7 +172,7 @@ export class WebSearchTool extends BaseTool<WebSearchInput, WebSearchOutput> {
                 {
                     type: 'table',
                     title: `Search Results for "${input.query}"`,
-                    content: results.map(r => ({
+                    content: results.map((r: { title: string; url: string; snippet: string }) => ({
                         Title: r.title,
                         URL: r.url,
                         Snippet: r.snippet

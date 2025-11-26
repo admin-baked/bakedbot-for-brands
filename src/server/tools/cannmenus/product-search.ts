@@ -129,7 +129,7 @@ export class CannMenusProductSearchTool extends BaseTool<CannMenusProductSearchI
 
             if (input.brand) {
                 filtered = filtered.filter(p =>
-                    p.brand?.toLowerCase().includes(input.brand.toLowerCase())
+                    p.brand?.toLowerCase().includes(input.brand!.toLowerCase())
                 );
             }
 
