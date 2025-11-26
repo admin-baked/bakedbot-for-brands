@@ -118,7 +118,7 @@ export async function confirmPayment(
         return {
             success: result.status === 'succeeded',
             paymentIntentId: result.id,
-            transactional: result.transaction_id,
+            transactionId: result.transaction_id,
         };
     } catch (error) {
         console.error('Failed to confirm payment:', error);
