@@ -213,7 +213,11 @@ export abstract class BaseTool<TInput = any, TOutput = any> implements Tool<TInp
         name: string;
         description: string;
         category: ToolCategory;
-        capabilities: typeof this.capabilities;
+        capabilities: Array<{
+            name: string;
+            description: string;
+            examples: string[];
+        }>;
         requiresAuth: boolean;
         estimatedDuration: number;
     } {
