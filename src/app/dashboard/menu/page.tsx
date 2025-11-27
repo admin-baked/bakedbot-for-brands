@@ -1,7 +1,8 @@
+
 // src/app/dashboard/menu/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -49,11 +50,7 @@ export default function MenuPage() {
     const [brandId] = useState('10982'); // CRONJA brand
     const [state] = useState('Illinois');
 
-    useEffect(() => {
-        loadProducts();
-    }, [brandId, state]);
-
-    const loadProducts = async () => {
+    const loadProducts = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams({
@@ -85,7 +82,11 @@ export default function MenuPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [brandId, state]);
+
+    useEffect(() => {
+        loadProducts();
+    }, [loadProducts]);
 
     const filteredProducts = products.filter(product => {
         const matchesSearch = product.product_name

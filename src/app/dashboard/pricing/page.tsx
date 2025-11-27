@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
 import { PricingRecommendation } from '@/types/pricing';
 
@@ -12,11 +13,7 @@ export default function PricingPage() {
 
     const auth = getAuth();
 
-    useEffect(() => {
-        fetchRecommendations();
-    }, []);
-
-    const fetchRecommendations = async () => {
+    const fetchRecommendations = useCallback(async () => {
         try {
             setLoading(true);
             const user = auth.currentUser;
@@ -45,7 +42,11 @@ export default function PricingPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [auth]);
+
+    useEffect(() => {
+        fetchRecommendations();
+    }, [fetchRecommendations]);
 
     const handleGenerate = async () => {
         try {

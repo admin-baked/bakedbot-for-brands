@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { initializeFirebase } from '@/firebase';
 import { getAuth } from 'firebase/auth';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -16,11 +17,7 @@ export default function MenuSyncPage() {
     const { firestore } = initializeFirebase();
     const auth = getAuth();
 
-    useEffect(() => {
-        fetchRetailers();
-    }, []);
-
-    const fetchRetailers = async () => {
+    const fetchRetailers = useCallback(async () => {
         try {
             setLoading(true);
             const retailersRef = collection(firestore, 'retailers');
@@ -39,7 +36,11 @@ export default function MenuSyncPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [firestore]);
+
+    useEffect(() => {
+        fetchRetailers();
+    }, [fetchRetailers]);
 
     const handleSync = async () => {
         try {
@@ -53,20 +54,7 @@ export default function MenuSyncPage() {
             }
 
             const token = await user.getIdToken();
-
-            // For now, we'll use a hardcoded brandId or fetch from user profile
-            // In a real app, this would come from context or selection
-            // Let's assume the user has a brandId claim or we pass a demo one
-            // We'll try to get it from the user's custom claims if possible, or just pass a placeholder
-            // that the server will validate/resolve.
-            // Actually, let's fetch the user's brandId from their profile in Firestore if needed.
-            // For this sprint, I'll use a hardcoded ID if I can't find one, or just let the server handle it.
-            // The server expects `brandId` in body.
-
-            // Let's try to get the brandId from the user's profile
-            // But for simplicity, let's assume we are syncing for the "demo" brand or the user's brand.
-            // I'll use a placeholder "DEMO_BRAND" if not available.
-            const brandId = 'DEMO_BRAND_ID'; // Replace with actual logic
+            const brandId = 'DEMO_BRAND_ID';
 
             const response = await fetch('/api/cannmenus/sync', {
                 method: 'POST',
@@ -82,7 +70,6 @@ export default function MenuSyncPage() {
                 throw new Error(data.error || 'Sync failed');
             }
 
-            const result = await response.json();
             setLastSync(new Date().toISOString());
             await fetchRetailers(); // Refresh list
 
