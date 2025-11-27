@@ -1,3 +1,4 @@
+
 'use client';
 
 // src/app/(customer-menu)/page.tsx
@@ -5,7 +6,7 @@
  * Dispensary selection page - shows 3 nearby dispensaries
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,11 +26,18 @@ export default function DispensarySelectionPage() {
     const [zipError, setZipError] = useState('');
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-    useEffect(() => {
-        initializeLocation();
+    const loadNearbyRetailers = useCallback(async (lat: number, lng: number) => {
+        try {
+            const nearby = await searchNearbyRetailers(lat, lng, 3);
+            setRetailers(nearby);
+        } catch (error) {
+            console.error('Failed to load retailers:', error);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
-    const initializeLocation = async () => {
+    const initializeLocation = useCallback(async () => {
         setLoading(true);
 
         // Check for saved location first
@@ -50,18 +58,11 @@ export default function DispensarySelectionPage() {
             setLoading(false);
             setLocationMethod('manual');
         }
-    };
+    }, [loadNearbyRetailers]);
 
-    const loadNearbyRetailers = async (lat: number, lng: number) => {
-        try {
-            const nearby = await searchNearbyRetailers(lat, lng, 3);
-            setRetailers(nearby);
-        } catch (error) {
-            console.error('Failed to load retailers:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    useEffect(() => {
+        initializeLocation();
+    }, [initializeLocation]);
 
     const handleZipCodeSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
