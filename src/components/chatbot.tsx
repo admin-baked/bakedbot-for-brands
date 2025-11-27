@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent, useTransition, useCallback } from 'react';
-import { Bot, MessageSquare, Send, X, ThumbsUp, ThumbsDown, Wand2, Sparkles, HelpCircle, ChevronRight } from 'lucide-react';
+import { Bot, MessageSquare, Send, X, ThumbsUp, ThumbsDown, Wand2, Sparkles, HelpCircle, ChevronRight, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -129,6 +129,18 @@ const ChatWindow = ({
           <CardFooter className="p-4 border-t">
             <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
               <TooltipProvider>
+                {hasStartedChat && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button type="button" variant="ghost" size="icon" onClick={clearContext} disabled={isBotTyping}>
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>Clear context</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button type="button" variant="ghost" size="icon" onClick={onMagicImageClick} disabled={isBotTyping}>
@@ -177,9 +189,21 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [userId] = useState<string>('demo-user'); // TODO: Get from auth
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const clearContext = () => {
+    setSessionId(null);
+    setMessages([]);
+    setHasStartedChat(false);
+    toast({
+      title: 'Context Cleared',
+      description: 'Starting fresh conversation',
+    });
   };
 
   useEffect(() => {
@@ -287,12 +311,19 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: currentQuery,
-          brandId: brandId || '10982', // Default to CRONJA brand
+          userId,
+          sessionId,
+          brandId: brandId || '10982',
           state: 'Illinois',
         }),
       });
 
       const data = await response.json();
+
+      // Store session ID from response
+      if (data.sessionId) {
+        setSessionId(data.sessionId);
+      }
 
       if (data.ok && data.products && data.products.length > 0) {
         // Convert products to the format expected by the chatbot
