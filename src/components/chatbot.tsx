@@ -18,6 +18,7 @@ import ChatMessages from './chatbot/chat-messages';
 import ChatProductCarousel from './chatbot/chat-product-carousel';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { demoProducts } from '@/lib/demo/demo-data'; // For mock response
+import { useAuth } from '@/hooks/use-auth';
 
 
 type Message = {
@@ -190,7 +191,8 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [userId] = useState<string>('demo-user'); // TODO: Get from auth
+  const { user } = useAuth();
+  const userId = user?.uid || 'anonymous';
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
