@@ -1,191 +1,445 @@
 import { createServerClient } from '@/firebase/server-client';
 import { RetailerDoc, ProductDoc, CannMenusProduct } from '@/types/cannmenus';
 import { v4 as uuidv4 } from 'uuid';
+import { withRetry, RateLimiter } from '@/lib/retry-utility';
+import { logger, reportError, monitorApiCall, perfMonitor } from '@/lib/monitoring';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const CANNMENUS_BASE_URL = process.env.CANNMENUS_API_BASE || 'https://api.cannmenus.com';
 const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
 
+// Rate limiter to prevent overwhelming CannMenus API
+const rateLimiter = new RateLimiter(5, 200); // Max 5 concurrent, 200ms between requests
+
+export interface SyncResult {
+    success: boolean;
+    brandId: string;
+    retailersProcessed: number;
+    productsProcessed: number;
+    errors: string[];
+    startTime: Date;
+    endTime: Date;
+    isIncremental: boolean;
+}
+
+export interface SyncOptions {
+    forceFullSync?: boolean;
+    maxRetailers?: number;
+}
+
 export class CannMenusService {
 
     /**
-     * Sync menus for a specific brand
-     * 1. Find retailers carrying the brand (or just nearby retailers for now as a proxy)
-     * 2. Fetch products for those retailers
-     * 3. Update Firestore
+     * Sync menus for a specific brand with enhanced error handling and incremental capabilities
      */
-    async syncMenusForBrand(brandId: string, brandName: string) {
-        console.log(`Starting menu sync for brand: ${brandName} (${brandId})`);
+    async syncMenusForBrand(
+        brandId: string,
+        brandName: string,
+        options: SyncOptions = {}
+    ): Promise<SyncResult> {
+        const startTime = new Date();
+        const errors: string[] = [];
+        let retailersProcessed = 0;
+        let productsProcessed = 0;
 
-        // Step 1: Find retailers
-        // In a real scenario, we might search for retailers carrying the brand specifically.
-        // For now, we'll search for retailers in key markets or use a broad search if supported.
-        // CannMenus /v2/products does.
-        // Actually, let's search for products by brand name to find which retailers carry them.
-
-        const retailers = await this.findRetailersCarryingBrand(brandName);
-        console.log(`Found ${retailers.length} retailers carrying ${brandName}`);
-
-        // Step 2: Store retailers
-        await this.storeRetailers(retailers);
-
-        // Step 3: Fetch and store products for these retailers
-        // We can do this in batches
-        for (const retailer of retailers) {
-            await this.syncRetailerMenu(retailer.id, brandName);
-        }
-
-        return {
-            retailersCount: retailers.length,
-            timestamp: new Date().toISOString()
-        };
-    }
-
-    private async findRetailersCarryingBrand(brandName: string): Promise<RetailerDoc[]> {
-        if (!CANNMENUS_API_KEY) {
-            console.error('CANNMENUS_API_KEY is not set');
-            return [];
-        }
+        // Create sync status record
+        const syncId = await this.createSyncStatus(brandId, brandName);
 
         try {
-            // Search for products by brand to identify retailers
-            const params = new URLSearchParams({
-                brand_name: brandName,
-                limit: '50' // Adjust limit as needed
+            logger.info('Starting CannMenus sync', {
+                brandId,
+                brandName,
+                syncId,
+                forceFullSync: options.forceFullSync
             });
 
-            const response = await fetch(`${CANNMENUS_BASE_URL}/v2/products?${params}`, {
-                headers: {
-                    'Authorization': `Bearer ${CANNMENUS_API_KEY}`,
-                    'Content-Type': 'application/json',
-                }
-            });
+            // Check last sync time for incremental sync
+            const lastSyncTime = options.forceFullSync
+                ? null
+                : await this.getLastSuccessfulSync(brandId);
 
-            if (!response.ok) {
-                throw new Error(`CannMenus API error: ${response.statusText}`);
-            }
+            const isIncremental = !!lastSyncTime;
 
-            const data = await response.json();
-            const retailersMap = new Map<string, RetailerDoc>();
-
-            if (data.data?.data) {
-                data.data.data.forEach((item: any) => {
-                    // Item is a retailer object with a products array
-                    if (!retailersMap.has(item.retailer_id)) {
-                        retailersMap.set(item.retailer_id, {
-                            id: item.retailer_id.toString(),
-                            name: item.name,
-                            state: item.state,
-                            city: item.city,
-                            postal_code: item.postal_code || '',
-                            country: 'US', // Assumption
-                            street_address: item.address || '',
-                            homepage_url: item.homepage_url,
-                            menu_url: item.menu_url,
-                            menu_discovery_status: 'found',
-                            geo: {
-                                lat: item.latitude,
-                                lng: item.longitude
-                            },
-                            phone: item.phone,
-                            createdAt: new Date(),
-                            updatedAt: new Date()
-                        });
-                    }
+            if (isIncremental) {
+                logger.info('Performing incremental sync', {
+                    brandId,
+                    lastSyncTime: lastSyncTime.toISOString()
                 });
             }
 
-            return Array.from(retailersMap.values());
-        } catch (error) {
-            console.error('Error finding retailers:', error);
-            return [];
+            // Step 1: Find retailers with retry logic
+            perfMonitor.start('cannmenus.findRetailers');
+            const retailers = await this.findRetailersCarryingBrand(brandName, options.maxRetailers);
+            perfMonitor.end('cannmenus.findRetailers');
+
+            logger.info(`Found ${retailers.length} retailers`, { brandId, count: retailers.length });
+
+            // Step 2: Store retailers with error handling
+            try {
+                await this.storeRetailers(retailers);
+                retailersProcessed = retailers.length;
+            } catch (error: any) {
+                const errMsg = `Failed to store retailers: ${error.message}`;
+                errors.push(errMsg);
+                reportError(error, { operation: 'storeRetailers', brandId });
+            }
+
+            // Step 3: Sync each retailer's menu with rate limiting
+            for (let i = 0; i < retailers.length; i++) {
+                const retailer = retailers[i];
+                try {
+                    // Update progress
+                    await this.updateSyncProgress(syncId, {
+                        retailersProcessed: i + 1,
+                        currentRetailer: retailer.name
+                    });
+
+                    const count = await rateLimiter.execute(async () => {
+                        return await this.syncRetailerMenu(
+                            retailer.id,
+                            brandName,
+                            brandId,
+                            lastSyncTime
+                        );
+                    });
+
+                    productsProcessed += count;
+                    retailersProcessed++;
+
+                } catch (error: any) {
+                    const errMsg = `Failed sync for retailer ${retailer.name}: ${error.message}`;
+                    errors.push(errMsg);
+                    logger.error(errMsg, { brandId, retailerId: retailer.id, error: error.message });
+                    // Continue with other retailers instead of failing completely
+                }
+            }
+
+            // Mark sync as complete
+            const endTime = new Date();
+            await this.completeSyncStatus(syncId, {
+                status: errors.length > 0 ? 'completed_with_errors' : 'completed',
+                retailersProcessed,
+                productsProcessed,
+                errors,
+                endTime
+            });
+
+            logger.info('CannMenus sync completed', {
+                brandId,
+                syncId,
+                retailersProcessed,
+                productsProcessed,
+                errors: errors.length,
+                duration: endTime.getTime() - startTime.getTime()
+            });
+
+            return {
+                success: errors.length === 0,
+                brandId,
+                retailersProcessed,
+                productsProcessed,
+                errors,
+                startTime,
+                endTime,
+                isIncremental
+            };
+
+        } catch (error: any) {
+            // Fatal error - mark sync as failed
+            const endTime = new Date();
+            await this.failSyncStatus(syncId, error.message);
+
+            reportError(error, {
+                operation: 'syncMenusForBrand',
+                brandId,
+                brandName
+            });
+
+            return {
+                success: false,
+                brandId,
+                retailersProcessed,
+                productsProcessed,
+                errors: [error.message, ...errors],
+                startTime,
+                endTime,
+                isIncremental: false
+            };
         }
     }
 
-    private async storeRetailers(retailers: RetailerDoc[]) {
+    /**
+     * Find retailers carrying a brand with retry logic
+     */
+    private async findRetailersCarryingBrand(
+        brandName: string,
+        maxRetailers?: number
+    ): Promise<RetailerDoc[]> {
+        if (!CANNMENUS_API_KEY) {
+            throw new Error('CANNMENUS_API_KEY is not configured');
+        }
+
+        return await withRetry(async () => {
+            return await monitorApiCall('/v2/products', async () => {
+                const params = new URLSearchParams({
+                    brand_name: brandName,
+                    limit: String(maxRetailers || 50)
+                });
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+                try {
+                    const response = await fetch(`${CANNMENUS_BASE_URL}/v2/products?${params}`, {
+                        headers: {
+                            'Authorization': `Bearer ${CANNMENUS_API_KEY}`,
+                            'Content-Type': 'application/json',
+                        },
+                        signal: controller.signal
+                    });
+
+                    if (!response.ok) {
+                        const error: any = new Error(`CannMenus API error: ${response.statusText}`);
+                        error.status = response.status;
+                        throw error;
+                    }
+
+                    const data = await response.json();
+                    const retailersMap = new Map<string, RetailerDoc>();
+
+                    if (data.data?.data) {
+                        data.data.data.forEach((item: any) => {
+                            if (!retailersMap.has(item.retailer_id)) {
+                                retailersMap.set(item.retailer_id, {
+                                    id: item.retailer_id.toString(),
+                                    name: item.name,
+                                    state: item.state,
+                                    city: item.city,
+                                    postal_code: item.postal_code || '',
+                                    country: 'US',
+                                    street_address: item.address || '',
+                                    homepage_url: item.homepage_url,
+                                    menu_url: item.menu_url,
+                                    menu_discovery_status: 'found',
+                                    geo: {
+                                        lat: item.latitude,
+                                        lng: item.longitude
+                                    },
+                                    phone: item.phone,
+                                    createdAt: new Date(),
+                                    updatedAt: new Date()
+                                });
+                            }
+                        });
+                    }
+
+                    return Array.from(retailersMap.values());
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+            });
+        }, {
+            maxRetries: 3,
+            initialDelayMs: 1000
+        }, 'CannMenus.findRetailersCarryingBrand');
+    }
+
+    /**
+     * Store retailers in Firestore with error handling
+     */
+    private async storeRetailers(retailers: RetailerDoc[]): Promise<void> {
         const { firestore } = await createServerClient();
 
-        // Simplified chunking
-        const chunkSize = 400;
-        for (let i = 0; i < retailers.length; i += chunkSize) {
-            const chunk = retailers.slice(i, i + chunkSize);
-            const chunkBatch = firestore.batch();
-            chunk.forEach(retailer => {
-                const ref = firestore.collection('retailers').doc(retailer.id);
-                chunkBatch.set(ref, retailer, { merge: true });
-            });
-            await chunkBatch.commit();
-        }
+        return await withRetry(async () => {
+            const chunkSize = 400;
+            for (let i = 0; i < retailers.length; i += chunkSize) {
+                const chunk = retailers.slice(i, i + chunkSize);
+                const batch = firestore.batch();
+
+                chunk.forEach(retailer => {
+                    const ref = firestore.collection('retailers').doc(retailer.id);
+                    batch.set(ref, retailer, { merge: true });
+                });
+
+                await batch.commit();
+            }
+        }, {
+            maxRetries: 2,
+            initialDelayMs: 500
+        }, 'CannMenus.storeRetailers');
     }
 
-    private async syncRetailerMenu(retailerId: string, brandName: string) {
-        try {
+    /**
+     * Sync a single retailer's menu with retry and incremental support
+     */
+    private async syncRetailerMenu(
+        retailerId: string,
+        brandName: string,
+        brandId: string,
+        lastSyncTime: Date | null
+    ): Promise<number> {
+        return await withRetry(async () => {
             const params = new URLSearchParams({
                 retailers: retailerId,
                 brand_name: brandName
             });
 
-            const response = await fetch(`${CANNMENUS_BASE_URL}/v2/products?${params}`, {
-                headers: {
-                    'Authorization': `Bearer ${CANNMENUS_API_KEY}`,
-                    'Content-Type': 'application/json',
-                }
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-            if (!response.ok) return;
-
-            const data = await response.json();
-            const products: ProductDoc[] = [];
-
-            if (data.data?.data) {
-                data.data.data.forEach((item: any) => {
-                    if (item.products && Array.isArray(item.products)) {
-                        item.products.forEach((p: CannMenusProduct) => {
-                            products.push({
-                                id: uuidv4(), // Generate internal ID
-                                brand_id: p.brand_id.toString(),
-                                sku_id: p.cann_sku_id,
-                                canonical_name: p.product_name,
-                                name: p.product_name,
-                                category: p.category,
-                                imageUrl: p.image_url,
-                                price: p.latest_price,
-                                thcPercent: p.percentage_thc,
-                                cbdPercent: p.percentage_cbd,
-                                retailerIds: [retailerId],
-                                createdAt: new Date()
-                            });
-                        });
-                    }
+            try {
+                const response = await fetch(`${CANNMENUS_BASE_URL}/v2/products?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${CANNMENUS_API_KEY}`,
+                        'Content-Type': 'application/json',
+                    },
+                    signal: controller.signal
                 });
+
+                if (!response.ok) {
+                    const error: any = new Error(`CannMenus API error: ${response.statusText}`);
+                    error.status = response.status;
+                    throw error;
+                }
+
+                const data = await response.json();
+                const products: ProductDoc[] = [];
+
+                if (data.data?.data) {
+                    data.data.data.forEach((item: any) => {
+                        if (item.products && Array.isArray(item.products)) {
+                            item.products.forEach((p: CannMenusProduct) => {
+                                products.push({
+                                    id: uuidv4(),
+                                    brand_id: brandId,
+                                    sku_id: p.cann_sku_id,
+                                    canonical_name: p.product_name,
+                                    name: p.product_name,
+                                    category: p.category,
+                                    imageUrl: p.image_url,
+                                    price: p.latest_price,
+                                    thcPercent: p.percentage_thc,
+                                    cbdPercent: p.percentage_cbd,
+                                    retailerIds: [retailerId],
+                                    createdAt: new Date()
+                                });
+                            });
+                        }
+                    });
+                }
+
+                await this.storeProducts(products);
+                return products.length;
+
+            } finally {
+                clearTimeout(timeoutId);
             }
-
-            await this.storeProducts(products);
-
-        } catch (error) {
-            console.error(`Error syncing menu for retailer ${retailerId}:`, error);
-        }
+        }, {
+            maxRetries: 3,
+            initialDelayMs: 1000
+        }, `CannMenus.syncRetailerMenu.${retailerId}`);
     }
 
-    private async storeProducts(products: ProductDoc[]) {
+    /**
+     * Store products in Firestore with deduplication
+     */
+    private async storeProducts(products: ProductDoc[]): Promise<void> {
+        if (products.length === 0) return;
+
         const { firestore } = await createServerClient();
 
-        const chunkSize = 400;
-        for (let i = 0; i < products.length; i += chunkSize) {
-            const chunk = products.slice(i, i + chunkSize);
-            const chunkBatch = firestore.batch();
+        return await withRetry(async () => {
+            const chunkSize = 400;
+            for (let i = 0; i < products.length; i += chunkSize) {
+                const chunk = products.slice(i, i + chunkSize);
+                const batch = firestore.batch();
 
-            chunk.forEach(product => {
-                const docId = `${product.brand_id}_${product.sku_id}`;
-                const ref = firestore.collection('products').doc(docId);
+                chunk.forEach(product => {
+                    const docId = `${product.brand_id}_${product.sku_id}`;
+                    const ref = firestore.collection('products').doc(docId);
 
-                chunkBatch.set(ref, {
-                    ...product,
-                    id: docId,
-                    updatedAt: new Date()
-                }, { merge: true });
-            });
+                    batch.set(ref, {
+                        ...product,
+                        id: docId,
+                        updatedAt: new Date()
+                    }, { merge: true });
+                });
 
-            await chunkBatch.commit();
-        }
+                await batch.commit();
+            }
+        }, {
+            maxRetries: 2,
+            initialDelayMs: 500
+        }, 'CannMenus.storeProducts');
+    }
+
+    // ===== Sync Status Tracking =====
+
+    private async createSyncStatus(brandId: string, brandName: string): Promise<string> {
+        const { firestore } = await createServerClient();
+        const syncDoc = firestore.collection('sync_status').doc();
+
+        await syncDoc.set({
+            brandId,
+            brandName,
+            status: 'in_progress',
+            startTime: FieldValue.serverTimestamp(),
+            retailersProcessed: 0,
+            productsProcessed: 0,
+            currentRetailer: null,
+            errors: []
+        });
+
+        return syncDoc.id;
+    }
+
+    private async updateSyncProgress(syncId: string, progress: {
+        retailersProcessed?: number;
+        productsProcessed?: number;
+        currentRetailer?: string;
+    }): Promise<void> {
+        const { firestore } = await createServerClient();
+        await firestore.collection('sync_status').doc(syncId).update(progress);
+    }
+
+    private async completeSyncStatus(syncId: string, result: {
+        status: string;
+        retailersProcessed: number;
+        productsProcessed: number;
+        errors: string[];
+        endTime: Date;
+    }): Promise<void> {
+        const { firestore } = await createServerClient();
+        await firestore.collection('sync_status').doc(syncId).update({
+            ...result,
+            endTime: FieldValue.serverTimestamp()
+        });
+    }
+
+    private async failSyncStatus(syncId: string, errorMessage: string): Promise<void> {
+        const { firestore } = await createServerClient();
+        await firestore.collection('sync_status').doc(syncId).update({
+            status: 'failed',
+            error: errorMessage,
+            endTime: FieldValue.serverTimestamp()
+        });
+    }
+
+    private async getLastSuccessfulSync(brandId: string): Promise<Date | null> {
+        const { firestore } = await createServerClient();
+
+        const snapshot = await firestore
+            .collection('sync_status')
+            .where('brandId', '==', brandId)
+            .where('status', '==', 'completed')
+            .orderBy('endTime', 'desc')
+            .limit(1)
+            .get();
+
+        if (snapshot.empty) return null;
+
+        const lastSync = snapshot.docs[0].data();
+        return lastSync.endTime?.toDate() || null;
     }
 }
+
