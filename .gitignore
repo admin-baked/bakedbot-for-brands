@@ -39,3 +39,8 @@ next-env.d.ts
 
 # Firebase
 service-account.json
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
