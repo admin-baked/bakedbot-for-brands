@@ -1,3 +1,4 @@
+
 'use client';
 
 // src/app/(customer-menu)/shop/[dispensaryId]/page.tsx
@@ -6,25 +7,30 @@
  * Shows products with real-time CannMenus pricing, filters, search, and cart actions
  */
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, notFound } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, ShoppingCart, Plus, Minus, Heart, Info } from 'lucide-react';
-import { getRetailerProducts, type RetailerLocation } from '@/lib/cannmenus-api';
+import { Loader2, Search, ShoppingCart, Plus, Heart } from 'lucide-react';
+import { getRetailerProducts } from '@/lib/cannmenus-api';
 import { CannMenusProduct } from '@/types/cannmenus';
 import { useCartStore } from '@/stores/cart-store';
-import { trackProductView, trackSearch, trackFilter, getOrCreateSessionId } from '@/lib/customer-analytics';
+import { trackSearch, trackFilter, getOrCreateSessionId } from '@/lib/customer-analytics';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FloatingCartButton } from '@/components/floating-cart-button';
 
 export default function DispensaryShopPage() {
     const params = useParams();
-    const dispensaryId = params.dispensaryId as string;
+
+    if (!params || typeof params.dispensaryId !== 'string') {
+        // This will render the not-found.tsx file if the dispensaryId is missing.
+        notFound();
+    }
+    const dispensaryId = params.dispensaryId;
 
     const [products, setProducts] = useState<CannMenusProduct[]>([]);
     const [loading, setLoading] = useState(true);
@@ -34,20 +40,8 @@ export default function DispensaryShopPage() {
     const [sessionId] = useState(() => getOrCreateSessionId());
 
     const { addItem, items: cartItems, setDispensary } = useCartStore();
-
-    useEffect(() => {
-        loadProducts();
-        // Set the selected dispensary in cart
-        setDispensary(dispensaryId, 'Dispensary Name'); // TODO: Get actual name
-    }, [dispensaryId, setDispensary]);
-
-    useEffect(() => {
-        if (searchQuery) {
-            trackSearch(searchQuery, filteredProducts.length, sessionId);
-        }
-    }, [searchQuery]);
-
-    const loadProducts = async () => {
+    
+    const loadProducts = useCallback(async () => {
         setLoading(true);
         try {
             const retailerProducts = await getRetailerProducts(dispensaryId);
@@ -57,7 +51,20 @@ export default function DispensaryShopPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [dispensaryId]);
+
+    useEffect(() => {
+        loadProducts();
+        // Set the selected dispensary in cart
+        setDispensary(dispensaryId, 'Dispensary Name'); // TODO: Get actual name
+    }, [dispensaryId, setDispensary, loadProducts]);
+
+    useEffect(() => {
+        if (searchQuery) {
+            trackSearch(searchQuery, filteredProducts.length, sessionId);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchQuery]);
 
     const filteredProducts = products
         .filter(product => {

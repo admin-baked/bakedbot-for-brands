@@ -1,8 +1,9 @@
+
 // Task Execution Page - dynamic route for viewing a specific task
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { TaskExecutionView } from '@/components/tasks/task-execution-view';
 import { Task } from '@/types/task';
@@ -13,32 +14,73 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function TaskPage() {
     const params = useParams();
-    const taskId = params.taskId as string;
+    const taskId = params && typeof params.taskId === 'string' ? params.taskId : null;
+
+    // ✅ All hooks are now at the top level
     const [task, setTask] = useState<Task | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const startExecution = useCallback(async (taskToExecute: Task) => {
+      try {
+          setError(null);
+          setTask(prev => prev ? { ...prev, status: 'running' } : null);
+
+          const response = await fetch(`/api/tasks/${taskToExecute.id}/execute`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(taskToExecute)
+          });
+
+          if (!response.ok) {
+              const data = await response.json();
+              throw new Error(data.error || 'Failed to start execution');
+          }
+
+          const data = await response.json();
+          if (data.success) {
+              setTask(data.task);
+          } else {
+              throw new Error(data.error || 'Execution failed');
+          }
+
+      } catch (err) {
+          console.error('Execution error:', err);
+          setError(err instanceof Error ? err.message : 'Unknown error');
+          setTask(prev => prev ? { ...prev, status: 'failed' } : null);
+      }
+    }, []);
+
     useEffect(() => {
-        // Check session storage for the task data
-        // This is a temporary persistence mechanism until Firestore is fully integrated
+        if (!taskId) {
+            setError("Task ID is missing from the URL.");
+            setLoading(false);
+            return;
+        }
+
         if (typeof window !== 'undefined') {
             const stored = sessionStorage.getItem(`task_${taskId}`);
             if (stored) {
                 try {
-                    setTask(JSON.parse(stored));
+                    const storedTask = JSON.parse(stored) as Task;
+                    setTask(storedTask);
                     setLoading(false);
-                    return;
+                    if (storedTask.status === 'draft') {
+                        startExecution(storedTask);
+                    }
                 } catch (e) {
                     console.error("Failed to parse stored task", e);
+                    setError("Could not load task data from session.");
+                    setLoading(false);
                 }
+            } else {
+                setError("Task not found. Please create a new task.");
+                setLoading(false);
             }
         }
+    }, [taskId, startExecution]);
 
-        // Fallback if not found in storage
-        setLoading(false);
-        setError("Task not found. Please create a new task.");
-    }, [taskId]);
-
+    // ✅ Conditional rendering happens after all hooks
     if (loading) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
@@ -74,7 +116,7 @@ export default function TaskPage() {
                 </Button>
             </Link>
 
-            <TaskExecutionView initialTask={task} autoStart={task.status === 'draft'} />
+            <TaskExecutionView initialTask={task} autoStart={false} />
         </div>
     );
 }
