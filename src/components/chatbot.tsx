@@ -52,6 +52,7 @@ const ChatWindow = ({
   onMagicImageClick,
   chatMode,
   onFeedback,
+  onAddToCart,
 }: {
   products: Product[];
   onAskSmokey: (product: Product) => void;
@@ -69,6 +70,7 @@ const ChatWindow = ({
   onMagicImageClick: () => void;
   chatMode: 'chat' | 'image';
   onFeedback: (productId: string, type: 'like' | 'dislike') => void;
+  onAddToCart: (product: Product) => void;
 }) => {
   const { chatExperience } = useStore();
 
@@ -118,6 +120,7 @@ const ChatWindow = ({
               onAskSmokey={onAskSmokey}
               className="h-full"
               onFeedback={onFeedback}
+              onAddToCart={onAddToCart}
             />
           )}
         </div>
@@ -360,6 +363,21 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
     };
     setMessages([botMessage]);
   }
+  const { addToCart, selectedRetailerId } = useStore();
+
+  const handleAddToCart = useCallback((product: Product) => {
+    // Use selected retailer or fallback to the brand's default retailer if available
+    // For now, we'll use the current selectedRetailerId or a placeholder if none.
+    // Ideally, the chat should be aware of the context.
+    const retailerToUse = selectedRetailerId || '1';
+
+    addToCart(product, retailerToUse);
+    toast({
+      title: "Added to cart",
+      description: `${product.name} has been added to your cart.`,
+    });
+  }, [addToCart, selectedRetailerId, toast]);
+
   return (
     <>
       <div className="fixed bottom-6 right-6 z-50">
@@ -376,6 +394,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
         <ChatWindow
           products={products}
           onAskSmokey={handleAskSmokey}
+          onAddToCart={handleAddToCart}
           hasStartedChat={hasStartedChat}
           startOnboarding={startOnboarding}
           startFreeChat={startFreeChat}

@@ -12,15 +12,15 @@ interface AnalyticsDashboardProps {
 }
 
 export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardProps) {
-  
-  const chartConfig = initialData.salesByProduct.reduce((acc, item) => {
+
+  const productChartConfig = initialData.salesByProduct.reduce((acc, item) => {
     acc[item.productName] = { label: item.productName };
     return acc;
   }, {} as any);
 
-
   return (
     <div className="flex flex-col gap-6">
+      {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -54,50 +54,147 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
         </Card>
       </div>
 
-       <Card>
+      {/* Revenue Chart */}
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart className="h-5 w-5" />
-            Top Selling Products by Revenue
-          </CardTitle>
-          <CardDescription>
-            This chart shows your top 10 products based on total revenue.
-          </CardDescription>
+          <CardTitle>Revenue Over Time</CardTitle>
+          <CardDescription>Daily GMV for the last 30 days.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-96 w-full">
-            <RechartsBarChart
-              accessibilityLayer
-              data={initialData.salesByProduct}
-              layout="vertical"
-              margin={{ left: 20 }}
-            >
-              <CartesianGrid horizontal={false} />
-              <YAxis
-                dataKey="productName"
-                type="category"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-                tickFormatter={(value) => value.slice(0, 25) + (value.length > 25 ? '...' : '')}
-                className="text-xs"
-              />
-              <XAxis dataKey="revenue" type="number" hide />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent 
-                    formatter={(value) => `$${Number(value).toLocaleString()}`} 
-                    indicator="dot"
-                />}
-              />
-               <Bar
-                    dataKey="revenue"
-                    layout="vertical"
-                    fill="var(--color-chart-1)"
-                    radius={4}
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <RechartsBarChart data={initialData.dailyStats}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
                 />
-            </RechartsBarChart>
-          </ChartContainer>
+                <YAxis
+                  tickFormatter={(value) => `$${value}`}
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <ChartTooltip
+                  content={<ChartTooltipContent
+                    formatter={(value) => `$${Number(value).toLocaleString()}`}
+                  />}
+                />
+                <Bar dataKey="gmv" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+              </RechartsBarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Sales by Product */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart className="h-5 w-5" />
+              Top Selling Products
+            </CardTitle>
+            <CardDescription>
+              Top 10 products by revenue.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={productChartConfig} className="h-[300px] w-full">
+              <RechartsBarChart
+                accessibilityLayer
+                data={initialData.salesByProduct}
+                layout="vertical"
+                margin={{ left: 0 }}
+              >
+                <CartesianGrid horizontal={false} />
+                <YAxis
+                  dataKey="productName"
+                  type="category"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  tickFormatter={(value) => value.slice(0, 20) + (value.length > 20 ? '...' : '')}
+                  className="text-xs"
+                  width={100}
+                />
+                <XAxis dataKey="revenue" type="number" hide />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent
+                    formatter={(value) => `$${Number(value).toLocaleString()}`}
+                    indicator="dot"
+                  />}
+                />
+                <Bar
+                  dataKey="revenue"
+                  layout="vertical"
+                  fill="var(--color-chart-1)"
+                  radius={4}
+                />
+              </RechartsBarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Conversion Funnel */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Conversion Funnel</CardTitle>
+            <CardDescription>Sessions to Paid Orders.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsBarChart data={initialData.conversionFunnel} layout="vertical">
+                  <CartesianGrid horizontal={false} />
+                  <XAxis type="number" hide />
+                  <YAxis
+                    dataKey="stage"
+                    type="category"
+                    width={120}
+                    tickLine={false}
+                    axisLine={false}
+                    fontSize={12}
+                  />
+                  <ChartTooltip />
+                  <Bar dataKey="count" fill="#82ca9d" radius={[0, 4, 4, 0]} barSize={40}>
+                    {/* Label List could go here */}
+                  </Bar>
+                </RechartsBarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Channel Performance */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Channel Performance</CardTitle>
+          <CardDescription>Where your traffic is coming from.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {initialData.channelPerformance.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No channel data available yet.</p>
+            ) : (
+              initialData.channelPerformance.map((channel) => (
+                <div key={channel.channel} className="flex items-center justify-between border-b pb-2 last:border-0">
+                  <div>
+                    <p className="font-medium capitalize">{channel.channel}</p>
+                    <p className="text-xs text-muted-foreground">{channel.sessions} sessions</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium">{(channel.conversionRate * 100).toFixed(1)}% Conv.</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

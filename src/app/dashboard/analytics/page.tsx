@@ -9,16 +9,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 export const dynamic = 'force-dynamic';
 
 function AnalyticsSkeleton() {
-    return (
-        <div className="flex flex-col gap-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Skeleton className="h-28 w-full" />
-                <Skeleton className="h-28 w-full" />
-                <Skeleton className="h-28 w-full" />
-            </div>
-            <Skeleton className="h-96 w-full" />
-        </div>
-    )
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Skeleton className="h-28 w-full" />
+        <Skeleton className="h-28 w-full" />
+        <Skeleton className="h-28 w-full" />
+      </div>
+      <Skeleton className="h-96 w-full" />
+    </div>
+  )
 }
 
 export default async function DashboardAnalyticsPage() {
@@ -33,14 +33,22 @@ export default async function DashboardAnalyticsPage() {
   if (!brandId) {
     // This could happen if an 'owner' without a brandId lands here.
     // In a real app, you might have an org selector. For now, we'll show an empty state.
-     return <AnalyticsDashboard initialData={{ totalRevenue: 0, totalOrders: 0, averageOrderValue: 0, salesByProduct: [] }} />;
+    return <AnalyticsDashboard initialData={{
+      totalRevenue: 0,
+      totalOrders: 0,
+      averageOrderValue: 0,
+      salesByProduct: [],
+      dailyStats: [],
+      conversionFunnel: [],
+      channelPerformance: []
+    }} />;
   }
 
   const analyticsData = await getAnalyticsData(brandId);
-  
+
   return (
     <Suspense fallback={<AnalyticsSkeleton />}>
-        <AnalyticsDashboard initialData={analyticsData} />
+      <AnalyticsDashboard initialData={analyticsData} />
     </Suspense>
   );
 }

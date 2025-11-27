@@ -19,7 +19,7 @@ type Message = {
     imageUrl?: string;
 };
 
-const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand, onFeedback }: { product: any, onAskSmokey: (p: any) => void, isExpanded: boolean, onExpand: (p: any) => void, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => {
+const ExpandableProductCard = ({ product, onAskSmokey, onAddToCart, isExpanded, onExpand, onFeedback }: { product: any, onAskSmokey: (p: any) => void, onAddToCart: (p: any) => void, isExpanded: boolean, onExpand: (p: any) => void, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => {
     const handleFeedbackClick = (e: React.MouseEvent, type: 'like' | 'dislike') => {
         e.stopPropagation();
         onFeedback(product.id, type);
@@ -48,13 +48,16 @@ const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand, onF
                     </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2 p-1">{product.reasoning}</p>
-                {product.url ? (
-                    <Button size="sm" variant="outline" className="w-full h-8 mt-1" asChild>
-                        <a href={product.url} target="_blank" rel="noopener noreferrer">View on Menu</a>
-                    </Button>
-                ) : (
-                    <Button size="sm" className="w-full h-8 mt-1" onClick={(e) => { e.stopPropagation(); onAskSmokey(product); }}>Ask Smokey</Button>
-                )}
+                <div className="flex gap-2 mt-1">
+                    {product.url ? (
+                        <Button size="sm" variant="outline" className="flex-1 h-8" asChild>
+                            <a href={product.url} target="_blank" rel="noopener noreferrer">View</a>
+                        </Button>
+                    ) : (
+                        <Button size="sm" variant="outline" className="flex-1 h-8" onClick={(e) => { e.stopPropagation(); onAskSmokey(product); }}>Ask</Button>
+                    )}
+                    <Button size="sm" className="flex-1 h-8" onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}>Add to Cart</Button>
+                </div>
             </div>
         )
     }
@@ -74,7 +77,7 @@ const ExpandableProductCard = ({ product, onAskSmokey, isExpanded, onExpand, onF
 };
 
 
-const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, className, onFeedback }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>, onAskSmokey: (p: Product) => void, className?: string, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => {
+const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, onAddToCart, className, onFeedback }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>, onAskSmokey: (p: Product) => void, onAddToCart: (p: Product) => void, className?: string, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => {
     const { toast } = useToast();
     const [expandedProduct, setExpandedProduct] = useState<(Product & { reasoning: string }) | null>(null);
 
@@ -159,6 +162,7 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, clas
                                             key={p.id}
                                             product={p}
                                             onAskSmokey={onAskSmokey}
+                                            onAddToCart={onAddToCart}
                                             isExpanded={expandedProduct?.id === p.id}
                                             onExpand={handleExpand}
                                             onFeedback={onFeedback}
