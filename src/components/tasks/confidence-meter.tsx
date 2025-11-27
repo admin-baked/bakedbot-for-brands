@@ -1,3 +1,4 @@
+
 // Confidence Meter Component - shows and animates confidence scores
 
 'use client';
@@ -45,7 +46,7 @@ export function ConfidenceMeter({
         }, duration / steps);
 
         return () => clearInterval(interval);
-    }, [score]);
+    }, [score, animatedScore]);
 
     const percentage = Math.round(animatedScore * 100);
     const trend = previousScore !== undefined ? score - previousScore : 0;

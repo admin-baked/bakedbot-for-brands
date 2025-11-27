@@ -1,8 +1,9 @@
+
 // Task Execution View - orchestrates the display of a running task
 
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Task, TaskStep, TaskExecutionEvent } from '@/types/task';
 import { StepCard } from './step-card';
 import { ConfidenceMeter } from './confidence-meter';
@@ -25,57 +26,7 @@ export function TaskExecutionView({ initialTask, autoStart = false }: TaskExecut
     // Polling interval reference
     const pollInterval = useRef<NodeJS.Timeout | null>(null);
 
-    // Start execution if autoStart is true and task is draft
-    useEffect(() => {
-        if (autoStart && task.status === 'draft') {
-            startExecution();
-        }
-    }, [autoStart]);
-
-    // Poll for updates
-    // In a production app, this would use WebSocket or Firestore onSnapshot
-    useEffect(() => {
-        if (task.status === 'running') {
-            startPolling();
-        } else {
-            stopPolling();
-        }
-
-        return () => stopPolling();
-    }, [task.status]);
-
-    const startPolling = () => {
-        if (pollInterval.current) return;
-
-        setIsConnected(true);
-        pollInterval.current = setInterval(async () => {
-            try {
-                // Fetch latest task state
-                // Note: In a real implementation, we'd use the stream endpoint or Firestore
-                // For now, we'll just re-fetch the task to simulate updates if the backend supports it
-                // Or rely on the execute response if it streams
-
-                // Since we don't have a persistent store yet, we'll rely on the execute call's stream
-                // But for this UI component, let's assume we can fetch the task status
-                // const res = await fetch(`/api/tasks/${task.id}`);
-                // const updatedTask = await res.json();
-                // setTask(updatedTask);
-            } catch (err) {
-                console.error('Polling error:', err);
-                setIsConnected(false);
-            }
-        }, 1000);
-    };
-
-    const stopPolling = () => {
-        if (pollInterval.current) {
-            clearInterval(pollInterval.current);
-            pollInterval.current = null;
-        }
-        setIsConnected(false);
-    };
-
-    const startExecution = async () => {
+    const startExecution = useCallback(async () => {
         try {
             setError(null);
             setTask(prev => ({ ...prev, status: 'running' }));
@@ -105,7 +56,57 @@ export function TaskExecutionView({ initialTask, autoStart = false }: TaskExecut
             setError(err instanceof Error ? err.message : 'Unknown error');
             setTask(prev => ({ ...prev, status: 'failed' }));
         }
-    };
+    }, [task]);
+    
+    // Start execution if autoStart is true and task is draft
+    useEffect(() => {
+        if (autoStart && task.status === 'draft') {
+            startExecution();
+        }
+    }, [autoStart, task.status, startExecution]);
+
+    // Poll for updates
+    // In a production app, this would use WebSocket or Firestore onSnapshot
+    useEffect(() => {
+        const startPolling = () => {
+            if (pollInterval.current) return;
+
+            setIsConnected(true);
+            pollInterval.current = setInterval(async () => {
+                try {
+                    // Fetch latest task state
+                    // Note: In a real implementation, we'd use the stream endpoint or Firestore
+                    // For now, we'll just re-fetch the task to simulate updates if the backend supports it
+                    // Or rely on the execute response if it streams
+
+                    // Since we don't have a persistent store yet, we'll rely on the execute call's stream
+                    // But for this UI component, let's assume we can fetch the task status
+                    // const res = await fetch(`/api/tasks/${task.id}`);
+                    // const updatedTask = await res.json();
+                    // setTask(updatedTask);
+                } catch (err) {
+                    console.error('Polling error:', err);
+                    setIsConnected(false);
+                }
+            }, 1000);
+        };
+        
+        const stopPolling = () => {
+            if (pollInterval.current) {
+                clearInterval(pollInterval.current);
+                pollInterval.current = null;
+            }
+            setIsConnected(false);
+        };
+
+        if (task.status === 'running') {
+            startPolling();
+        } else {
+            stopPolling();
+        }
+
+        return () => stopPolling();
+    }, [task.status]);
 
     const progress = (task.metrics.completedSteps / task.metrics.totalSteps) * 100;
 

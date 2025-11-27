@@ -14,31 +14,17 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function TaskPage() {
     const params = useParams();
-    
-    // Guard against null params or taskId
-    if (!params || typeof params.taskId !== 'string') {
-        return (
-             <div className="container max-w-4xl mx-auto py-8 space-y-4">
-                <div className="p-8 rounded-lg border border-dashed text-center space-y-4">
-                    <h2 className="text-xl font-semibold">Invalid Task ID</h2>
-                    <p className="text-muted-foreground">The URL is missing a valid task identifier.</p>
-                     <Link href="/dashboard/tasks">
-                        <Button variant="outline">Back to Tasks</Button>
-                    </Link>
-                </div>
-            </div>
-        );
-    }
-    
-    const taskId = params.taskId;
+    const taskId = params && typeof params.taskId === 'string' ? params.taskId : null;
+
+    // ✅ All hooks are now at the top level
     const [task, setTask] = useState<Task | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
+
     const startExecution = useCallback(async (taskToExecute: Task) => {
       try {
           setError(null);
-          setTask(prev => ({ ...prev!, status: 'running' }));
+          setTask(prev => prev ? { ...prev, status: 'running' } : null);
 
           const response = await fetch(`/api/tasks/${taskToExecute.id}/execute`, {
               method: 'POST',
@@ -47,7 +33,8 @@ export default function TaskPage() {
           });
 
           if (!response.ok) {
-              throw new Error('Failed to start execution');
+              const data = await response.json();
+              throw new Error(data.error || 'Failed to start execution');
           }
 
           const data = await response.json();
@@ -60,33 +47,40 @@ export default function TaskPage() {
       } catch (err) {
           console.error('Execution error:', err);
           setError(err instanceof Error ? err.message : 'Unknown error');
-          setTask(prev => ({ ...prev!, status: 'failed' }));
+          setTask(prev => prev ? { ...prev, status: 'failed' } : null);
       }
     }, []);
 
     useEffect(() => {
-        // Check session storage for the task data
+        if (!taskId) {
+            setError("Task ID is missing from the URL.");
+            setLoading(false);
+            return;
+        }
+
         if (typeof window !== 'undefined') {
             const stored = sessionStorage.getItem(`task_${taskId}`);
             if (stored) {
                 try {
-                    const storedTask = JSON.parse(stored);
+                    const storedTask = JSON.parse(stored) as Task;
                     setTask(storedTask);
                     setLoading(false);
-                    // Check if auto-start is needed
                     if (storedTask.status === 'draft') {
                         startExecution(storedTask);
                     }
-                    return;
                 } catch (e) {
                     console.error("Failed to parse stored task", e);
+                    setError("Could not load task data from session.");
+                    setLoading(false);
                 }
+            } else {
+                setError("Task not found. Please create a new task.");
+                setLoading(false);
             }
         }
-        setLoading(false);
-        setError("Task not found. Please create a new task.");
     }, [taskId, startExecution]);
 
+    // ✅ Conditional rendering happens after all hooks
     if (loading) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
