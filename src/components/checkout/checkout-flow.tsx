@@ -11,6 +11,7 @@ import { useStore } from '@/hooks/use-store';
 import { useUser } from '@/firebase/auth/use-user';
 import { AgeVerification, isAgeVerified } from './age-verification';
 import { PaymentSmokey } from './payment-smokey';
+import { PaymentCreditCard } from './payment-credit-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +19,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, MapPin, User, CreditCard, Loader2 } from 'lucide-react';
+import { CheckCircle, MapPin, User, CreditCard, Loader2, Smartphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { createOrder } from '@/app/checkout/actions/createOrder';
 import { useRouter } from 'next/navigation';
@@ -43,7 +44,7 @@ export function CheckoutFlow() {
     });
 
     // Payment
-    const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
+    const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'cannpay'>('card');
     const [paymentResult, setPaymentResult] = useState<any>(null);
 
     useEffect(() => {
@@ -76,7 +77,7 @@ export function CheckoutFlow() {
                 items: cartItems,
                 customer: customerDetails,
                 retailerId: selectedRetailerId!,
-                paymentMethod: paymentMethod === 'card' ? 'smokey_pay' : 'cash',
+                paymentMethod: paymentMethod === 'card' ? 'authorize_net' : (paymentMethod === 'cannpay' ? 'cannpay' : 'cash'),
                 paymentData,
                 total,
             });
@@ -189,36 +190,57 @@ export function CheckoutFlow() {
                             <CardDescription>Choose how you'd like to pay.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <RadioGroup value={paymentMethod} onValueChange={(v: 'card' | 'cash') => setPaymentMethod(v)}>
-                                <div className="flex items-center space-x-2 border p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                                    <RadioGroupItem value="card" id="card" />
-                                    <Label htmlFor="card" className="flex-1 cursor-pointer flex items-center gap-2">
-                                        <CreditCard className="h-4 w-4" />
-                                        Pay Online (SmokeyPay)
-                                    </Label>
-                                </div>
-                                <div className="flex items-center space-x-2 border p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                                    <RadioGroupItem value="cash" id="cash" />
-                                    <Label htmlFor="cash" className="flex-1 cursor-pointer flex items-center gap-2">
-                                        <DollarSignIcon className="h-4 w-4" />
-                                        Pay at Pickup (Cash/Debit)
-                                    </Label>
-                                </div>
+                            <RadioGroup value={paymentMethod} onValueChange={(v: any) => setPaymentMethod(v)}>
+                                {selectedRetailerId ? (
+                                    // Dispensary / Cannabis Flow
+                                    <>
+                                        <div className="flex items-center space-x-2 border p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors mb-2">
+                                            <RadioGroupItem value="cannpay" id="cannpay" />
+                                            <Label htmlFor="cannpay" className="flex-1 cursor-pointer flex items-center gap-2">
+                                                <Smartphone className="h-4 w-4" />
+                                                Pay Online (SmokeyPay / CannPay)
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2 border p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                                            <RadioGroupItem value="cash" id="cash" />
+                                            <Label htmlFor="cash" className="flex-1 cursor-pointer flex items-center gap-2">
+                                                <DollarSignIcon className="h-4 w-4" />
+                                                Pay at Pickup (Cash/Debit)
+                                            </Label>
+                                        </div>
+                                    </>
+                                ) : (
+                                    // Hemp / Direct Flow
+                                    <div className="flex items-center space-x-2 border p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                                        <RadioGroupItem value="card" id="card" />
+                                        <Label htmlFor="card" className="flex-1 cursor-pointer flex items-center gap-2">
+                                            <CreditCard className="h-4 w-4" />
+                                            Credit Card (Secure)
+                                        </Label>
+                                    </div>
+                                )}
                             </RadioGroup>
                         </CardContent>
                     </Card>
 
-                    {paymentMethod === 'card' ? (
+                    {/* Render Payment Component based on selection */}
+                    {paymentMethod === 'cannpay' && (
                         <PaymentSmokey
                             amount={total}
-                            metadata={{
-                                customerEmail: customerDetails.email,
-                                retailerId: selectedRetailerId,
-                            }}
                             onSuccess={(result) => handleOrderSubmit(result)}
                             onError={(err) => toast({ variant: 'destructive', title: 'Payment Failed', description: err })}
                         />
-                    ) : (
+                    )}
+
+                    {paymentMethod === 'card' && !selectedRetailerId && (
+                        <PaymentCreditCard
+                            amount={total}
+                            onSuccess={(result) => handleOrderSubmit(result)}
+                            onError={(err) => toast({ variant: 'destructive', title: 'Payment Failed', description: err })}
+                        />
+                    )}
+
+                    {paymentMethod === 'cash' && (
                         <Button
                             onClick={() => handleOrderSubmit()}
                             className="w-full"

@@ -19,7 +19,7 @@ type CreateOrderInput = {
         phone: string;
     };
     retailerId: string;
-    paymentMethod: 'smokey_pay' | 'cash';
+    paymentMethod: 'authorize_net' | 'cannpay' | 'cash' | 'smokey_pay'; // smokey_pay is legacy alias
     paymentData?: any;
     total: number;
 };
@@ -30,9 +30,9 @@ export async function createOrder(input: CreateOrderInput) {
         let transactionId = null;
         let paymentStatus = 'pending';
 
-        // 1. Process Payment (if card)
-        if (input.paymentMethod === 'smokey_pay' && input.paymentData) {
-            logger.info('Processing card payment for order');
+        // 1. Process Payment (if Authorize.net)
+        if (input.paymentMethod === 'authorize_net' && input.paymentData) {
+            logger.info('Processing Authorize.net payment for order');
 
             const paymentResult = await createTransaction({
                 amount: input.total,
@@ -61,6 +61,14 @@ export async function createOrder(input: CreateOrderInput) {
             transactionId = paymentResult.transactionId;
             paymentStatus = 'paid';
             logger.info('Payment successful', { transactionId });
+        } else if (input.paymentMethod === 'cannpay') {
+            // CannPay flow - typically handled via redirect or external link
+            // For now, we assume the client has initiated the flow or will do so
+            paymentStatus = 'pending_cannpay';
+            logger.info('Order placed with CannPay intent');
+        } else {
+            // Cash / Pay at Pickup
+            paymentStatus = 'pay_at_pickup';
         }
 
         // 2. Create Order in Firestore
