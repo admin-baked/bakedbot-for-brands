@@ -2,23 +2,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeQuery, generateChatResponse } from '@/ai/chat-query-handler';
 import type { CannMenusProduct, ChatbotProduct } from '@/types/cannmenus';
+import { getConversationContext, addMessageToSession, createChatSession } from '@/lib/chat/session-manager';
 
 /**
  * POST /api/chat
- * Body: { query: string, brandId?: string, state?: string }
+ * Body: { query: string, userId?: string, sessionId?: string, brandId?: string, state?: string }
  * Returns a conversational message and optional product suggestions.
  */
 export async function POST(req: NextRequest) {
     try {
-        const { query, brandId = '10982', state = 'Illinois' } = await req.json();
+        const { query, userId, sessionId, brandId = '10982', state = 'Illinois' } = await req.json();
         if (!query) {
             return NextResponse.json({ ok: false, error: 'Missing query' }, { status: 400 });
         }
 
-        // 1️⃣ Analyze the natural language query
-        const analysis = await analyzeQuery(query);
+        // 1️⃣ Get conversation context if session exists
+        let conversationContext: any[] = [];
+        let currentSessionId = sessionId;
 
-        // 2️⃣ Build the CannMenus product search URL using the extracted filters
+        if (userId) {
+            if (!currentSessionId) {
+                // Create new session
+                currentSessionId = await createChatSession(userId);
+            } else {
+                // Get existing conversation context
+                conversationContext = await getConversationContext(userId, currentSessionId);
+            }
+        }
+
+        // 2️⃣ Analyze the natural language query with context
+        const analysis = await analyzeQuery(query, conversationContext);
+
+        // 3️⃣ Build the CannMenus product search URL using the extracted filters
         const base = process.env.CANNMENUS_API_BASE;
         const apiKey = process.env.CANNMENUS_API_KEY;
         const fortyTonsBrandId = process.env.CANNMENUS_40TONS_BRAND_ID;
@@ -39,7 +54,7 @@ export async function POST(req: NextRequest) {
         url.searchParams.set('retailers', baysideRetailerId);
         url.searchParams.set('brands', fortyTonsBrandId);
 
-        // 3️⃣ Fetch products from CannMenus
+        // 4️⃣ Fetch products from CannMenus
         const productResp = await fetch(url.toString(), {
             headers: {
                 Accept: 'application/json',
@@ -67,10 +82,25 @@ export async function POST(req: NextRequest) {
         // 5️⃣ Generate a friendly chat response using Gemini
         const chatResponse = await generateChatResponse(query, analysis.intent, chatProducts.length);
 
+        // 6️⃣ Store messages in session if userId provided
+        if (userId && currentSessionId) {
+            await addMessageToSession(userId, currentSessionId, {
+                role: 'user',
+                content: query,
+                productReferences: chatProducts.slice(0, 5).map(p => p.id),
+            });
+
+            await addMessageToSession(userId, currentSessionId, {
+                role: 'assistant',
+                content: chatResponse.message,
+            });
+        }
+
         return NextResponse.json({
             ok: true,
             message: chatResponse.message,
             products: chatResponse.shouldShowProducts ? chatProducts : [],
+            sessionId: currentSessionId, // Return session ID for client
         });
     } catch (err) {
         console.error('Chat API error', err);
