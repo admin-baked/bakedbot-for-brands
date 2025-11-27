@@ -133,3 +133,30 @@ export function validateOrder(
 
     return { allowed: true };
 }
+
+/**
+ * Validate state compliance for product
+ */
+export function validateStateCompliance(
+    state: string,
+    product: {
+        category: string;
+        thcContent: number;
+        quantity: number;
+        price: number;
+    }
+): { allowed: boolean; violations: string[]; warnings: string[] } {
+    const violations: string[] = [];
+    const warnings: string[] = [];
+
+    const productValidation = validateProduct(state, product.category, product.thcContent);
+    if (!productValidation.allowed && productValidation.reason) {
+        violations.push(productValidation.reason);
+    }
+
+    return {
+        allowed: violations.length === 0,
+        violations,
+        warnings,
+    };
+}

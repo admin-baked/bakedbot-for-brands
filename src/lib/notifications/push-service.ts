@@ -6,6 +6,7 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export interface NotificationPayload {
     title: string;
@@ -61,7 +62,7 @@ export async function subscribeToPush(
     const { firestore } = await createServerClient();
 
     await firestore.collection('users').doc(userId).update({
-        fcmTokens: firestore.FieldValue.arrayUnion(fcmToken),
+        fcmTokens: FieldValue.arrayUnion(fcmToken),
     });
 }
 
@@ -75,6 +76,6 @@ export async function unsubscribeFromPush(
     const { firestore } = await createServerClient();
 
     await firestore.collection('users').doc(userId).update({
-        fcmTokens: firestore.FieldValue.arrayRemove(fcmToken),
+        fcmTokens: FieldValue.arrayRemove(fcmToken),
     });
 }

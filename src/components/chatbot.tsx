@@ -54,6 +54,7 @@ const ChatWindow = ({
   chatMode,
   onFeedback,
   onAddToCart,
+  clearContext,
 }: {
   products: Product[];
   onAskSmokey: (product: Product) => void;
@@ -72,6 +73,7 @@ const ChatWindow = ({
   chatMode: 'chat' | 'image';
   onFeedback: (productId: string, type: 'like' | 'dislike') => void;
   onAddToCart: (product: Product) => void;
+  clearContext: () => void;
 }) => {
   const { chatExperience } = useStore();
 
@@ -442,6 +444,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
           onMagicImageClick={handleMagicImageClick}
           chatMode={chatMode}
           onFeedback={handleFeedback}
+          clearContext={clearContext}
         />
       )}
     </>

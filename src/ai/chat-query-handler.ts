@@ -107,13 +107,33 @@ You didn't find any products matching their request.
 
 Generate a friendly response that:
 1. Apologizes for not finding matches
-2. Suggests they try a different search or ask for help
-3. Offers to assist them further
+IMPORTANT: Do NOT make medical claims. Use phrases like "users often report" or "known for" instead of claiming effects.
+`,
+    model: 'googleai/gemini-2.5-flash',
+});
 
-Keep it concise and encouraging.
-Set shouldShowProducts to false.
-{{/if}}
+/**
+ * Analyzes a user's natural language query to extract search parameters
+ * @param query - The user's search query
+ * @param conversationContext - Optional previous messages for context
+ */
+export async function analyzeQuery(query: string, conversationContext?: any[]): Promise<QueryAnalysis> {
+    // Format conversation context for the prompt
+    const contextString = conversationContext && conversationContext.length > 0
+        ? conversationContext.map(msg => `${msg.role}: ${msg.content}`).join('\n')
+        : undefined;
 
+    const result = await analyzeQueryPrompt({
+        query,
+        context: contextString
+    });
+    return result.output!;
+}
+
+/**
+ * Generates a conversational response based on query results
+ */
+export async function generateChatResponse(
     query: string,
     intent: string,
     productCount: number
