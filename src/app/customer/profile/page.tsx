@@ -12,11 +12,13 @@ import { ProfileInfo } from '@/components/customer/profile-info';
 import { OrderHistory } from '@/components/customer/order-history';
 import { SavedAddresses } from '@/components/customer/saved-addresses';
 import { AccountSettings } from '@/components/customer/account-settings';
+import { EmailVerificationBanner } from '@/components/auth/email-verification-banner';
 
 export default function CustomerProfilePage() {
     return (
         <ProtectedRoute>
             <div className="container max-w-4xl mx-auto px-4 py-8">
+                <EmailVerificationBanner />
                 <h1 className="text-3xl font-bold mb-6">My Account</h1>
 
                 <Tabs defaultValue="profile" className="space-y-6">
