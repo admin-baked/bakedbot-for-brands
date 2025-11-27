@@ -23,9 +23,21 @@ export type QueryAnalysis = z.infer<typeof QueryAnalysisSchema>;
 // Prompt for analyzing user queries
 const analyzeQueryPrompt = ai.definePrompt({
     name: 'analyzeQueryPrompt',
-    input: { schema: z.object({ query: z.string() }) },
+    input: {
+        schema: z.object({
+            query: z.string(),
+            context: z.string().optional()
+        })
+    },
     output: { schema: QueryAnalysisSchema },
     prompt: `You are an AI assistant that analyzes cannabis product search queries.
+
+{{#if context}}
+Previous conversation context:
+{{{context}}}
+
+Use this context to better understand the current query and maintain conversation continuity.
+{{/if}}
 
 Your task is to extract search parameters from the user's natural language query.
 
@@ -102,23 +114,6 @@ Keep it concise and encouraging.
 Set shouldShowProducts to false.
 {{/if}}
 
-IMPORTANT: Do NOT make medical claims. Use phrases like "users often report" or "known for" instead of claiming effects.
-`,
-    model: 'googleai/gemini-2.5-flash',
-});
-
-/**
- * Analyzes a user's natural language query and extracts search parameters
- */
-export async function analyzeQuery(query: string): Promise<QueryAnalysis> {
-    const { output } = await analyzeQueryPrompt({ query });
-    return output!;
-}
-
-/**
- * Generates a conversational response based on query results
- */
-export async function generateChatResponse(
     query: string,
     intent: string,
     productCount: number
