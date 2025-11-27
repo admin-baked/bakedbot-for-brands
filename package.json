@@ -70,6 +70,7 @@
     "react-hook-form": "^7.52.1",
     "recharts": "^2.12.7",
     "server-only": "^0.0.1",
+    "stripe": "^20.0.0",
     "tailwind-merge": "^2.4.0",
     "universal-cookie": "^7.1.4",
     "uuid": "^13.0.0",
