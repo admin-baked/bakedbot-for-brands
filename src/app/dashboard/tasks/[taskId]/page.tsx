@@ -14,7 +14,23 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function TaskPage() {
     const params = useParams();
-    const taskId = params.taskId as string;
+    
+    // Guard against null params or taskId
+    if (!params || typeof params.taskId !== 'string') {
+        return (
+             <div className="container max-w-4xl mx-auto py-8 space-y-4">
+                <div className="p-8 rounded-lg border border-dashed text-center space-y-4">
+                    <h2 className="text-xl font-semibold">Invalid Task ID</h2>
+                    <p className="text-muted-foreground">The URL is missing a valid task identifier.</p>
+                     <Link href="/dashboard/tasks">
+                        <Button variant="outline">Back to Tasks</Button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+    
+    const taskId = params.taskId;
     const [task, setTask] = useState<Task | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

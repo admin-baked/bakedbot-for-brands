@@ -1,3 +1,4 @@
+
 'use client';
 
 import { usePathname } from 'next/navigation';
@@ -20,7 +21,8 @@ export type DashboardNavLink = {
  * Returns different navigation items based on the user's role.
  */
 export function useDashboardConfig() {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname ?? ''; // Fallback for null
   const { role } = useUserRole();
 
   const navLinks: DashboardNavLink[] = useMemo(() => {
@@ -48,6 +50,27 @@ export function useDashboardConfig() {
         description: 'Manage automation playbooks and workflows.',
         roles: ['brand', 'owner'],
       },
+       {
+        label: 'Products',
+        href: '/dashboard/products',
+        icon: 'Package',
+        description: 'Manage your product catalog.',
+        roles: ['brand', 'owner'],
+      },
+      {
+        label: 'Content AI',
+        href: '/dashboard/content',
+        icon: 'PenSquare',
+        description: 'Generate product descriptions, social images, and review summaries.',
+        roles: ['brand', 'owner'],
+      },
+      {
+        label: 'Analytics',
+        href: '/dashboard/analytics',
+        icon: 'BarChart3',
+        description: 'Explore sales data and product performance.',
+        roles: ['brand', 'owner'],
+      },
       // Dispensary-specific links
       {
         label: 'Orders',
@@ -56,27 +79,22 @@ export function useDashboardConfig() {
         description: 'View and manage customer orders.',
         roles: ['dispensary', 'owner'],
       },
+      // Owner-specific link
       {
-        label: 'Inventory',
-        href: '/dashboard/inventory',
-        icon: 'Package',
-        description: 'Manage product inventory and stock levels.',
-        roles: ['dispensary', 'owner'],
+        label: 'Admin Console',
+        href: '/dashboard/ceo',
+        icon: 'Shield',
+        description: 'Manage data and AI features.',
+        roles: ['owner'],
       },
-      // Shared links
-      {
-        label: 'Headless Menu',
-        href: '/dashboard/menu',
-        icon: 'ShoppingBag',
-        description: 'Manage and preview your product catalog.',
-        roles: ['brand', 'dispensary', 'owner'],
-      },
-      {
+      // This is not a primary nav item but needed for the settings page to have a description
+       {
         label: 'Account',
         href: '/account',
         icon: 'Settings',
-        description: 'Profile, billing, and configuration.',
+        description: 'Manage your profile, brand, and AI settings.',
         roles: ['brand', 'dispensary', 'owner'],
+        hidden: true,
       },
     ];
 
@@ -90,9 +108,7 @@ export function useDashboardConfig() {
     // Mark active link
     return filteredLinks.map((link) => ({
       ...link,
-      active:
-        pathname === link.href ||
-        (link.href !== '/' && pathname.startsWith(link.href)),
+      active: link.href === '/dashboard' ? pathname === link.href : pathname.startsWith(link.href),
     }));
   }, [pathname, role]);
 
