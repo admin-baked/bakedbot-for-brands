@@ -18,9 +18,13 @@ export type Brand = {
   id: string;
   name: string;
   logoUrl?: string;
-  chatbotConfig: {
-    basePrompt: string;
-    welcomeMessage: string;
+  chatbotConfig?: {
+    basePrompt?: string;
+    welcomeMessage?: string;
+    personality?: string;
+    tone?: string;
+    sellingPoints?: string;
+    updatedAt?: any;
   };
 };
 
@@ -52,21 +56,21 @@ export type Product = {
 
 // Renamed from Location to Retailer
 export type Retailer = {
-    id: string;
-    name: string;
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
-    phone?: string;
-    email?: string;
-    lat?: number;
-    lon?: number;
-    distance?: number;
-    // New fields for B2B2C model
-    tabletDeviceToken?: string | null;
-    acceptsOrders?: boolean;
-    status?: 'active' | 'inactive';
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone?: string;
+  email?: string;
+  lat?: number;
+  lon?: number;
+  distance?: number;
+  // New fields for B2B2C model
+  tabletDeviceToken?: string | null;
+  acceptsOrders?: boolean;
+  status?: 'active' | 'inactive';
 };
 
 export type Location = Retailer & { zipCode?: string };
@@ -95,14 +99,14 @@ export type Review = {
 export type OrderStatus = 'submitted' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
 
 export type Coupon = {
-    id: string;
-    code: string;
-    type: 'percentage' | 'fixed';
-    value: number; // e.g., 20 for 20% or 10 for $10
-    expiresAt?: Timestamp;
-    uses: number;
-    maxUses?: number;
-    brandId: string;
+  id: string;
+  code: string;
+  type: 'percentage' | 'fixed';
+  value: number; // e.g., 20 for 20% or 10 for $10
+  expiresAt?: Timestamp;
+  uses: number;
+  maxUses?: number;
+  brandId: string;
 };
 
 // Type for the Order document stored in Firestore
@@ -111,21 +115,21 @@ export type OrderDoc = {
   brandId: string;
   userId: string; // Now required
   customer: {
-      name: string;
-      email: string;
+    name: string;
+    email: string;
   };
   items: Array<{
-      productId: string;
-      name: string;
-      qty: number;
-      price: number;
+    productId: string;
+    name: string;
+    qty: number;
+    price: number;
   }>;
   totals: {
-      subtotal: number;
-      tax: number;
-      discount?: number;
-      fees?: number;
-      total: number;
+    subtotal: number;
+    tax: number;
+    discount?: number;
+    fees?: number;
+    total: number;
   };
   coupon?: {
     code: string;
