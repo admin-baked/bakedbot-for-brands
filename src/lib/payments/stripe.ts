@@ -2,8 +2,22 @@
  * Stripe Server-Side Integration
  */
 
- * @param metadata Optional metadata to attach to the intent(orderId, customerId)
-    */
+import Stripe from 'stripe';
+
+if (!process.env.STRIPE_SECRET_KEY) {
+    console.warn('STRIPE_SECRET_KEY is missing. Stripe features will not work.');
+}
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
+    typescript: true,
+});
+
+/**
+ * Creates a Stripe PaymentIntent for a given amount.
+ * @param amount Amount in cents (e.g., $10.00 = 1000)
+ * @param currency Currency code (default: usd)
+ * @param metadata Optional metadata to attach to the intent (orderId, customerId)
+ */
 export async function createPaymentIntent(
     amount: number,
     currency: string = 'usd',
