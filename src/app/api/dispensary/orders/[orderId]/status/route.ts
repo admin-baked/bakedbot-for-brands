@@ -30,6 +30,25 @@ export async function PATCH(
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
 
+        const orderData = orderDoc.data();
+
+        // If completing order, deduct stock
+        if (status === 'completed' && orderData?.status !== 'completed') {
+            const { inventoryService } = await import('@/lib/inventory/inventory-service');
+
+            // Validate first
+            const validation = await inventoryService.validateStock(orderData?.items || []);
+            if (!validation.valid) {
+                return NextResponse.json({
+                    error: 'Inventory validation failed',
+                    details: validation.errors
+                }, { status: 400 });
+            }
+
+            // Deduct stock
+            await inventoryService.deductStock(orderData?.items || []);
+        }
+
         await firestore.collection('orders').doc(orderId).update({
             status,
             updatedAt: new Date(),
