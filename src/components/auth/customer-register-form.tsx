@@ -72,9 +72,13 @@ export function CustomerRegisterForm() {
 
             router.push('/customer/profile');
         } catch (error: any) {
+            const description = error?.message?.includes('secure session')
+                ? 'We created your account but could not establish a secure session. Please check your network and try signing in again.'
+                : getAuthErrorMessage(error);
+
             toast({
                 title: 'Registration failed',
-                description: getAuthErrorMessage(error),
+                description,
                 variant: 'destructive',
             });
         } finally {
@@ -94,9 +98,13 @@ export function CustomerRegisterForm() {
 
             router.push('/customer/profile');
         } catch (error: any) {
+            const description = error?.message?.includes('secure session')
+                ? 'We created your account but could not establish a secure session. Please check your network and try signing in again.'
+                : getAuthErrorMessage(error);
+
             toast({
                 title: 'Registration failed',
-                description: getAuthErrorMessage(error),
+                description,
                 variant: 'destructive',
             });
         } finally {
