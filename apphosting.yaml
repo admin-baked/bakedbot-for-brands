@@ -36,6 +36,10 @@ runConfig:
       secret: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
     - variable: CLAUDE_API_KEY
       secret: CLAUDE_API_KEY
+    - variable: BLACKLEAF_API_KEY
+      secret: BLACKLEAF_API_KEY
+    - variable: BLACKLEAF_BASE_URL
+      value: "https://api.blackleaf.io"
 
 # Serve all traffic from the Next.js backend.
 # This is a sensible default for most web apps.
