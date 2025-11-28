@@ -4,10 +4,11 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Timestamp } from 'firebase/firestore';
 
 // This is now exported so the chatbot can use it as a fallback.
-export const defaultChatbotIcon = 'https://bakedbot.ai/wp-content/uploads/2025/11/SMokey-Chat-scaled.png';
+// Using local logo as fallback since WordPress is deprecated
+export const defaultChatbotIcon = '/bakedbot-logo-horizontal.png';
 
 // Also exporting defaultLogo from here for consistency in demo setup.
-export const defaultLogo = 'https://minoritycannabis.org/wp-content/uploads/2025/03/att.yne0IiSw3BIPejWlvseVXNlEGfA5E9CjF7HO2ecLTGQ.jpeg';
+export const defaultLogo = '/bakedbot-logo-horizontal.png';
 
 
 export const demoProducts: Product[] = [
