@@ -10,25 +10,43 @@ import {
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth, DecodedIdToken } from "firebase-admin/auth";
 import { UserProfile } from "@/types/domain";
+import fs from "fs";
+import path from "path";
 
 let app: App;
 
 function getServiceAccount() {
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (!serviceAccountKey) {
-    throw new Error(
-      "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. " +
-      "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
-    );
+
+  if (serviceAccountKey) {
+    try {
+      const json = Buffer.from(serviceAccountKey, "base64").toString("utf8");
+      return JSON.parse(json);
+    } catch (decodeError) {
+      console.error("Failed to parse service account key from Base64.", decodeError);
+      throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not a valid Base64-encoded JSON string.");
+    }
   }
 
-  try {
-    const json = Buffer.from(serviceAccountKey, "base64").toString("utf8");
-    return JSON.parse(json);
-  } catch (decodeError) {
-    console.error("Failed to parse service account key from Base64.", decodeError);
-    throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not a valid Base64-encoded JSON string.");
+  // Fallback: use a local service-account.json file when the env var is missing
+  const serviceAccountPath = path.join(process.cwd(), "service-account.json");
+  if (fs.existsSync(serviceAccountPath)) {
+    try {
+      console.warn(
+        "FIREBASE_SERVICE_ACCOUNT_KEY is not set. Falling back to service-account.json. " +
+        "Set the environment variable to avoid this warning in production."
+      );
+      const fileContents = fs.readFileSync(serviceAccountPath, "utf8");
+      return JSON.parse(fileContents);
+    } catch (fileError) {
+      console.error("Failed to read service-account.json fallback.", fileError);
+    }
   }
+
+  throw new Error(
+    "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set and no service-account.json fallback was found. " +
+    "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
+  );
 }
 
 /**

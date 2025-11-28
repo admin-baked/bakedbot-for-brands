@@ -3,6 +3,8 @@ import 'server-only';
 import { cert, getApps, initializeApp, App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import fs from "fs";
+import path from "path";
 
 let app: App;
 
@@ -10,16 +12,33 @@ function getServiceAccount() {
   // The key is now directly passed as a Base64 string from the secret manager
   // into this environment variable by App Hosting.
   const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (!b64) {
-    // This is now a fatal error because the Admin SDK needs credentials to perform
-    // operations like minting custom tokens for dev login.
-    throw new Error(
-      "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. " +
-      "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
-    );
+
+  if (b64) {
+    const json = Buffer.from(b64, "base64").toString("utf8");
+    return JSON.parse(json);
   }
-  const json = Buffer.from(b64, "base64").toString("utf8");
-  return JSON.parse(json);
+
+  // Fallback: use a local service-account.json file when running without the env var
+  const serviceAccountPath = path.join(process.cwd(), "service-account.json");
+  if (fs.existsSync(serviceAccountPath)) {
+    try {
+      console.warn(
+        "FIREBASE_SERVICE_ACCOUNT_KEY is not set. Falling back to service-account.json. " +
+        "Set the environment variable to avoid this warning in production."
+      );
+      const fileContents = fs.readFileSync(serviceAccountPath, "utf8");
+      return JSON.parse(fileContents);
+    } catch (fileError) {
+      console.error("Failed to read service-account.json fallback.", fileError);
+    }
+  }
+
+  // This is now a fatal error because the Admin SDK needs credentials to perform
+  // operations like minting custom tokens for dev login.
+  throw new Error(
+    "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set and no service-account.json fallback was found. " +
+    "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
+  );
 }
 
 /**
