@@ -9,8 +9,16 @@ import { createServerClient } from '@/firebase/server-client';
 
 export async function POST(req: NextRequest) {
     try {
-        // Initialize server client if needed for auth verification
-        // const { auth } = await createServerClient();
+        // Verify authentication
+        const authHeader = req.headers.get('authorization');
+        if (!authHeader?.startsWith('Bearer ')) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const token = authHeader.substring(7);
+        const { auth, firestore } = await createServerClient();
+        const decodedToken = await auth.verifyIdToken(token);
+        const userId = decodedToken.uid;
 
         const body = await req.json();
         const { amount, orderId, customerId } = body;
@@ -19,13 +27,28 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
         }
 
-        // TODO: Fetch order from Firestore to verify amount matches
-        // const order = await getOrder(orderId);
-        // if (order.total !== amount) throw new Error('Amount mismatch');
+        // Verify order exists and belongs to user
+        const orderDoc = await firestore.collection('orders').doc(orderId).get();
+        if (!orderDoc.exists) {
+            return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        }
+
+        const orderData = orderDoc.data();
+        if (orderData?.customerId !== userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        }
 
         const paymentIntent = await createPaymentIntent(Math.round(amount * 100), 'usd', {
             orderId,
             customerId,
+            brandId: orderData?.brandId || '',
+        });
+
+        // Update order with payment intent ID
+        await firestore.collection('orders').doc(orderId).update({
+            paymentIntentId: paymentIntent.id,
+            paymentStatus: 'pending',
+            updatedAt: new Date(),
         });
 
         return NextResponse.json({
