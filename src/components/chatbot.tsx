@@ -372,7 +372,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
       setIsBotTyping(false);
     }
 
-  }, [inputValue, isBotTyping, hasStartedChat, brandId]);
+  }, [inputValue, isBotTyping, hasStartedChat, brandId, sessionId, userId]);
 
   const handleFeedback = (productId: string, type: 'like' | 'dislike') => {
     startTransition(async () => {
