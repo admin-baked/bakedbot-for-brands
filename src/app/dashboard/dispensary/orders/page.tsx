@@ -5,8 +5,10 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { initializeFirebase } from '@/firebase';
+import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,30 +28,56 @@ export default function DispensaryOrdersPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchOrders = useCallback(async () => {
-        try {
-            const token = await user?.getIdToken();
-            const res = await fetch('/api/dispensary/orders', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const data = await res.json();
-            setOrders(data.orders || []);
-        } catch (error) {
-            console.error('Error fetching orders:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, [user]);
-
     useEffect(() => {
         if (!user) return;
-        fetchOrders();
-    }, [fetchOrders, user]);
+
+        const { firestore } = initializeFirebase();
+        let unsubscribe: () => void;
+
+        const setupListener = async () => {
+            try {
+                const token = await user.getIdTokenResult();
+                // In a real app, we'd get the dispensaryId from the user profile or claims
+                // For now, we'll listen to all orders to ensure it works for the demo
+                // const dispensaryId = token.claims.dispensaryId as string;
+
+                const ordersQuery = query(
+                    collection(firestore, 'orders'),
+                    // where('dispensaryId', '==', dispensaryId), // Uncomment when dispensaryId is fully wired
+                    where('status', 'in', ['confirmed', 'preparing', 'ready']),
+                    orderBy('createdAt', 'desc'),
+                    limit(50)
+                );
+
+                unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+                    const newOrders = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data(),
+                        createdAt: doc.data().createdAt?.toDate(),
+                    })) as Order[];
+                    setOrders(newOrders);
+                    setLoading(false);
+                }, (error) => {
+                    console.error("Error listening to orders:", error);
+                    setLoading(false);
+                });
+            } catch (error) {
+                console.error("Error setting up listener:", error);
+                setLoading(false);
+            }
+        };
+
+        setupListener();
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [user]);
 
     const updateOrderStatus = async (orderId: string, newStatus: string) => {
         try {
             const token = await user?.getIdToken();
-            await fetch(`/api/dispensary/orders/${orderId}/status`, {
+            const res = await fetch(`/api/dispensary/orders/${orderId}/status`, {
                 method: 'PATCH',
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -57,9 +85,15 @@ export default function DispensaryOrdersPage() {
                 },
                 body: JSON.stringify({ status: newStatus }),
             });
-            fetchOrders();
+
+            if (!res.ok) {
+                const data = await res.json();
+                alert(`Error: ${data.error || 'Failed to update order'}`);
+            }
+            // No need to fetchOrders() as the snapshot listener will update automatically
         } catch (error) {
             console.error('Error updating order:', error);
+            alert('Failed to update order status');
         }
     };
 
@@ -104,6 +138,11 @@ export default function DispensaryOrdersPage() {
                         </div>
                     </Card>
                 ))}
+                {orders.length === 0 && (
+                    <div className="text-center text-muted-foreground py-8">
+                        No active orders found.
+                    </div>
+                )}
             </div>
         </div>
     );
