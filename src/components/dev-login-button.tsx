@@ -55,9 +55,24 @@ export default function DevLoginButton({ personaKey }: DevLoginButtonProps) {
       if ('error' in result) {
         throw new Error(result.error);
       }
-      await signInWithCustomToken(auth, result.token);
+      const userCredential = await signInWithCustomToken(auth, result.token);
+
+      // Create server session (same as regular login flows)
+      const idToken = await userCredential.user.getIdToken();
+      try {
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        });
+      } catch (sessionError) {
+        console.error('Failed to create session', sessionError);
+        toast({ variant: 'destructive', title: 'Session Error', description: 'Failed to create server session.' });
+        return;
+      }
+
       toast({ title: 'Dev Login Success!', description: `Logged in as ${devPersonas[persona].displayName}.` });
-      
+
       // Determine redirection based on persona
       if (persona === 'onboarding') {
         router.refresh(); // Refresh the current page to re-evaluate user state
