@@ -4,8 +4,8 @@
 import Image from "next/image"
 import Link from "next/link"
 
-// Using a publicly accessible URL for the logo asset
-const defaultLogo = 'https://bakedbot.ai/wp-content/uploads/2025/11/BakedBot-AI-11-21-2025_08_49_AM-1.png';
+// Using local logo asset from public folder
+const defaultLogo = '/bakedbot-logo-horizontal.png';
 
 type Props = {
   height?: number
