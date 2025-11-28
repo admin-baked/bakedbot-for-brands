@@ -15,6 +15,7 @@ let app: App;
 
 function getServiceAccount() {
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  console.log('Initializing Firebase Admin. Key present:', !!serviceAccountKey);
   if (!serviceAccountKey) {
     throw new Error(
       "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. " +
