@@ -69,25 +69,26 @@ self.addEventListener('fetch', (event) => {
         return response;
       }
 
-      return fetch(event.request).then((response) => {
-        // Don't cache non-successful responses
-        if (!response || response.status !== 200 || response.type === 'error') {
-          return response;
+      return fetch(event.request).then((networkResponse) => {
+        // If network response is invalid, fall back to offline page or a 503 response
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === 'error') {
+          return caches.match(OFFLINE_URL).then((offlineResp) => offlineResp || new Response('', { status: 503 }));
         }
 
-        // Clone the response
-        const responseToCache = response.clone();
+        // Clone and cache the successful response
+        const responseToCache = networkResponse.clone();
 
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
         });
 
-        return response;
+        return networkResponse;
       }).catch(() => {
-        // Return offline page for navigation requests
+        // On fetch failure, return offline page for navigation requests or a 503 response for others
         if (event.request.mode === 'navigate') {
-          return caches.match(OFFLINE_URL);
+          return caches.match(OFFLINE_URL).then((offlineResp) => offlineResp || new Response('', { status: 503 }));
         }
+        return new Response('', { status: 503 });
       });
     })
   );
