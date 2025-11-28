@@ -23,13 +23,16 @@ BLACKLEAF_BASE_URL=https://api.blackleaf.io
 BLACKLEAF_API_KEY=T1E2U2lZNWxzY2JsN0hWU1daeV95WA==
 ```
 
-### Payments (REQUIRED)
+### Payments (User-Provided)
 ```bash
-# Stripe
-STRIPE_SECRET_KEY=sk_live_your_stripe_secret_key
+# Stripe - Each brand provides their own keys
+# These should be stored per-brand in Firestore, not as global env vars
+STRIPE_SECRET_KEY=sk_live_your_stripe_secret_key  # Optional: for platform fees
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your_publishable_key
 ```
+
+**Note:** Brands connect their own Stripe accounts. Platform-level Stripe keys are only needed if you're taking platform fees.
 
 ### CannMenus (Already Configured)
 ```bash
@@ -67,9 +70,15 @@ NEXT_PUBLIC_BAYSIDE_RETAILER_ID=1
 
 ### Enable Automated Backups
 ```bash
-# Using gcloud CLI
+# Using gcloud CLI (specify database name)
 gcloud firestore backups schedules create \
   --database='(default)' \
+  --recurrence=daily \
+  --retention=7d
+
+# If you get an error, try:
+gcloud firestore backups schedules create \
+  --database=default \
   --recurrence=daily \
   --retention=7d
 ```
