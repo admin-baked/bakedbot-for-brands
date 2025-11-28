@@ -60,14 +60,23 @@ export default function DevLoginButton({ personaKey }: DevLoginButtonProps) {
       // Create server session (same as regular login flows)
       const idToken = await userCredential.user.getIdToken();
       try {
-        await fetch('/api/auth/session', {
+        const response = await fetch('/api/auth/session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken }),
         });
-      } catch (sessionError) {
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(errorData.error || 'Session creation failed');
+        }
+      } catch (sessionError: any) {
         console.error('Failed to create session', sessionError);
-        toast({ variant: 'destructive', title: 'Session Error', description: 'Failed to create server session.' });
+        toast({
+          variant: 'destructive',
+          title: 'Session Error',
+          description: sessionError.message || 'Failed to create server session.'
+        });
         return;
       }
 
