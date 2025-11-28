@@ -7,6 +7,13 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Pops Analytics Dashboard', () => {
     test.beforeEach(async ({ page }) => {
+        // Login as brand first
+        await page.goto('/brand-login');
+        await page.getByTestId('dev-login-button').click();
+        await page.getByTestId('dev-login-item-brand@bakedbot.ai').click();
+        await page.waitForURL('/dashboard');
+
+        // Navigate to analytics
         await page.goto('/dashboard/analytics');
     });
 

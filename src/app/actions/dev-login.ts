@@ -27,35 +27,47 @@ export async function createDevLoginToken(persona: DevPersonaKey): Promise<{ tok
 
   try {
     // 1. Ensure user exists in Firebase Auth
+    let targetUid = uid;
     try {
-      await auth.updateUser(uid, {
-        email: email!,
+      // Try to find user by email first to avoid collision
+      const existingUser = await auth.getUserByEmail(email!);
+      targetUid = existingUser.uid;
+
+      // Update the user
+      await auth.updateUser(targetUid, {
         displayName: displayName!,
       });
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
-        await auth.createUser({
-          uid: uid,
-          email: email!,
-          displayName: displayName!,
-        });
+        // Create new user with the hardcoded UID
+        try {
+          await auth.createUser({
+            uid: uid,
+            email: email!,
+            displayName: displayName!,
+          });
+          targetUid = uid;
+        } catch (createError: any) {
+          // If hardcoded UID is taken (unlikely if email check failed), let it fail
+          throw createError;
+        }
       } else {
-        throw error; // Re-throw other auth errors
+        throw error;
       }
     }
 
     // 2. Set custom claims for role-based access
     const claims = {
-        role: role || null,
-        brandId: brandId || null,
-        locationId: locationId || null,
+      role: role || null,
+      brandId: brandId || null,
+      locationId: locationId || null,
     };
     // Filter out null values before setting claims
     const filteredClaims = Object.fromEntries(Object.entries(claims).filter(([_, v]) => v !== null));
-    await auth.setCustomUserClaims(uid, filteredClaims);
+    await auth.setCustomUserClaims(targetUid, filteredClaims);
 
     // 3. Ensure user profile exists in Firestore
-    const userDocRef = firestore.collection('users').doc(uid);
+    const userDocRef = firestore.collection('users').doc(targetUid);
     await userDocRef.set({
       email,
       displayName,
@@ -65,7 +77,7 @@ export async function createDevLoginToken(persona: DevPersonaKey): Promise<{ tok
     }, { merge: true });
 
     // 4. Create the custom token
-    const customToken = await auth.createCustomToken(uid, claims);
+    const customToken = await auth.createCustomToken(targetUid, claims);
 
     return { token: customToken };
 

@@ -43,4 +43,4 @@ service-account.json
 # Playwright
 /test-results/
 /playwright-report/
-/playwright/.cache/
+/playwright/.cache/nul
