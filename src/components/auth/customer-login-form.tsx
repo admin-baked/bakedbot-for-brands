@@ -56,9 +56,13 @@ export function CustomerLoginForm() {
 
             router.push(redirectTo);
         } catch (error: any) {
+            const description = error?.message?.includes('secure session')
+                ? 'Login succeeded but we could not establish a secure session. Please try again.'
+                : getAuthErrorMessage(error);
+
             toast({
                 title: 'Login failed',
-                description: getAuthErrorMessage(error),
+                description,
                 variant: 'destructive',
             });
         } finally {
@@ -78,9 +82,13 @@ export function CustomerLoginForm() {
 
             router.push(redirectTo);
         } catch (error: any) {
+            const description = error?.message?.includes('secure session')
+                ? 'Login succeeded but we could not establish a secure session. Please try again.'
+                : getAuthErrorMessage(error);
+
             toast({
                 title: 'Login failed',
-                description: getAuthErrorMessage(error),
+                description,
                 variant: 'destructive',
             });
         } finally {
