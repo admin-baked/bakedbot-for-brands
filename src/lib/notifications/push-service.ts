@@ -35,16 +35,58 @@ export async function sendPushNotification(
             return false;
         }
 
-        // TODO: Implement actual FCM sending
-        // This requires Firebase Admin SDK messaging
-        // For now, store notification in Firestore
+        // Send FCM notifications
+        const { getMessaging } = await import('firebase-admin/messaging');
+        const messaging = getMessaging();
+
+        const message = {
+            notification: {
+                title: payload.title,
+                body: payload.body,
+                ...(payload.icon && { imageUrl: payload.icon }),
+            },
+            ...(payload.data && { data: payload.data }),
+            ...(payload.url && {
+                webpush: {
+                    fcmOptions: {
+                        link: payload.url,
+                    },
+                },
+            }),
+        };
+
+        // Send to all tokens
+        const results = await Promise.allSettled(
+            fcmTokens.map((token: string) =>
+                messaging.send({ ...message, token })
+            )
+        );
+
+        // Remove invalid tokens
+        const invalidTokens = results
+            .map((result, index) => {
+                if (result.status === 'rejected') {
+                    console.error('[Push] Failed to send to token:', fcmTokens[index], result.reason);
+                    return fcmTokens[index];
+                }
+                return null;
+            })
+            .filter(Boolean);
+
+        if (invalidTokens.length > 0) {
+            await firestore.collection('users').doc(userId).update({
+                fcmTokens: FieldValue.arrayRemove(...invalidTokens),
+            });
+        }
+
+        // Also store notification in Firestore for in-app display
         await firestore.collection('users').doc(userId).collection('notifications').add({
             ...payload,
             read: false,
             createdAt: new Date(),
         });
 
-        console.log('[Push] Notification queued for user:', userId);
+        console.log('[Push] Notification sent to user:', userId);
         return true;
     } catch (error) {
         console.error('[Push] Error sending notification:', error);
