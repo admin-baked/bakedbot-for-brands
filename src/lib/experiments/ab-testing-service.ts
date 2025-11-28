@@ -3,7 +3,7 @@
  * Enables feature experiments and marketing campaign testing
  */
 
-'use server';
+
 
 import { createServerClient } from '@/firebase/server-client';
 
