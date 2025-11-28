@@ -47,6 +47,28 @@ export async function PATCH(
 
             // Deduct stock
             await inventoryService.deductStock(orderData?.items || []);
+
+            // Send completion email
+            if (orderData?.customerEmail) {
+                const { emailService } = await import('@/lib/notifications/email-service');
+                await emailService.sendOrderCompleted(orderData, orderData.customerEmail);
+            }
+        }
+
+        // Handle "Ready" status notifications
+        if (status === 'ready' && orderData?.status !== 'ready') {
+            const { emailService } = await import('@/lib/notifications/email-service');
+            const { blackleafService } = await import('@/lib/notifications/blackleaf-service');
+
+            // Send Email
+            if (orderData?.customerEmail) {
+                await emailService.sendOrderReady(orderData, orderData.customerEmail);
+            }
+
+            // Send SMS
+            if (orderData?.customerPhone) {
+                await blackleafService.sendOrderReady(orderData, orderData.customerPhone);
+            }
         }
 
         await firestore.collection('orders').doc(orderId).update({
