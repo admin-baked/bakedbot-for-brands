@@ -18,7 +18,7 @@ test.describe('Pops Analytics Dashboard', () => {
 
         // Verify cards have values (even if 0)
         const revenueCard = page.locator('text=Total Revenue').locator('..');
-        await expect(revenueCard.locator('text=/\\$[0-9]/'))toBeVisible();
+        await expect(revenueCard.locator('text=/\\$[0-9]/')).toBeVisible();
     });
 
     test('should display revenue chart', async ({ page }) => {
