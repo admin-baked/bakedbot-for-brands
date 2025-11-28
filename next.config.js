@@ -94,7 +94,7 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Origin',
-            value: isProd ? 'https://brandss.bakedbot.ai' : '*',
+            value: isProd ? 'https://bakedbot.ai' : '*',
           },
           {
             key: 'Access-Control-Allow-Methods',

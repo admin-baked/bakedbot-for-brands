@@ -6,6 +6,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { recommendationEngine } from '@/lib/recommendations/engine';
 import { createServerClient } from '@/firebase/server-client';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
     try {
         // Get auth token
