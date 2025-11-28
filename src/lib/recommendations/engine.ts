@@ -26,13 +26,9 @@ export interface Recommendation {
 }
 
 export class RecommendationEngine {
-    /**
-     * Get personalized recommendations for a user
-     */
     async getRecommendations(userId: string, limit: number = 10): Promise<Recommendation[]> {
         const { firestore } = await createServerClient();
 
-        // 1. Fetch user profile and preferences
         const userDoc = await firestore.collection('users').doc(userId).get();
         if (!userDoc.exists) {
             throw new Error('User not found');
@@ -49,115 +45,116 @@ export class RecommendationEngine {
             priceRange: { min: 0, max: 1000 },
         }) as UserPreferences;
 
-        // 2. Fetch candidate products (simplified: fetch all active products)
-        // In production, use vector search or candidate generation model
         const productsSnapshot = await firestore
             .collection('products')
             .where('status', '==', 'active')
-            .limit(100) // Limit candidate pool for performance
+            .limit(100)
             .get();
 
         const candidates = productsSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
-        }));
+        })) as any[];
 
-        score += 5;
-        reasons.push('Buy again');
-    }
+        const scoredCandidates: Recommendation[] = candidates.map(product => {
+            let score = 0;
+            const reasons: string[] = [];
 
-    // Category match
-    if(preferences.preferredCategories.includes(product.category)) {
-    score += 10;
-    reasons.push(`Matches preferred category: ${product.category}`);
-}
+            if (preferences.dislikedProducts.includes(product.id)) {
+                return {
+                    productId: product.id,
+                    productName: product.name,
+                    imageUrl: product.images?.[0],
+                    price: product.price,
+                    category: product.category,
+                    score: -1,
+                    reason: 'Disliked'
+                };
+            }
 
-// Effect match (if product has effects)
-if (product.effects && Array.isArray(product.effects)) {
-    const matchingEffects = product.effects.filter((e: string) =>
-        preferences.preferredEffects.includes(e)
-    );
-    if (matchingEffects.length > 0) {
-        score += matchingEffects.length * 3;
-        reasons.push(`Matches effects: ${matchingEffects.join(', ')}`);
-    }
-}
+            if (preferences.purchaseHistory.includes(product.id)) {
+                score += 5;
+                reasons.push('Buy again');
+            }
 
-// Price range match
-if (product.price >= preferences.priceRange.min && product.price <= preferences.priceRange.max) {
-    score += 5;
-}
+            if (preferences.preferredCategories.includes(product.category)) {
+                score += 10;
+                reasons.push(`Matches preferred category: ${product.category}`);
+            }
 
-// Collaborative filtering (simplified: "Users who liked this also liked...")
-// This requires a separate "similar products" index or matrix, skipping for MVP
+            if (product.effects && Array.isArray(product.effects)) {
+                const matchingEffects = product.effects.filter((e: string) =>
+                    preferences.preferredEffects.includes(e)
+                );
+                if (matchingEffects.length > 0) {
+                    score += matchingEffects.length * 3;
+                    reasons.push(`Matches effects: ${matchingEffects.join(', ')}`);
+                }
+            }
 
-return {
-    productId: product.id,
-    productName: product.name,
-    imageUrl: product.images?.[0],
-    price: product.price,
-    category: product.category,
-    score,
-    reason: reasons[0] || 'Recommended for you',
-};
+            if (product.price >= preferences.priceRange.min && product.price <= preferences.priceRange.max) {
+                score += 5;
+            }
+
+            return {
+                productId: product.id,
+                productName: product.name,
+                imageUrl: product.images?.[0],
+                price: product.price,
+                category: product.category,
+                score,
+                reason: reasons[0] || 'Recommended for you',
+            };
         });
 
-// 4. Sort and filter
-const recommendations = scoredCandidates
-    .filter(p => p.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+        const recommendations = scoredCandidates
+            .filter(p => p.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, limit);
 
-return recommendations;
+        return recommendations;
     }
 
-    /**
-     * Update user preferences based on interaction
-     */
     async trackInteraction(userId: string, type: 'view' | 'like' | 'dislike' | 'purchase', productId: string) {
-    const { firestore } = await createServerClient();
-    const userRef = firestore.collection('users').doc(userId);
+        const { firestore } = await createServerClient();
+        const userRef = firestore.collection('users').doc(userId);
 
-    await firestore.runTransaction(async (transaction) => {
-        const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists) return;
+        await firestore.runTransaction(async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists) return;
 
-        const data = userDoc.data();
-        const preferences = data?.preferences || {
-            likedProducts: [],
-            dislikedProducts: [],
-            viewedProducts: [],
-            purchaseHistory: [],
-        };
+            const data = userDoc.data();
+            const preferences = data?.preferences || {
+                likedProducts: [],
+                dislikedProducts: [],
+                viewedProducts: [],
+                purchaseHistory: [],
+            };
 
-        // Update lists
-        if (type === 'like') {
-            if (!preferences.likedProducts.includes(productId)) {
-                preferences.likedProducts.push(productId);
+            if (type === 'like') {
+                if (!preferences.likedProducts.includes(productId)) {
+                    preferences.likedProducts.push(productId);
+                }
+                preferences.dislikedProducts = preferences.dislikedProducts.filter((id: string) => id !== productId);
+            } else if (type === 'dislike') {
+                if (!preferences.dislikedProducts.includes(productId)) {
+                    preferences.dislikedProducts.push(productId);
+                }
+                preferences.likedProducts = preferences.likedProducts.filter((id: string) => id !== productId);
+            } else if (type === 'view') {
+                preferences.viewedProducts.push({ productId, timestamp: new Date() });
+                if (preferences.viewedProducts.length > 50) {
+                    preferences.viewedProducts.shift();
+                }
+            } else if (type === 'purchase') {
+                if (!preferences.purchaseHistory.includes(productId)) {
+                    preferences.purchaseHistory.push(productId);
+                }
             }
-            // Remove from disliked if present
-            preferences.dislikedProducts = preferences.dislikedProducts.filter((id: string) => id !== productId);
-        } else if (type === 'dislike') {
-            if (!preferences.dislikedProducts.includes(productId)) {
-                preferences.dislikedProducts.push(productId);
-            }
-            // Remove from liked if present
-            preferences.likedProducts = preferences.likedProducts.filter((id: string) => id !== productId);
-        } else if (type === 'view') {
-            preferences.viewedProducts.push({ productId, timestamp: new Date() });
-            // Keep only last 50 views
-            if (preferences.viewedProducts.length > 50) {
-                preferences.viewedProducts.shift();
-            }
-        } else if (type === 'purchase') {
-            if (!preferences.purchaseHistory.includes(productId)) {
-                preferences.purchaseHistory.push(productId);
-            }
-        }
 
-        transaction.update(userRef, { preferences });
-    });
-}
+            transaction.update(userRef, { preferences });
+        });
+    }
 }
 
 export const recommendationEngine = new RecommendationEngine();
