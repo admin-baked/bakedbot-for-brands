@@ -72,13 +72,13 @@ async function handlePaymentSuccess(paymentIntent: any) {
 
     console.log(`Payment succeeded for Order ${orderId}`);
 
-    // TODO: Update Firestore Order Status
-    // const orderRef = doc(db, 'orders', orderId);
-    // await updateDoc(orderRef, { 
-    //   paymentStatus: 'PAID',
-    //   status: 'PREPARING', // Auto-advance status
-    //   updatedAt: new Date() 
-    // });
+    const { firestore } = await import('@/firebase/server-client').then(m => m.createServerClient());
+    await firestore.collection('orders').doc(orderId).update({
+        paymentStatus: 'paid',
+        status: 'confirmed',
+        paidAt: new Date(),
+        updatedAt: new Date(),
+    });
 }
 
 async function handlePaymentFailure(paymentIntent: any) {
@@ -87,10 +87,10 @@ async function handlePaymentFailure(paymentIntent: any) {
 
     console.log(`Payment failed for Order ${orderId}`);
 
-    // TODO: Update Firestore Order Status
-    // const orderRef = doc(db, 'orders', orderId);
-    // await updateDoc(orderRef, { 
-    //   paymentStatus: 'FAILED',
-    //   updatedAt: new Date() 
-    // });
+    const { firestore } = await import('@/firebase/server-client').then(m => m.createServerClient());
+    await firestore.collection('orders').doc(orderId).update({
+        paymentStatus: 'failed',
+        paymentError: paymentIntent.last_payment_error?.message || 'Payment failed',
+        updatedAt: new Date(),
+    });
 }
