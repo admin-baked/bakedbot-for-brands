@@ -13,7 +13,7 @@ test.describe('Checkout Flow', () => {
 
     test('should complete checkout with cash payment', async ({ page }) => {
         // Add item to cart
-        await page.click('[data-testid="add-to-cart"]').first();
+        await page.locator('[data-testid="add-to-cart"]').first().click();
         await expect(page.locator('[data-testid="cart-count"]')).toContainText('1');
 
         // Go to checkout
@@ -55,7 +55,7 @@ test.describe('Checkout Flow', () => {
         await page.evaluate(() => localStorage.removeItem('age_verified'));
 
         // Try to checkout
-        await page.click('[data-testid="add-to-cart"]').first();
+        await page.locator('[data-testid="add-to-cart"]').first().click();
         await page.click('[data-testid="checkout-button"]');
 
         // Should see age gate
