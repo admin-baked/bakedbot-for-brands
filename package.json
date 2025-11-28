@@ -18,7 +18,8 @@
     "check:lint": "next lint",
     "check:routes": "node scripts/check-routes.mjs",
     "check:all": "npm run check:structure && npm run check:types && npm run check:lint",
-    "check:env": "node -e \"import('./dist/config/env.js').catch(e => { console.error(e); process.exit(1) })\""
+    "check:env": "node -e \"import('./dist/config/env.js').catch(e => { console.error(e); process.exit(1) })\"",
+    "dev:with-sa": "powershell -ExecutionPolicy Bypass -File ./scripts/start-dev-with-firebase.ps1"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",
