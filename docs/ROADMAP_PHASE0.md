@@ -701,6 +701,33 @@ Resolved 500 error on bakedbot.ai - missing Firebase credentials and build failu
 
 ---
 
+---
+
+## 📣 SPRINT 3 INFRASTRUCTURE WORK (In Progress)
+
+### Dev 2 (Infrastructure)
+
+**Focus:** Logging Migration + Environment Tooling  
+**Status:** 🚧 IN PROGRESS (Started Nov 29, 2025)
+
+#### Active Tasks:
+1. **Logging Migration** (4h estimated) - 🚧 IN PROGRESS
+   - ✅ `src/firebase/server-client.ts` - Auth initialization logging
+   - ✅ `src/server/agents/craig.ts` - Email confirmation logging
+   - ✅ `src/server/agents/mrsParker.ts` - SMS notification logging
+   - ⏳ 39 files remaining (see `implementation_plan.md`)
+
+2. **Environment Validation Script** (2h estimated) - PENDING
+   - Script: `scripts/validate-env.mjs`
+   - Integration: GitHub Actions pre-deployment check
+
+**Progress:** 3/42 console.log calls migrated (7%)  
+**See:** [`implementation_plan.md`](file:///C:/Users/admin/.gemini/antigravity/brain/8a3fc7c2-3213-4401-ae5d-9330ab567770/implementation_plan.md)
+
+> **💡 @Dev1**: Infrastructure tooling plan available in `implementation_plan.md`. Includes backup automation, monitoring dashboards, and migration tooling proposals. Review when you have capacity.
+
+---
+
 # SPRINT 1 PERFORMANCE REVIEW
 
 **Sprint Duration:** November 29, 2025 (Single Session)

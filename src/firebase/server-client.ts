@@ -1,27 +1,6 @@
 
 // src/firebase/server-client.ts
 import {
-  getApps,
-  getApp,
-  initializeApp,
-  App,
-  cert,
-} from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-import { getAuth, DecodedIdToken } from "firebase-admin/auth";
-import { UserProfile } from "@/types/domain";
-
-let app: App;
-
-function getServiceAccount() {
-  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  console.log('Initializing Firebase Admin. Key present:', !!serviceAccountKey);
-  if (!serviceAccountKey) {
-    throw new Error(
-      "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. " +
-      "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
-    );
-  }
 
   try {
     const json = Buffer.from(serviceAccountKey, "base64").toString("utf8");
