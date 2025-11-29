@@ -7,6 +7,7 @@
  */
 
 import { Logging } from '@google-cloud/logging';
+import * as Sentry from '@sentry/nextjs';
 
 // Initialize Google Cloud Logging (uses Application Default Credentials in production)
 const logging = typeof window === 'undefined' && process.env.NODE_ENV === 'production'
@@ -25,9 +26,19 @@ interface LogEntry {
 
 /**
  * Write structured log entry to Google Cloud Logging (production) or console (dev)
+ * Also sends ERROR and CRITICAL logs to Sentry.
  */
 function writeLog({ message, data = {}, level = 'INFO' }: LogEntry) {
     const timestamp = new Date().toISOString();
+
+    // Send to Sentry for ERROR/CRITICAL
+    if (level === 'ERROR' || level === 'CRITICAL') {
+        Sentry.captureException(new Error(message), {
+            level: level === 'CRITICAL' ? 'fatal' : 'error',
+            extra: data,
+            tags: { logger: 'server' }
+        });
+    }
 
     if (process.env.NODE_ENV === 'production' && log) {
         // Production: Send to Google Cloud Logging

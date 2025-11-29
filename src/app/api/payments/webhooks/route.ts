@@ -1,3 +1,8 @@
+// [AI-THREAD P0-SEC-STRIPE-CONFIG]
+// [Dev1-Claude @ 2025-11-29]:
+//   Enhanced Stripe webhook handler with structured logging and improved error handling.
+//   Matches security pattern from CannPay webhook implementation.
+
 /**
  * API Route: Stripe Webhooks
  * Handles asynchronous payment updates from Stripe.
@@ -5,46 +10,46 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/payments/stripe';
-import { initializeFirebase } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
-
-// Initialize Firestore
-const { firestore: db } = typeof window !== 'undefined'
-    ? initializeFirebase()
-    : { firestore: null as any }; // This is a server route, so we might need admin SDK or standard client
-
-// Note: For webhooks in Next.js App Router, we need to read the raw body
-// This helper reads the raw body as a buffer
-async function getRawBody(req: NextRequest): Promise<Buffer> {
-    const blob = await req.blob();
-    const arrayBuffer = await blob.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-}
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
-    const body = await req.text(); // Stripe needs the raw string body for signature verification
-    const sig = req.headers.get('stripe-signature') as string;
-
-    if (!process.env.STRIPE_WEBHOOK_SECRET) {
-        console.error('STRIPE_WEBHOOK_SECRET is missing');
-        return NextResponse.json({ error: 'Configuration error' }, { status: 500 });
-    }
-
-    let event;
-
     try {
-        event = stripe.webhooks.constructEvent(
-            body,
-            sig,
-            process.env.STRIPE_WEBHOOK_SECRET
-        );
-    } catch (err: any) {
-        console.error(`Webhook Signature Verification Failed: ${err.message}`);
-        return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
-    }
+        const body = await req.text(); // Stripe needs the raw string body for signature verification
+        const sig = req.headers.get('stripe-signature');
 
-    // Handle the event
-    try {
+        // Fail fast if webhook secret is not configured
+        const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+        if (!webhookSecret) {
+            logger.critical('[P0-SEC-STRIPE-CONFIG] STRIPE_WEBHOOK_SECRET not configured');
+            return NextResponse.json(
+                { error: 'Payment gateway configuration error' },
+                { status: 500 }
+            );
+        }
+
+        if (!sig) {
+            logger.error('[P0-SEC-STRIPE-CONFIG] SECURITY: Missing stripe-signature header');
+            return NextResponse.json(
+                { error: 'Missing signature' },
+                { status: 403 }
+            );
+        }
+
+        // Verify webhook signature
+        let event;
+        try {
+            event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
+        } catch (err: any) {
+            logger.error('[P0-SEC-STRIPE-CONFIG] SECURITY: Invalid signature detected', {
+                error: err?.message,
+            });
+            return NextResponse.json(
+                { error: `Webhook signature verification failed: ${err.message}` },
+                { status: 403 }
+            );
+        }
+
+        // Handle the event
         switch (event.type) {
             case 'payment_intent.succeeded':
                 const paymentIntent = event.data.object;
@@ -55,42 +60,80 @@ export async function POST(req: NextRequest) {
                 await handlePaymentFailure(paymentFailed);
                 break;
             default:
-                // Unexpected event type
-                console.log(`Unhandled event type ${event.type}`);
+                // Log unhandled event types for debugging
+                logger.debug('[P0-SEC-STRIPE-CONFIG] Unhandled event type:', { type: event.type });
         }
-    } catch (error) {
-        console.error('Error handling webhook event:', error);
-        return NextResponse.json({ error: 'Handler failed' }, { status: 500 });
-    }
 
-    return NextResponse.json({ received: true });
+        return NextResponse.json({ received: true });
+    } catch (err: any) {
+        logger.error('[P0-SEC-STRIPE-CONFIG] Webhook processing failed', {
+            error: err?.message,
+            stack: err?.stack,
+        });
+        return NextResponse.json(
+            { error: err?.message || 'Webhook processing error' },
+            { status: 500 }
+        );
+    }
 }
 
 async function handlePaymentSuccess(paymentIntent: any) {
     const { orderId } = paymentIntent.metadata;
-    if (!orderId) return;
+    if (!orderId) {
+        logger.warn('[P0-SEC-STRIPE-CONFIG] Payment succeeded but no orderId in metadata', {
+            paymentIntentId: paymentIntent.id,
+        });
+        return;
+    }
 
-    console.log(`Payment succeeded for Order ${orderId}`);
+    logger.info('[P0-SEC-STRIPE-CONFIG] Payment succeeded', {
+        orderId,
+        paymentIntentId: paymentIntent.id,
+        amount: paymentIntent.amount,
+    });
 
     const { firestore } = await import('@/firebase/server-client').then(m => m.createServerClient());
     await firestore.collection('orders').doc(orderId).update({
+        paymentIntentId: paymentIntent.id,
         paymentStatus: 'paid',
         status: 'confirmed',
         paidAt: new Date(),
         updatedAt: new Date(),
+        stripe: {
+            paymentIntentId: paymentIntent.id,
+            amount: paymentIntent.amount,
+            currency: paymentIntent.currency,
+            status: paymentIntent.status,
+        },
     });
 }
 
 async function handlePaymentFailure(paymentIntent: any) {
     const { orderId } = paymentIntent.metadata;
-    if (!orderId) return;
+    if (!orderId) {
+        logger.warn('[P0-SEC-STRIPE-CONFIG] Payment failed but no orderId in metadata', {
+            paymentIntentId: paymentIntent.id,
+        });
+        return;
+    }
 
-    console.log(`Payment failed for Order ${orderId}`);
+    const errorMessage = paymentIntent.last_payment_error?.message || 'Payment failed';
+    logger.error('[P0-SEC-STRIPE-CONFIG] Payment failed', {
+        orderId,
+        paymentIntentId: paymentIntent.id,
+        error: errorMessage,
+    });
 
     const { firestore } = await import('@/firebase/server-client').then(m => m.createServerClient());
     await firestore.collection('orders').doc(orderId).update({
+        paymentIntentId: paymentIntent.id,
         paymentStatus: 'failed',
-        paymentError: paymentIntent.last_payment_error?.message || 'Payment failed',
+        paymentError: errorMessage,
         updatedAt: new Date(),
+        stripe: {
+            paymentIntentId: paymentIntent.id,
+            status: paymentIntent.status,
+            lastError: paymentIntent.last_payment_error,
+        },
     });
 }
