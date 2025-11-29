@@ -1,26 +1,46 @@
+// [AI-THREAD P0-SEC-RBAC-API]
+// [Dev1-Claude @ 2025-11-29]:
+//   Added server-side role-based authorization using existing auth helpers.
+//   Now requires 'dispensary' or 'owner' role to access dispensary orders.
+
 /**
  * API Route: Get Dispensary Orders
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
+import { getUserFromRequest } from '@/server/auth/auth-helpers';
+import { requireRole } from '@/server/auth/rbac';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
     try {
-        const authHeader = req.headers.get('authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
+        // Authenticate and authorize user
+        const user = await getUserFromRequest(req);
+        if (!user) {
+            logger.warn('[P0-SEC-RBAC-API] Unauthorized request - no valid token', {
+                path: req.nextUrl.pathname,
+            });
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const token = authHeader.substring(7);
-        const { auth, firestore } = await createServerClient();
-        const decodedToken = await auth.verifyIdToken(token);
-        const userId = decodedToken.uid;
+        // Require dispensary or owner role
+        try {
+            requireRole(user, 'dispensary');
+        } catch (error: any) {
+            logger.error('[P0-SEC-RBAC-API] Forbidden - insufficient role', {
+                path: req.nextUrl.pathname,
+                userRole: user.role,
+                requiredRole: 'dispensary',
+                uid: user.uid,
+            });
+            return NextResponse.json({ error: error.message }, { status: 403 });
+        }
 
-        const userDoc = await firestore.collection('users').doc(userId).get();
-        const dispensaryId = userDoc.data()?.dispensaryId;
+        const { firestore } = await createServerClient();
+        const dispensaryId = user.locationId;
 
         if (!dispensaryId) {
             return NextResponse.json({ error: 'Dispensary ID not found' }, { status: 404 });

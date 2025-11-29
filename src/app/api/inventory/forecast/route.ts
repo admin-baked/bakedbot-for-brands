@@ -1,32 +1,61 @@
+// [AI-THREAD P0-SEC-RBAC-API]
+// [Dev1-Claude @ 2025-11-29]:
+//   Added server-side role-based authorization.
+//   Now requires 'brand' or 'owner' role and validates brand access.
+
 /**
  * API Route: Get Inventory Forecast
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { inventoryForecastingService } from '@/lib/analytics/inventory-forecasting';
-import { createServerClient } from '@/firebase/server-client';
+import { getUserFromRequest } from '@/server/auth/auth-helpers';
+import { requireRole, requireBrandAccess } from '@/server/auth/rbac';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
     try {
-        // Get auth token
-        const authHeader = req.headers.get('authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
+        // Authenticate and authorize user
+        const user = await getUserFromRequest(req);
+        if (!user) {
+            logger.warn('[P0-SEC-RBAC-API] Unauthorized request - no valid token', {
+                path: req.nextUrl.pathname,
+            });
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const token = authHeader.substring(7);
-        const { auth, firestore } = await createServerClient();
-        const decodedToken = await auth.verifyIdToken(token);
-        const userId = decodedToken.uid;
+        // Require brand or owner role
+        try {
+            requireRole(user, 'brand');
+        } catch (error: any) {
+            logger.error('[P0-SEC-RBAC-API] Forbidden - insufficient role', {
+                path: req.nextUrl.pathname,
+                userRole: user.role,
+                requiredRole: 'brand',
+                uid: user.uid,
+            });
+            return NextResponse.json({ error: error.message }, { status: 403 });
+        }
 
-        // Get brand ID from user profile
-        const userDoc = await firestore.collection('users').doc(userId).get();
-        const brandId = userDoc.data()?.brandId;
+        const brandId = user.brandId;
 
         if (!brandId) {
             return NextResponse.json({ error: 'Brand ID not found' }, { status: 404 });
+        }
+
+        // Verify brand access
+        try {
+            requireBrandAccess(user, brandId);
+        } catch (error: any) {
+            logger.error('[P0-SEC-RBAC-API] Forbidden - cannot access brand', {
+                path: req.nextUrl.pathname,
+                userRole: user.role,
+                brandId,
+                uid: user.uid,
+            });
+            return NextResponse.json({ error: error.message }, { status: 403 });
         }
 
         const forecasts = await inventoryForecastingService.generateInventoryForecast(brandId);
