@@ -3,6 +3,7 @@
 
 import { useFirebase } from '@/firebase/provider';
 
+import { logger } from '@/lib/logger';
 /**
  * A safe wrapper around useFirebase that never throws an error.
  * If the FirebaseProvider is missing, it returns a "null" version of the
@@ -16,7 +17,7 @@ export function useOptionalFirebase() {
     return useFirebase();
   } catch (e) {
     if (process.env.NODE_ENV !== 'production') {
-      console.warn(
+      logger.warn(
         `[useOptionalFirebase] useFirebase() failed, likely because no <FirebaseProvider> is present in the component tree. This is expected on public pages. Components using this hook will fall back to a non-authenticated state.`,
       );
     }

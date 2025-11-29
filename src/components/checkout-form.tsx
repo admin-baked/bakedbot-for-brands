@@ -24,6 +24,7 @@ import type { Retailer } from '@/firebase/converters';
 import { useToast } from '@/hooks/use-toast';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
+import { logger } from '@/lib/logger';
 const phoneRegex = new RegExp(
   /^([+]?[\s0-9]+)?(\d{3}|[(]\d{3}[)])?[\s-]?(\d{3})[\s-]?(\d{4})$/
 );
@@ -113,7 +114,7 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
           toast({ variant: 'destructive', title: 'Order Submission Failed', description: result.error || 'Could not submit order. Please try again.' });
         }
       } catch (e) {
-          console.error("submitOrder failed:", e);
+          logger.error("submitOrder failed:", e);
           const errorMessage = e instanceof Error ? e.message : String(e);
           toast({ variant: 'destructive', title: 'Order Submission Failed', description: errorMessage });
       }

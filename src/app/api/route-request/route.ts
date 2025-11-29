@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTaskParser } from '@/server/tasks/task-parser';
 
+import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Intent classification error:', error);
+        logger.error('Intent classification error:', error);
         return NextResponse.json(
             {
                 error: 'Failed to classify intent',

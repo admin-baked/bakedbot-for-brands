@@ -7,6 +7,7 @@ import { initializeFirebase } from '@/firebase';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
+import { logger } from '@/lib/logger';
 interface FirebaseClientProviderProps {
   children: ReactNode;
 }
@@ -38,10 +39,10 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
                 isTokenAutoRefreshEnabled: true,
             });
         } catch (e) {
-            console.warn("Failed to initialize App Check, it might already be initialized.", e);
+            logger.warn("Failed to initialize App Check, it might already be initialized.", e);
         }
       } else {
-         console.warn("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. App Check will not be enabled.");
+         logger.warn("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. App Check will not be enabled.");
       }
     }
   }, [firebaseServices?.firebaseApp]);

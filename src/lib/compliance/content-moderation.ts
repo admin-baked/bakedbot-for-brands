@@ -3,6 +3,8 @@
  * Filters AI-generated content for compliance
  */
 
+import { logger } from '@/lib/logger';
+
 'use server';
 
 interface ModerationResult {
@@ -92,7 +94,7 @@ export async function sanitizeChatResponse(response: string): Promise<string> {
 
     // Log if content was flagged
     if (!result.approved) {
-        console.warn('[Content Moderation] Flagged content:', result.flagged);
+        logger.warn('[Content Moderation] Flagged content:', result.flagged);
     }
 
     return result.sanitized;

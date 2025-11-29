@@ -7,6 +7,7 @@ import { productConverter } from '@/firebase/converters';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
 
+import { logger } from '@/lib/logger';
 export function makeProductRepo(db: Firestore) {
   const productCollection = db.collection('products').withConverter(productConverter as any);
 
@@ -64,7 +65,7 @@ export function makeProductRepo(db: Firestore) {
         const effectiveBrandId = brandId && brandId.trim() !== '' ? brandId : DEMO_BRAND_ID;
         const snapshot = await productCollection.where('brandId', '==', effectiveBrandId).get();
         if (snapshot.empty) {
-            console.log(`No products found for brandId: ${effectiveBrandId}`);
+            logger.info(`No products found for brandId: ${effectiveBrandId}`);
             return [];
         }
         return snapshot.docs.map(doc => doc.data() as Product);
@@ -110,7 +111,7 @@ export function makeProductRepo(db: Firestore) {
         if (embeddingData === null) {
             // In a real app, you might want a strategy to delete old embeddings.
             // For now, we'll just log it.
-            console.log(`Clearing embeddings for product ${productId} is a no-op in this version.`);
+            logger.info(`Clearing embeddings for product ${productId} is a no-op in this version.`);
             return;
         }
 

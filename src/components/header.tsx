@@ -21,6 +21,7 @@ import { useHydrated } from '@/hooks/use-hydrated';
 import { useUserRole } from '@/hooks/use-user-role';
 
 
+import { logger } from '@/lib/logger';
 export function Header() {
     const { getItemCount, setCartSheetOpen } = useStore();
     const itemCount = getItemCount();
@@ -50,7 +51,7 @@ export function Header() {
             // Redirect to role-specific login page (captured before sign out)
             window.location.href = loginRoute;
         } catch (error) {
-            console.error('Sign out error', error);
+            logger.error('Sign out error', error);
             toast({
                 variant: "destructive",
                 title: "Sign Out Error",

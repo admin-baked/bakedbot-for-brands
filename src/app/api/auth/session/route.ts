@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { cookies } from 'next/headers';
 
+import { logger } from '@/lib/logger';
 export async function POST(request: NextRequest) {
     try {
         const { idToken } = await request.json();
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true, uid: decodedToken.uid });
     } catch (error: any) {
-        console.error('Session creation error:', error);
+        logger.error('Session creation error:', error);
         return NextResponse.json(
             { error: 'Failed to create session' },
             { status: 401 }

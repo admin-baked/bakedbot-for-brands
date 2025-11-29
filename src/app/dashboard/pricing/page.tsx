@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
 import { PricingRecommendation } from '@/types/pricing';
 
+import { logger } from '@/lib/logger';
 export default function PricingPage() {
     const [recommendations, setRecommendations] = useState<PricingRecommendation[]>([]);
     const [loading, setLoading] = useState(true);
@@ -37,7 +38,7 @@ export default function PricingPage() {
             const data = await response.json();
             setRecommendations(data.data || []);
         } catch (err) {
-            console.error('Error fetching recommendations:', err);
+            logger.error('Error fetching recommendations:', err);
             // Don't show error immediately on load if it's just auth delay
         } finally {
             setLoading(false);
@@ -80,7 +81,7 @@ export default function PricingPage() {
             setRecommendations(result.data || []);
 
         } catch (err: any) {
-            console.error('Generation error:', err);
+            logger.error('Generation error:', err);
             setError(err.message);
         } finally {
             setGenerating(false);

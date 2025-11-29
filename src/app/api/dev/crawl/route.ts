@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/firebase/server-client";
 
+import { logger } from '@/lib/logger';
 // This is a placeholder for a real, robust crawler service.
 // In production, this would likely be a Cloud Run service triggered by Pub/Sub.
 
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
   // 4. Save raw snapshot (omitted for brevity)
   // 5. Publish normalization job (omitted for brevity)
 
-  console.log(`[CRAWLER STUB] Would crawl menu source: ${menu_source_id}`);
+  logger.info(`[CRAWLER STUB] Would crawl menu source: ${menu_source_id}`);
 
   return NextResponse.json({
     ok: true,

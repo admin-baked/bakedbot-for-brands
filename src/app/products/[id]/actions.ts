@@ -14,6 +14,7 @@ import { requireUser } from '@/server/auth/auth';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
 
+import { logger } from '@/lib/logger';
 const reviewConverter: FirestoreDataConverter<Review> = {
   toFirestore(review: Review): DocumentData {
     const { id, ...data } = review;
@@ -74,7 +75,7 @@ export async function getReviewSummary(input: {
     }
 
     if (!product) {
-      console.error(`Product with ID ${productId} not found for review summary.`);
+      logger.error(`Product with ID ${productId} not found for review summary.`);
       return null;
     }
 
@@ -93,7 +94,7 @@ export async function getReviewSummary(input: {
     return summary;
 
   } catch (error) {
-    console.error(`Failed to get review summary for product ${productId}:`, error);
+    logger.error(`Failed to get review summary for product ${productId}:`, error);
     return null;
   }
 }
@@ -112,7 +113,7 @@ export async function updateProductFeedback(
   });
 
   if (!validatedFields.success) {
-    console.error('Invalid feedback input:', validatedFields.error);
+    logger.error('Invalid feedback input:', validatedFields.error);
     return { error: true, message: 'Invalid input provided.' };
   }
   
@@ -173,7 +174,7 @@ export async function updateProductFeedback(
     return { error: false, message: 'Thanks for your feedback!' };
 
   } catch (error) {
-    console.error(`[updateProductFeedback] Firestore error:`, error);
+    logger.error(`[updateProductFeedback] Firestore error:`, error);
     return { error: true, message: 'Could not submit feedback due to a database error.' };
   }
 }

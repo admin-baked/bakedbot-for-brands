@@ -13,6 +13,7 @@ import { requireUser } from '@/server/auth/auth';
 import { redirect } from 'next/navigation';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
+import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardProductsPage() {
@@ -46,7 +47,7 @@ export default async function DashboardProductsPage() {
         if ((error as Error).message.includes('Unauthorized')) {
              redirect('/brand-login');
         }
-        console.error("Failed to fetch products for dashboard:", error);
+        logger.error("Failed to fetch products for dashboard:", error);
         // Fallback to demo data on error for resilience, though you might want a proper error page
         products = demoProducts;
     }

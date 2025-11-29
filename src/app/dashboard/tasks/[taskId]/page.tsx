@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
 export default function TaskPage() {
     const params = useParams();
     const taskId = params && typeof params.taskId === 'string' ? params.taskId : null;
@@ -45,7 +46,7 @@ export default function TaskPage() {
           }
 
       } catch (err) {
-          console.error('Execution error:', err);
+          logger.error('Execution error:', err);
           setError(err instanceof Error ? err.message : 'Unknown error');
           setTask(prev => prev ? { ...prev, status: 'failed' } : null);
       }
@@ -69,7 +70,7 @@ export default function TaskPage() {
                         startExecution(storedTask);
                     }
                 } catch (e) {
-                    console.error("Failed to parse stored task", e);
+                    logger.error("Failed to parse stored task", e);
                     setError("Could not load task data from session.");
                     setLoading(false);
                 }

@@ -6,6 +6,7 @@
 
 import { geocodeZipCode } from './cannmenus-api';
 
+import { logger } from '@/lib/logger';
 export type Coordinates = {
     latitude: number;
     longitude: number;
@@ -22,7 +23,7 @@ export type GeolocationResult = {
  */
 export async function getBrowserLocation(): Promise<GeolocationResult | null> {
     if (!navigator.geolocation) {
-        console.warn('Geolocation is not supported by this browser');
+        logger.warn('Geolocation is not supported by this browser');
         return null;
     }
 
@@ -39,7 +40,7 @@ export async function getBrowserLocation(): Promise<GeolocationResult | null> {
                 });
             },
             (error) => {
-                console.warn('Browser geolocation failed:', error.message);
+                logger.warn('Browser geolocation failed:', error.message);
                 resolve(null);
             },
             {
@@ -96,7 +97,7 @@ export async function getIPLocation(): Promise<GeolocationResult | null> {
 
         return null;
     } catch (error) {
-        console.error('IP geolocation failed:', error);
+        logger.error('IP geolocation failed:', error);
         return null;
     }
 }
@@ -132,7 +133,7 @@ export function saveLocation(location: GeolocationResult): void {
     try {
         sessionStorage.setItem('user_location', JSON.stringify(location));
     } catch (error) {
-        console.warn('Failed to save location to session storage:', error);
+        logger.warn('Failed to save location to session storage:', error);
     }
 }
 
@@ -146,7 +147,7 @@ export function getSavedLocation(): GeolocationResult | null {
             return JSON.parse(saved);
         }
     } catch (error) {
-        console.warn('Failed to retrieve saved location:', error);
+        logger.warn('Failed to retrieve saved location:', error);
     }
     return null;
 }

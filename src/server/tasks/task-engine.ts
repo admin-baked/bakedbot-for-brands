@@ -5,6 +5,7 @@ import { getToolRegistry } from '@/server/tools/tool-registry';
 import { getAgentConfigLoader } from '@/ai/agent-config-loader';
 import type { ToolContext } from '@/types/tool';
 
+import { logger } from '@/lib/logger';
 /**
  * Task Engine
  * Executes tasks by coordinating agents and tools across multiple steps
@@ -19,7 +20,7 @@ export class TaskEngine {
     constructor() {
         // Load agents on initialization
         this.agentLoader.loadAll().catch(err => {
-            console.error('Failed to load agent configurations:', err);
+            logger.error('Failed to load agent configurations:', err);
         });
     }
 
@@ -125,7 +126,7 @@ export class TaskEngine {
             for (const toolId of step.requiredTools) {
                 const tool = this.toolRegistry.getById(toolId);
                 if (!tool) {
-                    console.warn(`Tool ${toolId} not found, skipping`);
+                    logger.warn(`Tool ${toolId} not found, skipping`);
                     continue;
                 }
 
@@ -304,7 +305,7 @@ export class TaskEngine {
             try {
                 listener(event);
             } catch (error) {
-                console.error('Error in event listener:', error);
+                logger.error('Error in event listener:', error);
             }
         }
     }
@@ -314,7 +315,7 @@ export class TaskEngine {
      */
     async pauseTask(taskId: string): Promise<void> {
         // Implementation for pausing
-        console.log(`Pausing task ${taskId}`);
+        logger.info(`Pausing task ${taskId}`);
     }
 
     /**
@@ -322,7 +323,7 @@ export class TaskEngine {
      */
     async resumeTask(task: Task): Promise<Task> {
         // Implementation for resuming
-        console.log(`Resuming task ${task.id}`);
+        logger.info(`Resuming task ${task.id}`);
         return this.executeTask(task);
     }
 
@@ -331,7 +332,7 @@ export class TaskEngine {
      */
     async cancelTask(taskId: string): Promise<void> {
         // Implementation for cancelling
-        console.log(`Cancelling task ${taskId}`);
+        logger.info(`Cancelling task ${taskId}`);
     }
 }
 

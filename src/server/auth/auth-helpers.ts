@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { verifyIdToken, getUserProfile } from '@/firebase/server-client';
 import { UserProfile } from '@/types/domain';
 
+import { logger } from '@/lib/logger';
 /**
  * Get the current authenticated user from the request
  * Returns null if not authenticated
@@ -22,7 +23,7 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
 
         return userProfile;
     } catch (error) {
-        console.error('Error getting current user:', error);
+        logger.error('Error getting current user:', error);
         return null;
     }
 }
@@ -81,7 +82,7 @@ export async function getUserFromRequest(
 
         return userProfile;
     } catch (error) {
-        console.error('Error getting user from request:', error);
+        logger.error('Error getting user from request:', error);
         return null;
     }
 }

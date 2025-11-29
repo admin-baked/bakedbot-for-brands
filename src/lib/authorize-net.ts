@@ -4,6 +4,8 @@
  * Uses the JSON API to process payments
  */
 
+import { logger } from '@/lib/logger';
+
 const API_LOGIN_ID = process.env.AUTHNET_API_LOGIN_ID;
 const TRANSACTION_KEY = process.env.AUTHNET_TRANSACTION_KEY;
 const IS_PRODUCTION = process.env.AUTHNET_ENV === 'production';
@@ -47,7 +49,7 @@ export type PaymentResponse = {
  */
 export async function createTransaction(payment: PaymentRequest): Promise<PaymentResponse> {
     if (!API_LOGIN_ID || !TRANSACTION_KEY) {
-        console.error('Authorize.net credentials missing');
+        logger.error('Authorize.net credentials missing');
         return {
             success: false,
             message: 'Payment configuration error',
@@ -140,7 +142,7 @@ export async function createTransaction(payment: PaymentRequest): Promise<Paymen
             };
         }
     } catch (error: any) {
-        console.error('Authorize.net transaction error:', error);
+        logger.error('Authorize.net transaction error:', error);
         return {
             success: false,
             message: 'Payment processing error',

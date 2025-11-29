@@ -23,6 +23,7 @@ import type { ElementType } from 'react';
 import { useUserRole } from '@/hooks/use-user-role';
 
 
+import { logger } from '@/lib/logger';
 export function DashboardSidebar() {
   const { navLinks, current } = useDashboardConfig();
   const { user } = useUser();
@@ -41,7 +42,7 @@ export function DashboardSidebar() {
       // Redirect to role-specific login page after sign out
       window.location.href = loginRoute;
     } catch (error) {
-      console.error('Sign out error', error);
+      logger.error('Sign out error', error);
       toast({
         variant: "destructive",
         title: "Sign Out Error",

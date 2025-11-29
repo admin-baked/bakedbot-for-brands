@@ -15,6 +15,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import type { Retailer } from '@/types/domain';
 import { Skeleton } from '@/components/ui/skeleton';
 
+import { logger } from '@/lib/logger';
 interface DispensaryLocatorProps {
   locations?: Retailer[];
   isLoading?: boolean;
@@ -79,7 +80,7 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
         }
       },
       (error) => {
-        console.error('Error getting location:', error);
+        logger.error('Error getting location:', error);
         toast({ variant: 'destructive', title: 'Could not get your location. Please ensure location services are enabled.'});
         setIsLocating(false);
       }
@@ -97,7 +98,7 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
         return;
     }
     if (!firestore) {
-      console.warn('No firestore available; cannot save favorite.');
+      logger.warn('No firestore available; cannot save favorite.');
       toast({ variant: 'destructive', title: 'Database connection not available.' });
       return;
     }
@@ -107,7 +108,7 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
         setFavoriteRetailerId(id);
         toast({ title: 'Favorite location saved!' });
     } catch (error) {
-        console.error('Failed to set favorite location', error);
+        logger.error('Failed to set favorite location', error);
         toast({ variant: 'destructive', title: 'Could not save favorite location.' });
     }
   };

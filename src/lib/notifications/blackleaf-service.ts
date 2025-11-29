@@ -3,6 +3,8 @@
  * Handles sending SMS notifications for cannabis brands
  */
 
+import { logger } from '@/lib/logger';
+
 const BLACKLEAF_API_KEY = process.env.BLACKLEAF_API_KEY;
 const BLACKLEAF_BASE_URL = process.env.BLACKLEAF_BASE_URL || 'https://api.blackleaf.io';
 
@@ -15,7 +17,7 @@ interface SMSOptions {
 export class BlackleafService {
     private async sendMessage({ to, body, imageUrl }: SMSOptions): Promise<boolean> {
         if (!BLACKLEAF_API_KEY) {
-            console.warn('BLACKLEAF_API_KEY is missing. Mocking SMS send:', { to, body });
+            logger.warn('BLACKLEAF_API_KEY is missing. Mocking SMS send:', { to, body });
             return true;
         }
 
@@ -40,13 +42,13 @@ export class BlackleafService {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok || data.status !== 'success') {
-                console.error('BlackLeaf Error:', { status: response.status, data });
+                logger.error('BlackLeaf Error:', { status: response.status, data });
                 return false;
             }
 
             return true;
         } catch (error) {
-            console.error('SMS Send Error:', error);
+            logger.error('SMS Send Error:', error);
             return false;
         }
     }

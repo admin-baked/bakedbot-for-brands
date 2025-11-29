@@ -8,6 +8,7 @@ import { handleMrsParkerEvent } from "@/server/agents/mrsParker";
 import { handleEzalEvent } from "@/server/agents/ezal";
 import { requireUser } from "@/server/auth/auth";
 
+import { logger } from '@/lib/logger';
 export async function POST(req: NextRequest) {
   try {
     // Secure this endpoint: only 'owner' role can trigger it.
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ processed: eventsSnap.size });
 
   } catch (err: any) {
-    console.error("Agent dispatch error:", err);
+    logger.error("Agent dispatch error:", err);
     const status = err.message.includes("Unauthorized") || err.message.includes("Forbidden") ? 403 : 500;
     return NextResponse.json({ error: err.message || "Agent dispatch failed" }, { status });
   }

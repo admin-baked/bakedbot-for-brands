@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createOrder } from '@/app/checkout/actions/createOrder';
 import { useRouter } from 'next/navigation';
 
+import { logger } from '@/lib/logger';
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
 
 export function CheckoutFlow() {
@@ -89,7 +90,7 @@ export function CheckoutFlow() {
                 toast({ variant: 'destructive', title: 'Order Failed', description: result.error });
             }
         } catch (error) {
-            console.error('Order submission error:', error);
+            logger.error('Order submission error:', error);
             toast({ variant: 'destructive', title: 'Order Failed', description: 'Something went wrong. Please try again.' });
         } finally {
             setLoading(false);

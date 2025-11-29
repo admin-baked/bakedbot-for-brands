@@ -7,6 +7,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { Agent, EventType } from '@/types/domain';
 
+import { logger } from '@/lib/logger';
 export interface EmitEventInput {
   orgId: string;
   type: EventType;
@@ -29,7 +30,7 @@ export async function emitEvent({
   data = {},
 }: EmitEventInput): Promise<void> {
   if (!orgId) {
-    console.warn('emitEvent called without an orgId. Skipping.');
+    logger.warn('emitEvent called without an orgId. Skipping.');
     return;
   }
 
@@ -47,7 +48,7 @@ export async function emitEvent({
     });
 
   } catch (error) {
-    console.error(`Failed to emit event [${type}] for org [${orgId}]:`, error);
+    logger.error(`Failed to emit event [${type}] for org [${orgId}]:`, error);
     // In a production system, you might push this failed event to a retry queue.
   }
 }

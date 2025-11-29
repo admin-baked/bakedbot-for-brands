@@ -10,6 +10,7 @@ import { generateEmbedding } from "@/ai/utils/generate-embedding";
 import { createServerClient } from "@/firebase/server-client";
 
 
+import { logger } from '@/lib/logger';
 // Simple cosine similarity between two vectors
 function cosineSimilarity(a: number[], b: number[]): number {
   if (!a.length || !b.length || a.length !== b.length) return 0;
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
   } catch (err: any) {
-    console.error("Error in semantic-search:", err);
+    logger.error("Error in semantic-search:", err);
     return NextResponse.json(
       {
         ok: false,

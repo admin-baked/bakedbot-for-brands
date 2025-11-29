@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { recommendationEngine } from '@/lib/recommendations/engine';
 import { createServerClient } from '@/firebase/server-client';
 
+import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({ recommendations });
     } catch (error: any) {
-        console.error('Error getting recommendations:', error);
+        logger.error('Error getting recommendations:', error);
         return NextResponse.json(
             { error: error.message || 'Failed to get recommendations' },
             { status: 500 }

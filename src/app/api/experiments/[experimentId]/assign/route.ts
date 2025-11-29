@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { abTestingService } from '@/lib/experiments/ab-testing-service';
 import { createServerClient } from '@/firebase/server-client';
 
+import { logger } from '@/lib/logger';
 export async function POST(
     req: NextRequest,
     { params }: { params: { experimentId: string } }
@@ -33,7 +34,7 @@ export async function POST(
 
         return NextResponse.json({ variantId });
     } catch (error: any) {
-        console.error('Error assigning experiment variant:', error);
+        logger.error('Error assigning experiment variant:', error);
         return NextResponse.json(
             { error: error.message || 'Failed to assign variant' },
             { status: 500 }

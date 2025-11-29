@@ -7,6 +7,7 @@ import { deleteUser, User } from 'firebase/auth';
 import { doc, deleteDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 
+import { logger } from '@/lib/logger';
 // Get Firestore instance
 const { firestore: db } = typeof window !== 'undefined'
     ? initializeFirebase()
@@ -43,7 +44,7 @@ export async function deleteCustomerAccount(user: User): Promise<void> {
         await deleteUser(user);
 
     } catch (error) {
-        console.error('[AccountDeletion] Error deleting account:', error);
+        logger.error('[AccountDeletion] Error deleting account:', error);
         throw error;
     }
 }

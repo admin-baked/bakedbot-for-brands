@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 
+import { logger } from '@/lib/logger';
 interface ExperimentConfig {
     experimentId: string;
     defaultVariant?: string;
@@ -40,7 +41,7 @@ export function useExperiment(config: ExperimentConfig) {
                     setVariant(data.variantId);
                 }
             } catch (error) {
-                console.error('Error assigning experiment variant:', error);
+                logger.error('Error assigning experiment variant:', error);
             } finally {
                 setIsLoading(false);
             }
@@ -68,7 +69,7 @@ export function useExperiment(config: ExperimentConfig) {
                 }),
             });
         } catch (error) {
-            console.error('Error tracking experiment metric:', error);
+            logger.error('Error tracking experiment metric:', error);
         }
     };
 

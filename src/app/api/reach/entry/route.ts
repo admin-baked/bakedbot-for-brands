@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { emitEvent } from "@/server/events/emitter";
 
+import { logger } from '@/lib/logger';
 interface ReachEntryBody {
   organizationId: string;
   channel: string;      // "qr", "instagram", "email", "website", etc.
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error("reach:entry_error", err);
+    logger.error("reach:entry_error", err);
     return NextResponse.json(
       { error: err?.message || "Error logging reach entry" },
       { status: 500 }

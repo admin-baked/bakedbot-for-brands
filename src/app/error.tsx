@@ -3,9 +3,10 @@
 
 import { useEffect } from "react";
 
+import { logger } from '@/lib/logger';
 export default function Error({ error, reset }: { error: any; reset: () => void }) {
   useEffect(() => {
-    console.error("Local Error Boundary Caught:", error);
+    logger.error("Local Error Boundary Caught:", error);
   }, [error]);
 
   return (

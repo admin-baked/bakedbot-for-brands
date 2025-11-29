@@ -7,6 +7,7 @@ import { getTaskEngine } from '@/server/tasks/task-engine';
 import { getUserFromRequest } from '@/server/auth/auth-helpers';
 import { requireBrandAccess } from '@/server/auth/rbac';
 
+import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Task creation error:', error);
+        logger.error('Task creation error:', error);
         return NextResponse.json(
             {
                 error: 'Failed to create task',

@@ -6,6 +6,7 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
+import { logger } from '@/lib/logger';
 export { FirebaseProvider, useFirebase, useAuth, useFirestore, useFirebaseApp } from './provider';
 export { FirebaseClientProvider } from './client-provider';
 export { useCollection } from './firestore/use-collection';
@@ -38,7 +39,7 @@ export function initializeFirebase(): FirebaseSdks {
     firebaseApp = initializeApp();
   } catch (e) {
     if (process.env.NODE_ENV === "production") {
-      console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
+      logger.warn('Automatic initialization failed. Falling back to firebase config object.', e);
     }
     firebaseApp = initializeApp(firebaseConfig);
   }

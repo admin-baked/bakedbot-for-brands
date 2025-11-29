@@ -4,6 +4,7 @@ import { createServerClient } from "@/firebase/server-client";
 import { EventType } from "@/types/domain";
 import { FieldValue } from "firebase-admin/firestore";
 
+import { logger } from '@/lib/logger';
 const HANDLED_TYPES: EventType[] = [
   "subscription.updated",
   "subscription.failed",
@@ -80,7 +81,7 @@ export async function handleMoneyMikeEvent(orgId: string, eventId: string) {
     await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
 
   } catch (error) {
-     console.error(`[${agentId}] Error processing event ${eventId}:`, error);
+     logger.error(`[${agentId}] Error processing event ${eventId}:`, error);
      await handleDeadLetter(orgId, eventId, event, error);
   }
 }

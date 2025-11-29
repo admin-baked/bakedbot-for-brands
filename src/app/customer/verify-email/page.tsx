@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
 export default function VerifyEmailPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -41,7 +42,7 @@ export default function VerifyEmailPage() {
                 setStatus('success');
                 setMessage('Your email has been verified successfully!');
             } catch (error: any) {
-                console.error('Verification error:', error);
+                logger.error('Verification error:', error);
                 setStatus('error');
                 setMessage(error.message || 'Failed to verify email. The link may have expired.');
             }

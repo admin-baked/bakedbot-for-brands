@@ -5,6 +5,7 @@ import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+import { logger } from '@/lib/logger';
 interface ErrorBoundaryProps {
     children: React.ReactNode;
     fallback?: React.ReactNode;
@@ -30,7 +31,7 @@ export class ErrorBoundary extends React.Component<
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
         // Log error to monitoring service
-        console.error('Error boundary caught error:', error, errorInfo);
+        logger.error('Error boundary caught error:', error, errorInfo);
 
         // TODO: Send to error tracking service (e.g., Sentry, LogRocket)
         if (typeof window !== 'undefined') {

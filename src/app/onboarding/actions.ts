@@ -9,6 +9,7 @@ import { makeBrandRepo } from '@/server/repos/brandRepo';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { FieldValue } from 'firebase-admin/firestore';
 
+import { logger } from '@/lib/logger';
 // Define the schema for the form data
 const OnboardingSchema = z.object({
   role: z.enum(['brand', 'dispensary', 'customer', 'skip']),
@@ -148,7 +149,7 @@ export async function completeOnboarding(prevState: OnboardingState, formData: F
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-    console.error('Onboarding server action failed:', errorMessage);
+    logger.error('Onboarding server action failed:', errorMessage);
     return { message: `Failed to save profile: ${errorMessage}`, error: true };
   }
 }

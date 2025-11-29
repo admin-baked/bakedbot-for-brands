@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
+import { logger } from '@/lib/logger';
 const isProd = process.env.NODE_ENV === 'production';
 
 // Force dynamic rendering to avoid hydration errors with Firebase hooks
@@ -39,7 +40,7 @@ export default function DispensaryLoginPage() {
         body: JSON.stringify({ idToken }),
       });
     } catch (error) {
-      console.error('Failed to create session', error);
+      logger.error('Failed to create session', error);
       toast({ variant: 'destructive', title: 'Session Error', description: 'Failed to create server session.' });
       return;
     }
@@ -92,7 +93,7 @@ export default function DispensaryLoginPage() {
         await handleAuthSuccess(userCredential);
       }
     } catch (error: any) {
-      console.error(`${isSignUp ? 'Sign up' : 'Login'} error`, error);
+      logger.error(`${isSignUp ? 'Sign up' : 'Login'} error`, error);
       const friendlyMessage = error.message.includes('auth/invalid-credential')
         ? 'Invalid email or password.'
         : error.message;

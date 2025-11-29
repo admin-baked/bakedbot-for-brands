@@ -23,6 +23,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { FloatingCartButton } from '@/components/floating-cart-button';
 
+import { logger } from '@/lib/logger';
 export default function DispensaryShopPage() {
     const params = useParams();
 
@@ -47,7 +48,7 @@ export default function DispensaryShopPage() {
             const retailerProducts = await getRetailerProducts(dispensaryId);
             setProducts(retailerProducts);
         } catch (error) {
-            console.error('Failed to load products:', error);
+            logger.error('Failed to load products:', error);
         } finally {
             setLoading(false);
         }

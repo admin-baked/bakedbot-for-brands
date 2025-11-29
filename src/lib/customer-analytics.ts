@@ -6,6 +6,7 @@
 import { initializeFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
+import { logger } from '@/lib/logger';
 const { firestore: db } = initializeFirebase();
 
 export type AnalyticsEventType =
@@ -59,10 +60,10 @@ export async function trackCartEvent(
 
         // Also log to console in development
         if (process.env.NODE_ENV === 'development') {
-            console.log('[Analytics]', type, data);
+            logger.info('[Analytics]', type, data);
         }
     } catch (error) {
-        console.error('Failed to track analytics event:', error);
+        logger.error('Failed to track analytics event:', error);
     }
 }
 
@@ -202,7 +203,7 @@ export function setCustomerId(customerId: string): void {
     try {
         localStorage.setItem('customer_id', customerId);
     } catch (error) {
-        console.error('Failed to set customer ID:', error);
+        logger.error('Failed to set customer ID:', error);
     }
 }
 
@@ -215,6 +216,6 @@ export function clearCustomerId(): void {
     try {
         localStorage.removeItem('customer_id');
     } catch (error) {
-        console.error('Failed to clear customer ID:', error);
+        logger.error('Failed to clear customer ID:', error);
     }
 }

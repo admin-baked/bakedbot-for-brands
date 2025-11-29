@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+import { logger } from '@/lib/logger';
 interface Order {
     id: string;
     customerName: string;
@@ -58,11 +59,11 @@ export default function DispensaryOrdersPage() {
                     setOrders(newOrders);
                     setLoading(false);
                 }, (error) => {
-                    console.error("Error listening to orders:", error);
+                    logger.error("Error listening to orders:", error);
                     setLoading(false);
                 });
             } catch (error) {
-                console.error("Error setting up listener:", error);
+                logger.error("Error setting up listener:", error);
                 setLoading(false);
             }
         };
@@ -92,7 +93,7 @@ export default function DispensaryOrdersPage() {
             }
             // No need to fetchOrders() as the snapshot listener will update automatically
         } catch (error) {
-            console.error('Error updating order:', error);
+            logger.error('Error updating order:', error);
             alert('Failed to update order status');
         }
     };

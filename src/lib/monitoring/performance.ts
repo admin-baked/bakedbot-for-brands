@@ -3,6 +3,8 @@
  * Track key performance metrics
  */
 
+import { logger } from '@/lib/logger';
+
 'use client';
 
 /**
@@ -28,7 +30,7 @@ export function trackPageLoad(pageName: string) {
 
         // Log to console in development
         if (process.env.NODE_ENV === 'development') {
-            console.log('[Performance]', pageName, metrics);
+            logger.info('[Performance]', pageName, metrics);
         }
 
         // TODO: Send to analytics service
@@ -46,7 +48,7 @@ export function trackWebVitals() {
     new PerformanceObserver((list) => {
         const entries = list.getEntries();
         const lastEntry = entries[entries.length - 1];
-        console.log('[LCP]', lastEntry.startTime);
+        logger.info('[LCP]', lastEntry.startTime);
     }).observe({ entryTypes: ['largest-contentful-paint'] });
 
     // First Input Delay
@@ -54,7 +56,7 @@ export function trackWebVitals() {
         const entries = list.getEntries();
         entries.forEach((entry: any) => {
             const fid = entry.processingStart - entry.startTime;
-            console.log('[FID]', fid);
+            logger.info('[FID]', fid);
         });
     }).observe({ entryTypes: ['first-input'] });
 
@@ -67,7 +69,7 @@ export function trackWebVitals() {
                 clsScore += entry.value;
             }
         });
-        console.log('[CLS]', clsScore);
+        logger.info('[CLS]', clsScore);
     }).observe({ entryTypes: ['layout-shift'] });
 }
 
@@ -80,7 +82,7 @@ export function trackMetric(name: string, value: number, unit: string = 'ms') {
     performance.mark(name);
 
     if (process.env.NODE_ENV === 'development') {
-        console.log(`[Metric] ${name}: ${value}${unit}`);
+        logger.info(`[Metric] ${name}: ${value}${unit}`);
     }
 
     // TODO: Send to monitoring service

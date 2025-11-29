@@ -21,6 +21,7 @@ import { Briefcase, Building, Loader2, User, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
+import { logger } from '@/lib/logger';
 const personaIcons: Record<string, React.ElementType> = {
   brand: Briefcase,
   dispensary: Building,
@@ -75,7 +76,7 @@ export default function DevLoginButton({ personaKey }: DevLoginButtonProps) {
         // Wait a moment for cookie to be set before redirecting
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (sessionError: any) {
-        console.error('Failed to create session', sessionError);
+        logger.error('Failed to create session', sessionError);
         toast({
           variant: 'destructive',
           title: 'Session Error',

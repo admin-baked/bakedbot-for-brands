@@ -11,6 +11,7 @@ import { createTransaction } from '@/lib/authorize-net';
 import { sendOrderConfirmationEmail } from '@/lib/email/sendgrid';
 import { logger } from '@/lib/monitoring';
 
+import { logger } from '@/lib/logger';
 type CreateOrderInput = {
     items: any[];
     customer: {
@@ -119,7 +120,7 @@ export async function createOrder(input: CreateOrderInput) {
 
         return { success: true, orderId };
     } catch (error: any) {
-        console.error('Failed to create order:', error);
+        logger.error('Failed to create order:', error);
         return { success: false, error: 'Failed to create order. Please try again.' };
     }
 }

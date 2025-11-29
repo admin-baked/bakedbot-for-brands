@@ -1,12 +1,14 @@
 
 // src/firebase/server-client.ts
+import { logger } from '@/lib/logger';
+
 import {
 
   try {
     const json = Buffer.from(serviceAccountKey, "base64").toString("utf8");
     return JSON.parse(json);
   } catch (decodeError) {
-    console.error("Failed to parse service account key from Base64.", decodeError);
+    logger.error("Failed to parse service account key from Base64.", decodeError);
     throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not a valid Base64-encoded JSON string.");
   }
 }

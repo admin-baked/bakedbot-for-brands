@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json(forecast);
     } catch (error: any) {
-        console.error('Error generating forecast:', error);
+        logger.error('Error generating forecast:', error);
         return NextResponse.json(
             { error: error.message || 'Failed to generate forecast' },
             { status: 500 }

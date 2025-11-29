@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Play, Pause, RotateCcw, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
+import { logger } from '@/lib/logger';
 interface TaskExecutionViewProps {
     initialTask: Task;
     autoStart?: boolean;
@@ -52,7 +53,7 @@ export function TaskExecutionView({ initialTask, autoStart = false }: TaskExecut
             }
 
         } catch (err) {
-            console.error('Execution error:', err);
+            logger.error('Execution error:', err);
             setError(err instanceof Error ? err.message : 'Unknown error');
             setTask(prev => ({ ...prev, status: 'failed' }));
         }
@@ -85,7 +86,7 @@ export function TaskExecutionView({ initialTask, autoStart = false }: TaskExecut
                     // const updatedTask = await res.json();
                     // setTask(updatedTask);
                 } catch (err) {
-                    console.error('Polling error:', err);
+                    logger.error('Polling error:', err);
                     setIsConnected(false);
                 }
             }, 1000);

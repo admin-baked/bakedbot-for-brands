@@ -12,6 +12,7 @@ import { retailerConverter } from '@/firebase/converters';
 import { requireUser } from '@/server/auth/auth';
 import type { ServerOrderPayload } from '@/app/checkout/actions/submitOrder';
 
+import { logger } from '@/lib/logger';
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
     submitted: ['confirmed', 'cancelled'],
     confirmed: ['ready', 'cancelled'],
@@ -88,7 +89,7 @@ export async function updateOrderStatus(
     const updatedOrder = updatedOrderSnap.data() as OrderDoc;
 
     if (!updatedOrder.brandId) {
-        console.warn('Order is missing brandId, cannot send order email.');
+        logger.warn('Order is missing brandId, cannot send order email.');
         // Don't throw, just log and continue. The primary action (status update) succeeded.
     } else {
         const serverOrderPayload: ServerOrderPayload = {

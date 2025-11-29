@@ -24,6 +24,7 @@ import * as LucideIcons from 'lucide-react';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 import type { ElementType } from 'react';
 
+import { logger } from '@/lib/logger';
 export function DashboardSidebar() {
   const rawPathname = usePathname();
   const pathname = rawPathname ?? '';
@@ -43,7 +44,7 @@ export function DashboardSidebar() {
       // Redirect to login page after sign out
       window.location.href = '/brand-login';
     } catch (error) {
-      console.error('Sign out error', error);
+      logger.error('Sign out error', error);
       toast({
         variant: "destructive",
         title: "Sign Out Error",

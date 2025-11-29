@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPaymentIntent } from '@/lib/payments/stripe';
 import { createServerClient } from '@/firebase/server-client';
 
+import { logger } from '@/lib/logger';
 export async function POST(req: NextRequest) {
     try {
         // Verify authentication
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
             id: paymentIntent.id,
         });
     } catch (error: any) {
-        console.error('Payment Intent Error:', error);
+        logger.error('Payment Intent Error:', error);
         return NextResponse.json(
             { error: error.message || 'Failed to create payment intent' },
             { status: 500 }
