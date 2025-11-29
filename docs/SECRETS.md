@@ -14,14 +14,26 @@
 - `CLAUDE_API_KEY` - AI agent tasks
 - `BLACKLEAF_API_KEY` - SMS notifications
 
-### Missing (CRITICAL) ⚠️
-- `STRIPE_SECRET_KEY` - Stripe payments (has dummy fallback - SECURITY RISK)
-- `CANPAY_WEBHOOK_SECRET` - CannPay webhook verification (BLOCKER)
+### Missing (CRITICAL - Blocking Launch) ⚠️
+**CannPay Credentials** (required from customer):
+- `CANPAY_APP_KEY` - CannPay integration key
+- `CANPAY_API_SECRET` - For HMAC webhook verification
+- `CANPAY_INTEGRATOR_ID` - Merchant identifier
+- `CANPAY_INTERNAL_VERSION` - API version
+- `CANPAY_MODE` - Environment (sandbox/live)
+
+**Monitoring**:
 - `SENTRY_DSN` - Error tracking
+
+### Missing (Optional - Customer Provided) 📋
+**Stripe** (only if customer wants Stripe checkout):
+- `STRIPE_SECRET_KEY` - Currently has dummy fallback
+
+**Google APIs** (optional tools):
 - `GOOGLE_SEARCH_API_KEY` - Web search tool
 - `GOOGLE_CUSTOM_SEARCH_ENGINE_ID` - Search engine ID
 - `GOOGLE_SHEETS_API_KEY` - Sheets integration
-- `SMOKEY_PAY_API_KEY` - Alternative payment processor
+- `SMOKEY_PAY_API_KEY` - Alternative payment (if used)
 
 ### Environment Variables (Non-Secret)
 Set directly in `apphosting.yaml`:
