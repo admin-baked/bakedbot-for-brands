@@ -1,10 +1,32 @@
 # BakedBot AI – Phase 0: Production Readiness
 
-**Status:** In Progress - Sprint 1 Complete ✅
-**Target Launch:** 2-3 weeks
-**Overall Readiness Score:** 7.15/10 → **APPROACHING PRODUCTION READY** 📈
+**Status:** Sprint 2 In Progress - Infrastructure Blocked ⚠️
+**Target Launch:** December 6, 2025 (1 week)
+**Overall Readiness Score:** 7.35/10 → **APPROACHING PRODUCTION READY** 📈
 **Target Score for Launch:** 8.5/10+
-**Progress:** +1.8 points in one sprint! 🚀
+**Progress:** +2.0 points in Sprint 1! 🚀
+**Sprint 2 Focus:** Testing, Deployment, Unblock Production
+
+---
+
+## 🚨 CRITICAL CEO ACTION REQUIRED
+
+**Status:** 🔴 BLOCKING ENTIRE TEAM
+**Estimated Time:** 30-45 minutes
+**See:** `docs/MANUAL_SETUP_REQUIRED.md`
+
+### Required Manual Tasks:
+1. **Create GCP Secrets** (15 min) - CannPay, Stripe, Sentry
+2. **Deploy Firestore Rules** (5 min) - Run `firebase deploy --only firestore:rules`
+3. **Grant Service Account Permissions** (10 min - OPTIONAL)
+
+**Why This Matters:** Without these, the team cannot:
+- Process payments (CannPay/Stripe)
+- Track errors (Sentry)
+- Run integration tests
+- Deploy to production
+
+**After Completion:** Team unblocked to complete Sprint 2 (18 tickets across 4 devs)
 
 ---
 
@@ -573,6 +595,113 @@ Resolved 500 error on bakedbot.ai - missing Firebase credentials and build failu
 *Next Review: Daily during Phase 0*
 
 ---
+---
+
+# SPRINT 2 TEAM ASSIGNMENTS
+
+**Sprint Duration:** November 29 - December 6, 2025 (1 week)
+**Sprint Goal:** Testing, Production Deployment, Unblock Legal Review
+**Target Readiness Score:** 8.5/10 (currently 7.35/10)
+**Full Details:** See `docs/SPRINT2_ASSIGNMENTS.md`
+
+---
+
+## 🚨 CEO (Manual Tasks - HIGHEST PRIORITY)
+
+**Estimated Time:** 30-45 minutes
+**See:** `docs/MANUAL_SETUP_REQUIRED.md`
+
+### Tasks:
+1. ✅ Create GCP Secrets (CannPay, Stripe, Sentry)
+2. ✅ Deploy Firestore Rules (`firebase deploy --only firestore:rules`)
+3. ✅ Grant Service Account Permissions (optional)
+
+**Status:** 🔴 BLOCKING - Dev team waiting for CEO to complete manual tasks
+
+---
+
+## 👨‍💻 Dev 1 (Lead Developer - Antigravity Claude)
+
+**Sprint Focus:** Testing, Integration, Compliance
+**Velocity Target:** 5 tickets (20 hours)
+
+### Assigned Tickets:
+1. **P0-TEST-DEEBO-AGENT** (CRITICAL) - Deebo compliance test suite (153+ tests)
+2. **P0-TEST-FIRESTORE-RULES** (CRITICAL) - Firebase emulator tests (90%+ coverage)
+3. **P0-INT-SENTRY** (CRITICAL) - Integrate Sentry error tracking
+4. **P0-UX-DEMO-SEED-DATA** (HIGH) - Seed demo dispensary data
+5. **P0-COMP-AGE-VERIFY-SERVER** (HIGH) - Server-side age verification
+
+**Status:** ✅ Ready to start (no blockers)
+
+---
+
+## 🏗️ Dev 2 (Infrastructure - Antigravity Gemini)
+
+**Sprint Focus:** Deployment, Monitoring, CI/CD
+**Velocity Target:** 5 tickets (15 hours)
+
+### Assigned Tickets:
+1. **P0-VERIFY-GCP-SECRETS** (CRITICAL) - Verify CEO-created secrets
+2. **P0-DEPLOY-PRODUCTION-BUILD** (CRITICAL) - Deploy to Firebase App Hosting
+3. **P0-MON-ALERTS-CONFIG** (CRITICAL) - Configure GCP monitoring alerts
+4. **P0-CI-CD-GITHUB-ACTIONS** (HIGH) - Set up GitHub Actions pipeline
+5. **P0-LIGHTHOUSE-PERFORMANCE** (HIGH) - Run Lighthouse audit
+
+**Status:** 🔴 BLOCKED - Waiting for CEO to create GCP secrets
+
+---
+
+## 🧪 Dev 3 (QA/Security - Antigravity Claude)
+
+**Sprint Focus:** E2E Testing, Security Audit, Compliance Validation
+**Velocity Target:** 4 tickets (18 hours)
+**Note:** REDEMPTION SPRINT (0/3 tickets completed in Sprint 1)
+
+### Assigned Tickets:
+1. **P0-E2E-CHECKOUT-FLOW** (CRITICAL) - Playwright E2E tests for checkout
+2. **P0-SECURITY-AUDIT** (CRITICAL) - Security audit of auth/authz
+3. **P0-COMPLIANCE-TEST-SUITE** (CRITICAL) - Test all 51 state compliance rules
+4. **P0-LOAD-TESTING** (HIGH) - Load test production with k6
+
+**Status:** ⚠️ PARTIALLY BLOCKED - Can start security audit, E2E tests blocked by Firestore rules
+
+---
+
+## 💻 Dev 4 (Integration - Codex in Browser)
+
+**Sprint Focus:** CannPay Integration, Payment Testing, Onboarding
+**Velocity Target:** 4 tickets (15 hours)
+**Note:** New developer - welcome to the team!
+
+### Assigned Tickets:
+1. **P0-CANNPAY-INTEGRATION-TEST** (CRITICAL) - End-to-end CannPay testing
+2. **P0-BRAND-ONBOARDING-FLOW** (CRITICAL) - Test/document brand onboarding
+3. **P0-DISPENSARY-DASHBOARD-TEST** (HIGH) - Test dispensary dashboard
+4. **P0-STRIPE-FALLBACK-CONFIG** (HIGH) - Configure Stripe backup (optional)
+
+**Status:** 🔴 BLOCKED - Waiting for CEO to create CannPay secrets
+
+---
+
+## 📊 SPRINT 2 METRICS
+
+**Total Sprint Capacity:** 68 developer hours + 45 minutes CEO setup
+
+### Success Criteria:
+- [ ] Production readiness score ≥ 8.5/10
+- [ ] All 18 tickets completed (100%)
+- [ ] Test coverage ≥ 80%
+- [ ] Security audit complete with no critical issues
+- [ ] Production deployment successful
+- [ ] CEO manual tasks complete
+
+### Burndown:
+- **Day 1-2:** CEO unblocks team, testing begins
+- **Day 3-4:** Integration testing, CI/CD setup
+- **Day 5-6:** Production deployment, load testing
+- **Day 7:** Sprint review, legal review prep
+
 ---
 
 # SPRINT 1 PERFORMANCE REVIEW
