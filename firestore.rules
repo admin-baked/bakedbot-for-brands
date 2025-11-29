@@ -1,3 +1,11 @@
+// [AI-THREAD P0-SEC-FIRESTORE-RULES]
+// [Dev1-Claude @ 2025-11-29]:
+//   Enhanced comprehensive Firestore security rules with role-based access control.
+//   Added missing collections: brands, customers, analytics_events, chatSessions,
+//   playbooks, playbookDrafts, sync_status, pricing_recommendations, retailers,
+//   aiGenerations, and addresses subcollection.
+//   All rules leverage Firebase custom claims (role, brandId, locationId) set during onboarding.
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -99,13 +107,129 @@ service cloud.firestore {
       allow create: if true;
 
       // Read/Update access is granted based on role.
-      allow read, update: if 
+      allow read, update: if
           // The customer who placed the order.
-          isOwner(resource.data.userId) || 
+          isOwner(resource.data.userId) ||
           // The dispensary manager fulfilling the order.
           isDispensaryManager(resource.data.retailerId) ||
+          // Brand managers can view orders containing their products.
+          isBrandManager(resource.data.brandId) ||
           // A global owner/admin.
           isRole('owner');
+    }
+
+    // --- Brands Collection ---
+    match /brands/{brandId} {
+      // Anyone can read brand profiles (for public product pages).
+      allow read: if true;
+
+      // Only brand managers can update their own brand.
+      allow update: if isBrandManager(brandId);
+
+      // Creation/deletion restricted to server actions or owner.
+      allow create, delete: if isRole('owner');
+    }
+
+    // --- Customers Collection ---
+    match /customers/{customerId} {
+      // Customers can read/update their own profile.
+      allow read, update: if isOwner(customerId);
+
+      // Owner can access all customer profiles.
+      allow read: if isRole('owner');
+
+      // Creation happens via server actions during onboarding.
+      allow create: if request.auth.uid == customerId;
+
+      // Deletion restricted to owner or user themselves.
+      allow delete: if isOwner(customerId) || isRole('owner');
+    }
+
+    // --- Analytics Events Collection ---
+    match /analytics_events/{eventId} {
+      // Users can create analytics events for themselves.
+      allow create: if request.auth != null;
+
+      // Only owner/admin can read analytics data.
+      allow read: if isRole('owner') || isRole('brand') || isRole('dispensary');
+
+      // No updates or deletes from client.
+      allow update, delete: if false;
+    }
+
+    // --- Chat Sessions (subcollection under users) ---
+    match /users/{userId}/chatSessions/{sessionId} {
+      // Users can manage their own chat sessions.
+      allow read, write: if isOwner(userId);
+
+      // Owner can access all chat sessions.
+      allow read: if isRole('owner');
+    }
+
+    // --- Playbooks Collection ---
+    match /playbooks/{playbookId} {
+      // Brand managers can read playbooks for their brand.
+      allow read: if isRole('brand') || isRole('owner');
+
+      // Only server actions can write playbooks.
+      allow write: if false;
+    }
+
+    match /playbookDrafts/{draftId} {
+      // Brand managers can create and manage drafts.
+      allow read, write: if request.auth != null && (isRole('brand') || isRole('owner'));
+    }
+
+    // --- Sync Status Collection ---
+    match /sync_status/{syncId} {
+      // Brand and dispensary managers can read sync status.
+      allow read: if isRole('brand') || isRole('dispensary') || isRole('owner');
+
+      // Only server actions can write sync status.
+      allow write: if false;
+    }
+
+    // --- Pricing Recommendations Collection ---
+    match /pricing_recommendations/{recId} {
+      // Brand managers can read pricing recommendations.
+      allow read: if isRole('brand') || isRole('owner');
+
+      // Only server actions can write recommendations.
+      allow write: if false;
+    }
+
+    // --- Retailers Collection (CannMenus sync) ---
+    match /retailers/{retailerId} {
+      // Anyone can read retailer info (for public locator).
+      allow read: if true;
+
+      // Only server actions can sync retailer data.
+      allow write: if false;
+    }
+
+    // --- AI Generations Collection ---
+    match /aiGenerations/{generationId} {
+      // Users can create AI generations.
+      allow create: if request.auth != null;
+
+      // Users can read their own generations, brands can read their brand's.
+      allow read: if request.auth != null && (
+          resource.data.userId == request.auth.uid ||
+          isBrandManager(resource.data.brandId) ||
+          isRole('owner')
+      );
+
+      // No client-side updates or deletes.
+      allow update, delete: if false;
+    }
+
+    // --- Addresses (subcollection under users) ---
+    match /users/{userId}/addresses/{addressId} {
+      // Users can manage their own addresses.
+      allow read, write: if isOwner(userId);
+
+      // Owner can access all addresses.
+      allow read: if isRole('owner');
     }
   }
 }

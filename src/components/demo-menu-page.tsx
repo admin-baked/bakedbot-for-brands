@@ -1,26 +1,35 @@
+// [AI-THREAD P0-UX-DEMO-MODE]
+// [Dev1-Claude @ 2025-11-29]:
+//   Updated to redirect to working headless menu demo at /shop/demo
+//   Uses a hardcoded demo dispensary ID that can be seeded with test data
 
 "use client";
 
-import * as React from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 type DemoMenuPageProps = {
   brandId?: string;
 };
 
+// Demo dispensary ID - this can be seeded with test products
+const DEMO_DISPENSARY_ID = "demo-dispensary-001";
+
 export function DemoMenuPage({ brandId }: DemoMenuPageProps) {
-  // We’re not using brandId yet, but we accept it
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to the working shop page with demo dispensary
+    router.replace(`/shop/${DEMO_DISPENSARY_ID}`);
+  }, [router]);
+
   return (
-    <div className="p-6 space-y-2">
-      <h1 className="text-2xl font-semibold tracking-tight">Demo Menu</h1>
-      <p className="text-sm text-muted-foreground">
-        The old menu demo is temporarily disabled while we ship the new
-        headless menu + Smokey experience.
-      </p>
-      {brandId && (
-        <p className="text-xs text-muted-foreground">
-          Brand ID: <code>{brandId}</code>
-        </p>
-      )}
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Loading demo menu...</p>
+      </div>
     </div>
   );
 }

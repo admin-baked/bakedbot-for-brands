@@ -64,12 +64,16 @@ export default function DevLoginButton({ personaKey }: DevLoginButtonProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken }),
+          credentials: 'same-origin', // Ensure cookies are sent and received
         });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
           throw new Error(errorData.error || 'Session creation failed');
         }
+
+        // Wait a moment for cookie to be set before redirecting
+        await new Promise(resolve => setTimeout(resolve, 100));
       } catch (sessionError: any) {
         console.error('Failed to create session', sessionError);
         toast({

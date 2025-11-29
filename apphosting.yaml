@@ -60,6 +60,11 @@ runConfig:
       secret: CANPAY_INTEGRATOR_ID
     - variable: CANPAY_INTERNAL_VERSION
       secret: CANPAY_INTERNAL_VERSION
+    # Stripe (Optional Payment Partner)
+    - variable: STRIPE_SECRET_KEY
+      secret: STRIPE_SECRET_KEY
+    - variable: STRIPE_WEBHOOK_SECRET
+      secret: STRIPE_WEBHOOK_SECRET
     # Monitoring
     - variable: SENTRY_DSN
       secret: SENTRY_DSN
