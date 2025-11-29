@@ -71,6 +71,11 @@ runConfig:
       availability:
         - BUILD
         - RUNTIME
+    - variable: NEXT_PUBLIC_SENTRY_DSN
+      secret: SENTRY_DSN
+      availability:
+        - BUILD
+        - RUNTIME
     # Dev/Security
     - variable: NEXT_PUBLIC_DEV_AUTH_BYPASS
       value: "false"
