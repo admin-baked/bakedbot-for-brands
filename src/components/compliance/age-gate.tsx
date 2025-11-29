@@ -1,27 +1,57 @@
+// [AI-THREAD P0-INT-DEEBO-AGEGATE]
+// [Dev1-Claude @ 2025-11-29]:
+//   Integrated Deebo state-aware age verification.
+//   Now uses deeboCheckAge() to determine minAge based on state (18+ medical vs 21+ recreational).
+//   Provides state-specific error messages for better UX.
+
 /**
  * Age Gate Component
  * Verifies user age before allowing access to cannabis products
+ * Uses Deebo compliance engine for state-specific age requirements
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertCircle } from 'lucide-react';
+import { deeboCheckAge, deeboCheckStateAllowed } from '@/server/agents/deebo';
 
 interface AgeGateProps {
     onVerified: () => void;
-    minimumAge?: number;
+    state?: string; // Two-letter state code (e.g., "IL", "CA")
+    minimumAge?: number; // Override if you want to bypass state detection
 }
 
-export function AgeGate({ onVerified, minimumAge = 21 }: AgeGateProps) {
+export function AgeGate({ onVerified, state, minimumAge }: AgeGateProps) {
+    const [detectedMinAge, setDetectedMinAge] = useState(minimumAge || 21);
+    const [stateName, setStateName] = useState('');
+    const [stateBlocked, setStateBlocked] = useState(false);
     const [month, setMonth] = useState('');
     const [day, setDay] = useState('');
     const [year, setYear] = useState('');
     const [error, setError] = useState('');
+
+    // Detect state-specific age requirement on mount
+    useEffect(() => {
+        if (!minimumAge && state) {
+            // Check if state allows cannabis sales
+            const stateCheck = deeboCheckStateAllowed(state);
+            if (!stateCheck.allowed) {
+                setStateBlocked(true);
+                setError(stateCheck.reason || 'Cannabis sales are not available in your state');
+                return;
+            }
+
+            // Get state-specific minimum age (18+ for medical, 21+ for recreational)
+            const testDob = new Date(2000, 0, 1).toISOString().split('T')[0]; // Test DOB
+            const ageCheck = deeboCheckAge(testDob, state);
+            setDetectedMinAge(ageCheck.minAge);
+        }
+    }, [state, minimumAge]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,24 +82,23 @@ export function AgeGate({ onVerified, minimumAge = 21 }: AgeGateProps) {
             return;
         }
 
-        // Calculate age
-        const birthDate = new Date(yearNum, monthNum - 1, dayNum);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
+        // Create ISO date string for Deebo validation
+        const dateOfBirth = `${yearNum}-${String(monthNum).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
 
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
+        // Use Deebo for state-aware age validation
+        const userState = state || 'IL'; // Default to IL if no state provided
+        const ageCheck = deeboCheckAge(dateOfBirth, userState);
 
-        if (age < minimumAge) {
-            setError(`You must be at least ${minimumAge} years old to access this site`);
+        if (!ageCheck.allowed) {
+            setError(ageCheck.reason || `You must be at least ${detectedMinAge} years old to access this site`);
             return;
         }
 
         // Store verification in localStorage (expires in 24 hours)
         const verification = {
             verified: true,
+            dateOfBirth,
+            state: userState,
             timestamp: Date.now(),
             expiresAt: Date.now() + (24 * 60 * 60 * 1000)
         };
@@ -87,7 +116,10 @@ export function AgeGate({ onVerified, minimumAge = 21 }: AgeGateProps) {
                     </div>
                     <CardTitle className="text-2xl">Age Verification Required</CardTitle>
                     <CardDescription>
-                        You must be {minimumAge} or older to access this site
+                        {stateBlocked
+                            ? 'Cannabis sales are not available in your state'
+                            : `You must be ${detectedMinAge} or older to access this site`
+                        }
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -137,8 +169,8 @@ export function AgeGate({ onVerified, minimumAge = 21 }: AgeGateProps) {
                             </div>
                         )}
 
-                        <Button type="submit" className="w-full">
-                            Verify Age
+                        <Button type="submit" className="w-full" disabled={stateBlocked}>
+                            {stateBlocked ? 'Not Available' : 'Verify Age'}
                         </Button>
 
                         <p className="text-xs text-center text-muted-foreground">

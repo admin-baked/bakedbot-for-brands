@@ -26,8 +26,9 @@
 - `SENTRY_DSN` - Error tracking
 
 ### Missing (Optional - Customer Provided) 📋
-**Stripe** (only if customer wants Stripe checkout):
-- `STRIPE_SECRET_KEY` - Currently has dummy fallback
+**Stripe** (configured in apphosting.yaml, awaiting keys):
+- `STRIPE_SECRET_KEY` - Payment processing (no fallback - fails fast if missing)
+- `STRIPE_WEBHOOK_SECRET` - Webhook signature verification
 
 **Google APIs** (optional tools):
 - `GOOGLE_SEARCH_API_KEY` - Web search tool

@@ -1,14 +1,21 @@
+// [AI-THREAD P0-SEC-STRIPE-CONFIG]
+// [Dev1-Claude @ 2025-11-29]:
+//   Removed dummy key fallback. Now fails fast if STRIPE_SECRET_KEY is missing.
+//   This prevents production errors where Stripe operations would silently fail.
+
 /**
  * Stripe Server-Side Integration
  */
 
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-    console.warn('STRIPE_SECRET_KEY is missing. Stripe features will not work.');
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+
+if (!STRIPE_SECRET_KEY) {
+    throw new Error('[P0-SEC-STRIPE-CONFIG] CRITICAL: STRIPE_SECRET_KEY is not configured. Stripe features are disabled.');
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
+export const stripe = new Stripe(STRIPE_SECRET_KEY, {
     typescript: true,
 });
 
