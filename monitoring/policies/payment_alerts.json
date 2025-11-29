@@ -1,0 +1,26 @@
+{
+    "displayName": "Critical Payment Alerts",
+    "documentation": {
+        "content": "Alerts on critical payment failures and security issues in webhooks.",
+        "mimeType": "text/markdown"
+    },
+    "conditions": [
+        {
+            "displayName": "Payment Failure or Security Critical",
+            "conditionMatchedLog": {
+                "filter": "logName=\"projects/studio-567050101-bc6e8/logs/bakedbot-app\" AND severity >= ERROR",
+                "labelExtractors": {
+                    "error_message": "EXTRACT(jsonPayload.message)"
+                }
+            }
+        }
+    ],
+    "alertStrategy": {
+        "notificationRateLimit": {
+            "period": "300s"
+        }
+    },
+    "combiner": "OR",
+    "enabled": true,
+    "notificationChannels": []
+}
