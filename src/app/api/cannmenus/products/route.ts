@@ -2,12 +2,13 @@
 // src/app/api/cannmenus/products/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
+import { logger } from '@/lib/logger';
 export async function GET(req: NextRequest) {
   const base = process.env.CANNMENUS_API_BASE || process.env.CANNMENUS_API_URL;
   const apiKey = process.env.CANNMENUS_API_KEY;
 
   if (!base || !apiKey) {
-    console.error("CannMenus env missing", { hasBase: !!base, hasKey: !!apiKey });
+    logger.error("CannMenus env missing", { hasBase: !!base, hasKey: !!apiKey });
     return NextResponse.json(
       {
         source: "next-api:cannmenus:products (error)",
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
 
     if (!resp.ok) {
         const errorText = await resp.text();
-        console.error(`CannMenus API Error: ${resp.status}`, errorText);
+        logger.error(`CannMenus API Error: ${resp.status}`, errorText);
         return NextResponse.json(
             {
               source: "next-api:cannmenus:products (upstream_error)",
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
       { status: resp.status }
     );
   } catch (error) {
-      console.error('Fetch to CannMenus failed', error);
+      logger.error('Fetch to CannMenus failed', error);
       return NextResponse.json(
           {
             source: 'next-api:cannmenus:products (fetch_error)',

@@ -7,6 +7,7 @@ import CheckoutLayoutClient from './checkout-layout-client';
 import { cookies } from 'next/headers';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
+import { logger } from '@/lib/logger';
 export const revalidate = 60; // Revalidate every 60 seconds
 
 interface CheckoutLayoutProps {
@@ -25,7 +26,7 @@ async function getCheckoutData() {
             const locationsSnap = await firestore.collection('dispensaries').get();
             locations = locationsSnap.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() })) as Retailer[];
         } catch (error) {
-            console.error(`[CheckoutLayout] Failed to fetch data:`, error);
+            logger.error(`[CheckoutLayout] Failed to fetch data:`, error);
             locations = demoRetailers;
         }
     }

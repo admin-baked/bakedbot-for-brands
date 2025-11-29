@@ -4,6 +4,7 @@ import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { logger } from '@/lib/logger';
 export interface AgentConfig {
     name: string;
     role: string;
@@ -62,7 +63,7 @@ export class AgentConfigLoader {
             try {
                 await this.load(file);
             } catch (error) {
-                console.error(`Error loading agent config ${file}:`, error);
+                logger.error(`Error loading agent config ${file}:`, error);
             }
         }
     }
@@ -210,5 +211,5 @@ export function getAgentConfigLoader(): AgentConfigLoader {
 export async function initializeAgentConfigs(): Promise<void> {
     const configLoader = getAgentConfigLoader();
     await configLoader.loadAll();
-    console.log(`Loaded ${configLoader.getAll().size} agent configurations`);
+    logger.info(`Loaded ${configLoader.getAll().size} agent configurations`);
 }

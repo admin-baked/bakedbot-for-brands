@@ -6,6 +6,7 @@
 
 import { CannMenusProduct } from '@/types/cannmenus';
 
+import { logger } from '@/lib/logger';
 const CANNMENUS_BASE_URL = process.env.NEXT_PUBLIC_CANNMENUS_API_BASE || process.env.CANNMENUS_API_BASE;
 const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
 
@@ -114,7 +115,7 @@ export async function searchNearbyRetailers(
             .sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity))
             .slice(0, limit);
     } catch (error) {
-        console.error('Error fetching nearby retailers:', error);
+        logger.error('Error fetching nearby retailers:', error);
         return [];
     }
 }
@@ -180,7 +181,7 @@ export async function getRetailerProducts(
 
         return uniqueProducts;
     } catch (error) {
-        console.error('Error fetching retailer products:', error);
+        logger.error('Error fetching retailer products:', error);
         return [];
     }
 }
@@ -237,7 +238,7 @@ export async function getProductAvailability(
 
         return availability;
     } catch (error) {
-        console.error('Error fetching product availability:', error);
+        logger.error('Error fetching product availability:', error);
         return [];
     }
 }
@@ -272,7 +273,7 @@ export async function geocodeZipCode(zipCode: string): Promise<{ lat: number; ln
 
         return null;
     } catch (error) {
-        console.error('Error geocoding ZIP code:', error);
+        logger.error('Error geocoding ZIP code:', error);
         return null;
     }
 }
@@ -281,6 +282,6 @@ export async function geocodeZipCode(zipCode: string): Promise<{ lat: number; ln
  * Search products (Placeholder for build fix)
  */
 export async function getProducts(brandId: string, state: string): Promise<any[]> {
-    console.warn('getProducts not fully implemented');
+    logger.warn('getProducts not fully implemented');
     return [];
 }

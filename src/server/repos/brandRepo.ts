@@ -5,6 +5,7 @@ import { defaultLogo } from '@/lib/demo/demo-data';
 import type { DeepPartial } from '@/types/utils';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
+import { logger } from '@/lib/logger';
 // The default brand config is used as a fallback if a brand doc doesn't exist.
 const defaultBrand: Brand = {
   id: DEMO_BRAND_ID,
@@ -61,7 +62,7 @@ export function makeBrandRepo(db: Firestore) {
       try {
         const snap = await brandCollection.doc(brandId).get();
         if (!snap.exists) {
-          console.warn(`Brand document for ID "${brandId}" not found. Falling back to default brand config.`);
+          logger.warn(`Brand document for ID "${brandId}" not found. Falling back to default brand config.`);
           // If the default doc doesn't exist, create it for next time.
           if (brandId === DEMO_BRAND_ID) {
             await brandCollection.doc(DEMO_BRAND_ID).set(defaultBrand);
@@ -77,7 +78,7 @@ export function makeBrandRepo(db: Firestore) {
           ...data
         } as Brand;
       } catch (error) {
-        console.error(`Error fetching brand with ID "${brandId}":`, error);
+        logger.error(`Error fetching brand with ID "${brandId}":`, error);
         return { ...defaultBrand, id: brandId };
       }
     },

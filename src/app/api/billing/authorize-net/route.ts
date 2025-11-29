@@ -5,6 +5,7 @@ import { createServerClient } from "@/firebase/server-client";
 import { FieldValue } from "firebase-admin/firestore";
 import { emitEvent } from "@/server/events/emitter";
 
+import { logger } from '@/lib/logger';
 type OpaqueData = {
   dataDescriptor: string;
   dataValue: string;
@@ -116,7 +117,7 @@ export async function POST(req: NextRequest) {
     const transactionKey = process.env.AUTHNET_TRANSACTION_KEY;
 
     if (!apiLoginId || !transactionKey) {
-      console.error("Authorize.Net env vars missing");
+      logger.error("Authorize.Net env vars missing");
       return NextResponse.json(
         { error: "Authorize.Net is not configured on the server." },
         { status: 500 }
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest) {
     const profileJson: any = await profileResp.json().catch(() => null);
 
     if (profileJson?.messages?.resultCode !== "Ok") {
-        console.error("Authorize.Net profile creation failed", profileJson);
+        logger.error("Authorize.Net profile creation failed", profileJson);
         await emitEvent({ orgId, type: 'subscription.failed', agent: 'money_mike', data: { stage: "profile_creation", planId, amount, response: profileJson }});
         return NextResponse.json({ error: "Failed to create customer profile with Authorize.Net" }, { status: 502 });
     }
@@ -153,7 +154,7 @@ export async function POST(req: NextRequest) {
     const customerPaymentProfileId = profileJson.customerPaymentProfileIdList?.[0] ?? profileJson.customerPaymentProfileIdList?.customerPaymentProfileId;
 
     if (!customerProfileId || !customerPaymentProfileId) {
-        console.error("Missing profile IDs from Authorize.Net", profileJson);
+        logger.error("Missing profile IDs from Authorize.Net", profileJson);
         return NextResponse.json({ error: "Payment profile missing from Authorize.Net response" }, { status: 502 });
     }
 
@@ -180,7 +181,7 @@ export async function POST(req: NextRequest) {
     const subJson: any = await subResp.json().catch(() => null);
 
     if (subJson?.messages?.resultCode !== "Ok") {
-      console.error("Authorize.Net subscription creation failed", subJson);
+      logger.error("Authorize.Net subscription creation failed", subJson);
       await emitEvent({ orgId, type: 'subscription.failed', agent: 'money_mike', data: { stage: "subscription_creation", planId, amount, response: subJson }});
       return NextResponse.json({ error: "Failed to create subscription with Authorize.Net" }, { status: 502 });
     }
@@ -200,7 +201,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, free: false, planId, amount, providerSubscriptionId, customerProfileId, customerPaymentProfileId });
   } catch (err: any) {
-    console.error("authorize-net:subscription_error", err);
+    logger.error("authorize-net:subscription_error", err);
     if (body?.organizationId) {
       await emitEvent({ orgId: body.organizationId, type: 'subscription.failed', agent: 'money_mike', data: { error: err?.message || String(err), planId: body.planId }});
     }

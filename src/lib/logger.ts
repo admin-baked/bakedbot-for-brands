@@ -9,6 +9,7 @@
 import { Logging } from '@google-cloud/logging';
 import * as Sentry from '@sentry/nextjs';
 
+import { logger } from '@/lib/logger';
 // Initialize Google Cloud Logging (uses Application Default Credentials in production)
 const logging = typeof window === 'undefined' && process.env.NODE_ENV === 'production'
     ? new Logging({ projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8' })
@@ -55,7 +56,7 @@ function writeLog({ message, data = {}, level = 'INFO' }: LogEntry) {
         );
 
         log.write(entry).catch((err) => {
-            console.error('[Logger Error]', err);
+            logger.error('[Logger Error]', err);
         });
     } else {
         // Development: Console with level prefix
@@ -65,13 +66,13 @@ function writeLog({ message, data = {}, level = 'INFO' }: LogEntry) {
         switch (level) {
             case 'ERROR':
             case 'CRITICAL':
-                console.error(prefix, message, logData);
+                logger.error(prefix, message, logData);
                 break;
             case 'WARNING':
-                console.warn(prefix, message, logData);
+                logger.warn(prefix, message, logData);
                 break;
             default:
-                console.log(prefix, message, logData);
+                logger.info(prefix, message, logData);
         }
     }
 }

@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { requireUser } from '@/server/auth/auth';
 
 
+import { logger } from '@/lib/logger';
 // --- Data Manager Actions ---
 
 export type ActionResult = {
@@ -128,7 +129,7 @@ export async function initializeAllEmbeddings(): Promise<EmbeddingActionResult> 
     };
 
   } catch (error) {
-    console.error('Error initializing embeddings:', error);
+    logger.error('Error initializing embeddings:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     throw new Error(`Initialization failed: ${errorMessage}`);
   }

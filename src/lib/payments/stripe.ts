@@ -9,6 +9,7 @@
 
 import Stripe from 'stripe';
 
+import { logger } from '@/lib/logger';
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 
 if (!STRIPE_SECRET_KEY) {
@@ -42,7 +43,7 @@ export async function createPaymentIntent(
 
         return paymentIntent;
     } catch (error) {
-        console.error('Error creating PaymentIntent:', error);
+        logger.error('Error creating PaymentIntent:', error);
         throw error;
     }
 }
@@ -54,7 +55,7 @@ export async function getPaymentIntent(paymentIntentId: string): Promise<Stripe.
     try {
         return await stripe.paymentIntents.retrieve(paymentIntentId);
     } catch (error) {
-        console.error('Error retrieving PaymentIntent:', error);
+        logger.error('Error retrieving PaymentIntent:', error);
         throw error;
     }
 }

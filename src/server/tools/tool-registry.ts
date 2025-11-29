@@ -2,6 +2,7 @@
 
 import type { Tool, ToolCategory } from '@/types/tool';
 
+import { logger } from '@/lib/logger';
 /**
  * Central registry for all tools in the platform
  * Provides discovery, validation, and management of tools
@@ -35,7 +36,7 @@ export class ToolRegistry {
             this.toolsByApp.get(tool.appId)!.add(tool.id);
         }
 
-        console.log(`✅ Registered tool: ${tool.id} (${tool.category})`);
+        logger.info(`✅ Registered tool: ${tool.id} (${tool.category})`);
     }
 
     /**
@@ -58,7 +59,7 @@ export class ToolRegistry {
             this.toolsByApp.get(tool.appId)?.delete(toolId);
         }
 
-        console.log(`❌ Unregistered tool: ${toolId}`);
+        logger.info(`❌ Unregistered tool: ${toolId}`);
     }
 
     /**
@@ -283,5 +284,5 @@ export async function registerBuiltInTools(): Promise<void> {
     // Tools will be imported and registered here
     // This will be populated as we create tools
 
-    console.log('📦 Built-in tools registered:', registry.toString());
+    logger.info('📦 Built-in tools registered:', registry.toString());
 }

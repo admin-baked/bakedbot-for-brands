@@ -16,6 +16,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+import { logger } from '@/lib/logger';
 interface UseSpeechRecognitionReturn {
     isListening: boolean;
     transcript: string;
@@ -41,13 +42,13 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
         // TODO: Implement speech recognition start
         setIsListening(true);
         setError(null);
-        console.log('TODO: Start speech recognition');
+        logger.info('TODO: Start speech recognition');
     }, []);
 
     const stopListening = useCallback(() => {
         // TODO: Implement speech recognition stop
         setIsListening(false);
-        console.log('TODO: Stop speech recognition');
+        logger.info('TODO: Stop speech recognition');
     }, []);
 
     return {

@@ -21,6 +21,7 @@ import { demoProducts } from '@/lib/demo/demo-data'; // For mock response
 import { useAuth } from '@/hooks/use-auth';
 
 
+import { logger } from '@/lib/logger';
 type Message = {
   id: number;
   text: string;
@@ -361,7 +362,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
         setMessages((prev) => [...prev, botMessage]);
       }
     } catch (error) {
-      console.error('Chat API error:', error);
+      logger.error('Chat API error:', error);
       const errorMessage: Message = {
         id: Date.now() + 1,
         text: "I'm having trouble connecting right now. Please try again in a moment.",

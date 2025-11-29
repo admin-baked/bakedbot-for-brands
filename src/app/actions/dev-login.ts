@@ -6,6 +6,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { devPersonas, type DevPersonaKey } from '@/lib/dev-personas';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
+import { logger } from '@/lib/logger';
 /**
  * A DEVELOPMENT-ONLY server action to generate a custom Firebase auth token for a given persona.
  * This function will create/update the user in Firebase Auth and Firestore, set their
@@ -82,7 +83,7 @@ export async function createDevLoginToken(persona: DevPersonaKey): Promise<{ tok
     return { token: customToken };
 
   } catch (error: any) {
-    console.error(`Dev login failed for persona "${persona}":`, error);
+    logger.error(`Dev login failed for persona "${persona}":`, error);
     return { error: error.message || 'An unknown error occurred during dev login.' };
   }
 }

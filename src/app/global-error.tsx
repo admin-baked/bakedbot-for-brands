@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AlertCircle, FileJson } from 'lucide-react';
 import type { FirestorePermissionError } from '@/firebase/errors';
 
+import { logger } from '@/lib/logger';
 export default function GlobalError({
   error,
   reset,
@@ -16,7 +17,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error(error);
+    logger.error(error);
   }, [error]);
 
   // Check if it's our custom Firestore permission error

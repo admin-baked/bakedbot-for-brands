@@ -18,6 +18,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 
+import { logger } from '@/lib/logger';
 // Get Firebase instances
 const { auth, firestore: db } = typeof window !== 'undefined'
     ? initializeFirebase()
@@ -95,7 +96,7 @@ export async function registerWithEmail(data: CustomerRegistrationData): Promise
 
         return userCredential;
     } catch (error: any) {
-        console.error('[CustomerAuth] Registration error:', error);
+        logger.error('[CustomerAuth] Registration error:', error);
         throw error;
     }
 }
@@ -119,7 +120,7 @@ export async function registerWithGoogle(): Promise<UserCredential> {
 
         return userCredential;
     } catch (error: any) {
-        console.error('[CustomerAuth] Google registration error:', error);
+        logger.error('[CustomerAuth] Google registration error:', error);
         throw error;
     }
 }
@@ -131,7 +132,7 @@ export async function loginWithEmail(email: string, password: string): Promise<U
     try {
         return await signInWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
-        console.error('[CustomerAuth] Login error:', error);
+        logger.error('[CustomerAuth] Login error:', error);
         throw error;
     }
 }
@@ -143,7 +144,7 @@ export async function loginWithGoogle(): Promise<UserCredential> {
     try {
         return await signInWithPopup(auth, googleProvider);
     } catch (error: any) {
-        console.error('[CustomerAuth] Google login error:', error);
+        logger.error('[CustomerAuth] Google login error:', error);
         throw error;
     }
 }
@@ -155,7 +156,7 @@ export async function sendPasswordReset(email: string): Promise<void> {
     try {
         await sendPasswordResetEmail(auth, email);
     } catch (error: any) {
-        console.error('[CustomerAuth] Password reset error:', error);
+        logger.error('[CustomerAuth] Password reset error:', error);
         throw error;
     }
 }
@@ -167,7 +168,7 @@ export async function resendVerificationEmail(user: User): Promise<void> {
     try {
         await sendEmailVerification(user);
     } catch (error: any) {
-        console.error('[CustomerAuth] Verification email error:', error);
+        logger.error('[CustomerAuth] Verification email error:', error);
         throw error;
     }
 }
@@ -190,7 +191,7 @@ async function checkProfileExists(uid: string): Promise<boolean> {
         const docSnap = await getDoc(docRef);
         return docSnap.exists();
     } catch (error) {
-        console.error('[CustomerAuth] Check profile error:', error);
+        logger.error('[CustomerAuth] Check profile error:', error);
         return false;
     }
 }
@@ -231,7 +232,7 @@ async function createCustomerProfile(
 
         await setDoc(doc(db, 'users', user.uid), profile);
     } catch (error) {
-        console.error('[CustomerAuth] Create profile error:', error);
+        logger.error('[CustomerAuth] Create profile error:', error);
         throw error;
     }
 }

@@ -3,6 +3,8 @@
  * Handles sending transactional emails for order updates
  */
 
+import { logger } from '@/lib/logger';
+
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'orders@bakedbot.ai';
 const SENDGRID_BASE_URL = 'https://api.sendgrid.com/v3/mail/send';
@@ -16,7 +18,7 @@ interface EmailOptions {
 export class EmailService {
     private async sendEmail({ to, subject, html }: EmailOptions): Promise<boolean> {
         if (!SENDGRID_API_KEY) {
-            console.warn('SENDGRID_API_KEY is missing. Mocking email send:', { to, subject });
+            logger.warn('SENDGRID_API_KEY is missing. Mocking email send:', { to, subject });
             return true;
         }
 
@@ -37,13 +39,13 @@ export class EmailService {
 
             if (!response.ok) {
                 const error = await response.json();
-                console.error('SendGrid Error:', error);
+                logger.error('SendGrid Error:', error);
                 return false;
             }
 
             return true;
         } catch (error) {
-            console.error('Email Send Error:', error);
+            logger.error('Email Send Error:', error);
             return false;
         }
     }

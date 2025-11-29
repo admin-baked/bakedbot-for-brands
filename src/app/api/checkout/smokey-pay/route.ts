@@ -6,6 +6,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { emitEvent } from "@/server/events/emitter";
 import { getUserFromRequest } from "@/server/auth/auth-helpers";
 
+import { logger } from '@/lib/logger';
 type CheckoutItem = {
   productId: string;
   cannmenusProductId?: string;
@@ -153,7 +154,7 @@ export async function POST(req: NextRequest) {
 
 
   } catch (err: any) {
-    console.error("smokey-pay:checkout_error", err);
+    logger.error("smokey-pay:checkout_error", err);
     if (body?.organizationId) {
       await emitEvent({ orgId: body.organizationId, type: 'checkout.failed', agent: 'smokey', data: { error: err?.message || String(err) } });
     }

@@ -13,6 +13,7 @@ import { updateProductFeedback } from '@/app/products/[id]/actions';
 import { useUser } from '@/firebase/auth/use-user';
 import { applyGeneratedContentToProduct, type ApplyContentFormState } from '@/app/dashboard/content/actions';
 
+import { logger } from '@/lib/logger';
 interface ProductDescriptionDisplayProps {
   productDescription: (GenerateProductDescriptionOutput & { productId?: string }) | null;
 }
@@ -98,7 +99,7 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
              });
         }
     } catch (error) {
-        console.error('Share error:', error);
+        logger.error('Share error:', error);
         await navigator.clipboard.writeText(productDescription.imageUrl);
         toast({
             variant: 'destructive',

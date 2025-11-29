@@ -4,6 +4,7 @@ import { CannMenusService } from '@/server/services/cannmenus';
 import { getUserFromRequest } from '@/server/auth/auth-helpers';
 import { requireBrandAccess, hasPermission } from '@/server/auth/rbac';
 
+import { logger } from '@/lib/logger';
 export async function POST(req: NextRequest) {
     try {
         // Authenticate user
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, data: result });
     } catch (error: any) {
-        console.error('Error in sync route:', error);
+        logger.error('Error in sync route:', error);
         return NextResponse.json(
             { error: error.message || 'Internal server error' },
             { status: 500 }

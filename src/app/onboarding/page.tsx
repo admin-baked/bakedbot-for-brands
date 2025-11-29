@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { completeOnboarding } from './actions';
 import { SubmitButton } from './components/submit-button';
 
+import { logger } from '@/lib/logger';
 type BrandResult = {
   id: string;
   name: string;
@@ -49,7 +50,7 @@ export default function OnboardingPage() {
       const json = await resp.json();
       setResults(json.data?.data || []);
     } catch (e) {
-      console.error('Search failed', e);
+      logger.error('Search failed', e);
       setResults([]);
     } finally {
       setLoading(false);

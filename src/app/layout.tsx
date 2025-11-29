@@ -12,6 +12,7 @@ import { demoProducts } from '@/lib/demo/demo-data';
 import { cookies } from 'next/headers';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
+import { logger } from '@/lib/logger';
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
@@ -62,7 +63,7 @@ export default async function RootLayout({
       // We'll fetch for the demo brand as a default for now.
       products = await productRepo.getAllByBrand(DEMO_BRAND_ID);
     } catch (error) {
-      console.error("Failed to fetch products for chatbot:", error);
+      logger.error("Failed to fetch products for chatbot:", error);
       products = demoProducts; // Fallback to demo data on error
     }
   }

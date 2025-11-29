@@ -4,6 +4,8 @@
  * Flexible integration layer with test mode support
  */
 
+import { logger } from '@/lib/logger';
+
 export type PaymentMethod = 'smokey_pay' | 'cash' | 'debit';
 
 export type PaymentIntent = {
@@ -67,7 +69,7 @@ export async function createPaymentIntent(
 
         return await response.json();
     } catch (error) {
-        console.error('Failed to create payment intent:', error);
+        logger.error('Failed to create payment intent:', error);
         throw error;
     }
 }
@@ -121,7 +123,7 @@ export async function confirmPayment(
             transactionId: result.transaction_id,
         };
     } catch (error) {
-        console.error('Failed to confirm payment:', error);
+        logger.error('Failed to confirm payment:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Payment failed',
@@ -159,7 +161,7 @@ export async function getPaymentIntent(paymentIntentId: string): Promise<Payment
 
         return await response.json();
     } catch (error) {
-        console.error('Failed to get payment intent:', error);
+        logger.error('Failed to get payment intent:', error);
         return null;
     }
 }
@@ -188,7 +190,7 @@ export async function cancelPayment(paymentIntentId: string): Promise<boolean> {
 
         return response.ok;
     } catch (error) {
-        console.error('Failed to cancel payment:', error);
+        logger.error('Failed to cancel payment:', error);
         return false;
     }
 }

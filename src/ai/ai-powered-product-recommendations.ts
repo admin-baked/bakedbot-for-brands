@@ -15,6 +15,7 @@ import { demoProducts } from '@/lib/demo/demo-data';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
 
+import { logger } from '@/lib/logger';
 // The input now only requires the query and brand context.
 const RecommendProductsInputSchema = z.object({
   query: z.string().describe('The user query or description of what they are looking for.'),
@@ -101,7 +102,7 @@ const recommendProductsFlow = ai.defineFlow(
 
         // 2. Fallback to keyword search if vector search yields no results
         if (candidateProducts.length === 0) {
-            console.log('Vector search returned no results. Falling back to all products for the brand.');
+            logger.info('Vector search returned no results. Falling back to all products for the brand.');
             candidateProducts = await productRepo.getAllByBrand(input.brandId);
         }
     }

@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 const { firestore: db } = await createServerClient();
 const agentId = 'mrs_parker';
 
@@ -89,7 +91,7 @@ try {
   await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
 
 } catch (error) {
-  console.error(`[${agentId}] Error processing event ${eventId}:`, error);
+  logger.error(`[${agentId}] Error processing event ${eventId}:`, error);
   await handleDeadLetter(orgId, eventId, event, error);
 }
 }

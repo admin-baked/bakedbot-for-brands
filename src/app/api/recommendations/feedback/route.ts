@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { recommendationEngine } from '@/lib/recommendations/engine';
 import { createServerClient } from '@/firebase/server-client';
 
+import { logger } from '@/lib/logger';
 export async function POST(req: NextRequest) {
     try {
         // Get auth token
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
-        console.error('Error tracking interaction:', error);
+        logger.error('Error tracking interaction:', error);
         return NextResponse.json(
             { error: error.message || 'Failed to track interaction' },
             { status: 500 }

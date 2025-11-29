@@ -8,6 +8,7 @@ import type { Firestore } from 'firebase/firestore';
 import { onIdTokenChanged, getIdTokenResult } from 'firebase/auth';
 import { useStore } from '@/hooks/use-store';
 
+import { logger } from '@/lib/logger';
 export interface FirebaseServices {
   firebaseApp: FirebaseApp | null;
   firestore: Firestore | null;
@@ -58,14 +59,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
                     setUser(null);
                 }
             } catch (error) {
-                console.error('Error getting ID token result:', error);
+                logger.error('Error getting ID token result:', error);
                 setUserError(error instanceof Error ? error : new Error('An unknown authentication error occurred.'));
             } finally {
                 setIsUserLoading(false);
             }
         },
         (error) => {
-            console.error('Authentication state error:', error);
+            logger.error('Authentication state error:', error);
             setUserError(error);
             setIsUserLoading(false);
         }

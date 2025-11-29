@@ -7,6 +7,7 @@ import type { Task } from '@/types/task';
 import { getUserFromRequest } from '@/server/auth/auth-helpers';
 import { canAccessBrand } from '@/server/auth/rbac';
 
+import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 export async function POST(
@@ -50,7 +51,7 @@ export async function POST(
         });
 
     } catch (error) {
-        console.error(`Task execution error (${params.taskId}):`, error);
+        logger.error(`Task execution error (${params.taskId}):`, error);
         return NextResponse.json(
             {
                 error: 'Failed to execute task',

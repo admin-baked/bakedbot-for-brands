@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useDevAuth } from '@/dev-auth';
 
+import { logger } from '@/lib/logger';
 type BrandResult = {
   id: string;
   name: string;
@@ -35,7 +36,7 @@ export function OnboardingPageClient() {
       const data = await resp.json();
       setResults(data.brands ?? []);
     } catch (e) {
-      console.error('Brand search failed', e);
+      logger.error('Brand search failed', e);
       setResults([]);
     } finally {
       setLoading(false);

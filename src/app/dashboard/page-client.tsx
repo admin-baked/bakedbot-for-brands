@@ -3,6 +3,7 @@
 import * as React from "react";
 import { savePlaybookDraft } from "./playbooks/actions";
 
+import { logger } from '@/lib/logger';
 type DashboardPageClientProps = {
   brandId: string;
   initialPlaybooks?: any[];
@@ -29,7 +30,7 @@ export default function DashboardPageComponent({
 
         setList((prev) => [draft, ...prev]);
       } catch (err: any) {
-        console.error("Failed to save draft", err);
+        logger.error("Failed to save draft", err);
         setError("Failed to save draft. See console for details.");
       }
     });

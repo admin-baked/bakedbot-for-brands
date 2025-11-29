@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
+import { logger } from '@/lib/logger';
 type BillingFormProps = {
   organizationId: string;
   locationCount: number;
@@ -136,7 +137,7 @@ export function BillingForm(props: BillingFormProps) {
       { authData, cardData },
       async (response: any) => {
         if (response.messages.resultCode === "Error") {
-          console.error("Accept.js error", response);
+          logger.error("Accept.js error", response);
           setIsSubmitting(false);
           toast({
             title: "Card error",

@@ -6,6 +6,7 @@ import { BrandDoc, ProductDoc, RetailerDoc } from "@/types/cannmenus";
 import { createServerClient } from "@/firebase/server-client";
 import { requireUser } from "@/server/auth/auth";
 
+import { logger } from '@/lib/logger';
 // ---- Stub data (mirror what we used in the API routes) ----
 
 const stubBrands: BrandDoc[] = [
@@ -224,7 +225,7 @@ export async function POST(_req: NextRequest) {
       { status: 200 }
     );
   } catch (err: any) {
-    console.error("Error seeding CannMenus stub:", err);
+    logger.error("Error seeding CannMenus stub:", err);
     const status = err.message.includes("Unauthorized") ? 401 : 500;
     return NextResponse.json(
       {

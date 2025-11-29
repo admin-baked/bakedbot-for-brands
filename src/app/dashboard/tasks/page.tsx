@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Sparkles, MessageSquare, Zap } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
 export default function TasksPage() {
     const [input, setInput] = useState('');
     const [isCreating, setIsCreating] = useState(false);
@@ -58,7 +59,7 @@ export default function TasksPage() {
                 router.push(`/dashboard/chat?q=${encodeURIComponent(input)}`);
             }
         } catch (error) {
-            console.error('Error creating task:', error);
+            logger.error('Error creating task:', error);
         } finally {
             setIsCreating(false);
         }

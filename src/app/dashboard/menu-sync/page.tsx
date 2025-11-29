@@ -7,6 +7,7 @@ import { getAuth } from 'firebase/auth';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { RetailerDoc } from '@/types/cannmenus';
 
+import { logger } from '@/lib/logger';
 export default function MenuSyncPage() {
     const [retailers, setRetailers] = useState<RetailerDoc[]>([]);
     const [loading, setLoading] = useState(true);
@@ -31,7 +32,7 @@ export default function MenuSyncPage() {
 
             setRetailers(data);
         } catch (err) {
-            console.error('Error fetching retailers:', err);
+            logger.error('Error fetching retailers:', err);
             setError('Failed to load retailers');
         } finally {
             setLoading(false);
@@ -74,7 +75,7 @@ export default function MenuSyncPage() {
             await fetchRetailers(); // Refresh list
 
         } catch (err: any) {
-            console.error('Sync error:', err);
+            logger.error('Sync error:', err);
             setError(err.message);
         } finally {
             setSyncing(false);

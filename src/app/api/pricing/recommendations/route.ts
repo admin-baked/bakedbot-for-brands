@@ -4,6 +4,7 @@ import { PricingService } from '@/server/services/pricing';
 import { getUserFromRequest } from '@/server/auth/auth-helpers';
 import { requireBrandAccess, hasPermission } from '@/server/auth/rbac';
 
+import { logger } from '@/lib/logger';
 export async function POST(req: NextRequest) {
     try {
         const user = await getUserFromRequest(req);
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, count: recommendations.length, data: recommendations });
     } catch (error: any) {
-        console.error('Error generating recommendations:', error);
+        logger.error('Error generating recommendations:', error);
         return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
     }
 }
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({ success: true, data: recommendations });
     } catch (error: any) {
-        console.error('Error fetching recommendations:', error);
+        logger.error('Error fetching recommendations:', error);
         return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
     }
 }

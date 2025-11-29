@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Search, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
 
+import { logger } from '@/lib/logger';
 type Product = {
     cann_sku_id: string;
     brand_name: string | null;
@@ -78,7 +79,7 @@ export default function MenuPage() {
                 setProducts(uniqueProducts);
             }
         } catch (error) {
-            console.error('Failed to load products:', error);
+            logger.error('Failed to load products:', error);
         } finally {
             setLoading(false);
         }

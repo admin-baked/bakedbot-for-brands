@@ -9,6 +9,7 @@ import { DEMO_BRAND_ID } from '@/lib/config';
 import { requireUser } from '@/server/auth/auth';
 import { redirect } from 'next/navigation';
 
+import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 export default async function ProductContentGeneratorPage() {
@@ -35,7 +36,7 @@ export default async function ProductContentGeneratorPage() {
             const productRepo = makeProductRepo(firestore);
             products = await productRepo.getAllByBrand(brandId);
         } catch (error) {
-            console.error("Failed to fetch products for content generator:", error);
+            logger.error("Failed to fetch products for content generator:", error);
             products = demoProducts; // Fallback to demo
         } finally {
             areProductsLoading = false;

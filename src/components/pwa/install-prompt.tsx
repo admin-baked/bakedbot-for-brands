@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { X, Download } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
 interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<void>;
     userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -53,7 +54,7 @@ export function PWAInstallPrompt() {
         const { outcome } = await deferredPrompt.userChoice;
 
         if (outcome === 'accepted') {
-            console.log('User accepted the install prompt');
+            logger.info('User accepted the install prompt');
         }
 
         // Clear the deferredPrompt

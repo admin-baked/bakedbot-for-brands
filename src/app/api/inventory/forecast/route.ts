@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({ forecasts });
     } catch (error: any) {
-        console.error('Error generating inventory forecast:', error);
+        logger.error('Error generating inventory forecast:', error);
         return NextResponse.json(
             { error: error.message || 'Failed to generate inventory forecast' },
             { status: 500 }

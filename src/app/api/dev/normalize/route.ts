@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/firebase/server-client";
 
+import { logger } from '@/lib/logger';
 // This is a placeholder for a real, robust normalization service.
 // In production, this would likely be a Cloud Run service triggered by Pub/Sub.
 
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
   // 4. Upsert into the `availability` collection (omitted)
   // 5. Update the snapshot doc's `parse_status` (omitted)
 
-  console.log(`[NORMALIZER STUB] Would normalize snapshot: ${snapshot_id} for platform: ${platform}`);
+  logger.info(`[NORMALIZER STUB] Would normalize snapshot: ${snapshot_id} for platform: ${platform}`);
 
   return NextResponse.json({
     ok: true,

@@ -8,6 +8,7 @@ import type { CartItem } from '@/types/domain';
 import { applyCoupon } from './applyCoupon';
 import type { ServerOrderPayload as ServerOrderPayloadType } from '@/types/domain';
 
+import { logger } from '@/lib/logger';
 export interface ClientOrderInput {
     items: CartItem[];
     customer: { name: string; email: string; phone: string; };
@@ -35,7 +36,7 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
             userId = decodedToken.uid;
         } catch (error) {
             // Not a valid session, but allow anonymous orders
-            console.warn("Could not verify session for order, proceeding as anonymous.");
+            logger.warn("Could not verify session for order, proceeding as anonymous.");
         }
     }
 
@@ -114,7 +115,7 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
           return { ok: true, orderId: json.orderId, userId: userId || 'anonymous' }
 
     } catch(e: any) {
-        console.error("ORDER_SUBMISSION_FAILED:", e);
+        logger.error("ORDER_SUBMISSION_FAILED:", e);
         return { ok: false, error: e.message || 'Could not submit order.' };
     }
 }

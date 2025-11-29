@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { abTestingService } from '@/lib/experiments/ab-testing-service';
 import { createServerClient } from '@/firebase/server-client';
 
+import { logger } from '@/lib/logger';
 export async function POST(
     req: NextRequest,
     { params }: { params: { experimentId: string } }
@@ -37,7 +38,7 @@ export async function POST(
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
-        console.error('Error tracking experiment metric:', error);
+        logger.error('Error tracking experiment metric:', error);
         return NextResponse.json(
             { error: error.message || 'Failed to track metric' },
             { status: 500 }
