@@ -184,6 +184,7 @@ Configure Sentry error tracking. Package installed but not configured.
 
 ### AI Log
 - [Dev1-Claude @ 2025-11-29]: Essential for production observability.
+- [Dev2-Infra @ 2025-11-29]: ✅ CONFIGURATION COMPLETE. Added SENTRY_DSN secret binding to apphosting.yaml. Created docs/SENTRY.md with setup instructions. MANUAL: Get Sentry DSN from project and create secret in GCP. Ready for Dev1 to configure sentry.client.config.ts and sentry.server.config.ts.
 
 ---
 
@@ -337,6 +338,7 @@ Secure dev auth bypass to prevent unauthorized production access.
 
 ### AI Log
 - [Dev1-Claude @ 2025-11-29]: Security risk if dev bypass in prod.
+- [Dev2-Infra @ 2025-11-29]: ✅ CONFIGURATION COMPLETE. Verified dev auth security: dev-login-button.tsx has NODE_ENV check (returns null in production). Added NEXT_PUBLIC_DEV_AUTH_BYPASS=false to apphosting.yaml. Dev bypass safe for production.
 
 ---
 

@@ -7,46 +7,51 @@ build:
 
 runConfig:
   env:
-    # Bind the env var FIREBASE_SERVICE_ACCOUNT_KEY to the Secret Manager secret
+    # Firebase
     - variable: FIREBASE_SERVICE_ACCOUNT_KEY
       secret: FIREBASE_SERVICE_ACCOUNT_KEY
       availability:
         - BUILD
         - RUNTIME
+    # Email
     - variable: SENDGRID_API_KEY
       secret: SENDGRID_API_KEY
     - variable: SENDGRID_FROM_EMAIL
       value: "orders@bakedbot.ai"
     - variable: SENDGRID_FROM_NAME
       value: "BakedBot Orders"
+    # Security
     - variable: RECAPTCHA_SECRET_KEY
       secret: RECAPTCHA_SECRET_KEY
+    - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+      secret: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+    # CannMenus
     - variable: CANNMENUS_API_BASE
       value: "https://api.cannmenus.com"
     - variable: CANNMENUS_API_KEY
       secret: CANNMENUS_API_KEY
+    # Authorize.Net
     - variable: AUTHNET_API_LOGIN_ID
       secret: AUTHNET_API_LOGIN_ID
     - variable: AUTHNET_TRANSACTION_KEY
       secret: AUTHNET_TRANSACTION_KEY
     - variable: AUTHNET_ENV
-      value: "sandbox" # Use "production" for live
+      value: "sandbox"
     - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
       secret: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
     - variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
       secret: AUTHNET_API_LOGIN_ID
-    # App Check needs the public key to be an env var
-    - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-      secret: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+    # AI/Tools
     - variable: CLAUDE_API_KEY
       secret: CLAUDE_API_KEY
+    # SMS
     - variable: BLACKLEAF_API_KEY
       secret: BLACKLEAF_API_KEY
     - variable: BLACKLEAF_BASE_URL
       value: "https://api.blackleaf.io"
     # CannPay (Primary Payment Partner)
     - variable: CANPAY_MODE
-      value: "sandbox" # Change to "live" for production
+      value: "sandbox"
     - variable: CANPAY_APP_KEY
       secret: CANPAY_APP_KEY
     - variable: CANPAY_API_SECRET
@@ -55,11 +60,12 @@ runConfig:
       secret: CANPAY_INTEGRATOR_ID
     - variable: CANPAY_INTERNAL_VERSION
       secret: CANPAY_INTERNAL_VERSION
-
-# Serve all traffic from the Next.js backend.
-# This is a sensible default for most web apps.
-# For more advanced configurations, see the documentation.
-# https://firebase.google.com/docs/app-hosting/configure-backend
-# rewrites:
-#   - source: /.*
-#     destination: /_next/server/server.js
+    # Monitoring
+    - variable: SENTRY_DSN
+      secret: SENTRY_DSN
+      availability:
+        - BUILD
+        - RUNTIME
+    # Dev/Security
+    - variable: NEXT_PUBLIC_DEV_AUTH_BYPASS
+      value: "false"
