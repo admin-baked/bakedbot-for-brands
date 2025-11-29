@@ -79,6 +79,7 @@ Implement secure signature verification for CannPay webhooks. Currently accepts 
   - CANPAY_WEBHOOK_SECRET missing from apphosting.yaml
   - No logger utility exists (blocked by P0-MON-LOGGING)
   - Next: Research CannPay webhook signature spec, implement verification
+- [Dev2-Infra @ 2025-11-29]: ✅ Infrastructure ready. Added CannPay config to apphosting.yaml. Documented sandbox credentials (8954cd15). MANUAL: Create 4 secrets in GCP Console. Ready for Dev1 webhook implementation.
 
 ---
 

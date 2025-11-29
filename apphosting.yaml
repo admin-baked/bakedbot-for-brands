@@ -44,6 +44,17 @@ runConfig:
       secret: BLACKLEAF_API_KEY
     - variable: BLACKLEAF_BASE_URL
       value: "https://api.blackleaf.io"
+    # CannPay (Primary Payment Partner)
+    - variable: CANPAY_MODE
+      value: "sandbox" # Change to "live" for production
+    - variable: CANPAY_APP_KEY
+      secret: CANPAY_APP_KEY
+    - variable: CANPAY_API_SECRET
+      secret: CANPAY_API_SECRET
+    - variable: CANPAY_INTEGRATOR_ID
+      secret: CANPAY_INTEGRATOR_ID
+    - variable: CANPAY_INTERNAL_VERSION
+      secret: CANPAY_INTERNAL_VERSION
 
 # Serve all traffic from the Next.js backend.
 # This is a sensible default for most web apps.
