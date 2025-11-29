@@ -6,7 +6,13 @@
  * Run before deployment to catch configuration issues early
  */
 
-import { logger } from '../src/lib/logger.js';
+// Simple logger for this script (doesn't use src/lib/logger to avoid dependencies)
+const logger = {
+    info: (...args) => console.log(...args),
+    warn: (...args) => console.warn(...args),
+    error: (...args) => console.error(...args),
+    debug: (...args) => console.log(...args),
+};
 
 // Environment variable definitions
 const ENV_VARS = {
