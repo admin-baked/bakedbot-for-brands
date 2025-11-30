@@ -54,24 +54,25 @@ export default function CustomerLoginPage() {
     const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
     const userRole = idTokenResult.claims.role as string | undefined;
 
+    // Use window.location.href for full page reload to ensure session cookie is picked up
     // If user has no role or is brand new, send to onboarding.
     if (!userRole || isNewUser) {
-      router.push('/onboarding');
+      window.location.href = '/onboarding';
       return;
     }
 
     // Check if user has appropriate role for customer login
     if (userRole === 'customer') {
-      router.push('/account');
+      window.location.href = '/account';
     } else if (userRole === 'brand' || userRole === 'dispensary' || userRole === 'owner') {
       toast({
         variant: 'default',
         title: 'Business Account',
         description: 'Redirecting to your dashboard.'
       });
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } else {
-      router.push('/account');
+      window.location.href = '/account';
     }
   };
 
