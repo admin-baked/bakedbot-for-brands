@@ -88,6 +88,141 @@ _Security tickets are highest priority._
 
 ---
 
+## Ticket: P0-PAY-CANNPAY-INTEGRATION
+**Owner:** Dev 1 (Implementation), Dev 2 (Config), Dev 4 (Testing)
+**Priority:** CRITICAL
+**Status:** 🚧 IN PROGRESS
+
+### Summary
+Implement complete CanPay payment integration with transaction fee support. Webhook signature verification is already complete (P0-SEC-CANNPAY-WEBHOOK ✅), but end-to-end payment flow, UI, and transaction fee mechanism are missing.
+
+### Requirements
+1. **Order Flow Options:**
+   - **Default:** Send order to dispensary (no payment needed - customer pays on pickup)
+   - **Option #1:** CanPay payment processing (cannabis-specific processor)
+   - **Option #2:** Stripe payment (fallback for customers without CanPay)
+2. **Transaction Fee:** Charge 50 cents per CanPay transaction
+3. **Payment Selection UI:** Customer selects payment method during checkout
+4. **Integration:** CanPay RemotePay widget integration per API docs
+
+### Definition of Done
+- [ ] Payment selection UI in checkout flow (dispensary-direct / CanPay / Stripe)
+- [ ] CanPay client library created (`src/lib/payments/cannpay.ts`)
+- [ ] `/integrator/authorize` endpoint integration (get intent_id)
+- [ ] CanPay widget launches with intent_id in checkout flow
+- [ ] JavaScript callback handles payment success/failure
+- [ ] Transaction fee (50 cents) added to CanPay transactions
+- [ ] Fee displayed to customer in checkout summary
+- [ ] Fee tracked in Firestore order document (`order.canpay.fee`)
+- [ ] CannPay secrets referenced in `apphosting.yaml`
+- [ ] E2E tests for all three payment paths
+- [ ] Documentation in `docs/CANNPAY_INTEGRATION.md`
+
+### Files
+- `src/lib/payments/cannpay.ts` (to be created - API client)
+- `src/app/api/checkout/process-payment/route.ts` (integrate payment selection)
+- `src/components/checkout/payment-selection.tsx` (to be created - UI)
+- `src/components/checkout/cannpay-widget.tsx` (to be created - widget wrapper)
+- `src/app/api/webhooks/cannpay/route.ts` (webhook already done ✅)
+- `apphosting.yaml` (add CannPay secret references)
+- `docs/CANNPAY_INTEGRATION.md` (to be created)
+- `tests/e2e/checkout-cannpay.spec.ts` (to be created)
+
+### Technical Design
+
+#### 1. CanPay Client Library (`src/lib/payments/cannpay.ts`)
+```typescript
+// Based on CanPay RemotePay Integration Guide v1.4.0-dev
+interface CannPayConfig {
+  appKey: string;
+  apiSecret: string;
+  integratorId: string;
+  internalVersion: string;
+  environment: 'sandbox' | 'live';
+}
+
+interface AuthorizePaymentRequest {
+  amount: number; // in cents
+  deliveryFee?: number; // in cents (our 50 cent transaction fee)
+  merchantOrderId?: string; // our internal order ID
+  passthrough?: string; // JSON with orderId/organizationId
+}
+
+interface AuthorizePaymentResponse {
+  intent_id: string;
+  widget_url: string;
+}
+
+export async function authorizePayment(request: AuthorizePaymentRequest): Promise<AuthorizePaymentResponse>
+export async function getTransactionDetails(intentId: string): Promise<CannPayTransaction>
+export async function reverseTransaction(intentId: string): Promise<void>
+```
+
+#### 2. Payment Selection Flow
+```
+Checkout Page
+  ↓
+Payment Selection Component
+  ├─→ Option 1: Dispensary Direct (default - no payment needed)
+  ├─→ Option 2: CanPay (+$0.50 transaction fee)
+  └─→ Option 3: Stripe (optional fallback)
+  ↓
+If CanPay selected:
+  ↓
+Backend: POST /api/checkout/cannpay/authorize
+  ↓ (calls CannPay /integrator/authorize)
+Returns: { intent_id, widget_url }
+  ↓
+Frontend: Launch CanPay widget with intent_id
+  ↓
+Widget Callback: { status, transaction_number, amount }
+  ↓
+Frontend: POST /api/checkout/process-payment
+  ↓
+Backend: Verify webhook received (optional)
+  ↓
+Order status updated: 'paid' or 'failed'
+```
+
+#### 3. Transaction Fee Structure
+- Base order total: $100.00
+- CanPay transaction fee: $0.50
+- **Customer pays:** $100.50
+- **Dispensary receives:** $100.00
+- **Platform fee:** $0.50 (tracked in `order.canpay.fee`)
+
+#### 4. Database Schema Addition
+```typescript
+// In Firestore orders collection
+interface Order {
+  // ... existing fields
+  paymentMethod: 'dispensary_direct' | 'cannpay' | 'stripe';
+  canpay?: {
+    intentId: string;
+    transactionNumber: string;
+    amount: number; // total paid by customer (including fee)
+    fee: number; // platform transaction fee (50 cents)
+    tipAmount?: number;
+    deliveryFee?: number;
+    status: 'Success' | 'Settled' | 'Failed' | 'Voided' | 'Pending';
+  };
+}
+```
+
+### AI Log
+- [Dev1-Claude @ 2025-11-30]: Created ticket based on user requirements:
+  - Default order flow: send to dispensary (no payment)
+  - CanPay as payment option #1 (not exclusive)
+  - 50 cent transaction fee per CanPay transaction
+  - Webhook verification already complete (P0-SEC-CANNPAY-WEBHOOK ✅)
+  - CanPay RemotePay Integration Guide v1.4.0-dev reviewed (57 pages)
+  - Technical design based on API spec: authorize → widget → callback → webhook
+  - CannPay requires 4 secrets: app_key, api_secret, integrator_id, canpay_internal_version
+  - Transaction fee added via `delivery_fee` parameter in authorize request
+  - NEXT: Create CanPay client library and payment selection UI
+
+---
+
 ## Ticket: P0-SEC-CANNPAY-WEBHOOK
 **Owner:** Dev 1 (Implementation), Dev 2 (Secrets), Dev 3 (Tests)
 **Priority:** CRITICAL
