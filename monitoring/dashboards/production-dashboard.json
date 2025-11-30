@@ -1,0 +1,366 @@
+{
+    "displayName": "BakedBot Production Dashboard",
+    "mosaicLayout": {
+        "columns": 12,
+        "tiles": [
+            {
+                "width": 6,
+                "height": 4,
+                "widget": {
+                    "title": "Application Error Rate",
+                    "xyChart": {
+                        "dataSets": [
+                            {
+                                "timeSeriesQuery": {
+                                    "timeSeriesFilter": {
+                                        "filter": "resource.type=\"cloud_run_revision\" AND metric.type=\"run.googleapis.com/request_count\"",
+                                        "aggregation": {
+                                            "alignmentPeriod": "60s",
+                                            "perSeriesAligner": "ALIGN_RATE",
+                                            "crossSeriesReducer": "REDUCE_SUM",
+                                            "groupByFields": [
+                                                "metric.response_code_class"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "plotType": "LINE",
+                                "targetAxis": "Y1"
+                            }
+                        ],
+                        "yAxis": {
+                            "label": "Requests/sec",
+                            "scale": "LINEAR"
+                        }
+                    }
+                }
+            },
+            {
+                "xPos": 6,
+                "width": 6,
+                "height": 4,
+                "widget": {
+                    "title": "Response Time (P95)",
+                    "xyChart": {
+                        "dataSets": [
+                            {
+                                "timeSeriesQuery": {
+                                    "timeSeriesFilter": {
+                                        "filter": "resource.type=\"cloud_run_revision\" AND metric.type=\"run.googleapis.com/request_latencies\"",
+                                        "aggregation": {
+                                            "alignmentPeriod": "60s",
+                                            "perSeriesAligner": "ALIGN_DELTA",
+                                            "crossSeriesReducer": "REDUCE_PERCENTILE_95"
+                                        }
+                                    }
+                                },
+                                "plotType": "LINE",
+                                "targetAxis": "Y1"
+                            }
+                        ],
+                        "yAxis": {
+                            "label": "Milliseconds",
+                            "scale": "LINEAR"
+                        },
+                        "thresholds": [
+                            {
+                                "value": 1000,
+                                "color": "YELLOW",
+                                "direction": "ABOVE"
+                            },
+                            {
+                                "value": 3000,
+                                "color": "RED",
+                                "direction": "ABOVE"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "yPos": 4,
+                "width": 4,
+                "height": 4,
+                "widget": {
+                    "title": "Firestore Reads/Writes",
+                    "xyChart": {
+                        "dataSets": [
+                            {
+                                "timeSeriesQuery": {
+                                    "timeSeriesFilter": {
+                                        "filter": "resource.type=\"firestore_database\" AND metric.type=\"firestore.googleapis.com/document/read_count\"",
+                                        "aggregation": {
+                                            "alignmentPeriod": "60s",
+                                            "perSeriesAligner": "ALIGN_RATE",
+                                            "crossSeriesReducer": "REDUCE_SUM"
+                                        }
+                                    }
+                                },
+                                "plotType": "LINE",
+                                "targetAxis": "Y1"
+                            },
+                            {
+                                "timeSeriesQuery": {
+                                    "timeSeriesFilter": {
+                                        "filter": "resource.type=\"firestore_database\" AND metric.type=\"firestore.googleapis.com/document/write_count\"",
+                                        "aggregation": {
+                                            "alignmentPeriod": "60s",
+                                            "perSeriesAligner": "ALIGN_RATE",
+                                            "crossSeriesReducer": "REDUCE_SUM"
+                                        }
+                                    }
+                                },
+                                "plotType": "LINE",
+                                "targetAxis": "Y1"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "xPos": 4,
+                "yPos": 4,
+                "width": 4,
+                "height": 4,
+                "widget": {
+                    "title": "Memory Usage",
+                    "xyChart": {
+                        "dataSets": [
+                            {
+                                "timeSeriesQuery": {
+                                    "timeSeriesFilter": {
+                                        "filter": "resource.type=\"cloud_run_revision\" AND metric.type=\"run.googleapis.com/container/memory/utilizations\"",
+                                        "aggregation": {
+                                            "alignmentPeriod": "60s",
+                                            "perSeriesAligner": "ALIGN_MEAN",
+                                            "crossSeriesReducer": "REDUCE_MEAN"
+                                        }
+                                    }
+                                },
+                                "plotType": "LINE",
+                                "targetAxis": "Y1"
+                            }
+                        ],
+                        "yAxis": {
+                            "label": "Utilization",
+                            "scale": "LINEAR"
+                        },
+                        "thresholds": [
+                            {
+                                "value": 0.8,
+                                "color": "YELLOW",
+                                "direction": "ABOVE"
+                            },
+                            {
+                                "value": 0.9,
+                                "color": "RED",
+                                "direction": "ABOVE"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "xPos": 8,
+                "yPos": 4,
+                "width": 4,
+                "height": 4,
+                "widget": {
+                    "title": "CPU Usage",
+                    "xyChart": {
+                        "dataSets": [
+                            {
+                                "timeSeriesQuery": {
+                                    "timeSeriesFilter": {
+                                        "filter": "resource.type=\"cloud_run_revision\" AND metric.type=\"run.googleapis.com/container/cpu/utilizations\"",
+                                        "aggregation": {
+                                            "alignmentPeriod": "60s",
+                                            "perSeriesAligner": "ALIGN_MEAN",
+                                            "crossSeriesReducer": "REDUCE_MEAN"
+                                        }
+                                    }
+                                },
+                                "plotType": "LINE",
+                                "targetAxis": "Y1"
+                            }
+                        ],
+                        "yAxis": {
+                            "label": "Utilization",
+                            "scale": "LINEAR"
+                        },
+                        "thresholds": [
+                            {
+                                "value": 0.7,
+                                "color": "YELLOW",
+                                "direction": "ABOVE"
+                            },
+                            {
+                                "value": 0.9,
+                                "color": "RED",
+                                "direction": "ABOVE"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "yPos": 8,
+                "width": 6,
+                "height": 4,
+                "widget": {
+                    "title": "Active Instances",
+                    "xyChart": {
+                        "dataSets": [
+                            {
+                                "timeSeriesQuery": {
+                                    "timeSeriesFilter": {
+                                        "filter": "resource.type=\"cloud_run_revision\" AND metric.type=\"run.googleapis.com/container/instance_count\"",
+                                        "aggregation": {
+                                            "alignmentPeriod": "60s",
+                                            "perSeriesAligner": "ALIGN_MEAN",
+                                            "crossSeriesReducer": "REDUCE_SUM"
+                                        }
+                                    }
+                                },
+                                "plotType": "LINE",
+                                "targetAxis": "Y1"
+                            }
+                        ],
+                        "yAxis": {
+                            "label": "Instances",
+                            "scale": "LINEAR"
+                        }
+                    }
+                }
+            },
+            {
+                "xPos": 6,
+                "yPos": 8,
+                "width": 6,
+                "height": 4,
+                "widget": {
+                    "title": "Sentry Error Count",
+                    "scorecard": {
+                        "timeSeriesQuery": {
+                            "timeSeriesFilter": {
+                                "filter": "resource.type=\"generic_task\" AND metric.type=\"logging.googleapis.com/user/sentry_errors\"",
+                                "aggregation": {
+                                    "alignmentPeriod": "60s",
+                                    "perSeriesAligner": "ALIGN_RATE",
+                                    "crossSeriesReducer": "REDUCE_SUM"
+                                }
+                            }
+                        },
+                        "sparkChartView": {
+                            "sparkChartType": "SPARK_LINE"
+                        },
+                        "thresholds": [
+                            {
+                                "value": 10,
+                                "color": "YELLOW",
+                                "direction": "ABOVE"
+                            },
+                            {
+                                "value": 50,
+                                "color": "RED",
+                                "direction": "ABOVE"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "yPos": 12,
+                "width": 12,
+                "height": 1,
+                "widget": {
+                    "title": "Business Metrics",
+                    "text": {
+                        "content": "### Orders, Revenue, and User Activity",
+                        "format": "MARKDOWN"
+                    }
+                }
+            },
+            {
+                "yPos": 13,
+                "width": 4,
+                "height": 4,
+                "widget": {
+                    "title": "Orders Created (Last Hour)",
+                    "scorecard": {
+                        "timeSeriesQuery": {
+                            "timeSeriesFilter": {
+                                "filter": "resource.type=\"generic_task\" AND metric.type=\"logging.googleapis.com/user/orders_created\"",
+                                "aggregation": {
+                                    "alignmentPeriod": "3600s",
+                                    "perSeriesAligner": "ALIGN_SUM",
+                                    "crossSeriesReducer": "REDUCE_SUM"
+                                }
+                            }
+                        },
+                        "sparkChartView": {
+                            "sparkChartType": "SPARK_BAR"
+                        }
+                    }
+                }
+            },
+            {
+                "xPos": 4,
+                "yPos": 13,
+                "width": 4,
+                "height": 4,
+                "widget": {
+                    "title": "Active Users (Last Hour)",
+                    "scorecard": {
+                        "timeSeriesQuery": {
+                            "timeSeriesFilter": {
+                                "filter": "resource.type=\"generic_task\" AND metric.type=\"logging.googleapis.com/user/active_users\"",
+                                "aggregation": {
+                                    "alignmentPeriod": "3600s",
+                                    "perSeriesAligner": "ALIGN_MAX",
+                                    "crossSeriesReducer": "REDUCE_SUM"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "xPos": 8,
+                "yPos": 13,
+                "width": 4,
+                "height": 4,
+                "widget": {
+                    "title": "Payment Success Rate",
+                    "scorecard": {
+                        "timeSeriesQuery": {
+                            "timeSeriesFilter": {
+                                "filter": "resource.type=\"generic_task\" AND metric.type=\"logging.googleapis.com/user/payment_success_rate\"",
+                                "aggregation": {
+                                    "alignmentPeriod": "3600s",
+                                    "perSeriesAligner": "ALIGN_MEAN"
+                                }
+                            }
+                        },
+                        "gaugeView": {
+                            "lowerBound": 0,
+                            "upperBound": 1
+                        },
+                        "thresholds": [
+                            {
+                                "value": 0.95,
+                                "color": "YELLOW",
+                                "direction": "BELOW"
+                            },
+                            {
+                                "value": 0.9,
+                                "color": "RED",
+                                "direction": "BELOW"
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    }
+}
