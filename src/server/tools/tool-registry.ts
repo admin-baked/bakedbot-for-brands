@@ -284,5 +284,5 @@ export async function registerBuiltInTools(): Promise<void> {
     // Tools will be imported and registered here
     // This will be populated as we create tools
 
-    logger.info('📦 Built-in tools registered:', registry.toString());
+    logger.info('📦 Built-in tools registered:', { tools: registry.toString() });
 }

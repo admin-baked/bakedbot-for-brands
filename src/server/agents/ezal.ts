@@ -10,19 +10,19 @@ const HANDLED_TYPES: EventType[] = [
 ];
 
 async function handleDeadLetter(orgId: string, eventId: string, eventData: any, error: any) {
-    const { firestore: db } = await createServerClient();
-    const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
-    const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
+  const { firestore: db } = await createServerClient();
+  const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
+  const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
 
-    const batch = db.batch();
-    batch.set(dlqRef, {
-        ...eventData,
-        _failedAt: FieldValue.serverTimestamp(),
-        _error: error?.message || String(error),
-        _agentId: 'ezal',
-    });
-    batch.delete(originalEventRef);
-    await batch.commit();
+  const batch = db.batch();
+  batch.set(dlqRef, {
+    ...eventData,
+    _failedAt: FieldValue.serverTimestamp(),
+    _error: error?.message || String(error),
+    _agentId: 'ezal',
+  });
+  batch.delete(originalEventRef);
+  await batch.commit();
 }
 
 export async function handleEzalEvent(orgId: string, eventId: string) {
@@ -41,8 +41,8 @@ export async function handleEzalEvent(orgId: string, eventId: string) {
   }
 
   if (!HANDLED_TYPES.includes(event.type)) {
-     // Mark as processed even if not handled to prevent re-scanning
-     await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
+    // Mark as processed even if not handled to prevent re-scanning
+    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
     return;
   }
 
@@ -89,11 +89,11 @@ export async function handleEzalEvent(orgId: string, eventId: string) {
       },
       { merge: true }
     );
-    
+
     await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
 
   } catch (error) {
-     logger.error(`[${agentId}] Error processing event ${eventId}:`, error);
-     await handleDeadLetter(orgId, eventId, event, error);
+    logger.error(`[${agentId}] Error processing event ${eventId}:`, error instanceof Error ? error : new Error(String(error)));
+    await handleDeadLetter(orgId, eventId, event, error);
   }
 }

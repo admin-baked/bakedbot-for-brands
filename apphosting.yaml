@@ -52,6 +52,8 @@ runConfig:
     # CannPay (Primary Payment Partner)
     - variable: CANPAY_MODE
       value: "sandbox"
+    - variable: CANPAY_ENVIRONMENT
+      value: "sandbox"
     - variable: CANPAY_APP_KEY
       secret: CANPAY_APP_KEY
     - variable: CANPAY_API_SECRET
@@ -59,7 +61,7 @@ runConfig:
     - variable: CANPAY_INTEGRATOR_ID
       secret: CANPAY_INTEGRATOR_ID
     - variable: CANPAY_INTERNAL_VERSION
-      secret: CANPAY_INTERNAL_VERSION
+      value: "1.4.0"
     # Stripe (Optional Payment Partner)
     - variable: STRIPE_SECRET_KEY
       secret: STRIPE_SECRET_KEY

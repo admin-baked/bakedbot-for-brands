@@ -1,9 +1,10 @@
-
 // src/server/agents/mrsParker.ts
 import { createServerClient } from "@/firebase/server-client";
 import { EventType } from "@/types/domain";
 import { FieldValue } from "firebase-admin/firestore";
 import { deeboCheckMessage } from "./deebo";
+import { leafbuyerService } from "@/lib/sms/leafbuyer";
+import { logger } from '@/lib/logger';
 
 const HANDLED_TYPES: EventType[] = [
   "checkout.paid",
@@ -11,19 +12,19 @@ const HANDLED_TYPES: EventType[] = [
 ];
 
 async function handleDeadLetter(orgId: string, eventId: string, eventData: any, error: any) {
-    const { firestore: db } = await createServerClient();
-    const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
-    const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
+  const { firestore: db } = await createServerClient();
+  const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
+  const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
 
-    const batch = db.batch();
-    batch.set(dlqRef, {
-        ...eventData,
-        _failedAt: FieldValue.serverTimestamp(),
-        _error: error?.message || String(error),
-        _agentId: 'mrs_parker',
-    });
-    batch.delete(originalEventRef);
-    await batch.commit();
+  const batch = db.batch();
+  batch.set(dlqRef, {
+    ...eventData,
+    _failedAt: FieldValue.serverTimestamp(),
+    _error: error?.message || String(error),
+    _agentId: 'mrs_parker',
+  });
+  batch.delete(originalEventRef);
+  await batch.commit();
 }
 
 
@@ -39,25 +40,36 @@ function computeTier(points: number): string {
   return "New";
 }
 
-async function sendSms(orgId: string, state: string, phone: string, message: string) {
-    // 1. Ask Deebo for permission first.
-    const complianceCheck = await deeboCheckMessage({
-      orgId,
-      channel: "sms",
-      stateCode: state,
-      content: message,
+async function sendSms(orgId: string, state: string, phone: string, message: string, order?: any) {
+  // 1. Ask Deebo for permission first.
+  const complianceCheck = await deeboCheckMessage({
+    orgId,
+    channel: "sms",
+    stateCode: state,
+    content: message,
+  });
+
+  if (!complianceCheck.ok) {
+    logger.warn('Mrs. Parker: SMS blocked by Deebo', {
+      phone,
+      reason: complianceCheck.reason
     });
-  
-    if (!complianceCheck.ok) {
-      console.log(`Mrs. Parker: [Blocked] SMS to ${phone} blocked by Deebo. Reason: ${complianceCheck.reason}`);
-      return; // Stop if compliance check fails
+    return false; // Stop if compliance check fails
+  }
+
+  // 2. If compliant, send via Leafbuyer
+  try {
+    const success = await leafbuyerService.sendMessage({ to: phone, message });
+    if (success) {
+      logger.info('Mrs. Parker: SMS sent successfully', { phone, orderId: order?.id });
     }
-  
-    // 2. If compliant, send the SMS (placeholder).
-    // TODO: integrate with Twilio or another SMS provider.
-    console.log(`Mrs. Parker: [Action] Would send SMS to ${phone}: "${message}"`);
+    return success;
+  } catch (error) {
+    logger.error('Mrs. Parker: SMS send failed', error instanceof Error ? error : new Error(String(error)));
+    return false;
+  }
 }
-  
+
 
 export async function handleMrsParkerEvent(orgId: string, eventId: string) {
   const { firestore: db } = await createServerClient();
@@ -75,11 +87,11 @@ export async function handleMrsParkerEvent(orgId: string, eventId: string) {
   }
 
   if (!HANDLED_TYPES.includes(event.type)) {
-     // Mark as processed even if not handled to prevent re-scanning
-     await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
+    // Mark as processed even if not handled to prevent re-scanning
+    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
     return;
   }
-  
+
   const orderId = event.refId;
   if (!orderId) {
     await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
@@ -95,15 +107,15 @@ export async function handleMrsParkerEvent(orgId: string, eventId: string) {
       .get();
 
     if (!orderSnap.exists) {
-        await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-        return;
+      await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
+      return;
     };
     const order = orderSnap.data() as any;
 
     const customerKey = buildCustomerKey(order);
     if (!customerKey) {
-        await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-        return;
+      await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
+      return;
     };
 
     const loyaltyRef = db
@@ -130,9 +142,9 @@ export async function handleMrsParkerEvent(orgId: string, eventId: string) {
       if (isFirstOrder && order.customerPhone) {
         const welcomeMessage = `Welcome to the ${orgId} family! You've earned ${earnedPoints} points on your first order. Thanks for your business!`;
         // We can call the SMS function directly from here, within the transaction's scope.
-        await sendSms(orgId, "NY", order.customerPhone, welcomeMessage);
+        await sendSms(orgId, "NY", order.customerPhone, welcomeMessage, order);
       }
-      
+
       tx.set(
         loyaltyRef,
         {
@@ -151,7 +163,7 @@ export async function handleMrsParkerEvent(orgId: string, eventId: string) {
     await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
 
   } catch (error) {
-     console.error(`[${agentId}] Error processing event ${eventId}:`, error);
-     await handleDeadLetter(orgId, eventId, event, error);
+    logger.error(`[mrs_parker] Error processing event ${eventId}:`, error instanceof Error ? error : new Error(String(error)));
+    await handleDeadLetter(orgId, eventId, event, error);
   }
 }

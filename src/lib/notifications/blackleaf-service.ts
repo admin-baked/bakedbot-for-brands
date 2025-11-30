@@ -48,7 +48,7 @@ export class BlackleafService {
 
             return true;
         } catch (error) {
-            logger.error('SMS Send Error:', error);
+            logger.error('SMS Send Error:', error instanceof Error ? error : new Error(String(error)));
             return false;
         }
     }

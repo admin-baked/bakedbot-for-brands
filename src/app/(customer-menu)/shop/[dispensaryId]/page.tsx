@@ -1,4 +1,3 @@
-
 'use client';
 
 // src/app/(customer-menu)/shop/[dispensaryId]/page.tsx
@@ -24,6 +23,7 @@ import Link from 'next/link';
 import { FloatingCartButton } from '@/components/floating-cart-button';
 
 import { logger } from '@/lib/logger';
+
 export default function DispensaryShopPage() {
     const params = useParams();
 
@@ -41,14 +41,14 @@ export default function DispensaryShopPage() {
     const [sessionId] = useState(() => getOrCreateSessionId());
 
     const { addItem, items: cartItems, setDispensary } = useCartStore();
-    
+
     const loadProducts = useCallback(async () => {
         setLoading(true);
         try {
             const retailerProducts = await getRetailerProducts(dispensaryId);
             setProducts(retailerProducts);
         } catch (error) {
-            logger.error('Failed to load products:', error);
+            logger.error('Failed to load products:', error instanceof Error ? error : new Error(String(error)));
         } finally {
             setLoading(false);
         }
@@ -64,7 +64,7 @@ export default function DispensaryShopPage() {
         if (searchQuery) {
             trackSearch(searchQuery, filteredProducts.length, sessionId);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery]);
 
     const filteredProducts = products

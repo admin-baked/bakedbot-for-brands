@@ -6,7 +6,7 @@
  * Supports rollback and dry-run
  */
 
-import { createServerClient } from './server-client';
+import { createServerClient } from '../server-client';
 import { logger } from '@/lib/logger';
 
 export interface Migration {

@@ -149,7 +149,7 @@ export async function completeOnboarding(prevState: OnboardingState, formData: F
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-    logger.error('Onboarding server action failed:', errorMessage);
+    logger.error('Onboarding server action failed:', { error: errorMessage });
     return { message: `Failed to save profile: ${errorMessage}`, error: true };
   }
 }

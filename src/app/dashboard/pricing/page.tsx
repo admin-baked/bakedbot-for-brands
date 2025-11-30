@@ -38,7 +38,7 @@ export default function PricingPage() {
             const data = await response.json();
             setRecommendations(data.data || []);
         } catch (err) {
-            logger.error('Error fetching recommendations:', err);
+            logger.error('Error fetching recommendations:', err instanceof Error ? err : new Error(String(err)));
             // Don't show error immediately on load if it's just auth delay
         } finally {
             setLoading(false);
@@ -81,7 +81,7 @@ export default function PricingPage() {
             setRecommendations(result.data || []);
 
         } catch (err: any) {
-            logger.error('Generation error:', err);
+            logger.error('Generation error:', err instanceof Error ? err : new Error(String(err)));
             setError(err.message);
         } finally {
             setGenerating(false);
@@ -99,8 +99,8 @@ export default function PricingPage() {
                     onClick={handleGenerate}
                     disabled={generating}
                     className={`px-4 py-2 rounded-lg font-medium text-white transition-colors ${generating
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-indigo-600 hover:bg-indigo-700'
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-indigo-600 hover:bg-indigo-700'
                         }`}
                 >
                     {generating ? 'Analyzing Market...' : 'Generate Insights'}
@@ -140,8 +140,8 @@ export default function PricingPage() {
                                         <p className="text-sm text-gray-500">Product ID: {rec.productId}</p>
                                     </div>
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${rec.recommendedPrice > rec.currentPrice
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-blue-100 text-blue-800'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-blue-100 text-blue-800'
                                         }`}>
                                         {rec.recommendedPrice > rec.currentPrice ? 'Opportunity to Raise' : 'Consider Lowering'}
                                     </span>

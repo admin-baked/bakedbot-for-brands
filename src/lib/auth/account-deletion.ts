@@ -44,7 +44,7 @@ export async function deleteCustomerAccount(user: User): Promise<void> {
         await deleteUser(user);
 
     } catch (error) {
-        logger.error('[AccountDeletion] Error deleting account:', error);
+        logger.error('[AccountDeletion] Error deleting account:', error instanceof Error ? error : new Error(String(error)));
         throw error;
     }
 }

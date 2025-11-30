@@ -32,7 +32,7 @@ export default function MenuSyncPage() {
 
             setRetailers(data);
         } catch (err) {
-            logger.error('Error fetching retailers:', err);
+            logger.error('Error fetching retailers:', err instanceof Error ? err : new Error(String(err)));
             setError('Failed to load retailers');
         } finally {
             setLoading(false);
@@ -93,8 +93,8 @@ export default function MenuSyncPage() {
                     onClick={handleSync}
                     disabled={syncing}
                     className={`px-4 py-2 rounded-lg font-medium text-white transition-colors ${syncing
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-green-600 hover:bg-green-700'
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700'
                         }`}
                 >
                     {syncing ? 'Syncing...' : 'Sync Now'}
@@ -146,8 +146,8 @@ export default function MenuSyncPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${retailer.menu_discovery_status === 'found'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-yellow-100 text-yellow-800'
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-yellow-100 text-yellow-800'
                                                 }`}>
                                                 {retailer.menu_discovery_status}
                                             </span>

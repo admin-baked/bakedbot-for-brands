@@ -60,10 +60,10 @@ export async function trackCartEvent(
 
         // Also log to console in development
         if (process.env.NODE_ENV === 'development') {
-            logger.info('[Analytics]', type, data);
+            logger.info(`[Analytics] ${type}`, data);
         }
     } catch (error) {
-        logger.error('Failed to track analytics event:', error);
+        logger.error('Failed to track analytics event:', error instanceof Error ? error : new Error(String(error)));
     }
 }
 
@@ -203,7 +203,7 @@ export function setCustomerId(customerId: string): void {
     try {
         localStorage.setItem('customer_id', customerId);
     } catch (error) {
-        logger.error('Failed to set customer ID:', error);
+        logger.error('Failed to set customer ID:', error instanceof Error ? error : new Error(String(error)));
     }
 }
 
@@ -216,6 +216,6 @@ export function clearCustomerId(): void {
     try {
         localStorage.removeItem('customer_id');
     } catch (error) {
-        logger.error('Failed to clear customer ID:', error);
+        logger.error('Failed to clear customer ID:', error instanceof Error ? error : new Error(String(error)));
     }
 }

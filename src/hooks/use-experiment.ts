@@ -41,7 +41,7 @@ export function useExperiment(config: ExperimentConfig) {
                     setVariant(data.variantId);
                 }
             } catch (error) {
-                logger.error('Error assigning experiment variant:', error);
+                logger.error('Error assigning experiment variant:', error instanceof Error ? error : new Error(String(error)));
             } finally {
                 setIsLoading(false);
             }
@@ -69,7 +69,7 @@ export function useExperiment(config: ExperimentConfig) {
                 }),
             });
         } catch (error) {
-            logger.error('Error tracking experiment metric:', error);
+            logger.error('Error tracking experiment metric:', error instanceof Error ? error : new Error(String(error)));
         }
     };
 

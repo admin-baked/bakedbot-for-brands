@@ -43,7 +43,7 @@ export async function createPaymentIntent(
 
         return paymentIntent;
     } catch (error) {
-        logger.error('Error creating PaymentIntent:', error);
+        logger.error('Error creating PaymentIntent:', error instanceof Error ? error : new Error(String(error)));
         throw error;
     }
 }
@@ -55,7 +55,7 @@ export async function getPaymentIntent(paymentIntentId: string): Promise<Stripe.
     try {
         return await stripe.paymentIntents.retrieve(paymentIntentId);
     } catch (error) {
-        logger.error('Error retrieving PaymentIntent:', error);
+        logger.error('Error retrieving PaymentIntent:', error instanceof Error ? error : new Error(String(error)));
         throw error;
     }
 }

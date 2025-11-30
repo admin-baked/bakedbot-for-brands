@@ -37,7 +37,7 @@ export async function emitEvent({
   try {
     const { firestore } = await createServerClient();
     const eventRef = firestore.collection('organizations').doc(orgId).collection('events').doc();
-    
+
     await eventRef.set({
       type,
       agent,
@@ -48,7 +48,7 @@ export async function emitEvent({
     });
 
   } catch (error) {
-    logger.error(`Failed to emit event [${type}] for org [${orgId}]:`, error);
+    logger.error(`Failed to emit event [${type}] for org [${orgId}]:`, error instanceof Error ? error : new Error(String(error)));
     // In a production system, you might push this failed event to a retry queue.
   }
 }

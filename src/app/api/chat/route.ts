@@ -1,10 +1,10 @@
-// src/app/api/chat/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeQuery, generateChatResponse } from '@/ai/chat-query-handler';
 import type { CannMenusProduct, ChatbotProduct } from '@/types/cannmenus';
 import { getConversationContext, addMessageToSession, createChatSession } from '@/lib/chat/session-manager';
 
 import { logger } from '@/lib/logger';
+
 /**
  * POST /api/chat
  * Body: { query: string, userId?: string, sessionId?: string, brandId?: string, state?: string }
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
             sessionId: currentSessionId, // Return session ID for client
         });
     } catch (err) {
-        logger.error('Chat API error', err);
+        logger.error('Chat API error', err instanceof Error ? err : new Error(String(err)));
         return NextResponse.json({ ok: false, error: 'Internal server error' }, { status: 500 });
     }
 }

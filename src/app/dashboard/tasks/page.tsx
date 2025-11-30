@@ -59,7 +59,7 @@ export default function TasksPage() {
                 router.push(`/dashboard/chat?q=${encodeURIComponent(input)}`);
             }
         } catch (error) {
-            logger.error('Error creating task:', error);
+            logger.error('Error creating task:', error instanceof Error ? error : new Error(String(error)));
         } finally {
             setIsCreating(false);
         }

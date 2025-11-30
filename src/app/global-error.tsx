@@ -17,7 +17,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
-    logger.error(error);
+    logger.error('Global error:', error);
   }, [error]);
 
   // Check if it's our custom Firestore permission error
@@ -28,44 +28,44 @@ export default function GlobalError({
     <html lang="en">
       <body>
         <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-            <Card className="w-full max-w-2xl">
+          <Card className="w-full max-w-2xl">
             <CardHeader className="items-center text-center">
-                <AlertCircle className="h-12 w-12 text-destructive" />
-                <CardTitle className="mt-4 text-2xl">
+              <AlertCircle className="h-12 w-12 text-destructive" />
+              <CardTitle className="mt-4 text-2xl">
                 {isPermissionError ? 'Firestore Permission Denied' : 'Something Went Wrong'}
-                </CardTitle>
-                <CardDescription>
+              </CardTitle>
+              <CardDescription>
                 {isPermissionError
-                    ? 'An operation was blocked by your Firestore security rules.'
-                    : 'An unexpected error occurred. Please try again.'}
-                </CardDescription>
+                  ? 'An operation was blocked by your Firestore security rules.'
+                  : 'An unexpected error occurred. Please try again.'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {permissionError && (
+              {permissionError && (
                 <div className="space-y-4 rounded-md border bg-muted/50 p-4">
-                    <div className="flex items-center gap-2 font-semibold">
+                  <div className="flex items-center gap-2 font-semibold">
                     <FileJson className="h-5 w-5" />
                     Denied Request Details
-                    </div>
-                    <pre className="text-xs whitespace-pre-wrap rounded-md bg-background p-4 font-mono text-foreground overflow-auto">
+                  </div>
+                  <pre className="text-xs whitespace-pre-wrap rounded-md bg-background p-4 font-mono text-foreground overflow-auto">
                     <code>{JSON.stringify(permissionError.request, null, 2)}</code>
-                    </pre>
+                  </pre>
                 </div>
-                )}
-                {!isPermissionError && (
-                    <pre className="text-xs whitespace-pre-wrap rounded-md bg-muted p-4 font-mono text-destructive-foreground overflow-auto">
-                    <code>{error.message}</code>
-                    {error.stack && <div className="mt-4">{error.stack}</div>}
-                    </pre>
-                )}
-                <div className="flex justify-center gap-2">
+              )}
+              {!isPermissionError && (
+                <pre className="text-xs whitespace-pre-wrap rounded-md bg-muted p-4 font-mono text-destructive-foreground overflow-auto">
+                  <code>{error.message}</code>
+                  {error.stack && <div className="mt-4">{error.stack}</div>}
+                </pre>
+              )}
+              <div className="flex justify-center gap-2">
                 <Button onClick={() => reset()}>Try Again</Button>
                 <Button variant="outline" onClick={() => window.location.assign('/dashboard')}>
-                    Go to Dashboard
+                  Go to Dashboard
                 </Button>
-                </div>
+              </div>
             </CardContent>
-            </Card>
+          </Card>
         </div>
       </body>
     </html>

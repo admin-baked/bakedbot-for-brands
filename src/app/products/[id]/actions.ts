@@ -69,8 +69,8 @@ export async function getReviewSummary(input: {
       product = await productRepo.getById(productId);
 
       if (product) {
-          const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter).get();
-          reviews = reviewsSnap.docs.map((d: any) => d.data());
+        const reviewsSnap = await firestore.collection(`products/${productId}/reviews`).withConverter(reviewConverter).get();
+        reviews = reviewsSnap.docs.map((d: any) => d.data());
       }
     }
 
@@ -90,11 +90,11 @@ export async function getReviewSummary(input: {
       // but don't await it so we can return to the user faster.
       summaryRef.set(summary);
     }
-    
+
     return summary;
 
   } catch (error) {
-    logger.error(`Failed to get review summary for product ${productId}:`, error);
+    logger.error(`Failed to get review summary for product ${productId}:`, error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -106,27 +106,27 @@ export async function updateProductFeedback(
   prevState: { message: string; error: boolean } | null,
   formData: FormData
 ): Promise<{ message: string; error: boolean }> {
-  
+
   const validatedFields = FeedbackSchema.safeParse({
     productId: formData.get('productId'),
     feedbackType: formData.get('feedbackType'),
   });
 
   if (!validatedFields.success) {
-    logger.error('Invalid feedback input:', validatedFields.error);
+    logger.error('Invalid feedback input:', { error: validatedFields.error });
     return { error: true, message: 'Invalid input provided.' };
   }
-  
+
   const { productId, feedbackType } = validatedFields.data;
-  
+
   let user;
   try {
-      // Require any authenticated user.
-      user = await requireUser();
-  } catch(e) {
-      return { error: true, message: 'You must be logged in to provide feedback.' };
+    // Require any authenticated user.
+    user = await requireUser();
+  } catch (e) {
+    return { error: true, message: 'You must be logged in to provide feedback.' };
   }
-  
+
   const { firestore } = await createServerClient();
   const userId = user.uid;
   const productRef = firestore.doc(`products/${productId}`);
@@ -140,7 +140,7 @@ export async function updateProductFeedback(
       if (!(productDoc as any).exists) {
         throw new Error('Product not found.');
       }
-      
+
       const existingVote = (feedbackDoc as any).exists ? (feedbackDoc as any).data()?.vote : null;
 
       let likeIncrement = 0;
@@ -160,7 +160,7 @@ export async function updateProductFeedback(
           if (existingVote === 'like') likeIncrement = -1;
         }
       }
-      
+
       transaction.update(productRef, {
         likes: FieldValue.increment(likeIncrement),
         dislikes: FieldValue.increment(dislikeIncrement),
@@ -174,7 +174,7 @@ export async function updateProductFeedback(
     return { error: false, message: 'Thanks for your feedback!' };
 
   } catch (error) {
-    logger.error(`[updateProductFeedback] Firestore error:`, error);
+    logger.error(`[updateProductFeedback] Firestore error:`, error instanceof Error ? error : new Error(String(error)));
     return { error: true, message: 'Could not submit feedback due to a database error.' };
   }
 }

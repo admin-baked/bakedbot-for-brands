@@ -69,7 +69,7 @@ export async function createPaymentIntent(
 
         return await response.json();
     } catch (error) {
-        logger.error('Failed to create payment intent:', error);
+        logger.error('Failed to create payment intent:', error instanceof Error ? error : new Error(String(error)));
         throw error;
     }
 }
@@ -123,7 +123,7 @@ export async function confirmPayment(
             transactionId: result.transaction_id,
         };
     } catch (error) {
-        logger.error('Failed to confirm payment:', error);
+        logger.error('Failed to confirm payment:', error instanceof Error ? error : new Error(String(error)));
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Payment failed',
@@ -161,7 +161,7 @@ export async function getPaymentIntent(paymentIntentId: string): Promise<Payment
 
         return await response.json();
     } catch (error) {
-        logger.error('Failed to get payment intent:', error);
+        logger.error('Failed to get payment intent:', error instanceof Error ? error : new Error(String(error)));
         return null;
     }
 }
@@ -190,7 +190,7 @@ export async function cancelPayment(paymentIntentId: string): Promise<boolean> {
 
         return response.ok;
     } catch (error) {
-        logger.error('Failed to cancel payment:', error);
+        logger.error('Failed to cancel payment:', error instanceof Error ? error : new Error(String(error)));
         return false;
     }
 }

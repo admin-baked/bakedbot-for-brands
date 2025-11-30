@@ -44,7 +44,7 @@ export function DashboardSidebar() {
       // Redirect to login page after sign out
       window.location.href = '/brand-login';
     } catch (error) {
-      logger.error('Sign out error', error);
+      logger.error('Sign out error', error instanceof Error ? error : new Error(String(error)));
       toast({
         variant: "destructive",
         title: "Sign Out Error",
@@ -84,30 +84,30 @@ export function DashboardSidebar() {
       </SidebarContent>
       <SidebarFooter>
         {user && (
-           <DropdownMenu>
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-3 cursor-pointer p-2 rounded-md hover:bg-muted">
-                     <Avatar className="h-8 w-8">
-                        <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
-                    </Avatar>
-                    <div className='overflow-hidden group-data-[collapsible=icon]:hidden'>
-                        <p className="text-sm font-medium truncate">{user.displayName || 'My Account'}</p>
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                    </div>
+              <div className="flex items-center gap-3 cursor-pointer p-2 rounded-md hover:bg-muted">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                </Avatar>
+                <div className='overflow-hidden group-data-[collapsible=icon]:hidden'>
+                  <p className="text-sm font-medium truncate">{user.displayName || 'My Account'}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </div>
+              </div>
             </DropdownMenuTrigger>
-             <DropdownMenuContent side="right" align="start">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => window.location.assign('/account')}>Account</DropdownMenuItem>
-                <DropdownMenuItem>Support</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </DropdownMenuItem>
+            <DropdownMenuContent side="right" align="start">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => window.location.assign('/account')}>Account</DropdownMenuItem>
+              <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </DropdownMenuItem>
             </DropdownMenuContent>
-           </DropdownMenu>
+          </DropdownMenu>
         )}
       </SidebarFooter>
     </Sidebar>

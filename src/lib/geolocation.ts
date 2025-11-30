@@ -40,7 +40,7 @@ export async function getBrowserLocation(): Promise<GeolocationResult | null> {
                 });
             },
             (error) => {
-                logger.warn('Browser geolocation failed:', error.message);
+                logger.warn('Browser geolocation failed:', { message: error.message });
                 resolve(null);
             },
             {
@@ -97,7 +97,7 @@ export async function getIPLocation(): Promise<GeolocationResult | null> {
 
         return null;
     } catch (error) {
-        logger.error('IP geolocation failed:', error);
+        logger.error('IP geolocation failed:', error instanceof Error ? error : new Error(String(error)));
         return null;
     }
 }
@@ -133,7 +133,7 @@ export function saveLocation(location: GeolocationResult): void {
     try {
         sessionStorage.setItem('user_location', JSON.stringify(location));
     } catch (error) {
-        logger.warn('Failed to save location to session storage:', error);
+        logger.warn('Failed to save location to session storage:', error instanceof Error ? error : new Error(String(error)));
     }
 }
 
@@ -147,7 +147,7 @@ export function getSavedLocation(): GeolocationResult | null {
             return JSON.parse(saved);
         }
     } catch (error) {
-        logger.warn('Failed to retrieve saved location:', error);
+        logger.warn('Failed to retrieve saved location:', error instanceof Error ? error : new Error(String(error)));
     }
     return null;
 }

@@ -63,7 +63,7 @@ export default async function RootLayout({
       // We'll fetch for the demo brand as a default for now.
       products = await productRepo.getAllByBrand(DEMO_BRAND_ID);
     } catch (error) {
-      logger.error("Failed to fetch products for chatbot:", error);
+      logger.error("Failed to fetch products for chatbot:", error instanceof Error ? error : new Error(String(error)));
       products = demoProducts; // Fallback to demo data on error
     }
   }

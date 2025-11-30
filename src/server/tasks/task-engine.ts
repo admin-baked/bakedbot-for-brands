@@ -305,7 +305,7 @@ export class TaskEngine {
             try {
                 listener(event);
             } catch (error) {
-                logger.error('Error in event listener:', error);
+                logger.error('Error in event listener:', error instanceof Error ? error : new Error(String(error)));
             }
         }
     }

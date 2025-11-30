@@ -28,21 +28,21 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<BrandResult[]>([]);
   const [selectedCannMenusEntity, setSelectedCannMenusEntity] = useState<{ id: string, name: string } | null>(null);
-  
+
   const [manualBrandName, setManualBrandName] = useState('');
   const [manualProductName, setManualProductName] = useState('');
   const [manualDispensaryName, setManualDispensaryName] = useState('');
 
   const [formState, formAction] = useFormState(completeOnboarding, { message: '', error: false });
-  
+
   if (!formState.error && formState.message === 'Onboarding complete!') {
-      // This is a client-side redirect after a successful server action.
-      // In a real app, this might be a router.push('/dashboard'), but for now, a reload is fine.
-      if (typeof window !== 'undefined') {
-          window.location.assign('/dashboard');
-      }
+    // This is a client-side redirect after a successful server action.
+    // In a real app, this might be a router.push('/dashboard'), but for now, a reload is fine.
+    if (typeof window !== 'undefined') {
+      window.location.assign('/dashboard');
+    }
   }
-  
+
   async function searchCannMenus(term: string) {
     setLoading(true);
     try {
@@ -50,7 +50,7 @@ export default function OnboardingPage() {
       const json = await resp.json();
       setResults(json.data?.data || []);
     } catch (e) {
-      logger.error('Search failed', e);
+      logger.error('Search failed', e instanceof Error ? e : new Error(String(e)));
       setResults([]);
     } finally {
       setLoading(false);
@@ -79,13 +79,13 @@ export default function OnboardingPage() {
           <div><h3 className="font-semibold">A Brand</h3><p className="text-xs text-muted-foreground">e.g., a product manufacturer.</p></div>
         </Button>
         <Button variant="outline" className="h-auto text-left p-4 justify-start" onClick={() => handleSelectRole('dispensary')}>
-            <div><h3 className="font-semibold">A Dispensary</h3><p className="text-xs text-muted-foreground">e.g., a retail location.</p></div>
+          <div><h3 className="font-semibold">A Dispensary</h3><p className="text-xs text-muted-foreground">e.g., a retail location.</p></div>
         </Button>
         <Button variant="outline" className="h-auto text-left p-4 justify-start" onClick={() => handleSelectRole('customer')}>
-            <div><h3 className="font-semibold">A Customer</h3><p className="text-xs text-muted-foreground">I just want to shop.</p></div>
+          <div><h3 className="font-semibold">A Customer</h3><p className="text-xs text-muted-foreground">I just want to shop.</p></div>
         </Button>
         <Button variant="outline" className="h-auto text-left p-4 justify-start" onClick={() => handleSelectRole('skip')}>
-            <div><h3 className="font-semibold">Just Exploring</h3><p className="text-xs text-muted-foreground">Skip setup for now.</p></div>
+          <div><h3 className="font-semibold">Just Exploring</h3><p className="text-xs text-muted-foreground">Skip setup for now.</p></div>
         </Button>
       </div>
     </section>
@@ -105,7 +105,7 @@ export default function OnboardingPage() {
           placeholder={role === 'brand' ? "e.g., 40 Tons" : "e.g., Bayside Cannabis"}
         />
         <Button onClick={() => searchCannMenus(query)} disabled={!query.trim() || loading}>
-            {loading ? <Loader2 className="animate-spin" /> : <Search />}
+          {loading ? <Loader2 className="animate-spin" /> : <Search />}
         </Button>
       </div>
       <div className="space-y-2">
@@ -115,8 +115,8 @@ export default function OnboardingPage() {
             <span className="text-xs text-muted-foreground">{b.market}</span>
           </Button>
         ))}
-         <Button variant="link" size="sm" onClick={() => setStep('manual')}>
-            Can’t find your {role}? Add it manually.
+        <Button variant="link" size="sm" onClick={() => setStep('manual')}>
+          Can’t find your {role}? Add it manually.
         </Button>
       </div>
     </section>
@@ -128,17 +128,17 @@ export default function OnboardingPage() {
       <p className="text-sm text-muted-foreground">We'll create a new workspace for you.</p>
       {role === 'brand' && (
         <div className="space-y-4">
-            <Input name="manualBrandName" placeholder="Your Brand Name" value={manualBrandName} onChange={e => setManualBrandName(e.target.value)} />
-            <Input name="manualProductName" placeholder="A best-selling product (optional)" value={manualProductName} onChange={e => setManualProductName(e.target.value)} />
-            <Input name="manualDispensaryName" placeholder="A dispensary that carries you (optional)" value={manualDispensaryName} onChange={e => setManualDispensaryName(e.target.value)} />
+          <Input name="manualBrandName" placeholder="Your Brand Name" value={manualBrandName} onChange={e => setManualBrandName(e.target.value)} />
+          <Input name="manualProductName" placeholder="A best-selling product (optional)" value={manualProductName} onChange={e => setManualProductName(e.target.value)} />
+          <Input name="manualDispensaryName" placeholder="A dispensary that carries you (optional)" value={manualDispensaryName} onChange={e => setManualDispensaryName(e.target.value)} />
         </div>
       )}
-       {role === 'dispensary' && (
-           <Input name="manualDispensaryName" placeholder="Your Dispensary Name" value={manualDispensaryName} onChange={e => setManualDispensaryName(e.target.value)} />
+      {role === 'dispensary' && (
+        <Input name="manualDispensaryName" placeholder="Your Dispensary Name" value={manualDispensaryName} onChange={e => setManualDispensaryName(e.target.value)} />
       )}
       <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => setStep('brand-search')}>Back to search</Button>
-          <Button onClick={() => setStep('review')}>Continue</Button>
+        <Button variant="ghost" onClick={() => setStep('brand-search')}>Back to search</Button>
+        <Button onClick={() => setStep('review')}>Continue</Button>
       </div>
     </section>
   );
@@ -148,7 +148,7 @@ export default function OnboardingPage() {
     const hasSelection = role === 'brand' || role === 'dispensary';
 
     return (
-        <section className="space-y-4">
+      <section className="space-y-4">
         <h2 className="font-semibold text-xl">Review & Finish</h2>
         <div className="border rounded-lg p-4 space-y-2">
           <div className="flex justify-between text-sm"><span className="text-muted-foreground">Role:</span><span className="font-semibold capitalize">{role}</span></div>
@@ -158,20 +158,20 @@ export default function OnboardingPage() {
         </div>
         <p className="text-xs text-muted-foreground">This will configure your user account and workspace.</p>
         <form action={formAction} className="flex items-center gap-2">
-            <input type="hidden" name="role" value={role || ''} />
-            {role === 'brand' && <input type="hidden" name="brandId" value={selectedCannMenusEntity?.id || ''} />}
-            {role === 'brand' && <input type="hidden" name="brandName" value={selectedCannMenusEntity?.name || ''} />}
-            {role === 'dispensary' && <input type="hidden" name="locationId" value={selectedCannMenusEntity?.id || ''} />}
-            
-             {/* Pass manual entries */}
-            <input type="hidden" name="manualBrandName" value={manualBrandName} />
-            <input type="hidden" name="manualProductName" value={manualProductName} />
-            <input type="hidden" name="manualDispensaryName" value={manualDispensaryName} />
+          <input type="hidden" name="role" value={role || ''} />
+          {role === 'brand' && <input type="hidden" name="brandId" value={selectedCannMenusEntity?.id || ''} />}
+          {role === 'brand' && <input type="hidden" name="brandName" value={selectedCannMenusEntity?.name || ''} />}
+          {role === 'dispensary' && <input type="hidden" name="locationId" value={selectedCannMenusEntity?.id || ''} />}
 
-            <SubmitButton disabled={!role} />
+          {/* Pass manual entries */}
+          <input type="hidden" name="manualBrandName" value={manualBrandName} />
+          <input type="hidden" name="manualProductName" value={manualProductName} />
+          <input type="hidden" name="manualDispensaryName" value={manualDispensaryName} />
+
+          <SubmitButton disabled={!role} />
         </form>
-         {formState.error && <p className="text-sm text-destructive">{formState.message}</p>}
-        </section>
+        {formState.error && <p className="text-sm text-destructive">{formState.message}</p>}
+      </section>
     );
   };
 
@@ -180,8 +180,8 @@ export default function OnboardingPage() {
     <main className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-lg space-y-8">
         <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight">Welcome to BakedBot AI</h1>
-            <p className="text-muted-foreground">Let's get your workspace set up.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Welcome to BakedBot AI</h1>
+          <p className="text-muted-foreground">Let's get your workspace set up.</p>
         </div>
         {step === 'role' && renderRoleSelection()}
         {step === 'brand-search' && renderSearchStep()}

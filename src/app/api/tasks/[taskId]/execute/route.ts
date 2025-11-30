@@ -51,7 +51,7 @@ export async function POST(
         });
 
     } catch (error) {
-        logger.error(`Task execution error (${params.taskId}):`, error);
+        logger.error(`Task execution error (${params.taskId}):`, error instanceof Error ? error : new Error(String(error)));
         return NextResponse.json(
             {
                 error: 'Failed to execute task',

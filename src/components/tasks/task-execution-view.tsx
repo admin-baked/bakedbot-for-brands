@@ -53,12 +53,12 @@ export function TaskExecutionView({ initialTask, autoStart = false }: TaskExecut
             }
 
         } catch (err) {
-            logger.error('Execution error:', err);
+            logger.error('Execution error:', { error: err });
             setError(err instanceof Error ? err.message : 'Unknown error');
             setTask(prev => ({ ...prev, status: 'failed' }));
         }
     }, [task]);
-    
+
     // Start execution if autoStart is true and task is draft
     useEffect(() => {
         if (autoStart && task.status === 'draft') {
@@ -86,12 +86,12 @@ export function TaskExecutionView({ initialTask, autoStart = false }: TaskExecut
                     // const updatedTask = await res.json();
                     // setTask(updatedTask);
                 } catch (err) {
-                    logger.error('Polling error:', err);
+                    logger.error('Polling error:', { error: err });
                     setIsConnected(false);
                 }
             }, 1000);
         };
-        
+
         const stopPolling = () => {
             if (pollInterval.current) {
                 clearInterval(pollInterval.current);

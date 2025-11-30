@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        logger.error('Intent classification error:', error);
+        logger.error('Intent classification error:', error instanceof Error ? error : new Error(String(error)));
         return NextResponse.json(
             {
                 error: 'Failed to classify intent',

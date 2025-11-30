@@ -9,6 +9,7 @@ import { onIdTokenChanged, getIdTokenResult } from 'firebase/auth';
 import { useStore } from '@/hooks/use-store';
 
 import { logger } from '@/lib/logger';
+
 export interface FirebaseServices {
   firebaseApp: FirebaseApp | null;
   firestore: Firestore | null;
@@ -40,36 +41,36 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
     }
 
     const unsubscribe = onIdTokenChanged(
-        auth,
-        async (user) => {
-            try {
-                if (user) {
-                    const idTokenResult = await getIdTokenResult(user, true); // Force refresh of claims
-                    const claims = idTokenResult.claims;
-                    // Add custom claims to the user object for easier access
-                    const userWithClaims = { ...user, ...claims } as any;
-                    setUser(userWithClaims);
+      auth,
+      async (user) => {
+        try {
+          if (user) {
+            const idTokenResult = await getIdTokenResult(user, true); // Force refresh of claims
+            const claims = idTokenResult.claims;
+            // Add custom claims to the user object for easier access
+            const userWithClaims = { ...user, ...claims } as any;
+            setUser(userWithClaims);
 
-                    // Sync favorite retailer ID from claims to Zustand store
-                    if (claims.favoriteRetailerId) {
-                      setFavoriteRetailerId(claims.favoriteRetailerId as string);
-                    }
-
-                } else {
-                    setUser(null);
-                }
-            } catch (error) {
-                logger.error('Error getting ID token result:', error);
-                setUserError(error instanceof Error ? error : new Error('An unknown authentication error occurred.'));
-            } finally {
-                setIsUserLoading(false);
+            // Sync favorite retailer ID from claims to Zustand store
+            if (claims.favoriteRetailerId) {
+              setFavoriteRetailerId(claims.favoriteRetailerId as string);
             }
-        },
-        (error) => {
-            logger.error('Authentication state error:', error);
-            setUserError(error);
-            setIsUserLoading(false);
+
+          } else {
+            setUser(null);
+          }
+        } catch (error) {
+          logger.error('Error getting ID token result:', error instanceof Error ? error : new Error(String(error)));
+          setUserError(error instanceof Error ? error : new Error('An unknown authentication error occurred.'));
+        } finally {
+          setIsUserLoading(false);
         }
+      },
+      (error) => {
+        logger.error('Authentication state error:', error instanceof Error ? error : new Error(String(error)));
+        setUserError(error);
+        setIsUserLoading(false);
+      }
     );
 
     return () => unsubscribe();
