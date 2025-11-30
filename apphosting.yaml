@@ -45,6 +45,12 @@ runConfig:
     - variable: CLAUDE_API_KEY
       secret: CLAUDE_API_KEY
     # SMS
+    - variable: LEAFBUYER_API_KEY
+      secret: LEAFBUYER_API_KEY
+    - variable: LEAFBUYER_API_SECRET
+      secret: LEAFBUYER_API_SECRET
+    - variable: LEAFBUYER_API_URL
+      secret: LEAFBUYER_API_URL
     - variable: BLACKLEAF_API_KEY
       secret: BLACKLEAF_API_KEY
     - variable: BLACKLEAF_BASE_URL

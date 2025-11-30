@@ -65,7 +65,40 @@ export const STATE_RULES: Record<string, StateComplianceRules> = {
         ],
         lastUpdated: '2025-01-01'
     },
-    // TODO: Add remaining states
+    'CO': {
+        state: 'Colorado',
+        stateCode: 'CO',
+        legalStatus: 'legal-recreational',
+        ageRequirement: 21,
+        allowedProductTypes: ['flower', 'edibles', 'concentrates', 'vapes', 'topicals'],
+        maxThcPercentage: undefined,
+        maxPurchaseAmount: 28, // grams
+        requiresMedicalCard: false,
+        deliveryAllowed: true,
+        restrictions: [
+            'No public consumption',
+            'No consumption in vehicles',
+            'Purchase limit 1oz flower or 8g concentrate'
+        ],
+        lastUpdated: '2025-01-01'
+    },
+    'WA': {
+        state: 'Washington',
+        stateCode: 'WA',
+        legalStatus: 'legal-recreational',
+        ageRequirement: 21,
+        allowedProductTypes: ['flower', 'edibles', 'concentrates', 'vapes', 'topicals'],
+        maxThcPercentage: undefined,
+        maxPurchaseAmount: 28, // grams
+        requiresMedicalCard: false,
+        deliveryAllowed: false, // WA does not allow recreational delivery
+        restrictions: [
+            'No home cultivation',
+            'No public consumption',
+            'No delivery for recreational use'
+        ],
+        lastUpdated: '2025-01-01'
+    },
 };
 
 /**
