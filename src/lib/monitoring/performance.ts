@@ -30,7 +30,7 @@ export function trackPageLoad(pageName: string) {
 
         // Log to console in development
         if (process.env.NODE_ENV === 'development') {
-            logger.info('[Performance]', pageName, metrics);
+            logger.info(`[Performance] ${pageName}`, metrics);
         }
 
         // TODO: Send to analytics service
@@ -48,7 +48,7 @@ export function trackWebVitals() {
     new PerformanceObserver((list) => {
         const entries = list.getEntries();
         const lastEntry = entries[entries.length - 1];
-        logger.info('[LCP]', lastEntry.startTime);
+        logger.info('[LCP]', { startTime: lastEntry.startTime });
     }).observe({ entryTypes: ['largest-contentful-paint'] });
 
     // First Input Delay
@@ -56,7 +56,7 @@ export function trackWebVitals() {
         const entries = list.getEntries();
         entries.forEach((entry: any) => {
             const fid = entry.processingStart - entry.startTime;
-            logger.info('[FID]', fid);
+            logger.info('[FID]', { fid });
         });
     }).observe({ entryTypes: ['first-input'] });
 
@@ -69,7 +69,7 @@ export function trackWebVitals() {
                 clsScore += entry.value;
             }
         });
-        logger.info('[CLS]', clsScore);
+        logger.info('[CLS]', { clsScore });
     }).observe({ entryTypes: ['layout-shift'] });
 }
 

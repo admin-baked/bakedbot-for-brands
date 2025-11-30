@@ -24,7 +24,7 @@ interface FirebaseSdks {
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase(): FirebaseSdks {
   const isBrowser = typeof window !== 'undefined';
-  
+
   if (!isBrowser) {
     throw new Error("Firebase can only be initialized on the client.");
   }
@@ -33,13 +33,13 @@ export function initializeFirebase(): FirebaseSdks {
     const app = getApp();
     return getSdks(app);
   }
-  
+
   let firebaseApp;
   try {
     firebaseApp = initializeApp();
   } catch (e) {
     if (process.env.NODE_ENV === "production") {
-      logger.warn('Automatic initialization failed. Falling back to firebase config object.', e);
+      logger.warn('Automatic initialization failed. Falling back to firebase config object.', e instanceof Error ? e : new Error(String(e)));
     }
     firebaseApp = initializeApp(firebaseConfig);
   }

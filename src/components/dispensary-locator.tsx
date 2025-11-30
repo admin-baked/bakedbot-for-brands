@@ -22,16 +22,16 @@ interface DispensaryLocatorProps {
 }
 
 export default function DispensaryLocator({ locations = [], isLoading = false }: DispensaryLocatorProps) {
-  const { 
-      selectedRetailerId, 
-      setSelectedRetailerId, 
-      favoriteRetailerId,
-      setFavoriteRetailerId,
-      _hasHydrated 
+  const {
+    selectedRetailerId,
+    setSelectedRetailerId,
+    favoriteRetailerId,
+    setFavoriteRetailerId,
+    _hasHydrated
   } = useStore();
   const firebase = useOptionalFirebase();
   const { toast } = useToast();
-  
+
   const user = firebase?.user ?? null;
   const firestore = firebase?.firestore ?? null;
 
@@ -43,15 +43,15 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
       setSortedLocations(locations);
     }
   }, [locations]);
-  
+
   // New effect to sync favorite retailer on component mount
   useEffect(() => {
     if (_hasHydrated) {
-        if (!selectedRetailerId && favoriteRetailerId) {
-            setSelectedRetailerId(favoriteRetailerId);
-        }
+      if (!selectedRetailerId && favoriteRetailerId) {
+        setSelectedRetailerId(favoriteRetailerId);
+      }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [_hasHydrated, favoriteRetailerId]);
 
   const handleFindClosest = () => {
@@ -72,21 +72,21 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
             distance: haversineDistance(userCoords, { lat: loc.lat!, lon: loc.lon! }),
           }))
           .sort((a, b) => a.distance - b.distance);
-        
+
         setSortedLocations(newSortedLocations);
         setIsLocating(false);
         if (newSortedLocations.length > 0) {
-            setSelectedRetailerId(newSortedLocations[0].id);
+          setSelectedRetailerId(newSortedLocations[0].id);
         }
       },
       (error) => {
-        logger.error('Error getting location:', error);
-        toast({ variant: 'destructive', title: 'Could not get your location. Please ensure location services are enabled.'});
+        logger.error('Error getting location:', error instanceof Error ? error : new Error(String(error)));
+        toast({ variant: 'destructive', title: 'Could not get your location. Please ensure location services are enabled.' });
         setIsLocating(false);
       }
     );
   };
-  
+
   const handleSelectLocation = (id: string) => {
     setSelectedRetailerId(id);
   }
@@ -94,8 +94,8 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
   const handleSetFavorite = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (!user) {
-        toast({ variant: 'destructive', title: 'Login required', description: 'Please log in to set a favorite location.' });
-        return;
+      toast({ variant: 'destructive', title: 'Login required', description: 'Please log in to set a favorite location.' });
+      return;
     }
     if (!firestore) {
       logger.warn('No firestore available; cannot save favorite.');
@@ -104,15 +104,15 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
     }
     const userDocRef = doc(firestore, 'users', user.uid);
     try {
-        await updateDoc(userDocRef, { favoriteRetailerId: id });
-        setFavoriteRetailerId(id);
-        toast({ title: 'Favorite location saved!' });
+      await updateDoc(userDocRef, { favoriteRetailerId: id });
+      setFavoriteRetailerId(id);
+      toast({ title: 'Favorite location saved!' });
     } catch (error) {
-        logger.error('Failed to set favorite location', error);
-        toast({ variant: 'destructive', title: 'Could not save favorite location.' });
+      logger.error('Failed to set favorite location', error instanceof Error ? error : new Error(String(error)));
+      toast({ variant: 'destructive', title: 'Could not save favorite location.' });
     }
   };
-  
+
   const displayLocations = sortedLocations.length > 0 ? sortedLocations : locations;
 
   return (
@@ -126,63 +126,64 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
           Use My Current Location
         </Button>
         <div className="mt-8">
-            <div className="flex gap-6 pb-4 -mx-4 px-4 overflow-x-auto">
-                {isLoading ? (
-                  [...Array(3)].map((_, i) => (
-                    <Card key={i} className="w-80 shrink-0">
-                      <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
-                      <CardContent className="space-y-2">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-2/3" />
-                        <Skeleton className="h-5 w-1/3 mt-2" />
-                      </CardContent>
-                    </Card>
-                  ))
-                ) : displayLocations.map(loc => {
-                    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.name}, ${loc.address}, ${loc.city}, ${loc.state} ${loc.zip}`)}`;
-                    const isFavorite = _hasHydrated && favoriteRetailerId === loc.id;
-                    const isSelected = _hasHydrated && selectedRetailerId === loc.id;
-                    return (
-                    <Card 
-                        key={loc.id}
-                        data-testid={`location-card-${loc.id}`}
-                        className={cn(
-                            "text-left cursor-pointer transition-all w-80 shrink-0",
-                            isSelected ? 'border-primary ring-2 ring-primary' : 'border-border'
-                        )}
-                        onClick={() => handleSelectLocation(loc.id)}
-                    >
-                        <CardHeader>
-                            <CardTitle className="flex items-start justify-between">
-                                <div className="flex items-start gap-2">
-                                    <MapPin className="h-5 w-5 mt-1 text-primary shrink-0" />
-                                    <span>{loc.name}</span>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 shrink-0"
-                                    onClick={(e) => handleSetFavorite(e, loc.id)}
-                                >
-                                    <Star className={cn("h-5 w-5 text-muted-foreground", isFavorite && "fill-yellow-400 text-yellow-400")} />
-                                </Button>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground">{loc.address}</p>
-                            <p className="text-sm text-muted-foreground">{loc.city}, {loc.state} {loc.zip}</p>
-                             <Button variant="link" asChild className="p-0 h-auto mt-2 text-sm">
-                                <Link href={mapUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                                    View on Map
-                                </Link>
-                            </Button>
-                            {loc.distance && (
-                                <p className="text-sm font-semibold mt-2">{loc.distance.toFixed(1)} miles away</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                )})}
-            </div>
+          <div className="flex gap-6 pb-4 -mx-4 px-4 overflow-x-auto">
+            {isLoading ? (
+              [...Array(3)].map((_, i) => (
+                <Card key={i} className="w-80 shrink-0">
+                  <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
+                  <CardContent className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-5 w-1/3 mt-2" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : displayLocations.map(loc => {
+              const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.name}, ${loc.address}, ${loc.city}, ${loc.state} ${loc.zip}`)}`;
+              const isFavorite = _hasHydrated && favoriteRetailerId === loc.id;
+              const isSelected = _hasHydrated && selectedRetailerId === loc.id;
+              return (
+                <Card
+                  key={loc.id}
+                  data-testid={`location-card-${loc.id}`}
+                  className={cn(
+                    "text-left cursor-pointer transition-all w-80 shrink-0",
+                    isSelected ? 'border-primary ring-2 ring-primary' : 'border-border'
+                  )}
+                  onClick={() => handleSelectLocation(loc.id)}
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-start justify-between">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-5 w-5 mt-1 text-primary shrink-0" />
+                        <span>{loc.name}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={(e) => handleSetFavorite(e, loc.id)}
+                      >
+                        <Star className={cn("h-5 w-5 text-muted-foreground", isFavorite && "fill-yellow-400 text-yellow-400")} />
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">{loc.address}</p>
+                    <p className="text-sm text-muted-foreground">{loc.city}, {loc.state} {loc.zip}</p>
+                    <Button variant="link" asChild className="p-0 h-auto mt-2 text-sm">
+                      <Link href={mapUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                        View on Map
+                      </Link>
+                    </Button>
+                    {loc.distance && (
+                      <p className="text-sm font-semibold mt-2">{loc.distance.toFixed(1)} miles away</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>

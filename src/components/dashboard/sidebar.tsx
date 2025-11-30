@@ -42,7 +42,7 @@ export function DashboardSidebar() {
       // Redirect to role-specific login page after sign out
       window.location.href = loginRoute;
     } catch (error) {
-      logger.error('Sign out error', error);
+      logger.error('Sign out error', error instanceof Error ? error : new Error(String(error)));
       toast({
         variant: "destructive",
         title: "Sign Out Error",

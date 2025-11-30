@@ -90,7 +90,7 @@ export function CheckoutFlow() {
                 toast({ variant: 'destructive', title: 'Order Failed', description: result.error });
             }
         } catch (error) {
-            logger.error('Order submission error:', error);
+            logger.error('Order submission error:', error instanceof Error ? error : new Error(String(error)));
             toast({ variant: 'destructive', title: 'Order Failed', description: 'Something went wrong. Please try again.' });
         } finally {
             setLoading(false);

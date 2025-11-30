@@ -91,7 +91,7 @@ _Security tickets are highest priority._
 ## Ticket: P0-PAY-CANNPAY-INTEGRATION
 **Owner:** Dev 1 (Implementation), Dev 2 (Config), Dev 4 (Testing)
 **Priority:** CRITICAL
-**Status:** 🚧 IN PROGRESS
+**Status:** ✅ IMPLEMENTATION COMPLETE (Testing Pending)
 
 ### Summary
 Implement complete CanPay payment integration with transaction fee support. Webhook signature verification is already complete (P0-SEC-CANNPAY-WEBHOOK ✅), but end-to-end payment flow, UI, and transaction fee mechanism are missing.
@@ -219,7 +219,60 @@ interface Order {
   - Technical design based on API spec: authorize → widget → callback → webhook
   - CannPay requires 4 secrets: app_key, api_secret, integrator_id, canpay_internal_version
   - Transaction fee added via `delivery_fee` parameter in authorize request
-  - NEXT: Create CanPay client library and payment selection UI
+- [Dev1-Claude @ 2025-11-30]: ✅ IMPLEMENTATION COMPLETE. CannPay integration finished:
+  - Created CanPay client library (src/lib/payments/cannpay.ts):
+    * authorizePayment() - Get intent_id for widget
+    * getTransactionDetails() - Query transaction status
+    * reverseTransaction() - Refund transactions
+    * HMAC-SHA256 signature generation for API requests
+    * Sandbox and live environment support
+    * CANNPAY_TRANSACTION_FEE_CENTS constant (50 cents)
+  - Created checkout authorization endpoint (src/app/api/checkout/cannpay/authorize/route.ts):
+    * POST /api/checkout/cannpay/authorize
+    * Validates order ownership and payment status
+    * Calls CannPay /integrator/authorize
+    * Returns intent_id and widget_url to frontend
+    * Updates Firestore with pending payment status
+  - Created payment selection UI (src/components/checkout/payment-selection.tsx):
+    * Three payment options: dispensary_direct (default), cannpay (+$0.50), stripe
+    * Clear transaction fee display for CannPay
+    * Recommended badge on dispensary_direct option
+    * Responsive card-based UI with icons
+  - Created CannPay widget wrapper (src/components/checkout/cannpay-widget.tsx):
+    * Dynamic script loading from CannPay CDN
+    * Widget initialization with intent_id
+    * Success/error/cancel callback handling
+    * Loading states and error handling
+  - Updated checkout process-payment route (src/app/api/checkout/process-payment/route.ts):
+    * Multi-payment method support (dispensary_direct, cannpay, stripe)
+    * Default paymentMethod: 'dispensary_direct'
+    * CannPay payment confirmation after widget completion
+    * Firestore order updates with payment method and status
+    * Full Deebo compliance integration maintained
+  - Updated apphosting.yaml:
+    * Added CANPAY_ENVIRONMENT variable (sandbox/live)
+    * Set CANPAY_INTERNAL_VERSION=1.4.0
+  - Added db export to src/firebase/server-client.ts for easier Firestore access
+  - Created comprehensive documentation (docs/CANNPAY_INTEGRATION.md):
+    * Architecture diagram and payment flow
+    * Complete implementation details
+    * Frontend integration examples
+    * Database schema
+    * Security documentation
+    * Testing guide
+    * Production checklist
+  - TypeScript compilation passes (no errors in new CannPay files)
+  - File: src/lib/payments/cannpay.ts (304 lines, new)
+  - File: src/app/api/checkout/cannpay/authorize/route.ts (143 lines, new)
+  - File: src/components/checkout/payment-selection.tsx (159 lines, new)
+  - File: src/components/checkout/cannpay-widget.tsx (175 lines, new)
+  - File: src/app/api/checkout/process-payment/route.ts (256 lines, +124 lines)
+  - File: apphosting.yaml (2 lines modified)
+  - File: src/firebase/server-client.ts (+22 lines)
+  - File: docs/CANNPAY_INTEGRATION.md (679 lines, new)
+  - READY FOR TESTING: Need to test with CannPay sandbox credentials
+  - NEXT: Dev 4 should create E2E tests (tests/e2e/checkout-cannpay.spec.ts)
+  - NEXT: CEO should create CannPay secrets in GCP Secret Manager (see docs/CANNPAY_INTEGRATION.md)
 
 ---
 

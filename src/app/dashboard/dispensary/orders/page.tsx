@@ -59,11 +59,11 @@ export default function DispensaryOrdersPage() {
                     setOrders(newOrders);
                     setLoading(false);
                 }, (error) => {
-                    logger.error("Error listening to orders:", error);
+                    logger.error("Error listening to orders:", error instanceof Error ? error : new Error(String(error)));
                     setLoading(false);
                 });
             } catch (error) {
-                logger.error("Error setting up listener:", error);
+                logger.error("Error setting up listener:", error instanceof Error ? error : new Error(String(error)));
                 setLoading(false);
             }
         };
@@ -93,7 +93,7 @@ export default function DispensaryOrdersPage() {
             }
             // No need to fetchOrders() as the snapshot listener will update automatically
         } catch (error) {
-            logger.error('Error updating order:', error);
+            logger.error('Error updating order:', error instanceof Error ? error : new Error(String(error)));
             alert('Failed to update order status');
         }
     };

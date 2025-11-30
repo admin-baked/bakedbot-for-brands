@@ -79,7 +79,7 @@ export default function MenuPage() {
                 setProducts(uniqueProducts);
             }
         } catch (error) {
-            logger.error('Failed to load products:', error);
+            logger.error('Failed to load products:', error instanceof Error ? error : new Error(String(error)));
         } finally {
             setLoading(false);
         }

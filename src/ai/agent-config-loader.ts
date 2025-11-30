@@ -63,7 +63,7 @@ export class AgentConfigLoader {
             try {
                 await this.load(file);
             } catch (error) {
-                logger.error(`Error loading agent config ${file}:`, error);
+                logger.error(`Error loading agent config ${file}:`, error instanceof Error ? error : new Error(String(error)));
             }
         }
     }

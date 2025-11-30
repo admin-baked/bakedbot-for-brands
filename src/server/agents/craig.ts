@@ -7,6 +7,7 @@ import type { OrderDoc, Retailer } from "@/types/domain";
 import type { ServerOrderPayload } from "@/types/domain";
 import { orderConverter, retailerConverter } from "@/firebase/converters";
 import { FieldValue } from "firebase-admin/firestore";
+import { logger } from "@/lib/logger";
 
 
 const HANDLED_TYPES: EventType[] = [
@@ -16,19 +17,19 @@ const HANDLED_TYPES: EventType[] = [
 ];
 
 async function handleDeadLetter(orgId: string, eventId: string, eventData: any, error: any) {
-    const { firestore: db } = await createServerClient();
-    const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
-    const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
+  const { firestore: db } = await createServerClient();
+  const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
+  const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
 
-    const batch = db.batch();
-    batch.set(dlqRef, {
-        ...eventData,
-        _failedAt: FieldValue.serverTimestamp(),
-        _error: error?.message || String(error),
-        _agentId: 'craig',
-    });
-    batch.delete(originalEventRef);
-    await batch.commit();
+  const batch = db.batch();
+  batch.set(dlqRef, {
+    ...eventData,
+    _failedAt: FieldValue.serverTimestamp(),
+    _error: error?.message || String(error),
+    _agentId: 'craig',
+  });
+  batch.delete(originalEventRef);
+  await batch.commit();
 }
 
 
@@ -46,7 +47,7 @@ export async function handleCraigEvent(orgId: string, eventId: string) {
   if (event.processedBy && event.processedBy[agentId]) {
     return;
   }
-  
+
   if (!HANDLED_TYPES.includes(event.type)) {
     // Mark as processed even if not handled to prevent re-scanning
     await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
@@ -62,7 +63,7 @@ export async function handleCraigEvent(orgId: string, eventId: string) {
       case "checkout.paid":
         await handleCheckoutPaid(orgId, event);
         break;
-      
+
       case "order.readyForPickup":
         // Add more handlers as needed, e.g. for status updates
         break;
@@ -84,12 +85,12 @@ async function handleSubscriptionUpdated(orgId: string, event: any) {
 
   const ownerEmail = org.ownerEmail; // Assuming this field exists
   if (!ownerEmail) {
-      console.log(`Craig: Org ${orgId} has no ownerEmail, skipping subscription email.`);
-      return;
+    logger.warn('Craig: Org has no ownerEmail, skipping subscription email', { orgId });
+    return;
   };
 
   // This is a placeholder for a real email sending service call
-  console.log(
+  logger.info(
     `Craig: [Action] Would send onboarding email to ${ownerEmail} for plan ${event.data?.planId}`
   );
 }
@@ -109,16 +110,16 @@ async function handleCheckoutPaid(orgId: string, event: any) {
 
   if (!orderSnap.exists) return;
   const order = orderSnap.data() as OrderDoc;
-  
+
   const retailerSnap = await db.collection('dispensaries').doc(order.retailerId).withConverter(retailerConverter as any).get();
   if (!retailerSnap.exists) {
-      console.error(`Craig: Retailer ${order.retailerId} not found for order ${orderId}`);
-      return;
+    console.error(`Craig: Retailer ${order.retailerId} not found for order ${orderId}`);
+    return;
   }
   const retailer = retailerSnap.data() as Retailer;
 
   const serverOrderPayload: ServerOrderPayload = {
-      ...(order as any),
+    ...(order as any),
   };
 
   try {
@@ -130,7 +131,7 @@ async function handleCheckoutPaid(orgId: string, event: any) {
       recipientType: 'customer',
       subject: `Your order #${orderId.substring(0, 7)} is confirmed!`,
     });
-    console.log(`Craig: sent order confirmation for ${orderId}`);
+    logger.info('Craig: Sent order confirmation', { orderId });
   } catch (err) {
     console.error(`Craig: sendOrderEmail for order ${orderId} failed`, err);
   }

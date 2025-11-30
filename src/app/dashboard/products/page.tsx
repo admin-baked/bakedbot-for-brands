@@ -17,54 +17,54 @@ import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardProductsPage() {
-  const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
-  
-  let products: Product[] = [];
-  
-  if (isDemo) {
-    products = demoProducts;
-  } else {
-    try {
-        const user = await requireUser(['brand', 'owner']);
-        const brandId = user.brandId;
+    const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
 
-        if (!brandId && user.role !== 'owner') {
-            // This case should ideally not be hit if role is 'brand'
-            // but it's a good safeguard.
-            return <p>You are not associated with a brand.</p>
-        }
+    let products: Product[] = [];
 
-        const { firestore } = await createServerClient();
-        const productRepo = makeProductRepo(firestore);
-        
-        if (user.role === 'owner') {
-            // Owner sees all products
-            products = await productRepo.getAll();
-        } else if (brandId) {
-            products = await productRepo.getAllByBrand(brandId);
-        }
-    } catch (error) {
-        if ((error as Error).message.includes('Unauthorized')) {
-             redirect('/brand-login');
-        }
-        logger.error("Failed to fetch products for dashboard:", error);
-        // Fallback to demo data on error for resilience, though you might want a proper error page
+    if (isDemo) {
         products = demoProducts;
+    } else {
+        try {
+            const user = await requireUser(['brand', 'owner']);
+            const brandId = user.brandId;
+
+            if (!brandId && user.role !== 'owner') {
+                // This case should ideally not be hit if role is 'brand'
+                // but it's a good safeguard.
+                return <p>You are not associated with a brand.</p>
+            }
+
+            const { firestore } = await createServerClient();
+            const productRepo = makeProductRepo(firestore);
+
+            if (user.role === 'owner') {
+                // Owner sees all products
+                products = await productRepo.getAll();
+            } else if (brandId) {
+                products = await productRepo.getAllByBrand(brandId);
+            }
+        } catch (error) {
+            if ((error as Error).message.includes('Unauthorized')) {
+                redirect('/brand-login');
+            }
+            logger.error("Failed to fetch products for dashboard:", error instanceof Error ? error : new Error(String(error)));
+            // Fallback to demo data on error for resilience, though you might want a proper error page
+            products = demoProducts;
+        }
     }
-  }
-  
-  return (
-    <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-             {/* The header is now handled by the layout */}
-             <div/>
-            <Link href="/dashboard/products/new" passHref>
-                <Button>
-                    <PlusCircle /> Add Product
-                </Button>
-            </Link>
+
+    return (
+        <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between">
+                {/* The header is now handled by the layout */}
+                <div />
+                <Link href="/dashboard/products/new" passHref>
+                    <Button>
+                        <PlusCircle /> Add Product
+                    </Button>
+                </Link>
+            </div>
+            <ProductsDataTable columns={columns} data={products} />
         </div>
-        <ProductsDataTable columns={columns} data={products} />
-    </div>
-  );
+    );
 }

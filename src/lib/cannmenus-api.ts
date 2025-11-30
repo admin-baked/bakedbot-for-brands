@@ -115,7 +115,7 @@ export async function searchNearbyRetailers(
             .sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity))
             .slice(0, limit);
     } catch (error) {
-        logger.error('Error fetching nearby retailers:', error);
+        logger.error('Error fetching nearby retailers:', error instanceof Error ? error : new Error(String(error)));
         return [];
     }
 }
@@ -181,7 +181,7 @@ export async function getRetailerProducts(
 
         return uniqueProducts;
     } catch (error) {
-        logger.error('Error fetching retailer products:', error);
+        logger.error('Error fetching retailer products:', error instanceof Error ? error : new Error(String(error)));
         return [];
     }
 }
@@ -238,7 +238,7 @@ export async function getProductAvailability(
 
         return availability;
     } catch (error) {
-        logger.error('Error fetching product availability:', error);
+        logger.error('Error fetching product availability:', error instanceof Error ? error : new Error(String(error)));
         return [];
     }
 }
@@ -273,7 +273,7 @@ export async function geocodeZipCode(zipCode: string): Promise<{ lat: number; ln
 
         return null;
     } catch (error) {
-        logger.error('Error geocoding ZIP code:', error);
+        logger.error('Error geocoding ZIP code:', error instanceof Error ? error : new Error(String(error)));
         return null;
     }
 }

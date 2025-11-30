@@ -79,7 +79,7 @@ const ChatWindow = ({
   const { chatExperience } = useStore();
 
   return (
-    <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-popover border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
+    <div data-testid="chat-window" className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-popover border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
       <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
 
         {chatExperience === 'default' && hasStartedChat && (
@@ -158,6 +158,7 @@ const ChatWindow = ({
               </TooltipProvider>
 
               <Input
+                data-testid="chat-input"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder={chatMode === 'image' ? "Describe a scene..." : 'Type a message...'}
@@ -165,7 +166,12 @@ const ChatWindow = ({
                 autoComplete="off"
                 disabled={isBotTyping}
               />
-              <Button type="submit" size="icon" disabled={isBotTyping || inputValue.trim() === ''}>
+              <Button
+                data-testid="send-message"
+                type="submit"
+                size="icon"
+                disabled={isBotTyping || inputValue.trim() === ''}
+              >
                 {chatMode === 'image' ? <Sparkles className="h-4 w-4" /> : <Send className="h-4 w-4" />}
               </Button>
             </form>
@@ -362,7 +368,7 @@ export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
         setMessages((prev) => [...prev, botMessage]);
       }
     } catch (error) {
-      logger.error('Chat API error:', error);
+      logger.error('Chat API error:', error instanceof Error ? error : new Error(String(error)));
       const errorMessage: Message = {
         id: Date.now() + 1,
         text: "I'm having trouble connecting right now. Please try again in a moment.",

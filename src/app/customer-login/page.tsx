@@ -34,13 +34,18 @@ export default function CustomerLoginPage() {
 
     // Create server session
     try {
-      await fetch('/api/auth/session', {
+      const sessionResponse = await fetch('/api/auth/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken }),
       });
+
+      if (!sessionResponse.ok) {
+        const errorData = await sessionResponse.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to create session');
+      }
     } catch (error) {
-      logger.error('Failed to create session', error);
+      logger.error('Failed to create session', error instanceof Error ? error : new Error(String(error)));
       toast({ variant: 'destructive', title: 'Session Error', description: 'Failed to create server session.' });
       return;
     }

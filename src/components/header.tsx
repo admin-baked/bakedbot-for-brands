@@ -51,7 +51,7 @@ export function Header() {
             // Redirect to role-specific login page (captured before sign out)
             window.location.href = loginRoute;
         } catch (error) {
-            logger.error('Sign out error', error);
+            logger.error('Sign out error', error instanceof Error ? error : new Error(String(error)));
             toast({
                 variant: "destructive",
                 title: "Sign Out Error",

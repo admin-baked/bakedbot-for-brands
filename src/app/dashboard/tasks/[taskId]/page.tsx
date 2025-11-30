@@ -23,33 +23,33 @@ export default function TaskPage() {
     const [error, setError] = useState<string | null>(null);
 
     const startExecution = useCallback(async (taskToExecute: Task) => {
-      try {
-          setError(null);
-          setTask(prev => prev ? { ...prev, status: 'running' } : null);
+        try {
+            setError(null);
+            setTask(prev => prev ? { ...prev, status: 'running' } : null);
 
-          const response = await fetch(`/api/tasks/${taskToExecute.id}/execute`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(taskToExecute)
-          });
+            const response = await fetch(`/api/tasks/${taskToExecute.id}/execute`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(taskToExecute)
+            });
 
-          if (!response.ok) {
-              const data = await response.json();
-              throw new Error(data.error || 'Failed to start execution');
-          }
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Failed to start execution');
+            }
 
-          const data = await response.json();
-          if (data.success) {
-              setTask(data.task);
-          } else {
-              throw new Error(data.error || 'Execution failed');
-          }
+            const data = await response.json();
+            if (data.success) {
+                setTask(data.task);
+            } else {
+                throw new Error(data.error || 'Execution failed');
+            }
 
-      } catch (err) {
-          logger.error('Execution error:', err);
-          setError(err instanceof Error ? err.message : 'Unknown error');
-          setTask(prev => prev ? { ...prev, status: 'failed' } : null);
-      }
+        } catch (err) {
+            logger.error('Execution error:', err instanceof Error ? err : new Error(String(err)));
+            setError(err instanceof Error ? err.message : 'Unknown error');
+            setTask(prev => prev ? { ...prev, status: 'failed' } : null);
+        }
     }, []);
 
     useEffect(() => {
@@ -70,7 +70,7 @@ export default function TaskPage() {
                         startExecution(storedTask);
                     }
                 } catch (e) {
-                    logger.error("Failed to parse stored task", e);
+                    logger.error("Failed to parse stored task", e instanceof Error ? e : new Error(String(e)));
                     setError("Could not load task data from session.");
                     setLoading(false);
                 }

@@ -191,7 +191,7 @@ async function checkProfileExists(uid: string): Promise<boolean> {
         const docSnap = await getDoc(docRef);
         return docSnap.exists();
     } catch (error) {
-        logger.error('[CustomerAuth] Check profile error:', error);
+        logger.error('[CustomerAuth] Check profile error:', error instanceof Error ? error : new Error(String(error)));
         return false;
     }
 }
@@ -232,7 +232,7 @@ async function createCustomerProfile(
 
         await setDoc(doc(db, 'users', user.uid), profile);
     } catch (error) {
-        logger.error('[CustomerAuth] Create profile error:', error);
+        logger.error('[CustomerAuth] Create profile error:', error instanceof Error ? error : new Error(String(error)));
         throw error;
     }
 }

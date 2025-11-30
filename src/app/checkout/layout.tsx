@@ -26,7 +26,7 @@ async function getCheckoutData() {
             const locationsSnap = await firestore.collection('dispensaries').get();
             locations = locationsSnap.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() })) as Retailer[];
         } catch (error) {
-            logger.error(`[CheckoutLayout] Failed to fetch data:`, error);
+            logger.error(`[CheckoutLayout] Failed to fetch data:`, error instanceof Error ? error : new Error(String(error)));
             locations = demoRetailers;
         }
     }
@@ -35,15 +35,15 @@ async function getCheckoutData() {
 
 
 export default async function CheckoutLayout({ children }: CheckoutLayoutProps) {
-  const checkoutData = await getCheckoutData();
+    const checkoutData = await getCheckoutData();
 
-  return (
-    <CheckoutLayoutClient initialData={checkoutData}>
-        <div className="min-h-screen bg-muted/20 flex flex-col">
-            <main className="flex-1">
-                {children}
-            </main>
-        </div>
-    </CheckoutLayoutClient>
-  );
+    return (
+        <CheckoutLayoutClient initialData={checkoutData}>
+            <div className="min-h-screen bg-muted/20 flex flex-col">
+                <main className="flex-1">
+                    {children}
+                </main>
+            </div>
+        </CheckoutLayoutClient>
+    );
 }

@@ -23,7 +23,7 @@ export default async function ProductContentGeneratorPage() {
     const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
     let products = [];
     let areProductsLoading = true;
-    
+
     let brandId: string;
     if (isDemo) {
         brandId = DEMO_BRAND_ID;
@@ -36,12 +36,12 @@ export default async function ProductContentGeneratorPage() {
             const productRepo = makeProductRepo(firestore);
             products = await productRepo.getAllByBrand(brandId);
         } catch (error) {
-            logger.error("Failed to fetch products for content generator:", error);
+            logger.error("Failed to fetch products for content generator:", error instanceof Error ? error : new Error(String(error)));
             products = demoProducts; // Fallback to demo
         } finally {
             areProductsLoading = false;
         }
     }
-    
+
     return <PageClient products={products} areProductsLoading={areProductsLoading} />;
 }

@@ -87,7 +87,7 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
       toast({ variant: 'destructive', title: 'Your cart is empty!' });
       return;
     }
-    
+
     startTransition(async () => {
       // The first item in the cart determines the brand for the whole order.
       const organizationId = cartItems[0]?.brandId || DEMO_BRAND_ID;
@@ -95,9 +95,9 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
       const orderInput: ClientOrderInput = {
         items: cartItems,
         customer: {
-            name: data.customerName,
-            email: data.customerEmail,
-            phone: data.customerPhone,
+          name: data.customerName,
+          email: data.customerEmail,
+          phone: data.customerPhone,
         },
         retailerId: selectedRetailer.id,
         organizationId: organizationId,
@@ -114,9 +114,9 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
           toast({ variant: 'destructive', title: 'Order Submission Failed', description: result.error || 'Could not submit order. Please try again.' });
         }
       } catch (e) {
-          logger.error("submitOrder failed:", e);
-          const errorMessage = e instanceof Error ? e.message : String(e);
-          toast({ variant: 'destructive', title: 'Order Submission Failed', description: errorMessage });
+        logger.error("submitOrder failed:", e instanceof Error ? e : new Error(String(e)));
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        toast({ variant: 'destructive', title: 'Order Submission Failed', description: errorMessage });
       }
     });
   };
@@ -183,7 +183,7 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
                 </FormItem>
               )}
             />
-            
+
           </CardContent>
           <CardFooter>
             <Button type="submit" className="w-full" disabled={isPending}>

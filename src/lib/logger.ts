@@ -3,19 +3,12 @@
  * 
  * [AI-THREAD P0-MON-LOGGING]
  * [Dev2-Infra @ 2025-11-29]: GCP Logging wrapper for structured logs.
- * Uses @google-cloud/logging for production, console for dev.
+ * Uses @google-cloud/logging for production SERVER-SIDE, console for dev/client.
+ * 
+ * IMPORTANT: Uses dynamic imports to prevent webpack bundling GCP Logging for client.
  */
 
-import { Logging } from '@google-cloud/logging';
 import * as Sentry from '@sentry/nextjs';
-
-import { logger } from '@/lib/logger';
-// Initialize Google Cloud Logging (uses Application Default Credentials in production)
-const logging = typeof window === 'undefined' && process.env.NODE_ENV === 'production'
-    ? new Logging({ projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8' })
-    : null;
-
-const log = logging?.log('bakedbot-app');
 
 type LogLevel = 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
 
@@ -25,11 +18,40 @@ interface LogEntry {
     level?: LogLevel;
 }
 
+// Lazy-loaded GCP logging instance (server-side only)
+let gcpLogInitialized = false;
+let gcpLog: any = null;
+
+/**
+ * Initialize GCP Logging dynamically (server-side only)
+ */
+async function initGCPLogging() {
+    if (gcpLogInitialized) return gcpLog;
+
+    // Only initialize on server in production
+    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+        try {
+            // Dynamic import prevents webpack from bundling for client
+            const { Logging } = await import('@google-cloud/logging');
+            const logging = new Logging({
+                projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
+            });
+            gcpLog = logging.log('bakedbot-app');
+        } catch (error) {
+            console.error('[Logger] Failed to initialize GCP Logging:', error);
+            gcpLog = null;
+        }
+    }
+
+    gcpLogInitialized = true;
+    return gcpLog;
+}
+
 /**
  * Write structured log entry to Google Cloud Logging (production) or console (dev)
  * Also sends ERROR and CRITICAL logs to Sentry.
  */
-function writeLog({ message, data = {}, level = 'INFO' }: LogEntry) {
+async function writeLog({ message, data = {}, level = 'INFO' }: LogEntry) {
     const timestamp = new Date().toISOString();
 
     // Send to Sentry for ERROR/CRITICAL
@@ -37,42 +59,53 @@ function writeLog({ message, data = {}, level = 'INFO' }: LogEntry) {
         Sentry.captureException(new Error(message), {
             level: level === 'CRITICAL' ? 'fatal' : 'error',
             extra: data,
-            tags: { logger: 'server' }
+            tags: { logger: typeof window === 'undefined' ? 'server' : 'client' }
         });
     }
 
-    if (process.env.NODE_ENV === 'production' && log) {
-        // Production: Send to Google Cloud Logging
-        const entry = log.entry(
-            {
-                severity: level,
-                resource: { type: 'cloud_run_revision' }
-            },
-            {
-                message,
-                ...data,
-                timestamp,
-            }
-        );
+    // Server-side production logging to GCP
+    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+        const log = await initGCPLogging();
+        if (log) {
+            try {
+                const entry = log.entry(
+                    {
+                        severity: level,
+                        resource: { type: 'cloud_run_revision' }
+                    },
+                    {
+                        message,
+                        ...data,
+                        timestamp,
+                    }
+                );
 
-        log.write(entry).catch((err) => {
-            logger.error('[Logger Error]', err);
-        });
+                // Fire and forget - don't await
+                log.write(entry).catch((err: Error) => {
+                    console.error('[Logger Error]', err);
+                });
+            } catch (error) {
+                console.error('[Logger Error]', error);
+            }
+        } else {
+            // Fallback to console if GCP logging failed to initialize
+            console.log(`[${level}] ${timestamp} ${message}`, data);
+        }
     } else {
-        // Development: Console with level prefix
-        const prefix = `[${level}] ${timestamp}`;
+        // Development or client-side: Console logging
+        const prefix = `[${level}] ${timestamp} ${message}`;
         const logData = Object.keys(data).length > 0 ? data : undefined;
 
         switch (level) {
             case 'ERROR':
             case 'CRITICAL':
-                logger.error(prefix, message, logData);
+                console.error(prefix, logData || '');
                 break;
             case 'WARNING':
-                logger.warn(prefix, message, logData);
+                console.warn(prefix, logData || '');
                 break;
             default:
-                logger.info(prefix, message, logData);
+                console.log(prefix, logData || '');
         }
     }
 }

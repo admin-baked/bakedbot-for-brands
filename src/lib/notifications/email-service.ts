@@ -45,7 +45,7 @@ export class EmailService {
 
             return true;
         } catch (error) {
-            logger.error('Email Send Error:', error);
+            logger.error('Email Send Error:', error instanceof Error ? error : new Error(String(error)));
             return false;
         }
     }

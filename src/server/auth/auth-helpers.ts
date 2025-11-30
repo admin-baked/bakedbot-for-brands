@@ -23,7 +23,7 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
 
         return userProfile;
     } catch (error) {
-        logger.error('Error getting current user:', error);
+        logger.error('Error getting current user:', error instanceof Error ? error : new Error(String(error)));
         return null;
     }
 }
@@ -82,7 +82,7 @@ export async function getUserFromRequest(
 
         return userProfile;
     } catch (error) {
-        logger.error('Error getting user from request:', error);
+        logger.error('Error getting user from request:', error instanceof Error ? error : new Error(String(error)));
         return null;
     }
 }
