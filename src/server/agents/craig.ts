@@ -1,18 +1,8 @@
-```
-// src/server/agents/craig.ts
-/**
- * Agent: Craig (Marketer)
- * Responsibilities:
- * - Send order confirmation emails
- * - Send subscription confirmation emails
- * - Future: Marketing campaigns, promotional emails
- */
 
+// src/server/agents/craig.ts
 import { createServerClient } from "@/firebase/server-client";
 import { EventType } from "@/types/domain";
 import { sendOrderEmail } from "@/lib/email/send-order-email";
-import { emitEvent, type BakEvent } from '../events/emitter';
-import { logger } from '@/lib/logger';
 import type { OrderDoc, Retailer } from "@/types/domain";
 import type { ServerOrderPayload } from "@/types/domain";
 import { orderConverter, retailerConverter } from "@/firebase/converters";
@@ -81,7 +71,7 @@ export async function handleCraigEvent(orgId: string, eventId: string) {
     await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
 
   } catch (error) {
-    logger.error(`[${ agentId }] Error processing event`, { eventId, error: error?.message || String(error) });
+    console.error(`[${agentId}] Error processing event ${eventId}:`, error);
     await handleDeadLetter(orgId, eventId, event, error);
   }
 }
@@ -93,13 +83,15 @@ async function handleSubscriptionUpdated(orgId: string, event: any) {
   const org = orgSnap.data() || {};
 
   const ownerEmail = org.ownerEmail; // Assuming this field exists
-  if (!org.ownerEmail) {
-      logger.warn('Craig: Org has no ownerEmail, skipping subscription email', { orgId });
+  if (!ownerEmail) {
+      console.log(`Craig: Org ${orgId} has no ownerEmail, skipping subscription email.`);
       return;
-  }
+  };
 
   // This is a placeholder for a real email sending service call
-  logger.info('Craig: Subscription confirmation email sent', { ownerEmail, planId: event.data?.planId });
+  console.log(
+    `Craig: [Action] Would send onboarding email to ${ownerEmail} for plan ${event.data?.planId}`
+  );
 }
 
 async function handleCheckoutPaid(orgId: string, event: any) {
@@ -115,15 +107,12 @@ async function handleCheckoutPaid(orgId: string, event: any) {
     .withConverter(orderConverter as any)
     .get();
 
-  if (!orderSnap.exists) {
-    logger.warn('Craig: Order not found for checkout.paid event', { orgId, orderId });
-    return;
-  }
+  if (!orderSnap.exists) return;
   const order = orderSnap.data() as OrderDoc;
   
   const retailerSnap = await db.collection('dispensaries').doc(order.retailerId).withConverter(retailerConverter as any).get();
   if (!retailerSnap.exists) {
-      logger.error(`Craig: Retailer not found for order`, { retailerId: order.retailerId, orderId });
+      console.error(`Craig: Retailer ${order.retailerId} not found for order ${orderId}`);
       return;
   }
   const retailer = retailerSnap.data() as Retailer;
@@ -139,12 +128,10 @@ async function handleCheckoutPaid(orgId: string, event: any) {
       order: serverOrderPayload,
       retailer: retailer,
       recipientType: 'customer',
-      subject: `Your order #${ orderId.substring(0, 7) } is confirmed!`,
+      subject: `Your order #${orderId.substring(0, 7)} is confirmed!`,
     });
-
-    logger.info('Craig: Order confirmation email sent', { orderId });
-  } catch (err: any) {
-    logger.error('Craig: Failed to send order confirmation', { orderId, error: err.message });
+    console.log(`Craig: sent order confirmation for ${orderId}`);
+  } catch (err) {
+    console.error(`Craig: sendOrderEmail for order ${orderId} failed`, err);
   }
 }
-```

@@ -13,6 +13,7 @@ import {
 import { generateEmbedding } from "@/ai/utils/generate-embedding";
 import { requireUser } from "@/server/auth/auth";
 import { createServerClient } from "@/firebase/server-client";
+import { logger } from "@/lib/logger";
 
 // Helper to build the text we embed for a product
 function buildProductText(
@@ -133,7 +134,11 @@ export async function POST(_req: NextRequest) {
       try {
         embedding = await generateEmbedding(text);
       } catch (err: any) {
-        console.error("Embedding error for product", productId, err);
+        logger.error("[P0-INT-SENTRY] Embedding error for product", {
+          productId,
+          error: err?.message,
+          stack: err?.stack,
+        });
         results.push({
           productId,
           status: "error",
@@ -182,7 +187,10 @@ export async function POST(_req: NextRequest) {
 
     return NextResponse.json(summary, { status: 200 });
   } catch (err: any) {
-    console.error("Error building CannMenus embeddings:", err);
+    logger.error("[P0-INT-SENTRY] Error building CannMenus embeddings", {
+      error: err?.message,
+      stack: err?.stack,
+    });
     const status = err.message.includes("Unauthorized") ? 401 : 500;
     return NextResponse.json(
       {
