@@ -28,7 +28,9 @@
       "Bash(npm run lint:*)",
       "Bash(firebase login)",
       "Bash(npm test:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git push:*)",
+      "Bash(npx playwright test:*)"
     ],
     "deny": [],
     "ask": []
