@@ -69,12 +69,12 @@ const nextConfig = {
             value: isProd
               ? [
                 "default-src 'self'",
-                "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net",
+                "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                 "img-src 'self' data: https: blob:",
                 "font-src 'self' data: https://fonts.gstatic.com",
-                "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.cannmenus.com https://api.anthropic.com",
-                "frame-src 'self' https://www.google.com",
+                "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.cannmenus.com https://api.anthropic.com https://www.google.com/recaptcha/",
+                "frame-src 'self' https://www.google.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/",
                 "object-src 'none'",
                 "base-uri 'self'",
                 "form-action 'self'",
