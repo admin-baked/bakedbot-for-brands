@@ -16,6 +16,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import Image from 'next/image';
+
+// BakedBot assets
+const BAKEDBOT_LOGO = 'https://storage.cloud.google.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
+const AI_AGENT_WIDGET = 'https://storage.cloud.google.com/bakedbot-global-assets/Untitled%20design.png';
 
 export default function AIAgentEmbedTab() {
   const { toast } = useToast();
@@ -74,14 +79,26 @@ export default function AIAgentEmbedTab() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            AI Agent Embed Code Generator
-          </CardTitle>
-          <CardDescription>
-            Generate embed codes for AI Agent Budtender chatbot for CannMenus customers only.
-            No Headless Menu functionality - chatbot only.
-          </CardDescription>
+          <div className="flex items-start gap-4">
+            <div className="relative w-16 h-16 flex-shrink-0">
+              <Image
+                src={BAKEDBOT_LOGO}
+                alt="BakedBot Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <div className="flex-1">
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                AI Agent Embed Code Generator
+              </CardTitle>
+              <CardDescription>
+                Generate embed codes for AI Agent Budtender chatbot for CannMenus customers only.
+                No Headless Menu functionality - chatbot only.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="configure" className="w-full">
@@ -263,13 +280,17 @@ export default function AIAgentEmbedTab() {
                     className={`fixed ${position === 'bottom-right' ? 'bottom-6 right-6' : 'bottom-6 left-6'}`}
                     style={{ position: 'absolute' }}
                   >
-                    <Button
-                      size="lg"
-                      className="rounded-full h-14 w-14 shadow-lg"
-                      style={{ backgroundColor: primaryColor }}
+                    <button
+                      className="rounded-full h-16 w-16 shadow-2xl overflow-hidden relative hover:scale-110 transition-transform cursor-pointer"
+                      onClick={() => setShowPreview(!showPreview)}
                     >
-                      <Sparkles className="h-6 w-6" />
-                    </Button>
+                      <Image
+                        src={AI_AGENT_WIDGET}
+                        alt="AI Agent Widget"
+                        fill
+                        className="object-cover"
+                      />
+                    </button>
                   </div>
 
                   {showPreview && (
@@ -277,18 +298,30 @@ export default function AIAgentEmbedTab() {
                       className={`fixed ${position === 'bottom-right' ? 'bottom-24 right-6' : 'bottom-24 left-6'} w-80 shadow-2xl`}
                       style={{ position: 'absolute' }}
                     >
-                      <CardHeader style={{ backgroundColor: primaryColor }} className="text-white">
-                        <CardTitle className="text-sm flex items-center justify-between">
-                          <span>AI Budtender</span>
+                      <CardHeader style={{ backgroundColor: primaryColor }} className="text-white pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="relative w-8 h-8 bg-white rounded-full p-1">
+                              <Image
+                                src={BAKEDBOT_LOGO}
+                                alt="BakedBot"
+                                fill
+                                className="object-contain"
+                              />
+                            </div>
+                            <CardTitle className="text-sm">
+                              AI Budtender
+                            </CardTitle>
+                          </div>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-white hover:bg-white/20"
+                            className="text-white hover:bg-white/20 h-6 w-6 p-0"
                             onClick={() => setShowPreview(false)}
                           >
                             ×
                           </Button>
-                        </CardTitle>
+                        </div>
                       </CardHeader>
                       <CardContent className="p-4">
                         <p className="text-sm text-muted-foreground">{greeting}</p>
