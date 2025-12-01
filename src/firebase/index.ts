@@ -34,15 +34,8 @@ export function initializeFirebase(): FirebaseSdks {
     return getSdks(app);
   }
 
-  let firebaseApp;
-  try {
-    firebaseApp = initializeApp();
-  } catch (e) {
-    if (process.env.NODE_ENV === "production") {
-      logger.warn('Automatic initialization failed. Falling back to firebase config object.', e instanceof Error ? e : new Error(String(e)));
-    }
-    firebaseApp = initializeApp(firebaseConfig);
-  }
+  // Always use explicit config to ensure auth component is properly registered
+  const firebaseApp = initializeApp(firebaseConfig);
 
   return getSdks(firebaseApp);
 }
