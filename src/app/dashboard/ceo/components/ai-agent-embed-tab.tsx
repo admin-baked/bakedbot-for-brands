@@ -1,0 +1,354 @@
+'use client';
+
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { Copy, Check, Eye, Code, Sparkles } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+export default function AIAgentEmbedTab() {
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Embed configuration
+  const [customerName, setCustomerName] = useState('');
+  const [cannMenusId, setCannMenusId] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('#10b981');
+  const [position, setPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
+  const [greeting, setGreeting] = useState("Hi, I'm Smokey. How can I help you today?");
+
+  // Generate embed code
+  const generateEmbedCode = () => {
+    const config = {
+      cannMenusId,
+      customerName,
+      primaryColor,
+      position,
+      greeting,
+    };
+
+    const embedCode = `<!-- BakedBot AI Agent - Budtender Chatbot -->
+<script>
+  window.BakedBotConfig = ${JSON.stringify(config, null, 2)};
+</script>
+<script src="https://bakedbot-for-brands--studio-567050101-bc6e8.us-east4.hosted.app/embed/chatbot.js" async></script>
+<link rel="stylesheet" href="https://bakedbot-for-brands--studio-567050101-bc6e8.us-east4.hosted.app/embed/chatbot.css">
+<!-- End BakedBot AI Agent -->`;
+
+    return embedCode;
+  };
+
+  const embedCode = generateEmbedCode();
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(embedCode);
+      setCopied(true);
+      toast({
+        title: 'Copied!',
+        description: 'Embed code copied to clipboard.',
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to copy',
+        description: 'Please copy the code manually.',
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            AI Agent Embed Code Generator
+          </CardTitle>
+          <CardDescription>
+            Generate embed codes for AI Agent Budtender chatbot for CannMenus customers only.
+            No Headless Menu functionality - chatbot only.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="configure" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="configure">
+                <Code className="h-4 w-4 mr-2" />
+                Configure
+              </TabsTrigger>
+              <TabsTrigger value="embed-code">
+                <Code className="h-4 w-4 mr-2" />
+                Embed Code
+              </TabsTrigger>
+              <TabsTrigger value="preview">
+                <Eye className="h-4 w-4 mr-2" />
+                Preview
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Configuration Tab */}
+            <TabsContent value="configure" className="space-y-4 mt-6">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customer-name">Customer Name *</Label>
+                  <Input
+                    id="customer-name"
+                    placeholder="e.g., Green Valley Dispensary"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The name of the CannMenus customer receiving this embed code
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cannmenus-id">CannMenus ID *</Label>
+                  <Input
+                    id="cannmenus-id"
+                    placeholder="e.g., cm_12345"
+                    value={cannMenusId}
+                    onChange={(e) => setCannMenusId(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The unique CannMenus customer ID for product integration
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="greeting">Chatbot Greeting</Label>
+                  <Input
+                    id="greeting"
+                    placeholder="Hi, I'm Smokey..."
+                    value={greeting}
+                    onChange={(e) => setGreeting(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="primary-color">Primary Color</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="primary-color"
+                        type="color"
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        className="w-20 h-10"
+                      />
+                      <Input
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        placeholder="#10b981"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="position">Position</Label>
+                    <Select value={position} onValueChange={(value: any) => setPosition(value)}>
+                      <SelectTrigger id="position">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                        <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md p-4">
+                    <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                      ⚠️ CannMenus Customers Only
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                      This embed code is exclusively for CannMenus customers. The chatbot will only work with a valid CannMenus ID.
+                      Headless menu functionality is not included - this is chatbot only.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Embed Code Tab */}
+            <TabsContent value="embed-code" className="space-y-4 mt-6">
+              <div className="space-y-4">
+                <div>
+                  <Label>Generated Embed Code</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Copy this code and paste it into the customer's website, just before the closing &lt;/body&gt; tag.
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <Textarea
+                    value={embedCode}
+                    readOnly
+                    className="font-mono text-xs min-h-[300px] resize-none"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="absolute top-2 right-2"
+                    onClick={copyToClipboard}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Code
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Installation Instructions:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                    <li>Copy the embed code above</li>
+                    <li>Open the customer's website HTML editor</li>
+                    <li>Paste the code just before the closing &lt;/body&gt; tag</li>
+                    <li>Save and publish the website</li>
+                    <li>The AI chatbot will appear automatically on the site</li>
+                  </ol>
+                </div>
+
+                {(!customerName || !cannMenusId) && (
+                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-4">
+                    <p className="text-sm text-blue-900 dark:text-blue-100">
+                      ℹ️ Please fill in Customer Name and CannMenus ID in the Configure tab to generate a valid embed code.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Preview Tab */}
+            <TabsContent value="preview" className="space-y-4 mt-6">
+              <div className="space-y-4">
+                <div>
+                  <Label>Live Preview</Label>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    This is how the chatbot will appear on the customer's website.
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-6 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 min-h-[400px] relative">
+                  <div className="text-center text-muted-foreground text-sm mb-4">
+                    Customer's Website Preview
+                  </div>
+
+                  {/* Chatbot Button Preview */}
+                  <div
+                    className={`fixed ${position === 'bottom-right' ? 'bottom-6 right-6' : 'bottom-6 left-6'}`}
+                    style={{ position: 'absolute' }}
+                  >
+                    <Button
+                      size="lg"
+                      className="rounded-full h-14 w-14 shadow-lg"
+                      style={{ backgroundColor: primaryColor }}
+                    >
+                      <Sparkles className="h-6 w-6" />
+                    </Button>
+                  </div>
+
+                  {showPreview && (
+                    <Card
+                      className={`fixed ${position === 'bottom-right' ? 'bottom-24 right-6' : 'bottom-24 left-6'} w-80 shadow-2xl`}
+                      style={{ position: 'absolute' }}
+                    >
+                      <CardHeader style={{ backgroundColor: primaryColor }} className="text-white">
+                        <CardTitle className="text-sm flex items-center justify-between">
+                          <span>AI Budtender</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-white hover:bg-white/20"
+                            onClick={() => setShowPreview(false)}
+                          >
+                            ×
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <p className="text-sm text-muted-foreground">{greeting}</p>
+                        <div className="mt-4 space-y-2">
+                          <Input placeholder="Ask me anything..." className="text-sm" />
+                          <Button className="w-full text-sm" style={{ backgroundColor: primaryColor }}>
+                            Send
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+
+                <Button
+                  onClick={() => setShowPreview(!showPreview)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  {showPreview ? 'Hide Preview' : 'Show Preview'}
+                </Button>
+
+                <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-4">
+                  <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                    ✓ Chatbot Only Mode
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                    This embed includes only the AI chatbot (Smokey). No headless menu or product browsing UI is included.
+                    Customers interact with products via conversation only.
+                  </p>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Quick Reference Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Quick Reference</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-xs text-muted-foreground">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <span className="font-medium">Embed Type:</span> Chatbot Only
+            </div>
+            <div>
+              <span className="font-medium">Features:</span> AI Recommendations
+            </div>
+            <div>
+              <span className="font-medium">Product Source:</span> CannMenus API
+            </div>
+            <div>
+              <span className="font-medium">Requirements:</span> Valid CannMenus ID
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
