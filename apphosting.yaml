@@ -72,8 +72,14 @@ runConfig:
     # Stripe (Optional Payment Partner)
     - variable: STRIPE_SECRET_KEY
       secret: STRIPE_SECRET_KEY
+      availability:
+        - BUILD
+        - RUNTIME
     - variable: STRIPE_WEBHOOK_SECRET
       secret: STRIPE_WEBHOOK_SECRET
+      availability:
+        - BUILD
+        - RUNTIME
     # Monitoring
     - variable: SENTRY_DSN
       secret: SENTRY_DSN
