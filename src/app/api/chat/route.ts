@@ -34,37 +34,20 @@ export async function POST(req: NextRequest) {
         // 2️⃣ Analyze the natural language query with context
         const analysis = await analyzeQuery(query, conversationContext);
 
-        // 3️⃣ Build the CannMenus product search URL using the extracted filters
-        const base = process.env.CANNMENUS_API_BASE;
-        const apiKey = process.env.CANNMENUS_API_KEY;
-        const fortyTonsBrandId = process.env.CANNMENUS_40TONS_BRAND_ID;
-        const baysideRetailerId = process.env.NEXT_PUBLIC_BAYSIDE_RETAILER_ID;
+        // 3️⃣ Use CannMenusService to fetch products directly
+        const cannMenusService = new CannMenusService();
+        const searchParams: any = {
+            search: analysis.searchQuery,
+            retailers: process.env.NEXT_PUBLIC_BAYSIDE_RETAILER_ID,
+            brands: process.env.CANNMENUS_40TONS_BRAND_ID,
+        };
 
-        if (!base || !apiKey || !fortyTonsBrandId || !baysideRetailerId) {
-            return NextResponse.json({ ok: false, error: 'CannMenus environment not configured' }, { status: 500 });
-        }
+        if (analysis.filters.category) searchParams.category = analysis.filters.category;
+        if (analysis.filters.priceMin) searchParams.price_min = analysis.filters.priceMin;
+        if (analysis.filters.priceMax) searchParams.price_max = analysis.filters.priceMax;
 
-        const url = new URL('/api/cannmenus/product-search', process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000');
-        // Forward the refined search query
-        url.searchParams.set('search', analysis.searchQuery);
-        // Apply optional filters
-        if (analysis.filters.category) url.searchParams.set('category', analysis.filters.category);
-        if (analysis.filters.priceMin) url.searchParams.set('price_min', analysis.filters.priceMin.toString());
-        if (analysis.filters.priceMax) url.searchParams.set('price_max', analysis.filters.priceMax.toString());
-        // Retailer and brand defaults for demo
-        url.searchParams.set('retailers', baysideRetailerId);
-        url.searchParams.set('brands', fortyTonsBrandId);
-
-        // 4️⃣ Fetch products from CannMenus
-        const productResp = await fetch(url.toString(), {
-            headers: {
-                Accept: 'application/json',
-                'User-Agent': 'BakedBot/1.0',
-                'X-Token': apiKey.trim().replace(/^['\"]|['\"]$/g, ''),
-            },
-        });
-        const productData = await productResp.json();
-        const rawProducts: CannMenusProduct[] = productData?.data?.products || productData?.data || [];
+        const productData = await cannMenusService.searchProducts(searchParams);
+        const rawProducts: CannMenusProduct[] = productData.products || [];
 
         // 4️⃣ Transform to ChatbotProduct shape (only a subset needed for UI)
         const chatProducts: ChatbotProduct[] = rawProducts.map((p) => ({

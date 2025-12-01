@@ -23,11 +23,12 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
   // --- PRODUCTION LOGIC ---
   const sessionCookie = cookies().get('__session')?.value;
   if (!sessionCookie) {
+    console.error('[AUTH_DEBUG] No session cookie found in request headers:', cookies().getAll().map(c => c.name));
     throw new Error('Unauthorized: No session cookie found.');
   }
 
   const { auth } = await createServerClient();
-  
+
   let decodedToken;
   try {
     decodedToken = await auth.verifySessionCookie(sessionCookie, true);
