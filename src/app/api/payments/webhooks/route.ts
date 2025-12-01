@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/payments/stripe';
+import { getStripeClient } from '@/lib/payments/stripe';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
 
         // Verify webhook signature
         let event;
+        const stripe = getStripeClient();
         try {
             event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
         } catch (err: any) {
