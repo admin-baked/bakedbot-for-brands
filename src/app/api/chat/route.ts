@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { analyzeQuery, generateChatResponse } from '@/ai/chat-query-handler';
 import type { CannMenusProduct, ChatbotProduct } from '@/types/cannmenus';
 import { getConversationContext, addMessageToSession, createChatSession } from '@/lib/chat/session-manager';
-
+import { CannMenusService } from '@/server/services/cannmenus';
 import { logger } from '@/lib/logger';
 
 /**
