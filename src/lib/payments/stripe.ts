@@ -17,51 +17,67 @@ let stripeInstance: Stripe | null = null;
 
 function getStripeInstance(): Stripe {
     if (!STRIPE_SECRET_KEY) {
- * Creates a Stripe PaymentIntent for a given amount.
- * @param amount Amount in cents(e.g., $10.00 = 1000)
-            * @param currency Currency code(default: usd)
-                * @param metadata Optional metadata to attach to the intent(orderId, customerId)
-                    */
-        export async function createPaymentIntent(
-            amount: number,
-            currency: string = 'usd',
-            metadata: Record<string, string> = {}
-        ): Promise<Stripe.PaymentIntent> {
-            try {
-                const stripe = getStripeInstance();
-                const paymentIntent = await stripe.paymentIntents.create({
-                    amount,
-                    currency,
-                    metadata,
-                    automatic_payment_methods: {
-                        enabled: true,
-                    },
-                });
+        const error = new Error('[P0-SEC-STRIPE-CONFIG] CRITICAL: STRIPE_SECRET_KEY is not configured. Stripe features are disabled.');
+        logger.error(error.message);
+        throw error;
+    }
 
-                return paymentIntent;
-            } catch (error) {
-                logger.error('Error creating PaymentIntent:', error instanceof Error ? error : new Error(String(error)));
-                throw error;
-            }
-        }
-
-        /**
-         * Retrieves a PaymentIntent by ID.
-         */
-        export async function getPaymentIntent(paymentIntentId: string): Promise<Stripe.PaymentIntent> {
-            try {
-                const stripe = getStripeInstance();
-                return await stripe.paymentIntents.retrieve(paymentIntentId);
-            } catch (error) {
-                logger.error('Error retrieving PaymentIntent:', error instanceof Error ? error : new Error(String(error)));
-                throw error;
-            }
-        }
-
-        // Export stripe instance getter for other uses
-        export const stripe = new Proxy({} as Stripe, {
-            get(target, prop) {
-                const instance = getStripeInstance();
-                return (instance as any)[prop];
-            }
+    if (!stripeInstance) {
+        stripeInstance = new Stripe(STRIPE_SECRET_KEY, {
+            apiVersion: '2025-11-17.clover',
+            typescript: true,
         });
+    }
+
+    return stripeInstance;
+}
+
+/**
+ * Creates a Stripe PaymentIntent for a given amount.
+ * @param amount Amount in cents (e.g., $10.00 = 1000)
+ * @param currency Currency code (default: usd)
+ * @param metadata Optional metadata to attach to the intent (orderId, customerId)
+ */
+export async function createPaymentIntent(
+    amount: number,
+    currency: string = 'usd',
+    metadata: Record<string, string> = {}
+): Promise<Stripe.PaymentIntent> {
+    try {
+        const stripe = getStripeInstance();
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount,
+            currency,
+            metadata,
+            automatic_payment_methods: {
+                enabled: true,
+            },
+        });
+
+        return paymentIntent;
+    } catch (error) {
+        logger.error('Error creating PaymentIntent:', error instanceof Error ? error : new Error(String(error)));
+        throw error;
+    }
+}
+
+/**
+ * Retrieves a PaymentIntent by ID.
+ */
+export async function getPaymentIntent(paymentIntentId: string): Promise<Stripe.PaymentIntent> {
+    try {
+        const stripe = getStripeInstance();
+        return await stripe.paymentIntents.retrieve(paymentIntentId);
+    } catch (error) {
+        logger.error('Error retrieving PaymentIntent:', error instanceof Error ? error : new Error(String(error)));
+        throw error;
+    }
+}
+
+// Export stripe instance getter for other uses
+export const stripe = new Proxy({} as Stripe, {
+    get(target, prop) {
+        const instance = getStripeInstance();
+        return (instance as any)[prop];
+    }
+});
