@@ -1,3 +1,4 @@
+'use client';
 
 import { AgentsGrid } from '@/components/dashboard/agent-grid';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
