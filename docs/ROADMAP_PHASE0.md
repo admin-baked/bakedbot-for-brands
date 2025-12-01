@@ -391,6 +391,8 @@ Fix Stripe configuration by adding proper secrets to Secret Manager and removing
   - File: apphosting.yaml (added lines 63-67)
   - MANUAL: Create STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET in GCP Secret Manager
   - NOTE: Stripe is optional - only needed if customer chooses Stripe over CannPay
+- [Dev4-Orchestrator @ 2025-12-01]: Observed Firebase build failing without STRIPE_SECRET_KEY in build env. Made Stripe
+  client lazy-init to avoid build-time crash while still throwing at runtime if key is missing.
 
 ---
 
