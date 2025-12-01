@@ -3,7 +3,7 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { getAuth, Auth, initializeAuth, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 import { logger } from '@/lib/logger';
@@ -41,9 +41,20 @@ export function initializeFirebase(): FirebaseSdks {
 }
 
 export function getSdks(firebaseApp: FirebaseApp): FirebaseSdks {
+  // Initialize auth explicitly to ensure the component is registered
+  let auth: Auth;
+  try {
+    auth = getAuth(firebaseApp);
+  } catch (error) {
+    // If getAuth fails, initialize auth explicitly
+    auth = initializeAuth(firebaseApp, {
+      persistence: browserLocalPersistence,
+    });
+  }
+
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
+    auth,
     firestore: getFirestore(firebaseApp)
   };
 }

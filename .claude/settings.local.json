@@ -40,7 +40,12 @@
       "Bash(gcloud iam service-accounts list:*)",
       "Bash(powershell -Command:*)",
       "Bash(firebase --version:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /F /PID 10992)",
+      "Bash(taskkill //F //PID 10992)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []
