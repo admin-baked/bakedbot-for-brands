@@ -41,15 +41,22 @@ export function initializeFirebase(): FirebaseSdks {
 }
 
 export function getSdks(firebaseApp: FirebaseApp): FirebaseSdks {
-  // Initialize auth explicitly to ensure the component is registered
+  // Check if auth is already initialized, otherwise initialize it explicitly
+  // This avoids the "Component auth has not been registered yet" error
   let auth: Auth;
   try {
+    // Try to get existing auth instance first
     auth = getAuth(firebaseApp);
   } catch (error) {
-    // If getAuth fails, initialize auth explicitly
-    auth = initializeAuth(firebaseApp, {
-      persistence: browserLocalPersistence,
-    });
+    // If auth doesn't exist, initialize it explicitly
+    try {
+      auth = initializeAuth(firebaseApp, {
+        persistence: browserLocalPersistence,
+      });
+    } catch (initError) {
+      // If initializeAuth also fails (already initialized), try getAuth again
+      auth = getAuth(firebaseApp);
+    }
   }
 
   return {
