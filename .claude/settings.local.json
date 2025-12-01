@@ -45,7 +45,11 @@
       "Bash(findstr:*)",
       "Bash(taskkill /F /PID 10992)",
       "Bash(taskkill //F //PID 10992)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(taskkill //F //PID 30108)",
+      "Bash(PORT=3002 npm run dev:*)",
+      "Bash(taskkill //F //PID 14556)",
+      "Bash(taskkill //F //PID 34256)"
     ],
     "deny": [],
     "ask": []
