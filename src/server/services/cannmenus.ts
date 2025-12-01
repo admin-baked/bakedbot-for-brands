@@ -192,8 +192,9 @@ export class CannMenusService {
                 try {
                     const response = await fetch(`${CANNMENUS_BASE_URL}/v2/products?${params}`, {
                         headers: {
-                            'Authorization': `Bearer ${CANNMENUS_API_KEY}`,
-                            'Content-Type': 'application/json',
+                            'X-Token': CANNMENUS_API_KEY,
+                            'Accept': 'application/json',
+                            'User-Agent': 'BakedBot/1.0',
                         },
                         signal: controller.signal
                     });
@@ -270,8 +271,9 @@ export class CannMenusService {
                 try {
                     const response = await fetch(`${CANNMENUS_BASE_URL}/v2/products?${queryParams}`, {
                         headers: {
-                            'Authorization': `Bearer ${CANNMENUS_API_KEY}`,
-                            'Content-Type': 'application/json',
+                            'X-Token': CANNMENUS_API_KEY,
+                            'Accept': 'application/json',
+                            'User-Agent': 'BakedBot/1.0',
                         },
                         signal: controller.signal
                     });
@@ -343,8 +345,9 @@ export class CannMenusService {
             try {
                 const response = await fetch(`${CANNMENUS_BASE_URL}/v2/products?${params}`, {
                     headers: {
-                        'Authorization': `Bearer ${CANNMENUS_API_KEY}`,
-                        'Content-Type': 'application/json',
+                        'X-Token': CANNMENUS_API_KEY!,
+                        'Accept': 'application/json',
+                        'User-Agent': 'BakedBot/1.0',
                     },
                     signal: controller.signal
                 });
