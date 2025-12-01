@@ -1112,3 +1112,20 @@ Resolved 500 error on bakedbot.ai - missing Firebase credentials and build failu
 
 ## NEW TICKET ASSIGNMENTS
 
+
+## Ticket: P0-QA-CHECK-ROUTES
+**Owner:** Dev 4 (Orchestrator)
+**Priority:** HIGH
+**Status:** 🟢 In Progress
+
+### Summary
+Restore the missing `npm run check:routes` guard so CI fails fast with actionable guidance when the Next.js App Router entrypoints are misconfigured or a legacy `pages/` directory reappears.
+
+### Definition of Done
+- `scripts/check-routes.mjs` exists and is wired to `npm run check:routes`.
+- The script validates that `src/app/layout.tsx` and `src/app/page.tsx` exist.
+- The script fails if a legacy `pages/` directory is present.
+- CI job `npm run check:routes` passes locally and in pipelines.
+
+### AI Log
+- [Dev4-Orchestrator @ 2025-12-01]: Added `check-routes.mjs` to enforce App Router entrypoints and block legacy `pages/` from breaking routing.
