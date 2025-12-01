@@ -245,6 +245,59 @@ export class CannMenusService {
     }
 
     /**
+     * Search products directly from CannMenus API
+     */
+    async searchProducts(params: any): Promise<{ products: CannMenusProduct[], meta?: any }> {
+        if (!CANNMENUS_API_KEY) {
+            throw new Error('CANNMENUS_API_KEY is not configured');
+        }
+
+        return await withRetry(async () => {
+            return await monitorApiCall('/v2/products', async () => {
+                const queryParams = new URLSearchParams();
+                if (params.search) queryParams.set('search', params.search);
+                if (params.category) queryParams.set('category', params.category);
+                if (params.price_min) queryParams.set('price_min', String(params.price_min));
+                if (params.price_max) queryParams.set('price_max', String(params.price_max));
+                if (params.retailers) queryParams.set('retailers', params.retailers);
+                if (params.brands) queryParams.set('brands', params.brands);
+                if (params.limit) queryParams.set('limit', String(params.limit));
+                if (params.page) queryParams.set('page', String(params.page));
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout for search
+
+                try {
+                    const response = await fetch(`${CANNMENUS_BASE_URL}/v2/products?${queryParams}`, {
+                        headers: {
+                            'Authorization': `Bearer ${CANNMENUS_API_KEY}`,
+                            'Content-Type': 'application/json',
+                        },
+                        signal: controller.signal
+                    });
+
+                    if (!response.ok) {
+                        const error: any = new Error(`CannMenus API error: ${response.statusText}`);
+                        error.status = response.status;
+                        throw error;
+                    }
+
+                    const data = await response.json();
+                    return {
+                        products: data.data?.products || data.data || [],
+                        meta: data.meta
+                    };
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+            });
+        }, {
+            maxRetries: 2,
+            initialDelayMs: 500
+        }, 'CannMenus.searchProducts');
+    }
+
+    /**
      * Store retailers in Firestore with error handling
      */
     private async storeRetailers(retailers: RetailerDoc[]): Promise<void> {

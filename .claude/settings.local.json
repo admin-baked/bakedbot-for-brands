@@ -30,7 +30,17 @@
       "Bash(npm test:*)",
       "Bash(git checkout:*)",
       "Bash(git push:*)",
-      "Bash(npx playwright test:*)"
+      "Bash(npx playwright test:*)",
+      "Bash(where:*)",
+      "Bash(\"C:\\Users\\admin\\AppData\\Local\\Google\\Cloud SDK\\google-cloud-sdk\\bin\\gcloud.cmd\" config get-value project)",
+      "Bash(\"C:\\Users\\admin\\AppData\\Local\\Google\\Cloud SDK\\google-cloud-sdk\\bin\\gcloud.cmd\" secrets describe BLACKLEAF_API_KEY --project=studio-567050101-bc6e8)",
+      "Bash(\"C:\\Users\\admin\\AppData\\Local\\Google\\Cloud SDK\\google-cloud-sdk\\bin\\gcloud.cmd\" secrets create BLACKLEAF_API_KEY --data-file=- --project=studio-567050101-bc6e8)",
+      "Bash(\"C:\\Users\\admin\\AppData\\Local\\Google\\Cloud SDK\\google-cloud-sdk\\bin\\gcloud.cmd\" secrets add-iam-policy-binding BLACKLEAF_API_KEY --member=\"serviceAccount:firebase-adminsdk@studio-567050101-bc6e8.iam.gserviceaccount.com\" --role=\"roles/secretmanager.secretAccessor\" --project=studio-567050101-bc6e8)",
+      "Bash(\"C:\\Users\\admin\\AppData\\Local\\Google\\Cloud SDK\\google-cloud-sdk\\bin\\gcloud.cmd\" iam service-accounts list --project=studio-567050101-bc6e8 --filter=\"firebase OR apphosting\" --format=\"table(email)\")",
+      "Bash(gcloud iam service-accounts list:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(firebase --version:*)",
+      "Bash(git mv:*)"
     ],
     "deny": [],
     "ask": []
