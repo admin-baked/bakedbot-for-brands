@@ -9,14 +9,10 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-type DemoMenuPageProps = {
-  brandId?: string;
-};
-
 // Demo dispensary ID - this can be seeded with test products
 const DEMO_DISPENSARY_ID = "demo-dispensary-001";
 
-export function DemoMenuPage({ brandId }: DemoMenuPageProps) {
+export function MenuPage({ brandId }: { brandId?: string }) {
   const router = useRouter();
 
   useEffect(() => {

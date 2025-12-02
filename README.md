@@ -242,4 +242,6 @@ You can inspect builds and rollouts in the Firebase console under:
   * Server-side handlers in `src/server/agents/`
   * UI entry points in `src/app/dashboard/*` where relevant
 
-This README is meant as a **practical onboarding guide**. If you’re adding new features or agents, update this document so the next engineer doesn’t have to reverse-engineer the architecture from the codebase.
+This README is meant as a **practical onboarding guide**. Detailed documentation can be found in the `docs/` directory.
+
+If you’re adding new features or agents, update this document so the next engineer doesn’t have to reverse-engineer the architecture from the codebase.

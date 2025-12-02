@@ -6,7 +6,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'bakedbot.ai',
+        hostname: '**.bakedbot.ai',
       },
       {
         protocol: 'https',
@@ -99,7 +99,7 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Origin',
-            value: isProd ? 'https://bakedbot.ai' : '*',
+            value: '*', // Changed from strict domain to '*' to fix 500 error on domain change
           },
           {
             key: 'Access-Control-Allow-Methods',
