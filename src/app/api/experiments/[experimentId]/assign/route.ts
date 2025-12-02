@@ -9,8 +9,9 @@ import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 export async function POST(
     req: NextRequest,
-    { params }: { params: { experimentId: string } }
+    { params }: { params: Promise<{ experimentId: string }> }
 ) {
+    const { experimentId } = await params;
     try {
         // Get auth token
         const authHeader = req.headers.get('authorization');
@@ -29,7 +30,7 @@ export async function POST(
 
         const variantId = await abTestingService.assignUserToExperiment(
             userId,
-            params.experimentId
+            experimentId
         );
 
         return NextResponse.json({ variantId });
