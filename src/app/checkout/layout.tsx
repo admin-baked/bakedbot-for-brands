@@ -16,7 +16,7 @@ interface CheckoutLayoutProps {
 
 async function getCheckoutData() {
     let locations: Retailer[];
-    const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
+    const isDemo = (await cookies()).get('isUsingDemoData')?.value === 'true';
 
     if (isDemo) {
         locations = demoRetailers;

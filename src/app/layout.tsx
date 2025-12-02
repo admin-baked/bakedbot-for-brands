@@ -48,7 +48,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
+  const isDemo = (await cookies()).get('isUsingDemoData')?.value === 'true';
   let products = [];
 
   // We fetch product data here to pass down to the global chatbot.

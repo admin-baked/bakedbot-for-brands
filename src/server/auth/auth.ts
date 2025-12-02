@@ -21,9 +21,9 @@ export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
  */
 export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToken> {
   // --- PRODUCTION LOGIC ---
-  const sessionCookie = cookies().get('__session')?.value;
+  const sessionCookie = (await cookies()).get('__session')?.value;
   if (!sessionCookie) {
-    console.error('[AUTH_DEBUG] No session cookie found in request headers:', cookies().getAll().map(c => c.name));
+    console.error('[AUTH_DEBUG] No session cookie found in request headers:', (await cookies()).getAll().map(c => c.name));
     throw new Error('Unauthorized: No session cookie found.');
   }
 
