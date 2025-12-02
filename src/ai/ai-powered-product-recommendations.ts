@@ -5,8 +5,8 @@
  * This flow now uses vector search to find relevant products first.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'zod';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 import type { Product } from '@/firebase/converters';
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
@@ -39,7 +39,8 @@ export type RecommendProductsOutput = z.infer<typeof RecommendProductsOutputSche
 // The prompt now works with a list of *candidate* products.
 const recommendProductsPrompt = ai.definePrompt({
   name: 'recommendProductsPrompt',
-  input: { schema: z.object({
+  input: {
+    schema: z.object({
       query: z.string(),
       customerHistory: z.string().optional(),
       products: z.array(z.object({
@@ -49,7 +50,8 @@ const recommendProductsPrompt = ai.definePrompt({
         category: z.string(),
         price: z.number(),
       }))
-  }) },
+    })
+  },
   output: { schema: RecommendProductsOutputSchema },
   prompt: `You are an expert AI budtender for a cannabis brand. Your goal is to recommend the best products to a user from a pre-filtered list of candidate products that match their request.
 
@@ -88,53 +90,53 @@ const recommendProductsFlow = ai.defineFlow(
     outputSchema: RecommendProductsOutputSchema,
   },
   async (input) => {
-    const isDemo = input.brandId === DEMO_BRAND_ID || cookies().get('isUsingDemoData')?.value === 'true';
+    const isDemo = input.brandId === DEMO_BRAND_ID || (await cookies()).get('isUsingDemoData')?.value === 'true';
 
     let candidateProducts: Product[];
 
     if (isDemo) {
-        candidateProducts = demoProducts;
+      candidateProducts = demoProducts;
     } else {
-        // 1. Use the Product Repository to perform a vector search
-        const { firestore } = await createServerClient();
-        const productRepo = makeProductRepo(firestore);
-        candidateProducts = await productRepo.searchByVector(input.query, input.brandId);
+      // 1. Use the Product Repository to perform a vector search
+      const { firestore } = await createServerClient();
+      const productRepo = makeProductRepo(firestore);
+      candidateProducts = await productRepo.searchByVector(input.query, input.brandId);
 
-        // 2. Fallback to keyword search if vector search yields no results
-        if (candidateProducts.length === 0) {
-            logger.info('Vector search returned no results. Falling back to all products for the brand.');
-            candidateProducts = await productRepo.getAllByBrand(input.brandId);
-        }
+      // 2. Fallback to keyword search if vector search yields no results
+      if (candidateProducts.length === 0) {
+        logger.info('Vector search returned no results. Falling back to all products for the brand.');
+        candidateProducts = await productRepo.getAllByBrand(input.brandId);
+      }
     }
-    
+
     // 3. If still no products, return a clear message.
     if (candidateProducts.length === 0) {
-         return {
-            products: [],
-            overallReasoning: "I couldn't find any products for this brand. The catalog might be empty."
-        };
+      return {
+        products: [],
+        overallReasoning: "I couldn't find any products for this brand. The catalog might be empty."
+      };
     }
-    
+
     // 4. Pass the candidate products to the LLM for final selection and reasoning.
     const { output } = await recommendProductsPrompt({
-        query: input.query,
-        customerHistory: input.customerHistory,
-        products: candidateProducts.map(p => ({
-            id: p.id,
-            name: p.name,
-            description: p.description,
-            category: p.category,
-            price: p.price,
-        }))
+      query: input.query,
+      customerHistory: input.customerHistory,
+      products: candidateProducts.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        category: p.category,
+        price: p.price,
+      }))
     });
-    
+
     if (!output || !output.products || output.products.length === 0) {
-        return {
-            products: [],
-            overallReasoning: "I couldn't find a perfect match in our current inventory based on your request. Could you try describing what you're looking for in a different way?"
-        };
+      return {
+        products: [],
+        overallReasoning: "I couldn't find a perfect match in our current inventory based on your request. Could you try describing what you're looking for in a different way?"
+      };
     }
-    
+
     return output;
   }
 );

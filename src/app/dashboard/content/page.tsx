@@ -20,7 +20,7 @@ export default async function ProductContentGeneratorPage() {
         redirect('/brand-login');
     }
 
-    const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
+    const isDemo = (await cookies()).get('isUsingDemoData')?.value === 'true';
     let products = [];
     let areProductsLoading = true;
 

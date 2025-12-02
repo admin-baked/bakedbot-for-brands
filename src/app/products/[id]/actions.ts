@@ -40,7 +40,7 @@ export async function getReviewSummary(input: {
   const { productId } = input;
   const { firestore } = await createServerClient();
   const cookieStore = cookies();
-  const isDemo = cookieStore.get('isUsingDemoData')?.value === 'true';
+  const isDemo = (await cookieStore).get('isUsingDemoData')?.value === 'true';
 
   const productRepo = makeProductRepo(firestore);
 

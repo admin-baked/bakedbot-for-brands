@@ -22,14 +22,14 @@ export async function POST(request: NextRequest) {
         const expiresIn = 60 * 60 * 24 * 5 * 1000;
         const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
 
-        logger.info('Creating session cookie', { 
-            expiresIn, 
+        logger.info('Creating session cookie', {
+            expiresIn,
             secure: true,
-            sameSite: 'lax' 
+            sameSite: 'lax'
         });
 
         // Set the cookie - always secure for production
-        cookies().set('__session', sessionCookie, {
+        (await cookies()).set('__session', sessionCookie, {
             maxAge: expiresIn / 1000, // seconds
             httpOnly: true,
             secure: true, // Always true for Firebase Hosting/Cloud Run
@@ -48,6 +48,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE() {
-    cookies().delete('__session');
+    (await cookies()).delete('__session');
     return NextResponse.json({ success: true });
 }

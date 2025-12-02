@@ -17,7 +17,7 @@ import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardProductsPage() {
-    const isDemo = cookies().get('isUsingDemoData')?.value === 'true';
+    const isDemo = (await cookies()).get('isUsingDemoData')?.value === 'true';
 
     let products: Product[] = [];
 
