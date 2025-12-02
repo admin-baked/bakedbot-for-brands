@@ -2,15 +2,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
 interface AvailabilityParams {
-  params: {
+  params: Promise<{
     brandId: string;
-  };
+  }>;
 }
 
 // GET /api/brands/:brandId/availability
 // Query params: lat, lng, radius_km, state, limit_per_sku
 export async function GET(req: NextRequest, { params }: AvailabilityParams) {
-  const { brandId } = params;
+  const { brandId } = await params;
   const { searchParams } = new URL(req.url);
   const lat = searchParams.get('lat');
   const lng = searchParams.get('lng');
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: AvailabilityParams) {
   // In a real implementation, this would query the `availability` and `dispensaries`
   // collections in Firestore, filter by geo/state, and group by SKU.
   // For now, we return a hard-coded example response.
-  
+
   const stubResponse = {
     brand_id: brandId,
     skus: [

@@ -17,8 +17,9 @@ export const dynamic = 'force-dynamic';
 
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { orderId: string } }
+    { params }: { params: Promise<{ orderId: string }> }
 ) {
+    const { orderId } = await params;
     try {
         // Authenticate and authorize user
         const user = await getUserFromRequest(req);
@@ -43,7 +44,6 @@ export async function PATCH(
         }
 
         const { status } = await req.json();
-        const { orderId } = params;
 
         const { firestore } = await createServerClient();
         const orderDoc = await firestore.collection('orders').doc(orderId).get();

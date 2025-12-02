@@ -12,8 +12,9 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { taskId: string } }
+    { params }: { params: Promise<{ taskId: string }> }
 ) {
+    const { taskId } = await params;
     try {
         // Authenticate user
         const user = await getUserFromRequest(request);
@@ -23,7 +24,7 @@ export async function POST(
 
         const task: Task = await request.json();
 
-        if (!task || task.id !== params.taskId) {
+        if (!task || task.id !== taskId) {
             return NextResponse.json(
                 { error: 'Invalid task data' },
                 { status: 400 }
@@ -51,7 +52,7 @@ export async function POST(
         });
 
     } catch (error) {
-        logger.error(`Task execution error (${params.taskId}):`, error instanceof Error ? error : new Error(String(error)));
+        logger.error(`Task execution error (${taskId}):`, error instanceof Error ? error : new Error(String(error)));
         return NextResponse.json(
             {
                 error: 'Failed to execute task',
