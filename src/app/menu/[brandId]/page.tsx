@@ -1,5 +1,5 @@
 // app/menu/[brandId]/page.tsx
-import { DemoMenuPage } from '@/components/demo-menu-page';
+import { MenuPage } from '@/components/menu-page';
 
 type MenuPageProps = {
   params: { brandId: string };
@@ -7,5 +7,5 @@ type MenuPageProps = {
 
 export default function BrandMenuPage({ params }: MenuPageProps) {
   const brandId = params.brandId ?? 'default';
-  return <DemoMenuPage brandId={brandId} />;
+  return <MenuPage brandId={brandId} />;
 }
