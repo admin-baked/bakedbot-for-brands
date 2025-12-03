@@ -2,9 +2,11 @@
  * Customer Login Page
  */
 
+import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CustomerLoginForm } from '@/components/auth/customer-login-form';
+import { Loader2 } from 'lucide-react';
 
 export const metadata: Metadata = {
     title: 'Sign In | BakedBot',
@@ -22,7 +24,9 @@ export default function CustomerLoginPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <CustomerLoginForm />
+                    <Suspense fallback={<div className="flex justify-center p-4"><Loader2 className="animate-spin" /></div>}>
+                        <CustomerLoginForm />
+                    </Suspense>
                 </CardContent>
             </Card>
         </div>
