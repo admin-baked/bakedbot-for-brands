@@ -76,11 +76,12 @@ export async function searchNearbyRetailers(
         }
 
         const response = await fetch(
-            `${CANNMENUS_BASE_URL}/v2/retailers?${params}`,
+            `${CANNMENUS_BASE_URL}/v1/retailers?${params}`,
             {
                 headers: {
-                    'Authorization': `Bearer ${CANNMENUS_API_KEY}`,
-                    'Content-Type': 'application/json',
+                    'X-Token': CANNMENUS_API_KEY!,
+                    'Accept': 'application/json',
+                    'User-Agent': 'BakedBot/1.0',
                 },
             }
         );
@@ -93,20 +94,20 @@ export async function searchNearbyRetailers(
 
         // Transform and calculate distances
         const retailers: RetailerLocation[] = (data.data || []).map((retailer: any) => ({
-            id: retailer.id || retailer.retailer_id,
-            name: retailer.name,
-            address: retailer.street_address || retailer.address?.street || '',
+            id: retailer.id?.toString() || retailer.retailer_id?.toString(),
+            name: retailer.dispensary_name || retailer.name,
+            address: retailer.physical_address || retailer.street_address || '',
             city: retailer.city,
             state: retailer.state,
-            postalCode: retailer.postal_code || retailer.address?.postalCode || '',
-            phone: retailer.phone,
-            hours: retailer.hours,
-            latitude: retailer.geo?.lat,
-            longitude: retailer.geo?.lng,
-            menuUrl: retailer.menu_url || retailer.homepage_url,
-            imageUrl: retailer.image_url,
-            distance: retailer.geo?.lat && retailer.geo?.lng
-                ? calculateDistance(latitude, longitude, retailer.geo.lat, retailer.geo.lng)
+            postalCode: retailer.zip_code || retailer.postal_code || '',
+            phone: retailer.contact_phone || retailer.phone,
+            hours: retailer.hours, // v1 might not have hours in this endpoint
+            latitude: retailer.latitude || retailer.geo?.lat,
+            longitude: retailer.longitude || retailer.geo?.lng,
+            menuUrl: retailer.website_url || retailer.menu_url,
+            imageUrl: retailer.image_url, // v1 might not have image_url
+            distance: (retailer.latitude || retailer.geo?.lat) && (retailer.longitude || retailer.geo?.lng)
+                ? calculateDistance(latitude, longitude, retailer.latitude || retailer.geo?.lat, retailer.longitude || retailer.geo?.lng)
                 : undefined,
         }));
 
@@ -152,8 +153,9 @@ export async function getRetailerProducts(
             `${CANNMENUS_BASE_URL}/v2/products?${params}`,
             {
                 headers: {
-                    'Authorization': `Bearer ${CANNMENUS_API_KEY}`,
-                    'Content-Type': 'application/json',
+                    'X-Token': CANNMENUS_API_KEY!,
+                    'Accept': 'application/json',
+                    'User-Agent': 'BakedBot/1.0',
                 },
             }
         );
@@ -166,8 +168,8 @@ export async function getRetailerProducts(
 
         // Flatten the products from retailer data
         const products: CannMenusProduct[] = [];
-        if (data.data?.data) {
-            data.data.data.forEach((item: any) => {
+        if (data.data) {
+            data.data.forEach((item: any) => {
                 if (item.products && Array.isArray(item.products)) {
                     products.push(...item.products);
                 }
@@ -203,8 +205,9 @@ export async function getProductAvailability(
             `${CANNMENUS_BASE_URL}/v2/products?${params}`,
             {
                 headers: {
-                    'Authorization': `Bearer ${CANNMENUS_API_KEY}`,
-                    'Content-Type': 'application/json',
+                    'X-Token': CANNMENUS_API_KEY!,
+                    'Accept': 'application/json',
+                    'User-Agent': 'BakedBot/1.0',
                 },
             }
         );
@@ -217,8 +220,8 @@ export async function getProductAvailability(
 
         const availability: ProductAvailability[] = [];
 
-        if (data.data?.data) {
-            data.data.data.forEach((retailerData: any) => {
+        if (data.data) {
+            data.data.forEach((retailerData: any) => {
                 if (retailerData.products && Array.isArray(retailerData.products)) {
                     retailerData.products.forEach((product: CannMenusProduct) => {
                         availability.push({
@@ -279,9 +282,63 @@ export async function geocodeZipCode(zipCode: string): Promise<{ lat: number; ln
 }
 
 /**
- * Search products (Placeholder for build fix)
+ * Search products by brand and state
  */
 export async function getProducts(brandId: string, state: string): Promise<any[]> {
-    logger.warn('getProducts not fully implemented');
-    return [];
+    try {
+        const params = new URLSearchParams({
+            brands: brandId,
+            states: state,
+            limit: '100'
+        });
+
+        const response = await fetch(
+            `${CANNMENUS_BASE_URL}/v2/products?${params}`,
+            {
+                headers: {
+                    'X-Token': CANNMENUS_API_KEY!,
+                    'Accept': 'application/json',
+                    'User-Agent': 'BakedBot/1.0',
+                },
+            }
+        );
+
+        if (!response.ok) {
+            logger.error(`CannMenus API error: ${response.statusText}`);
+            return [];
+        }
+
+        const data = await response.json();
+
+        // Flatten products from all retailers
+        const products: any[] = [];
+        if (data.data) {
+            data.data.forEach((item: any) => {
+                if (item.products && Array.isArray(item.products)) {
+                    item.products.forEach((p: CannMenusProduct) => {
+                        products.push({
+                            id: p.cann_sku_id,
+                            name: p.product_name,
+                            brand: p.brand_name,
+                            category: p.category,
+                            price: p.latest_price,
+                            image: p.image_url,
+                            description: p.description,
+                            effects: p.effects || []
+                        });
+                    });
+                }
+            });
+        }
+
+        // Deduplicate by product ID
+        const uniqueProducts = Array.from(
+            new Map(products.map(p => [p.id, p])).values()
+        );
+
+        return uniqueProducts;
+    } catch (error) {
+        logger.error('Error fetching products:', error instanceof Error ? error : new Error(String(error)));
+        return [];
+    }
 }
