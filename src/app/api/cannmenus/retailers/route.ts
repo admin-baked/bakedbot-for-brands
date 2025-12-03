@@ -18,7 +18,18 @@ export async function GET(req: NextRequest) {
   }
 
   const url = new URL("/v1/retailers", base);
-  url.search = req.nextUrl.searchParams.toString();
+
+  // Map 'search' parameter to 'name' for CannMenus API
+  const searchParams = new URLSearchParams(req.nextUrl.searchParams);
+  if (searchParams.has('search')) {
+    const searchValue = searchParams.get('search');
+    searchParams.delete('search');
+    if (searchValue) {
+      searchParams.set('name', searchValue);
+    }
+  }
+
+  url.search = searchParams.toString();
 
   try {
     const resp = await fetch(url.toString(), {
