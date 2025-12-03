@@ -1,3 +1,4 @@
+/* eslint-disable */
 // BakedBot PWA Service Worker
 // Provides offline functionality and caching
 
@@ -70,8 +71,9 @@ self.addEventListener('fetch', (event) => {
       }
 
       return fetch(event.request).then((networkResponse) => {
-        // If network response is invalid, fall back to offline page or a 503 response
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === 'error') {
+        // Only treat actual network errors or 5xx server errors as offline
+        // Allow 2xx, 3xx (redirects), and 4xx (client errors) to pass through
+        if (!networkResponse || networkResponse.status >= 500 || networkResponse.type === 'error') {
           return caches.match(OFFLINE_URL).then((offlineResp) => offlineResp || new Response('', { status: 503 }));
         }
 
