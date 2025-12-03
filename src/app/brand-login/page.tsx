@@ -30,8 +30,8 @@ export default function BrandLoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
 
   const handleAuthSuccess = async (userCredential: UserCredential) => {
-    // Get ID token
-    const idToken = await userCredential.user.getIdToken();
+    // Force token refresh to get latest custom claims
+    const idToken = await userCredential.user.getIdToken(true);
 
     // Create server session
     try {
@@ -51,21 +51,28 @@ export default function BrandLoginPage() {
       return;
     }
 
-    const idTokenResult = await userCredential.user.getIdTokenResult();
+    // Get fresh token result with updated claims
+    const idTokenResult = await userCredential.user.getIdTokenResult(true);
     const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
     const userRole = idTokenResult.claims.role as string | undefined;
+
+    console.log('Auth success - User role:', userRole, 'Is new user:', isNewUser);
+    console.log('ID token claims:', idTokenResult.claims);
 
     // Use window.location.href for full page reload to ensure session cookie is picked up
     // If user has no role or is brand new, send to onboarding.
     if (!userRole || isNewUser) {
+      console.log('Redirecting to onboarding...');
       window.location.href = '/onboarding';
       return;
     }
 
     // Check if user has appropriate role for brand login
     if (userRole === 'brand' || userRole === 'owner') {
+      console.log('Redirecting to dashboard for brand/owner...');
       window.location.href = '/dashboard';
     } else if (userRole === 'dispensary') {
+      console.log('Redirecting to dashboard for dispensary...');
       toast({
         variant: 'default',
         title: 'Redirecting...',
@@ -73,6 +80,7 @@ export default function BrandLoginPage() {
       });
       window.location.href = '/dashboard';
     } else if (userRole === 'customer') {
+      console.log('Redirecting to account for customer...');
       toast({
         variant: 'default',
         title: 'Customer Account',
@@ -80,6 +88,7 @@ export default function BrandLoginPage() {
       });
       window.location.href = '/account';
     } else {
+      console.log('Redirecting to dashboard (default)...');
       window.location.href = '/dashboard';
     }
   };
