@@ -30,7 +30,7 @@ runConfig:
     - variable: CANNMENUS_API_BASE
       value: "https://api.cannmenus.com"
     - variable: CANNMENUS_API_KEY
-      secret: CANNMENUS_API_KEY
+      value: "e13ed642a92c177163ecff93c997d4ae"
     # Authorize.Net
     - variable: AUTHNET_API_LOGIN_ID
       secret: AUTHNET_API_LOGIN_ID
