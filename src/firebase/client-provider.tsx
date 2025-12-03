@@ -26,6 +26,14 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   useEffect(() => {
     if (firebaseServices?.firebaseApp && typeof window !== 'undefined') {
       const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+
+      // TEMPORARY: Disable App Check in production until ReCAPTCHA configuration is fixed
+      // The ReCAPTCHA site key is returning 400 errors, blocking authentication
+      if (process.env.NODE_ENV === 'production') {
+        logger.warn("App Check disabled in production due to ReCAPTCHA configuration issues");
+        return;
+      }
+
       if (recaptchaSiteKey) {
         try {
           // The `self` property is a reference to the window object in browsers.
