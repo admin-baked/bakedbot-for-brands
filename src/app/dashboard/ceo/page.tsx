@@ -3,15 +3,17 @@ import DataManagerTab from "./components/data-manager-tab";
 import AISearchIndexTab from "./components/ai-search-index-tab";
 import CouponManagerTab from "./components/coupon-manager-tab";
 import AIAgentEmbedTab from "./components/ai-agent-embed-tab";
+import CannMenusTestTab from "./components/cannmenus-test-tab";
 
 export default function CeoDashboardPage() {
-  return (
+    return (
         <Tabs defaultValue="ai-agent-embed">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="ai-agent-embed">AI Agent Embed</TabsTrigger>
                 <TabsTrigger value="data-manager">Data Manager</TabsTrigger>
                 <TabsTrigger value="ai-search">AI Search Index</TabsTrigger>
                 <TabsTrigger value="coupons">Coupon Manager</TabsTrigger>
+                <TabsTrigger value="cannmenus">CannMenus Test</TabsTrigger>
             </TabsList>
             <TabsContent value="ai-agent-embed" className="mt-6">
                 <AIAgentEmbedTab />
@@ -25,6 +27,9 @@ export default function CeoDashboardPage() {
             <TabsContent value="coupons" className="mt-6">
                 <CouponManagerTab />
             </TabsContent>
+            <TabsContent value="cannmenus" className="mt-6">
+                <CannMenusTestTab />
+            </TabsContent>
         </Tabs>
-  );
+    );
 }
