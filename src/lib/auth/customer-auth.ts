@@ -94,6 +94,9 @@ export async function registerWithEmail(data: CustomerRegistrationData): Promise
         // Send verification email
         await sendEmailVerification(userCredential.user);
 
+        // Establish secure session cookie for server actions
+        await createServerSession(userCredential.user);
+
         return userCredential;
     } catch (error: any) {
         logger.error('[CustomerAuth] Registration error:', error);
@@ -118,6 +121,9 @@ export async function registerWithGoogle(): Promise<UserCredential> {
             });
         }
 
+        // Ensure the server session is created for the new OAuth user
+        await createServerSession(userCredential.user);
+
         return userCredential;
     } catch (error: any) {
         logger.error('[CustomerAuth] Google registration error:', error);
@@ -130,7 +136,9 @@ export async function registerWithGoogle(): Promise<UserCredential> {
  */
 export async function loginWithEmail(email: string, password: string): Promise<UserCredential> {
     try {
-        return await signInWithEmailAndPassword(auth, email, password);
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        await createServerSession(credential.user);
+        return credential;
     } catch (error: any) {
         logger.error('[CustomerAuth] Login error:', error);
         throw error;
@@ -142,7 +150,9 @@ export async function loginWithEmail(email: string, password: string): Promise<U
  */
 export async function loginWithGoogle(): Promise<UserCredential> {
     try {
-        return await signInWithPopup(auth, googleProvider);
+        const credential = await signInWithPopup(auth, googleProvider);
+        await createServerSession(credential.user);
+        return credential;
     } catch (error: any) {
         logger.error('[CustomerAuth] Google login error:', error);
         throw error;
@@ -234,6 +244,25 @@ async function createCustomerProfile(
     } catch (error) {
         logger.error('[CustomerAuth] Create profile error:', error instanceof Error ? error : new Error(String(error)));
         throw error;
+    }
+}
+
+/**
+ * Create a secure session cookie by exchanging the Firebase ID token
+ * with the /api/auth/session endpoint. This enables server actions and
+ * middleware to authenticate the user.
+ */
+export async function createServerSession(user: User): Promise<void> {
+    const idToken = await user.getIdToken();
+
+    const response = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+    });
+
+    if (!response.ok) {
+        throw new Error('Unable to establish secure session. Please try again.');
     }
 }
 
