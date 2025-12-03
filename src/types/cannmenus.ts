@@ -34,20 +34,6 @@ export type ProductDoc = {
   brandId?: string; // camelCase alias
   retailerIds?: string[];
   name: string;
-  category?: string;
-  strainType?: string | null;
-  thcPercent?: number | null;
-  cbdPercent?: number | null;
-  tags?: string[];
-  imageUrl?: string;
-  price?: number;
-  createdAt?: any;
-};
-
-export type RetailerDoc = {
-  // Original fields
-  id: string;
-  name: string;
   state: string;
   city: string;
   postal_code: string;
