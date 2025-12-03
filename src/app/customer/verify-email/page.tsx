@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { applyActionCode, checkActionCode } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase';
@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 import { logger } from '@/lib/logger';
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const mode = searchParams?.get('mode');
@@ -93,5 +93,13 @@ export default function VerifyEmailPage() {
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+export default function VerifyEmailPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center p-16"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+            <VerifyEmailContent />
+        </Suspense>
     );
 }
