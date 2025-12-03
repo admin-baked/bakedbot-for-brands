@@ -1,3 +1,4 @@
+/* eslint-disable */
 // BakedBot PWA Service Worker
 // Provides offline functionality and caching
 
