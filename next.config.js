@@ -78,7 +78,7 @@ const nextConfig = {
                 "img-src 'self' data: https: blob:",
                 "font-src 'self' data: https://fonts.gstatic.com",
                 "connect-src 'self' https://*.googleapis.com https://apis.google.com https://*.firebaseio.com wss://*.firebaseio.com https://api.cannmenus.com https://api.anthropic.com https://www.google.com/recaptcha/ https://accounts.google.com",
-                "frame-src 'self' https://www.google.com https://accounts.google.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/",
+                "frame-src 'self' https://www.google.com https://accounts.google.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://studio-567050101-bc6e8.firebaseapp.com",
                 "object-src 'none'",
                 "base-uri 'self'",
                 "form-action 'self'",
@@ -118,5 +118,5 @@ const nextConfig = {
     ];
   },
 };
-// This comment is added to invalidate the build cache. Updated 2025-12-03
+// Cache invalidate: Fixed CSP frame-src for Firebase OAuth popup. 2025-12-04
 module.exports = nextConfig;
