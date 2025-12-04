@@ -106,6 +106,7 @@ export function CustomerLoginForm() {
             // This will redirect to Google, so no need for success handling here
             await loginWithGoogle();
         } catch (error: any) {
+            console.error('[CustomerLoginForm] Google login error:', error, error?.code, error?.message);
             toast({
                 title: 'Login failed',
                 description: getAuthErrorMessage(error),
