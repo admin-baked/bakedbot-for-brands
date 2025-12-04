@@ -14,7 +14,8 @@ export function middleware(request: NextRequest) {
     // Define protected routes
     const isDashboardRoute = pathname.startsWith('/dashboard');
     const isAccountRoute = pathname.startsWith('/account');
-    const isProtectedRoute = isDashboardRoute || isAccountRoute;
+    const isOnboardingRoute = pathname === '/onboarding';
+    const isProtectedRoute = isDashboardRoute || isAccountRoute || isOnboardingRoute;
 
     // Allow public routes
     if (!isProtectedRoute) {
@@ -26,8 +27,8 @@ export function middleware(request: NextRequest) {
         // Determine which login page to redirect to based on the route
         let loginUrl = '/customer-login';
 
-        if (isDashboardRoute) {
-            // For dashboard routes, default to brand login
+        if (isDashboardRoute || isOnboardingRoute) {
+            // For dashboard and onboarding routes, default to brand login
             loginUrl = '/brand-login';
         }
 
@@ -49,5 +50,6 @@ export const config = {
     matcher: [
         '/dashboard/:path*',
         '/account/:path*',
+        '/onboarding',
     ],
 };
