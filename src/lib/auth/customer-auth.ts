@@ -8,7 +8,7 @@
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
-    signInWithEmailAndPassword,
+
     signInWithPopup,
     sendEmailVerification,
     sendPasswordResetEmail,
