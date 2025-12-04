@@ -8,7 +8,8 @@
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
-    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     sendEmailVerification,
     sendPasswordResetEmail,
     GoogleAuthProvider,
@@ -105,26 +106,12 @@ export async function registerWithEmail(data: CustomerRegistrationData): Promise
 }
 
 /**
- * Register customer with Google OAuth
+ * Register customer with Google OAuth (redirect-based)
  */
-export async function registerWithGoogle(): Promise<UserCredential> {
+export async function registerWithGoogle(): Promise<void> {
     try {
-        const userCredential = await signInWithPopup(auth, googleProvider);
-
-        // Check if profile exists, create if not
-        const profileExists = await checkProfileExists(userCredential.user.uid);
-
-        if (!profileExists) {
-            await createCustomerProfile(userCredential.user, {
-                displayName: userCredential.user.displayName || 'Customer',
-                photoURL: userCredential.user.photoURL ?? undefined,
-            });
-        }
-
-        // Ensure the server session is created for the new OAuth user
-        await createServerSession(userCredential.user);
-
-        return userCredential;
+        // Redirect to Google sign-in
+        await signInWithRedirect(auth, googleProvider);
     } catch (error: any) {
         logger.error('[CustomerAuth] Google registration error:', error);
         throw error;
@@ -146,15 +133,41 @@ export async function loginWithEmail(email: string, password: string): Promise<U
 }
 
 /**
- * Login customer with Google
+ * Login customer with Google (redirect-based)
  */
-export async function loginWithGoogle(): Promise<UserCredential> {
+export async function loginWithGoogle(): Promise<void> {
     try {
-        const credential = await signInWithPopup(auth, googleProvider);
-        await createServerSession(credential.user);
-        return credential;
+        // Redirect to Google sign-in
+        await signInWithRedirect(auth, googleProvider);
     } catch (error: any) {
         logger.error('[CustomerAuth] Google login error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Handle the redirect result after returning from Google sign-in
+ * Call this on page load to complete the OAuth flow
+ */
+export async function handleGoogleRedirectResult(): Promise<UserCredential | null> {
+    try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+            // Check if profile exists, create if not
+            const profileExists = await checkProfileExists(result.user.uid);
+            if (!profileExists) {
+                await createCustomerProfile(result.user, {
+                    displayName: result.user.displayName || 'Customer',
+                    photoURL: result.user.photoURL ?? undefined,
+                });
+            }
+            // Create server session
+            await createServerSession(result.user);
+            return result;
+        }
+        return null;
+    } catch (error: any) {
+        logger.error('[CustomerAuth] Google redirect result error:', error);
         throw error;
     }
 }
