@@ -117,11 +117,6 @@ const nextConfig = {
       },
     ];
   },
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
 };
 // This comment is added to invalidate the build cache. Updated 2025-12-03
 module.exports = nextConfig;
