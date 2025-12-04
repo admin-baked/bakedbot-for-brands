@@ -5,10 +5,10 @@ import { Timestamp } from 'firebase/firestore';
 
 // This is now exported so the chatbot can use it as a fallback.
 // Using cloud storage assets
-export const defaultChatbotIcon = 'https://storage.cloud.google.com/bakedbot-global-assets/SMokey-Chat-scaled.png';
+export const defaultChatbotIcon = 'https://storage.googleapis.com/bakedbot-global-assets/SMokey-Chat-scaled.png';
 
 // Also exporting defaultLogo from here for consistency in demo setup.
-export const defaultLogo = 'https://storage.cloud.google.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
+export const defaultLogo = 'https://storage.googleapis.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
 
 
 export const demoProducts: Product[] = [

@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 
 // Using cloud storage logo asset
-const defaultLogo = 'https://storage.cloud.google.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
+const defaultLogo = 'https://storage.googleapis.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
 
 type Props = {
   height?: number
