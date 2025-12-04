@@ -116,5 +116,5 @@ const nextConfig = {
     ];
   },
 };
-// Cache invalidate: Force rebuild with new service account key. 2025-12-04 14:36
+// Cache invalidate: Force rebuild for new secret v7. 2025-12-04 14:51:51
 module.exports = nextConfig;
