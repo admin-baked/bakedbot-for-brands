@@ -116,5 +116,5 @@ const nextConfig = {
     ];
   },
 };
-// Cache invalidate: Force rebuild for verbose logging. 2025-12-04 v2
+// Cache invalidate: Force rebuild with new service account key. 2025-12-04 14:36
 module.exports = nextConfig;
