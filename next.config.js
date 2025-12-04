@@ -38,10 +38,8 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin-allow-popups',
-          },
+          // NOTE: Cross-Origin-Opener-Policy removed to fix Firebase OAuth popup flow
+          // Even 'same-origin-allow-popups' can cause issues with some browsers
           {
             key: 'X-Frame-Options',
             value: 'DENY',
