@@ -116,5 +116,5 @@ const nextConfig = {
     ];
   },
 };
-// Cache invalidate: Fixed CSP frame-src for Firebase OAuth popup. 2025-12-04
+// Cache invalidate: Force rebuild for verbose logging. 2025-12-04 v2
 module.exports = nextConfig;
