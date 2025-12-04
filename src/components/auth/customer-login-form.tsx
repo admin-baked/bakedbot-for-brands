@@ -4,8 +4,7 @@
  */
 
 'use client';
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { loginWithEmail, loginWithGoogle, handleGoogleRedirectResult, getAuthErrorMessage } from '@/lib/auth/customer-auth';
+import { loginWithEmail, loginWithGoogle, getAuthErrorMessage } from '@/lib/auth/customer-auth';
 import Link from 'next/link';
 
 const loginSchema = z.object({
@@ -33,38 +32,8 @@ export function CustomerLoginForm() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-    const [isCheckingRedirect, setIsCheckingRedirect] = useState(true);
 
     const redirectTo = searchParams?.get('redirect') || '/customer/profile';
-
-    // Handle Google OAuth redirect result on page load
-    useEffect(() => {
-        async function checkRedirectResult() {
-            try {
-                const result = await handleGoogleRedirectResult();
-                if (result) {
-                    toast({
-                        title: 'Welcome back!',
-                        description: 'You have successfully logged in.',
-                    });
-                    router.push(redirectTo);
-                }
-            } catch (error: any) {
-                const description = error?.message?.includes('secure session')
-                    ? 'Login succeeded but we could not establish a secure session. Please try again.'
-                    : getAuthErrorMessage(error);
-
-                toast({
-                    title: 'Login failed',
-                    description,
-                    variant: 'destructive',
-                });
-            } finally {
-                setIsCheckingRedirect(false);
-            }
-        }
-        checkRedirectResult();
-    }, [router, redirectTo, toast]);
 
     const {
         register,
@@ -103,8 +72,14 @@ export function CustomerLoginForm() {
     const handleGoogleLogin = async () => {
         setIsGoogleLoading(true);
         try {
-            // This will redirect to Google, so no need for success handling here
             await loginWithGoogle();
+
+            toast({
+                title: 'Welcome back!',
+                description: 'You have successfully logged in.',
+            });
+
+            router.push(redirectTo);
         } catch (error: any) {
             console.error('[CustomerLoginForm] Google login error:', error, error?.code, error?.message);
             toast({
@@ -112,19 +87,12 @@ export function CustomerLoginForm() {
                 description: getAuthErrorMessage(error),
                 variant: 'destructive',
             });
+        } finally {
             setIsGoogleLoading(false);
         }
-        // Note: No finally block - if redirect succeeds, we leave the page
     };
 
-    // Show loading state while checking for redirect result
-    if (isCheckingRedirect) {
-        return (
-            <div className="flex justify-center p-8">
-                <Loader2 className="animate-spin h-8 w-8" />
-            </div>
-        );
-    }
+
 
     return (
         <div className="space-y-6">
