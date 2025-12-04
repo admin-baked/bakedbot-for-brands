@@ -20,10 +20,36 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 
 import { logger } from '@/lib/logger';
-// Get Firebase instances
-const { auth, firestore: db } = typeof window !== 'undefined'
-    ? initializeFirebase()
-    : { auth: null as any, firestore: null as any };
+
+// Firebase instances - initialized lazily
+let _auth: any = null;
+let _db: any = null;
+
+// Helper to get properly initialized auth
+function getAuthInstance() {
+    if (typeof window === 'undefined') {
+        throw new Error('Auth can only be used on the client');
+    }
+    if (!_auth) {
+        const { auth, firestore } = initializeFirebase();
+        _auth = auth;
+        _db = firestore;
+    }
+    return _auth;
+}
+
+// Helper to get properly initialized firestore
+function getDbInstance() {
+    if (typeof window === 'undefined') {
+        throw new Error('Firestore can only be used on the client');
+    }
+    if (!_db) {
+        const { auth, firestore } = initializeFirebase();
+        _auth = auth;
+        _db = firestore;
+    }
+    return _db;
+}
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -81,7 +107,7 @@ export async function registerWithEmail(data: CustomerRegistrationData): Promise
 
         // Create auth account
         const userCredential = await createUserWithEmailAndPassword(
-            auth,
+            getAuthInstance(),
             data.email,
             data.password
         );
@@ -111,7 +137,7 @@ export async function registerWithEmail(data: CustomerRegistrationData): Promise
 export async function registerWithGoogle(): Promise<void> {
     try {
         // Redirect to Google sign-in
-        await signInWithRedirect(auth, googleProvider);
+        await signInWithRedirect(getAuthInstance(), googleProvider);
     } catch (error: any) {
         logger.error('[CustomerAuth] Google registration error:', error);
         throw error;
@@ -123,7 +149,7 @@ export async function registerWithGoogle(): Promise<void> {
  */
 export async function loginWithEmail(email: string, password: string): Promise<UserCredential> {
     try {
-        const credential = await signInWithEmailAndPassword(auth, email, password);
+        const credential = await signInWithEmailAndPassword(getAuthInstance(), email, password);
         await createServerSession(credential.user);
         return credential;
     } catch (error: any) {
@@ -138,7 +164,7 @@ export async function loginWithEmail(email: string, password: string): Promise<U
 export async function loginWithGoogle(): Promise<void> {
     try {
         // Redirect to Google sign-in
-        await signInWithRedirect(auth, googleProvider);
+        await signInWithRedirect(getAuthInstance(), googleProvider);
     } catch (error: any) {
         logger.error('[CustomerAuth] Google login error:', error);
         throw error;
@@ -151,7 +177,7 @@ export async function loginWithGoogle(): Promise<void> {
  */
 export async function handleGoogleRedirectResult(): Promise<UserCredential | null> {
     try {
-        const result = await getRedirectResult(auth);
+        const result = await getRedirectResult(getAuthInstance());
         if (result) {
             // Check if profile exists, create if not
             const profileExists = await checkProfileExists(result.user.uid);
@@ -177,7 +203,7 @@ export async function handleGoogleRedirectResult(): Promise<UserCredential | nul
  */
 export async function sendPasswordReset(email: string): Promise<void> {
     try {
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail(getAuthInstance(), email);
     } catch (error: any) {
         logger.error('[CustomerAuth] Password reset error:', error);
         throw error;
@@ -210,7 +236,7 @@ async function checkEmailExists(email: string): Promise<boolean> {
  */
 async function checkProfileExists(uid: string): Promise<boolean> {
     try {
-        const docRef = doc(db, 'users', uid);
+        const docRef = doc(getDbInstance(), 'users', uid);
         const docSnap = await getDoc(docRef);
         return docSnap.exists();
     } catch (error) {
@@ -253,7 +279,7 @@ async function createCustomerProfile(
             },
         };
 
-        await setDoc(doc(db, 'users', user.uid), profile);
+        await setDoc(doc(getDbInstance(), 'users', user.uid), profile);
     } catch (error) {
         logger.error('[CustomerAuth] Create profile error:', error instanceof Error ? error : new Error(String(error)));
         throw error;
