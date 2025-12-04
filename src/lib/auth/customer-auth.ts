@@ -163,10 +163,16 @@ export async function loginWithEmail(email: string, password: string): Promise<U
  */
 export async function loginWithGoogle(): Promise<void> {
     try {
+        console.log('[CustomerAuth] Starting Google login redirect...');
+        const authInstance = getAuthInstance();
+        console.log('[CustomerAuth] Auth instance obtained:', !!authInstance);
+
         // Redirect to Google sign-in
-        await signInWithRedirect(getAuthInstance(), googleProvider);
+        await signInWithRedirect(authInstance, googleProvider);
+        console.log('[CustomerAuth] signInWithRedirect called successfully (should navigate away)');
     } catch (error: any) {
         logger.error('[CustomerAuth] Google login error:', error);
+        console.error('[CustomerAuth] Google login detailed error:', error);
         throw error;
     }
 }
