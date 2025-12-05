@@ -95,7 +95,7 @@ export function Header() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {hydrated && (
+                    {hydrated && pathname !== '/shop/demo' && (
                         <div className="hidden md:flex items-center gap-2">
                             <TestTube2 className="h-5 w-5 text-primary" />
                             <Label htmlFor="demo-mode-switch" className="text-sm font-medium">Demo Mode</Label>
