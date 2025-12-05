@@ -15,17 +15,6 @@ interface WithAuthOptions {
 /**
  * Higher-order component for protecting routes with authentication and role-based access control.
  * Also allows super admin access via localStorage session.
- * 
- * @param Component - The component to wrap
- * @param options - Configuration options for authentication
- * @returns Protected component that enforces authentication and role requirements
- * 
- * @example
- * ```tsx
- * export default withAuth(DashboardPage, { 
- *   allowedRoles: ['brand', 'dispensary', 'owner'] 
- * });
- * ```
  */
 export function withAuth<P extends object>(
     Component: ComponentType<P>,
@@ -40,43 +29,47 @@ export function withAuth<P extends object>(
     return function ProtectedComponent(props: P) {
         const router = useRouter();
         const pathname = usePathname();
-        const { role, isLoading, user, defaultRoute, loginRoute } = useUserRole();
-        const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
+        const { role, isLoading: isAuthLoading, user, defaultRoute, loginRoute } = useUserRole();
+        const [superAdminChecked, setSuperAdminChecked] = useState(false);
+        const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
-        // Check for super admin session on mount
+        // Check for super admin session immediately on mount
         useEffect(() => {
             const session = getSuperAdminSession();
             setIsSuperAdmin(!!session);
+            setSuperAdminChecked(true);
         }, []);
 
-        useEffect(() => {
-            // Wait for auth to initialize and super admin check
-            if (isLoading || isSuperAdmin === null) return;
+        // Combined loading state - wait for both auth and super admin check
+        const isLoading = isAuthLoading || !superAdminChecked;
 
-            // Super admins can access the CEO dashboard without Firebase auth
-            if (isSuperAdmin && pathname?.startsWith('/dashboard/ceo')) {
-                return; // Allow access
+        // Handle redirects after all checks are complete
+        useEffect(() => {
+            // Wait for all checks to complete
+            if (isLoading) return;
+
+            // Super admins can access any dashboard page without Firebase auth
+            if (isSuperAdmin) {
+                return; // Allow access, no redirect needed
             }
 
-            // Check if authentication is required
-            if (requireAuth && !user && !isSuperAdmin) {
-                // Redirect to login if not authenticated
+            // Regular auth check for non-super admins
+            if (requireAuth && !user) {
                 router.push(redirectTo || loginRoute);
                 return;
             }
 
-            // Check if user has required role (not applicable for super admins on CEO page)
-            if (allowedRoles && allowedRoles.length > 0 && !isSuperAdmin) {
+            // Role check for non-super admins
+            if (allowedRoles && allowedRoles.length > 0) {
                 if (!role || !allowedRoles.includes(role)) {
-                    // User doesn't have required role, redirect to their default route
                     router.push(redirectTo || defaultRoute);
                     return;
                 }
             }
-        }, [isLoading, user, role, router, defaultRoute, loginRoute, isSuperAdmin, pathname]);
+        }, [isLoading, user, role, router, defaultRoute, loginRoute, isSuperAdmin]);
 
-        // Show loading state while checking authentication
-        if (isLoading || isSuperAdmin === null) {
+        // Show loading state while checking both auth and super admin
+        if (isLoading) {
             return (
                 <div className="flex min-h-screen items-center justify-center">
                     <div className="flex flex-col items-center gap-4">
@@ -87,21 +80,22 @@ export function withAuth<P extends object>(
             );
         }
 
-        // Super admins can access CEO dashboard
-        if (isSuperAdmin && pathname?.startsWith('/dashboard/ceo')) {
+        // Super admins can access without Firebase auth
+        if (isSuperAdmin) {
             return <Component {...props} />;
         }
 
-        // Don't render if not authenticated or doesn't have required role
-        if (requireAuth && !user && !isSuperAdmin) {
+        // Regular users need Firebase auth
+        if (requireAuth && !user) {
             return null;
         }
 
-        if (allowedRoles && allowedRoles.length > 0 && (!role || !allowedRoles.includes(role)) && !isSuperAdmin) {
+        // Regular users need correct role
+        if (allowedRoles && allowedRoles.length > 0 && (!role || !allowedRoles.includes(role))) {
             return null;
         }
 
-        // User is authenticated and has required role, render component
+        // Authorized - render component
         return <Component {...props} />;
     };
 }
