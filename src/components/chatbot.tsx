@@ -185,10 +185,11 @@ const ChatWindow = ({
 type ChatbotProps = {
   products?: Product[];
   brandId?: string;
+  initialOpen?: boolean;
 };
 
-export default function Chatbot({ products = [], brandId = "" }: ChatbotProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function Chatbot({ products = [], brandId = "", initialOpen = false }: ChatbotProps) {
+  const [isOpen, setIsOpen] = useState(initialOpen);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const { chatExperience } = useStore();
