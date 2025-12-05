@@ -2,10 +2,11 @@
 // src/app/api/cannmenus/brands/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from '@/lib/logger';
+import { CANNMENUS_CONFIG } from '@/lib/config';
 
 export async function GET(req: NextRequest) {
-  const base = process.env.CANNMENUS_API_BASE || process.env.CANNMENUS_API_URL;
-  const apiKey = process.env.CANNMENUS_API_KEY;
+  const base = CANNMENUS_CONFIG.API_BASE;
+  const apiKey = CANNMENUS_CONFIG.API_KEY;
 
   if (!base || !apiKey) {
     logger.error("CannMenus env missing", { hasBase: !!base, hasKey: !!apiKey });

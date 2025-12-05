@@ -7,8 +7,10 @@
 import { CannMenusProduct } from '@/types/cannmenus';
 
 import { logger } from '@/lib/logger';
-const CANNMENUS_BASE_URL = process.env.NEXT_PUBLIC_CANNMENUS_API_BASE || process.env.CANNMENUS_API_BASE;
-const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
+import { CANNMENUS_CONFIG } from '@/lib/config';
+
+const CANNMENUS_BASE_URL = CANNMENUS_CONFIG.API_BASE;
+const CANNMENUS_API_KEY = CANNMENUS_CONFIG.API_KEY;
 
 export type RetailerLocation = {
     id: string;
