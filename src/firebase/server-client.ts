@@ -6,6 +6,7 @@ import {
   initializeApp,
   App,
   cert,
+  applicationDefault,
 } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth, DecodedIdToken } from "firebase-admin/auth";
@@ -38,10 +39,20 @@ function getServiceAccount() {
  */
 export async function createServerClient() {
   if (getApps().length === 0) {
-    const serviceAccount = getServiceAccount();
-    app = initializeApp({
-      credential: cert(serviceAccount)
-    });
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+    if (serviceAccountKey) {
+      const serviceAccount = getServiceAccount();
+      app = initializeApp({
+        credential: cert(serviceAccount)
+      });
+    } else {
+      console.log('FIREBASE_SERVICE_ACCOUNT_KEY not found, using Application Default Credentials');
+      app = initializeApp({
+        credential: applicationDefault(),
+        projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
+      });
+    }
   } else {
     app = getApps()[0]!;
   }
