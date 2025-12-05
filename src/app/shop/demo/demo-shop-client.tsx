@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Search, ShoppingCart, Plus, Heart, Sparkles, ArrowLeft } from 'lucide-react';
 import { demoProducts, demoRetailers } from '@/lib/demo/demo-data';
-import { useCartStore } from '@/stores/cart-store';
+import { useStore } from '@/hooks/use-store';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Product } from '@/types/domain';
@@ -34,7 +34,7 @@ export default function DemoShopClient() {
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [sortBy, setSortBy] = useState<string>('name');
 
-    const { addItem, items: cartItems, setDispensary } = useCartStore();
+    const { addToCart, cartItems, setSelectedRetailerId } = useStore();
 
     const retailer = demoRetailers[0]; // Bayside Cannabis
 
@@ -63,24 +63,16 @@ export default function DemoShopClient() {
     const categories = Array.from(new Set(demoProducts.map(p => p.category)));
 
     const handleAddToCart = (product: typeof demoProducts[0]) => {
-        setDispensary('demo', retailer.name);
-        addItem({
-            id: product.id,
-            productId: product.id,
-            name: product.name,
-            price: product.price,
-            imageUrl: product.imageUrl,
+        // Convert demo product to domain Product type
+        const domainProduct: Product = {
+            ...product,
             brandId: 'demo-40tons',
-            brandName: '40 Tons',
-            category: product.category,
-            dispensaryId: 'demo',
-            dispensaryName: retailer.name,
-            displayWeight: '3.5g',
-        });
+        };
+        addToCart(domainProduct, retailer.id);
     };
 
     const getCartItemQuantity = (productId: string): number => {
-        const item = cartItems.find(i => i.productId === productId);
+        const item = cartItems.find(i => i.id === productId);
         return item?.quantity || 0;
     };
 
