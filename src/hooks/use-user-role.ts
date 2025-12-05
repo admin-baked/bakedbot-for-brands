@@ -4,6 +4,8 @@ import { useMemo } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import type { UserProfile } from '@/types/domain';
 
+import { useImpersonation } from '@/context/impersonation-context';
+
 export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
 
 /**
@@ -12,12 +14,24 @@ export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
  */
 export function useUserRole() {
     const { user, isUserLoading } = useUser();
+    const { impersonatedRole } = useImpersonation();
+
+    const realRole = useMemo(() => {
+        if (!user) return null;
+        return (user as any).role as Role | null;
+    }, [user]);
 
     const role = useMemo(() => {
         if (!user) return null;
-        // Role is stored in custom claims on the user token
-        return (user as any).role as Role | null;
-    }, [user]);
+        const actualRole = (user as any).role as Role | null;
+
+        // Only allow owners to impersonate
+        if (actualRole === 'owner' && impersonatedRole) {
+            return impersonatedRole;
+        }
+
+        return actualRole;
+    }, [user, impersonatedRole]);
 
     const isRole = useMemo(() => {
         return (checkRole: Role) => role === checkRole;
@@ -35,8 +49,8 @@ export function useUserRole() {
     }, [role]);
 
     const canAccessAdminFeatures = useMemo(() => {
-        return role === 'owner';
-    }, [role]);
+        return realRole === 'owner';
+    }, [realRole]);
 
     const defaultRoute = useMemo(() => {
         switch (role) {
