@@ -25,6 +25,13 @@ export default function CeoDashboardPage() {
     const router = useRouter();
     const { isSuperAdmin, isLoading, superAdminEmail, logout } = useSuperAdmin();
 
+    // Not authorized - redirect to login
+    useEffect(() => {
+        if (!isLoading && !isSuperAdmin) {
+            router.push('/super-admin');
+        }
+    }, [isLoading, isSuperAdmin, router]);
+
     // Loading state
     if (isLoading) {
         return (
@@ -36,13 +43,6 @@ export default function CeoDashboardPage() {
             </div>
         );
     }
-
-    // Not authorized - redirect to login
-    useEffect(() => {
-        if (!isLoading && !isSuperAdmin) {
-            router.push('/super-admin');
-        }
-    }, [isLoading, isSuperAdmin, router]);
 
     if (!isSuperAdmin) {
         return null; // Don't render anything while redirecting
