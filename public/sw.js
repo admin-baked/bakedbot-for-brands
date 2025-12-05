@@ -49,6 +49,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   // Network-first strategy for API calls
   if (event.request.url.includes('/api/')) {
     event.respondWith(
