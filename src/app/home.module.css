@@ -229,39 +229,6 @@
 
 .heroSubtitle {
   font-size: 15px;
-  color: #4b5563;
-  max-width: 540px;
-  margin-bottom: 20px;
-}
-
-.heroSubtitle strong {
-  color: #111827;
-  font-weight: 600;
-}
-
-.heroMetrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  font-size: 11px;
-  color: #6b7280;
-  margin-bottom: 22px;
-}
-
-.heroMetrics span.badge {
-  border-radius: 999px;
-  border: 1px solid rgba(209, 213, 219, 0.9);
-  padding: 4px 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #ffffff;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
-}
-
-.heroMetrics span.badge strong {
-  color: #16a34a;
-  font-weight: 700;
   font-size: 12px;
 }
 
