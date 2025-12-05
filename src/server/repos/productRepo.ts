@@ -85,7 +85,7 @@ export function makeProductRepo(db: Firestore) {
     * Creates a new product document in Firestore.
     */
     async create(data: Omit<Product, 'id'>): Promise<DocumentReference> {
-      return await productCollection.add(data);
+      return await productCollection.add(data as Product);
     },
 
     /**
