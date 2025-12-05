@@ -19,6 +19,7 @@ import { Loader2, Shield, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
+import { ClientOnly } from '@/components/client-only';
 
 export default function CeoDashboardPage() {
     const router = useRouter();
@@ -75,21 +76,25 @@ export default function CeoDashboardPage() {
                     <TabsTrigger value="coupons">Coupon Manager</TabsTrigger>
                     <TabsTrigger value="cannmenus">CannMenus Test</TabsTrigger>
                 </TabsList>
-                <TabsContent value="ai-agent-embed" className="mt-6">
-                    <AIAgentEmbedTab />
-                </TabsContent>
-                <TabsContent value="data-manager" className="mt-6">
-                    <DataManagerTab />
-                </TabsContent>
-                <TabsContent value="ai-search" className="mt-6">
-                    <AISearchIndexTab />
-                </TabsContent>
-                <TabsContent value="coupons" className="mt-6">
-                    <CouponManagerTab />
-                </TabsContent>
-                <TabsContent value="cannmenus" className="mt-6">
-                    <CannMenusTestTab />
-                </TabsContent>
+                <div className="mt-6">
+                    <ClientOnly fallback={<div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+                        <TabsContent value="ai-agent-embed" className="mt-0">
+                            <AIAgentEmbedTab />
+                        </TabsContent>
+                        <TabsContent value="data-manager" className="mt-0">
+                            <DataManagerTab />
+                        </TabsContent>
+                        <TabsContent value="ai-search" className="mt-0">
+                            <AISearchIndexTab />
+                        </TabsContent>
+                        <TabsContent value="coupons" className="mt-0">
+                            <CouponManagerTab />
+                        </TabsContent>
+                        <TabsContent value="cannmenus" className="mt-0">
+                            <CannMenusTestTab />
+                        </TabsContent>
+                    </ClientOnly>
+                </div>
             </Tabs>
         </div>
     );
