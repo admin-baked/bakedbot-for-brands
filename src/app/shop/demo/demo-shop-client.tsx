@@ -86,25 +86,7 @@ export default function DemoShopClient() {
 
     return (
         <div className="min-h-screen bg-background">
-            {/* Simple Header */}
-            <header className="border-b bg-white sticky top-0 z-40">
-                <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2">
-                        <Image
-                            src="https://storage.googleapis.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png"
-                            alt="BakedBot"
-                            width={100}
-                            height={40}
-                            style={{ height: '40px', width: 'auto' }}
-                            unoptimized
-                        />
-                    </Link>
-                    <Badge variant="secondary" className="h-fit">
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        Demo Mode
-                    </Badge>
-                </div>
-            </header>
+            {/* Header removed to avoid duplication with AppLayout */}
 
             <div className="container mx-auto px-4 py-8">
                 {/* Page Header */}
