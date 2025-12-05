@@ -17,12 +17,21 @@ export function middleware(request: NextRequest) {
     const isOnboardingRoute = pathname === '/onboarding';
     const isProtectedRoute = isDashboardRoute || isAccountRoute || isOnboardingRoute;
 
+    // CEO dashboard has special super admin access via localStorage
+    // Allow it through middleware - client-side withAuth will handle super admin check
+    const isCeoDashboard = pathname.startsWith('/dashboard/ceo');
+
     // Allow public routes
     if (!isProtectedRoute) {
         return NextResponse.next();
     }
 
-    // Redirect to login if no session cookie on protected routes
+    // Allow CEO dashboard through - super admin auth handled client-side
+    if (isCeoDashboard) {
+        return NextResponse.next();
+    }
+
+    // Redirect to login if no session cookie on other protected routes
     if (!sessionCookie) {
         // Determine which login page to redirect to based on the route
         let loginUrl = '/customer-login';
