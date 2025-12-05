@@ -1,11 +1,19 @@
 'use client';
 
+// src/components/landing/demo-chat-trigger.tsx
+/**
+ * Button to launch Smokey chatbot on the homepage
+ */
+
 import { useState } from 'react';
-import Chatbot from '@/components/chatbot';
+import dynamicImport from 'next/dynamic';
 import { demoProducts } from '@/lib/demo/demo-data';
 import { Product } from '@/types/domain';
 import styles from '@/app/home.module.css';
 import { MessageCircle } from 'lucide-react';
+
+// Dynamic import to prevent Firebase issues
+const Chatbot = dynamicImport(() => import('@/components/chatbot'), { ssr: false });
 
 // Convert demo products to the Product type expected by the Chatbot
 const demoChatProducts: Product[] = demoProducts.map(p => ({
@@ -23,11 +31,15 @@ export function DemoChatTrigger() {
                 className={styles.btnSecondary}
             >
                 <MessageCircle size={16} />
-                Try the AI Budtender
+                Try Smokey, AI Budtender
             </button>
 
             {showChat && (
-                <Chatbot products={demoChatProducts} brandId="demo-40tons" />
+                <Chatbot
+                    products={demoChatProducts}
+                    brandId="demo-40tons"
+                    initialOpen={true}
+                />
             )}
         </>
     );

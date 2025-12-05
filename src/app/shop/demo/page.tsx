@@ -1,7 +1,7 @@
-// src/app/(customer-menu)/shop/demo/page.tsx
+// src/app/shop/demo/page.tsx
 /**
  * Demo shopping page route wrapper
- * Imports the client component and sets dynamic rendering to avoid Firebase prerender issues
+ * Located outside (customer-menu) to avoid double header/footer
  */
 
 import DemoShopClient from './demo-shop-client';
