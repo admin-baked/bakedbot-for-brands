@@ -20,6 +20,9 @@ export async function GET() {
         const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
         results.envVarPresent = !!serviceAccountKey;
         results.envVarLength = serviceAccountKey?.length || 0;
+
+        // List all env keys for debugging (exclude values for security)
+        results.envKeys = Object.keys(process.env).sort();
         results.steps.push('Checked env var');
 
         if (!serviceAccountKey) {
