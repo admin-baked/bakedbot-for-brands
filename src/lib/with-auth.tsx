@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, ComponentType } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, ComponentType, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useUserRole, type Role } from '@/hooks/use-user-role';
+import { getSuperAdminSession } from '@/lib/super-admin-config';
 import { Loader2 } from 'lucide-react';
 
 interface WithAuthOptions {
@@ -13,6 +14,7 @@ interface WithAuthOptions {
 
 /**
  * Higher-order component for protecting routes with authentication and role-based access control.
+ * Also allows super admin access via localStorage session.
  * 
  * @param Component - The component to wrap
  * @param options - Configuration options for authentication
@@ -37,31 +39,44 @@ export function withAuth<P extends object>(
 
     return function ProtectedComponent(props: P) {
         const router = useRouter();
+        const pathname = usePathname();
         const { role, isLoading, user, defaultRoute, loginRoute } = useUserRole();
+        const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
+
+        // Check for super admin session on mount
+        useEffect(() => {
+            const session = getSuperAdminSession();
+            setIsSuperAdmin(!!session);
+        }, []);
 
         useEffect(() => {
-            // Wait for auth to initialize
-            if (isLoading) return;
+            // Wait for auth to initialize and super admin check
+            if (isLoading || isSuperAdmin === null) return;
+
+            // Super admins can access the CEO dashboard without Firebase auth
+            if (isSuperAdmin && pathname?.startsWith('/dashboard/ceo')) {
+                return; // Allow access
+            }
 
             // Check if authentication is required
-            if (requireAuth && !user) {
+            if (requireAuth && !user && !isSuperAdmin) {
                 // Redirect to login if not authenticated
                 router.push(redirectTo || loginRoute);
                 return;
             }
 
-            // Check if user has required role
-            if (allowedRoles && allowedRoles.length > 0) {
+            // Check if user has required role (not applicable for super admins on CEO page)
+            if (allowedRoles && allowedRoles.length > 0 && !isSuperAdmin) {
                 if (!role || !allowedRoles.includes(role)) {
                     // User doesn't have required role, redirect to their default route
                     router.push(redirectTo || defaultRoute);
                     return;
                 }
             }
-        }, [isLoading, user, role, router, defaultRoute, loginRoute]);
+        }, [isLoading, user, role, router, defaultRoute, loginRoute, isSuperAdmin, pathname]);
 
         // Show loading state while checking authentication
-        if (isLoading) {
+        if (isLoading || isSuperAdmin === null) {
             return (
                 <div className="flex min-h-screen items-center justify-center">
                     <div className="flex flex-col items-center gap-4">
@@ -72,12 +87,17 @@ export function withAuth<P extends object>(
             );
         }
 
+        // Super admins can access CEO dashboard
+        if (isSuperAdmin && pathname?.startsWith('/dashboard/ceo')) {
+            return <Component {...props} />;
+        }
+
         // Don't render if not authenticated or doesn't have required role
-        if (requireAuth && !user) {
+        if (requireAuth && !user && !isSuperAdmin) {
             return null;
         }
 
-        if (allowedRoles && allowedRoles.length > 0 && (!role || !allowedRoles.includes(role))) {
+        if (allowedRoles && allowedRoles.length > 0 && (!role || !allowedRoles.includes(role)) && !isSuperAdmin) {
             return null;
         }
 
