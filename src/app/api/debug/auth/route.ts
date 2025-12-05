@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     const results: any = {
+        timestamp: '2025-12-05T04:50:00Z', // Manual timestamp to verify deployment
         steps: [],
         envVarPresent: false,
         envVarLength: 0,
