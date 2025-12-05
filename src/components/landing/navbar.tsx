@@ -24,6 +24,7 @@ export function Navbar() {
           </Link>
           <div className={styles.navLinks}>
             <Link href="/dashboard/playbooks">Playbooks</Link>
+            <Link href="/shop/demo">Demo Menu</Link>
             <Link href="/dashboard/analytics">Analytics</Link>
             <Link href="/pricing">Pricing</Link>
           </div>
