@@ -36,36 +36,15 @@ export default function CeoDashboardPage() {
         );
     }
 
-    // Not authorized
+    // Not authorized - redirect to login
+    useEffect(() => {
+        if (!isLoading && !isSuperAdmin) {
+            router.push('/super-admin');
+        }
+    }, [isLoading, isSuperAdmin, router]);
+
     if (!isSuperAdmin) {
-        return (
-            <div className="flex min-h-[400px] items-center justify-center">
-                <Card className="w-full max-w-md">
-                    <CardHeader className="text-center">
-                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-                            <ShieldX className="h-6 w-6 text-destructive" />
-                        </div>
-                        <CardTitle className="text-2xl">Access Denied</CardTitle>
-                        <CardDescription>
-                            This page is restricted to super admin users only.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Link href="/super-admin">
-                            <Button className="w-full">
-                                <Shield className="mr-2 h-4 w-4" />
-                                Go to Super Admin Login
-                            </Button>
-                        </Link>
-                        <Link href="/dashboard">
-                            <Button variant="outline" className="w-full">
-                                Return to Dashboard
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
-            </div>
-        );
+        return null; // Don't render anything while redirecting
     }
 
     // Authorized - show CEO dashboard
