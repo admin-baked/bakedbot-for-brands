@@ -8,6 +8,7 @@ import { AppLayout } from '@/components/AppLayout';
 import Chatbot from '@/components/chatbot';
 import { demoProducts } from '@/lib/demo/demo-data';
 import { DEMO_BRAND_ID } from '@/lib/config';
+import { RoleSwitcher } from '@/components/admin/role-switcher';
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
@@ -56,6 +57,7 @@ export default async function RootLayout({
             {children}
           </AppLayout>
           <Chatbot products={products} brandId={DEMO_BRAND_ID} />
+          <RoleSwitcher />
         </Providers>
       </body>
     </html>

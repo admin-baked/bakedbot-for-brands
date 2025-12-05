@@ -115,7 +115,7 @@ export default function OnboardingPage() {
       </div>
       <div className="space-y-2">
         {results.map((b) => (
-          <Button key={b.id} variant="ghost" className="w-full justify-between" onClick={() => handleEntitySelect({ id: b.id, name: b.name })}>
+          <Button key={b.id} variant="ghost" className="w-full justify-between text-foreground" onClick={() => handleEntitySelect({ id: b.id, name: b.name })}>
             <span>{b.name}</span>
             <span className="text-xs text-muted-foreground">{b.market}</span>
           </Button>

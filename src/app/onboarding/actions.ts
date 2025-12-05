@@ -135,8 +135,8 @@ export async function completeOnboarding(prevState: OnboardingState, formData: F
 
     const claims = { role: finalRole, brandId: finalBrandId, locationId: userProfileData.locationId };
 
-    const filteredClaims = Object.fromEntries(Object.entries(claims).filter(([_, v]) => v !== null));
-    const filteredProfileData = Object.fromEntries(Object.entries(userProfileData).filter(([_, v]) => v !== null));
+    const filteredClaims = Object.fromEntries(Object.entries(claims).filter(([_, v]) => v != null));
+    const filteredProfileData = Object.fromEntries(Object.entries(userProfileData).filter(([_, v]) => v != null));
 
     await userDocRef.set(filteredProfileData, { merge: true });
     await auth.setCustomUserClaims(uid, filteredClaims);
