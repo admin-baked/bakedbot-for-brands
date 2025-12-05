@@ -8,6 +8,8 @@ import { AppLayout } from '@/components/AppLayout';
 import Chatbot from '@/components/chatbot';
 import { demoProducts } from '@/lib/demo/demo-data';
 import { DEMO_BRAND_ID } from '@/lib/config';
+import { SimulationBanner } from '@/components/debug/simulation-banner';
+
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
@@ -48,6 +50,8 @@ export default async function RootLayout({
   // Individual pages can fetch their own data as needed
   const products = demoProducts;
 
+
+
   return (
     <html lang="en" className={`${inter.variable} ${teko.variable}`} suppressHydrationWarning>
       <body className="font-sans min-h-screen bg-background text-foreground">
@@ -56,6 +60,7 @@ export default async function RootLayout({
             {children}
           </AppLayout>
           <Chatbot products={products} brandId={DEMO_BRAND_ID} />
+          <SimulationBanner />
         </Providers>
       </body>
     </html>

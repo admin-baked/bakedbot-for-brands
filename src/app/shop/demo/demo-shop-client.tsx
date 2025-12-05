@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, ShoppingCart, Plus, Heart, Sparkles, ArrowLeft } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Heart, Sparkles, ArrowLeft, Grid, List } from 'lucide-react';
 import { demoProducts, demoRetailers } from '@/lib/demo/demo-data';
 import { useStore } from '@/hooks/use-store';
 import Image from 'next/image';
@@ -33,6 +33,7 @@ export default function DemoShopClient() {
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [sortBy, setSortBy] = useState<string>('name');
+    const [viewMode, setViewMode] = useState<'grid' | 'compact'>('grid');
 
     const { addToCart, cartItems, setSelectedRetailerId } = useStore();
 
@@ -161,6 +162,28 @@ export default function DemoShopClient() {
                     </p>
                 </div>
 
+                {/* View Toggle */}
+                <div className="flex justify-end mb-4">
+                    <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+                        <Button
+                            variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setViewMode('grid')}
+                            className="h-8 w-8 p-0"
+                        >
+                            <Grid className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant={viewMode === 'compact' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setViewMode('compact')}
+                            className="h-8 w-8 p-0"
+                        >
+                            <List className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+
                 {/* Products Grid */}
                 {filteredProducts.length === 0 ? (
                     <Card>
@@ -173,9 +196,48 @@ export default function DemoShopClient() {
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className={viewMode === 'grid'
+                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                        : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                    }>
                         {filteredProducts.map((product) => {
                             const inCart = getCartItemQuantity(product.id) > 0;
+
+                            if (viewMode === 'compact') {
+                                return (
+                                    <Card key={product.id} className="overflow-hidden hover:shadow-md transition-all flex flex-row h-32">
+                                        <div className="relative w-32 h-full bg-muted shrink-0">
+                                            {product.imageUrl ? (
+                                                <Image
+                                                    src={product.imageUrl}
+                                                    alt={product.name}
+                                                    fill
+                                                    className="object-cover"
+                                                />
+                                            ) : (
+                                                <div className="flex items-center justify-center h-full">
+                                                    <ShoppingCart className="h-8 w-8 text-muted-foreground" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col justify-between p-3 flex-1 min-w-0">
+                                            <div>
+                                                <h3 className="font-semibold text-sm line-clamp-1" title={product.name}>{product.name}</h3>
+                                                <p className="text-xs text-muted-foreground line-clamp-1">{product.category}</p>
+                                                <div className="mt-1 font-bold text-sm">${product.price.toFixed(2)}</div>
+                                            </div>
+                                            <Button
+                                                onClick={() => handleAddToCart(product)}
+                                                size="sm"
+                                                variant={inCart ? "secondary" : "outline"}
+                                                className="w-full h-8 text-xs"
+                                            >
+                                                {inCart ? 'In Cart' : 'Add'}
+                                            </Button>
+                                        </div>
+                                    </Card>
+                                );
+                            }
 
                             return (
                                 <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all group">

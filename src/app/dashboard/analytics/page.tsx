@@ -44,7 +44,22 @@ export default async function DashboardAnalyticsPage() {
     }} />;
   }
 
-  const analyticsData = await getAnalyticsData(brandId);
+  let analyticsData;
+  try {
+    analyticsData = await getAnalyticsData(brandId);
+  } catch (error) {
+    console.error('Failed to fetch analytics data:', error);
+    // Return empty/safe data instead of crashing
+    analyticsData = {
+      totalRevenue: 0,
+      totalOrders: 0,
+      averageOrderValue: 0,
+      salesByProduct: [],
+      dailyStats: [],
+      conversionFunnel: [],
+      channelPerformance: []
+    };
+  }
 
   return (
     <Suspense fallback={<AnalyticsSkeleton />}>

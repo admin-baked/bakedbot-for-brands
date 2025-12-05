@@ -6,7 +6,7 @@ import type { Product } from '@/types/domain';
 import { demoProducts } from '@/lib/demo/demo-data';
 import { ProductsDataTable } from './components/products-data-table';
 import { columns } from './components/products-table-columns';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Import } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { requireUser } from '@/server/auth/auth';
@@ -57,12 +57,18 @@ export default async function DashboardProductsPage() {
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
                 {/* The header is now handled by the layout */}
-                <div />
-                <Link href="/dashboard/products/new" passHref>
-                    <Button>
-                        <PlusCircle /> Add Product
-                    </Button>
-                </Link>
+                <div className="flex gap-2">
+                    <Link href="/dashboard/products/import" passHref>
+                        <Button variant="outline">
+                            <Import className="mr-2 h-4 w-4" /> Import from CannMenus
+                        </Button>
+                    </Link>
+                    <Link href="/dashboard/products/new" passHref>
+                        <Button>
+                            <PlusCircle className="mr-2 h-4 w-4" /> Add Product
+                        </Button>
+                    </Link>
+                </div>
             </div>
             <ProductsDataTable columns={columns} data={products} />
         </div>

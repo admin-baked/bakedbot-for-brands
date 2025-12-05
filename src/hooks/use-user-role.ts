@@ -43,7 +43,7 @@ export function useUserRole() {
             case 'brand':
             case 'dispensary':
             case 'owner':
-                return '/dashboard';
+                return '/dashboard/playbooks';
             case 'customer':
                 return '/account';
             default:

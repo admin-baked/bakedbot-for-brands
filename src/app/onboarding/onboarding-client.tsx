@@ -18,7 +18,7 @@ type BrandResult = {
   market: string | null;
 };
 
-type Step = 'role' | 'brand-search' | 'manual' | 'review';
+type Step = 'role' | 'brand-search' | 'manual' | 'features' | 'review';
 
 export default function OnboardingPage() {
   const { toast } = useToast();
@@ -28,6 +28,8 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<BrandResult[]>([]);
   const [selectedCannMenusEntity, setSelectedCannMenusEntity] = useState<{ id: string, name: string } | null>(null);
+
+  const [features, setFeatures] = useState<{ headless: boolean; budtender: boolean }>({ headless: true, budtender: true });
 
   const [manualBrandName, setManualBrandName] = useState('');
   const [manualProductName, setManualProductName] = useState('');
@@ -68,12 +70,24 @@ export default function OnboardingPage() {
 
   function handleEntitySelect(entity: { id: string, name: string }) {
     setSelectedCannMenusEntity(entity);
-    setStep('review');
+    if (role === 'dispensary') {
+      setStep('features');
+    } else {
+      setStep('review');
+    }
   }
 
   function handleGoToManual() {
     setSelectedCannMenusEntity(null); // Clear any stale selection
     setStep('manual');
+  }
+
+  function handleManualContinue() {
+    if (role === 'dispensary') {
+      setStep('features');
+    } else {
+      setStep('review');
+    }
   }
 
   const renderRoleSelection = () => (
@@ -143,6 +157,33 @@ export default function OnboardingPage() {
       )}
       <div className="flex gap-2">
         <Button variant="ghost" onClick={() => setStep('brand-search')}>Back to search</Button>
+        <Button onClick={handleManualContinue}>Continue</Button>
+      </div>
+    </section>
+  );
+
+  const renderFeaturesStep = () => (
+    <section className="space-y-4">
+      <h2 className="font-semibold text-xl">Choose your features</h2>
+      <p className="text-sm text-muted-foreground">Select the tools you want to use.</p>
+      <div className="grid gap-4">
+        <div className={`p-4 border rounded-lg cursor-pointer transition-colors ${features.headless ? 'bg-green-50 border-green-200' : 'hover:bg-muted'}`} onClick={() => setFeatures(prev => ({ ...prev, headless: !prev.headless }))}>
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`w-4 h-4 rounded-full border ${features.headless ? 'bg-green-600 border-green-600' : 'border-muted-foreground'}`} />
+            <h3 className="font-semibold">Headless Menu</h3>
+          </div>
+          <p className="text-sm text-muted-foreground ml-6">AI-powered menu that syncs with your POS.</p>
+        </div>
+        <div className={`p-4 border rounded-lg cursor-pointer transition-colors ${features.budtender ? 'bg-green-50 border-green-200' : 'hover:bg-muted'}`} onClick={() => setFeatures(prev => ({ ...prev, budtender: !prev.budtender }))}>
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`w-4 h-4 rounded-full border ${features.budtender ? 'bg-green-600 border-green-600' : 'border-muted-foreground'}`} />
+            <h3 className="font-semibold">AI Budtender</h3>
+          </div>
+          <p className="text-sm text-muted-foreground ml-6">Smokey, your AI agent, helps customers find products.</p>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button variant="ghost" onClick={() => setStep('brand-search')}>Back</Button>
         <Button onClick={() => setStep('review')}>Continue</Button>
       </div>
     </section>
@@ -165,6 +206,9 @@ export default function OnboardingPage() {
           {hasSelection && (
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{role === 'brand' ? 'Brand' : 'Dispensary'}:</span><span className="font-semibold">{selectedName}</span></div>
           )}
+          {role === 'dispensary' && (
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Features:</span><span className="font-semibold">{[features.headless && 'Menu', features.budtender && 'Budtender'].filter(Boolean).join(', ')}</span></div>
+          )}
         </div>
         <p className="text-xs text-muted-foreground">This will configure your user account and workspace.</p>
         <form action={formAction} className="flex items-center gap-2">
@@ -177,6 +221,9 @@ export default function OnboardingPage() {
           <input type="hidden" name="manualBrandName" value={manualBrandName} />
           <input type="hidden" name="manualProductName" value={manualProductName} />
           <input type="hidden" name="manualDispensaryName" value={manualDispensaryName} />
+
+          {/* Pass features */}
+          <input type="hidden" name="features" value={JSON.stringify(features)} />
 
           <SubmitButton disabled={!role} />
         </form>
@@ -196,6 +243,7 @@ export default function OnboardingPage() {
         {step === 'role' && renderRoleSelection()}
         {step === 'brand-search' && renderSearchStep()}
         {step === 'manual' && renderManualStep()}
+        {step === 'features' && renderFeaturesStep()}
         {step === 'review' && renderReviewStep()}
       </div>
     </main>
