@@ -423,7 +423,7 @@ export default function Chatbot({ products = [], brandId = "", initialOpen = fal
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-[60]">
         <Button size="icon" className="h-20 w-20 rounded-full shadow-lg overflow-hidden p-0 bg-transparent hover:bg-transparent" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
           {isOpen ? (
             <X className="h-8 w-8 text-primary" />
