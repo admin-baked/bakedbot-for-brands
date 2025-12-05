@@ -21,9 +21,11 @@ export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
  */
 export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToken> {
   // --- PRODUCTION LOGIC ---
-  const sessionCookie = (await cookies()).get('__session')?.value;
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('__session')?.value;
+
   if (!sessionCookie) {
-    console.error('[AUTH_DEBUG] No session cookie found in request headers:', (await cookies()).getAll().map(c => c.name));
+    console.error('[AUTH_DEBUG] No session cookie found in request headers:', cookieStore.getAll().map(c => c.name));
     throw new Error('Unauthorized: No session cookie found.');
   }
 
@@ -33,7 +35,19 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
   try {
     decodedToken = await auth.verifySessionCookie(sessionCookie, true);
   } catch (error) {
+    console.error('[AUTH_ERROR] verifySessionCookie failed:', error);
     throw new Error('Unauthorized: Invalid session cookie.');
+  }
+
+  // --- ROLE SIMULATION LOGIC ---
+  // Only allow simulation if the REAL user has the 'owner' role.
+  if (decodedToken.role === 'owner') {
+    const simulatedRole = cookieStore.get('x-simulated-role')?.value as Role | undefined;
+    if (simulatedRole && ['brand', 'dispensary', 'customer'].includes(simulatedRole)) {
+      // Override the role in the returned token
+      decodedToken = { ...decodedToken, role: simulatedRole };
+      // Note: We are NOT modifying the actual session cookie, just the decoded object for this request context.
+    }
   }
 
   if (requiredRoles && requiredRoles.length > 0) {

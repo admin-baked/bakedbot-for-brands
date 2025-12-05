@@ -29,13 +29,12 @@ export function useDashboardConfig() {
     // Define all possible navigation links with their role requirements
     const allLinks: DashboardNavLink[] = [
       {
-        label: 'Overview',
-        href: '/dashboard',
-        icon: 'LayoutDashboard',
-        description: 'High-level summary of agents, campaigns, and revenue.',
+        label: 'Playbooks',
+        href: '/dashboard/playbooks',
+        icon: 'BookOpen',
+        description: 'Manage automation playbooks and workflows.',
         roles: ['brand', 'dispensary', 'owner'],
       },
-      // Brand-specific links
       {
         label: 'Agents',
         href: '/dashboard/agents',
@@ -44,13 +43,14 @@ export function useDashboardConfig() {
         roles: ['brand', 'owner'],
       },
       {
-        label: 'Playbooks',
-        href: '/dashboard/playbooks',
-        icon: 'BookOpen',
-        description: 'Manage automation playbooks and workflows.',
-        roles: ['brand', 'owner'],
+        label: 'Overview',
+        href: '/dashboard',
+        icon: 'LayoutDashboard',
+        description: 'High-level summary of agents, campaigns, and revenue.',
+        roles: ['brand', 'dispensary', 'owner'],
       },
-       {
+      // Brand-specific links
+      {
         label: 'Products',
         href: '/dashboard/products',
         icon: 'Package',
@@ -71,12 +71,40 @@ export function useDashboardConfig() {
         description: 'Explore sales data and product performance.',
         roles: ['brand', 'owner'],
       },
+      {
+        label: 'Dispensaries',
+        href: '/dashboard/dispensaries',
+        icon: 'Store',
+        description: 'Manage your dispensary partners.',
+        roles: ['brand', 'owner'],
+      },
       // Dispensary-specific links
       {
         label: 'Orders',
         href: '/dashboard/orders',
         icon: 'ShoppingCart',
         description: 'View and manage customer orders.',
+        roles: ['dispensary', 'owner'],
+      },
+      {
+        label: 'Customers',
+        href: '/dashboard/customers',
+        icon: 'Users',
+        description: 'Manage your customer base.',
+        roles: ['dispensary', 'owner'],
+      },
+      {
+        label: 'Segments',
+        href: '/dashboard/segments',
+        icon: 'PieChart',
+        description: 'Segment customers for targeted campaigns.',
+        roles: ['dispensary', 'owner'],
+      },
+      {
+        label: 'App Store',
+        href: '/dashboard/apps',
+        icon: 'Grid',
+        description: 'Connect integrations like Dutchie and Jane.',
         roles: ['dispensary', 'owner'],
       },
       // Owner-specific link
@@ -88,7 +116,7 @@ export function useDashboardConfig() {
         roles: ['owner'],
       },
       // This is not a primary nav item but needed for the settings page to have a description
-       {
+      {
         label: 'Account',
         href: '/account',
         icon: 'Settings',
