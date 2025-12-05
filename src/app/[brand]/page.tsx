@@ -9,9 +9,10 @@ const MOCK_BRAND_CONFIG = {
     primaryColor: '#10b981',
 };
 
-export default function BrandPage({ params }: { params: { brand: string } }) {
+export default async function BrandPage({ params }: { params: Promise<{ brand: string }> }) {
     // In a real app, use params.brand to fetch config
-    const brandSlug = params.brand;
+    const { brand } = await params;
+    const brandSlug = brand;
 
     return (
         <main className="relative min-h-screen">

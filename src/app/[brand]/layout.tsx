@@ -1,22 +1,25 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-export async function generateMetadata({ params }: { params: { brand: string } }): Promise<Metadata> {
-    const brandName = params.brand; // In real app, fetch from DB using params.brand (which is slug or domain)
+export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
+    const { brand } = await params;
 
     return {
-        title: `${brandName} | Powered by BakedBot`,
-        description: `Shop at ${brandName}`,
+        title: `${brand} | Powered by BakedBot`,
+        description: `Shop at ${brand}`,
     };
 }
 
-export default function BrandLayout({
+export default async function BrandLayout({
     children,
     params,
 }: {
     children: React.ReactNode;
-    params: { brand: string };
+    params: Promise<{ brand: string }>;
 }) {
+    // await params if we needed to access it here, but we aren't using it yet.
+    // just ensures strict type compliance.
+    // const { brand } = await params;
     // logic to validate brand exists
     // const brand = await fetchBrand(params.brand);
     // if (!brand) notFound();
