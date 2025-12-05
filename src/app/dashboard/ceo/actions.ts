@@ -2,7 +2,8 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
-import { demoProducts, demoRetailers, demoCustomer } from '@/lib/demo/demo-data';
+import { demoProducts, demoRetailers } from '@/lib/demo/demo-data';
+import { demoCustomer } from '@/lib/demo/demo-customer';
 import { couponConverter, productConverter, retailerConverter, reviewConverter } from '@/firebase/converters';
 import { FieldValue } from 'firebase-admin/firestore';
 import { updateProductEmbeddings } from '@/ai/flows/update-product-embeddings';

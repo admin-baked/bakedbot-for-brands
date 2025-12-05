@@ -1,0 +1,61 @@
+﻿
+Running 16 tests using 2 workers
+
+  Γ£ô   1 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:19:9 ΓÇ║ Homepage Company Logos - Commit 88faa2a9 ΓÇ║ homepage displays Ultra Cannabis in proof section (2.5s)
+  Γ£ô   2 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:28:9 ΓÇ║ Homepage Company Logos - Commit 88faa2a9 ΓÇ║ homepage displays Zaza Factory in proof section (2.4s)
+  Γ£ô   4 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:46:9 ΓÇ║ Navigation - No Double Navbar - Commit 15cbbc99 ΓÇ║ homepage has exactly one main navigation (2.4s)
+  Γ£ô   3 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:36:9 ΓÇ║ Homepage Company Logos - Commit 88faa2a9 ΓÇ║ homepage displays Melanies Ecstatic Edibles in proof section (2.7s)
+  Γ£ô   6 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:64:9 ΓÇ║ Navigation - No Double Navbar - Commit 15cbbc99 ΓÇ║ demo menu link is visible in homepage navigation (4.9s)
+  Γ£ÿ   5 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:56:9 ΓÇ║ Navigation - No Double Navbar - Commit 15cbbc99 ΓÇ║ shop demo page has no duplicate headers (5.1s)
+  Γ£ô   7 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:76:9 ΓÇ║ Chatbot Z-Index - Commit 15cbbc99 ΓÇ║ chatbot button has high z-index (2.1s)
+  Γ£ÿ   8 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:118:9 ΓÇ║ Product Card Structure - Commit 34c2d770 ΓÇ║ shop demo page loads products (4.1s)
+  Γ£ô   9 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:97:9 ΓÇ║ Chatbot Z-Index - Commit 15cbbc99 ΓÇ║ chatbot window appears above page content (3.2s)
+  Γ£ô  10 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:139:9 ΓÇ║ Homepage Hero Section - Commit 0381f585 ΓÇ║ homepage footer contains key content (1.5s)
+  Γ£ô  11 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:155:9 ΓÇ║ API Endpoints Health - Commits bc1358ce, 9275aeca ΓÇ║ debug auth endpoint responds with timestamp (197ms)
+  Γ£ô  12 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:162:9 ΓÇ║ API Endpoints Health - Commits bc1358ce, 9275aeca ΓÇ║ CannMenus brands endpoint responds (442ms)
+  Γ£ô  13 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:171:9 ΓÇ║ Responsive Navigation - Mobile ΓÇ║ navigation works on mobile viewport (1.4s)
+  Γ£ô  14 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:181:9 ΓÇ║ Responsive Navigation - Mobile ΓÇ║ mobile viewport renders correctly (2.2s)
+  Γ£ô  15 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:130:9 ΓÇ║ Homepage Hero Section - Commit 0381f585 ΓÇ║ homepage has hero section (2.7s)
+  Γ£ô  16 [chromium] ΓÇ║ e2e\recent-commits.spec.ts:193:9 ΓÇ║ CEO Dashboard Access - Commit 097ea7a4 ΓÇ║ CEO dashboard route exists and responds (1.5s)
+
+
+  1) [chromium] ΓÇ║ e2e\recent-commits.spec.ts:56:9 ΓÇ║ Navigation - No Double Navbar - Commit 15cbbc99 ΓÇ║ shop demo page has no duplicate headers 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: < [32m500[39m
+    Received:   [31m500[39m
+
+      59 |
+      60 |         // Just verify the page loads without error
+    > 61 |         expect(response?.status()).toBeLessThan(500);
+         |                                    ^
+      62 |     });
+      63 |
+      64 |     test('demo menu link is visible in homepage navigation', async ({ page }) => {
+        at C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\e2e\recent-commits.spec.ts:61:36
+
+    Error Context: test-results\e2e-recent-commits-Navigat-483d2-ge-has-no-duplicate-headers-chromium\error-context.md
+
+  2) [chromium] ΓÇ║ e2e\recent-commits.spec.ts:118:9 ΓÇ║ Product Card Structure - Commit 34c2d770 ΓÇ║ shop demo page loads products 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: < [32m500[39m
+    Received:   [31m500[39m
+
+      120 |
+      121 |         // Verify page loads
+    > 122 |         expect(response?.status()).toBeLessThan(500);
+          |                                    ^
+      123 |
+      124 |         // Wait for some content to load
+      125 |         await page.waitForLoadState('domcontentloaded');
+        at C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\e2e\recent-commits.spec.ts:122:36
+
+    Error Context: test-results\e2e-recent-commits-Product-d22b1-op-demo-page-loads-products-chromium\error-context.md
+
+  2 failed
+    [chromium] ΓÇ║ e2e\recent-commits.spec.ts:56:9 ΓÇ║ Navigation - No Double Navbar - Commit 15cbbc99 ΓÇ║ shop demo page has no duplicate headers 
+    [chromium] ΓÇ║ e2e\recent-commits.spec.ts:118:9 ΓÇ║ Product Card Structure - Commit 34c2d770 ΓÇ║ shop demo page loads products 
+  14 passed (30.1s)

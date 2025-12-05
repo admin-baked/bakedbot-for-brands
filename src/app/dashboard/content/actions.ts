@@ -7,7 +7,8 @@ import { generateSocialMediaImage, type GenerateSocialMediaImageInput, type Gene
 import { runSummarizeReviews, type SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { createServerClient } from '@/firebase/server-client';
-import { demoCustomer, demoProducts } from '@/lib/demo/demo-data';
+import { demoProducts } from '@/lib/demo/demo-data';
+import { demoCustomer } from '@/lib/demo/demo-customer';
 import type { Review } from '@/types/domain';
 import { reviewConverter } from '@/firebase/converters';
 import { revalidatePath } from 'next/cache';
@@ -79,37 +80,37 @@ export type ImageFormState = {
 };
 
 export async function createSocialMediaImage(
-    prevState: ImageFormState,
-    formData: FormData
+  prevState: ImageFormState,
+  formData: FormData
 ): Promise<ImageFormState> {
-    const validatedFields = ImageFormSchema.safeParse(Object.fromEntries(formData.entries()));
+  const validatedFields = ImageFormSchema.safeParse(Object.fromEntries(formData.entries()));
 
-    if (!validatedFields.success) {
-        // This is a developer error if it happens, as fields are hidden/set automatically
-        return {
-            message: 'Internal error: Invalid data for image generation.',
-            imageUrl: null,
-            error: true,
-        };
-    }
+  if (!validatedFields.success) {
+    // This is a developer error if it happens, as fields are hidden/set automatically
+    return {
+      message: 'Internal error: Invalid data for image generation.',
+      imageUrl: null,
+      error: true,
+    };
+  }
 
-    try {
-        const result = await generateSocialMediaImage(validatedFields.data as GenerateSocialMediaImageInput);
-        if (result.imageUrl) {
-            return {
-                message: 'Image generated successfully!',
-                imageUrl: result.imageUrl,
-                error: false,
-            };
-        }
-        throw new Error('The AI model did not return an image URL.');
-    } catch (e: any) {
-        return {
-            message: `Image generation failed. This can happen due to safety filters or temporary model issues. Please adjust your prompt and try again. Error: ${e.message}`,
-            imageUrl: null,
-            error: true,
-        };
+  try {
+    const result = await generateSocialMediaImage(validatedFields.data as GenerateSocialMediaImageInput);
+    if (result.imageUrl) {
+      return {
+        message: 'Image generated successfully!',
+        imageUrl: result.imageUrl,
+        error: false,
+      };
     }
+    throw new Error('The AI model did not return an image URL.');
+  } catch (e: any) {
+    return {
+      message: `Image generation failed. This can happen due to safety filters or temporary model issues. Please adjust your prompt and try again. Error: ${e.message}`,
+      imageUrl: null,
+      error: true,
+    };
+  }
 }
 
 
@@ -123,46 +124,46 @@ const ReviewSummarySchema = z.object({
 
 
 export type ReviewSummaryFormState = {
-    message: string;
-    data: SummarizeReviewsOutput | null;
-    error: boolean;
+  message: string;
+  data: SummarizeReviewsOutput | null;
+  error: boolean;
 };
 
 
 export async function summarizeProductReviews(prevState: ReviewSummaryFormState, formData: FormData): Promise<ReviewSummaryFormState> {
-    const validatedFields = ReviewSummarySchema.safeParse(Object.fromEntries(formData.entries()));
-    if (!validatedFields.success) {
-        return { message: "Invalid product selection.", data: null, error: true };
-    }
-    
-    const { productId, productName, brandId = 'default' } = validatedFields.data;
+  const validatedFields = ReviewSummarySchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!validatedFields.success) {
+    return { message: "Invalid product selection.", data: null, error: true };
+  }
 
-    try {
-        let reviews: Review[];
-        // Simplified demo vs. live logic for fetching reviews
-        if (productId.startsWith('demo-')) {
-            reviews = (demoCustomer.reviews as Review[]).filter(r => r.productId === productId);
-        } else {
-            const { firestore } = await createServerClient();
-            const reviewsSnap = await (firestore as any).collection(`products/${productId}/reviews`).withConverter(reviewConverter as any).get();
-            reviews = reviewsSnap.docs.map((d: any) => d.data() as Review);
-        }
-        
-        const summary = await runSummarizeReviews({
-            productId,
-            brandId,
-            productName,
-            reviewTexts: reviews.map(r => r.text)
-        });
+  const { productId, productName, brandId = 'default' } = validatedFields.data;
 
-        if (!summary) {
-            return { message: "Could not generate summary.", data: null, error: true };
-        }
-        
-        return { message: "Summary generated.", data: summary, error: false };
-    } catch (e: any) {
-        return { message: `An error occurred: ${e.message}`, data: null, error: true };
+  try {
+    let reviews: Review[];
+    // Simplified demo vs. live logic for fetching reviews
+    if (productId.startsWith('demo-')) {
+      reviews = (demoCustomer.reviews as Review[]).filter(r => r.productId === productId);
+    } else {
+      const { firestore } = await createServerClient();
+      const reviewsSnap = await (firestore as any).collection(`products/${productId}/reviews`).withConverter(reviewConverter as any).get();
+      reviews = reviewsSnap.docs.map((d: any) => d.data() as Review);
     }
+
+    const summary = await runSummarizeReviews({
+      productId,
+      brandId,
+      productName,
+      reviewTexts: reviews.map(r => r.text)
+    });
+
+    if (!summary) {
+      return { message: "Could not generate summary.", data: null, error: true };
+    }
+
+    return { message: "Summary generated.", data: summary, error: false };
+  } catch (e: any) {
+    return { message: `An error occurred: ${e.message}`, data: null, error: true };
+  }
 }
 
 // --- Apply Content to Product ---
@@ -188,11 +189,11 @@ export async function applyGeneratedContentToProduct(
 
   const { firestore, auth } = await createServerClient();
   const productRepo = makeProductRepo(firestore);
-  
+
   try {
     const { productId, description } = validatedFields.data;
     await productRepo.update(productId, { description });
-    
+
     revalidatePath(`/dashboard/products`);
     revalidatePath(`/dashboard/products/${productId}/edit`);
 
