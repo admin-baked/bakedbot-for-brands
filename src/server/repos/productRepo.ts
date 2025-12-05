@@ -3,20 +3,19 @@ import 'server-only';
 import { Firestore, FieldValue, DocumentReference } from 'firebase-admin/firestore';
 import type { Product, ReviewSummaryEmbedding } from '@/types/domain';
 import { generateEmbedding } from '@/ai/utils/generate-embedding';
-import { productConverter } from '@/firebase/converters';
+import { productAdminConverter } from '@/server/repos/converters';
 import { DEMO_BRAND_ID } from '@/lib/config';
-
-
 import { logger } from '@/lib/logger';
+
 export function makeProductRepo(db: Firestore) {
-  const productCollection = db.collection('products').withConverter(productConverter as any);
+  const productCollection = db.collection('products').withConverter(productAdminConverter);
 
   return {
     /**
      * Retrieves a reference to a product document.
      */
     getRef(id: string): DocumentReference {
-        return productCollection.doc(id);
+      return productCollection.doc(id);
     },
 
     /**
@@ -43,9 +42,9 @@ export function makeProductRepo(db: Firestore) {
           limit,
           distanceMeasure: 'COSINE',
         });
-      
+
       const snapshot = await vectorQuery.get();
-      
+
       if (snapshot.empty) {
         return [];
       }
@@ -53,7 +52,7 @@ export function makeProductRepo(db: Firestore) {
       // We get back the embedding docs, now fetch the full product docs.
       const productIds = snapshot.docs.map(doc => doc.data().productId);
       const productSnaps = await db.getAll(...productIds.map(id => productCollection.doc(id)));
-      
+
       return productSnaps.map(snap => snap.data() as Product).filter(Boolean);
     },
 
@@ -62,45 +61,45 @@ export function makeProductRepo(db: Firestore) {
      * This is a comprehensive fetch of the entire catalog for a brand.
      */
     async getAllByBrand(brandId: string): Promise<Product[]> {
-        const effectiveBrandId = brandId && brandId.trim() !== '' ? brandId : DEMO_BRAND_ID;
-        const snapshot = await productCollection.where('brandId', '==', effectiveBrandId).get();
-        if (snapshot.empty) {
-            logger.info(`No products found for brandId: ${effectiveBrandId}`);
-            return [];
-        }
-        return snapshot.docs.map(doc => doc.data() as Product);
+      const effectiveBrandId = brandId && brandId.trim() !== '' ? brandId : DEMO_BRAND_ID;
+      const snapshot = await productCollection.where('brandId', '==', effectiveBrandId).get();
+      if (snapshot.empty) {
+        logger.info(`No products found for brandId: ${effectiveBrandId}`);
+        return [];
+      }
+      return snapshot.docs.map(doc => doc.data() as Product);
     },
 
     /**
      * Retrieves all products across all brands.
      */
     async getAll(): Promise<Product[]> {
-        const snapshot = await productCollection.get();
-        if (snapshot.empty) {
-            return [];
-        }
-        return snapshot.docs.map(doc => doc.data() as Product);
+      const snapshot = await productCollection.get();
+      if (snapshot.empty) {
+        return [];
+      }
+      return snapshot.docs.map(doc => doc.data() as Product);
     },
 
-     /**
-     * Creates a new product document in Firestore.
-     */
+    /**
+    * Creates a new product document in Firestore.
+    */
     async create(data: Omit<Product, 'id'>): Promise<DocumentReference> {
-        return await productCollection.add(data);
+      return await productCollection.add(data);
     },
 
     /**
      * Updates an existing product document.
      */
     async update(id: string, data: Partial<Omit<Product, 'id'>>): Promise<void> {
-        await productCollection.doc(id).update(data);
+      await productCollection.doc(id).update(data);
     },
 
     /**
      * Deletes a product document.
      */
     async delete(id: string): Promise<void> {
-        await productCollection.doc(id).delete();
+      await productCollection.doc(id).delete();
     },
 
     /**
@@ -108,23 +107,23 @@ export function makeProductRepo(db: Firestore) {
      * This now writes to a versioned subcollection.
      */
     async updateEmbedding(productId: string, embeddingData: Omit<ReviewSummaryEmbedding, 'productId'> | null): Promise<void> {
-        if (embeddingData === null) {
-            // In a real app, you might want a strategy to delete old embeddings.
-            // For now, we'll just log it.
-            logger.info(`Clearing embeddings for product ${productId} is a no-op in this version.`);
-            return;
-        }
+      if (embeddingData === null) {
+        // In a real app, you might want a strategy to delete old embeddings.
+        // For now, we'll just log it.
+        logger.info(`Clearing embeddings for product ${productId} is a no-op in this version.`);
+        return;
+      }
 
-        const modelName = embeddingData.model;
-        const embeddingDocRef = productCollection.doc(productId).collection('productReviewEmbeddings').doc(modelName);
+      const modelName = embeddingData.model;
+      const embeddingDocRef = productCollection.doc(productId).collection('productReviewEmbeddings').doc(modelName);
 
-        const payload: ReviewSummaryEmbedding = {
-            ...embeddingData,
-            productId: productId,
-            brandId: embeddingData.brandId, // Ensure brandId is part of the payload
-        };
-        
-        await embeddingDocRef.set(payload);
+      const payload: ReviewSummaryEmbedding = {
+        ...embeddingData,
+        productId: productId,
+        brandId: embeddingData.brandId, // Ensure brandId is part of the payload
+      };
+
+      await embeddingDocRef.set(payload);
     }
   };
 }
