@@ -19,7 +19,7 @@ export interface AvailabilityResult {
     productName?: string;
     retailerId: string;
     retailerName: string;
-    source: 'cannmenus' | 'weedmaps' | 'website' | 'cache' | 'unknown';
+    source: 'cannmenus' | 'weedmaps' | 'leafly' | 'website' | 'cache' | 'unknown';
     inStock: boolean;
     price?: number;
     salePrice?: number;
@@ -190,6 +190,92 @@ async function checkWeedmaps(
 }
 
 // =============================================================================
+// LAYER 2.5: LEAFLY SCRAPING
+// =============================================================================
+
+/**
+ * Build Leafly dispensary URL for a product search
+ */
+function buildLeaflyUrl(retailerName: string, productName: string): string {
+    const cleanRetailer = retailerName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const cleanProduct = encodeURIComponent(productName);
+    return `https://www.leafly.com/dispensary-info/${cleanRetailer}?q=${cleanProduct}`;
+}
+
+/**
+ * Check Leafly for product availability via page scraping
+ * Layer 2.5: Between Weedmaps (70%) and direct website (50%)
+ */
+async function checkLeafly(
+    request: AvailabilityCheckRequest
+): Promise<AvailabilityResult | null> {
+    try {
+        const leaflyUrl = buildLeaflyUrl(
+            request.retailerName || 'unknown',
+            request.productName
+        );
+
+        logger.info('[Availability] Checking Leafly:', { url: leaflyUrl });
+
+        const response = await fetch(leaflyUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml',
+            },
+            signal: AbortSignal.timeout(5000),
+        });
+
+        if (!response.ok) {
+            logger.warn('[Availability] Leafly returned non-OK:', { status: response.status });
+            return null;
+        }
+
+        const html = await response.text();
+        const lowerHtml = html.toLowerCase();
+        const productNameLower = request.productName.toLowerCase();
+
+        // Check if product is mentioned on the page
+        const productFound = lowerHtml.includes(productNameLower) ||
+            lowerHtml.includes(productNameLower.replace(/ /g, '-'));
+
+        if (!productFound) {
+            return null;
+        }
+
+        // Look for stock indicators on Leafly
+        const inStock = !lowerHtml.includes('out of stock') &&
+            !lowerHtml.includes('sold out') &&
+            !lowerHtml.includes('currently unavailable');
+
+        // Try to extract price
+        let price: number | undefined;
+        const priceMatch = html.match(/\$([\d]+\.?\d*)/);
+        if (priceMatch) {
+            price = parseFloat(priceMatch[1]);
+        }
+
+        return {
+            productId: request.productId,
+            productName: request.productName,
+            retailerId: request.retailerId,
+            retailerName: request.retailerName || 'Unknown',
+            source: 'leafly',
+            inStock,
+            price,
+            lastVerified: new Date(),
+            confidence: 0.75, // Between Weedmaps (0.7) and CannMenus (0.95)
+        };
+
+    } catch (error) {
+        logger.warn('[Availability] Leafly scrape failed:', {
+            productId: request.productId,
+            error: error instanceof Error ? error.message : String(error)
+        });
+        return null;
+    }
+}
+
+// =============================================================================
 // LAYER 3: DIRECT WEBSITE SCRAPING
 // =============================================================================
 
@@ -305,6 +391,18 @@ export async function checkProductAvailability(
             ms: Date.now() - startTime
         });
         return weedmapsResult;
+    }
+
+    // Layer 2.5: Try Leafly scraping
+    const leaflyResult = await checkLeafly(request);
+
+    if (leaflyResult) {
+        await cacheAvailability(leaflyResult);
+        logger.info('[Availability] Found on Leafly:', {
+            productId: request.productId,
+            ms: Date.now() - startTime
+        });
+        return leaflyResult;
     }
 
     // Layer 3: Try direct website scraping
