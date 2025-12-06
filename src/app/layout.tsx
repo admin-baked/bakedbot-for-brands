@@ -9,7 +9,6 @@ import Chatbot from '@/components/chatbot';
 import { demoProducts } from '@/lib/demo/demo-data';
 import { DEMO_BRAND_ID } from '@/lib/config';
 import { SimulationBanner } from '@/components/debug/simulation-banner';
-
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',

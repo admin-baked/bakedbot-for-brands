@@ -7,7 +7,17 @@ import { initializeFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import { logger } from '@/lib/logger';
-const { firestore: db } = initializeFirebase();
+
+let db: any = null;
+
+if (typeof window !== 'undefined') {
+    try {
+        const { firestore } = initializeFirebase();
+        db = firestore;
+    } catch (e) {
+        logger.error('Failed to initialize Firebase for analytics:', e instanceof Error ? e : new Error(String(e)));
+    }
+}
 
 export type AnalyticsEventType =
     | 'item_added'
@@ -40,6 +50,8 @@ export async function trackCartEvent(
     data: Record<string, any>
 ): Promise<void> {
     try {
+        if (!db) return;
+
         const event: Partial<AnalyticsEvent> = {
             type,
             timestamp: serverTimestamp(),

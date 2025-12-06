@@ -7,7 +7,8 @@ import { FieldValue, Transaction, FirestoreDataConverter, QueryDocumentSnapshot,
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { runSummarizeReviews, type SummarizeReviewsOutput } from '@/ai/flows/summarize-reviews';
 import { cookies } from 'next/headers';
-import { demoProducts, demoCustomer } from '@/lib/demo/demo-data';
+import { demoProducts } from '@/lib/demo/demo-data';
+import { demoCustomer } from '@/lib/demo/demo-customer';
 import type { Product, Review } from '@/types/domain';
 import { FeedbackSchema } from '@/types/actions';
 import { requireUser } from '@/server/auth/auth';

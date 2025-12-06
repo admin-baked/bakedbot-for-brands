@@ -96,7 +96,6 @@ export const demoRetailers: Retailer[] = [
 
 export const demoLocations: Location[] = demoRetailers as Location[];
 
-
 // Mock Timestamp to avoid Firebase dependency in demo data
 const DemoTimestamp = {
   now: () => ({ seconds: Math.floor(Date.now() / 1000), nanoseconds: 0, toDate: () => new Date() }),
