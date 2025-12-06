@@ -69,6 +69,21 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
                     )}
                 </header>
 
+                {/* Category Navigation */}
+                <nav className="mb-8 overflow-x-auto pb-2">
+                    <div className="flex space-x-2">
+                        {['Flower', 'Pre-Rolls', 'Vapes', 'Edibles', 'Concentrates'].map((cat) => (
+                            <a
+                                key={cat}
+                                href={`/${brandParam}/collections/${cat.toLowerCase().replace(' ', '-')}`}
+                                className="px-4 py-2 bg-secondary/50 hover:bg-secondary text-secondary-foreground rounded-full text-sm font-medium whitespace-nowrap transition-colors"
+                            >
+                                {cat}
+                            </a>
+                        ))}
+                    </div>
+                </nav>
+
                 <section>
                     <ProductGrid products={products} isLoading={false} brandSlug={brandParam} />
                 </section>
