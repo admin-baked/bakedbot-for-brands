@@ -60,6 +60,10 @@ import {
     XCircle,
     AlertTriangle,
 } from 'lucide-react';
+import { db } from '@/firebase/client';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+
+// ... existing imports
 import type { GeoZone, DropAlertConfig, LocalOffer, LocalSEOPage, FootTrafficMetrics } from '@/types/foot-traffic';
 
 // Mock data for demonstration
@@ -164,13 +168,112 @@ const MOCK_METRICS: FootTrafficMetrics = {
     },
 };
 
+import { useMockData } from '@/hooks/use-mock-data';
+
+// ... existing imports
+
 export default function FootTrafficTab() {
     const { toast } = useToast();
+    const { isMock } = useMockData();
     const [activeTab, setActiveTab] = useState('overview');
-    const [geoZones, setGeoZones] = useState<GeoZone[]>(MOCK_GEO_ZONES);
-    const [metrics, setMetrics] = useState<FootTrafficMetrics>(MOCK_METRICS);
+
+    // Initialize with empty or mock depending on mode, or useEffect to set
+    const [geoZones, setGeoZones] = useState<GeoZone[]>([]);
+    const [metrics, setMetrics] = useState<FootTrafficMetrics | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isAddZoneOpen, setIsAddZoneOpen] = useState(false);
+
+    useEffect(() => {
+        if (isMock) {
+            setGeoZones(MOCK_GEO_ZONES);
+            setMetrics(MOCK_METRICS);
+        } else {
+            // In live mode, we would fetch from Firestore
+            // For now, we'll start empty to avoid showing fake data
+            setGeoZones([]);
+            // Initialize with zeroed metrics for live mode if not fetching real yet
+            setMetrics({
+                period: 'month',
+                startDate: new Date(),
+                endDate: new Date(),
+                seo: { totalPages: 0, totalPageViews: 0, topZipCodes: [] },
+                alerts: { configured: 0, triggered: 0, sent: 0, conversionRate: 0 },
+                offers: { active: 0, totalImpressions: 0, totalRedemptions: 0, revenueGenerated: 0 },
+                discovery: { searchesPerformed: 0, productsViewed: 0, retailerClicks: 0 },
+            });
+            // TODO: Implement fetchGeoZones and fetchMetrics for real data
+        }
+    }, [isMock]);
+
+    // SEO Page State
+    const [seoPages, setSeoPages] = useState<LocalSEOPage[]>([]);
+    const [isGeneratePageOpen, setIsGeneratePageOpen] = useState(false);
+    const [seedData, setSeedData] = useState({ zipCode: '', featuredDispensaryName: '' });
+    const [isSeeding, setIsSeeding] = useState(false);
+
+    // Fetch SEO Pages
+    const fetchSeoPages = async () => {
+        try {
+            const pagesRef = collection(db, 'foot_traffic', 'config', 'seo_pages');
+            const q = query(pagesRef);
+            const snapshot = await getDocs(q);
+            const pages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as LocalSEOPage[];
+            setSeoPages(pages);
+        } catch (error) {
+            console.error('Error fetching SEO pages:', error);
+            // Don't toast here to avoid spamming on load if it fails silently (e.g. permission)
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'seo-pages') {
+            fetchSeoPages();
+        }
+    }, [activeTab]);
+
+    const handleGeneratePage = async () => {
+        if (!seedData.zipCode) {
+            toast({
+                title: 'Missing ZIP Code',
+                description: 'Please enter a valid ZIP code.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        setIsSeeding(true);
+
+        try {
+            const response = await fetch('/api/foot-traffic/seo/seed', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(seedData),
+            });
+
+            if (!response.ok) throw new Error('Failed to seed page');
+
+            const result = await response.json();
+
+            toast({
+                title: 'Page Generated',
+                description: `SEO page for ${seedData.zipCode} has been generated successfully.`,
+            });
+
+            setSeedData({ zipCode: '', featuredDispensaryName: '' });
+            setIsGeneratePageOpen(false);
+            fetchSeoPages(); // Refresh list
+
+        } catch (error) {
+            console.error('Error seeding page:', error);
+            toast({
+                title: 'Generation Failed',
+                description: 'Could not generate the SEO page. Please try again.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsSeeding(false);
+        }
+    };
 
     // New zone form state
     const [newZone, setNewZone] = useState({
@@ -636,6 +739,7 @@ export default function FootTrafficTab() {
                 </TabsContent>
 
                 {/* SEO Pages Tab */}
+                {/* SEO Pages Tab */}
                 <TabsContent value="seo-pages" className="space-y-6">
                     <div className="flex items-center justify-between">
                         <div>
@@ -645,14 +749,55 @@ export default function FootTrafficTab() {
                             </p>
                         </div>
                         <div className="flex gap-2">
-                            <Button variant="outline">
+                            <Button variant="outline" onClick={fetchSeoPages}>
                                 <RefreshCw className="h-4 w-4 mr-2" />
                                 Refresh All
                             </Button>
-                            <Button>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Generate Page
-                            </Button>
+
+                            <Dialog open={isGeneratePageOpen} onOpenChange={setIsGeneratePageOpen}>
+                                <DialogTrigger asChild>
+                                    <Button>
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Generate Page
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Generate SEO Page</DialogTitle>
+                                        <DialogDescription>
+                                            Manually seed a new local landing page.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label>ZIP Code</Label>
+                                            <Input
+                                                placeholder="e.g. 90004"
+                                                value={seedData.zipCode}
+                                                onChange={(e) => setSeedData({ ...seedData, zipCode: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Featured Dispensary (Optional)</Label>
+                                            <Input
+                                                placeholder="Search by name..."
+                                                value={seedData.featuredDispensaryName}
+                                                onChange={(e) => setSeedData({ ...seedData, featuredDispensaryName: e.target.value })}
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                If found, this dispensary will be highlighted on the page.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setIsGeneratePageOpen(false)}>Cancel</Button>
+                                        <Button onClick={handleGeneratePage} disabled={isSeeding}>
+                                            {isSeeding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Generate
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                     </div>
 
@@ -663,7 +808,7 @@ export default function FootTrafficTab() {
                                 <CardTitle className="text-sm font-medium">Total Pages</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{metrics.seo.totalPages}</div>
+                                <div className="text-2xl font-bold">{seoPages.length}</div>
                             </CardContent>
                         </Card>
                         <Card>
@@ -671,7 +816,7 @@ export default function FootTrafficTab() {
                                 <CardTitle className="text-sm font-medium">Page Views (30d)</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{metrics.seo.totalPageViews.toLocaleString()}</div>
+                                <div className="text-2xl font-bold">{metrics?.seo.totalPageViews.toLocaleString() ?? 0}</div>
                             </CardContent>
                         </Card>
                         <Card>
@@ -680,13 +825,13 @@ export default function FootTrafficTab() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">
-                                    {Math.round(metrics.seo.totalPageViews / metrics.seo.totalPages)}
+                                    {(metrics && seoPages.length > 0) ? Math.round(metrics.seo.totalPageViews / seoPages.length) : 0}
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* Sample SEO Pages */}
+                    {/* SEO Pages Table */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Generated Pages</CardTitle>
@@ -699,53 +844,52 @@ export default function FootTrafficTab() {
                                         <TableHead>ZIP Code</TableHead>
                                         <TableHead>City</TableHead>
                                         <TableHead>State</TableHead>
-                                        <TableHead>Retailers</TableHead>
-                                        <TableHead>Products</TableHead>
-                                        <TableHead>Last Refreshed</TableHead>
+                                        <TableHead>Featured</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {[
-                                        { zip: '90210', city: 'Beverly Hills', state: 'CA', retailers: 12, products: 245, lastRefresh: '2 hours ago', published: true },
-                                        { zip: '94102', city: 'San Francisco', state: 'CA', retailers: 18, products: 312, lastRefresh: '3 hours ago', published: true },
-                                        { zip: '60601', city: 'Chicago', state: 'IL', retailers: 8, products: 156, lastRefresh: '5 hours ago', published: true },
-                                        { zip: '80202', city: 'Denver', state: 'CO', retailers: 22, products: 420, lastRefresh: '1 hour ago', published: true },
-                                        { zip: '98101', city: 'Seattle', state: 'WA', retailers: 15, products: 287, lastRefresh: '4 hours ago', published: false },
-                                    ].map(page => (
-                                        <TableRow key={page.zip}>
-                                            <TableCell className="font-mono">{page.zip}</TableCell>
-                                            <TableCell>{page.city}</TableCell>
-                                            <TableCell><Badge variant="outline">{page.state}</Badge></TableCell>
-                                            <TableCell>{page.retailers}</TableCell>
-                                            <TableCell>{page.products}</TableCell>
-                                            <TableCell className="text-muted-foreground">{page.lastRefresh}</TableCell>
-                                            <TableCell>
-                                                {page.published ? (
-                                                    <Badge className="bg-green-100 text-green-700">
+                                    {seoPages.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                No pages generated yet. Click "Generate Page" to start.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        seoPages.map(page => (
+                                            <TableRow key={page.zipCode}>
+                                                <TableCell className="font-mono font-medium">{page.zipCode}</TableCell>
+                                                <TableCell>{page.city || 'Unknown'}</TableCell>
+                                                <TableCell><Badge variant="outline">{page.state || 'N/A'}</Badge></TableCell>
+                                                <TableCell>
+                                                    {page.featuredDispensaryName ? (
+                                                        <Badge variant="default" className="bg-purple-100 text-purple-700 hover:bg-purple-200 border-0">
+                                                            {page.featuredDispensaryName}
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-sm">-</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
                                                         <CheckCircle2 className="h-3 w-3 mr-1" />
                                                         Published
                                                     </Badge>
-                                                ) : (
-                                                    <Badge variant="secondary">
-                                                        <AlertTriangle className="h-3 w-3 mr-1" />
-                                                        Draft
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button variant="ghost" size="icon">
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon">
-                                                        <RefreshCw className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button variant="ghost" size="sm" asChild>
+                                                            <a href={`/local/${page.zipCode}`} target="_blank" rel="noopener noreferrer">
+                                                                <Eye className="h-4 w-4 mr-2" />
+                                                                View
+                                                            </a>
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                             </Table>
                         </CardContent>
