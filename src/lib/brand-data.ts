@@ -1,5 +1,23 @@
 import { createServerClient } from '@/firebase/server-client';
-import type { Brand, Product } from '@/types/domain';
+import type { Brand, Product, Retailer } from '@/types/domain';
+import { CannMenusService } from '@/server/services/cannmenus';
+import { RetailerDoc } from '@/types/cannmenus';
+
+// Helper to map RetailerDoc (storage) to Retailer (domain)
+function mapRetailerDocToDomain(doc: RetailerDoc): Retailer {
+    return {
+        id: doc.id,
+        name: doc.name,
+        address: doc.street_address || '',
+        city: doc.city,
+        state: doc.state,
+        zip: doc.postal_code || '',
+        phone: doc.phone,
+        lat: doc.geo?.lat,
+        lon: doc.geo?.lng,
+        status: 'active'
+    };
+}
 
 export async function fetchBrandPageData(brandParam: string) {
     const { firestore } = await createServerClient();
@@ -72,7 +90,20 @@ export async function fetchBrandPageData(brandParam: string) {
         products = productsQuery.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
     }
 
-    return { brand, products };
+    // 4. Fetch retailers carrying this brand (live or cached?)
+    // Using live search from CannMenusService
+    let retailers: Retailer[] = [];
+    try {
+        const service = new CannMenusService();
+        // Limit to 20 retailers for the page load speed
+        const retailerDocs = await service.findRetailersCarryingBrand(brand.name, 20);
+        retailers = retailerDocs.map(mapRetailerDocToDomain);
+    } catch (error) {
+        console.error('Failed to fetch retailers for brand page:', error);
+        // Fail gracefully, retailers will be empty
+    }
+
+    return { brand, products, retailers };
 }
 
 export async function fetchCollectionData(brandParam: string, collectionSlug: string) {

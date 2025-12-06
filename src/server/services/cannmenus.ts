@@ -66,6 +66,8 @@ export class CannMenusService {
         brandName: string,
         options: SyncOptions = {}
     ): Promise<SyncResult> {
+        // ... implementation
+
         // Get plan limits
         const planId = options.planId || 'free';
         const limits = getPlanLimits(planId);
@@ -199,7 +201,10 @@ export class CannMenusService {
     /**
      * Find retailers carrying a brand with retry logic
      */
-    private async findRetailersCarryingBrand(
+    /**
+     * Find retailers carrying a brand with retry logic
+     */
+    public async findRetailersCarryingBrand(
         brandName: string,
         maxRetailers?: number
     ): Promise<RetailerDoc[]> {
