@@ -5,6 +5,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import type { Product } from '@/types/domain';
 import Image from 'next/image';
 import { ArrowUpDown, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { calculateProductScore, getScoreColor } from '@/lib/scoring';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -56,7 +57,7 @@ function DeleteAction({ productId, productName }: { productId: string; productNa
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive">
-             <Trash2 className="mr-2 h-4 w-4" /> Delete product
+          <Trash2 className="mr-2 h-4 w-4" /> Delete product
         </div>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -84,13 +85,13 @@ export const columns: ColumnDef<Product>[] = [
     accessorKey: 'imageUrl',
     header: 'Image',
     cell: ({ row }) => {
-        const imageUrl = row.getValue('imageUrl') as string;
-        const name = row.getValue('name') as string;
-        return (
-            <div className="relative h-12 w-12 rounded-md overflow-hidden border">
-                <Image src={imageUrl} alt={name} fill className="object-cover" />
-            </div>
-        )
+      const imageUrl = row.getValue('imageUrl') as string;
+      const name = row.getValue('name') as string;
+      return (
+        <div className="relative h-12 w-12 rounded-md overflow-hidden border">
+          <Image src={imageUrl} alt={name} fill className="object-cover" />
+        </div>
+      )
     },
   },
   {
@@ -110,6 +111,32 @@ export const columns: ColumnDef<Product>[] = [
   {
     accessorKey: 'category',
     header: 'Category',
+  },
+  {
+    accessorKey: 'id', // Virtual column for Score
+    id: 'score',
+    header: 'Product Score',
+    cell: ({ row }) => {
+      const product = row.original;
+      const { total, tips } = calculateProductScore(product);
+      const colorClass = getScoreColor(total);
+
+      return (
+        <div className="flex items-center gap-2 group relative">
+          <div className={`px-2 py-1 rounded-full text-xs font-bold border ${colorClass}`}>
+            {total}/100
+          </div>
+          {total < 100 && (
+            <div className="absolute left-full top-0 ml-2 w-48 p-2 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+              <p className="font-bold mb-1">Improvement Tips:</p>
+              <ul className="list-disc pl-3">
+                {tips.slice(0, 3).map(t => <li key={t}>{t}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      );
+    }
   },
   {
     accessorKey: 'price',
@@ -141,28 +168,28 @@ export const columns: ColumnDef<Product>[] = [
       const product = row.original;
       return (
         <div className="text-right">
-            <DropdownMenu>
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
+              <Button variant="ghost" className="h-8 w-8 p-0">
                 <span className="sr-only">Open menu</span>
                 <MoreHorizontal className="h-4 w-4" />
-                </Button>
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(product.id)}>
-                    Copy product ID
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/products/${product.id}/edit`}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit product
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DeleteAction productId={product.id} productName={product.name} />
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(product.id)}>
+                Copy product ID
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href={`/dashboard/products/${product.id}/edit`}>
+                  <Pencil className="mr-2 h-4 w-4" /> Edit product
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DeleteAction productId={product.id} productName={product.name} />
             </DropdownMenuContent>
-            </DropdownMenu>
+          </DropdownMenu>
         </div>
       );
     },

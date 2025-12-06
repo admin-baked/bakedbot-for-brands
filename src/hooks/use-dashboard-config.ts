@@ -101,6 +101,13 @@ export function useDashboardConfig() {
         description: 'Manage your dispensary partners.',
         roles: ['brand', 'owner'],
       },
+      {
+        label: 'Promotions',
+        href: '/dashboard/promotions/recommendations',
+        icon: 'Tag',
+        description: 'AI-driven inventory promotions.',
+        roles: ['brand', 'owner'],
+      },
       // Shared Commerce & E-com
       {
         label: 'Orders',
