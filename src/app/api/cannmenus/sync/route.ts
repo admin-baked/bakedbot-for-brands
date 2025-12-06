@@ -48,11 +48,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
         }
 
-        const brandName = brandDoc.data()?.name;
+        const brandData = brandDoc.data();
+        const brandName = brandData?.name;
+        // Default to 'free' if no plan is found on the brand
+        const planId = brandData?.planId || 'free';
 
         // Execute sync
         const service = new CannMenusService();
-        const result = await service.syncMenusForBrand(brandId, brandName);
+        const result = await service.syncMenusForBrand(brandId, brandName, { planId });
 
         return NextResponse.json({ success: true, data: result });
     } catch (error: any) {

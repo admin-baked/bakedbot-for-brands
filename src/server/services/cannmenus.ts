@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { withRetry, RateLimiter } from '@/lib/retry-utility';
 import { logger, reportError, monitorApiCall, perfMonitor } from '@/lib/monitoring';
 import { FieldValue } from 'firebase-admin/firestore';
+import { getPlanLimits } from '@/lib/plan-limits';
 
 const CANNMENUS_BASE_URL = process.env.CANNMENUS_API_BASE || 'https://api.cannmenus.com';
 const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
@@ -25,6 +26,7 @@ export interface SyncResult {
 export interface SyncOptions {
     forceFullSync?: boolean;
     maxRetailers?: number;
+    planId?: string; // Add planId to options
 }
 
 export class CannMenusService {
@@ -37,6 +39,15 @@ export class CannMenusService {
         brandName: string,
         options: SyncOptions = {}
     ): Promise<SyncResult> {
+        // Get plan limits
+        const planId = options.planId || 'free';
+        const limits = getPlanLimits(planId);
+
+        // Use limits or explicit options
+        const maxRetailers = options.maxRetailers || limits.maxRetailers;
+        const maxProducts = limits.maxProducts;
+
+        logger.info('Syncing menu with limits', { brandId, planId, maxRetailers, maxProducts });
         const startTime = new Date();
         const errors: string[] = [];
         let retailersProcessed = 0;
@@ -69,7 +80,14 @@ export class CannMenusService {
 
             // Step 1: Find retailers with retry logic
             perfMonitor.start('cannmenus.findRetailers');
-            const retailers = await this.findRetailersCarryingBrand(brandName, options.maxRetailers);
+            let retailers = await this.findRetailersCarryingBrand(brandName, maxRetailers);
+
+            // Enforce strict limit on the result even if API returns more
+            if (retailers.length > maxRetailers) {
+                logger.info(`Limiting retailers from ${retailers.length} to ${maxRetailers} based on plan ${planId}`);
+                retailers = retailers.slice(0, maxRetailers);
+            }
+
             perfMonitor.end('cannmenus.findRetailers');
 
             logger.info(`Found ${retailers.length} retailers`, { brandId, count: retailers.length });
@@ -89,23 +107,6 @@ export class CannMenusService {
                 const retailer = retailers[i];
                 try {
                     // Update progress
-                    await this.updateSyncProgress(syncId, {
-                        retailersProcessed: i + 1,
-                        currentRetailer: retailer.name
-                    });
-
-                    const count = await rateLimiter.execute(async () => {
-                        return await this.syncRetailerMenu(
-                            retailer.id,
-                            brandName,
-                            brandId,
-                            lastSyncTime
-                        );
-                    });
-
-                    productsProcessed += count;
-                    retailersProcessed++;
-
                 } catch (error: any) {
                     const errMsg = `Failed sync for retailer ${retailer.name}: ${error.message}`;
                     errors.push(errMsg);
@@ -331,7 +332,8 @@ export class CannMenusService {
         retailerId: string,
         brandName: string,
         brandId: string,
-        lastSyncTime: Date | null
+        lastSyncTime: Date | null,
+        maxProducts?: number
     ): Promise<number> {
         return await withRetry(async () => {
             const params = new URLSearchParams({
@@ -382,6 +384,12 @@ export class CannMenusService {
                             });
                         }
                     });
+                }
+
+                if (maxProducts && products.length > maxProducts) {
+                    logger.info(`Limiting products from ${products.length} to ${maxProducts} for retailer ${retailerId}`);
+                    // Truncate products array
+                    products.length = maxProducts;
                 }
 
                 await this.storeProducts(products);

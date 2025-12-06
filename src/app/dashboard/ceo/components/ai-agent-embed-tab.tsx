@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,8 @@ import {
 import Image from 'next/image';
 import Chatbot from '@/components/chatbot';
 import { cn } from '@/lib/utils';
+import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 // BakedBot assets
 const BAKEDBOT_LOGO = 'https://storage.cloud.google.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
@@ -35,6 +37,41 @@ export default function AIAgentEmbedTab() {
   const [primaryColor, setPrimaryColor] = useState('#10b981');
   const [position, setPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
   const [greeting, setGreeting] = useState("Hi, I'm Smokey. How can I help you today?");
+
+  // Preview Data
+  const [previewProducts, setPreviewProducts] = useState<any[]>([]);
+  const firebase = useOptionalFirebase();
+
+  // Fetch products for preview when CannMenus ID changes
+  useEffect(() => {
+    if (!firebase?.firestore || !cannMenusId || cannMenusId.length < 3) {
+      setPreviewProducts([]);
+      return;
+    }
+
+    const db = firebase.firestore!;
+
+    const fetchPreviewProducts = async () => {
+      try {
+        const q = query(
+          collection(db, 'products'),
+          where('brand_id', '==', cannMenusId),
+          limit(5)
+        );
+        const snapshot = await getDocs(q);
+        const products = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setPreviewProducts(products);
+      } catch (error) {
+        console.error('Error fetching preview products:', error);
+      }
+    };
+
+    const debounce = setTimeout(fetchPreviewProducts, 1000);
+    return () => clearTimeout(debounce);
+  }, [cannMenusId, firebase]);
 
   // Generate embed code
   const generateEmbedCode = () => {
@@ -275,42 +312,41 @@ export default function AIAgentEmbedTab() {
                 <div className="border rounded-lg p-6 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 min-h-[400px] relative">
                   <div className="text-center text-muted-foreground text-sm mb-4">
                     Customer's Website Preview
-                  </div>
-
-                  {/* Chatbot Preview */}
-                  {/* Container needs relative positioning for the absolute chatbot to position correctly */}
-                  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    <div className="pointer-events-auto w-full h-full">
-                      <Chatbot
-                        products={[]} // Mock products or empty for now
-                        brandId={cannMenusId || 'demo'}
-                        initialOpen={showPreview}
-                        positionStrategy="absolute"
-                        className={cn(
-                          position === 'bottom-right' ? "bottom-6 right-6" : "bottom-6 left-6"
-                        )}
-                        windowClassName={cn(
-                          position === 'bottom-right' ? "bottom-24 right-6" : "bottom-24 left-6"
-                        )}
-                      />
+                    {/* Chatbot Preview */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      <div className="pointer-events-auto w-full h-full">
+                        <Chatbot
+                          products={previewProducts}
+                          brandId={cannMenusId || 'demo'}
+                          initialOpen={showPreview}
+                          positionStrategy="absolute"
+                          className={cn(
+                            position === 'bottom-right' ? "bottom-6 right-6" : "bottom-6 left-6"
+                          )}
+                          windowClassName={cn(
+                            position === 'bottom-right' ? "bottom-24 right-6" : "bottom-24 left-6"
+                          )}
+                        />
+                      </div>
                     </div>
                   </div>
+                </div>
 
-                  <p className="text-xs text-center text-muted-foreground mt-2">
-                    Click the robot icon above to toggle the chat preview.
+                <p className="text-xs text-center text-muted-foreground mt-2">
+                  Click the robot icon above to toggle the chat preview.
+                </p>
+
+                <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-4">
+                  <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                    ✓ Chatbot Only Mode
                   </p>
-
-                  <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-4">
-                    <p className="text-sm font-medium text-green-900 dark:text-green-100">
-                      ✓ Chatbot Only Mode
-                    </p>
-                    <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                      This embed includes only the AI chatbot (Smokey). No headless menu or product browsing UI is included.
-                      Customers interact with products via conversation only.
-                    </p>
-                  </div>
+                  <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                    This embed includes only the AI chatbot (Smokey). No headless menu or product browsing UI is included.
+                    Customers interact with products via conversation only.
+                  </p>
                 </div>
               </div>
+
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -338,6 +374,6 @@ export default function AIAgentEmbedTab() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 }
