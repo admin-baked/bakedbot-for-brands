@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
-import { useOptionalFirebase } from '@/firebase';
+import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 export function useBrandId() {
