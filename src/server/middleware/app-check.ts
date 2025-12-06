@@ -2,6 +2,8 @@
 import { createServerClient } from '@/firebase/server-client';
 import { NextRequest } from 'next/server';
 import { logger } from '@/lib/monitoring';
+import { getApp } from 'firebase-admin/app';
+import { getAppCheck } from 'firebase-admin/app-check';
 
 /**
  * Verifies Firebase App Check token from request headers
@@ -25,19 +27,20 @@ export async function verifyAppCheck(request: NextRequest): Promise<boolean> {
     }
 
     try {
-        const { auth } = await createServerClient();
+        // Initialize server client to ensure Firebase Admin is initialized
+        await createServerClient();
+
+        // Get the App Check instance
+        const app = getApp();
+        const appCheck = getAppCheck(app);
 
         // Verify the App Check token
-        // Note: Firebase Admin SDK doesn't have direct App Check verification yet,
-        // but you can use the REST API or implement custom verification
-        // For now, we'll log and allow (graceful degradation)
+        await appCheck.verifyToken(appCheckToken);
 
-        logger.info('App Check token present', {
+        logger.info('App Check token verified successfully', {
             path: request.nextUrl.pathname
         });
 
-        // TODO: Implement actual token verification when Admin SDK supports it
-        // For now, just check if token exists
         return true;
 
     } catch (error: any) {
