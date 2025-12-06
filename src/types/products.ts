@@ -36,6 +36,8 @@ export type Product = {
     likes?: number;
     dislikes?: number;
     brandId: string;
+    retailerIds?: string[];
+    sku_id?: string;
 };
 
 export type Retailer = {
