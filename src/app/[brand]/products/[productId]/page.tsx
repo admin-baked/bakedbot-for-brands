@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button'; // Assuming shadcn ui
 import Link from 'next/link';
 import { ArrowLeft, ShoppingCart, Share2 } from 'lucide-react';
-import { AddToCartButton } from '@/components/add-to-cart-button'; // Refactor logic from ProductCard if needed, or inline it for now. Actually better to have a client component for interaction.
+import { AddToCartButton } from '@/components/add-to-cart-button';
+import { ProductAvailability } from './product-availability';
 import type { Metadata, ResolvingMetadata } from 'next';
 
 // Helper to fetch data
@@ -125,12 +126,8 @@ export default async function ProductPage({ params }: { params: Promise<{ brand:
                     <div className="flex flex-col justify-center">
                         <div>
                             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">{product.name}</h1>
-                            <div className="flex items-center gap-4 mb-6">
-                                <span className="text-2xl font-bold text-primary">
-                                    ${product.price.toFixed(2)}
-                                </span>
-                                {/* Add Strain/Effect badges here if available in data */}
-                            </div>
+
+                            <ProductAvailability product={product} />
 
                             <div className="prose prose-stone dark:prose-invert max-w-none mb-8">
                                 <p className="text-lg leading-relaxed text-muted-foreground">
