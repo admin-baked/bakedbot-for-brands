@@ -339,8 +339,11 @@ steps:
         await runSimulation(input);
     };
 
+    const hasMessages = messages.length > 0;
+    const hasActiveThinking = messages.some(m => m.thinking?.isThinking);
+
     return (
-        <Card className="flex flex-col h-[600px] shadow-sm border-muted">
+        <Card className={cn("flex flex-col shadow-sm border-muted transition-all duration-300", hasMessages ? "h-[500px]" : "h-auto")}>
             <div className="p-4 bg-background border-b">
                 <div className="max-w-3xl mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner">
                     <Textarea
@@ -371,37 +374,39 @@ steps:
                 <div className="text-center mt-2"><p className="text-[10px] text-muted-foreground">AI can make mistakes. Verify critical automations.</p></div>
             </div>
 
-            <ScrollArea className="flex-1 p-4 bg-slate-50/50">
-                <div className="space-y-6 max-w-3xl mx-auto">
-                    {messages.map((msg) => (
-                        <div key={msg.id} className={cn("flex flex-col gap-2", msg.type === 'user' ? "items-end" : "items-start")}>
-                            {msg.content && (
-                                <div className={cn("px-4 py-3 rounded-2xl max-w-xl text-sm leading-relaxed shadow-sm", msg.type === 'user' ? "bg-primary text-primary-foreground rounded-br-none" : "bg-white border border-border/50 text-foreground rounded-tl-none")}>
-                                    <div className="whitespace-pre-wrap">{msg.content}</div>
+            {hasMessages && (
+                <ScrollArea className="flex-1 p-4 bg-slate-50/50">
+                    <div className="space-y-6 max-w-3xl mx-auto">
+                        {messages.map((msg) => (
+                            <div key={msg.id} className={cn("flex flex-col gap-2", msg.type === 'user' ? "items-end" : "items-start")}>
+                                {msg.content && (
+                                    <div className={cn("px-4 py-3 rounded-2xl max-w-xl text-sm leading-relaxed shadow-sm", msg.type === 'user' ? "bg-primary text-primary-foreground rounded-br-none" : "bg-white border border-border/50 text-foreground rounded-tl-none")}>
+                                        <div className="whitespace-pre-wrap">{msg.content}</div>
 
-                                    {msg.artifact && msg.artifact.type === 'yaml' && (
-                                        <YamlArtifact artifact={msg.artifact} />
-                                    )}
+                                        {msg.artifact && msg.artifact.type === 'yaml' && (
+                                            <YamlArtifact artifact={msg.artifact} />
+                                        )}
 
-                                    {msg.canSaveAsPlaybook && !msg.thinking?.isThinking && (
-                                        <div className="mt-3 pt-3 border-t border-border/30">
-                                            <Button variant="outline" size="sm" className="gap-2" onClick={() => handleSavePlaybook(msg.id)}>
-                                                <Save className="h-3.5 w-3.5" />
-                                                Save as Playbook
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            {msg.type === 'agent' && msg.thinking && (
-                                <div className="w-full max-w-xl">
-                                    <ThinkingBlock thinking={msg.thinking} />
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </ScrollArea>
+                                        {msg.canSaveAsPlaybook && !msg.thinking?.isThinking && (
+                                            <div className="mt-3 pt-3 border-t border-border/30">
+                                                <Button variant="outline" size="sm" className="gap-2" onClick={() => handleSavePlaybook(msg.id)}>
+                                                    <Save className="h-3.5 w-3.5" />
+                                                    Save as Playbook
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {msg.type === 'agent' && msg.thinking && (
+                                    <div className="w-full max-w-xl">
+                                        <ThinkingBlock thinking={msg.thinking} />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+            )}
         </Card>
     );
 }
