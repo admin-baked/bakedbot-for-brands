@@ -24,6 +24,12 @@ export interface AnalyticsData {
     category: string;
     revenue: number;
   }[];
+  affinityPairs: {
+    productA: string;
+    productB: string;
+    count: number;
+    strength: number; // Normalized (0-1) or probability
+  }[];
   dailyStats: DailyAnalytics[];
   conversionFunnel: {
     stage: string;
@@ -32,7 +38,7 @@ export interface AnalyticsData {
   channelPerformance: {
     channel: string;
     sessions: number;
-    revenue: number; // Estimated based on attribution
+    revenue: number;
     conversionRate: number;
   }[];
 }
@@ -45,7 +51,6 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
 
   const { firestore } = await createServerClient();
 
-  // 1. Fetch Orders for Product Breakdown & Total Revenue (Source of Truth for Money)
   const ordersQuery = firestore.collection('orders')
     .where('brandId', '==', brandId)
     .where('status', 'in', ['submitted', 'confirmed', 'ready', 'completed'])
@@ -58,10 +63,14 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   const salesByProductMap = new Map<string, { productName: string; revenue: number }>();
   const salesByCategoryMap = new Map<string, number>();
 
+  // Affinity Analysis: Pair co-occurrence counting
+  const pairCounts = new Map<string, { productA: string; productB: string; count: number }>();
+
   orders.forEach(order => {
     totalRevenue += order.totals.total;
+
+    // Sales Aggregation
     order.items.forEach(item => {
-      // Product Aggregation
       const existing = salesByProductMap.get(item.productId);
       const itemRevenue = item.price * item.qty;
       if (existing) {
@@ -73,14 +82,37 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
         });
       }
 
-      // Category Aggregation
       const cat = item.category || 'Uncategorized';
       salesByCategoryMap.set(cat, (salesByCategoryMap.get(cat) || 0) + itemRevenue);
     });
+
+    // Affinity Logic (Task 403)
+    // Only analyze if basket has > 1 item
+    if (order.items.length > 1) {
+      // Generate unique pairs
+      for (let i = 0; i < order.items.length; i++) {
+        for (let j = i + 1; j < order.items.length; j++) {
+          const itemA = order.items[i];
+          const itemB = order.items[j];
+
+          // Create sorted Key to ensure A-B is same as B-A
+          const [first, second] = [itemA.name, itemB.name].sort();
+          const key = `${first}|${second}`;
+
+          const current = pairCounts.get(key);
+          if (current) {
+            current.count++;
+          } else {
+            pairCounts.set(key, { productA: first, productB: second, count: 1 });
+          }
+        }
+      }
+    }
   });
 
   const totalOrders = orders.length;
   const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
   const salesByProduct = Array.from(salesByProductMap.values())
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 10);
@@ -89,12 +121,18 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     .map(([category, revenue]) => ({ category, revenue }))
     .sort((a, b) => b.revenue - a.revenue);
 
-  // 2. Fetch Daily Analytics from Pops (for Trends & Funnel)
-  // We'll fetch the last 30 days.
+  const affinityPairs = Array.from(pairCounts.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5) // Top 5
+    .map(p => ({
+      ...p,
+      strength: totalOrders > 0 ? p.count / totalOrders : 0 // Rough probability
+    }));
+
+  // Daily Stats Logic (Simplified for brevity, same as before)
   const today = new Date();
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(today.getDate() - 30);
-
   const startDateStr = thirtyDaysAgo.toISOString().split('T')[0];
 
   const analyticsQuery = firestore.collection('organizations')
@@ -104,12 +142,11 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     .orderBy('date', 'asc');
 
   const analyticsSnap = await analyticsQuery.get();
-
   const dailyStats: DailyAnalytics[] = [];
   let totalSessions = 0;
   let totalCheckoutsStarted = 0;
   let totalPaidCheckouts = 0;
-  const channelMap = new Map<string, { sessions: number; paidCheckouts: number }>();
+  const channelMap = new Map<string, any>();
 
   analyticsSnap.forEach(doc => {
     const data = doc.data();
@@ -128,7 +165,6 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     totalCheckoutsStarted += totals.checkoutsStarted || 0;
     totalPaidCheckouts += totals.paidCheckouts || 0;
 
-    // Aggregate Channel Data
     Object.entries(channels).forEach(([channelName, metrics]: [string, any]) => {
       const current = channelMap.get(channelName) || { sessions: 0, paidCheckouts: 0 };
       channelMap.set(channelName, {
@@ -138,16 +174,12 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     });
   });
 
-  // If no analytics data found (e.g. new brand), fill with 0s or use order data to backfill GMV
   if (dailyStats.length === 0 && orders.length > 0) {
-    // Fallback: Group orders by date for the chart
-    // This is a "better than nothing" fallback
     const ordersByDate = new Map<string, number>();
     orders.forEach(o => {
       const d = o.createdAt.toDate().toISOString().split('T')[0];
       ordersByDate.set(d, (ordersByDate.get(d) || 0) + o.totals.total);
     });
-    // Fill last 30 days
     for (let i = 0; i < 30; i++) {
       const d = new Date();
       d.setDate(d.getDate() - i);
@@ -171,7 +203,7 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   const channelPerformance = Array.from(channelMap.entries()).map(([channel, metrics]) => ({
     channel,
     sessions: metrics.sessions,
-    revenue: 0, // We don't track revenue per channel in daily analytics yet, strictly speaking.
+    revenue: 0,
     conversionRate: metrics.sessions > 0 ? metrics.paidCheckouts / metrics.sessions : 0,
   })).sort((a, b) => b.sessions - a.sessions);
 
@@ -181,6 +213,7 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     averageOrderValue,
     salesByProduct,
     salesByCategory,
+    affinityPairs, // Added
     dailyStats,
     conversionFunnel,
     channelPerformance,

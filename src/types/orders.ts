@@ -26,6 +26,7 @@ export type OrderDoc = {
         name: string;
         qty: number;
         price: number;
+        category?: string;
     }>;
     totals: {
         subtotal: number;
