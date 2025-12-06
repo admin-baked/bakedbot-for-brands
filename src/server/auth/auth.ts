@@ -25,6 +25,33 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
   const sessionCookie = cookieStore.get('__session')?.value;
 
   if (!sessionCookie) {
+    // --- DEV BYPASS ---
+    // In development, allow access if x-simulated-role is present, even without a real session.
+    // This allows testing different personas without full Firebase Auth flow.
+    const simulatedRole = cookieStore.get('x-simulated-role')?.value as Role | undefined;
+
+    // Check if we are in a non-production environment (simplified check)
+    const isDev = process.env.NODE_ENV !== 'production';
+
+    if (isDev && simulatedRole) {
+      // Return a mock token for development
+      const mockToken: any = {
+        uid: 'dev-user-id',
+        email: 'dev@bakedbot.ai',
+        email_verified: true,
+        role: simulatedRole,
+        // Add other required properties as needed
+      };
+
+      // Apply role check for the mock token
+      if (requiredRoles && requiredRoles.length > 0) {
+        if (!requiredRoles.includes(simulatedRole)) {
+          throw new Error(`Forbidden: Dev user (role=${simulatedRole}) missing required permissions.`);
+        }
+      }
+      return mockToken;
+    }
+
     console.error('[AUTH_DEBUG] No session cookie found in request headers:', cookieStore.getAll().map(c => c.name));
     throw new Error('Unauthorized: No session cookie found.');
   }
