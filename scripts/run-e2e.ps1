@@ -16,7 +16,9 @@ $devProc = $null
 
 if (-not (Test-PortListening $port)) {
     Write-Host "Dev server not detected on port $port; starting via helper..."
-    $devProc = Start-Process -FilePath pwsh -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File ./scripts/start-dev-with-firebase.ps1" -PassThru
+    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $startHelper = Join-Path $scriptDir "start-dev-with-firebase.ps1"
+    $devProc = Start-Process -FilePath powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File '$startHelper'" -PassThru
     $startedServer = $true
     # Wait for server to come up
     $max = 60
