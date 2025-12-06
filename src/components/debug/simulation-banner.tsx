@@ -2,36 +2,43 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
 
 export function SimulationBanner() {
     const [simulatedRole, setSimulatedRole] = useState<string | null>(null);
+    const [isMock, setIsMock] = useState(false);
 
     useEffect(() => {
-        // Check for cookie on mount
-        const match = document.cookie.match(new RegExp('(^| )x-simulated-role=([^;]+)'));
-        if (match) {
-            setSimulatedRole(match[2]);
+        // Check for role cookie
+        const roleMatch = document.cookie.match(new RegExp('(^| )x-simulated-role=([^;]+)'));
+        if (roleMatch) {
+            setSimulatedRole(roleMatch[2]);
         }
+
+        // Check for mock cookie
+        const mockMatch = document.cookie.match(new RegExp('(^| )x-use-mock-data=([^;]+)'));
+        setIsMock(mockMatch ? mockMatch[2] === 'true' : false);
     }, []);
 
     const handleExit = () => {
-        // Clear cookie
+        // Clear cookies
         document.cookie = 'x-simulated-role=; path=/; max-age=0';
+        document.cookie = 'x-use-mock-data=; path=/; max-age=0';
         window.location.reload();
     };
 
-    if (!simulatedRole) return null;
+    if (!simulatedRole && !isMock) return null;
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 bg-amber-500 text-white p-2 z-50 flex items-center justify-center gap-4 shadow-lg">
-            <span className="font-semibold text-sm">
-                Viewing as: <span className="uppercase">{simulatedRole}</span> (Simulation Mode)
+        <div className={`fixed bottom-0 left-0 right-0 ${isMock ? 'bg-purple-600' : 'bg-amber-500'} text-white p-2 z-50 flex items-center justify-center gap-4 shadow-lg transition-colors`}>
+            <span className="font-semibold text-sm flex gap-2">
+                {simulatedRole && <span>Role: <span className="uppercase">{simulatedRole}</span></span>}
+                {simulatedRole && isMock && <span>|</span>}
+                {isMock && <span>Data: <span className="uppercase">MOCK</span></span>}
             </span>
             <Button
                 variant="secondary"
                 size="sm"
-                className="h-6 text-xs bg-white text-amber-600 hover:bg-amber-50"
+                className={`h-6 text-xs bg-white hover:bg-gray-100 ${isMock ? 'text-purple-700' : 'text-amber-600'}`}
                 onClick={handleExit}
             >
                 Exit Simulation
