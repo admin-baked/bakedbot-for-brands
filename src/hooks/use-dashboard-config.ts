@@ -159,6 +159,13 @@ export function useDashboardConfig() {
         description: 'Segment customers for targeted campaigns.',
         roles: ['dispensary', 'owner'],
       },
+      {
+        label: 'Vision',
+        href: '/dashboard/vision',
+        icon: 'Eye',
+        description: 'Real-time camera analytics and operations monitoring.',
+        roles: ['brand', 'dispensary', 'owner'],
+      },
       // Duplicate App Store link removed
       // Owner-specific link
       {
