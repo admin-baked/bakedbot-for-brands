@@ -27,30 +27,32 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     if (firebaseServices?.firebaseApp && typeof window !== 'undefined') {
       const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
-      // TEMPORARY: Disable App Check in production until ReCAPTCHA configuration is fixed
-      // The ReCAPTCHA site key is returning 400 errors, blocking authentication
-      if (process.env.NODE_ENV === 'production') {
-        logger.warn("App Check disabled in production due to ReCAPTCHA configuration issues");
+      if (!recaptchaSiteKey) {
+        logger.error("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. App Check will not be enabled. This is a security risk in production!");
         return;
       }
 
-      if (recaptchaSiteKey) {
-        try {
-          // The `self` property is a reference to the window object in browsers.
-          // This is a common pattern for setting debug tokens in development.
-          if (process.env.NODE_ENV === 'development') {
-            (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-          }
-
-          initializeAppCheck(firebaseServices.firebaseApp, {
-            provider: new ReCaptchaV3Provider(recaptchaSiteKey),
-            isTokenAutoRefreshEnabled: true,
-          });
-        } catch (e) {
-          logger.warn("Failed to initialize App Check, it might already be initialized.", e instanceof Error ? e : new Error(String(e)));
+      try {
+        // The `self` property is a reference to the window object in browsers.
+        // This is a common pattern for setting debug tokens in development.
+        if (process.env.NODE_ENV === 'development') {
+          (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
         }
-      } else {
-        logger.warn("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. App Check will not be enabled.");
+
+        initializeAppCheck(firebaseServices.firebaseApp, {
+          provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+          isTokenAutoRefreshEnabled: true,
+        });
+
+        logger.info("App Check initialized successfully");
+      } catch (e) {
+        const error = e instanceof Error ? e : new Error(String(e));
+        // Only warn if already initialized, otherwise this is a critical error
+        if (error.message.includes('already')) {
+          logger.warn("App Check already initialized");
+        } else {
+          logger.error("Failed to initialize App Check. This is a security risk!", error);
+        }
       }
     }
   }, [firebaseServices?.firebaseApp]);

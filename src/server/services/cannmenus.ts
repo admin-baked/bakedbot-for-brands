@@ -27,6 +27,33 @@ export interface SyncOptions {
     maxRetailers?: number;
 }
 
+/**
+ * Custom error type for API errors with status code
+ */
+export class ApiError extends Error {
+    status: number;
+
+    constructor(message: string, status: number) {
+        super(message);
+        this.name = 'ApiError';
+        this.status = status;
+    }
+}
+
+/**
+ * Search parameters for CannMenus API
+ */
+export interface SearchParams {
+    search?: string;
+    category?: string;
+    price_min?: number;
+    price_max?: number;
+    retailers?: string;
+    brands?: string;
+    limit?: number;
+    page?: number;
+}
+
 export class CannMenusService {
 
     /**
@@ -200,9 +227,7 @@ export class CannMenusService {
                     });
 
                     if (!response.ok) {
-                        const error: any = new Error(`CannMenus API error: ${response.statusText}`);
-                        error.status = response.status;
-                        throw error;
+                        throw new ApiError(`CannMenus API error: ${response.statusText}`, response.status);
                     }
 
                     const data = await response.json();
@@ -248,7 +273,7 @@ export class CannMenusService {
     /**
      * Search products directly from CannMenus API
      */
-    async searchProducts(params: any): Promise<{ products: CannMenusProduct[], meta?: any }> {
+    async searchProducts(params: SearchParams): Promise<{ products: CannMenusProduct[], meta?: Record<string, unknown> }> {
         if (!CANNMENUS_API_KEY) {
             throw new Error('CANNMENUS_API_KEY is not configured');
         }
@@ -279,9 +304,7 @@ export class CannMenusService {
                     });
 
                     if (!response.ok) {
-                        const error: any = new Error(`CannMenus API error: ${response.statusText}`);
-                        error.status = response.status;
-                        throw error;
+                        throw new ApiError(`CannMenus API error: ${response.statusText}`, response.status);
                     }
 
                     const data = await response.json();
