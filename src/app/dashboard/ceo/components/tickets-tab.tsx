@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ import {
     MessageSquare, Image, RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useMockData } from '@/hooks/use-mock-data';
 
 // Mock tickets data
 const MOCK_TICKETS = [
@@ -110,10 +111,46 @@ export default function TicketsTab() {
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredTickets = MOCK_TICKETS.filter(ticket => {
+    const { isMock, isLoading: isMockLoading } = useMockData();
+    const [tickets, setTickets] = useState<any[]>(MOCK_TICKETS);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchTickets = async () => {
+            if (isMock) {
+                setTickets(MOCK_TICKETS);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                setLoading(true);
+                const res = await fetch('/api/tickets');
+                if (res.ok) {
+                    const data = await res.json();
+                    setTickets(data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch tickets', error);
+                toast({ title: 'Failed to fetch tickets', variant: 'destructive' });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (!isMockLoading) {
+            fetchTickets();
+        }
+    }, [isMock, isMockLoading]);
+
+    const filteredTickets = tickets.filter(ticket => {
         const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
-        const matchesSearch = ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            ticket.orgName.toLowerCase().includes(searchQuery.toLowerCase());
+        // Handle optional fields safely
+        const title = ticket.title || '';
+        const orgName = ticket.orgName || '';
+
+        const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            orgName.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesStatus && matchesSearch;
     });
 
@@ -138,8 +175,11 @@ ${ticket.aiSuggestion?.suggestedFixes.map(f => `- ${f}`).join('\n') || 'N/A'}
         toast({ title: 'Ticket details copied to clipboard' });
     };
 
-    const formatTimeAgo = (date: Date) => {
-        const diff = Date.now() - date.getTime();
+
+
+    const formatTimeAgo = (date: Date | string) => {
+        const d = new Date(date);
+        const diff = Date.now() - d.getTime();
         const hours = Math.floor(diff / (1000 * 60 * 60));
         if (hours < 1) return `${Math.floor(diff / (1000 * 60))} min ago`;
         if (hours < 24) return `${hours}h ago`;

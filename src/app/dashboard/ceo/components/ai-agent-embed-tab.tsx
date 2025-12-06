@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { searchCannMenusRetailers, CannMenusResult } from '../actions';
+import { useMockData } from '@/hooks/use-mock-data';
 
 // BakedBot assets
 const BAKEDBOT_LOGO = 'https://storage.cloud.google.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
@@ -47,6 +48,7 @@ export default function AIAgentEmbedTab() {
   // Preview Data
   const [previewProducts, setPreviewProducts] = useState<any[]>([]);
   const firebase = useOptionalFirebase();
+  const { isMock } = useMockData();
 
   // Search Effect
   useEffect(() => {
@@ -71,6 +73,15 @@ export default function AIAgentEmbedTab() {
 
   // Fetch products for preview when CannMenus ID changes
   useEffect(() => {
+    if (isMock) {
+      // Return dummy products for preview
+      setPreviewProducts([
+        { id: '1', name: 'Mock Product A', price: 25, category: 'Flower' },
+        { id: '2', name: 'Mock Product B', price: 30, category: 'Edible' },
+      ]);
+      return;
+    }
+
     if (!firebase?.firestore || !cannMenusId || cannMenusId.length < 3) {
       setPreviewProducts([]);
       return;

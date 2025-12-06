@@ -272,8 +272,18 @@ export async function getRecentInsights(
         severity?: InsightSeverity;
         limit?: number;
         includeDissmissed?: boolean;
+        mock?: boolean;
     }
 ): Promise<EzalInsight[]> {
+    // Return mock data if requested
+    if (options?.mock) {
+        return MOCK_INSIGHTS.filter(i => {
+            if (options.type && i.type !== options.type) return false;
+            if (options.severity && i.severity !== options.severity) return false;
+            return true;
+        });
+    }
+
     const { firestore } = await createServerClient();
 
     let query = firestore
@@ -465,3 +475,67 @@ export async function getProductPriceHistory(
         capturedAt: doc.data().capturedAt?.toDate?.() || new Date(),
     })) as PricePoint[];
 }
+
+const MOCK_INSIGHTS: EzalInsight[] = [
+    {
+        id: 'mock-1',
+        tenantId: 'mock-tenant',
+        type: 'price_drop',
+        brandName: 'Wana Brands',
+        competitorId: 'comp-1',
+        competitorProductId: 'prod-1',
+        previousValue: 25.00,
+        currentValue: 18.00,
+        deltaPercentage: -28,
+        severity: 'high',
+        createdAt: new Date(),
+        consumedBy: [],
+        dismissed: false,
+        jurisdiction: 'CA'
+    },
+    {
+        id: 'mock-2',
+        tenantId: 'mock-tenant',
+        type: 'out_of_stock',
+        brandName: 'Wyld',
+        competitorId: 'comp-2',
+        competitorProductId: 'prod-2',
+        previousValue: true,
+        currentValue: false,
+        severity: 'medium',
+        createdAt: new Date(Date.now() - 3600000), // 1 hour ago
+        consumedBy: [],
+        dismissed: false,
+        jurisdiction: 'CA'
+    },
+    {
+        id: 'mock-3',
+        tenantId: 'mock-tenant',
+        type: 'new_product',
+        brandName: 'Kiva',
+        competitorId: 'comp-1',
+        competitorProductId: 'prod-3',
+        currentValue: 22.00,
+        severity: 'low',
+        createdAt: new Date(Date.now() - 7200000), // 2 hours ago
+        consumedBy: [],
+        dismissed: false,
+        jurisdiction: 'CA'
+    },
+    {
+        id: 'mock-4',
+        tenantId: 'mock-tenant',
+        type: 'price_increase',
+        brandName: 'Stiiizy',
+        competitorId: 'comp-3',
+        competitorProductId: 'prod-4',
+        previousValue: 35.00,
+        currentValue: 40.00,
+        deltaPercentage: 14,
+        severity: 'medium',
+        createdAt: new Date(Date.now() - 86400000), // 1 day ago
+        consumedBy: [],
+        dismissed: false,
+        jurisdiction: 'CA'
+    }
+];

@@ -33,16 +33,44 @@ export default function FelishaErrorBoundary({ error, reset }: ErrorBoundaryProp
 
     const handleReport = async () => {
         setIsSubmitting(true);
-        // Simulate reporting delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+            const res = await fetch('/api/tickets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: error.message || 'System Error',
+                    description: description || 'No description provided',
+                    priority: 'high', // Default for intercepted errors
+                    category: 'system_error',
+                    screenshotUrl: '', // Could capture if we had html2canvas
+                    pageUrl: window.location.href,
+                    reporterEmail: 'auto-captured',
+                    userAgent: navigator.userAgent,
+                    errorDigest: error.digest,
+                    errorStack: error.stack
+                })
+            });
 
-        // In a real implementation, this would POST to /api/tickets/create
-        toast({
-            title: "Report Submitted",
-            description: "Felisha has created a ticket for this issue. ID: TKT-" + Math.floor(Math.random() * 10000),
-        });
-        setIsSubmitting(false);
-        setDescription('');
+            if (res.ok) {
+                const data = await res.json();
+                toast({
+                    title: "Report Submitted",
+                    description: `Felisha has created a ticket. ID: ${data.id}`,
+                });
+                setDescription('');
+            } else {
+                throw new Error('Failed to submit ticket');
+            }
+        } catch (err) {
+            console.error('Failed to submit error report:', err);
+            toast({
+                title: "Submission Failed",
+                description: "Could not save ticket to database.",
+                variant: 'destructive'
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (

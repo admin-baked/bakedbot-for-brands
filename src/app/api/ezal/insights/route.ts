@@ -45,12 +45,16 @@ export async function GET(request: NextRequest) {
             });
         }
 
+        // Check for mock data cookie
+        const isMock = request.cookies.get('x-use-mock-data')?.value === 'true';
+
         // Default: recent insights
         const insights = await getRecentInsights(tenantId, {
             type: type || undefined,
             brandName: brandName || undefined,
             severity: severity || undefined,
             limit: 50,
+            mock: isMock,
         });
 
         return NextResponse.json({
