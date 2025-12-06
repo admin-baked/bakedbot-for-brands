@@ -1,41 +1,95 @@
-'use client';
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { requireUser } from '@/server/auth/auth';
+import { redirect } from 'next/navigation';
+import { getCustomers, type CustomerSegment } from './actions';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, UserPlus, Mail, Phone } from 'lucide-react';
+import { UserPlus, Mail, Phone, Users, UserCheck, UserX, Star } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
-const MOCK_CUSTOMERS = [
-    { id: '1', name: 'Alice Johnson', email: 'alice@example.com', phone: '(555) 123-4567', visits: 12, lastVisit: '2025-05-15', totalSpent: 450.00 },
-    { id: '2', name: 'Bob Smith', email: 'bob@example.com', phone: '(555) 987-6543', visits: 5, lastVisit: '2025-05-10', totalSpent: 120.50 },
-    { id: '3', name: 'Charlie Brown', email: 'charlie@example.com', phone: '(555) 555-5555', visits: 1, lastVisit: '2025-05-01', totalSpent: 45.00 },
-    { id: '4', name: 'Diana Prince', email: 'diana@example.com', phone: '(555) 222-3333', visits: 24, lastVisit: '2025-05-18', totalSpent: 1200.00 },
-    { id: '5', name: 'Evan Wright', email: 'evan@example.com', phone: '(555) 444-8888', visits: 3, lastVisit: '2025-04-20', totalSpent: 85.00 },
-];
+export const dynamic = 'force-dynamic';
 
-export default function CustomersPage() {
+function SegmentBadge({ segment }: { segment: CustomerSegment }) {
+    switch (segment) {
+        case 'VIP':
+            return <Badge className="bg-purple-500 hover:bg-purple-600">VIP</Badge>;
+        case 'Loyal':
+            return <Badge className="bg-blue-500 hover:bg-blue-600">Loyal</Badge>;
+        case 'New':
+            return <Badge className="bg-green-500 hover:bg-green-600">New</Badge>;
+        case 'Slipping':
+            return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Slipping</Badge>;
+        case 'Risk':
+            return <Badge variant="secondary" className="bg-orange-100 text-orange-800 hover:bg-orange-200">At Risk</Badge>;
+        case 'Churned':
+            return <Badge variant="destructive">Churned</Badge>;
+        default:
+            return <Badge variant="outline">{segment}</Badge>;
+    }
+}
+
+export default async function CustomersPage() {
+    let user;
+    try {
+        user = await requireUser(['brand', 'owner']);
+    } catch (error) {
+        redirect('/brand-login');
+    }
+
+    const { customers, stats } = await getCustomers(user.brandId!);
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
-                    <p className="text-muted-foreground">Manage your customer relationships and history.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Customers (Mrs. Parker)</h1>
+                    <p className="text-muted-foreground">Loyalty segments and customer history.</p>
                 </div>
                 <Button>
                     <UserPlus className="mr-2 h-4 w-4" /> Add Customer
                 </Button>
             </div>
 
+            {/* Stats Overview */}
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{stats.totalCustomers}</div>
+                        <p className="text-xs text-muted-foreground">Unique emails in order history</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">VIP Members</CardTitle>
+                        <Star className="h-4 w-4 text-yellow-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{stats.vipCount}</div>
+                        <p className="text-xs text-muted-foreground">High value or frequent shoppers</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">At Risk / Churned</CardTitle>
+                        <UserX className="h-4 w-4 text-red-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{stats.churnRiskCount}</div>
+                        <p className="text-xs text-muted-foreground">Need win-back campaigns</p>
+                    </CardContent>
+                </Card>
+            </div>
+
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <CardTitle>All Customers</CardTitle>
-                        <div className="relative w-64">
-                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Search customers..." className="pl-8" />
-                        </div>
-                    </div>
+                    <CardTitle>Customer List</CardTitle>
+                    <CardDescription>
+                        Segmented by purchase behavior.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -43,26 +97,37 @@ export default function CustomersPage() {
                             <TableRow>
                                 <TableHead>Name</TableHead>
                                 <TableHead>Contact</TableHead>
+                                <TableHead>Segments</TableHead>
                                 <TableHead>Visits</TableHead>
                                 <TableHead>Last Visit</TableHead>
                                 <TableHead className="text-right">Total Spent</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {MOCK_CUSTOMERS.map((customer) => (
+                            {customers.map((customer) => (
                                 <TableRow key={customer.id}>
-                                    <TableCell className="font-medium">{customer.name}</TableCell>
+                                    <TableCell className="font-medium">{customer.name || 'Unknown'}</TableCell>
                                     <TableCell>
                                         <div className="flex flex-col text-sm">
                                             <span className="flex items-center gap-1"><Mail className="h-3 w-3 text-muted-foreground" /> {customer.email}</span>
-                                            <span className="flex items-center gap-1"><Phone className="h-3 w-3 text-muted-foreground" /> {customer.phone}</span>
+                                            {customer.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3 text-muted-foreground" /> {customer.phone}</span>}
                                         </div>
                                     </TableCell>
+                                    <TableCell>
+                                        <SegmentBadge segment={customer.segment} />
+                                    </TableCell>
                                     <TableCell>{customer.visits}</TableCell>
-                                    <TableCell>{customer.lastVisit}</TableCell>
-                                    <TableCell className="text-right">${customer.totalSpent.toFixed(2)}</TableCell>
+                                    <TableCell>{new Date(customer.lastVisit).toLocaleDateString()}</TableCell>
+                                    <TableCell className="text-right font-bold">${customer.totalSpent.toFixed(2)}</TableCell>
                                 </TableRow>
                             ))}
+                            {customers.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                        No customer data found.
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
