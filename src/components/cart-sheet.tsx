@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -18,20 +17,14 @@ import Image from 'next/image';
 import { MapPin, Minus, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useHydrated } from '@/hooks/use-hydrated';
-import { demoRetailers } from '@/lib/demo/demo-data';
-import { Retailer } from '@/types/domain';
 
 export function CartSheet() {
-  const { isCartSheetOpen, setCartSheetOpen, selectedRetailerId, cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useStore();
+  const { isCartSheetOpen, setCartSheetOpen, selectedRetailer, cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useStore();
   const router = useRouter();
   const hydrated = useHydrated();
 
-  // For the purpose of the cart sheet, we can rely on demo data or a simplified fetch.
-  // In a real app, this might come from a global context or a more specific hook.
-  const locations: Retailer[] = demoRetailers; 
+  const selectedLocation = selectedRetailer;
 
-  const selectedLocation = locations.find(loc => loc.id === selectedRetailerId);
-  
   const { subtotal, taxes, total } = getCartTotal();
 
   const handleCheckout = () => {
@@ -48,49 +41,49 @@ export function CartSheet() {
           <SheetTitle>Your Cart</SheetTitle>
           {selectedLocation && (
             <SheetDescription className="flex items-center gap-2 pt-2 text-xs">
-                <MapPin className="h-4 w-4 text-primary" /> 
-                <div className='flex flex-col items-start'>
-                    <span>Pickup from: <strong>{selectedLocation.name}</strong></span>
-                    <Link href={mapUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                        View on Map
-                    </Link>
-                </div>
+              <MapPin className="h-4 w-4 text-primary" />
+              <div className='flex flex-col items-start'>
+                <span>Pickup from: <strong>{selectedLocation.name}</strong></span>
+                <Link href={mapUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                  View on Map
+                </Link>
+              </div>
             </SheetDescription>
           )}
         </SheetHeader>
-        
+
         <div className="flex-1 min-h-0">
           <ScrollArea className="h-full pr-4">
             {hydrated && cartItems.length > 0 ? (
-                <div className="space-y-4">
-                    {cartItems.map(item => (
-                        <div key={item.id} className="flex gap-4">
-                            <div className="relative h-16 w-16 rounded-md overflow-hidden border">
-                                <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="font-semibold">{item.name}</p>
-                                <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
-                                <div className="flex items-center gap-2 mt-2">
-                                    <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
-                                        <Minus className="h-3 w-3" />
-                                    </Button>
-                                    <span className="text-sm font-medium w-4 text-center">{item.quantity}</span>
-                                    <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
-                                        <Plus className="h-3 w-3" />
-                                    </Button>
-                                </div>
-                            </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => removeFromCart(item.id)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    ))}
-                </div>
+              <div className="space-y-4">
+                {cartItems.map(item => (
+                  <div key={item.id} className="flex gap-4">
+                    <div className="relative h-16 w-16 rounded-md overflow-hidden border">
+                      <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold">{item.name}</p>
+                      <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="text-sm font-medium w-4 text-center">{item.quantity}</span>
+                        <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => removeFromCart(item.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             ) : (
-                <div className="text-center text-muted-foreground h-full flex flex-col justify-center items-center">
-                    <p>Your cart is empty.</p>
-                </div>
+              <div className="text-center text-muted-foreground h-full flex flex-col justify-center items-center">
+                <p>Your cart is empty.</p>
+              </div>
             )}
           </ScrollArea>
         </div>

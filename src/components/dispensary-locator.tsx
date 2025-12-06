@@ -25,6 +25,7 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
   const {
     selectedRetailerId,
     setSelectedRetailerId,
+    setSelectedRetailer,
     favoriteRetailerId,
     setFavoriteRetailerId,
     _hasHydrated
@@ -76,7 +77,7 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
         setSortedLocations(newSortedLocations);
         setIsLocating(false);
         if (newSortedLocations.length > 0) {
-          setSelectedRetailerId(newSortedLocations[0].id);
+          setSelectedRetailer(newSortedLocations[0]);
         }
       },
       (error) => {
@@ -88,7 +89,12 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
   };
 
   const handleSelectLocation = (id: string) => {
-    setSelectedRetailerId(id);
+    const loc = sortedLocations.find(l => l.id === id) || locations.find(l => l.id === id);
+    if (loc) {
+      setSelectedRetailer(loc);
+    } else {
+      setSelectedRetailerId(id);
+    }
   }
 
   const handleSetFavorite = async (e: React.MouseEvent, id: string) => {

@@ -12,6 +12,7 @@ interface StoreState {
   cartItems: CartItem[];
   isCartSheetOpen: boolean;
   selectedRetailerId: string | null;
+  selectedRetailer: Retailer | null;
   favoriteRetailerId: string | null;
   theme: Theme;
   menuStyle: MenuStyle;
@@ -30,6 +31,7 @@ interface StoreActions {
   getCartTotal: () => { subtotal: number; taxes: number; total: number };
   getItemCount: () => number;
   setSelectedRetailerId: (id: string | null) => void;
+  setSelectedRetailer: (retailer: Retailer | null) => void;
   setFavoriteRetailerId: (id: string | null) => void;
   setTheme: (theme: Theme) => void;
   setMenuStyle: (style: MenuStyle) => void;
@@ -44,6 +46,7 @@ export const useStore = create<StoreState & StoreActions>()(
       cartItems: [],
       isCartSheetOpen: false,
       selectedRetailerId: null,
+      selectedRetailer: null,
       favoriteRetailerId: null,
       theme: 'green',
       menuStyle: 'alt',
@@ -94,6 +97,7 @@ export const useStore = create<StoreState & StoreActions>()(
       },
       getItemCount: () => get().cartItems.reduce((sum, i) => sum + i.quantity, 0),
       setSelectedRetailerId: (id) => set({ selectedRetailerId: id }),
+      setSelectedRetailer: (retailer) => set({ selectedRetailer: retailer, selectedRetailerId: retailer?.id ?? null }),
       setFavoriteRetailerId: (id) => set({ favoriteRetailerId: id }),
       setTheme: (theme) => set({ theme }),
       setMenuStyle: (style) => set({ menuStyle: style }),

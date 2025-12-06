@@ -4,6 +4,7 @@ import { demoProducts } from '@/lib/demo/demo-data'; // Keep as fallback/demo
 import { fetchBrandPageData } from '@/lib/brand-data';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import DispensaryLocator from '@/components/dispensary-locator';
 
 export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
     const { brand: brandParam } = await params;
@@ -25,7 +26,7 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
     const { brand: brandParam } = await params;
 
     // Fetch real data
-    const { brand, products } = await fetchBrandPageData(brandParam);
+    const { brand, products, retailers } = await fetchBrandPageData(brandParam);
 
     // If brand not found, show 404
     if (!brand) {
@@ -43,6 +44,8 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
                         </div>
                         <ProductGrid products={demoProducts} isLoading={false} />
                     </div>
+                    {/* Demo locator if we had demo retailers, or empty */}
+                    <DispensaryLocator locations={[]} isLoading={false} />
                     <Chatbot products={demoProducts} brandId="demo" initialOpen={true} />
                 </main>
             );
@@ -84,8 +87,12 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
                     </div>
                 </nav>
 
-                <section>
+                <section className="mb-16">
                     <ProductGrid products={products} isLoading={false} brandSlug={brandParam} />
+                </section>
+
+                <section className="mb-16">
+                    <DispensaryLocator locations={retailers} />
                 </section>
             </div>
 
