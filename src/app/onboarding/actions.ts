@@ -25,154 +25,95 @@ const OnboardingSchema = z.object({
   chatbotPersonality: z.string().optional(),
   chatbotTone: z.string().optional(),
   chatbotSellingPoints: z.string().optional(),
+  // POS Integration
+  posProvider: z.enum(['dutchie', 'jane', 'none']).optional(),
+  posApiKey: z.string().optional(),
+  posDispensaryId: z.string().optional(), // For Jane or Dutchie ID
 });
 
-// Define the state for the form
-export type OnboardingState = {
-  message: string;
-  error: boolean;
-};
+// ... (existing code) ...
 
-export async function completeOnboarding(prevState: OnboardingState, formData: FormData): Promise<OnboardingState> {
-  let user;
-  try {
-    user = await requireUser();
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-    return { error: true, message: errorMessage };
+const {
+  role, locationId, brandId, brandName,
+  manualBrandName, manualProductName, manualDispensaryName,
+  chatbotPersonality, chatbotTone, chatbotSellingPoints,
+  posProvider, posApiKey, posDispensaryId
+} = validatedFields.data;
+
+// ... (existing code) ...
+
+// Handle Dispensary POS Config
+if (finalRole === 'dispensary' && posProvider && posProvider !== 'none') {
+  // Save POS config to the dispensary record (users collection or dispensaries collection)
+  // Ensure we have a dispensary ID. If manual, it was created. If CannMenus, use locationId.
+
+  let targetDispensaryId = locationId; // from CannMenus selection
+
+  // If manual, we created a doc in 'dispensaries' collection? 
+  // Not cleanly handled in current code structure (manual creates it inside 'action', but ID isn't easily returned to saving logic).
+  // Let's assume for now we save it to the USER profile or the dispensary if identified.
+
+  // Update User Profile with POS Config
+  userProfileData.posConfig = {
+    provider: posProvider,
+    apiKey: posApiKey || null, // Encrypt in production!
+    dispensaryId: posDispensaryId || null,
+    sourceOfTruth: 'pos',
+    backupSource: 'cannmenus',
+    connectedAt: new Date().toISOString(),
+    status: 'active'
+  };
+}
+
+// ... (existing setting userDocRef) ...
+
+// Update synced claims if needed
+if (userProfileData.posConfig) {
+  // We might not put secrets in claims, but provider is fine.
+  // claims.posProvider = posProvider; 
+}
+
+
+const claims = { role: finalRole, brandId: finalBrandId, locationId: userProfileData.locationId };
+
+const filteredClaims = Object.fromEntries(Object.entries(claims).filter(([_, v]) => v !== null && v !== undefined));
+const filteredProfileData = Object.fromEntries(Object.entries(userProfileData).filter(([_, v]) => v !== null && v !== undefined));
+
+await userDocRef.set(filteredProfileData, { merge: true });
+await auth.setCustomUserClaims(uid, filteredClaims);
+
+// --- SYNC PRODUCTS ---
+// If user selected a CannMenus entity, sync products with limits
+let syncCount = 0;
+if (finalRole === 'brand' && finalBrandId && finalRole) {
+  // Sync Logic imported dynamically or from shared
+  const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
+  // If it was a mock ID from search (cm_...), use that. If manual, skip.
+  if (finalBrandId.startsWith('cm_')) {
+    syncCount = await syncCannMenusProducts(finalBrandId, 'brand', finalBrandId);
   }
-
-  const validatedFields = OnboardingSchema.safeParse(Object.fromEntries(formData.entries()));
-
-  if (!validatedFields.success) {
-    return {
-      message: 'Invalid selection. Please make a valid choice.',
-      error: true,
-    };
+} else if (finalRole === 'dispensary' && userProfileData.locationId) {
+  const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
+  if (userProfileData.locationId.startsWith('cm_')) {
+    syncCount = await syncCannMenusProducts(userProfileData.locationId, 'dispensary', 'dispensary-brand-placeholder');
+    // Note: Dispensaries usually don't own products, they stock them. 
+    // But for the "My Products" view, we might import them as "Retailer Inventory".
   }
+}
 
-  const {
-    role, locationId, brandId, brandName,
-    manualBrandName, manualProductName, manualDispensaryName,
-    chatbotPersonality, chatbotTone, chatbotSellingPoints
-  } = validatedFields.data;
-  const { uid, email, displayName } = user;
+// Revalidate paths that depend on user role
+revalidatePath('/dashboard');
+revalidatePath('/account');
 
-  const { auth, firestore } = await createServerClient();
-  const userDocRef = firestore.collection('users').doc(uid);
-  const brandRepo = makeBrandRepo(firestore);
+const successMessage = syncCount > 0
+  ? `Onboarding complete! Imported ${syncCount} products.`
+  : 'Onboarding complete!';
 
-  let finalBrandId: string | null = null;
-  let finalBrandName: string | null = null;
-  let finalRole: 'brand' | 'dispensary' | 'customer' | null = role === 'skip' ? 'customer' : role; // Default skipped users to customer
-
-  try {
-    // Handle brand creation/linking
-    if (role === 'brand') {
-      const chatbotConfig = {
-        personality: chatbotPersonality || 'budtender',
-        tone: chatbotTone || 'friendly',
-        sellingPoints: chatbotSellingPoints || '',
-        updatedAt: FieldValue.serverTimestamp(),
-      };
-
-      if (brandId && brandName) { // Claimed from CannMenus
-        finalBrandId = brandId;
-        finalBrandName = brandName;
-        const brandRef = firestore.collection('brands').doc(finalBrandId);
-        const brandSnap = await brandRef.get();
-
-        if (!brandSnap.exists) {
-          await brandRepo.create(finalBrandId, {
-            name: finalBrandName,
-            chatbotConfig: chatbotConfig
-          });
-        } else {
-          // Update existing brand with new chatbot config
-          await brandRef.set({ chatbotConfig: chatbotConfig }, { merge: true });
-        }
-      } else if (manualBrandName) { // Manual entry
-        finalBrandId = `brand-${uid.substring(0, 8)}`; // Generate a unique-ish ID
-        finalBrandName = manualBrandName;
-        await brandRepo.create(finalBrandId, {
-          name: finalBrandName,
-          chatbotConfig: chatbotConfig
-        });
-
-        // If they added a product/dispensary, create those too
-        if (manualProductName) {
-          const productRepo = makeProductRepo(firestore);
-          await productRepo.create({
-            name: manualProductName,
-            brandId: finalBrandId,
-            category: 'Sample',
-            price: 0,
-            description: 'This is a sample product added during onboarding.',
-            imageUrl: 'https://picsum.photos/seed/sample/400/400',
-            imageHint: 'product sample',
-          });
-        }
-        if (manualDispensaryName) {
-          await firestore.collection('dispensaries').add({
-            name: manualDispensaryName,
-            // Add default fields for the dispensary
-            brandIds: [finalBrandId],
-            city: 'Your City',
-            state: 'NY',
-          });
-        }
-      }
-    }
-
-    // Set user profile and claims
-    const userProfileData: Record<string, any> = {
-      email,
-      displayName,
-      role: finalRole,
-      brandId: finalBrandId,
-      locationId: role === 'dispensary' ? locationId : null,
-    };
-
-    const claims = { role: finalRole, brandId: finalBrandId, locationId: userProfileData.locationId };
-
-    const filteredClaims = Object.fromEntries(Object.entries(claims).filter(([_, v]) => v !== null && v !== undefined));
-    const filteredProfileData = Object.fromEntries(Object.entries(userProfileData).filter(([_, v]) => v !== null && v !== undefined));
-
-    await userDocRef.set(filteredProfileData, { merge: true });
-    await auth.setCustomUserClaims(uid, filteredClaims);
-
-    // --- SYNC PRODUCTS ---
-    // If user selected a CannMenus entity, sync products with limits
-    let syncCount = 0;
-    if (finalRole === 'brand' && finalBrandId && finalRole) {
-      // Sync Logic imported dynamically or from shared
-      const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
-      // If it was a mock ID from search (cm_...), use that. If manual, skip.
-      if (finalBrandId.startsWith('cm_')) {
-        syncCount = await syncCannMenusProducts(finalBrandId, 'brand', finalBrandId);
-      }
-    } else if (finalRole === 'dispensary' && userProfileData.locationId) {
-      const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
-      if (userProfileData.locationId.startsWith('cm_')) {
-        syncCount = await syncCannMenusProducts(userProfileData.locationId, 'dispensary', 'dispensary-brand-placeholder');
-        // Note: Dispensaries usually don't own products, they stock them. 
-        // But for the "My Products" view, we might import them as "Retailer Inventory".
-      }
-    }
-
-    // Revalidate paths that depend on user role
-    revalidatePath('/dashboard');
-    revalidatePath('/account');
-
-    const successMessage = syncCount > 0
-      ? `Onboarding complete! Imported ${syncCount} products.`
-      : 'Onboarding complete!';
-
-    return { message: successMessage, error: false };
+return { message: successMessage, error: false };
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-    logger.error('Onboarding server action failed:', { error: errorMessage });
-    return { message: `Failed to save profile: ${errorMessage}`, error: true };
-  }
+  const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+  logger.error('Onboarding server action failed:', { error: errorMessage });
+  return { message: `Failed to save profile: ${errorMessage}`, error: true };
+}
 }
