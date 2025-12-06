@@ -20,25 +20,29 @@ import { format } from 'date-fns';
 import { DollarSign, Percent } from 'lucide-react';
 import { DEMO_BRAND_ID } from '@/lib/config';
 import type { Brand } from '@/types/domain';
+import { useMockData } from '@/hooks/use-mock-data';
 
 const initialState: ActionResult = { message: '', error: false };
 
 export default function CouponManagerTab() {
   const { firestore } = useFirebase();
   const { toast } = useToast();
+  const { isMock } = useMockData();
   const [formState, formAction] = useFormState(createCoupon, initialState);
-  
+
   // Correctly construct the typed query
   const couponsQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (isMock || !firestore) return null;
     const couponsCol = collection(firestore, 'coupons').withConverter(couponConverter);
     return query(couponsCol);
-  }, [firestore]);
-  
-  const { data: coupons, isLoading: couponsLoading } = useCollection<Coupon>(couponsQuery);
-  
-  const brandsQuery = firestore ? query(collection(firestore, 'brands')) : null;
-  const { data: brands, isLoading: brandsLoading } = useCollection<Brand>(brandsQuery as Query<Brand> | null);
+  }, [firestore, isMock]);
+
+  const { data: realCoupons, isLoading: couponsLoading } = useCollection<Coupon>(couponsQuery);
+  const coupons = isMock ? [] : realCoupons;
+
+  const brandsQuery = (firestore && !isMock) ? query(collection(firestore, 'brands')) : null;
+  const { data: realBrands, isLoading: brandsLoading } = useCollection<Brand>(brandsQuery as Query<Brand> | null);
+  const brands = isMock ? [{ id: DEMO_BRAND_ID, name: 'BakedBot Demo Brand' }] : realBrands;
 
   useEffect(() => {
     if (formState.message) {
@@ -68,40 +72,40 @@ export default function CouponManagerTab() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="code">Coupon Code</Label>
-                    <Input id="code" name="code" placeholder="e.g., LAUNCH20" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="brandId">Brand</Label>
-                     <Select name="brandId" disabled={brandsLoading}>
-                        <SelectTrigger id="brandId">
-                            <SelectValue placeholder="Select a brand" />
-                        </SelectTrigger>
-                        <SelectContent>
-                           {Array.from(brandsMap.entries()).map(([id, name]) => (
-                                <SelectItem key={id} value={id}>{name}</SelectItem>
-                           ))}
-                        </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="code">Coupon Code</Label>
+                  <Input id="code" name="code" placeholder="e.g., LAUNCH20" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="brandId">Brand</Label>
+                  <Select name="brandId" disabled={brandsLoading}>
+                    <SelectTrigger id="brandId">
+                      <SelectValue placeholder="Select a brand" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from(brandsMap.entries()).map(([id, name]) => (
+                        <SelectItem key={id} value={id}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="type">Discount Type</Label>
-                    <Select name="type" defaultValue="percentage">
-                        <SelectTrigger id="type">
-                            <SelectValue placeholder="Select a type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="percentage">Percentage (%)</SelectItem>
-                            <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
-                        </SelectContent>
-                    </Select>
+                  <Label htmlFor="type">Discount Type</Label>
+                  <Select name="type" defaultValue="percentage">
+                    <SelectTrigger id="type">
+                      <SelectValue placeholder="Select a type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="value">Value</Label>
-                    <Input id="value" name="value" type="number" placeholder="e.g., 20" />
+                  <Label htmlFor="value">Value</Label>
+                  <Input id="value" name="value" type="number" placeholder="e.g., 20" />
                 </div>
               </div>
             </CardContent>
@@ -114,37 +118,37 @@ export default function CouponManagerTab() {
 
       <Card>
         <CardHeader>
-            <CardTitle>Existing Coupons</CardTitle>
-            <CardDescription>A list of all active and expired coupons.</CardDescription>
+          <CardTitle>Existing Coupons</CardTitle>
+          <CardDescription>A list of all active and expired coupons.</CardDescription>
         </CardHeader>
         <CardContent>
-             <Table>
-                <TableHeader>
-                    <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Brand</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead className="text-right">Uses</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {couponsLoading && <tr><TableCell colSpan={4} className="text-center">Loading...</TableCell></tr>}
-                    {!couponsLoading && coupons?.length === 0 && <tr><TableCell colSpan={4} className="text-center">No coupons created yet.</TableCell></tr>}
-                    {coupons?.map(coupon => (
-                        <TableRow key={coupon.id}>
-                            <TableCell className="font-mono">{coupon.code}</TableCell>
-                            <TableCell className="text-xs">{brandsMap.get(coupon.brandId) ?? coupon.brandId}</TableCell>
-                            <TableCell>
-                               <Badge variant="secondary" className="gap-1">
-                                    {coupon.type === 'fixed' ? <DollarSign className="h-3 w-3"/> : <Percent className="h-3 w-3" />}
-                                    {coupon.value}
-                               </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">{coupon.uses}</TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Code</TableHead>
+                <TableHead>Brand</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead className="text-right">Uses</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {couponsLoading && <tr><TableCell colSpan={4} className="text-center">Loading...</TableCell></tr>}
+              {!couponsLoading && coupons?.length === 0 && <tr><TableCell colSpan={4} className="text-center">No coupons created yet.</TableCell></tr>}
+              {coupons?.map(coupon => (
+                <TableRow key={coupon.id}>
+                  <TableCell className="font-mono">{coupon.code}</TableCell>
+                  <TableCell className="text-xs">{brandsMap.get(coupon.brandId) ?? coupon.brandId}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="gap-1">
+                      {coupon.type === 'fixed' ? <DollarSign className="h-3 w-3" /> : <Percent className="h-3 w-3" />}
+                      {coupon.value}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">{coupon.uses}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
