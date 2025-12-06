@@ -13,6 +13,8 @@ import { PRICING_PLANS } from '@/lib/config/pricing';
 import { PaymentCreditCard } from '@/components/checkout/payment-credit-card';
 import { createSubscription } from '../actions/createSubscription';
 
+import { validateCoupon } from '../actions/validateCoupon';
+
 function SubscriptionCheckoutContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -30,6 +32,12 @@ function SubscriptionCheckoutContent() {
         phone: '',
     });
 
+    // Coupon State
+    const [couponCode, setCouponCode] = useState('');
+    const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+    const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountValue: number; discountType: 'percentage' | 'fixed' } | null>(null);
+    const [finalPrice, setFinalPrice] = useState(plan?.price);
+
     if (!plan) {
         return (
             <div className="text-center py-12">
@@ -38,6 +46,37 @@ function SubscriptionCheckoutContent() {
             </div>
         );
     }
+
+    // Reset price if plan changes (though component likely remounts)
+    if (finalPrice === undefined && plan.price) {
+        setFinalPrice(plan.price);
+    }
+
+    const handleValidateCoupon = async () => {
+        if (!couponCode.trim()) return;
+
+        setIsValidatingCoupon(true);
+        try {
+            const result = await validateCoupon(couponCode, plan.id);
+            if (result.isValid) {
+                setAppliedCoupon({
+                    code: couponCode,
+                    discountValue: result.discountValue || 0,
+                    discountType: result.discountType || 'fixed'
+                });
+                setFinalPrice(result.newPrice);
+                toast({ title: 'Coupon Applied', description: `Discount applied successfully!` });
+            } else {
+                setAppliedCoupon(null);
+                setFinalPrice(plan.price);
+                toast({ variant: 'destructive', title: 'Invalid Coupon', description: result.message });
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to validate coupon.' });
+        } finally {
+            setIsValidatingCoupon(false);
+        }
+    };
 
     const handleDetailsSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -50,7 +89,8 @@ function SubscriptionCheckoutContent() {
             const result = await createSubscription({
                 planId: plan.id,
                 customer: customerDetails,
-                paymentData
+                paymentData,
+                couponCode: appliedCoupon ? appliedCoupon.code : undefined
             });
 
             if (result.success) {
@@ -80,6 +120,16 @@ function SubscriptionCheckoutContent() {
                             <span>{plan.name} Plan</span>
                             <span>{plan.priceDisplay}</span>
                         </div>
+                        {appliedCoupon && (
+                            <div className="flex justify-between text-sm text-green-600">
+                                <span>Discount ({appliedCoupon.code})</span>
+                                <span>
+                                    {appliedCoupon.discountType === 'fixed'
+                                        ? `-$${appliedCoupon.discountValue}`
+                                        : `-${appliedCoupon.discountValue}%`}
+                                </span>
+                            </div>
+                        )}
                         <p className="text-sm text-muted-foreground">{plan.desc}</p>
                         <ul className="text-sm space-y-2 pt-2 border-t">
                             {plan.features.map(f => (
@@ -92,7 +142,7 @@ function SubscriptionCheckoutContent() {
                     </CardContent>
                     <CardFooter className="flex justify-between border-t pt-4 font-bold">
                         <span>Total Due Today</span>
-                        <span>{plan.priceDisplay}</span>
+                        <span>{finalPrice === 0 ? 'Free' : `$${finalPrice?.toFixed(2)}`}</span>
                     </CardFooter>
                 </Card>
             </div>
@@ -151,9 +201,41 @@ function SubscriptionCheckoutContent() {
                             <ArrowLeft className="h-4 w-4 mr-2" /> Back to Details
                         </Button>
 
-                        {plan.price && plan.price > 0 ? (
+                        <Card>
+                            <CardContent className="pt-6">
+                                <div className="flex gap-2 items-end">
+                                    <div className="grid w-full gap-1.5">
+                                        <Label htmlFor="coupon">Promo Code</Label>
+                                        <Input
+                                            id="coupon"
+                                            placeholder="Enter code"
+                                            value={couponCode}
+                                            onChange={(e) => setCouponCode(e.target.value)}
+                                            disabled={!!appliedCoupon}
+                                        />
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            if (appliedCoupon) {
+                                                setAppliedCoupon(null);
+                                                setCouponCode('');
+                                                setFinalPrice(plan.price);
+                                            } else {
+                                                handleValidateCoupon();
+                                            }
+                                        }}
+                                        disabled={isValidatingCoupon || (!couponCode && !appliedCoupon)}
+                                    >
+                                        {isValidatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : (appliedCoupon ? 'Remove' : 'Apply')}
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {finalPrice && finalPrice > 0 ? (
                             <PaymentCreditCard
-                                amount={plan.price}
+                                amount={finalPrice}
                                 onSuccess={handleSubscriptionSubmit}
                                 onError={(err) => toast({ variant: 'destructive', title: 'Payment Failed', description: err })}
                             />
