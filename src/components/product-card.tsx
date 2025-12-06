@@ -8,11 +8,12 @@ import Link from 'next/link';
 import { Button } from './ui/button';
 import { useToast } from '../hooks/use-toast';
 import { useMemo } from 'react';
+import { AddToCartButton } from '@/components/add-to-cart-button';
 import type { Product } from '@/types/domain';
 
-export function ProductCard({ product }: { product: Product }) {
-  const { addToCart, selectedRetailerId, cartItems, updateQuantity, removeFromCart } = useStore();
-  const { toast } = useToast();
+export function ProductCard({ product, brandSlug }: { product: Product, brandSlug?: string }) {
+  const { selectedRetailerId, cartItems, updateQuantity, removeFromCart } = useStore();
+  // const { toast } = useToast(); // No longer needed directly here
 
   const cartItem = cartItems.find(item => item.id === product.id);
   const quantity = cartItem ? cartItem.quantity : 0;
@@ -44,34 +45,11 @@ export function ProductCard({ product }: { product: Product }) {
     return `$${product.price.toFixed(2)}`;
   }, [product, selectedRetailerId]);
 
-  const handleAddToCart = () => {
-    if (!selectedRetailerId) {
-      const locator = document.getElementById('locator');
-      if (locator) {
-        locator.scrollIntoView({ behavior: 'smooth' });
-        locator.classList.add('animate-pulse', 'ring-2', 'ring-primary', 'rounded-lg');
-        setTimeout(() => {
-          locator.classList.remove('animate-pulse', 'ring-2', 'ring-primary', 'rounded-lg');
-        }, 2000);
-      }
-      toast({
-        variant: 'destructive',
-        title: 'No Location Selected',
-        description: 'Please select a dispensary location before adding items to your cart.',
-      });
-      return;
-    }
 
-    addToCart(product, selectedRetailerId);
-    toast({
-      title: 'Added to Cart',
-      description: `${product.name} has been added to your cart.`,
-    });
-  };
 
   return (
     <div data-testid={`product-card-${product.id}`} className="bg-card text-card-foreground rounded-lg overflow-hidden flex flex-col group border">
-      <Link href={`/menu/${product.brandId || 'default'}/products/${product.id}`} className="block">
+      <Link href={`/${brandSlug || product.brandId || 'default'}/products/${product.id}`} className="block">
         <div className="relative h-48">
           <Image
             src={product.imageUrl}
@@ -121,7 +99,7 @@ export function ProductCard({ product }: { product: Product }) {
         )}
 
         <h3 className="text-lg font-bold mt-1 mb-2 line-clamp-2">
-          <Link href={`/menu/${product.brandId || 'default'}/products/${product.id}`} className="hover:underline">
+          <Link href={`/${brandSlug || product.brandId || 'default'}/products/${product.id}`} className="hover:underline">
             {product.name}
           </Link>
         </h3>
@@ -136,13 +114,7 @@ export function ProductCard({ product }: { product: Product }) {
           <span className="text-xl font-bold">
             {priceDisplay}
           </span>
-          <Button
-            onClick={handleAddToCart}
-            size="sm"
-            title={!selectedRetailerId ? 'Select a location first' : 'Add to cart'}
-          >
-            Add
-          </Button>
+          <AddToCartButton product={product} size="sm" />
         </div>
       </div>
     </div>
