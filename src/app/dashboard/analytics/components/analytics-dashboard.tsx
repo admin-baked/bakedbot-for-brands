@@ -53,6 +53,75 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
         </Card>
       </div>
 
+
+
+      {/* Cohort Analysis (Task 401) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Customer Retention Heatmap (Cohorts)</CardTitle>
+          <CardDescription>Percentage of customers returning in subsequent months.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            {initialData.cohorts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">Not enough data for cohort analysis.</div>
+            ) : (
+              <table className="min-w-full text-xs">
+                <thead>
+                  <tr>
+                    <th className="p-2 text-left font-medium text-muted-foreground">Month</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground">Users</th>
+                    {Array.from({ length: 12 }).map((_, i) => (
+                      <th key={i} className="p-2 font-medium text-muted-foreground">M{i}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {initialData.cohorts.map((cohort) => (
+                    <tr key={cohort.month} className="border-b last:border-0 hover:bg-muted/50">
+                      <td className="p-2 font-medium">{cohort.month}</td>
+                      <td className="p-2">{cohort.initialSize}</td>
+                      {cohort.retention.map((pct, i) => {
+                        // Heatmap color logic
+                        let bg = 'bg-transparent';
+                        if (pct >= 80) bg = 'bg-primary/90 text-primary-foreground';
+                        else if (pct >= 60) bg = 'bg-primary/70 text-white';
+                        else if (pct >= 40) bg = 'bg-primary/50 text-white';
+                        else if (pct >= 20) bg = 'bg-primary/30';
+                        else if (pct > 0) bg = 'bg-primary/10';
+
+                        return (
+                          <td key={i} className="p-1">
+                            {pct > 0 ? (
+                              <div className={`w-full h-8 flex items-center justify-center rounded ${bg}`}>
+                                {i === 0 ? '100%' : `${Math.round(pct)}%`}
+                              </div>
+                            ) : <div className="text-center text-muted-foreground/20">-</div>}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Repeat Customer Rate</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{(initialData.repeatCustomerRate * 100).toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground">Customers with &gt; 1 order.</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Revenue Chart */}
       <Card>
         <CardHeader>
@@ -270,6 +339,6 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 }

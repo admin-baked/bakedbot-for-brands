@@ -11,6 +11,8 @@ import { Loader2, Sparkles, Send, ArrowLeft, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { auditContent } from '@/app/dashboard/compliance/actions';
+import { ComplianceBadge, ComplianceResult } from '../../components/compliance-badge';
 
 type CampaignContent = {
     subjectLines: string[];
@@ -25,6 +27,7 @@ export default function NewCampaignPage() {
     const [audience, setAudience] = useState('');
     const [tone, setTone] = useState('');
     const [generatedContent, setGeneratedContent] = useState<CampaignContent | null>(null);
+    const [complianceResult, setComplianceResult] = useState<ComplianceResult | null>(null);
     const { toast } = useToast();
 
     const handleGenerate = async () => {
@@ -45,6 +48,17 @@ export default function NewCampaignPage() {
             if (!data.ok) throw new Error(data.error);
 
             setGeneratedContent(data.content);
+
+            // Compliance Check
+            const auditResult = await auditContent(data.content.emailBody, 'CA'); // Default to CA for demo
+
+            const result = {
+                score: auditResult.score,
+                violations: auditResult.violations.map(v => `${v.description}: ${v.reason}`),
+                status: auditResult.passed ? 'pass' as const : (auditResult.score > 80 ? 'warning' as const : 'fail' as const)
+            };
+            setComplianceResult(result);
+
             toast({ title: 'Campaign Generated!', description: 'Craig has drafted your email.' });
         } catch (error) {
             console.error(error);
@@ -55,6 +69,10 @@ export default function NewCampaignPage() {
     };
 
     const handleSend = () => {
+        if (complianceResult?.status === 'fail') {
+            toast({ variant: 'destructive', title: 'Compliance Violation', description: 'Please resolve critical issues before sending.' });
+            return;
+        }
         toast({ title: 'Sent! (Simulation)', description: 'This campaign would have been sent to your list.' });
     };
 
@@ -141,6 +159,8 @@ export default function NewCampaignPage() {
                 <div className="space-y-6">
                     {generatedContent ? (
                         <div className="animate-in fade-in slide-in-from-bottom-5 duration-500 space-y-6">
+                            <ComplianceBadge result={complianceResult} isLoading={false} />
+
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Generated Content</CardTitle>

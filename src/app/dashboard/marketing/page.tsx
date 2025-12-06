@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Mail, Megaphone, BarChart3, Sparkles } from 'lucide-react';
+import { Plus, Mail, Megaphone, BarChart3, Sparkles, Workflow } from 'lucide-react';
 
 export default function MarketingDashboard() {
     return (
@@ -59,6 +59,18 @@ export default function MarketingDashboard() {
                         <p className="text-xs text-muted-foreground">This month</p>
                     </CardContent>
                 </Card>
+                <Link href="/dashboard/marketing/lifecycle" className="block h-full">
+                    <Card className="h-full bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer border-dashed border-primary/20">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-primary">Lifecycle Automations</CardTitle>
+                            <Workflow className="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-primary">5 Active</div>
+                            <p className="text-xs text-muted-foreground">Manage flows &gt;</p>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">

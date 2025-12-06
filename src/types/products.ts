@@ -24,6 +24,8 @@ export type ReviewSummaryEmbedding = {
     summary: string;
 };
 
+import { StrainLineage } from './taxonomy';
+
 export type Product = {
     id: string;
     name: string;
@@ -33,13 +35,22 @@ export type Product = {
     imageUrl: string;
     imageHint: string;
     description: string;
-    likes?: number;
-    dislikes?: number;
+    likes?: number; // Deprecate?
+    dislikes?: number; // Deprecate?
     brandId: string;
     retailerIds?: string[];
     sku_id?: string;
     cost?: number; // COGS
     wholesalePrice?: number; // Price sold to retailer
+    stock?: number; // Inventory count
+
+    // Rich Metadata (Data Infrastructure Update)
+    terpenes?: { name: string; percent: number }[]; // e.g. [{name: 'Myrcene', percent: 1.2}]
+    cannabinoids?: { name: string; percent: number }[]; // e.g. [{name: 'THC', percent: 24.5}]
+    effects?: string[]; // e.g. ['Relaxed', 'Sleepy']
+    lineage?: StrainLineage;
+    thcPercent?: number; // Quick access
+    cbdPercent?: number; // Quick access
 };
 
 export type Retailer = {

@@ -41,6 +41,15 @@ export interface AnalyticsData {
     revenue: number;
     conversionRate: number;
   }[];
+  repeatCustomerRate: number;
+  churnRate: number;
+  cohorts: CohortData[]; // Added
+}
+
+export interface CohortData {
+  month: string; // YYYY-MM
+  initialSize: number;
+  retention: number[]; // [Month 0 (100%), Month 1, Month 2...]
 }
 
 export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> {
@@ -51,6 +60,7 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
 
   const { firestore } = await createServerClient();
 
+  // Fetch orders
   const ordersQuery = firestore.collection('orders')
     .where('brandId', '==', brandId)
     .where('status', 'in', ['submitted', 'confirmed', 'ready', 'completed'])
@@ -59,8 +69,62 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   const ordersSnap = await ordersQuery.get();
   const orders = ordersSnap.docs.map((doc: any) => doc.data()) as OrderDoc[];
 
+  // --- COHORT ANALYSIS LOGIC (Task 401) ---
+  const customerFirstOrderDate = new Map<string, string>(); // email -> YYYY-MM
+  const cohortsMap = new Map<string, { initialSize: number, retained: Map<number, Set<string>> }>();
+
+  // 1. Determine Acquisition Month for each customer
+  orders.sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis()); // Ensure chronological
+  orders.forEach(order => {
+    const email = order.customer.email;
+    const month = order.createdAt.toDate().toISOString().substring(0, 7); // YYYY-MM
+
+    if (!customerFirstOrderDate.has(email)) {
+      customerFirstOrderDate.set(email, month);
+      // Initialize cohort if new
+      if (!cohortsMap.has(month)) {
+        cohortsMap.set(month, { initialSize: 0, retained: new Map() });
+      }
+      cohortsMap.get(month)!.initialSize++;
+      // Month 0 always retained
+      if (!cohortsMap.get(month)!.retained.has(0)) cohortsMap.get(month)!.retained.set(0, new Set());
+      cohortsMap.get(month)!.retained.get(0)!.add(email);
+    } else {
+      // Returning customer
+      const acquisitionMonth = customerFirstOrderDate.get(email)!;
+      const acqDate = new Date(acquisitionMonth + '-01');
+      const orderDate = new Date(month + '-01');
+      // Calculate month difference
+      const diffMonths = (orderDate.getFullYear() - acqDate.getFullYear()) * 12 + (orderDate.getMonth() - acqDate.getMonth());
+
+      if (cohortsMap.has(acquisitionMonth)) {
+        if (!cohortsMap.get(acquisitionMonth)!.retained.has(diffMonths)) cohortsMap.get(acquisitionMonth)!.retained.set(diffMonths, new Set());
+        cohortsMap.get(acquisitionMonth)!.retained.get(diffMonths)!.add(email);
+      }
+    }
+  });
+
+  const cohorts: CohortData[] = Array.from(cohortsMap.entries())
+    .sort((a, b) => b[0].localeCompare(a[0])) // Sort by month desc
+    .slice(0, 12) // Last 12 months
+    .map(([month, data]) => {
+      const retentionArray: number[] = [];
+      for (let i = 0; i <= 11; i++) {
+        const retainedCount = data.retained.get(i)?.size || 0;
+        const percentage = data.initialSize > 0 ? (retainedCount / data.initialSize) * 100 : 0;
+        retentionArray.push(percentage);
+      }
+      return {
+        month,
+        initialSize: data.initialSize,
+        retention: retentionArray
+      };
+    });
+
+  // --- EXISTING LOGIC BELOW ---
   let totalRevenue = 0;
   const salesByProductMap = new Map<string, { productName: string; revenue: number }>();
+  // ... rest of logic ...
   const salesByCategoryMap = new Map<string, number>();
 
   // Affinity Analysis: Pair co-occurrence counting
@@ -128,6 +192,27 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
       ...p,
       strength: totalOrders > 0 ? p.count / totalOrders : 0 // Rough probability
     }));
+
+  // Repeat Purchase Logic (Task 402)
+  const customerOrderCounts = new Map<string, number>();
+  orders.forEach(o => {
+    const email = o.customer.email;
+    if (email) {
+      customerOrderCounts.set(email, (customerOrderCounts.get(email) || 0) + 1);
+    }
+  });
+
+  let repeatCustomers = 0;
+  const totalUniqueCustomers = customerOrderCounts.size;
+  customerOrderCounts.forEach(count => {
+    if (count > 1) repeatCustomers++;
+  });
+
+  const repeatCustomerRate = totalUniqueCustomers > 0 ? repeatCustomers / totalUniqueCustomers : 0;
+  // Churn Rate approximation (inverse of retention or customers who haven't bought in > 90 days / total)
+  // For now, let's use a simpler placeholder or calculated metric if possible.
+  // Let's assume churn is 1 - Repeat Rate for this MVP context or 0 if not enough data.
+  const churnRate = 0; // Placeholder until strict churn definition (e.g., no visit in X days) is decided.
 
   // Daily Stats Logic (Simplified for brevity, same as before)
   const today = new Date();
@@ -217,5 +302,8 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     dailyStats,
     conversionFunnel,
     channelPerformance,
+    repeatCustomerRate,
+    churnRate,
+    cohorts // Added
   };
 }

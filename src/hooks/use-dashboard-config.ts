@@ -72,6 +72,13 @@ export function useDashboardConfig() {
         description: 'Explore sales data and product performance.',
         roles: ['brand', 'owner'],
       },
+      {
+        label: 'Loyalty',
+        href: '/dashboard/loyalty',
+        icon: 'Crown',
+        description: 'Manage rewards, tiers, and VIP automations.',
+        roles: ['brand', 'owner'],
+      },
       // Dispensaries
       {
         label: 'Dispensaries',
@@ -101,6 +108,13 @@ export function useDashboardConfig() {
         icon: 'Database',
         description: 'Sync with CannMenus and other integrations.',
         roles: ['brand', 'dispensary', 'owner'],
+      },
+      {
+        label: 'Ambassadors',
+        href: '/dashboard/ambassador',
+        icon: 'Megaphone',
+        description: 'Manage brand ambassadors and referral programs.',
+        roles: ['brand', 'owner'],
       },
       // Dispensary-specific links (Remaining)
       {
