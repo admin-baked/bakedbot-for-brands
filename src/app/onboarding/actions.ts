@@ -141,11 +141,34 @@ export async function completeOnboarding(prevState: OnboardingState, formData: F
     await userDocRef.set(filteredProfileData, { merge: true });
     await auth.setCustomUserClaims(uid, filteredClaims);
 
+    // --- SYNC PRODUCTS ---
+    // If user selected a CannMenus entity, sync products with limits
+    let syncCount = 0;
+    if (finalRole === 'brand' && finalBrandId && finalRole) {
+      // Sync Logic imported dynamically or from shared
+      const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
+      // If it was a mock ID from search (cm_...), use that. If manual, skip.
+      if (finalBrandId.startsWith('cm_')) {
+        syncCount = await syncCannMenusProducts(finalBrandId, 'brand', finalBrandId);
+      }
+    } else if (finalRole === 'dispensary' && userProfileData.locationId) {
+      const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
+      if (userProfileData.locationId.startsWith('cm_')) {
+        syncCount = await syncCannMenusProducts(userProfileData.locationId, 'dispensary', 'dispensary-brand-placeholder');
+        // Note: Dispensaries usually don't own products, they stock them. 
+        // But for the "My Products" view, we might import them as "Retailer Inventory".
+      }
+    }
+
     // Revalidate paths that depend on user role
     revalidatePath('/dashboard');
     revalidatePath('/account');
 
-    return { message: 'Onboarding complete!', error: false };
+    const successMessage = syncCount > 0
+      ? `Onboarding complete! Imported ${syncCount} products.`
+      : 'Onboarding complete!';
+
+    return { message: successMessage, error: false };
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
