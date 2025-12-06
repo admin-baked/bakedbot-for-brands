@@ -83,39 +83,33 @@ function MetricCard({ title, value, subtitle, trend, trendUp, icon: Icon }: {
     trendUp: boolean;
     icon: any;
 }) {
+
+
+    return (
+        <Card>
+            <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                    <div>
+                        <p className="text-sm text-muted-foreground">{title}</p>
+                        <p className="text-3xl font-bold mt-1">{value}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                        <div className={`p-2 rounded-lg ${trendUp ? 'bg-green-100' : 'bg-red-100'}`}>
+                            <Icon className={`h-5 w-5 ${trendUp ? 'text-green-600' : 'text-red-600'}`} />
+                        </div>
+                        <div className={`flex items-center gap-1 text-sm ${trendUp ? 'text-green-600' : 'text-red-600'}`}>
+                            {trendUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                            {Math.abs(trend)}%
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
 }
 
-return (
-    <Card>
-        <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-                <div>
-                    <p className="text-sm text-muted-foreground">{title}</p>
-                    <p className="text-3xl font-bold mt-1">{value}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                    <div className={`p-2 rounded-lg ${trendUp ? 'bg-green-100' : 'bg-red-100'}`}>
-                        <Icon className={`h-5 w-5 ${trendUp ? 'text-green-600' : 'text-red-600'}`} />
-                    </div>
-                    <div className={`flex items-center gap-1 text-sm ${trendUp ? 'text-green-600' : 'text-red-600'}`}>
-                        {trendUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                        {Math.abs(trend)}%
-                    </div>
-                </div>
-            </div>
-        </CardContent>
-    </Card>
-);
-}
 
-// Imports moved to top in full file replacement, but here we just ensure valid structure if partial. 
-// However, since imports are restricted to top-level, I should ideally move them. 
-// But `replace_file_content` on middle of file makes that hard.
-// I will just make it work by removing the import from here and assuming I add it to top or it works (imports are hoisted in bundlers, though React/Next might complain).
-// Actually, I'll use `replace_file_content` to fix the TOP of the file to include imports, and this part to just be code.
-
-// Let's fix the bad syntax first.
 
 
 

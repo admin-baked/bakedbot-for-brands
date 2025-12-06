@@ -18,7 +18,8 @@ import {
     Zap,
     Lock,
     ChevronDown,
-    Search
+    Search,
+    Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SUPER_ADMIN_SMOKEY } from '@/config/super-admin-smokey-config';
