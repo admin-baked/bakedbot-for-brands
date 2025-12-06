@@ -412,6 +412,67 @@ steps:
     successCount: 0,
     failureCount: 0,
     version: 1
+  },
+
+  // 6. Customer Engagement Autoresponder
+  {
+    name: 'Customer Engagement Engine',
+    description: 'Usage-based autoresponder that sends personalized emails twice weekly based on how customers use the platform.',
+    status: 'draft',
+    yaml: `name: Customer Engagement Engine
+description: Personalized autoresponder based on customer usage
+
+triggers:
+  - type: schedule
+    cron: "0 10 * * 1,4"  # Monday & Thursday at 10 AM
+  - type: event
+    pattern: "user.signup"
+
+segments:
+  new_user: "signed_up_days < 7"
+  active_user: "agent_calls_30d > 10"
+  power_user: "playbooks_created > 3"
+  at_risk: "last_active_days > 7"
+
+steps:
+  - action: query
+    agent: pops
+    task: Segment all users by engagement level
+    
+  - action: parallel
+    tasks:
+      - agent: craig
+        segment: new_user
+        task: Generate onboarding tips
+      - agent: craig
+        segment: active_user
+        task: Create weekly insights digest
+      - agent: craig
+        segment: at_risk
+        task: Create re-engagement email
+        
+  - action: delegate
+    agent: deebo
+    task: Check emails for compliance
+    
+  - action: send_email
+    to: "{{segment.users}}"
+    content: "{{craig.personalized_email}}"
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Mon & Thu', config: { cron: '0 10 * * 1,4' }, enabled: true },
+      { id: 'trigger-2', type: 'event', name: 'Signup', config: { eventPattern: 'user.signup' }, enabled: true }
+    ],
+    steps: [
+      { action: 'query', params: { agent: 'pops' } },
+      { action: 'parallel', params: { agent: 'craig' } },
+      { action: 'delegate', params: { agent: 'deebo' } },
+      { action: 'send_email', params: { track: true } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
   }
 ];
 
