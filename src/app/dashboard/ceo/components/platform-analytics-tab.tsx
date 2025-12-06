@@ -1,0 +1,328 @@
+'use client';
+
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import {
+    Users, TrendingUp, TrendingDown, Activity, Zap, Bot,
+    Mail, MessageSquare, BarChart3, Clock, CheckCircle2,
+    AlertTriangle, ArrowUpRight, ArrowDownRight, RefreshCw
+} from 'lucide-react';
+
+// Mock data - in production, this would come from Firestore aggregations
+const MOCK_METRICS = {
+    signups: {
+        today: 12,
+        week: 78,
+        month: 312,
+        total: 1847,
+        trend: 15.2,
+        trendUp: true
+    },
+    activeUsers: {
+        daily: 234,
+        weekly: 892,
+        monthly: 1456,
+        trend: 8.7,
+        trendUp: true
+    },
+    retention: {
+        day1: 68,
+        day7: 45,
+        day30: 32,
+        trend: -2.1,
+        trendUp: false
+    },
+    revenue: {
+        mrr: 24500,
+        arr: 294000,
+        arpu: 89,
+        trend: 12.5,
+        trendUp: true
+    }
+};
+
+const FEATURE_ADOPTION = [
+    { name: 'AI Chat (Smokey)', usage: 89, trend: 12, status: 'healthy' },
+    { name: 'Playbooks', usage: 45, trend: 23, status: 'growing' },
+    { name: 'Email Campaigns (Craig)', usage: 67, trend: -5, status: 'warning' },
+    { name: 'Competitive Intel (Ezal)', usage: 34, trend: 8, status: 'growing' },
+    { name: 'Loyalty (Mrs. Parker)', usage: 28, trend: 15, status: 'growing' },
+    { name: 'Analytics (Pops)', usage: 72, trend: 3, status: 'healthy' },
+    { name: 'Pricing (Money Mike)', usage: 23, trend: -2, status: 'warning' },
+    { name: 'Compliance (Deebo)', usage: 56, trend: 18, status: 'healthy' },
+];
+
+const RECENT_SIGNUPS = [
+    { id: '1', name: 'Green Valley Dispensary', email: 'admin@greenvalley.com', plan: 'Pro', date: '2 hours ago', role: 'dispensary' },
+    { id: '2', name: 'Kush Brands Co', email: 'team@kushbrands.com', plan: 'Enterprise', date: '5 hours ago', role: 'brand' },
+    { id: '3', name: 'Pacific Cannabis', email: 'owner@pacificcanna.com', plan: 'Free', date: '1 day ago', role: 'dispensary' },
+    { id: '4', name: 'Elevated Extracts', email: 'sales@elevated.io', plan: 'Pro', date: '1 day ago', role: 'brand' },
+    { id: '5', name: 'High Times Retail', email: 'info@hightimes.la', plan: 'Free', date: '2 days ago', role: 'dispensary' },
+];
+
+const AGENT_USAGE = [
+    { agent: 'Smokey', calls: 12456, avgDuration: '2.3s', successRate: 98.2, costToday: 45.67 },
+    { agent: 'Craig', calls: 3421, avgDuration: '4.1s', successRate: 95.8, costToday: 23.45 },
+    { agent: 'Pops', calls: 8934, avgDuration: '1.8s', successRate: 99.1, costToday: 12.34 },
+    { agent: 'Ezal', calls: 2134, avgDuration: '5.2s', successRate: 94.3, costToday: 34.56 },
+    { agent: 'Money Mike', calls: 1567, avgDuration: '3.4s', successRate: 96.7, costToday: 18.90 },
+    { agent: 'Deebo', calls: 4523, avgDuration: '0.8s', successRate: 99.8, costToday: 8.12 },
+];
+
+function MetricCard({ title, value, subtitle, trend, trendUp, icon: Icon }: {
+    title: string;
+    value: string | number;
+    subtitle: string;
+    trend: number;
+    trendUp: boolean;
+    icon: any;
+}) {
+    return (
+        <Card>
+            <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                    <div>
+                        <p className="text-sm text-muted-foreground">{title}</p>
+                        <p className="text-3xl font-bold mt-1">{value}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                        <div className={`p-2 rounded-lg ${trendUp ? 'bg-green-100' : 'bg-red-100'}`}>
+                            <Icon className={`h-5 w-5 ${trendUp ? 'text-green-600' : 'text-red-600'}`} />
+                        </div>
+                        <div className={`flex items-center gap-1 text-sm ${trendUp ? 'text-green-600' : 'text-red-600'}`}>
+                            {trendUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                            {Math.abs(trend)}%
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+export default function PlatformAnalyticsTab() {
+    const [refreshing, setRefreshing] = useState(false);
+
+    const handleRefresh = () => {
+        setRefreshing(true);
+        setTimeout(() => setRefreshing(false), 1500);
+    };
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold">Platform Analytics</h2>
+                    <p className="text-muted-foreground">Comprehensive view of signups, usage, and feature adoption</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                    Refresh
+                </Button>
+            </div>
+
+            {/* Key Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard
+                    title="Total Signups"
+                    value={MOCK_METRICS.signups.total.toLocaleString()}
+                    subtitle={`+${MOCK_METRICS.signups.today} today`}
+                    trend={MOCK_METRICS.signups.trend}
+                    trendUp={MOCK_METRICS.signups.trendUp}
+                    icon={Users}
+                />
+                <MetricCard
+                    title="Active Users (DAU)"
+                    value={MOCK_METRICS.activeUsers.daily.toLocaleString()}
+                    subtitle={`${MOCK_METRICS.activeUsers.weekly} weekly`}
+                    trend={MOCK_METRICS.activeUsers.trend}
+                    trendUp={MOCK_METRICS.activeUsers.trendUp}
+                    icon={Activity}
+                />
+                <MetricCard
+                    title="Day 7 Retention"
+                    value={`${MOCK_METRICS.retention.day7}%`}
+                    subtitle={`Day 30: ${MOCK_METRICS.retention.day30}%`}
+                    trend={MOCK_METRICS.retention.trend}
+                    trendUp={MOCK_METRICS.retention.trendUp}
+                    icon={TrendingUp}
+                />
+                <MetricCard
+                    title="MRR"
+                    value={`$${MOCK_METRICS.revenue.mrr.toLocaleString()}`}
+                    subtitle={`ARPU: $${MOCK_METRICS.revenue.arpu}`}
+                    trend={MOCK_METRICS.revenue.trend}
+                    trendUp={MOCK_METRICS.revenue.trendUp}
+                    icon={BarChart3}
+                />
+            </div>
+
+            {/* Feature Adoption & Agent Usage */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Feature Adoption */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Zap className="h-5 w-5 text-primary" />
+                            Feature Adoption
+                        </CardTitle>
+                        <CardDescription>What's working and what needs attention</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {FEATURE_ADOPTION.map((feature) => (
+                            <div key={feature.name} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium">{feature.name}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-xs ${feature.trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {feature.trend >= 0 ? '+' : ''}{feature.trend}%
+                                        </span>
+                                        <Badge variant={feature.status === 'warning' ? 'destructive' : feature.status === 'growing' ? 'default' : 'secondary'} className="text-xs">
+                                            {feature.status}
+                                        </Badge>
+                                    </div>
+                                </div>
+                                <Progress value={feature.usage} className="h-2" />
+                                <p className="text-xs text-muted-foreground">{feature.usage}% of users</p>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+
+                {/* Agent Usage */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Bot className="h-5 w-5 text-primary" />
+                            AI Agent Performance
+                        </CardTitle>
+                        <CardDescription>Agent calls, success rates, and costs</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            {AGENT_USAGE.map((agent) => (
+                                <div key={agent.agent} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <Bot className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-sm">{agent.agent}</p>
+                                            <p className="text-xs text-muted-foreground">{agent.calls.toLocaleString()} calls</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm">
+                                        <div className="text-right">
+                                            <p className="text-xs text-muted-foreground">Success</p>
+                                            <p className={agent.successRate >= 98 ? 'text-green-600' : agent.successRate >= 95 ? 'text-yellow-600' : 'text-red-600'}>
+                                                {agent.successRate}%
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs text-muted-foreground">Avg Time</p>
+                                            <p>{agent.avgDuration}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs text-muted-foreground">Cost</p>
+                                            <p className="font-mono">${agent.costToday}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-4 pt-4 border-t flex justify-between text-sm">
+                            <span className="text-muted-foreground">Total API Cost Today</span>
+                            <span className="font-bold">${AGENT_USAGE.reduce((sum, a) => sum + a.costToday, 0).toFixed(2)}</span>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Recent Signups */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-primary" />
+                        Recent Signups
+                    </CardTitle>
+                    <CardDescription>Latest users joining the platform</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b text-left text-sm text-muted-foreground">
+                                    <th className="pb-3 font-medium">Organization</th>
+                                    <th className="pb-3 font-medium">Email</th>
+                                    <th className="pb-3 font-medium">Type</th>
+                                    <th className="pb-3 font-medium">Plan</th>
+                                    <th className="pb-3 font-medium">Signed Up</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-sm">
+                                {RECENT_SIGNUPS.map((signup) => (
+                                    <tr key={signup.id} className="border-b last:border-0">
+                                        <td className="py-3 font-medium">{signup.name}</td>
+                                        <td className="py-3 text-muted-foreground">{signup.email}</td>
+                                        <td className="py-3">
+                                            <Badge variant="outline" className="text-xs capitalize">{signup.role}</Badge>
+                                        </td>
+                                        <td className="py-3">
+                                            <Badge variant={signup.plan === 'Enterprise' ? 'default' : signup.plan === 'Pro' ? 'secondary' : 'outline'} className="text-xs">
+                                                {signup.plan}
+                                            </Badge>
+                                        </td>
+                                        <td className="py-3 text-muted-foreground">{signup.date}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Health Indicators */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="border-green-200 bg-green-50">
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <CheckCircle2 className="h-8 w-8 text-green-600" />
+                            <div>
+                                <p className="font-semibold text-green-900">System Health</p>
+                                <p className="text-sm text-green-700">All systems operational</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="border-yellow-200 bg-yellow-50">
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <AlertTriangle className="h-8 w-8 text-yellow-600" />
+                            <div>
+                                <p className="font-semibold text-yellow-900">Email Campaigns</p>
+                                <p className="text-sm text-yellow-700">Usage down 5% - needs attention</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <Clock className="h-8 w-8 text-muted-foreground" />
+                            <div>
+                                <p className="font-semibold">Next Autoresponder</p>
+                                <p className="text-sm text-muted-foreground">Thursday 10:00 AM (1,456 users)</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}
