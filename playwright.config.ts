@@ -14,7 +14,7 @@ export default defineConfig({
   fullyParallel: true,
   reporter: process.env.CI ? [['html'], ['json', { outputFile: 'test-results/results.json' }]] : 'list',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3001',
     trace: 'on-first-retry',
     screenshot: process.env.CI ? 'only-on-failure' : 'off',
     video: process.env.CI ? 'retain-on-failure' : 'off',
@@ -36,7 +36,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
+    url: 'http://localhost:3001',
     reuseExistingServer: true,
     timeout: 120_000,
   },
