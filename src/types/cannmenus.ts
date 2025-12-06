@@ -181,4 +181,6 @@ export type ChatbotProduct = {
   displayWeight?: string;
   url?: string;
   reasoning?: string; // AI-generated reasoning for recommendation
+  terpenes?: Record<string, number>; // e.g. { myrcene: 0.5, limonene: 0.2 }
+  chemotype?: string; // e.g. "High-Myrcene Indica"
 };

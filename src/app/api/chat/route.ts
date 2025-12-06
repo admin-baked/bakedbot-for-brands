@@ -66,7 +66,7 @@ export const POST = withProtection(
             const rawProducts: CannMenusProduct[] = productData.products || [];
 
             // 4️⃣ Transform to ChatbotProduct shape (only a subset needed for UI)
-            const chatProducts: ChatbotProduct[] = rawProducts.map((p) => ({
+            let chatProducts: ChatbotProduct[] = rawProducts.map((p) => ({
                 id: p.cann_sku_id,
                 name: p.product_name,
                 category: p.category,
@@ -78,6 +78,13 @@ export const POST = withProtection(
                 displayWeight: p.display_weight,
                 url: p.url,
             }));
+
+            // 4.5️⃣ Enrich with Chemotype Data (Task 203)
+            const { enrichProductsWithChemotypes, rankByChemotype } = await import('@/ai/chemotype-ranking');
+            chatProducts = enrichProductsWithChemotypes(chatProducts);
+
+            // Optimize ranking based on inferred intent
+            chatProducts = rankByChemotype(chatProducts, analysis.intent);
 
             // 5️⃣ Generate a friendly chat response using Gemini
             const chatResponse = await generateChatResponse(query, analysis.intent, chatProducts.length);
