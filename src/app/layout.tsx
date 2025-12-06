@@ -40,17 +40,21 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
-// This is now an async function to fetch data for the chatbot
+import { cookies } from 'next/headers';
+
+// ... imports
+
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Use demo products for the global chatbot to avoid 500 errors
-  // Individual pages can fetch their own data as needed
-  const products = demoProducts;
+  const cookieStore = await cookies();
+  const useMockData = cookieStore.get('x-use-mock-data')?.value === 'true';
 
-
+  // Use demo products if mock data is enabled, otherwise use empty array (or real fetch in future)
+  // For now, "Live" means empty/no pre-seeded data, or we could implement a real fetch here.
+  const products = useMockData ? demoProducts : [];
 
   return (
     <html lang="en" className={`${inter.variable} ${teko.variable}`} suppressHydrationWarning>
@@ -59,6 +63,7 @@ export default async function RootLayout({
           <AppLayout>
             {children}
           </AppLayout>
+          {/* Conditionally render chatbot with products or empty for live mode */}
           <Chatbot products={products} brandId={DEMO_BRAND_ID} />
           <SimulationBanner />
         </Providers>

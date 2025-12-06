@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Link from 'next/link';
 import { ClientOnly } from '@/components/client-only';
 import { RoleSwitcher } from '@/components/debug/role-switcher';
+import { MockDataToggle } from '@/components/debug/mock-data-toggle';
 
 export default function CeoDashboardPage() {
     const router = useRouter();
@@ -63,7 +64,8 @@ export default function CeoDashboardPage() {
                         <p className="text-sm text-green-700">{superAdminEmail}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                    <MockDataToggle />
                     <RoleSwitcher />
                     <Button variant="outline" size="sm" onClick={logout}>
                         Logout
