@@ -1,5 +1,3 @@
-
-// src/app/onboarding/onboarding-client.tsx
 'use client';
 
 import { useState } from 'react';
@@ -10,15 +8,16 @@ import { Loader2, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { completeOnboarding } from './actions';
 import { SubmitButton } from './components/submit-button';
-
 import { logger } from '@/lib/logger';
+import { searchCannMenusRetailers } from '@/server/actions/cannmenus'; // Correct Import
+
 type BrandResult = {
   id: string;
   name: string;
   market: string | null;
 };
 
-type Step = 'role' | 'brand-search' | 'manual' | 'features' | 'review';
+type Step = 'role' | 'brand-search' | 'manual' | 'integrations' | 'features' | 'review';
 
 export default function OnboardingPage() {
   const { toast } = useToast();
@@ -35,24 +34,29 @@ export default function OnboardingPage() {
   const [manualProductName, setManualProductName] = useState('');
   const [manualDispensaryName, setManualDispensaryName] = useState('');
 
+  const [posConfig, setPosConfig] = useState<{ provider: 'dutchie' | 'jane' | 'none', apiKey: string, id: string }>({ provider: 'none', apiKey: '', id: '' });
+
   const [formState, formAction] = useFormState(completeOnboarding, { message: '', error: false });
 
-  if (!formState.error && formState.message === 'Onboarding complete!') {
-    // This is a client-side redirect after a successful server action.
-    // In a real app, this might be a router.push('/dashboard'), but for now, a reload is fine.
+  if (!formState.error && formState.message.includes('Onboarding complete')) {
     if (typeof window !== 'undefined') {
       window.location.assign('/dashboard');
     }
   }
 
   async function searchCannMenus(term: string) {
+    if (term.length < 2) {
+      setResults([]);
+      return;
+    }
     setLoading(true);
     try {
-      const resp = await fetch(`/api/cannmenus/${role === 'brand' ? 'brands' : 'retailers'}?search=${encodeURIComponent(term)}`);
-      const json = await resp.json();
-      setResults(json.data?.data || []);
+      const data = await searchCannMenusRetailers(term);
+      const typeFilter = role === 'brand' ? 'brand' : 'dispensary';
+      const filtered = data.filter(r => r.type === typeFilter);
+      setResults(filtered.map(r => ({ id: r.id, name: r.name, market: 'Global' })));
     } catch (e) {
-      logger.error('Search failed', e instanceof Error ? e : new Error(String(e)));
+      console.error(e);
       setResults([]);
     } finally {
       setLoading(false);
@@ -71,20 +75,20 @@ export default function OnboardingPage() {
   function handleEntitySelect(entity: { id: string, name: string }) {
     setSelectedCannMenusEntity(entity);
     if (role === 'dispensary') {
-      setStep('features');
+      setStep('integrations');
     } else {
       setStep('review');
     }
   }
 
   function handleGoToManual() {
-    setSelectedCannMenusEntity(null); // Clear any stale selection
+    setSelectedCannMenusEntity(null);
     setStep('manual');
   }
 
   function handleManualContinue() {
     if (role === 'dispensary') {
-      setStep('features');
+      setStep('integrations');
     } else {
       setStep('review');
     }
@@ -110,36 +114,6 @@ export default function OnboardingPage() {
     </section>
   );
 
-  /* New Search Logic using Server Action */
-  import { searchCannMenusRetailers, CannMenusResult } from '@/server/actions/cannmenus';
-
-  // ... (inside component)
-
-  async function searchCannMenus(term: string) {
-    if (term.length < 2) {
-      setResults([]);
-      return;
-    }
-    setLoading(true);
-    try {
-      // Direct Server Action call
-      const data = await searchCannMenusRetailers(term);
-      // Filter by type (Brand vs Dispensary)
-      const typeFilter = role === 'brand' ? 'brand' : 'dispensary';
-      const filtered = data.filter(r => r.type === typeFilter);
-
-      // Map to local type
-      setResults(filtered.map(r => ({ id: r.id, name: r.name, market: 'Global' })));
-    } catch (e) {
-      console.error(e);
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // ...
-
   const renderSearchStep = () => (
     <section className="space-y-4">
       <h2 className="font-semibold text-xl">Find your {role}</h2>
@@ -154,7 +128,6 @@ export default function OnboardingPage() {
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
-                // Debounce basic search
                 if (e.target.value.length > 1) searchCannMenus(e.target.value);
               }}
               className="pl-9"
@@ -165,7 +138,6 @@ export default function OnboardingPage() {
           {loading && <Button disabled variant="ghost"><Loader2 className="animate-spin" /></Button>}
         </div>
 
-        {/* Results Dropdown */}
         {results.length > 0 && (
           <div className="absolute z-10 w-full bg-popover text-popover-foreground border rounded-md shadow-md mt-1 max-h-60 overflow-y-auto">
             {results.map((b) => (
@@ -211,24 +183,65 @@ export default function OnboardingPage() {
     </section>
   );
 
+  const renderIntegrationsStep = () => (
+    <section className="space-y-4">
+      <h2 className="font-semibold text-xl">Connect your POS</h2>
+      <p className="text-sm text-muted-foreground">Select your Point of Sale system to sync inventory in real-time.</p>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div
+          className={`p-4 border rounded-lg cursor-pointer transition-colors ${posConfig.provider === 'dutchie' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:border-primary/50'}`}
+          onClick={() => setPosConfig({ ...posConfig, provider: 'dutchie' })}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <span className="font-semibold">Dutchie</span>
+          </div>
+        </div>
+
+        <div
+          className={`p-4 border rounded-lg cursor-pointer transition-colors ${posConfig.provider === 'jane' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:border-primary/50'}`}
+          onClick={() => setPosConfig({ ...posConfig, provider: 'jane' })}
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <span className="font-semibold">iHeartJane</span>
+          </div>
+        </div>
+
+        <div
+          className={`p-4 border rounded-lg cursor-pointer transition-colors ${posConfig.provider === 'none' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:border-primary/50'}`}
+          onClick={() => setPosConfig({ ...posConfig, provider: 'none' })}
+        >
+          <span className="font-semibold block mb-1">Skip / No POS</span>
+        </div>
+      </div>
+
+      {posConfig.provider === 'dutchie' && (
+        <div className="space-y-3 p-4 bg-muted/30 rounded-lg border mt-4">
+          <Input placeholder="Dutchie API Key" value={posConfig.apiKey} onChange={e => setPosConfig({ ...posConfig, apiKey: e.target.value })} type="password" />
+        </div>
+      )}
+      {posConfig.provider === 'jane' && (
+        <div className="space-y-3 p-4 bg-muted/30 rounded-lg border mt-4">
+          <Input placeholder="Jane Shop ID" value={posConfig.id} onChange={e => setPosConfig({ ...posConfig, id: e.target.value })} />
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Button variant="ghost" onClick={() => setStep('brand-search')}>Back</Button>
+        <Button onClick={() => setStep('features')}>Continue</Button>
+      </div>
+    </section>
+  );
+
   const renderFeaturesStep = () => (
     <section className="space-y-4">
       <h2 className="font-semibold text-xl">Choose your features</h2>
-      <p className="text-sm text-muted-foreground">Select the tools you want to use.</p>
       <div className="grid gap-4">
         <div className={`p-4 border rounded-lg cursor-pointer transition-colors ${features.headless ? 'bg-green-50 border-green-200' : 'hover:bg-muted'}`} onClick={() => setFeatures(prev => ({ ...prev, headless: !prev.headless }))}>
-          <div className="flex items-center gap-2 mb-1">
-            <div className={`w-4 h-4 rounded-full border ${features.headless ? 'bg-green-600 border-green-600' : 'border-muted-foreground'}`} />
-            <h3 className="font-semibold">Headless Menu</h3>
-          </div>
-          <p className="text-sm text-muted-foreground ml-6">AI-powered menu that syncs with your POS.</p>
+          <h3 className="font-semibold">Headless Menu</h3>
         </div>
         <div className={`p-4 border rounded-lg cursor-pointer transition-colors ${features.budtender ? 'bg-green-50 border-green-200' : 'hover:bg-muted'}`} onClick={() => setFeatures(prev => ({ ...prev, budtender: !prev.budtender }))}>
-          <div className="flex items-center gap-2 mb-1">
-            <div className={`w-4 h-4 rounded-full border ${features.budtender ? 'bg-green-600 border-green-600' : 'border-muted-foreground'}`} />
-            <h3 className="font-semibold">AI Budtender</h3>
-          </div>
-          <p className="text-sm text-muted-foreground ml-6">Smokey, your AI agent, helps customers find products.</p>
+          <h3 className="font-semibold">AI Budtender</h3>
         </div>
       </div>
       <div className="flex gap-2">
@@ -239,12 +252,11 @@ export default function OnboardingPage() {
   );
 
   const renderReviewStep = () => {
-    // Prioritize manual entries if we came from the manual step
     const selectedName =
       (role === 'brand' && manualBrandName) ? manualBrandName :
         (role === 'dispensary' && manualDispensaryName) ? manualDispensaryName :
-          selectedCannMenusEntity?.name ||
-          (role === 'customer' || role === 'skip' ? 'Default' : 'N/A');
+          selectedCannMenusEntity?.name || 'Default';
+
     const hasSelection = role === 'brand' || role === 'dispensary';
 
     return (
@@ -255,24 +267,19 @@ export default function OnboardingPage() {
           {hasSelection && (
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{role === 'brand' ? 'Brand' : 'Dispensary'}:</span><span className="font-semibold">{selectedName}</span></div>
           )}
-          {role === 'dispensary' && (
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Features:</span><span className="font-semibold">{[features.headless && 'Menu', features.budtender && 'Budtender'].filter(Boolean).join(', ')}</span></div>
-          )}
         </div>
-        <p className="text-xs text-muted-foreground">This will configure your user account and workspace.</p>
         <form action={formAction} className="flex items-center gap-2">
           <input type="hidden" name="role" value={role || ''} />
           {role === 'brand' && <input type="hidden" name="brandId" value={selectedCannMenusEntity?.id || ''} />}
           {role === 'brand' && <input type="hidden" name="brandName" value={selectedCannMenusEntity?.name || ''} />}
           {role === 'dispensary' && <input type="hidden" name="locationId" value={selectedCannMenusEntity?.id || ''} />}
-
-          {/* Pass manual entries */}
           <input type="hidden" name="manualBrandName" value={manualBrandName} />
           <input type="hidden" name="manualProductName" value={manualProductName} />
           <input type="hidden" name="manualDispensaryName" value={manualDispensaryName} />
-
-          {/* Pass features */}
           <input type="hidden" name="features" value={JSON.stringify(features)} />
+          <input type="hidden" name="posProvider" value={posConfig.provider} />
+          <input type="hidden" name="posApiKey" value={posConfig.apiKey} />
+          <input type="hidden" name="posDispensaryId" value={posConfig.id} />
 
           <SubmitButton disabled={!role} />
         </form>
@@ -280,7 +287,6 @@ export default function OnboardingPage() {
       </section>
     );
   };
-
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -292,6 +298,7 @@ export default function OnboardingPage() {
         {step === 'role' && renderRoleSelection()}
         {step === 'brand-search' && renderSearchStep()}
         {step === 'manual' && renderManualStep()}
+        {step === 'integrations' && renderIntegrationsStep()}
         {step === 'features' && renderFeaturesStep()}
         {step === 'review' && renderReviewStep()}
       </div>

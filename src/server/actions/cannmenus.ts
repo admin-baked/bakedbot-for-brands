@@ -59,9 +59,11 @@ export async function syncCannMenusProducts(
         brandId: brandId,
         category: i % 2 === 0 ? 'Flower' : 'Edible',
         price: 25 + i * 5,
+        categoryId: `cat_${i % 2}`,
         description: `Automatically imported from CannMenus for ${cannMenusId}.`,
         imageUrl: `https://picsum.photos/seed/${cannMenusId}-${i}/400/400`,
         cannMenusId: `${cannMenusId}_sku_${i}`,
+        imageHint: 'product sample'
     }));
 
     // Save to Firestore
