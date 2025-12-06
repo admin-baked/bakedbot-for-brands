@@ -31,7 +31,10 @@ export function middleware(request: NextRequest) {
     }
 
     // Redirect to login if no session cookie on other protected routes
-    if (!sessionCookie) {
+    // Exception: If running in simulation mode (client-side auth will verify role/token)
+    const activeSimulation = request.cookies.get('x-simulated-role');
+
+    if (!sessionCookie && !activeSimulation) {
         // Determine which login page to redirect to based on the route
         let loginUrl = '/customer-login';
 
