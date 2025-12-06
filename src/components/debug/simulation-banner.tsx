@@ -35,14 +35,25 @@ export function SimulationBanner() {
                 {simulatedRole && isMock && <span>|</span>}
                 {isMock && <span>Data: <span className="uppercase">MOCK</span></span>}
             </span>
-            <Button
-                variant="secondary"
-                size="sm"
-                className={`h-6 text-xs bg-white hover:bg-gray-100 ${isMock ? 'text-purple-700' : 'text-amber-600'}`}
-                onClick={handleExit}
-            >
-                Exit Simulation
-            </Button>
+            <div className="flex items-center gap-2">
+                {simulatedRole && (
+                    <Button
+                        variant="link"
+                        className="h-6 text-xs text-white underline hover:text-gray-200"
+                        onClick={() => window.location.href = simulatedRole === 'customer' ? '/account' : '/dashboard/playbooks'}
+                    >
+                        Go to {simulatedRole.charAt(0).toUpperCase() + simulatedRole.slice(1)} Dashboard
+                    </Button>
+                )}
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    className={`h-6 text-xs bg-white hover:bg-gray-100 ${isMock ? 'text-purple-700' : 'text-amber-600'}`}
+                    onClick={handleExit}
+                >
+                    Exit Simulation
+                </Button>
+            </div>
         </div>
     );
 }

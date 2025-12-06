@@ -20,8 +20,15 @@ export function RoleSwitcher() {
     const handleSimulate = (role: string) => {
         // Set cookie for 1 hour
         document.cookie = `x-simulated-role=${role}; path=/; max-age=3600`;
-        // Reload to apply changes server-side and client-side
-        window.location.reload();
+
+        // Determine redirect path
+        let redirectPath = '/dashboard/playbooks'; // Default for brand/dispensary
+        if (role === 'customer') {
+            redirectPath = '/account';
+        }
+
+        // Use window.location.href to ensure a full reload and navigation
+        window.location.href = redirectPath;
     };
 
     return (
