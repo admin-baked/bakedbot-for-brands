@@ -10,6 +10,8 @@ export async function generateMetadata({ params }: { params: Promise<{ brand: st
     };
 }
 
+import { WebAgeGate } from '@/components/verification/web-age-gate';
+
 export default async function BrandLayout({
     children,
     params,
@@ -26,6 +28,7 @@ export default async function BrandLayout({
 
     return (
         <div className="min-h-screen bg-background text-foreground">
+            <WebAgeGate />
             {/* 
          We could wrap this in a BrandContext provider if we had one.
          For now, just render children.

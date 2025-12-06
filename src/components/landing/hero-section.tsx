@@ -21,6 +21,10 @@ export function HeroSection() {
           </h1>
           <p className={styles.heroSubtitle}>
             BakedBot is a multi-agent AI workforce that powers your brand's headless menu, marketing, and competitive intelligence—all while routing orders to your retail partners.
+            <br />
+            <span className={styles.eyebrowPill} style={{ marginTop: '1rem', display: 'inline-block' }}>
+              ✨ New: Biometric Payments & ID Verification
+            </span>
           </p>
           <HeroInput />
           <p className={styles.heroFootnote}>
