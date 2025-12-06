@@ -25,7 +25,7 @@ export default async function DashboardProductsPage() {
         products = demoProducts;
     } else {
         try {
-            const user = await requireUser(['brand', 'owner']);
+            const user = await requireUser(['brand', 'owner', 'dispensary']);
             const brandId = user.brandId;
 
             if (!brandId && user.role !== 'owner') {

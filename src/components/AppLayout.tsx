@@ -9,11 +9,12 @@ import type { ReactNode } from 'react';
 export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  // Don't show the main header/footer on dashboard routes or the new homepage
+  // Don't show the main header/footer on dashboard routes, the new homepage, or the pricing page
   const isDashboardPage = pathname?.startsWith('/dashboard');
   const isHomePage = pathname === '/';
+  const isPricingPage = pathname === '/pricing';
 
-  if (isDashboardPage || isHomePage) {
+  if (isDashboardPage || isHomePage || isPricingPage) {
     return <>{children}</>;
   }
 

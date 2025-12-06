@@ -40,7 +40,7 @@ export function useDashboardConfig() {
         href: '/dashboard/agents',
         icon: 'Bot',
         description: 'Configure and monitor your AI agents.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'dispensary', 'owner'],
       },
       {
         label: 'Overview',
@@ -71,6 +71,7 @@ export function useDashboardConfig() {
         description: 'Explore sales data and product performance.',
         roles: ['brand', 'owner'],
       },
+      // Dispensaries
       {
         label: 'Dispensaries',
         href: '/dashboard/dispensaries',
@@ -78,14 +79,29 @@ export function useDashboardConfig() {
         description: 'Manage your dispensary partners.',
         roles: ['brand', 'owner'],
       },
-      // Dispensary-specific links
+      // Shared Commerce & E-com
       {
         label: 'Orders',
         href: '/dashboard/orders',
         icon: 'ShoppingCart',
         description: 'View and manage customer orders.',
-        roles: ['dispensary', 'owner'],
+        roles: ['brand', 'dispensary', 'owner'],
       },
+      {
+        label: 'Menu',
+        href: '/dashboard/menu',
+        icon: 'Utensils', // or FileSpreadsheet
+        description: 'Manage your menu and product listings.',
+        roles: ['brand', 'dispensary', 'owner'],
+      },
+      {
+        label: 'CannSchemas', // 'CannMenus Integration' might be too long
+        href: '/dashboard/menu-sync',
+        icon: 'Database',
+        description: 'Sync with CannMenus and other integrations.',
+        roles: ['brand', 'dispensary', 'owner'],
+      },
+      // Dispensary-specific links (Remaining)
       {
         label: 'Customers',
         href: '/dashboard/customers',
@@ -127,10 +143,16 @@ export function useDashboardConfig() {
     ];
 
     // Filter links based on user's role
+    const normalizedRole = role ? role.toLowerCase() as Role : null;
+
     const filteredLinks = allLinks.filter(link => {
+      // Always show links with no role requirements
       if (!link.roles || link.roles.length === 0) return true;
-      if (!role) return false;
-      return link.roles.includes(role);
+
+      // If no role logic is active, hide restricted links
+      if (!normalizedRole) return false;
+
+      return link.roles.includes(normalizedRole);
     });
 
     // Mark active link

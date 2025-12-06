@@ -25,7 +25,7 @@ import { useUserRole } from '@/hooks/use-user-role';
 
 import { logger } from '@/lib/logger';
 export function DashboardSidebar() {
-  const { navLinks, current } = useDashboardConfig();
+  const { navLinks, current, role } = useDashboardConfig();
   const { user } = useUser();
   const { auth } = useFirebase();
   const { toast } = useToast();
@@ -106,6 +106,9 @@ export function DashboardSidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+        <div className="text-xs text-muted-foreground mt-2 px-2">
+          Debug: Role={role || 'null'}, Links={navLinks.length}
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
