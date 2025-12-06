@@ -54,7 +54,8 @@ export function withAuth<P extends object>(
             }
 
             // Regular auth check for non-super admins
-            if (requireAuth && !user) {
+            // Allow access if user is present OR if a role is simulated (cookie)
+            if (requireAuth && !user && !role) {
                 router.push(redirectTo || loginRoute);
                 return;
             }
@@ -85,8 +86,8 @@ export function withAuth<P extends object>(
             return <Component {...props} />;
         }
 
-        // Regular users need Firebase auth
-        if (requireAuth && !user) {
+        // Regular users need Firebase auth OR a simulated role
+        if (requireAuth && !user && !role) {
             return null;
         }
 

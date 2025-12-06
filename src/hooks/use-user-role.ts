@@ -14,9 +14,20 @@ export function useUserRole() {
     const { user, isUserLoading } = useUser();
 
     const role = useMemo(() => {
-        if (!user) return null;
-        // Role is stored in custom claims on the user token
-        return (user as any).role as Role | null;
+        // 1. Try to get role from user object (Firebase Auth)
+        if (user && (user as any).role) {
+            return (user as any).role as Role;
+        }
+
+        // 2. Fallback: Check for simulation cookie (for Super Admins or Dev mode)
+        if (typeof document !== 'undefined') {
+            const match = document.cookie.match(new RegExp('(^| )x-simulated-role=([^;]+)'));
+            if (match) {
+                return match[2] as Role;
+            }
+        }
+
+        return null;
     }, [user]);
 
     const isRole = useMemo(() => {
