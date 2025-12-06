@@ -4,6 +4,7 @@
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 import * as LucideIcons from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { useUserRole, type Role } from '@/hooks/use-user-role';
 
 export type DashboardNavLink = {
@@ -130,6 +131,13 @@ export function useDashboardConfig() {
         icon: 'Shield',
         description: 'Manage data and AI features.',
         roles: ['owner'],
+      },
+      {
+        label: 'Settings',
+        href: '/dashboard/settings',
+        icon: 'Settings',
+        description: 'Configure domains, embeds, and integrations.',
+        roles: ['brand', 'dispensary', 'owner'],
       },
       // This is not a primary nav item but needed for the settings page to have a description
       {
