@@ -139,6 +139,34 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
           </CardContent>
         </Card>
 
+        {/* Affinity Pairs (Task 403) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Frequently Bought Together</CardTitle>
+            <CardDescription>Top product correlations.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {initialData.affinityPairs.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Need more order data for correlations.</p>
+              ) : (
+                initialData.affinityPairs.map((pair, i) => (
+                  <div key={i} className="flex items-center justify-between border-b last:border-0 pb-2">
+                    <div className="text-sm">
+                      <div className="font-medium text-foreground">{pair.productA}</div>
+                      <div className="text-muted-foreground text-xs">+ {pair.productB}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-lg">{pair.count}x</div>
+                      <div className="text-xs text-muted-foreground">in {Math.round(pair.strength * 100)}% of orders</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Sales by Category (Task 400) */}
         <Card>
           <CardHeader>

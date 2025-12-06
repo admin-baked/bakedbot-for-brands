@@ -38,6 +38,8 @@ export default async function DashboardAnalyticsPage() {
       totalOrders: 0,
       averageOrderValue: 0,
       salesByProduct: [],
+      salesByCategory: [],
+      affinityPairs: [],
       dailyStats: [],
       conversionFunnel: [],
       channelPerformance: []
@@ -55,6 +57,8 @@ export default async function DashboardAnalyticsPage() {
       totalOrders: 0,
       averageOrderValue: 0,
       salesByProduct: [],
+      salesByCategory: [],
+      affinityPairs: [],
       dailyStats: [],
       conversionFunnel: [],
       channelPerformance: []
