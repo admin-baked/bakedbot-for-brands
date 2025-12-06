@@ -110,31 +110,80 @@ export default function OnboardingPage() {
     </section>
   );
 
+  /* New Search Logic using Server Action */
+  import { searchCannMenusRetailers, CannMenusResult } from '@/server/actions/cannmenus';
+
+  // ... (inside component)
+
+  async function searchCannMenus(term: string) {
+    if (term.length < 2) {
+      setResults([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      // Direct Server Action call
+      const data = await searchCannMenusRetailers(term);
+      // Filter by type (Brand vs Dispensary)
+      const typeFilter = role === 'brand' ? 'brand' : 'dispensary';
+      const filtered = data.filter(r => r.type === typeFilter);
+
+      // Map to local type
+      setResults(filtered.map(r => ({ id: r.id, name: r.name, market: 'Global' })));
+    } catch (e) {
+      console.error(e);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ...
+
   const renderSearchStep = () => (
     <section className="space-y-4">
       <h2 className="font-semibold text-xl">Find your {role}</h2>
       <p className="text-sm text-muted-foreground">
         Start typing your {role} name. We&apos;ll search the CannMenus directory.
       </p>
-      <div className="flex gap-2">
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') searchCannMenus(query); }}
-          placeholder={role === 'brand' ? "e.g., 40 Tons" : "e.g., Bayside Cannabis"}
-        />
-        <Button onClick={() => searchCannMenus(query)} disabled={!query.trim() || loading}>
-          {loading ? <Loader2 className="animate-spin" /> : <Search />}
-        </Button>
+      <div className="relative">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                // Debounce basic search
+                if (e.target.value.length > 1) searchCannMenus(e.target.value);
+              }}
+              className="pl-9"
+              placeholder={role === 'brand' ? "e.g., Kiva, Wyld" : "e.g., Green Valley"}
+              autoComplete="off"
+            />
+          </div>
+          {loading && <Button disabled variant="ghost"><Loader2 className="animate-spin" /></Button>}
+        </div>
+
+        {/* Results Dropdown */}
+        {results.length > 0 && (
+          <div className="absolute z-10 w-full bg-popover text-popover-foreground border rounded-md shadow-md mt-1 max-h-60 overflow-y-auto">
+            {results.map((b) => (
+              <button
+                key={b.id}
+                className="w-full text-left px-4 py-3 hover:bg-accent hover:text-accent-foreground text-sm flex justify-between items-center border-b last:border-0"
+                onClick={() => handleEntitySelect({ id: b.id, name: b.name })}
+              >
+                <span className="font-medium">{b.name}</span>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">{b.id}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-      <div className="space-y-2">
-        {results.map((b) => (
-          <Button key={b.id} variant="ghost" className="w-full justify-between text-foreground" onClick={() => handleEntitySelect({ id: b.id, name: b.name })}>
-            <span>{b.name}</span>
-            <span className="text-xs text-muted-foreground">{b.market}</span>
-          </Button>
-        ))}
-        <Button variant="link" size="sm" onClick={handleGoToManual}>
+
+      <div className="pt-2">
+        <Button variant="link" size="sm" onClick={handleGoToManual} className="pl-0 text-muted-foreground">
           Can&apos;t find your {role}? Add it manually.
         </Button>
       </div>
