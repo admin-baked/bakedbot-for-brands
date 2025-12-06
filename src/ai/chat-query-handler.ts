@@ -3,6 +3,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { getSmokeyConfig } from '@/config/super-admin-smokey-config';
 
 // Schema for extracting search parameters from natural language queries
 const QueryAnalysisSchema = z.object({
@@ -79,9 +80,9 @@ export type ChatResponse = z.infer<typeof ChatResponseSchema>;
  * Conversation message type for context
  */
 export interface ConversationMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp?: Date;
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    timestamp?: Date;
 }
 
 // Prompt for generating chat responses
@@ -93,10 +94,14 @@ const generateChatResponsePrompt = ai.definePrompt({
             intent: z.string(),
             productCount: z.number(),
             hasProducts: z.boolean(),
+            personaName: z.string(),
+            personaSystemPrompt: z.string(),
         }),
     },
     output: { schema: ChatResponseSchema },
-    prompt: `You are Smokey, a friendly and knowledgeable AI budtender assistant.
+    prompt: `{{{personaSystemPrompt}}}
+
+Your name is {{{personaName}}}.
 
 The user asked: "{{{query}}}"
 Their intent is: {{{intent}}}
@@ -127,8 +132,8 @@ IMPORTANT: Do NOT make medical claims. Use phrases like "users often report" or 
  * @param conversationContext - Optional previous messages for context
  */
 export async function analyzeQuery(
-  query: string,
-  conversationContext?: ConversationMessage[]
+    query: string,
+    conversationContext?: ConversationMessage[]
 ): Promise<QueryAnalysis> {
     // Format conversation context for the prompt
     const contextString = conversationContext && conversationContext.length > 0
@@ -144,17 +149,22 @@ export async function analyzeQuery(
 
 /**
  * Generates a conversational response based on query results
+ * @param isSuperAdmin - If true, uses Baked HQ persona instead of Smokey
  */
 export async function generateChatResponse(
     query: string,
     intent: string,
-    productCount: number
+    productCount: number,
+    isSuperAdmin: boolean = false
 ): Promise<ChatResponse> {
+    const config = getSmokeyConfig(isSuperAdmin);
     const { output } = await generateChatResponsePrompt({
         query,
         intent,
         productCount,
         hasProducts: productCount > 0,
+        personaName: config.name,
+        personaSystemPrompt: config.systemPrompt,
     });
     return output!;
 }
