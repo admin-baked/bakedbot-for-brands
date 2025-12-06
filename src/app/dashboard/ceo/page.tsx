@@ -19,10 +19,20 @@ import { Loader2, Shield, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
+import { ClientOnly } from '@/components/client-only';
+import { RoleSwitcher } from '@/components/debug/role-switcher';
+import { MockDataToggle } from '@/components/debug/mock-data-toggle';
 
 export default function CeoDashboardPage() {
     const router = useRouter();
     const { isSuperAdmin, isLoading, superAdminEmail, logout } = useSuperAdmin();
+
+    // Not authorized - redirect to login
+    useEffect(() => {
+        if (!isLoading && !isSuperAdmin) {
+            router.push('/super-admin');
+        }
+    }, [isLoading, isSuperAdmin, router]);
 
     // Loading state
     if (isLoading) {
@@ -36,36 +46,8 @@ export default function CeoDashboardPage() {
         );
     }
 
-    // Not authorized
     if (!isSuperAdmin) {
-        return (
-            <div className="flex min-h-[400px] items-center justify-center">
-                <Card className="w-full max-w-md">
-                    <CardHeader className="text-center">
-                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-                            <ShieldX className="h-6 w-6 text-destructive" />
-                        </div>
-                        <CardTitle className="text-2xl">Access Denied</CardTitle>
-                        <CardDescription>
-                            This page is restricted to super admin users only.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Link href="/super-admin">
-                            <Button className="w-full">
-                                <Shield className="mr-2 h-4 w-4" />
-                                Go to Super Admin Login
-                            </Button>
-                        </Link>
-                        <Link href="/dashboard">
-                            <Button variant="outline" className="w-full">
-                                Return to Dashboard
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
-            </div>
-        );
+        return null; // Don't render anything while redirecting
     }
 
     // Authorized - show CEO dashboard
@@ -82,9 +64,13 @@ export default function CeoDashboardPage() {
                         <p className="text-sm text-green-700">{superAdminEmail}</p>
                     </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={logout}>
-                    Logout
-                </Button>
+                <div className="flex items-center gap-3">
+                    <MockDataToggle />
+                    <RoleSwitcher />
+                    <Button variant="outline" size="sm" onClick={logout}>
+                        Logout
+                    </Button>
+                </div>
             </div>
 
             {/* CEO Dashboard Tabs */}
@@ -96,21 +82,25 @@ export default function CeoDashboardPage() {
                     <TabsTrigger value="coupons">Coupon Manager</TabsTrigger>
                     <TabsTrigger value="cannmenus">CannMenus Test</TabsTrigger>
                 </TabsList>
-                <TabsContent value="ai-agent-embed" className="mt-6">
-                    <AIAgentEmbedTab />
-                </TabsContent>
-                <TabsContent value="data-manager" className="mt-6">
-                    <DataManagerTab />
-                </TabsContent>
-                <TabsContent value="ai-search" className="mt-6">
-                    <AISearchIndexTab />
-                </TabsContent>
-                <TabsContent value="coupons" className="mt-6">
-                    <CouponManagerTab />
-                </TabsContent>
-                <TabsContent value="cannmenus" className="mt-6">
-                    <CannMenusTestTab />
-                </TabsContent>
+                <div className="mt-6">
+                    <ClientOnly fallback={<div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+                        <TabsContent value="ai-agent-embed" className="mt-0">
+                            <AIAgentEmbedTab />
+                        </TabsContent>
+                        <TabsContent value="data-manager" className="mt-0">
+                            <DataManagerTab />
+                        </TabsContent>
+                        <TabsContent value="ai-search" className="mt-0">
+                            <AISearchIndexTab />
+                        </TabsContent>
+                        <TabsContent value="coupons" className="mt-0">
+                            <CouponManagerTab />
+                        </TabsContent>
+                        <TabsContent value="cannmenus" className="mt-0">
+                            <CannMenusTestTab />
+                        </TabsContent>
+                    </ClientOnly>
+                </div>
             </Tabs>
         </div>
     );

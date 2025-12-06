@@ -37,33 +37,55 @@ export default function DashboardPageComponent({
   }
 
   return (
-    <main className="p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">
-        Dashboard for {brandId}
-      </h1>
+    <main className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">
+          Overview
+        </h1>
+        <p className="text-muted-foreground">High-level summary of agents, campaigns, and revenue.</p>
+      </div>
 
-      <section className="space-y-2">
-        <button
-          onClick={handleCreateSampleDraft}
-          disabled={isSaving}
-          className="inline-flex items-center rounded-md border px-3 py-1 text-sm hover:bg-gray-100 disabled:opacity-60"
-        >
-          {isSaving ? "Creating draft..." : "Create sample playbook draft"}
-        </button>
-
-        {error && (
-          <p className="text-sm text-red-600">
-            {error}
+      {/* Welcome Card */}
+      <div className="rounded-lg border bg-card p-6 shadow-sm">
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-green-600">WELCOME BACK</p>
+          <h2 className="text-2xl font-bold">Your AI agents are on shift.</h2>
+          <p className="text-muted-foreground max-w-3xl">
+            This is your command center for <strong>autonomous cannabis commerce</strong>. Keep customers in your brand funnel while Smokey, Craig, Pops and crew handle the heavy lifting.
           </p>
-        )}
-      </section>
+          <p className="text-muted-foreground">
+            Start by tuning your <strong>agents</strong> and <strong>account settings</strong>, then plug in menus, campaigns, and analytics.
+          </p>
+        </div>
+      </div>
+
+      {/* Action Cards */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="rounded-lg border bg-card p-6 shadow-sm">
+          <h3 className="text-lg font-semibold mb-2">Tune your agents</h3>
+          <p className="text-muted-foreground mb-4">
+            Set guardrails, tones, and goals so Smokey, Craig, and Pops reflect your brand voice and priorities.
+          </p>
+          <a href="/dashboard/agents" className="text-sm font-medium text-green-600 hover:underline">
+            Go to Agents →
+          </a>
+        </div>
+
+        <div className="rounded-lg border bg-card p-6 shadow-sm">
+          <h3 className="text-lg font-semibold mb-2">Lock in your brand account</h3>
+          <p className="text-muted-foreground mb-4">
+            Add your brand details, jurisdictions, and stack so Deebo and Money Mike stay compliant and margin-aware.
+          </p>
+          <a href="/dashboard/settings" className="text-sm font-medium text-green-600 hover:underline">
+            Open Account Settings →
+          </a>
+        </div>
+      </div>
 
       <section className="space-y-2 mt-4">
-        {list.length === 0 ? (
-          <p>No playbooks yet. Time to teach Craig some tricks.</p>
-        ) : (
+        {list.length > 0 && (
           <>
-            <h2 className="text-lg font-medium">Playbook drafts</h2>
+            <h2 className="text-lg font-medium">Recent Playbooks</h2>
             <ul className="space-y-1">
               {list.map((pb, idx) => (
                 <li
@@ -76,11 +98,6 @@ export default function DashboardPageComponent({
                   {pb.description && (
                     <p className="text-xs text-gray-500">
                       {pb.description}
-                    </p>
-                  )}
-                  {pb.status && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      Status: {pb.status}
                     </p>
                   )}
                 </li>

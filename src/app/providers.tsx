@@ -8,7 +8,7 @@ import { CartSheet } from '@/components/cart-sheet';
 import { DemoModeProvider } from '@/context/demo-mode';
 import { ServiceWorkerRegistration } from '@/components/pwa/service-worker-registration';
 import { PWAInstallPrompt } from '@/components/pwa/install-prompt';
-import { ImpersonationProvider } from '@/context/impersonation-context';
+import { FloatingCartPill } from '@/components/floating-cart-pill';
 
 /**
  * This component centralizes all the global context providers for the application.
@@ -16,17 +16,16 @@ import { ImpersonationProvider } from '@/context/impersonation-context';
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <FirebaseClientProvider>
-      <ImpersonationProvider>
-        <DemoModeProvider>
-          <ThemeProvider>
-            <ServiceWorkerRegistration />
-            {children}
-            <Toaster />
-            <CartSheet />
-            <PWAInstallPrompt />
-          </ThemeProvider>
-        </DemoModeProvider>
-      </ImpersonationProvider>
+      <DemoModeProvider>
+        <ThemeProvider>
+          <ServiceWorkerRegistration />
+          {children}
+          <Toaster />
+          <CartSheet />
+          <FloatingCartPill />
+          <PWAInstallPrompt />
+        </ThemeProvider>
+      </DemoModeProvider>
     </FirebaseClientProvider>
   );
 }

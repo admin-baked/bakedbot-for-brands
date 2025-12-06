@@ -29,6 +29,20 @@ export function useDashboardConfig() {
     // Define all possible navigation links with their role requirements
     const allLinks: DashboardNavLink[] = [
       {
+        label: 'Playbooks',
+        href: '/dashboard/playbooks',
+        icon: 'BookOpen',
+        description: 'Manage automation playbooks and workflows.',
+        roles: ['brand', 'dispensary', 'owner'],
+      },
+      {
+        label: 'Agents',
+        href: '/dashboard/agents',
+        icon: 'Bot',
+        description: 'Configure and monitor your AI agents.',
+        roles: ['brand', 'dispensary', 'owner'],
+      },
+      {
         label: 'Overview',
         href: '/dashboard',
         icon: 'LayoutDashboard',
@@ -37,20 +51,6 @@ export function useDashboardConfig() {
       },
       // Brand-specific links
       {
-        label: 'Agents',
-        href: '/dashboard/agents',
-        icon: 'Bot',
-        description: 'Configure and monitor your AI agents.',
-        roles: ['brand', 'owner'],
-      },
-      {
-        label: 'Playbooks',
-        href: '/dashboard/playbooks',
-        icon: 'BookOpen',
-        description: 'Manage automation playbooks and workflows.',
-        roles: ['brand', 'owner'],
-      },
-       {
         label: 'Products',
         href: '/dashboard/products',
         icon: 'Package',
@@ -71,12 +71,56 @@ export function useDashboardConfig() {
         description: 'Explore sales data and product performance.',
         roles: ['brand', 'owner'],
       },
-      // Dispensary-specific links
+      // Dispensaries
+      {
+        label: 'Dispensaries',
+        href: '/dashboard/dispensaries',
+        icon: 'Store',
+        description: 'Manage your dispensary partners.',
+        roles: ['brand', 'owner'],
+      },
+      // Shared Commerce & E-com
       {
         label: 'Orders',
         href: '/dashboard/orders',
         icon: 'ShoppingCart',
         description: 'View and manage customer orders.',
+        roles: ['brand', 'dispensary', 'owner'],
+      },
+      {
+        label: 'Menu',
+        href: '/dashboard/menu',
+        icon: 'Utensils', // or FileSpreadsheet
+        description: 'Manage your menu and product listings.',
+        roles: ['brand', 'dispensary', 'owner'],
+      },
+      {
+        label: 'CannSchemas', // 'CannMenus Integration' might be too long
+        href: '/dashboard/menu-sync',
+        icon: 'Database',
+        description: 'Sync with CannMenus and other integrations.',
+        roles: ['brand', 'dispensary', 'owner'],
+      },
+      // Dispensary-specific links (Remaining)
+      {
+        label: 'Customers',
+        href: '/dashboard/customers',
+        icon: 'Users',
+        description: 'Manage your customer base.',
+        roles: ['dispensary', 'owner'],
+      },
+      {
+        label: 'Segments',
+        href: '/dashboard/segments',
+        icon: 'PieChart',
+        description: 'Segment customers for targeted campaigns.',
+        roles: ['dispensary', 'owner'],
+      },
+      {
+        label: 'App Store',
+        href: '/dashboard/apps',
+        icon: 'Grid',
+        description: 'Connect integrations like Dutchie and Jane.',
         roles: ['dispensary', 'owner'],
       },
       // Owner-specific link
@@ -88,7 +132,7 @@ export function useDashboardConfig() {
         roles: ['owner'],
       },
       // This is not a primary nav item but needed for the settings page to have a description
-       {
+      {
         label: 'Account',
         href: '/account',
         icon: 'Settings',
@@ -99,10 +143,16 @@ export function useDashboardConfig() {
     ];
 
     // Filter links based on user's role
+    const normalizedRole = role ? role.toLowerCase() as Role : null;
+
     const filteredLinks = allLinks.filter(link => {
+      // Always show links with no role requirements
       if (!link.roles || link.roles.length === 0) return true;
-      if (!role) return false;
-      return link.roles.includes(role);
+
+      // If no role logic is active, hide restricted links
+      if (!normalizedRole) return false;
+
+      return link.roles.includes(normalizedRole);
     });
 
     // Mark active link

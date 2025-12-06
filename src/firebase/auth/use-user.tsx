@@ -31,7 +31,20 @@ export const useUser = () => {
           if (user) {
             const idTokenResult = await user.getIdTokenResult(true);
             const claims = idTokenResult.claims;
-            const userWithClaims = { ...user, ...claims } as any;
+            let userWithClaims = { ...user, ...claims } as any;
+
+            // --- CLIENT-SIDE ROLE SIMULATION ---
+            // Check if the user is an owner and if a simulation cookie exists
+            if (claims.role === 'owner') {
+              // We need to read the cookie. Since this is client-side, we can use document.cookie
+              const match = document.cookie.match(new RegExp('(^| )x-simulated-role=([^;]+)'));
+              const simulatedRole = match ? match[2] : null;
+
+              if (simulatedRole) {
+                userWithClaims = { ...userWithClaims, role: simulatedRole };
+              }
+            }
+
             setUser(userWithClaims);
 
             if (claims.favoriteRetailerId) {
