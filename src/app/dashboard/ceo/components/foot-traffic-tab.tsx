@@ -179,7 +179,16 @@ export default function FootTrafficTab() {
 
     // Initialize with empty or mock depending on mode, or useEffect to set
     const [geoZones, setGeoZones] = useState<GeoZone[]>([]);
-    const [metrics, setMetrics] = useState<FootTrafficMetrics | null>(null);
+    // Initialize with empty object to avoid null checks
+    const [metrics, setMetrics] = useState<FootTrafficMetrics>({
+        period: 'month',
+        startDate: new Date(),
+        endDate: new Date(),
+        seo: { totalPages: 0, totalPageViews: 0, topZipCodes: [] },
+        alerts: { configured: 0, triggered: 0, sent: 0, conversionRate: 0 },
+        offers: { active: 0, totalImpressions: 0, totalRedemptions: 0, revenueGenerated: 0 },
+        discovery: { searchesPerformed: 0, productsViewed: 0, retailerClicks: 0 },
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [isAddZoneOpen, setIsAddZoneOpen] = useState(false);
 
@@ -191,17 +200,7 @@ export default function FootTrafficTab() {
             // In live mode, we would fetch from Firestore
             // For now, we'll start empty to avoid showing fake data
             setGeoZones([]);
-            // Initialize with zeroed metrics for live mode if not fetching real yet
-            setMetrics({
-                period: 'month',
-                startDate: new Date(),
-                endDate: new Date(),
-                seo: { totalPages: 0, totalPageViews: 0, topZipCodes: [] },
-                alerts: { configured: 0, triggered: 0, sent: 0, conversionRate: 0 },
-                offers: { active: 0, totalImpressions: 0, totalRedemptions: 0, revenueGenerated: 0 },
-                discovery: { searchesPerformed: 0, productsViewed: 0, retailerClicks: 0 },
-            });
-            // TODO: Implement fetchGeoZones and fetchMetrics for real data
+            // Keep default empty metrics
         }
     }, [isMock]);
 

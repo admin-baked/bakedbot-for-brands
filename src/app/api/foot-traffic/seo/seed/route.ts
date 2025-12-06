@@ -126,8 +126,8 @@ export async function POST(request: NextRequest) {
             data: seoPageConfig
         });
 
-    } catch (error) {
-        logger.error('[SEO Seed] Error:', error);
+    } catch (error: any) {
+        logger.error('[SEO Seed] Error:', { error: error.message || error });
         return NextResponse.json(
             { error: 'Failed to seed SEO page' },
             { status: 500 }
