@@ -9,7 +9,7 @@ const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'orders@bakedbot.ai';
 const SENDGRID_BASE_URL = 'https://api.sendgrid.com/v3/mail/send';
 
-interface EmailOptions {
+export interface EmailOptions {
     to: string;
     subject: string;
     html: string;
@@ -80,6 +80,13 @@ export class EmailService {
       <p>We hope to see you again soon.</p>
     `;
         return this.sendEmail({ to: customerEmail, subject, html });
+    }
+
+    /**
+     * Send a custom email (public method for other services)
+     */
+    async sendCustomEmail(options: EmailOptions): Promise<boolean> {
+        return this.sendEmail(options);
     }
 }
 
