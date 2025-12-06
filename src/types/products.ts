@@ -38,6 +38,8 @@ export type Product = {
     brandId: string;
     retailerIds?: string[];
     sku_id?: string;
+    cost?: number; // COGS
+    wholesalePrice?: number; // Price sold to retailer
 };
 
 export type Retailer = {
