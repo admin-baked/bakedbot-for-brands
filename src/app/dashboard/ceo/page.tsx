@@ -14,6 +14,7 @@ import AISearchIndexTab from "./components/ai-search-index-tab";
 import CouponManagerTab from "./components/coupon-manager-tab";
 import AIAgentEmbedTab from "./components/ai-agent-embed-tab";
 import CannMenusTestTab from "./components/cannmenus-test-tab";
+import PlatformAnalyticsTab from "./components/platform-analytics-tab";
 import { useSuperAdmin } from '@/hooks/use-super-admin';
 import { Loader2, Shield, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -74,16 +75,20 @@ export default function CeoDashboardPage() {
             </div>
 
             {/* CEO Dashboard Tabs */}
-            <Tabs defaultValue="ai-agent-embed">
-                <TabsList className="grid w-full grid-cols-5">
+            <Tabs defaultValue="analytics">
+                <TabsList className="grid w-full grid-cols-6">
+                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
                     <TabsTrigger value="ai-agent-embed">AI Agent Embed</TabsTrigger>
                     <TabsTrigger value="data-manager">Data Manager</TabsTrigger>
-                    <TabsTrigger value="ai-search">AI Search Index</TabsTrigger>
-                    <TabsTrigger value="coupons">Coupon Manager</TabsTrigger>
-                    <TabsTrigger value="cannmenus">CannMenus Test</TabsTrigger>
+                    <TabsTrigger value="ai-search">AI Search</TabsTrigger>
+                    <TabsTrigger value="coupons">Coupons</TabsTrigger>
+                    <TabsTrigger value="cannmenus">CannMenus</TabsTrigger>
                 </TabsList>
                 <div className="mt-6">
                     <ClientOnly fallback={<div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+                        <TabsContent value="analytics" className="mt-0">
+                            <PlatformAnalyticsTab />
+                        </TabsContent>
                         <TabsContent value="ai-agent-embed" className="mt-0">
                             <AIAgentEmbedTab />
                         </TabsContent>
@@ -105,3 +110,4 @@ export default function CeoDashboardPage() {
         </div>
     );
 }
+
