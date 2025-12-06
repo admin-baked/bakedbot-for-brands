@@ -12,7 +12,7 @@ export type ActionResult = {
 
 export type EmbeddingActionResult = ActionResult & {
   processed?: number;
-  results?: string[]; // Added to fix type error
+  results?: { productId: string; status: string; }[]; // Updated to match component usage
 };
 
 export async function searchCannMenusRetailers(query: string): Promise<CannMenusResult[]> {
