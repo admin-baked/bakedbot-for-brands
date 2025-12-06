@@ -14,7 +14,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getRetailersByZipCode, getZipCodeCoordinates, discoverNearbyProducts } from '@/server/services/geo-discovery';
-import { RetailerSummary, LocalProduct } from '@/types/foot-traffic';
+import { RetailerSummary, LocalProduct, LocalSEOPage } from '@/types/foot-traffic';
+import { createServerClient } from '@/firebase/server-client';
 
 // Static params for ISR
 export const revalidate = 3600; // Revalidate every hour
@@ -177,6 +178,11 @@ export default async function LocalZipPage({ params }: PageProps) {
         notFound();
     }
 
+    // Check for seeded configuration in Firestore
+    const { firestore } = await createServerClient();
+    const seededDoc = await firestore.collection('foot_traffic').doc('config').collection('seo_pages').doc(zipCode).get();
+    const seededConfig = seededDoc.exists ? seededDoc.data() as LocalSEOPage : null;
+
     // Fetch data in parallel
     const [retailers, discoveryResult] = await Promise.all([
         getRetailersByZipCode(zipCode, 10),
@@ -189,7 +195,21 @@ export default async function LocalZipPage({ params }: PageProps) {
         }),
     ]);
 
-    const products = discoveryResult.products;
+    let products = discoveryResult.products;
+
+    // If seeded config exists and has a featured dispensary, prioritize it
+    if (seededConfig?.featuredDispensaryId) {
+        // Find products from the featured retailer
+        // Note: discoverNearbyProducts already returns products with availability.
+        // We can boost the score of products available at the featured dispensary.
+        products = products.map(p => {
+            const isAtFeatured = p.availability.some(a => a.retailerId === seededConfig.featuredDispensaryId);
+            if (isAtFeatured) {
+                return { ...p, footTrafficScore: 100 }; // Boost score to max
+            }
+            return p;
+        }).sort((a, b) => b.footTrafficScore - a.footTrafficScore);
+    }
 
     // Generate structured data
     const structuredData = generateStructuredData(zipCode, retailers, products);

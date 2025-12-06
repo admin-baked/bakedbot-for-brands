@@ -376,6 +376,10 @@ export interface LocalSEOPage {
     city: string;
     state: string;
 
+    // Featured Dispensary
+    featuredDispensaryId?: string;
+    featuredDispensaryName?: string;
+
     // Generated content
     content: {
         title: string;
