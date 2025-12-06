@@ -159,13 +159,7 @@ export function useDashboardConfig() {
         description: 'Segment customers for targeted campaigns.',
         roles: ['dispensary', 'owner'],
       },
-      {
-        label: 'App Store',
-        href: '/dashboard/apps',
-        icon: 'Grid',
-        description: 'Connect integrations like Dutchie and Jane.',
-        roles: ['dispensary', 'owner'],
-      },
+      // Duplicate App Store link removed
       // Owner-specific link
       {
         label: 'Admin Console',
