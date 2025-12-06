@@ -19,7 +19,8 @@ test.describe('Coupon Validation', () => {
     // Try an invalid coupon
     await page.fill('#coupon', 'INVALID');
     await page.getByRole('button', { name: /Apply|Remove/i }).click();
-    await expect(page.getByText(/Invalid Coupon|Invalid coupon code/i)).toBeVisible({ timeout: 5000 });
+    // The UI may render both a short and long message; assert at least one message is visible
+    await expect(page.getByText(/Invalid Coupon|Invalid coupon code/i).first()).toBeVisible({ timeout: 5000 });
 
     // NOTE: For a valid coupon test we depend on test data in Firestore.
     // If there's a known test coupon, place it here; otherwise this assertion is a smoke check.
