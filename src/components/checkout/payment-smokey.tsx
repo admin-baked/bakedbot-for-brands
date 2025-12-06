@@ -1,7 +1,10 @@
 // src/components/checkout/payment-smokey.tsx
 /**
- * SmokeyPay (CannPay) Payment Component
+ * Smokey Pay Payment Component
  * For Dispensary Orders (Cannabis)
+ *
+ * Internal Implementation: Powered by CannPay integration
+ * Customer-Facing Brand: Smokey Pay
  */
 
 import { useState } from 'react';
@@ -41,7 +44,7 @@ export function PaymentSmokey({ amount, onSuccess, onError }: PaymentSmokeyProps
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <Smartphone className="h-5 w-5 text-blue-600" />
-                    <CardTitle>SmokeyPay (CannPay)</CardTitle>
+                    <CardTitle>Smokey Pay</CardTitle>
                 </div>
                 <CardDescription>
                     Secure mobile payment for cannabis
@@ -52,7 +55,7 @@ export function PaymentSmokey({ amount, onSuccess, onError }: PaymentSmokeyProps
                     <QrCode className="h-6 w-6 text-blue-600 mt-1" />
                     <div className="text-sm text-blue-800">
                         <p className="font-medium">How it works:</p>
-                        <p>You'll receive a secure payment link via SMS or scan a QR code at pickup to complete your payment with CannPay.</p>
+                        <p>You'll receive a secure payment link via SMS or scan a QR code at pickup to complete your payment with Smokey Pay.</p>
                     </div>
                 </div>
 
@@ -65,12 +68,12 @@ export function PaymentSmokey({ amount, onSuccess, onError }: PaymentSmokeyProps
                     {loading ? (
                         <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Connecting to CannPay...
+                            Connecting to Smokey Pay...
                         </>
                     ) : (
                         <>
                             <ExternalLink className="h-4 w-4 mr-2" />
-                            Pay ${amount.toFixed(2)} with CannPay
+                            Pay ${amount.toFixed(2)} with Smokey Pay
                         </>
                     )}
                 </Button>
