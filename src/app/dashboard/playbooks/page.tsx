@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Search, Sparkles, Plus, Filter } from 'lucide-react';
 import { useUserRole } from '@/hooks/use-user-role';
+import { ActivityFeed } from './components/activity-feed';
+import { UsageMeter } from './components/usage-meter';
 
 type Playbook = {
   id: string;
@@ -95,29 +97,21 @@ export default function PlaybooksPage() {
         <p className="text-muted-foreground">Manage automation playbooks and workflows.</p>
       </div>
 
-      {/* Agent Builder Section */}
-      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-        <CardHeader>
-          <CardTitle className="text-xl">Build Your AI Agent Workforce</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-600" />
-              <Input
-                placeholder={getPlaceholder()}
-                className="pl-10 h-12 bg-white border-green-200 focus-visible:ring-green-500"
-              />
-            </div>
-            <Button className="h-12 bg-green-600 hover:bg-green-700 text-white px-6">
-              Create Agent
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    </CardContent>
+      </Card >
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+    {/* Activity & Usage Section */ }
+    < div className = "grid grid-cols-1 lg:grid-cols-3 gap-6" >
+        <div className="lg:col-span-2">
+            <ActivityFeed />
+        </div>
+        <div>
+            <UsageMeter />
+        </div>
+      </div >
+
+    {/* Filters */ }
+    < div className = "flex flex-col sm:flex-row gap-4 items-center justify-between" >
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -144,43 +138,45 @@ export default function PlaybooksPage() {
             Create Manually
           </Button>
         </div>
-      </div>
+      </div >
 
-      {/* Playbooks Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPlaybooks.map((playbook) => (
-          <Card key={playbook.id} className="flex flex-col">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${playbook.type === 'SIGNAL' ? 'text-green-600' : 'text-blue-600'
-                      }`}>
-                      {playbook.type}
-                    </span>
-                  </div>
-                  <CardTitle className="text-base font-bold leading-tight">
-                    {playbook.title}
-                  </CardTitle>
+    {/* Playbooks Grid */ }
+    < div className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" >
+    {
+      filteredPlaybooks.map((playbook) => (
+        <Card key={playbook.id} className="flex flex-col">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${playbook.type === 'SIGNAL' ? 'text-green-600' : 'text-blue-600'
+                    }`}>
+                    {playbook.type}
+                  </span>
                 </div>
-                <Switch checked={playbook.active} />
+                <CardTitle className="text-base font-bold leading-tight">
+                  {playbook.title}
+                </CardTitle>
               </div>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col justify-between gap-4">
-              <p className="text-sm text-muted-foreground">
-                {playbook.description}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {playbook.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs font-normal bg-muted/50 hover:bg-muted">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
+              <Switch checked={playbook.active} />
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              {playbook.description}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {playbook.tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="text-xs font-normal bg-muted/50 hover:bg-muted">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ))
+    }
+      </div >
+    </div >
   );
 }
