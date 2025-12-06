@@ -40,6 +40,65 @@ export const POST = withProtection(
             // 2️⃣ Analyze the natural language query with context
             const analysis = await analyzeQuery(query, conversationContext);
 
+            // 2.5️⃣ Handle Competitive Intelligence Requests (Ezal)
+            if (analysis.searchType === 'competitive') {
+                const { EzalAgent } = await import('@/server/services/ezal');
+                const params = analysis.competitiveParams || {};
+                let ezalResponse = "I couldn't process that competitive request.";
+
+                try {
+                    if (params.action === 'track_competitor' && params.targetName) {
+                        const locationParts = (params.targetLocation || '').split(',');
+                        const city = locationParts[0]?.trim() || 'Unknown';
+                        const state = locationParts[1]?.trim() || '';
+
+                        const result = await EzalAgent.trackCompetitor(
+                            brandId,
+                            {
+                                name: params.targetName,
+                                city: city,
+                                state: state,
+                                zip: '',
+                                menuUrl: `https://google.com/search?q=${encodeURIComponent(params.targetName + ' menu')}`
+                            }
+                        );
+                        ezalResponse = `✅ **Now Tracking: ${params.targetName}**\n\n${result.message}\n(Note: Please update the menu URL in the dashboard)`;
+                    } else if (params.action === 'get_insights') {
+                        const result = await EzalAgent.getInsights(brandId);
+                        if (result.count === 0) {
+                            ezalResponse = "No recent competitive insights found.";
+                        } else {
+                            ezalResponse = `**Recent Market Insights**\n\n${result.insights.slice(0, 5).map(i => `- ${i.type.replace('_', ' ')}: ${i.brand} (${i.severity})`).join('\n')}`;
+                        }
+                    } else if (params.action === 'check_price_gaps') {
+                        const result = await EzalAgent.findPriceGaps(brandId);
+                        if (result.count === 0) {
+                            ezalResponse = "No significant price gaps detected right now.";
+                        } else {
+                            ezalResponse = `**Price Gap Analysis**\n\nFound ${result.count} potential opportunities:\n${result.gaps.slice(0, 3).map((g: any) => `- ${g.product}: We are ${g.gap} higher`).join('\n')}`;
+                        }
+                    } else {
+                        ezalResponse = "I understand you want competitive intel, but I'm not sure which action to take. Try 'Track [Competitor]' or 'Show insights'.";
+                    }
+                } catch (error) {
+                    logger.error('Ezal Agent Error', { error });
+                    ezalResponse = "I encountered an error trying to access competitive data. Please check the system logs.";
+                }
+
+                // Save to session and return early
+                if (userId && currentSessionId) {
+                    await addMessageToSession(userId, currentSessionId, { role: 'user', content: query });
+                    await addMessageToSession(userId, currentSessionId, { role: 'assistant', content: ezalResponse });
+                }
+
+                return NextResponse.json({
+                    ok: true,
+                    message: ezalResponse,
+                    products: [],
+                    sessionId: currentSessionId,
+                });
+            }
+
             // 3️⃣ Use CannMenusService to fetch products directly
             const cannMenusService = new CannMenusService();
 

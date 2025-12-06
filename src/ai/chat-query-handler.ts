@@ -7,7 +7,7 @@ import { getSmokeyConfig } from '@/config/super-admin-smokey-config';
 
 // Schema for extracting search parameters from natural language queries
 const QueryAnalysisSchema = z.object({
-    searchType: z.enum(['semantic', 'keyword', 'filtered']).describe('The type of search to perform based on the query'),
+    searchType: z.enum(['semantic', 'keyword', 'filtered', 'competitive']).describe('The type of search or action to perform based on the query'),
     filters: z.object({
         priceMin: z.number().optional().describe('Minimum price filter extracted from query'),
         priceMax: z.number().optional().describe('Maximum price filter extracted from query'),
@@ -15,6 +15,11 @@ const QueryAnalysisSchema = z.object({
         effects: z.array(z.string()).optional().describe('Desired effects (e.g., "relaxing", "uplifting", "energizing")'),
         strainType: z.enum(['sativa', 'indica', 'hybrid']).optional().describe('Strain type if mentioned'),
     }),
+    competitiveParams: z.object({
+        action: z.enum(['track_competitor', 'get_insights', 'check_price_gaps', 'unknown']).optional(),
+        targetName: z.string().optional().describe('Name of the competitor to track or analyze'),
+        targetLocation: z.string().optional().describe('City or state of the competitor'),
+    }).optional().describe('Parameters for competitive intelligence actions'),
     searchQuery: z.string().describe('The refined search query to use for product search'),
     intent: z.string().describe('A brief description of what the user is looking for'),
 });
@@ -31,7 +36,7 @@ const analyzeQueryPrompt = ai.definePrompt({
         })
     },
     output: { schema: QueryAnalysisSchema },
-    prompt: `You are an AI assistant that analyzes cannabis product search queries.
+    prompt: `You are an AI assistant that analyzes cannabis product search queries and competitive intelligence requests.
 
 {{#if context}}
 Previous conversation context:
@@ -40,7 +45,7 @@ Previous conversation context:
 Use this context to better understand the current query and maintain conversation continuity.
 {{/if}}
 
-Your task is to extract search parameters from the user's natural language query.
+Your task is to extract search parameters or action intents from the user's natural language query.
 
 User Query: {{{query}}}
 
@@ -49,21 +54,28 @@ Extract the following information:
    - "semantic": Complex query about effects, feelings, or experiences (e.g., "something to help me relax")
    - "keyword": Simple product name or brand search (e.g., "Blue Dream")
    - "filtered": Query with specific filters like price or category (e.g., "edibles under $20")
+   - "competitive": Requests to track competitors, check prices, or get market insights (e.g., "Track Green Dragon", "Who has cheaper gummies?")
 
-2. **filters**: Extract any mentioned:
-   - Price range (priceMin, priceMax)
-   - Category (Edibles, Flower, Vape, Pre-Rolls, Concentrates, etc.)
-   - Effects (relaxing, uplifting, energizing, creative, sleepy, etc.)
-   - Strain type (sativa, indica, hybrid)
+2. **filters** (for product search): Extract any mentioned:
+   - Price range, Category, Effects, Strain type
 
-3. **searchQuery**: Create a refined search query that captures the essence of what they're looking for
+3. **competitiveParams** (for "competitive" type):
+   - **action**:
+     - "track_competitor": Add a new competitor (e.g., "Start tracking Star Buds in Denver")
+     - "get_insights": General news/changes (e.g., "What's new with competitors?", "Any price drops?")
+     - "check_price_gaps": Specific price comparisons (e.g., "Am I overpriced on Wyld?", "Price check vs Lightshade")
+   - **targetName**: The competitor name mentioned
+   - **targetLocation**: The city/state mentioned
 
-4. **intent**: Briefly describe what the user wants
+4. **searchQuery**: Create a refined search query (for product search) or a summary of the action (for competitive)
+
+5. **intent**: Briefly describe what the user wants in natural language
 
 Examples:
-- "Show me uplifting sativa gummies under $25" → searchType: filtered, filters: {priceMax: 25, category: "Edibles", effects: ["uplifting"], strainType: "sativa"}
-- "something to help me sleep" → searchType: semantic, filters: {effects: ["relaxing", "sleepy"]}, searchQuery: "relaxing sleep aid"
-- "Blue Dream flower" → searchType: keyword, searchQuery: "Blue Dream", filters: {category: "Flower"}
+- "Show me uplifting sativa gummies under $25" → searchType: filtered, filters: {priceMax: 25, ...}
+- "Track Green Dragon in Denver" → searchType: competitive, competitiveParams: {action: "track_competitor", targetName: "Green Dragon", targetLocation: "Denver"}
+- "Are my prices higher than Lightshade?" → searchType: competitive, competitiveParams: {action: "check_price_gaps", targetName: "Lightshade"}
+- "What's happening in the market?" → searchType: competitive, competitiveParams: {action: "get_insights"}
 `,
     model: 'googleai/gemini-2.5-flash',
 });

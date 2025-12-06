@@ -19,6 +19,7 @@ import TicketsTab from "./components/tickets-tab";
 import FootTrafficTab from "./components/foot-traffic-tab";
 import SuperAdminAgentChat from "./components/super-admin-agent-chat";
 import SuperAdminPlaybooksTab from "./components/super-admin-playbooks-tab";
+import EzalTab from "./components/ezal-tab";
 import { useSuperAdmin } from '@/hooks/use-super-admin';
 import { Loader2, Shield, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -80,8 +81,9 @@ export default function CeoDashboardPage() {
 
             {/* CEO Dashboard Tabs */}
             <Tabs defaultValue="agent-chat">
-                <TabsList className="grid w-full grid-cols-10">
+                <TabsList className="grid w-full grid-cols-11">
                     <TabsTrigger value="agent-chat" className="font-semibold">🤖 Agent Chat</TabsTrigger>
+                    <TabsTrigger value="ezal" className="font-semibold">🕵️‍♀️ Ezal</TabsTrigger>
                     <TabsTrigger value="playbooks" className="font-semibold">📋 Playbooks</TabsTrigger>
                     <TabsTrigger value="analytics">Analytics</TabsTrigger>
                     <TabsTrigger value="foot-traffic">Foot Traffic</TabsTrigger>
@@ -96,6 +98,9 @@ export default function CeoDashboardPage() {
                     <ClientOnly fallback={<div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
                         <TabsContent value="agent-chat" className="mt-0">
                             <SuperAdminAgentChat />
+                        </TabsContent>
+                        <TabsContent value="ezal" className="mt-0">
+                            <EzalTab />
                         </TabsContent>
                         <TabsContent value="playbooks" className="mt-0">
                             <SuperAdminPlaybooksTab />
