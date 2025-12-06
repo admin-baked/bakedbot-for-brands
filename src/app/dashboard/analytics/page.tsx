@@ -42,7 +42,10 @@ export default async function DashboardAnalyticsPage() {
       affinityPairs: [],
       dailyStats: [],
       conversionFunnel: [],
-      channelPerformance: []
+      channelPerformance: [],
+      repeatCustomerRate: 0,
+      churnRate: 0,
+      cohorts: []
     }} />;
   }
 
@@ -61,7 +64,10 @@ export default async function DashboardAnalyticsPage() {
       affinityPairs: [],
       dailyStats: [],
       conversionFunnel: [],
-      channelPerformance: []
+      channelPerformance: [],
+      repeatCustomerRate: 0,
+      churnRate: 0,
+      cohorts: []
     };
   }
 

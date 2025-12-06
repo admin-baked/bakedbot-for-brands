@@ -1,6 +1,7 @@
 import { requireUser } from '@/server/auth/auth';
 import { redirect } from 'next/navigation';
-import { getCustomers, type CustomerSegment } from './actions';
+import { getCustomers } from './actions';
+import { CustomerSegment } from '@/types/customers';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';

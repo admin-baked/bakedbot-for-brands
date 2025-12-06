@@ -23,6 +23,9 @@ const DescriptionFormSchema = z.object({
   msrp: z.string().optional(),
   imageUrl: z.string().optional(),
   productId: z.string().optional(),
+  terpenes: z.string().optional(),
+  effects: z.string().optional(),
+  lineage: z.string().optional(),
 });
 
 export type DescriptionFormState = {
@@ -163,6 +166,38 @@ export async function summarizeProductReviews(prevState: ReviewSummaryFormState,
     return { message: "Summary generated.", data: summary, error: false };
   } catch (e: any) {
     return { message: `An error occurred: ${e.message}`, data: null, error: true };
+  }
+}
+
+// --- SEO Generation ---
+
+import { generateSEOMetadata, GenerateSEOMetadataInput, GenerateSEOMetadataOutput } from '@/ai/flows/generate-seo-metadata';
+
+const SEOFormSchema = z.object({
+  productName: z.string().min(1),
+  description: z.string().min(10),
+  category: z.string().default('Cannabis'),
+  brandName: z.string().default('Baked Brands'),
+  keywords: z.string().optional(),
+});
+
+export type SEOFormState = {
+  message: string;
+  data: GenerateSEOMetadataOutput | null;
+  error: boolean;
+};
+
+export async function generateSEOAction(prevState: SEOFormState, formData: FormData): Promise<SEOFormState> {
+  const validatedFields = SEOFormSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!validatedFields.success) {
+    return { message: 'Invalid inputs for SEO', data: null, error: true };
+  }
+
+  try {
+    const result = await generateSEOMetadata(validatedFields.data as GenerateSEOMetadataInput);
+    return { message: 'SEO Metadata Generated', data: result, error: false };
+  } catch (e: any) {
+    return { message: `SEO Gen Failed: ${e.message}`, data: null, error: true };
   }
 }
 

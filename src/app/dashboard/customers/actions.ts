@@ -3,19 +3,7 @@
 import { createServerClient } from '@/firebase/server-client';
 import { orderConverter, type OrderDoc } from '@/firebase/converters';
 import { requireUser } from '@/server/auth/auth';
-
-export type CustomerSegment = 'VIP' | 'Loyal' | 'New' | 'Slipping' | 'Risk' | 'Churned';
-
-export interface CustomerProfile {
-    id: string; // Email as ID for aggregation
-    name: string;
-    email: string;
-    phone?: string;
-    visits: number;
-    lastVisit: string; // ISO date
-    totalSpent: number;
-    segment: CustomerSegment;
-}
+import { CustomerProfile, CustomerSegment } from '@/types/customers';
 
 export interface CustomersData {
     customers: CustomerProfile[];
@@ -77,7 +65,10 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
                 visits: 1,
                 lastVisit: orderDate.toISOString(),
                 totalSpent: orderTotal,
-                segment: 'New' // Default, will recalculate
+                segment: 'New', // Default, will recalculate
+                tier: 'Bronze', // Default
+                points: 0,
+                lifetimeValue: 0
             });
         }
     });
@@ -91,8 +82,8 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
         const lastVisitDate = new Date(c.lastVisit);
         const daysSinceVisit = Math.floor((now.getTime() - lastVisitDate.getTime()) / (1000 * 3600 * 24));
 
+        // Segment Logic
         let segment: CustomerSegment = 'Loyal';
-
         if (c.totalSpent > 500 || c.visits >= 5) {
             segment = 'VIP';
         } else if (c.visits === 1 && daysSinceVisit < 30) {
@@ -105,8 +96,19 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
             segment = 'Slipping';
         }
 
-        // Update segment in object
+        // Tier Logic
+        let tier = 'Bronze';
+        if (c.totalSpent > 2000) tier = 'Gold';
+        else if (c.totalSpent > 500) tier = 'Silver';
+
+        // Points (Simple 1x calculation for now, in real app fetch settings)
+        const points = Math.floor(c.totalSpent);
+
+        // Update object
         c.segment = segment;
+        c.tier = tier;
+        c.points = points;
+        c.lifetimeValue = c.totalSpent; // CLTV simplified for now
 
         // Update Stats
         if (segment === 'VIP') vipCount++;

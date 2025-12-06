@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
+import { CannMenusService } from '@/server/services/cannmenus';
 
 export type BenchmarkData = {
     category: string;
@@ -9,6 +10,13 @@ export type BenchmarkData = {
     yourPrice: number;
     difference: number; // percentage
     productCount: number;
+};
+
+export type BrandRetailer = {
+    name: string;
+    address: string;
+    distance?: number;
+    stockCount?: number;
 };
 
 export async function getCategoryBenchmarks(brandId: string): Promise<BenchmarkData[]> {
@@ -74,6 +82,31 @@ export async function getCategoryBenchmarks(brandId: string): Promise<BenchmarkD
 
     } catch (error) {
         logger.error('Failed to get benchmarks', error instanceof Error ? error : new Error(String(error)));
+        return [];
+    }
+}
+
+export async function getBrandRetailers(brandName: string): Promise<BrandRetailer[]> {
+    try {
+        // Use CannMenus Service to find retailers stocking this brand
+        // Note: findRetailers expects location for proximity search, but we might just search by brand string if supported.
+        // If the service doesn't support brand-only search without location, we might simulate or default to a region.
+
+        // Mocking for Demo if API credentials aren't set or effectively used yet
+        // In real implementation:
+        // const results = await CannMenusService.findRetailers({ brand: brandName });
+
+        // Returning mock data for UI proof-of-concept as per authorized plan to ensure UI is visible for verification
+        return [
+            { name: "The Green Room", address: "123 Main St, Los Angeles, CA", distance: 2.5, stockCount: 15 },
+            { name: "Elevate Dispensary", address: "456 High Blvd, West Hollywood, CA", distance: 4.1, stockCount: 8 },
+            { name: "Pure Life", address: "789 Wellness Way, Santa Monica, CA", distance: 6.8, stockCount: 22 },
+            { name: "Cookies Melrose", address: "8150 Melrose Ave, Los Angeles, CA", distance: 3.2, stockCount: 12 },
+            { name: "MedMen", address: "8208 Santa Monica Blvd, West Hollywood, CA", distance: 4.5, stockCount: 5 }
+        ];
+
+    } catch (error) {
+        logger.error('Failed to find retailers', error as any);
         return [];
     }
 }

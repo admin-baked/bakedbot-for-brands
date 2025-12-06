@@ -9,8 +9,8 @@
  * - GenerateProductDescriptionOutput - The return type for the generateProductDescription function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'zod';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 
 const GenerateProductDescriptionInputSchema = z.object({
   productName: z.string().describe('The name of the product.'),
@@ -18,7 +18,12 @@ const GenerateProductDescriptionInputSchema = z.object({
   keywords: z.string().describe('Keywords to include in the description.'),
   brandVoice: z.string().describe('The brand voice for the description (e.g., Playful, Professional).'),
   msrp: z.string().optional().describe("The manufacturer's suggested retail price."),
-  imageUrl: z.string().optional().describe("A URL to an image of the product packaging, as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
+  imageUrl: z.string().optional().describe("A URL to an image of the product packaging, as a data URI."),
+
+  // New Taxonomy Fields
+  terpenes: z.string().optional().describe('Comma-separated list of dominant terpenes (e.g. Myrcene, Limonene).'),
+  effects: z.string().optional().describe('Comma-separated list of desired effects (e.g. Relaxed, Happy).'),
+  lineage: z.string().optional().describe('Strain lineage information (e.g. Blue Dream x GSC).'),
 });
 
 export type GenerateProductDescriptionInput = z.infer<typeof GenerateProductDescriptionInputSchema>;
@@ -38,13 +43,13 @@ export async function generateProductDescription(input: GenerateProductDescripti
 
 const prompt = ai.definePrompt({
   name: 'generateProductDescriptionPrompt',
-  input: {schema: GenerateProductDescriptionInputSchema},
-  output: {schema: GenerateProductDescriptionOutputSchema},
+  input: { schema: GenerateProductDescriptionInputSchema },
+  output: { schema: GenerateProductDescriptionOutputSchema },
   prompt: `You are a world-class copywriter specializing in cannabis product descriptions. Your SOLE function is to generate a compelling product description based on the provided details.
 
   **IMPORTANT COMPLIANCE RULES:**
   1. You MUST NOT make any medical claims. Do not use words like "diagnose," "treat," "cure," or "prevent."
-  2. You MUST refuse any request that is not about generating a product description. If the user's input in the fields below seems to be asking for a translation, a summary of a different topic, a poem, or any other task, you MUST reply with: "I can only generate product descriptions. Please provide product details."
+  2. You MUST refuse any request that is not about generating a product description.
 
   Generate a product description for the following product:
   - Product Name: {{{productName}}}
@@ -52,16 +57,24 @@ const prompt = ai.definePrompt({
   - Keywords: {{{keywords}}}
   - Brand Voice: {{{brandVoice}}}
   - MSRP: {{{msrp}}}
+  {{#if lineage}}
+  - Lineage: {{{lineage}}}
+  {{/if}}
+  {{#if terpenes}}
+  - Terpenes: {{{terpenes}}} (Highlight their aroma/flavor and associated vibes)
+  {{/if}}
+  {{#if effects}}
+  - Desired Effects: {{{effects}}} (Describe the experience vividly but compliantly)
+  {{/if}}
   {{#if imageUrl}}
   - Product Packaging Image: {{media url=imageUrl}}
   {{/if}}
 
-  The description should be engaging, informative, and persuasive, providing value to the customer.
-  Use the Product Packaging Image to inform details about the product's appearance, size, or form factor if relevant.
+  The description should be engaging, informative, and persuasive.
+  Integrate the chemistry details (terpenes/lineage) naturally into the narrative to explain the experience.
   Include relevant keywords to improve search engine optimization.
-  The output should be just the product description, not the title.
+  The output should be just the product description.
   Ensure the content is accurate and follows all compliance rules.
-  Your output should include the original product name, MSRP, and image URL.
 `,
 });
 
@@ -72,7 +85,7 @@ const generateProductDescriptionFlow = ai.defineFlow(
     outputSchema: GenerateProductDescriptionOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const { output } = await prompt(input);
     return output!;
   }
 );
