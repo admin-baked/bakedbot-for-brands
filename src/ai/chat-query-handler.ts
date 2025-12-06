@@ -7,7 +7,7 @@ import { getSmokeyConfig } from '@/config/super-admin-smokey-config';
 
 // Schema for extracting search parameters from natural language queries
 const QueryAnalysisSchema = z.object({
-    searchType: z.enum(['semantic', 'keyword', 'filtered', 'competitive']).describe('The type of search or action to perform based on the query'),
+    searchType: z.enum(['semantic', 'keyword', 'filtered', 'competitive', 'marketing', 'compliance', 'analytics']).describe('The type of search or action to perform based on the query'),
     filters: z.object({
         priceMin: z.number().optional().describe('Minimum price filter extracted from query'),
         priceMax: z.number().optional().describe('Maximum price filter extracted from query'),
@@ -19,7 +19,22 @@ const QueryAnalysisSchema = z.object({
         action: z.enum(['track_competitor', 'get_insights', 'check_price_gaps', 'unknown']).optional(),
         targetName: z.string().optional().describe('Name of the competitor to track or analyze'),
         targetLocation: z.string().optional().describe('City or state of the competitor'),
-    }).optional().describe('Parameters for competitive intelligence actions'),
+    }).optional().describe('Parameters for competitive intelligence actions (Ezal)'),
+    marketingParams: z.object({
+        action: z.enum(['create_campaign', 'draft_email', 'segment_users', 'unknown']).optional(),
+        topic: z.string().optional().describe('Topic of the campaign or email'),
+        audience: z.string().optional().describe('Target audience'),
+    }).optional().describe('Parameters for marketing actions (Craig)'),
+    complianceParams: z.object({
+        action: z.enum(['check_product', 'audit_page', 'check_regulation']).optional(),
+        target: z.string().optional().describe('Product or page to check'),
+        state: z.string().optional().describe('Jurisdiction state'),
+    }).optional().describe('Parameters for compliance actions (Deebo)'),
+    analyticsParams: z.object({
+        action: z.enum(['forecast_sales', 'analyze_cohort', 'get_report']).optional(),
+        metric: z.string().optional().describe('Metric to analyze (e.g., sales, retention)'),
+        timeframe: z.string().optional().describe('Timeframe for analysis'),
+    }).optional().describe('Parameters for analytics actions (Pops)'),
     searchQuery: z.string().describe('The refined search query to use for product search'),
     intent: z.string().describe('A brief description of what the user is looking for'),
 });
@@ -36,7 +51,7 @@ const analyzeQueryPrompt = ai.definePrompt({
         })
     },
     output: { schema: QueryAnalysisSchema },
-    prompt: `You are an AI assistant that analyzes cannabis product search queries and competitive intelligence requests.
+    prompt: `You are an AI assistant that analyzes cannabis product search queries and specialized agent requests.
 
 {{#if context}}
 Previous conversation context:
@@ -54,28 +69,39 @@ Extract the following information:
    - "semantic": Complex query about effects, feelings, or experiences (e.g., "something to help me relax")
    - "keyword": Simple product name or brand search (e.g., "Blue Dream")
    - "filtered": Query with specific filters like price or category (e.g., "edibles under $20")
-   - "competitive": Requests to track competitors, check prices, or get market insights (e.g., "Track Green Dragon", "Who has cheaper gummies?")
+   - "competitive": Requests to track competitors, check prices, or get market insights (e.g., "Track Green Dragon", "Who has cheaper gummies?") [Ezal Agent]
+   - "marketing": Requests to create campaigns, emails, or SMS (e.g., "Draft a 4/20 email", "Send a promo to VIPs") [Craig Agent]
+   - "compliance": Requests to check laws, audit labels, or verify regulations (e.g., "Is 100mg THC legal in CA?", "Check this label") [Deebo Agent]
+   - "analytics": Requests for sales data, forecasts, or cohorts (e.g., "Forecast next month's sales", "What is my CLV?") [Pops Agent]
 
-2. **filters** (for product search): Extract any mentioned:
-   - Price range, Category, Effects, Strain type
+2. **filters** (for product search): Extract any mentioned Price range, Category, Effects, Strain type.
 
-3. **competitiveParams** (for "competitive" type):
-   - **action**:
-     - "track_competitor": Add a new competitor (e.g., "Start tracking Star Buds in Denver")
-     - "get_insights": General news/changes (e.g., "What's new with competitors?", "Any price drops?")
-     - "check_price_gaps": Specific price comparisons (e.g., "Am I overpriced on Wyld?", "Price check vs Lightshade")
-   - **targetName**: The competitor name mentioned
-   - **targetLocation**: The city/state mentioned
+3. **competitiveParams** (Ezal):
+   - action: track_competitor, get_insights, check_price_gaps
+   - targetName, targetLocation
 
-4. **searchQuery**: Create a refined search query (for product search) or a summary of the action (for competitive)
+4. **marketingParams** (Craig):
+   - action: create_campaign, draft_email, segment_users
+   - topic (e.g. "summer sale"), audience (e.g. "churned users")
 
-5. **intent**: Briefly describe what the user wants in natural language
+5. **complianceParams** (Deebo):
+   - action: check_product, audit_page, check_regulation
+   - target (e.g. "packaging"), state (e.g. "California")
+
+6. **analyticsParams** (Pops):
+   - action: forecast_sales, analyze_cohort, get_report
+   - metric (e.g. "sales"), timeframe (e.g. "Q4")
+
+7. **searchQuery**: Create a refined search query or summary.
+
+8. **intent**: Briefly describe user intent.
 
 Examples:
 - "Show me uplifting sativa gummies under $25" → searchType: filtered, filters: {priceMax: 25, ...}
-- "Track Green Dragon in Denver" → searchType: competitive, competitiveParams: {action: "track_competitor", targetName: "Green Dragon", targetLocation: "Denver"}
-- "Are my prices higher than Lightshade?" → searchType: competitive, competitiveParams: {action: "check_price_gaps", targetName: "Lightshade"}
-- "What's happening in the market?" → searchType: competitive, competitiveParams: {action: "get_insights"}
+- "Track Green Dragon in Denver" → searchType: competitive, competitiveParams: {action: "track_competitor", ...}
+- "Draft an email about our new concentrates drop" → searchType: marketing, marketingParams: {action: "draft_email", topic: "new concentrates drop"}
+- "Is it legal to sell delta-8 in NY?" → searchType: compliance, complianceParams: {action: "check_regulation", state: "NY"}
+- "Predict sales for next month" → searchType: analytics, analyticsParams: {action: "forecast_sales", timeframe: "next month"}
 `,
     model: 'googleai/gemini-2.5-flash',
 });
