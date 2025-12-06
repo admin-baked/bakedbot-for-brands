@@ -58,6 +58,7 @@ const ChatWindow = ({
   clearContext,
   strategy = 'fixed',
   startClassName,
+  isSuperAdmin = false,
 }: {
   products: Product[];
   onAskSmokey: (product: Product) => void;
@@ -77,15 +78,17 @@ const ChatWindow = ({
   onFeedback: (productId: string, type: 'like' | 'dislike') => void;
   onAddToCart: (product: Product) => void;
   clearContext: () => void;
-  strategy?: 'fixed' | 'absolute';
+  strategy?: 'fixed' | 'absolute' | 'relative';
   startClassName?: string;
+  isSuperAdmin?: boolean;
 }) => {
   const { chatExperience } = useStore();
 
   return (
     <div data-testid="chat-window" className={cn(
-      strategy === 'fixed' ? "fixed bottom-24 right-6" : "absolute bottom-24 right-6",
-      "z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-popover border animate-in fade-in-50 slide-in-from-bottom-10 duration-300",
+      strategy === 'fixed' ? "fixed bottom-24 right-6" : strategy === 'absolute' ? "absolute bottom-24 right-6" : "relative w-full h-full shadow-sm",
+      "z-50 max-w-sm rounded-lg shadow-2xl bg-popover border animate-in fade-in-50 slide-in-from-bottom-10 duration-300",
+      strategy === 'relative' ? "max-w-none shadow-none border-0" : "",
       startClassName
     )}>
       <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
@@ -194,12 +197,13 @@ type ChatbotProps = {
   products?: Product[];
   brandId?: string;
   initialOpen?: boolean;
-  positionStrategy?: 'fixed' | 'absolute';
+  positionStrategy?: 'fixed' | 'absolute' | 'relative';
   className?: string; // For the trigger button container
   windowClassName?: string; // For the chat window
+  isSuperAdmin?: boolean; // New prop for Super Admin mode
 };
 
-export default function Chatbot({ products = [], brandId = "", initialOpen = false, positionStrategy = 'fixed', className, windowClassName }: ChatbotProps) {
+export default function Chatbot({ products = [], brandId = "", initialOpen = false, positionStrategy = 'fixed', className, windowClassName, isSuperAdmin = false }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
@@ -329,16 +333,24 @@ export default function Chatbot({ products = [], brandId = "", initialOpen = fal
 
     try {
       // Call the chat API endpoint
+      const payload: any = {
+        query: currentQuery,
+        userId,
+        sessionId,
+        brandId: brandId || '10982',
+        state: 'Illinois',
+      };
+
+      if (isSuperAdmin) {
+        payload.isSuperAdmin = true;
+        payload.context = 'internal';
+        // Override brandId if needed for internal context, but keeping it flexible
+      }
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: currentQuery,
-          userId,
-          sessionId,
-          brandId: brandId || '10982',
-          state: 'Illinois',
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
