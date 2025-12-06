@@ -64,11 +64,19 @@ export async function addDispensary(dispensary: any) {
     const { firestore } = await createServerClient();
     const partnersRef = firestore.collection('organizations').doc(brandId).collection('partners');
 
-    await partnersRef.doc(dispensary.id).set({
-        ...dispensary,
-        addedAt: new Date().toISOString(),
-        status: 'active'
-    });
+    if (dispensary.id) {
+        await partnersRef.doc(dispensary.id).set({
+            ...dispensary,
+            addedAt: new Date().toISOString(),
+            status: 'active'
+        });
+    } else {
+        await partnersRef.add({
+            ...dispensary,
+            addedAt: new Date().toISOString(),
+            status: 'active'
+        });
+    }
 
     return { success: true };
 }
