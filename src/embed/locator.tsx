@@ -5,18 +5,8 @@ import DispensaryLocator from '@/components/dispensary-locator';
 import '@/app/globals.css';
 import './embed.css';
 
-// Reuse the config interface but we mainly need brandId here
-interface BakedBotConfig {
-    brandId?: string;
-    primaryColor?: string;
-    // ... potentially other config
-}
-
-declare global {
-    interface Window {
-        BakedBotConfig?: BakedBotConfig;
-    }
-}
+import { BakedBotConfig } from '@/types/embed';
+import '@/types/embed';
 
 function LocatorEmbedRoot() {
     const config = window.BakedBotConfig || {};

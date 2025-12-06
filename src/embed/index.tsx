@@ -5,21 +5,10 @@ import Chatbot from '@/components/chatbot';
 import '@/app/globals.css'; // Import global styles for the embed
 import './embed.css'; // Import embed-specific styles
 
-// Define the configuration interface
-interface BakedBotConfig {
-    brandId?: string;
-    cannMenusId?: string;
-    customerName?: string;
-    primaryColor?: string;
-    greeting?: string;
-    position?: 'bottom-right' | 'bottom-left';
-}
+import { BakedBotConfig } from '@/types/embed';
 
-declare global {
-    interface Window {
-        BakedBotConfig?: BakedBotConfig;
-    }
-}
+// We import the global declaration for side effects (Window extension)
+import '@/types/embed';
 
 // Function to initialize the chatbot
 function initBakedBot() {
