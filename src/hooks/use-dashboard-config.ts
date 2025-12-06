@@ -109,10 +109,10 @@ export function useDashboardConfig() {
         roles: ['brand', 'owner'],
       },
       {
-        label: 'Integrations',
-        href: '/dashboard/integrations',
-        icon: 'Link', // Or 'Plug' if available, 'Link' is safe
-        description: 'Connect POS (Dutchie, Jane) and other tools.',
+        label: 'App Store',
+        href: '/dashboard/apps',
+        icon: 'LayoutGrid',
+        description: 'Manage POS and marketing integrations.',
         roles: ['brand', 'owner', 'dispensary'],
       },
       // Shared Commerce & E-com
