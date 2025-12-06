@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Send, ChevronDown, Sparkles, Loader2, Play, CheckCircle2, Bot, CalendarClock, Target, Laptop, Monitor, MousePointer2 } from 'lucide-react';
+import { Paperclip, Send, ChevronDown, Sparkles, Loader2, Play, CheckCircle2, Bot, CalendarClock, Target, Laptop, Monitor, MousePointer2, Save, FileCode, Copy, Download, Key } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import {
     DropdownMenu,
@@ -20,6 +20,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 export type MessageType = 'user' | 'agent';
 export type ToolCallStatus = 'running' | 'completed' | 'failed';
+export type ArtifactType = 'code' | 'yaml' | 'file' | 'table';
+
+export interface ChatArtifact {
+    id: string;
+    type: ArtifactType;
+    title: string;
+    content: string;
+    language?: string;
+}
 
 export interface ToolCallStep {
     id: string;
@@ -30,6 +39,8 @@ export interface ToolCallStep {
     description: string;
     subagentId?: string;
     isComputerUse?: boolean;
+    requiresPermission?: boolean;
+    permissionType?: 'login' | 'download';
 }
 
 export interface AgentThinking {
@@ -45,11 +56,68 @@ export interface ChatMessage {
     thinking?: AgentThinking;
     timestamp: Date;
     attachments?: string[];
+    artifact?: ChatArtifact;
+    canSaveAsPlaybook?: boolean;
 }
 
 export type ThinkingLevel = 'standard' | 'advanced' | 'expert' | 'genius';
 
-// --- Components ---
+// --- Artifact Components ---
+
+function YamlArtifact({ artifact }: { artifact: ChatArtifact }) {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(artifact.content);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div className="mt-3 rounded-lg border border-border bg-slate-900 overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border-b border-slate-700">
+                <div className="flex items-center gap-2">
+                    <FileCode className="h-4 w-4 text-green-400" />
+                    <span className="text-sm text-slate-300 font-medium">{artifact.title}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-slate-400 hover:text-white" onClick={handleCopy}>
+                        {copied ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-slate-400 hover:text-white">
+                        <Download className="h-3.5 w-3.5" />
+                    </Button>
+                </div>
+            </div>
+            <pre className="p-3 text-xs text-green-300 font-mono overflow-x-auto max-h-48">
+                <code>{artifact.content}</code>
+            </pre>
+        </div>
+    );
+}
+
+function PermissionPrompt({ step, onApprove, onDeny }: { step: ToolCallStep, onApprove: () => void, onDeny: () => void }) {
+    return (
+        <div className="mt-2 p-3 rounded-lg border border-yellow-500/50 bg-yellow-500/10">
+            <div className="flex items-start gap-3">
+                <Key className="h-5 w-5 text-yellow-500 mt-0.5" />
+                <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">Permission Required</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        {step.permissionType === 'login' ? 'Agent wants to log into a website using saved credentials.' : 'Agent wants to download a file from this site.'}
+                    </p>
+                    <div className="flex gap-2 mt-3">
+                        <Button size="sm" variant="outline" onClick={onDeny}>Deny</Button>
+                        <Button size="sm" onClick={onApprove}>Allow</Button>
+                        <Button size="sm" variant="ghost" className="text-xs">Always Allow</Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- Core Components ---
 
 function ComputerUseBlock({ step }: { step: ToolCallStep }) {
     return (
@@ -178,32 +246,57 @@ export function AgentChat() {
         let plan: string[] = [];
         let steps: ToolCallStep[] = [];
         let responseText = "";
+        let artifact: ChatArtifact | undefined;
+        let canSaveAsPlaybook = false;
 
         if (lowerInput.includes('login') || lowerInput.includes('computer') || lowerInput.includes('browser')) {
             plan = ['Launch Remote Browser Session', 'Navigate to Target Site', 'Perform Login Sequence', 'Extract Data'];
             steps = [
-                { id: 't1', toolName: 'computer_use.launch', description: 'Initializing secure browser...', status: 'completed', durationMs: 1200, isComputerUse: true },
-                { id: 't2', toolName: 'computer_use.interact', description: 'Navigating to portal.login...', status: 'completed', durationMs: 2500, isComputerUse: true },
-                { id: 't3', toolName: 'computer_use.type', description: 'Typing credentials for user...', status: 'completed', durationMs: 800, isComputerUse: true }
+                { id: 't1', toolName: 'vault.getCredential', description: 'Retrieving saved credentials...', status: 'completed', durationMs: 200 },
+                { id: 't2', toolName: 'computer_use.launch', description: 'Initializing secure browser...', status: 'completed', durationMs: 1200, isComputerUse: true },
+                { id: 't3', toolName: 'computer_use.interact', description: 'Navigating to portal...', status: 'completed', durationMs: 2500, isComputerUse: true },
+                { id: 't4', toolName: 'computer_use.type', description: 'Typing credentials...', status: 'completed', durationMs: 800, isComputerUse: true }
             ];
-            responseText = "I've successfully logged into the portal and extracted the latest report. I saved the session credentials to your Keychain for future use.";
-        } else if (lowerInput.includes('connect') || lowerInput.includes('mcp') || lowerInput.includes('stripe')) {
-            const toolName = lowerInput.includes('stripe') ? 'Stripe' : 'MCP Server';
-            plan = [`Connect to ${toolName} API`, 'Authenticate via OAuth', 'Install App Store Integration', 'Register Webhooks'];
+            responseText = "I've logged in and extracted the report. Credentials saved to your **Secure Vault** for future use.";
+            canSaveAsPlaybook = true;
+        } else if (lowerInput.includes('automate') || lowerInput.includes('schedule') || lowerInput.includes('every')) {
+            plan = ['Parse Automation Request', 'Generate Playbook YAML', 'Save to Playbooks'];
             steps = [
-                { id: 't1', toolName: 'mcp.connect', description: `Handshaking with ${toolName}...`, status: 'completed', durationMs: 450 },
-                { id: 't2', toolName: 'app.install', description: `Installing '${toolName} Integration' to App Store...`, status: 'completed', durationMs: 1100 }
+                { id: 't1', toolName: 'planner', description: 'Parsing request...', status: 'completed', durationMs: 300 },
+                { id: 't2', toolName: 'yaml.generate', description: 'Generating playbook...', status: 'completed', durationMs: 500 }
             ];
-            responseText = `I've connected to **${toolName}**. \n\nI also installed the **${toolName} App** in your dashboard so you can manage settings there. I'm now listening for webhooks from this source.`;
+            responseText = "I've created a playbook for this automation:";
+            artifact = {
+                id: 'yaml-1',
+                type: 'yaml',
+                title: 'weekly-report.yaml',
+                content: `name: Weekly Report Automation
+triggers:
+  - type: schedule
+    cron: "0 9 * * 1"
+steps:
+  - action: computer_use.login
+    domain: shopify.com
+    credential: vault://shopify-admin
+  - action: download
+    selector: "#export-button"
+    save_to: files://reports/weekly.csv
+  - action: email
+    to: "{{user.email}}"
+    subject: "Weekly Report"
+    attach: files://reports/weekly.csv`
+            };
+            canSaveAsPlaybook = true;
         } else {
             const isWholesale = lowerInput.includes('wholesale');
-            plan = isWholesale ? ['Objective: Optimize Wholesale Pricing', 'Analyze Competitors', 'Update Rules'] : ['Objective: Grow Retail Margins', 'Scan Competitors', 'Optimize Menu'];
+            plan = isWholesale ? ['Optimize Wholesale Pricing', 'Analyze Competitors', 'Update Rules'] : ['Grow Retail Margins', 'Scan Competitors', 'Optimize Menu'];
             steps = [
                 { id: 't1', toolName: 'analyze_data', description: 'Analyzing margins...', status: 'completed', durationMs: 450 },
                 { id: 't2', subagentId: 'Researcher', toolName: 'delegate', description: 'Scanning competitors...', status: 'completed', durationMs: 2500 },
-                { id: 't3', toolName: 'optimize', description: 'Adjusting pricing rules...', status: 'completed', durationMs: 800 }
+                { id: 't3', toolName: 'optimize', description: 'Adjusting pricing...', status: 'completed', durationMs: 800 }
             ];
-            responseText = isWholesale ? "I've optimized your **Wholesale Pricing** based on market gaps." : "I've started the **Margin Growth Campaign** and adjusted 3 SKUs.";
+            responseText = isWholesale ? "I've optimized your **Wholesale Pricing**." : "I've started the **Margin Growth Campaign**.";
+            canSaveAsPlaybook = true;
         }
 
         const initialAgentMsg: ChatMessage = {
@@ -216,14 +309,25 @@ export function AgentChat() {
         setMessages(prev => [...prev, initialAgentMsg]);
 
         for (let i = 0; i < steps.length; i++) {
-            await new Promise(r => setTimeout(r, 1000 + Math.random() * 500));
+            await new Promise(r => setTimeout(r, 800 + Math.random() * 400));
             const currentSteps = steps.slice(0, i + 1);
             setMessages(prev => prev.map(m => m.id === agentMsgId ? { ...m, thinking: { ...m.thinking!, steps: currentSteps } } : m));
         }
 
-        await new Promise(r => setTimeout(r, 800));
-        setMessages(prev => prev.map(m => m.id === agentMsgId ? { ...m, content: responseText, thinking: { ...m.thinking!, isThinking: false } } : m));
+        await new Promise(r => setTimeout(r, 600));
+        setMessages(prev => prev.map(m => m.id === agentMsgId ? {
+            ...m,
+            content: responseText,
+            thinking: { ...m.thinking!, isThinking: false },
+            artifact,
+            canSaveAsPlaybook
+        } : m));
         setIsSimulating(false);
+    };
+
+    const handleSavePlaybook = (msgId: string) => {
+        // In real implementation, this would open a modal or save to Firestore
+        console.log('Saving playbook for message:', msgId);
     };
 
     const sendMessage = async () => {
@@ -241,7 +345,7 @@ export function AgentChat() {
                 <div className="max-w-3xl mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner">
                     <Textarea
                         value={input} onChange={e => setInput(e.target.value)}
-                        placeholder="I'm ready to handle complex workflows. I can connect to APIs, manage strategic goals, and even use a Computer to browse websites for you. What do you need?"
+                        placeholder="I'm ready to handle complex workflows. Try: 'Automate weekly report download' or 'Log into Shopify'"
                         className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base"
                         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                     />
@@ -255,8 +359,8 @@ export function AgentChat() {
                                 <span>Triggers</span>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground px-2 border-l border-border/50">
-                                <Bot className="h-3 w-3" />
-                                <span>Subagents</span>
+                                <Key className="h-3 w-3" />
+                                <span>Vault</span>
                             </div>
                         </div>
                         <Button size="icon" className={cn("h-8 w-8 rounded-full transition-all", input.trim() ? "bg-primary" : "bg-muted text-muted-foreground")} disabled={!input.trim() || isSimulating} onClick={sendMessage}>
@@ -274,6 +378,19 @@ export function AgentChat() {
                             {msg.content && (
                                 <div className={cn("px-4 py-3 rounded-2xl max-w-xl text-sm leading-relaxed shadow-sm", msg.type === 'user' ? "bg-primary text-primary-foreground rounded-br-none" : "bg-white border border-border/50 text-foreground rounded-tl-none")}>
                                     <div className="whitespace-pre-wrap">{msg.content}</div>
+
+                                    {msg.artifact && msg.artifact.type === 'yaml' && (
+                                        <YamlArtifact artifact={msg.artifact} />
+                                    )}
+
+                                    {msg.canSaveAsPlaybook && !msg.thinking?.isThinking && (
+                                        <div className="mt-3 pt-3 border-t border-border/30">
+                                            <Button variant="outline" size="sm" className="gap-2" onClick={() => handleSavePlaybook(msg.id)}>
+                                                <Save className="h-3.5 w-3.5" />
+                                                Save as Playbook
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             {msg.type === 'agent' && msg.thinking && (
