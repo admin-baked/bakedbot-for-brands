@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Send, ChevronDown, Sparkles, Loader2, Play, CheckCircle2, Bot, CalendarClock, Zap, Target } from 'lucide-react';
+import { Paperclip, Send, ChevronDown, Sparkles, Loader2, Play, CheckCircle2, Bot, CalendarClock, Zap, Target, Laptop, Monitor, MousePointer2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import {
     DropdownMenu,
@@ -29,7 +29,8 @@ export interface ToolCallStep {
     durationMs?: number;
     result?: string;
     description: string;
-    subagentId?: string; // New: Support for subagents
+    subagentId?: string;
+    isComputerUse?: boolean; // New: Flag for Computer Use
 }
 
 export interface AgentThinking {
@@ -51,6 +52,33 @@ export type ThinkingLevel = 'standard' | 'advanced' | 'expert' | 'genius';
 
 // --- Components ---
 
+function ComputerUseBlock({ step }: { step: ToolCallStep }) {
+    return (
+        <div className="mt-2 mb-2 rounded-lg border border-slate-700 bg-slate-900 overflow-hidden font-mono text-xs w-full max-w-md shadow-lg">
+            {/* Fake Browser Chrome */}
+            <div className="bg-slate-800 p-2 flex items-center gap-2 border-b border-slate-700">
+                <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                </div>
+                <div className="flex-1 bg-slate-900 rounded px-2 py-0.5 text-slate-400 text-[10px] truncate">
+                    {step.description.includes('Navigating') ? 'https://...' : 'remote-desktop://session-8291'}
+                </div>
+            </div>
+
+            {/* Viewport content */}
+            <div className="p-4 h-32 flex flex-col items-center justify-center text-slate-400 relative">
+                <Monitor className="h-8 w-8 mb-2 opacity-50" />
+                <span className="animate-pulse">{step.description}</span>
+
+                {/* Cursor Simulation */}
+                <MousePointer2 className="absolute top-1/2 left-1/3 h-4 w-4 text-white fill-white animate-bounce" style={{ animationDuration: '3s' }} />
+            </div>
+        </div>
+    );
+}
+
 function ThinkingBlock({ thinking }: { thinking: AgentThinking }) {
     const [expanded, setExpanded] = useState(true);
 
@@ -70,7 +98,7 @@ function ThinkingBlock({ thinking }: { thinking: AgentThinking }) {
                         <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                     )}
                     <span className="font-medium text-muted-foreground">
-                        {thinking.isThinking ? 'Executing Strategy...' : `Completed in ${(thinking.steps.reduce((acc, s) => acc + (s.durationMs || 0), 0) / 1000).toFixed(1)}s`}
+                        {thinking.isThinking ? 'Processing & Executing...' : `Completed in ${(thinking.steps.reduce((acc, s) => acc + (s.durationMs || 0), 0) / 1000).toFixed(1)}s`}
                     </span>
                 </div>
                 <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", expanded && "rotate-180")} />
@@ -83,7 +111,7 @@ function ThinkingBlock({ thinking }: { thinking: AgentThinking }) {
                     {thinking.plan.length > 0 && (
                         <div className="space-y-2 mb-4">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                <Target className="h-3 w-3" /> Strategic Objectives
+                                <Target className="h-3 w-3" /> Execution Plan
                             </p>
                             {thinking.plan.map((step, idx) => (
                                 <div key={idx} className="flex items-start gap-2 text-muted-foreground">
@@ -99,18 +127,23 @@ function ThinkingBlock({ thinking }: { thinking: AgentThinking }) {
                         <div className="space-y-2">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Activity Log</p>
                             {thinking.steps.map((step) => (
-                                <div key={step.id} className="flex items-center gap-2 text-xs font-mono text-muted-foreground bg-background/50 p-2 rounded border">
-                                    {step.subagentId ? (
-                                        <Bot className="h-3 w-3 text-purple-500" />
-                                    ) : (
-                                        <Play className="h-3 w-3 text-blue-500" />
-                                    )}
+                                <div key={step.id}>
+                                    <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground bg-background/50 p-2 rounded border">
+                                        {step.subagentId ? <Bot className="h-3 w-3 text-purple-500" /> :
+                                            step.isComputerUse ? <Laptop className="h-3 w-3 text-orange-500" /> :
+                                                <Play className="h-3 w-3 text-blue-500" />}
 
-                                    <span className="font-semibold text-foreground">
-                                        {step.subagentId ? `Subagent: ${step.subagentId}` : step.toolName}
-                                    </span>
-                                    <span className="truncate flex-1">{step.description}</span>
-                                    {step.durationMs && <span className="ml-auto text-muted-foreground/50">{step.durationMs}ms</span>}
+                                        <span className="font-semibold text-foreground">
+                                            {step.subagentId ? `Subagent: ${step.subagentId}` : step.toolName}
+                                        </span>
+                                        <span className="truncate flex-1">{step.description}</span>
+                                        {step.durationMs && <span className="ml-auto text-muted-foreground/50">{step.durationMs}ms</span>}
+                                    </div>
+
+                                    {/* Render Computer Use View */}
+                                    {step.isComputerUse && step.status === 'completed' && (
+                                        <ComputerUseBlock step={step} />
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -160,7 +193,7 @@ export function AgentChat() {
         {
             id: 'welcome',
             type: 'agent',
-            content: "I'm ready to handle complex workflows and strategic goals. I can optimize margins, manage pricing, and execute multi-step plans. What's the goal?",
+            content: "I'm ready to handle complex workflows. I can connect to APIs, manage strategic goals, and even use a Computer to browse websites for you. What do you need?",
             timestamp: new Date()
         }
     ]);
@@ -168,26 +201,46 @@ export function AgentChat() {
     const [model, setModel] = useState<ThinkingLevel>('standard');
     const [isSimulating, setIsSimulating] = useState(false);
 
-    const runStrategySimulation = async (userInput: string) => {
-        const isWholesale = userInput.toLowerCase().includes('wholesale');
+    const runSimulation = async (userInput: string) => {
+        const lowerInput = userInput.toLowerCase();
         const agentMsgId = (Date.now() + 1).toString();
 
-        let plan = [];
-        if (isWholesale) {
-            plan = [
-                'Objective: Optimize Wholesale Pricing for Market Share',
-                'Key Result: +10% Sales Volume by EOM',
-                'Task 1: Analyze Competitor Wholesale Rates',
-                'Task 2: Update Catalog Pricing Dynamic Rules'
+        let plan: string[] = [];
+        let steps: ToolCallStep[] = [];
+        let responseText = "";
+
+        if (lowerInput.includes('login') || lowerInput.includes('computer') || lowerInput.includes('browser')) {
+            // Computer Use Simulation
+            plan = ['Launch Remote Browser Session', 'Navigate to Target Site', 'Perform Login Sequence', 'Extract Data'];
+            steps = [
+                { id: 't1', toolName: 'computer_use.launch', description: 'Initializing secure browser...', status: 'completed', durationMs: 1200, isComputerUse: true },
+                { id: 't2', toolName: 'computer_use.interact', description: 'Navigating to portal.login...', status: 'completed', durationMs: 2500, isComputerUse: true },
+                { id: 't3', toolName: 'computer_use.type', description: 'Typing credentials for user...', status: 'completed', durationMs: 800, isComputerUse: true }
             ];
+            responseText = "I've successfully logged into the portal and extracted the latest report. I saved the session credentials to your Keychain for future use.";
+        } else if (lowerInput.includes('connect') || lowerInput.includes('mcp') || lowerInput.includes('stripe')) {
+            // Integration Simulation
+            const toolName = lowerInput.includes('stripe') ? 'Stripe' : 'MCP Server';
+            plan = [`Connect to ${toolName} API`, 'Authenticate via OAuth', 'Install App Store Integration', 'Register Webhooks'];
+            steps = [
+                { id: 't1', toolName: 'mcp.connect', description: `Handshaking with ${toolName}...`, status: 'completed', durationMs: 450 },
+                { id: 't2', toolName: 'app.install', description: `Installing '${toolName} Integration' to App Store...`, status: 'completed', durationMs: 1100 }
+            ];
+            responseText = `I've connected to **${toolName}**. \n\nI also installed the **${toolName} App** in your dashboard so you can manage settings there. I'm now listening for webhooks from this source.`;
         } else {
-            plan = [
-                'Objective: Grow Margins by 15% (Retail)',
-                'Key Result: Increase Average Order Value by $5',
-                'Task 1: Scan Local Competitor Prices (CannMenus)',
-                'Task 2: Optimize Headless Menu Sorting',
-                'Task 3: Reprice "High Elasticity" Inventory'
+            // Default Strategy Simulation (Retail/Wholesale)
+            const isWholesale = lowerInput.includes('wholesale');
+            plan = isWholesale
+                ? ['Objective: Optimize Wholesale Pricing', 'Analyze Competitors', 'Update Rules']
+                : ['Objective: Grow Retail Margins', 'Scan Competitors', 'Optimize Menu'];
+            steps = [
+                { id: 't1', toolName: 'analyze_data', description: 'Analyzing margins...', status: 'completed', durationMs: 450 },
+                { id: 't2', subagentId: 'Researcher', toolName: 'delegate', description: 'Scanning competitors...', status: 'completed', durationMs: 2500 },
+                { id: 't3', toolName: 'optimize', description: 'Adjusting pricing rules...', status: 'completed', durationMs: 800 }
             ];
+            responseText = isWholesale
+                ? "I've optimized your **Wholesale Pricing** based on market gaps."
+                : "I've started the **Margin Growth Campaign** and adjusted 3 SKUs.";
         }
 
         const initialAgentMsg: ChatMessage = {
@@ -203,49 +256,20 @@ export function AgentChat() {
         };
         setMessages(prev => [...prev, initialAgentMsg]);
 
-        // SIMULATION STEPS
-        // 1. Analysis
-        await new Promise(r => setTimeout(r, 1000));
-        setMessages(prev => prev.map(m => m.id === agentMsgId ? {
-            ...m,
-            thinking: {
-                ...m.thinking!,
-                steps: [{ id: 't1', toolName: 'analyze_data', description: isWholesale ? 'Analyzing wholesale transaction history...' : 'Analyzing current retail margins...', status: 'completed', durationMs: 450 }]
-            }
-        } : m));
+        // Simulating the steps sequentially
+        for (let i = 0; i < steps.length; i++) {
+            await new Promise(r => setTimeout(r, 1000 + Math.random() * 500));
+            const currentSteps = steps.slice(0, i + 1);
+            setMessages(prev => prev.map(m => m.id === agentMsgId ? {
+                ...m,
+                thinking: {
+                    ...m.thinking!,
+                    steps: currentSteps
+                }
+            } : m));
+        }
 
-        // 2. Research (Delegate)
-        await new Promise(r => setTimeout(r, 1200));
-        setMessages(prev => prev.map(m => m.id === agentMsgId ? {
-            ...m,
-            thinking: {
-                ...m.thinking!,
-                steps: [
-                    ...m.thinking!.steps,
-                    { id: 't2', subagentId: 'Market Researcher', toolName: 'delegate', description: 'Scanning 12 competitor catalogs for pricing gaps.', status: 'completed', durationMs: 2500 }
-                ]
-            }
-        } : m));
-
-        // 3. Optimization
-        await new Promise(r => setTimeout(r, 1200));
-        setMessages(prev => prev.map(m => m.id === agentMsgId ? {
-            ...m,
-            thinking: {
-                ...m.thinking!,
-                steps: [
-                    ...m.thinking!.steps,
-                    { id: 't3', toolName: isWholesale ? 'update_wholesale_rules' : 'update_menu_sorting', description: isWholesale ? 'Adjusting bulk discount tiers.' : 'Re-ordering menu to highlight high-margin pre-rolls.', status: 'completed', durationMs: 800 }
-                ]
-            }
-        } : m));
-
-        // 4. Final Response
         await new Promise(r => setTimeout(r, 800));
-        const responseText = isWholesale
-            ? "I've deployed the **Wholesale Optimization Strategy**. \n\nI found that your pre-rolls were priced 5% above market average. I've adjusted the bulk tier discounts to be more competitive, which should boost volume by ~12% based on elasticity models."
-            : "I've started the **Margin Growth Campaign**. \n\nI've re-sorted your headless menu to prioritize high-margin Flower and Edibles. I also detected 3 underpriced SKUs compared to local competitors and adjusted them up by 4%.";
-
         setMessages(prev => prev.map(m => m.id === agentMsgId ? {
             ...m,
             content: responseText,
@@ -260,20 +284,11 @@ export function AgentChat() {
 
     const sendMessage = async () => {
         if (!input.trim()) return;
-
         const userMsg: ChatMessage = { id: Date.now().toString(), type: 'user', content: input, timestamp: new Date() };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
         setIsSimulating(true);
-
-        const lowerInput = input.toLowerCase();
-        if (lowerInput.includes('margin') || lowerInput.includes('wholesale') || lowerInput.includes('grow') || lowerInput.includes('optimize')) {
-            await runStrategySimulation(lowerInput);
-        } else {
-            // Fallback to generic complex workflow simulation (from previous step)
-            // simplified for brevity in this specific tool call update, strictly speaking I should preserve both but this covers the "Strategic" request better.
-            await runStrategySimulation('margin'); // Default to retail strategy if ambiguous but triggered
-        }
+        await runSimulation(input);
     };
 
     return (
@@ -300,7 +315,7 @@ export function AgentChat() {
                 <div className="max-w-3xl mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner">
                     <Textarea
                         value={input} onChange={e => setInput(e.target.value)}
-                        placeholder="Give a command (e.g., 'Grow margins by 15%' or 'Optimize wholesale prices')"
+                        placeholder="Try: 'Log into Shopify' or 'Connect Stripe'"
                         className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base"
                         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                     />
