@@ -199,11 +199,52 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       }
     }
 
+    // --- AUTO-GENERATE LOCAL SEO PAGES ---
+    let pagesGenerated = 0;
+    if ((finalRole === 'brand' || finalRole === 'dispensary') && orgId) {
+      try {
+        const { generatePagesForPartner } = await import('@/server/services/auto-page-generator');
+
+        // Try to extract ZIP from location data or use a default
+        // For brands, we might not have location - skip for now
+        // For dispensaries with a locationId, we can extract ZIP from CannMenus data
+        let partnerZip: string | null = null;
+
+        if (finalRole === 'dispensary' && locationId) {
+          // Try to get location data from Firestore
+          const locDoc = await firestore.collection('locations').doc(locationId).get();
+          if (locDoc.exists) {
+            const locData = locDoc.data();
+            partnerZip = locData?.address?.zip || locData?.postalCode || null;
+          }
+        }
+
+        // If we have a ZIP, generate pages
+        if (partnerZip) {
+          const orgName = finalBrandName || manualDispensaryName || 'Partner';
+          const result = await generatePagesForPartner(
+            orgId,
+            partnerZip,
+            orgName,
+            finalRole as 'brand' | 'dispensary'
+          );
+          pagesGenerated = result.generated;
+          logger.info('Auto-generated SEO pages for new partner:', {
+            orgId,
+            zipCodes: result.zipCodes,
+          });
+        }
+      } catch (pageError) {
+        // Non-fatal - log but don't fail onboarding
+        logger.warn('Failed to auto-generate SEO pages:', pageError instanceof Error ? pageError : new Error(String(pageError)));
+      }
+    }
+
     revalidatePath('/dashboard');
     revalidatePath('/account');
 
-    const successMessage = syncCount > 0
-      ? `Welcome! Organization created & ${syncCount} products imported.`
+    const successMessage = syncCount > 0 || pagesGenerated > 0
+      ? `Welcome! Organization created${syncCount > 0 ? `, ${syncCount} products imported` : ''}${pagesGenerated > 0 ? `, ${pagesGenerated} local pages generated` : ''}.`
       : 'Welcome! Organization created.';
 
     return { message: successMessage, error: false };

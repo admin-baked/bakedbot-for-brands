@@ -16,6 +16,9 @@ import AIAgentEmbedTab from "./components/ai-agent-embed-tab";
 import CannMenusTestTab from "./components/cannmenus-test-tab";
 import PlatformAnalyticsTab from "./components/platform-analytics-tab";
 import TicketsTab from "./components/tickets-tab";
+import FootTrafficTab from "./components/foot-traffic-tab";
+import SuperAdminAgentChat from "./components/super-admin-agent-chat";
+import SuperAdminPlaybooksTab from "./components/super-admin-playbooks-tab";
 import { useSuperAdmin } from '@/hooks/use-super-admin';
 import { Loader2, Shield, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -76,9 +79,12 @@ export default function CeoDashboardPage() {
             </div>
 
             {/* CEO Dashboard Tabs */}
-            <Tabs defaultValue="analytics">
-                <TabsList className="grid w-full grid-cols-7">
+            <Tabs defaultValue="agent-chat">
+                <TabsList className="grid w-full grid-cols-10">
+                    <TabsTrigger value="agent-chat" className="font-semibold">🤖 Agent Chat</TabsTrigger>
+                    <TabsTrigger value="playbooks" className="font-semibold">📋 Playbooks</TabsTrigger>
                     <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                    <TabsTrigger value="foot-traffic">Foot Traffic</TabsTrigger>
                     <TabsTrigger value="tickets">Tickets</TabsTrigger>
                     <TabsTrigger value="ai-agent-embed">AI Embed</TabsTrigger>
                     <TabsTrigger value="data-manager">Data</TabsTrigger>
@@ -88,8 +94,17 @@ export default function CeoDashboardPage() {
                 </TabsList>
                 <div className="mt-6">
                     <ClientOnly fallback={<div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+                        <TabsContent value="agent-chat" className="mt-0">
+                            <SuperAdminAgentChat />
+                        </TabsContent>
+                        <TabsContent value="playbooks" className="mt-0">
+                            <SuperAdminPlaybooksTab />
+                        </TabsContent>
                         <TabsContent value="analytics" className="mt-0">
                             <PlatformAnalyticsTab />
+                        </TabsContent>
+                        <TabsContent value="foot-traffic" className="mt-0">
+                            <FootTrafficTab />
                         </TabsContent>
                         <TabsContent value="tickets" className="mt-0">
                             <TicketsTab />
