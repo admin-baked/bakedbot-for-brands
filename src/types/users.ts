@@ -4,7 +4,14 @@ export type UserProfile = {
     email: string | null;
     displayName: string | null;
     role: 'brand' | 'dispensary' | 'customer' | 'owner' | null;
+
+    // Enterprise Context
+    organizationIds: string[]; // List of IDs this user belongs to
+    currentOrgId?: string; // Active Organization Context
+
+    // Legacy / Convenience (Keep for backward compatibility during migration)
     brandId: string | null;
     locationId: string | null;
+
     favoriteRetailerId?: string | null;
 };
