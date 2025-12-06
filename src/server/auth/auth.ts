@@ -73,6 +73,11 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
     if (simulatedRole && ['brand', 'dispensary', 'customer'].includes(simulatedRole)) {
       // Override the role in the returned token
       decodedToken = { ...decodedToken, role: simulatedRole };
+
+      // If simulating a brand, inject a demo brand ID to prevent "You are not associated with a brand" errors
+      if (simulatedRole === 'brand') {
+        decodedToken = { ...decodedToken, brandId: 'default' };
+      }
       // Note: We are NOT modifying the actual session cookie, just the decoded object for this request context.
     }
   }

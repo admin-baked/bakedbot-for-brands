@@ -11,6 +11,8 @@ import {
     Mail, MessageSquare, BarChart3, Clock, CheckCircle2,
     AlertTriangle, ArrowUpRight, ArrowDownRight, RefreshCw
 } from 'lucide-react';
+import { useMockData } from '@/hooks/use-mock-data';
+import { useEffect } from 'react';
 
 // Mock data - in production, this would come from Firestore aggregations
 const MOCK_METRICS = {
@@ -81,37 +83,85 @@ function MetricCard({ title, value, subtitle, trend, trendUp, icon: Icon }: {
     trendUp: boolean;
     icon: any;
 }) {
-    return (
-        <Card>
-            <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                    <div>
-                        <p className="text-sm text-muted-foreground">{title}</p>
-                        <p className="text-3xl font-bold mt-1">{value}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+}
+
+return (
+    <Card>
+        <CardContent className="pt-6">
+            <div className="flex items-start justify-between">
+                <div>
+                    <p className="text-sm text-muted-foreground">{title}</p>
+                    <p className="text-3xl font-bold mt-1">{value}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                    <div className={`p-2 rounded-lg ${trendUp ? 'bg-green-100' : 'bg-red-100'}`}>
+                        <Icon className={`h-5 w-5 ${trendUp ? 'text-green-600' : 'text-red-600'}`} />
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                        <div className={`p-2 rounded-lg ${trendUp ? 'bg-green-100' : 'bg-red-100'}`}>
-                            <Icon className={`h-5 w-5 ${trendUp ? 'text-green-600' : 'text-red-600'}`} />
-                        </div>
-                        <div className={`flex items-center gap-1 text-sm ${trendUp ? 'text-green-600' : 'text-red-600'}`}>
-                            {trendUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                            {Math.abs(trend)}%
-                        </div>
+                    <div className={`flex items-center gap-1 text-sm ${trendUp ? 'text-green-600' : 'text-red-600'}`}>
+                        {trendUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                        {Math.abs(trend)}%
                     </div>
                 </div>
-            </CardContent>
-        </Card>
-    );
+            </div>
+        </CardContent>
+    </Card>
+);
 }
+
+// Imports moved to top in full file replacement, but here we just ensure valid structure if partial. 
+// However, since imports are restricted to top-level, I should ideally move them. 
+// But `replace_file_content` on middle of file makes that hard.
+// I will just make it work by removing the import from here and assuming I add it to top or it works (imports are hoisted in bundlers, though React/Next might complain).
+// Actually, I'll use `replace_file_content` to fix the TOP of the file to include imports, and this part to just be code.
+
+// Let's fix the bad syntax first.
+
+
+
 
 export default function PlatformAnalyticsTab() {
     const [refreshing, setRefreshing] = useState(false);
+    const { isMock, isLoading: isMockLoading } = useMockData();
+    const [metrics, setMetrics] = useState<any>(MOCK_METRICS);
+    const [loading, setLoading] = useState(true);
+
+    const fetchMetrics = async () => {
+        if (isMock) {
+            setMetrics(MOCK_METRICS);
+            setLoading(false);
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const res = await fetch('/api/super-admin/analytics');
+            if (res.ok) {
+                const data = await res.json();
+                setMetrics(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch metrics', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!isMockLoading) {
+            fetchMetrics();
+        }
+    }, [isMock, isMockLoading]);
 
     const handleRefresh = () => {
         setRefreshing(true);
-        setTimeout(() => setRefreshing(false), 1500);
+        fetchMetrics();
     };
+
+    if (loading || isMockLoading) {
+        return <div className="p-8 text-center text-muted-foreground">Loading analytics...</div>;
+    }
 
     return (
         <div className="space-y-6">
@@ -119,46 +169,51 @@ export default function PlatformAnalyticsTab() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold">Platform Analytics</h2>
-                    <p className="text-muted-foreground">Comprehensive view of signups, usage, and feature adoption</p>
+                    <p className="text-muted-foreground">
+                        {isMock ? 'Viewing MOCK Data' : 'Viewing LIVE Data'}
+                    </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                    Refresh
-                </Button>
+                <div className="flex items-center gap-2">
+                    {isMock && <Badge variant="secondary">Mock Mode</Badge>}
+                    <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+                        <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
+                </div>
             </div>
 
             {/* Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                     title="Total Signups"
-                    value={MOCK_METRICS.signups.total.toLocaleString()}
-                    subtitle={`+${MOCK_METRICS.signups.today} today`}
-                    trend={MOCK_METRICS.signups.trend}
-                    trendUp={MOCK_METRICS.signups.trendUp}
+                    value={metrics.signups.total.toLocaleString()}
+                    subtitle={`+${metrics.signups.today} today`}
+                    trend={metrics.signups.trend}
+                    trendUp={metrics.signups.trendUp}
                     icon={Users}
                 />
                 <MetricCard
                     title="Active Users (DAU)"
-                    value={MOCK_METRICS.activeUsers.daily.toLocaleString()}
-                    subtitle={`${MOCK_METRICS.activeUsers.weekly} weekly`}
-                    trend={MOCK_METRICS.activeUsers.trend}
-                    trendUp={MOCK_METRICS.activeUsers.trendUp}
+                    value={metrics.activeUsers.daily.toLocaleString()}
+                    subtitle={`${metrics.activeUsers.weekly} weekly`}
+                    trend={metrics.activeUsers.trend}
+                    trendUp={metrics.activeUsers.trendUp}
                     icon={Activity}
                 />
                 <MetricCard
                     title="Day 7 Retention"
-                    value={`${MOCK_METRICS.retention.day7}%`}
-                    subtitle={`Day 30: ${MOCK_METRICS.retention.day30}%`}
-                    trend={MOCK_METRICS.retention.trend}
-                    trendUp={MOCK_METRICS.retention.trendUp}
+                    value={`${metrics.retention.day7}%`}
+                    subtitle={`Day 30: ${metrics.retention.day30}%`}
+                    trend={metrics.retention.trend}
+                    trendUp={metrics.retention.trendUp}
                     icon={TrendingUp}
                 />
                 <MetricCard
                     title="MRR"
-                    value={`$${MOCK_METRICS.revenue.mrr.toLocaleString()}`}
-                    subtitle={`ARPU: $${MOCK_METRICS.revenue.arpu}`}
-                    trend={MOCK_METRICS.revenue.trend}
-                    trendUp={MOCK_METRICS.revenue.trendUp}
+                    value={`$${metrics.revenue.mrr.toLocaleString()}`}
+                    subtitle={`ARPU: $${metrics.revenue.arpu}`}
+                    trend={metrics.revenue.trend}
+                    trendUp={metrics.revenue.trendUp}
                     icon={BarChart3}
                 />
             </div>

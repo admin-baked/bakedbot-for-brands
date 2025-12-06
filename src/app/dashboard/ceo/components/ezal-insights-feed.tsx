@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { EzalInsight } from '@/types/ezal-scraper';
 import { Loader2, TrendingUp, TrendingDown, AlertCircle, ShoppingBag, CheckCircle } from 'lucide-react';
 
-interface EzalInsightsFeedProps {
+export interface EzalInsightsFeedProps {
     tenantId: string;
 }
 
