@@ -53,8 +53,8 @@ export default function AISearchIndexTab() {
           </CardFooter>
         </form>
       </Card>
-      
-      {state.results.length > 0 && (
+
+      {state.results && state.results.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Processing Results</CardTitle>
@@ -65,11 +65,11 @@ export default function AISearchIndexTab() {
           <CardContent>
             <ScrollArea className="h-72 w-full rounded-md border p-4 font-mono text-sm">
               {state.results.map((result: { productId: string; status: string }) => (
-                 <div key={result.productId} className="flex items-center gap-2 mb-1">
+                <div key={result.productId} className="flex items-center gap-2 mb-1">
                   {result.status.startsWith('Embedding updated') ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-destructive" />}
                   <span>{result.productId}:</span>
                   <span className="text-muted-foreground">{result.status}</span>
-                 </div>
+                </div>
               ))}
             </ScrollArea>
           </CardContent>
@@ -77,17 +77,17 @@ export default function AISearchIndexTab() {
       )}
 
       {state.message && state.message.startsWith('Initialization failed') && (
-         <Card className="border-destructive">
-             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-destructive"><ServerCrash /> Unhandled Error</CardTitle>
-                 <CardDescription className="text-destructive">
-                    The process failed unexpectedly. See the error message below.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="font-mono text-sm">{state.message}</p>
-            </CardContent>
-         </Card>
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive"><ServerCrash /> Unhandled Error</CardTitle>
+            <CardDescription className="text-destructive">
+              The process failed unexpectedly. See the error message below.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="font-mono text-sm">{state.message}</p>
+          </CardContent>
+        </Card>
       )}
 
     </div>
