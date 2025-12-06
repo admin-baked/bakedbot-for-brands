@@ -1,13 +1,13 @@
-'use client';
-
+// [Modified Content]
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch'; // Ensure this exists or use checkmark
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Check, Eye, Code, Sparkles } from 'lucide-react';
+import { Copy, Check, Eye, Code, Sparkles, Search, ShoppingCart } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -21,6 +21,7 @@ import Chatbot from '@/components/chatbot';
 import { cn } from '@/lib/utils';
 import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { searchCannMenusRetailers, CannMenusResult } from '../actions';
 
 // BakedBot assets
 const BAKEDBOT_LOGO = 'https://storage.cloud.google.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
@@ -37,10 +38,36 @@ export default function AIAgentEmbedTab() {
   const [primaryColor, setPrimaryColor] = useState('#10b981');
   const [position, setPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
   const [greeting, setGreeting] = useState("Hi, I'm Smokey. How can I help you today?");
+  const [enableCheckout, setEnableCheckout] = useState(false);
+
+  // Search State
+  const [searchResults, setSearchResults] = useState<CannMenusResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Preview Data
   const [previewProducts, setPreviewProducts] = useState<any[]>([]);
   const firebase = useOptionalFirebase();
+
+  // Search Effect
+  useEffect(() => {
+    if (customerName.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await searchCannMenusRetailers(customerName);
+        setSearchResults(results);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [customerName]);
 
   // Fetch products for preview when CannMenus ID changes
   useEffect(() => {
@@ -73,6 +100,12 @@ export default function AIAgentEmbedTab() {
     return () => clearTimeout(debounce);
   }, [cannMenusId, firebase]);
 
+  const selectCustomer = (result: CannMenusResult) => {
+    setCustomerName(result.name);
+    setCannMenusId(result.id);
+    setSearchResults([]); // Close dropdown
+  };
+
   // Generate embed code
   const generateEmbedCode = () => {
     const config = {
@@ -81,6 +114,7 @@ export default function AIAgentEmbedTab() {
       primaryColor,
       position,
       greeting,
+      enableCheckout, // New Feature
     };
 
     const embedCode = `<!-- BakedBot AI Agent - Budtender Chatbot -->
@@ -134,7 +168,8 @@ export default function AIAgentEmbedTab() {
               </CardTitle>
               <CardDescription>
                 Generate embed codes for AI Agent Budtender chatbot for CannMenus customers only.
-                No Headless Menu functionality - chatbot only.
+                <br />
+                Includes Predictive Search and Checkout Configuration.
               </CardDescription>
             </div>
           </div>
@@ -159,16 +194,36 @@ export default function AIAgentEmbedTab() {
             {/* Configuration Tab */}
             <TabsContent value="configure" className="space-y-4 mt-6">
               <div className="grid gap-4">
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                   <Label htmlFor="customer-name">Customer Name *</Label>
-                  <Input
-                    id="customer-name"
-                    placeholder="e.g., Green Valley Dispensary"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                  />
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="customer-name"
+                      placeholder="Start typing to search CannMenus database..."
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="pl-9"
+                      autoComplete="off"
+                    />
+                  </div>
+                  {/* SEARCH RESULTS DROPDOWN */}
+                  {searchResults.length > 0 && (
+                    <div className="absolute z-10 w-full bg-popover text-popover-foreground border rounded-md shadow-md mt-1 overflow-hidden">
+                      {searchResults.map((result) => (
+                        <button
+                          key={result.id}
+                          className="w-full text-left px-4 py-2 hover:bg-accent hover:text-accent-foreground text-sm flex justify-between items-center"
+                          onClick={() => selectCustomer(result)}
+                        >
+                          <span>{result.name}</span>
+                          <span className="text-xs text-muted-foreground ml-2">{result.id}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    The name of the CannMenus customer receiving this embed code
+                    Predictive search active. Selecting a customer will auto-fill the ID.
                   </p>
                 </div>
 
@@ -192,6 +247,20 @@ export default function AIAgentEmbedTab() {
                     placeholder="Hi, I'm Smokey..."
                     value={greeting}
                     onChange={(e) => setGreeting(e.target.value)}
+                  />
+                </div>
+
+                {/* CHECKOUT TOGGLE */}
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Enable Checkout</Label>
+                    <CardDescription>
+                      Allow customers to purchase directly within the chat (Smokey Pay / CannPay).
+                    </CardDescription>
+                  </div>
+                  <Switch
+                    checked={enableCheckout}
+                    onCheckedChange={setEnableCheckout}
                   />
                 </div>
 
@@ -371,9 +440,12 @@ export default function AIAgentEmbedTab() {
             <div>
               <span className="font-medium">Requirements:</span> Valid CannMenus ID
             </div>
+            <div>
+              <span className="font-medium">Checkout:</span> {enableCheckout ? 'Enabled' : 'Disabled'}
+            </div>
           </div>
         </CardContent>
       </Card>
-    </div >
+    </div>
   );
 }
