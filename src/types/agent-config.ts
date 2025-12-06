@@ -1,4 +1,4 @@
-export type TriggerType = 'schedule' | 'webhook' | 'event' | 'manual';
+export type TriggerType = 'schedule' | 'webhook' | 'event' | 'manual' | 'calendar';
 
 export interface AgentTrigger {
     id: string;
@@ -10,6 +10,8 @@ export interface AgentTrigger {
         eventPattern?: string; // For event listeners
         webhookPath?: string; // For webhooks
         webhookSecret?: string;
+        minutesBefore?: number; // For calendar triggers
+        calendarSource?: 'google' | 'outlook'; // For calendar triggers
     };
     enabled: boolean;
     lastRunAt?: Date;
