@@ -473,6 +473,124 @@ steps:
     successCount: 0,
     failureCount: 0,
     version: 1
+  },
+
+  // 7. Smokey Vision - Floor Analytics
+  {
+    name: 'Smokey Vision Floor Analytics',
+    description: 'AI-powered camera analytics for dispensary floor traffic, heatmaps, and merchandising optimization.',
+    status: 'draft',
+    yaml: `name: Smokey Vision Floor Analytics
+description: Camera-based retail analytics and recommendations
+
+triggers:
+  - type: schedule
+    cron: "0 22 * * *"  # Daily at 10 PM (end of day analysis)
+  - type: event
+    pattern: "vision.crowding_detected"
+  - type: event
+    pattern: "vision.queue_long"
+
+cameras:
+  - location: entrance
+    track: [traffic_count, path_analysis]
+  - location: floor
+    track: [heatmap, dwell_time, product_interaction]
+  - location: checkout
+    track: [queue_detection, traffic_count]
+
+steps:
+  # Stage 1: Aggregate Daily Vision Data
+  - action: query
+    agent: pops
+    task: Aggregate all camera analytics for today
+    data:
+      - traffic_counts
+      - heatmaps
+      - dwell_times
+      - queue_metrics
+      - path_analysis
+      
+  # Stage 2: Generate Insights
+  - action: delegate
+    agent: smokey
+    input: "{{pops.vision_data}}"
+    task: |
+      Analyze floor data and identify:
+      1. High-traffic zones and optimal product placement
+      2. Underperforming areas that need attention
+      3. Queue bottlenecks and staffing recommendations
+      4. Merchandising opportunities based on dwell times
+      
+  # Stage 3: Correlate with Sales
+  - action: delegate
+    agent: money_mike
+    input:
+      vision: "{{smokey.insights}}"
+      sales: "{{pops.daily_sales}}"
+    task: Correlate floor traffic with actual sales conversions
+    
+  # Stage 4: Generate Recommendations
+  - action: generate
+    agent: smokey
+    output_type: recommendations
+    categories:
+      - merchandising
+      - staffing
+      - layout
+      - signage
+      
+  # Stage 5: Alert on Issues
+  - condition: "{{smokey.critical_issues.length > 0}}"
+    action: notify
+    channels:
+      - sms
+      - dashboard
+    to: "{{user.email}}"
+    subject: "👁️ Vision Alert: Action Required"
+    body: "{{smokey.critical_issues}}"
+    
+  # Stage 6: Daily Report
+  - action: notify
+    channels:
+      - email
+      - dashboard
+    to: "{{user.email}}"
+    subject: "📊 Daily Floor Analytics Report"
+    body: |
+      Today's Vision Insights:
+      
+      👥 TRAFFIC
+      - Total visitors: {{pops.traffic.total}}
+      - Peak hour: {{pops.traffic.peak_hour}}
+      - Conversion rate: {{pops.traffic.conversion}}%
+      
+      🔥 HOTSPOTS
+      {{#each smokey.hotspots}}
+      - {{this.zone}}: {{this.dwell_time}}s avg dwell
+      {{/each}}
+      
+      📋 RECOMMENDATIONS
+      {{#each smokey.recommendations}}
+      - {{this.title}}
+      {{/each}}
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Nightly Analysis', config: { cron: '0 22 * * *' }, enabled: true },
+      { id: 'trigger-2', type: 'event', name: 'Crowding Alert', config: { eventPattern: 'vision.crowding_detected' }, enabled: true },
+      { id: 'trigger-3', type: 'event', name: 'Queue Alert', config: { eventPattern: 'vision.queue_long' }, enabled: true }
+    ],
+    steps: [
+      { action: 'query', params: { agent: 'pops', data: 'vision' } },
+      { action: 'delegate', params: { agent: 'smokey' } },
+      { action: 'delegate', params: { agent: 'money_mike' } },
+      { action: 'generate', params: { type: 'recommendations' } },
+      { action: 'notify', params: { channels: ['email', 'dashboard'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
   }
 ];
 
