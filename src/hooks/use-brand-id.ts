@@ -1,0 +1,61 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useUser } from '@/firebase/auth/use-user';
+import { useOptionalFirebase } from '@/firebase';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+
+export function useBrandId() {
+    const { user, isUserLoading } = useUser();
+    const firebase = useOptionalFirebase();
+    const [brandId, setBrandId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (isUserLoading) return;
+
+        const fetchBrandId = async () => {
+            if (!user) {
+                setBrandId(null);
+                setLoading(false);
+                return;
+            }
+
+            // 1. Check Custom Claims
+            if ((user as any).brandId) {
+                setBrandId((user as any).brandId);
+                setLoading(false);
+                return;
+            }
+
+            // 2. Query Firestore if firebase is available
+            if (firebase?.firestore) {
+                try {
+                    // Try finding brand owned by user
+                    const brandsRef = collection(firebase.firestore, 'brands');
+                    const q = query(brandsRef, where('ownerId', '==', user.uid), limit(1));
+                    const snapshot = await getDocs(q);
+
+                    if (!snapshot.empty) {
+                        setBrandId(snapshot.docs[0].id);
+                    } else {
+                        // Fallback for demo or dev
+                        // If user role is brand but no brand found, maybe use demo?
+                        const role = (user as any).role;
+                        if (role === 'brand') {
+                            // Possibly set a demo ID or null
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching brand ID:', error);
+                }
+            }
+
+            setLoading(false);
+        };
+
+        fetchBrandId();
+    }, [user, isUserLoading, firebase]);
+
+    return { brandId, loading };
+}
