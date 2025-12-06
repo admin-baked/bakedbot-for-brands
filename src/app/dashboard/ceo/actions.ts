@@ -12,6 +12,7 @@ export type ActionResult = {
 
 export type EmbeddingActionResult = ActionResult & {
   processed?: number;
+  results?: string[]; // Added to fix type error
 };
 
 export async function searchCannMenusRetailers(query: string): Promise<CannMenusResult[]> {
@@ -23,7 +24,7 @@ export async function searchCannMenusRetailers(query: string): Promise<CannMenus
 
 export async function initializeAllEmbeddings(): Promise<EmbeddingActionResult> {
   await requireUser(['owner']);
-  return { message: 'Embeddings initialized (Mock)', processed: 0 };
+  return { message: 'Embeddings initialized (Mock)', processed: 0, results: [] };
 }
 
 export async function createCoupon(data: any): Promise<ActionResult> {
@@ -31,12 +32,13 @@ export async function createCoupon(data: any): Promise<ActionResult> {
   return { message: 'Coupon created (Mock)' };
 }
 
-export async function importDemoData(brandId: string): Promise<ActionResult> {
+// Updated signatures to match useFormState
+export async function importDemoData(prevState: ActionResult, formData?: FormData): Promise<ActionResult> {
   await requireUser(['owner']);
   return { message: 'Demo data imported (Mock)' };
 }
 
-export async function clearAllData(brandId: string): Promise<ActionResult> {
+export async function clearAllData(prevState: ActionResult, formData?: FormData): Promise<ActionResult> {
   await requireUser(['owner']);
   return { message: 'Data cleared (Mock)' };
 }
