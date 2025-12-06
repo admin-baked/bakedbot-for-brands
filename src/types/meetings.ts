@@ -58,7 +58,7 @@ export interface ScheduledMeeting {
 
     // AI attendance config
     agentAttending: boolean;
-    assignedAgent: 'smokey' | 'craig' | 'pops' | 'money_mike' | 'auto';
+    assignedAgent: 'felisha' | 'craig' | 'pops' | 'money_mike' | 'auto';
     meetingType: MeetingType;
 
     // Context for agent
