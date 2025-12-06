@@ -12,6 +12,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:e2e": "playwright test",
+    "seed:test-data": "tsx scripts/seed-test-data.ts",
     "deploy-functions": "firebase deploy --only functions",
     "init-embeddings": "npx tsx scripts/init-review-embeddings.ts",
     "audit": "bash ./scripts/quick-audit.sh",
