@@ -75,11 +75,17 @@ const ChatWindow = ({
   onFeedback: (productId: string, type: 'like' | 'dislike') => void;
   onAddToCart: (product: Product) => void;
   clearContext: () => void;
+  strategy?: 'fixed' | 'absolute';
+  startClassName?: string;
 }) => {
   const { chatExperience } = useStore();
 
   return (
-    <div data-testid="chat-window" className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-popover border animate-in fade-in-50 slide-in-from-bottom-10 duration-300">
+    <div data-testid="chat-window" className={cn(
+      strategy === 'fixed' ? "fixed bottom-24 right-6" : "absolute bottom-24 right-6",
+      "z-50 w-[calc(100vw-3rem)] max-w-sm rounded-lg shadow-2xl bg-popover border animate-in fade-in-50 slide-in-from-bottom-10 duration-300",
+      startClassName
+    )}>
       <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
 
         {chatExperience === 'default' && hasStartedChat && (
@@ -186,9 +192,12 @@ type ChatbotProps = {
   products?: Product[];
   brandId?: string;
   initialOpen?: boolean;
+  positionStrategy?: 'fixed' | 'absolute';
+  className?: string; // For the trigger button container
+  windowClassName?: string; // For the chat window
 };
 
-export default function Chatbot({ products = [], brandId = "", initialOpen = false }: ChatbotProps) {
+export default function Chatbot({ products = [], brandId = "", initialOpen = false, positionStrategy = 'fixed', className, windowClassName }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
@@ -423,7 +432,10 @@ export default function Chatbot({ products = [], brandId = "", initialOpen = fal
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-[60]">
+      <div className={cn(
+        positionStrategy === 'fixed' ? "fixed bottom-6 right-6 z-[60]" : "absolute bottom-6 right-6 z-10",
+        className
+      )}>
         <Button size="icon" className="h-20 w-20 rounded-full shadow-lg overflow-hidden p-0 bg-transparent hover:bg-transparent" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
           {isOpen ? (
             <X className="h-8 w-8 text-primary" />
@@ -433,7 +445,7 @@ export default function Chatbot({ products = [], brandId = "", initialOpen = fal
         </Button>
       </div>
 
-      {isOpen && products && (
+      {isOpen && (
         <ChatWindow
           products={products}
           onAskSmokey={handleAskSmokey}
@@ -453,6 +465,8 @@ export default function Chatbot({ products = [], brandId = "", initialOpen = fal
           chatMode={chatMode}
           onFeedback={handleFeedback}
           clearContext={clearContext}
+          strategy={positionStrategy}
+          startClassName={windowClassName}
         />
       )}
     </>

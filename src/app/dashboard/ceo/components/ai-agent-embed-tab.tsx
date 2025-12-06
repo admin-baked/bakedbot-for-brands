@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import Image from 'next/image';
+import Chatbot from '@/components/chatbot';
+import { cn } from '@/lib/utils';
 
 // BakedBot assets
 const BAKEDBOT_LOGO = 'https://storage.cloud.google.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
@@ -275,84 +277,38 @@ export default function AIAgentEmbedTab() {
                     Customer's Website Preview
                   </div>
 
-                  {/* Chatbot Button Preview */}
-                  <div
-                    className={`fixed ${position === 'bottom-right' ? 'bottom-6 right-6' : 'bottom-6 left-6'}`}
-                    style={{ position: 'absolute' }}
-                  >
-                    <button
-                      className="rounded-full h-16 w-16 shadow-2xl overflow-hidden relative hover:scale-110 transition-transform cursor-pointer"
-                      onClick={() => setShowPreview(!showPreview)}
-                    >
-                      <Image
-                        src={AI_AGENT_WIDGET}
-                        alt="AI Agent Widget"
-                        fill
-                        className="object-cover"
+                  {/* Chatbot Preview */}
+                  {/* Container needs relative positioning for the absolute chatbot to position correctly */}
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="pointer-events-auto w-full h-full">
+                      <Chatbot
+                        products={[]} // Mock products or empty for now
+                        brandId={cannMenusId || 'demo'}
+                        initialOpen={showPreview}
+                        positionStrategy="absolute"
+                        className={cn(
+                          position === 'bottom-right' ? "bottom-6 right-6" : "bottom-6 left-6"
+                        )}
+                        windowClassName={cn(
+                          position === 'bottom-right' ? "bottom-24 right-6" : "bottom-24 left-6"
+                        )}
                       />
-                    </button>
+                    </div>
                   </div>
 
-                  {showPreview && (
-                    <Card
-                      className={`fixed ${position === 'bottom-right' ? 'bottom-24 right-6' : 'bottom-24 left-6'} w-80 shadow-2xl`}
-                      style={{ position: 'absolute' }}
-                    >
-                      <CardHeader style={{ backgroundColor: primaryColor }} className="text-white pb-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="relative w-8 h-8 bg-white rounded-full p-1">
-                              <Image
-                                src={BAKEDBOT_LOGO}
-                                alt="BakedBot"
-                                fill
-                                className="object-contain"
-                              />
-                            </div>
-                            <CardTitle className="text-sm">
-                              AI Budtender
-                            </CardTitle>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-white hover:bg-white/20 h-6 w-6 p-0"
-                            onClick={() => setShowPreview(false)}
-                          >
-                            ×
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4">
-                        <p className="text-sm text-muted-foreground">{greeting}</p>
-                        <div className="mt-4 space-y-2">
-                          <Input placeholder="Ask me anything..." className="text-sm" />
-                          <Button className="w-full text-sm" style={{ backgroundColor: primaryColor }}>
-                            Send
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-
-                <Button
-                  onClick={() => setShowPreview(!showPreview)}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  {showPreview ? 'Hide Preview' : 'Show Preview'}
-                </Button>
-
-                <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-4">
-                  <p className="text-sm font-medium text-green-900 dark:text-green-100">
-                    ✓ Chatbot Only Mode
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    Click the robot icon above to toggle the chat preview.
                   </p>
-                  <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                    This embed includes only the AI chatbot (Smokey). No headless menu or product browsing UI is included.
-                    Customers interact with products via conversation only.
-                  </p>
+
+                  <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-4">
+                    <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                      ✓ Chatbot Only Mode
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                      This embed includes only the AI chatbot (Smokey). No headless menu or product browsing UI is included.
+                      Customers interact with products via conversation only.
+                    </p>
+                  </div>
                 </div>
               </div>
             </TabsContent>
