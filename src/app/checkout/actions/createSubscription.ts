@@ -14,6 +14,7 @@ type CreateSubscriptionInput = {
         phone: string;
     };
     paymentData?: any;
+    couponCode?: string;
 };
 
 export async function createSubscription(input: CreateSubscriptionInput) {
@@ -26,15 +27,51 @@ export async function createSubscription(input: CreateSubscriptionInput) {
             return { success: false, error: 'Invalid plan selected.' };
         }
 
+        // 0. Handle Coupon Logic (Admin SDK Syntax)
+        let finalPrice = plan.price || 0;
+        let discountApplied = null;
+
+        if (input.couponCode) {
+            // Admin SDK uses fluent API: collection().where().limit().get()
+            const couponsSnap = await firestore.collection('coupons')
+                .where('code', '==', input.couponCode.toUpperCase())
+                .limit(1)
+                .get();
+
+            if (!couponsSnap.empty) {
+                const couponDoc = couponsSnap.docs[0];
+                const coupon = couponDoc.data();
+
+                // Calculate discounted price
+                if (coupon.type === 'percentage') {
+                    finalPrice = finalPrice - (finalPrice * (coupon.value / 100));
+                } else if (coupon.type === 'fixed') {
+                    finalPrice = Math.max(0, finalPrice - coupon.value);
+                }
+
+                discountApplied = {
+                    code: coupon.code,
+                    type: coupon.type,
+                    value: coupon.value,
+                    originalPrice: plan.price,
+                };
+
+                // Increment coupon usage
+                await firestore.collection('coupons').doc(couponDoc.id).update({
+                    uses: FieldValue.increment(1)
+                });
+            }
+        }
+
         let transactionId = null;
         let subscriptionStatus = 'active'; // Default to active for free plans
 
-        // 2. Process Initial Payment (if not free)
-        if (plan.price && plan.price > 0 && input.paymentData) {
-            logger.info('Processing subscription payment', { plan: plan.id, amount: plan.price });
+        // 2. Process Initial Payment (if price > 0)
+        if (finalPrice > 0 && input.paymentData) {
+            logger.info('Processing subscription payment', { plan: plan.id, amount: finalPrice });
 
             const paymentResult = await createTransaction({
-                amount: plan.price,
+                amount: finalPrice,
                 // Opaque Data from Accept.js
                 opaqueData: input.paymentData.opaqueData,
                 // Fallback for raw card data (testing/backend)
@@ -60,9 +97,6 @@ export async function createSubscription(input: CreateSubscriptionInput) {
 
             transactionId = paymentResult.transactionId;
             logger.info('Subscription initial payment successful', { transactionId });
-
-            // TODO: In a real implementation with ARB, we would create the ARB subscription here using transactionId as ref
-            // For now, we manually mark it for setup
             subscriptionStatus = 'active_manual_setup_required';
         }
 
@@ -70,7 +104,9 @@ export async function createSubscription(input: CreateSubscriptionInput) {
         const subscription = {
             planId: plan.id,
             planName: plan.name,
-            price: plan.price,
+            price: finalPrice,
+            originalPrice: plan.price,
+            discount: discountApplied,
             customer: input.customer,
             status: subscriptionStatus,
             transactionId: transactionId || 'free_plan',
