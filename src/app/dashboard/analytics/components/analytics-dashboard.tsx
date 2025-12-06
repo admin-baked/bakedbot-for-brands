@@ -1,10 +1,9 @@
-
 'use client';
 
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { BarChart, DollarSign, Package } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Bar, CartesianGrid, XAxis, YAxis, ResponsiveContainer, BarChart as RechartsBarChart } from 'recharts';
+import { Bar, CartesianGrid, XAxis, YAxis, ResponsiveContainer, BarChart as RechartsBarChart, PieChart, Pie, Cell } from 'recharts';
 import type { AnalyticsData } from '../actions';
 
 interface AnalyticsDashboardProps {
@@ -140,6 +139,53 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
           </CardContent>
         </Card>
 
+        {/* Sales by Category (Task 400) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Sales by Category</CardTitle>
+            <CardDescription>Revenue distribution.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={initialData.salesByCategory}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="revenue"
+                    nameKey="category"
+                  >
+                    {initialData.salesByCategory.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={[
+                        '#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57'
+                      ][index % 6]} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip
+                    content={<ChartTooltipContent formatter={(value) => `$${Number(value).toLocaleString()}`} />}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                {initialData.salesByCategory.slice(0, 6).map((item, i) => (
+                  <div key={item.category} className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full" style={{
+                      backgroundColor: [
+                        '#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57'
+                      ][i % 6]
+                    }} />
+                    <span className="truncate" title={item.category}>{item.category}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Conversion Funnel */}
         <Card>
           <CardHeader>
@@ -162,7 +208,6 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
                   />
                   <ChartTooltip />
                   <Bar dataKey="count" fill="#82ca9d" radius={[0, 4, 4, 0]} barSize={40}>
-                    {/* Label List could go here */}
                   </Bar>
                 </RechartsBarChart>
               </ResponsiveContainer>

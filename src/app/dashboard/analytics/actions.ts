@@ -1,4 +1,3 @@
-// src/app/dashboard/analytics/actions.ts
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
@@ -19,6 +18,10 @@ export interface AnalyticsData {
   averageOrderValue: number;
   salesByProduct: {
     productName: string;
+    revenue: number;
+  }[];
+  salesByCategory: {
+    category: string;
     revenue: number;
   }[];
   dailyStats: DailyAnalytics[];
@@ -53,10 +56,12 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
 
   let totalRevenue = 0;
   const salesByProductMap = new Map<string, { productName: string; revenue: number }>();
+  const salesByCategoryMap = new Map<string, number>();
 
   orders.forEach(order => {
     totalRevenue += order.totals.total;
     order.items.forEach(item => {
+      // Product Aggregation
       const existing = salesByProductMap.get(item.productId);
       const itemRevenue = item.price * item.qty;
       if (existing) {
@@ -67,6 +72,10 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
           revenue: itemRevenue,
         });
       }
+
+      // Category Aggregation
+      const cat = item.category || 'Uncategorized';
+      salesByCategoryMap.set(cat, (salesByCategoryMap.get(cat) || 0) + itemRevenue);
     });
   });
 
@@ -76,18 +85,15 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 10);
 
+  const salesByCategory = Array.from(salesByCategoryMap.entries())
+    .map(([category, revenue]) => ({ category, revenue }))
+    .sort((a, b) => b.revenue - a.revenue);
+
   // 2. Fetch Daily Analytics from Pops (for Trends & Funnel)
   // We'll fetch the last 30 days.
   const today = new Date();
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(today.getDate() - 30);
-
-  // Construct doc IDs for range query or just fetch all and filter in memory if volume is low.
-  // Since it's one doc per day, 30 docs is tiny. We can fetch the collection.
-  // Ideally we'd query by date field if indexed, or ID.
-  // Let's just fetch the last 30 docs by ID pattern if possible, or just all for now (assuming < 365 docs).
-  // Better: Query by 'date' field if we stored it as string YYYY-MM-DD.
-  // The pops.ts stores 'date' field.
 
   const startDateStr = thirtyDaysAgo.toISOString().split('T')[0];
 
@@ -113,7 +119,7 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     dailyStats.push({
       date: data.date,
       gmv: totals.gmv || 0,
-      sessions: Object.values(channels).reduce((acc: number, ch: any) => acc + (ch.sessions || 0), 0), // Sum sessions from channels
+      sessions: Object.values(channels).reduce((acc: number, ch: any) => acc + (ch.sessions || 0), 0),
       checkoutsStarted: totals.checkoutsStarted || 0,
       paidCheckouts: totals.paidCheckouts || 0,
     });
@@ -174,6 +180,7 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     totalOrders,
     averageOrderValue,
     salesByProduct,
+    salesByCategory,
     dailyStats,
     conversionFunnel,
     channelPerformance,
