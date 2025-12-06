@@ -74,3 +74,64 @@ export async function fetchBrandPageData(brandParam: string) {
 
     return { brand, products };
 }
+
+export async function fetchCollectionData(brandParam: string, collectionSlug: string) {
+    const { firestore } = await createServerClient();
+
+    // 1. Get Brand (reuse fetched logic implicitly or copy for now to be safe/fast)
+    // Theoretically we could export a fetchBrand(slug) helper, but for now inline is fine.
+    let brand: Brand | null = null;
+    let products: Product[] = [];
+
+    const brandDoc = await firestore.collection('brands').doc(brandParam).get();
+    if (brandDoc.exists) {
+        brand = { id: brandDoc.id, ...brandDoc.data() } as Brand;
+    } else {
+        const slugQuery = await firestore.collection('brands').where('slug', '==', brandParam).limit(1).get();
+        if (!slugQuery.empty) {
+            brand = { id: slugQuery.docs[0].id, ...slugQuery.docs[0].data() } as Brand;
+        }
+    }
+
+    if (!brand) {
+        return { brand: null, products: [], categoryName: collectionSlug };
+    }
+
+    // 2. Map slug to Category Name (simple mapping for now)
+    // Common CannMenus categories: Flower, Pre-Rolls, Vaporizers, Concentrates, Edibles, Tinctures, Topicals
+    const categoryMap: Record<string, string> = {
+        'flower': 'Flower',
+        'prerolls': 'Pre-Rolls',
+        'pre-rolls': 'Pre-Rolls',
+        'vapes': 'Vaporizers',
+        'vaporizers': 'Vaporizers',
+        'edibles': 'Edibles',
+        'concentrates': 'Concentrates',
+        'topicals': 'Topicals',
+        'tinctures': 'Tinctures',
+        'accessories': 'Accessories',
+        'apparel': 'Apparel'
+    };
+
+    const categoryName = categoryMap[collectionSlug.toLowerCase()] || collectionSlug.charAt(0).toUpperCase() + collectionSlug.slice(1);
+
+    // 3. Fetch products filtered by category
+    // Try 'category' field. Note: field might be 'type' or 'category'. CannMenus usually 'category'.
+    const productsQuery = await firestore
+        .collection('products')
+        .where('brandId', '==', brand.id)
+        .where('category', '==', categoryName)
+        .limit(50)
+        .get();
+
+    if (!productsQuery.empty) {
+        products = productsQuery.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    } else {
+        // Fallback: try case-insensitive query or contains? 
+        // Firestore doesn't do case-insensitive easily without external tools.
+        // For now, if exact match fails, return empty.
+        // Maybe try simple slug match if stored as such?
+    }
+
+    return { brand, products, categoryName };
+}
