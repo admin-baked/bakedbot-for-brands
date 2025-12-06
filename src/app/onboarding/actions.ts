@@ -74,40 +74,110 @@ if (userProfileData.posConfig) {
 }
 
 
-const claims = { role: finalRole, brandId: finalBrandId, locationId: userProfileData.locationId };
+// --- ENTERPRISE MIGRATION LOGIC ---
+let orgId = '';
 
-const filteredClaims = Object.fromEntries(Object.entries(claims).filter(([_, v]) => v !== null && v !== undefined));
-const filteredProfileData = Object.fromEntries(Object.entries(userProfileData).filter(([_, v]) => v !== null && v !== undefined));
+// 1. Create Organization
+if (finalRole === 'brand' || finalRole === 'dispensary') {
+  const orgType = finalRole;
+  // Use brandId for Brand Orgs to keep IDs consistent if possible, else generate new
+  orgId = finalBrandId || (finalRole === 'brand' ? `brand-${uid.substring(0, 8)}` : `org-${uid.substring(0, 8)}`);
 
-await userDocRef.set(filteredProfileData, { merge: true });
-await auth.setCustomUserClaims(uid, filteredClaims);
+  const orgRef = firestore.collection('organizations').doc(orgId);
+  const orgSnap = await orgRef.get();
 
-// --- SYNC PRODUCTS ---
-// If user selected a CannMenus entity, sync products with limits
+  if (!orgSnap.exists) {
+    await orgRef.set({
+      id: orgId,
+      name: finalBrandName || manualDispensaryName || 'My Organization',
+      type: orgType,
+      ownerId: uid,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      settings: {
+        policyPack: 'balanced',
+        allowOverrides: true,
+        hipaaMode: false
+      },
+      billing: {
+        subscriptionStatus: 'trial'
+      }
+    });
+  }
+}
+
+// 2. Create Location (For Dispensaries)
+let newLocationId = null;
+if (finalRole === 'dispensary') {
+  // If they selected a specific location from CannMenus, use that ID
+  const locId = locationId || `loc-${uid.substring(0, 8)}`;
+  newLocationId = locId;
+
+  const locRef = firestore.collection('locations').doc(locId);
+  await locRef.set({
+    id: locId,
+    orgId: orgId,
+    name: manualDispensaryName || 'Main Location',
+    posConfig: userProfileData.posConfig || { provider: 'none', status: 'inactive' },
+    cannMenusId: userProfileData.locationId, // Save the mapping
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  // Also ensure a 'dispensary' doc exists for legacy logic (optional, but good for safety)
+  // We can skip this if we fully migrate, but let's keep it minimal.
+}
+
+// 3. Update User Profile with Enterprise Context
+const organizationIds = orgId ? [orgId] : [];
+
+// Update User Profile
+const updatedUserProfile: Record<string, any> = {
+  ...userProfileData,
+  organizationIds,
+  currentOrgId: orgId || null,
+  // Legacy mapping
+  brandId: finalRole === 'brand' ? orgId : null,
+  locationId: newLocationId || null
+};
+
+const updatedClaims = {
+  role: finalRole,
+  orgId: orgId,
+  brandId: finalRole === 'brand' ? orgId : null
+};
+
+const finalClaims = Object.fromEntries(Object.entries(updatedClaims).filter(([_, v]) => v !== null && v !== undefined));
+const finalProfile = Object.fromEntries(Object.entries(updatedUserProfile).filter(([_, v]) => v !== null && v !== undefined));
+
+await userDocRef.set(finalProfile, { merge: true });
+await auth.setCustomUserClaims(uid, finalClaims);
+
+// --- SYNC PRODUCTS (Updated to use Org Context if needed) ---
+// ... existing sync logic ...
 let syncCount = 0;
-if (finalRole === 'brand' && finalBrandId && finalRole) {
-  // Sync Logic imported dynamically or from shared
+// (Keep existing sync logic, it uses brandId/locationId which we mapped to Org/Location IDs)
+if (finalRole === 'brand' && finalBrandId) {
+  // ...
   const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
-  // If it was a mock ID from search (cm_...), use that. If manual, skip.
   if (finalBrandId.startsWith('cm_')) {
-    syncCount = await syncCannMenusProducts(finalBrandId, 'brand', finalBrandId);
+    syncCount = await syncCannMenusProducts(finalBrandId, 'brand', orgId); // Use OrgId as BrandId
   }
 } else if (finalRole === 'dispensary' && userProfileData.locationId) {
   const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
   if (userProfileData.locationId.startsWith('cm_')) {
-    syncCount = await syncCannMenusProducts(userProfileData.locationId, 'dispensary', 'dispensary-brand-placeholder');
-    // Note: Dispensaries usually don't own products, they stock them. 
-    // But for the "My Products" view, we might import them as "Retailer Inventory".
+    // For dispensaries, likely need to store inventory under the Location or Org.
+    // For now, pass null or placeholder for brandId as they are retail.
+    syncCount = await syncCannMenusProducts(userProfileData.locationId, 'dispensary', 'retail-inventory');
   }
 }
 
-// Revalidate paths that depend on user role
 revalidatePath('/dashboard');
 revalidatePath('/account');
 
 const successMessage = syncCount > 0
-  ? `Onboarding complete! Imported ${syncCount} products.`
-  : 'Onboarding complete!';
+  ? `Welcome! Organization created & ${syncCount} products imported.`
+  : 'Welcome! Organization created.';
 
 return { message: successMessage, error: false };
 
