@@ -56,6 +56,8 @@ const ChatWindow = ({
   onFeedback,
   onAddToCart,
   clearContext,
+  strategy = 'fixed',
+  startClassName,
 }: {
   products: Product[];
   onAskSmokey: (product: Product) => void;
