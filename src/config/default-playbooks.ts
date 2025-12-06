@@ -591,6 +591,120 @@ steps:
     successCount: 0,
     failureCount: 0,
     version: 1
+  },
+
+  // 8. AI Meeting Assistant (Paid Plans Only)
+  {
+    name: 'AI Meeting Assistant',
+    description: 'Agent attends meetings via Google Meet or Zoom, takes notes, and generates actionable playbook recommendations.',
+    status: 'draft',
+    yaml: `name: AI Meeting Assistant
+description: Attend meetings, take notes, generate recommendations
+
+# PAID PLANS ONLY
+requires_plan: pro
+
+triggers:
+  - type: calendar
+    source: google_calendar
+    minutes_before: 2
+  - type: manual
+    action: join_meeting
+
+platforms:
+  - google_meet
+  - zoom
+
+steps:
+  # Step 1: Join Meeting
+  - action: join_meeting
+    agent: smokey
+    config:
+      announce: true
+      message: "Hi everyone, I'm Smokey from BakedBot. I'll be taking notes today."
+      request_consent: true
+      
+  # Step 2: Transcribe Audio
+  - action: transcribe
+    config:
+      language: auto
+      speaker_diarization: true
+      
+  # Step 3: Generate Notes
+  - action: delegate
+    agent: smokey
+    task: |
+      Analyze the meeting and generate:
+      1. Executive summary (2-3 sentences)
+      2. Key discussion points
+      3. Decisions made
+      4. Action items with owners
+      5. Open questions
+      
+  # Step 4: Analyze for Playbook Opportunities
+  - action: delegate
+    agent: pops
+    input: "{{smokey.meeting_notes}}"
+    task: |
+      Based on the meeting content and user's role, identify:
+      1. Automation opportunities
+      2. Follow-up tasks that could be playbooks
+      3. Recurring patterns that suggest new workflows
+      
+  # Step 5: Generate Recommendations
+  - action: generate
+    agent: pops
+    output_type: recommendations
+    template: |
+      Meeting: {{meeting.title}}
+      Date: {{meeting.date}}
+      
+      📝 SUMMARY
+      {{smokey.summary}}
+      
+      🎯 ACTION ITEMS
+      {{#each smokey.action_items}}
+      - [ ] {{this.task}} ({{this.assignee}}) - Due: {{this.due}}
+      {{/each}}
+      
+      🤖 PLAYBOOK RECOMMENDATIONS
+      {{#each pops.recommendations}}
+      **{{this.title}}**
+      {{this.description}}
+      Confidence: {{this.confidence}}%
+      {{/each}}
+      
+  # Step 6: Save & Notify
+  - action: save
+    to: firestore
+    collection: meeting_notes
+    
+  - action: notify
+    channels:
+      - email
+      - dashboard
+    to: "{{meeting.organizer}}"
+    subject: "📋 Meeting Notes: {{meeting.title}}"
+    attach:
+      - notes
+      - transcript
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'calendar', name: 'Calendar Event', config: { minutesBefore: 2 }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Manual Join', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'join_meeting', params: { agent: 'smokey' } },
+      { action: 'transcribe', params: { language: 'auto' } },
+      { action: 'delegate', params: { agent: 'smokey', task: 'notes' } },
+      { action: 'delegate', params: { agent: 'pops', task: 'recommendations' } },
+      { action: 'generate', params: { type: 'recommendations' } },
+      { action: 'notify', params: { channels: ['email', 'dashboard'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
   }
 ];
 
