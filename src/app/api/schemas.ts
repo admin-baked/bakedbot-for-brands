@@ -42,6 +42,8 @@ export type ChatRequest = z.infer<typeof chatRequestSchema>;
 // PAYMENT SCHEMAS
 // ============================================================================
 
+// NOTE: 'cannpay' is the internal value for Smokey Pay (customer-facing brand name)
+// Internal code uses 'cannpay', customer-facing UI displays 'Smokey Pay'
 const paymentMethodEnum = z.enum(['dispensary_direct', 'cannpay', 'stripe']);
 
 const customerSchema = z.object({

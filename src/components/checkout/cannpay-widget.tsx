@@ -1,11 +1,12 @@
 /**
- * CannPay Widget Component
+ * Smokey Pay Widget Component
  *
- * Integrates the CannPay RemotePay JavaScript widget for payment processing.
+ * Customer-Facing: Displays as "Smokey Pay"
+ * Internal Implementation: Integrates CannPay RemotePay JavaScript widget for payment processing
  *
  * Flow:
  * 1. Component receives intent_id from backend authorization
- * 2. Loads CannPay widget script from CDN
+ * 2. Loads CannPay widget script from CDN (internal)
  * 3. Initializes widget with intent_id
  * 4. Widget handles payment UI and processing
  * 5. JavaScript callback receives payment result
@@ -15,6 +16,7 @@
  * Created CannPay widget wrapper based on RemotePay Integration Guide v1.4.0-dev.
  * Uses dynamic script loading to inject widget from CDN.
  * Handles success, error, and cancel callbacks.
+ * NOTE: "CannPay" is internal integration; customers see "Smokey Pay" branding.
  */
 
 'use client';
@@ -99,7 +101,7 @@ export function CannPayWidget({
     };
 
     script.onerror = () => {
-      setLoadError('Failed to load CannPay widget. Please try again.');
+      setLoadError('Failed to load payment widget. Please try again.');
       setIsLoading(false);
     };
 
@@ -115,7 +117,7 @@ export function CannPayWidget({
 
   function initializeWidget() {
     if (!window.CannPay) {
-      setLoadError('CannPay widget not available. Please refresh the page.');
+      setLoadError('Payment widget not available. Please refresh the page.');
       return;
     }
 

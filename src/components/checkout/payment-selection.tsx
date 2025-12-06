@@ -3,13 +3,14 @@
  *
  * Allows customers to choose between three payment methods:
  * 1. Dispensary Direct (default) - Pay at pickup
- * 2. CannPay - Cannabis-specific payment processor (+$0.50 fee)
+ * 2. Smokey Pay - Cannabis-specific payment processor (+$0.50 fee) [powered by CannPay internally]
  * 3. Stripe - Traditional payment processor (optional)
  *
  * AI-THREAD: [Dev1-Claude @ 2025-11-30] P0-PAY-CANNPAY-INTEGRATION
  * Created payment selection UI with three options.
  * Default selection is "dispensary_direct" per user requirements.
- * CannPay transaction fee ($0.50) displayed clearly to customer.
+ * Smokey Pay transaction fee ($0.50) displayed clearly to customer.
+ * NOTE: "CannPay" is internal integration name; customers see "Smokey Pay" branding.
  */
 
 'use client';
@@ -37,7 +38,7 @@ export interface PaymentSelectionProps {
   stripeEnabled?: boolean;
 }
 
-const CANNPAY_FEE_CENTS = 50; // $0.50 transaction fee
+const SMOKEY_PAY_FEE_CENTS = 50; // $0.50 transaction fee (internal: cannpay)
 
 /**
  * Format cents to dollar string
@@ -52,7 +53,7 @@ export function PaymentSelection({
   subtotal,
   stripeEnabled = true,
 }: PaymentSelectionProps) {
-  const canpayTotal = subtotal + CANNPAY_FEE_CENTS;
+  const smokeyPayTotal = subtotal + SMOKEY_PAY_FEE_CENTS;
 
   return (
     <div className="space-y-4">
@@ -88,7 +89,7 @@ export function PaymentSelection({
           </div>
         </Card>
 
-        {/* Option 2: CannPay (Primary Online Payment) */}
+        {/* Option 2: Smokey Pay (Primary Online Payment) - internal: cannpay */}
         <Card className="p-4 cursor-pointer hover:border-primary transition-colors">
           <div className="flex items-start space-x-4">
             <RadioGroupItem value="cannpay" id="cannpay" />
@@ -96,15 +97,15 @@ export function PaymentSelection({
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Banknote className="h-5 w-5 text-blue-600" />
-                  <span className="font-semibold">CannPay</span>
+                  <span className="font-semibold">Smokey Pay</span>
                   <Badge variant="outline" className="text-xs">
                     +$0.50 fee
                   </Badge>
                 </div>
-                <span className="font-semibold">{formatCurrency(canpayTotal)}</span>
+                <span className="font-semibold">{formatCurrency(smokeyPayTotal)}</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Pay now with CannPay, the cannabis industry's trusted payment solution.
+                Pay now with Smokey Pay, the cannabis industry's trusted payment solution.
                 Secure bank-to-bank transfer.
               </p>
             </Label>
@@ -137,8 +138,8 @@ export function PaymentSelection({
       {value === 'cannpay' && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-sm text-blue-900">
-            <strong>Transaction Fee:</strong> A ${formatCurrency(CANNPAY_FEE_CENTS)}{' '}
-            processing fee will be added to your total when paying with CannPay.
+            <strong>Transaction Fee:</strong> A ${formatCurrency(SMOKEY_PAY_FEE_CENTS)}{' '}
+            processing fee will be added to your total when paying with Smokey Pay.
           </p>
         </div>
       )}

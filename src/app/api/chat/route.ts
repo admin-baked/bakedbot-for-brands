@@ -27,8 +27,13 @@ export const POST = withProtection(
                     // Create new session
                     currentSessionId = await createChatSession(userId);
                 } else {
-                    // Get existing conversation context
-                    conversationContext = await getConversationContext(userId, currentSessionId);
+                    // Get existing conversation context and convert Firestore Timestamps to Dates
+                    const firestoreMessages = await getConversationContext(userId, currentSessionId);
+                    conversationContext = firestoreMessages.map(msg => ({
+                        role: msg.role,
+                        content: msg.content,
+                        timestamp: msg.timestamp.toDate ? msg.timestamp.toDate() : new Date(msg.timestamp as any)
+                    }));
                 }
             }
 
