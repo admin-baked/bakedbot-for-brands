@@ -22,8 +22,12 @@ import { useUserRole } from '@/hooks/use-user-role';
 
 
 import { logger } from '@/lib/logger';
+import { RoleSwitcher } from '@/components/debug/role-switcher';
+
 export function Header() {
     const { getItemCount, setCartSheetOpen } = useStore();
+    // ... (rest of hook calls) ...
+
     const itemCount = getItemCount();
     const pathname = usePathname();
     const { user } = useUser();
@@ -95,7 +99,7 @@ export function Header() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {hydrated && (
+                    {hydrated && pathname !== '/shop/demo' && (
                         <div className="hidden md:flex items-center gap-2">
                             <TestTube2 className="h-5 w-5 text-primary" />
                             <Label htmlFor="demo-mode-switch" className="text-sm font-medium">Demo Mode</Label>
@@ -124,35 +128,38 @@ export function Header() {
 
                     <div className="hidden md:flex items-center gap-2">
                         {hydrated && user ? (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="flex items-center gap-2">
-                                        <Avatar className="h-7 w-7">
-                                            <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
-                                        </Avatar>
-                                        My Account
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => router.push('/account')}>
-                                        <User className="mr-2" />
-                                        Account Details
-                                    </DropdownMenuItem>
-                                    {canAccessDashboard && (
-                                        <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                            <>
+                                {(user as any).role === 'owner' && <RoleSwitcher />}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="flex items-center gap-2">
+                                            <Avatar className="h-7 w-7">
+                                                <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                                            </Avatar>
+                                            My Account
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => router.push('/account')}>
                                             <User className="mr-2" />
-                                            Dashboard
+                                            Account Details
                                         </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={handleSignOut}>
-                                        <LogOut className="mr-2" />
-                                        Sign Out
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                                        {canAccessDashboard && (
+                                            <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                                                <User className="mr-2" />
+                                                Dashboard
+                                            </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={handleSignOut}>
+                                            <LogOut className="mr-2" />
+                                            Sign Out
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </>
                         ) : hydrated && !user ? (
                             <>
                                 <Button variant="ghost" asChild>

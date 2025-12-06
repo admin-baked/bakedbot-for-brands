@@ -4,8 +4,6 @@ import { useMemo } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import type { UserProfile } from '@/types/domain';
 
-import { useImpersonation } from '@/context/impersonation-context';
-
 export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
 
 /**
@@ -14,7 +12,6 @@ export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
  */
 export function useUserRole() {
     const { user, isUserLoading } = useUser();
-    const { impersonatedRole } = useImpersonation();
 
     const realRole = useMemo(() => {
         if (!user) return null;
@@ -22,16 +19,21 @@ export function useUserRole() {
     }, [user]);
 
     const role = useMemo(() => {
-        if (!user) return null;
-        const actualRole = (user as any).role as Role | null;
-
-        // Only allow owners to impersonate
-        if (actualRole === 'owner' && impersonatedRole) {
-            return impersonatedRole;
+        // 1. Try to get role from user object (Firebase Auth)
+        if (user && (user as any).role) {
+            return (user as any).role as Role;
         }
 
-        return actualRole;
-    }, [user, impersonatedRole]);
+        // 2. Fallback: Check for simulation cookie (for Super Admins or Dev mode)
+        if (typeof document !== 'undefined') {
+            const match = document.cookie.match(new RegExp('(^| )x-simulated-role=([^;]+)'));
+            if (match) {
+                return match[2] as Role;
+            }
+        }
+
+        return null;
+    }, [user]);
 
     const isRole = useMemo(() => {
         return (checkRole: Role) => role === checkRole;
@@ -57,7 +59,7 @@ export function useUserRole() {
             case 'brand':
             case 'dispensary':
             case 'owner':
-                return '/dashboard';
+                return '/dashboard/playbooks';
             case 'customer':
                 return '/account';
             default:
