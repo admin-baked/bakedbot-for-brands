@@ -59,6 +59,13 @@ export function useDashboardConfig() {
         roles: ['brand', 'owner'],
       },
       {
+        label: 'Distribution',
+        href: '/dashboard/distribution',
+        icon: 'Map',
+        description: 'Visualize SKU coverage and retail partners.',
+        roles: ['brand', 'owner'],
+      },
+      {
         label: 'Content AI',
         href: '/dashboard/content',
         icon: 'PenSquare',
@@ -77,6 +84,13 @@ export function useDashboardConfig() {
         href: '/dashboard/loyalty',
         icon: 'Crown',
         description: 'Manage rewards, tiers, and VIP automations.',
+        roles: ['brand', 'owner'],
+      },
+      {
+        label: 'Leads',
+        href: '/dashboard/leads',
+        icon: 'UserPlus',
+        description: 'Manage captured emails and potential customers.',
         roles: ['brand', 'owner'],
       },
       // Dispensaries
