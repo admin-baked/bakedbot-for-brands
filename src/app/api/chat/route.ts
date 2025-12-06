@@ -42,10 +42,20 @@ export const POST = withProtection(
 
             // 3️⃣ Use CannMenusService to fetch products directly
             const cannMenusService = new CannMenusService();
+
+            // Enhance search query with specific filters that CannMenus might not support as direct params yet
+            let enhancedSearch = analysis.searchQuery;
+            if (analysis.filters.effects && analysis.filters.effects.length > 0) {
+                enhancedSearch += ` ${analysis.filters.effects.join(' ')}`;
+            }
+            if (analysis.filters.strainType) {
+                enhancedSearch += ` ${analysis.filters.strainType}`;
+            }
+
             const searchParams: SearchParams = {
-                search: analysis.searchQuery,
-                retailers: process.env.NEXT_PUBLIC_BAYSIDE_RETAILER_ID,
-                brands: process.env.CANNMENUS_40TONS_BRAND_ID,
+                search: enhancedSearch.trim(),
+                retailers: process.env.NEXT_PUBLIC_BAYSIDE_RETAILER_ID, // TODO: Use dynamic retailer from context/session
+                brands: process.env.CANNMENUS_40TONS_BRAND_ID, // TODO: Use dynamic brand from headers/context
             };
 
             if (analysis.filters.category) searchParams.category = analysis.filters.category;
@@ -55,36 +65,36 @@ export const POST = withProtection(
             const productData = await cannMenusService.searchProducts(searchParams);
             const rawProducts: CannMenusProduct[] = productData.products || [];
 
-        // 4️⃣ Transform to ChatbotProduct shape (only a subset needed for UI)
-        const chatProducts: ChatbotProduct[] = rawProducts.map((p) => ({
-            id: p.cann_sku_id,
-            name: p.product_name,
-            category: p.category,
-            price: p.latest_price,
-            imageUrl: p.image_url,
-            description: p.product_name, // placeholder – CannMenus does not return description here
-            thcPercent: p.percentage_thc ?? null,
-            cbdPercent: p.percentage_cbd ?? null,
-            displayWeight: p.display_weight,
-            url: p.url,
-        }));
+            // 4️⃣ Transform to ChatbotProduct shape (only a subset needed for UI)
+            const chatProducts: ChatbotProduct[] = rawProducts.map((p) => ({
+                id: p.cann_sku_id,
+                name: p.product_name,
+                category: p.category,
+                price: p.latest_price,
+                imageUrl: p.image_url,
+                description: p.product_name, // placeholder – CannMenus does not return description here
+                thcPercent: p.percentage_thc ?? null,
+                cbdPercent: p.percentage_cbd ?? null,
+                displayWeight: p.display_weight,
+                url: p.url,
+            }));
 
-        // 5️⃣ Generate a friendly chat response using Gemini
-        const chatResponse = await generateChatResponse(query, analysis.intent, chatProducts.length);
+            // 5️⃣ Generate a friendly chat response using Gemini
+            const chatResponse = await generateChatResponse(query, analysis.intent, chatProducts.length);
 
-        // 6️⃣ Store messages in session if userId provided
-        if (userId && currentSessionId) {
-            await addMessageToSession(userId, currentSessionId, {
-                role: 'user',
-                content: query,
-                productReferences: chatProducts.slice(0, 5).map(p => p.id),
-            });
+            // 6️⃣ Store messages in session if userId provided
+            if (userId && currentSessionId) {
+                await addMessageToSession(userId, currentSessionId, {
+                    role: 'user',
+                    content: query,
+                    productReferences: chatProducts.slice(0, 5).map(p => p.id),
+                });
 
-            await addMessageToSession(userId, currentSessionId, {
-                role: 'assistant',
-                content: chatResponse.message,
-            });
-        }
+                await addMessageToSession(userId, currentSessionId, {
+                    role: 'assistant',
+                    content: chatResponse.message,
+                });
+            }
 
             return NextResponse.json({
                 ok: true,
