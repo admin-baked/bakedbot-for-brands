@@ -88,17 +88,11 @@ const nextConfig = {
         ],
       },
       // CORS headers for API routes
+      // Note: For proper CORS with credentials, we handle origin dynamically in middleware
+      // Static headers set baseline security, actual origin validation in API routes
       {
         source: '/api/:path*',
         headers: [
-          {
-            key: 'Access-Control-Allow-Credentials',
-            value: 'true',
-          },
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*', // Changed from strict domain to '*' to fix 500 error on domain change
-          },
           {
             key: 'Access-Control-Allow-Methods',
             value: 'GET,POST,PUT,DELETE,OPTIONS',

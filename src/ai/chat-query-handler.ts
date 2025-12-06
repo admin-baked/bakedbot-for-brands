@@ -75,6 +75,15 @@ const ChatResponseSchema = z.object({
 
 export type ChatResponse = z.infer<typeof ChatResponseSchema>;
 
+/**
+ * Conversation message type for context
+ */
+export interface ConversationMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp?: Date;
+}
+
 // Prompt for generating chat responses
 const generateChatResponsePrompt = ai.definePrompt({
     name: 'generateChatResponsePrompt',
@@ -117,7 +126,10 @@ IMPORTANT: Do NOT make medical claims. Use phrases like "users often report" or 
  * @param query - The user's search query
  * @param conversationContext - Optional previous messages for context
  */
-export async function analyzeQuery(query: string, conversationContext?: any[]): Promise<QueryAnalysis> {
+export async function analyzeQuery(
+  query: string,
+  conversationContext?: ConversationMessage[]
+): Promise<QueryAnalysis> {
     // Format conversation context for the prompt
     const contextString = conversationContext && conversationContext.length > 0
         ? conversationContext.map(msg => `${msg.role}: ${msg.content}`).join('\n')

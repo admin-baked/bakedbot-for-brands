@@ -1,13 +1,20 @@
 
 // src/server/agents/craig.ts
 import { createServerClient } from "@/firebase/server-client";
-import { EventType } from "@/types/domain";
+import { EventType, AppEvent } from "@/types/domain";
 import { sendOrderEmail } from "@/lib/email/send-order-email";
 import type { OrderDoc, Retailer } from "@/types/domain";
 import type { ServerOrderPayload } from "@/types/domain";
 import { orderConverter, retailerConverter } from "@/firebase/converters";
 import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "@/lib/logger";
+
+/**
+ * Firestore event document with processedBy metadata
+ */
+interface EventDoc extends AppEvent {
+  processedBy?: Record<string, unknown>;
+}
 
 
 const HANDLED_TYPES: EventType[] = [
@@ -16,7 +23,7 @@ const HANDLED_TYPES: EventType[] = [
   "order.readyForPickup",
 ];
 
-async function handleDeadLetter(orgId: string, eventId: string, eventData: any, error: any) {
+async function handleDeadLetter(orgId: string, eventId: string, eventData: EventDoc, error: unknown) {
   const { firestore: db } = await createServerClient();
   const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
   const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
@@ -25,7 +32,7 @@ async function handleDeadLetter(orgId: string, eventId: string, eventData: any, 
   batch.set(dlqRef, {
     ...eventData,
     _failedAt: FieldValue.serverTimestamp(),
-    _error: error?.message || String(error),
+    _error: error instanceof Error ? error.message : String(error),
     _agentId: 'craig',
   });
   batch.delete(originalEventRef);
@@ -41,7 +48,7 @@ export async function handleCraigEvent(orgId: string, eventId: string) {
   const eventSnap = await eventRef.get();
 
   if (!eventSnap.exists) return;
-  const event = eventSnap.data() as any;
+  const event = eventSnap.data() as EventDoc;
 
   // Check if this agent has already handled this event.
   if (event.processedBy && event.processedBy[agentId]) {

@@ -13,6 +13,11 @@ export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
 export function useUserRole() {
     const { user, isUserLoading } = useUser();
 
+    const realRole = useMemo(() => {
+        if (!user) return null;
+        return (user as any).role as Role | null;
+    }, [user]);
+
     const role = useMemo(() => {
         // 1. Try to get role from user object (Firebase Auth)
         if (user && (user as any).role) {
@@ -46,8 +51,8 @@ export function useUserRole() {
     }, [role]);
 
     const canAccessAdminFeatures = useMemo(() => {
-        return role === 'owner';
-    }, [role]);
+        return realRole === 'owner';
+    }, [realRole]);
 
     const defaultRoute = useMemo(() => {
         switch (role) {

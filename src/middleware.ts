@@ -1,12 +1,32 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/cors';
 
 /**
- * Middleware for route protection and authentication.
+ * Middleware for route protection, authentication, CORS, and CSRF.
  * This runs on the Edge runtime before the request reaches the page.
+ *
+ * Note: CSRF validation is handled in API routes using the csrf middleware
+ * because Edge runtime doesn't support the 'crypto' module needed for validation.
  */
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+    const origin = request.headers.get('origin');
+
+    // Handle CORS preflight requests for API routes
+    if (request.method === 'OPTIONS' && pathname.startsWith('/api/')) {
+        if (isOriginAllowed(origin)) {
+            return new NextResponse(null, {
+                status: 204,
+                headers: {
+                    ...getCorsHeaders(origin),
+                    ...CORS_PREFLIGHT_HEADERS,
+                },
+            });
+        }
+        // Reject CORS preflight from unauthorized origins
+        return new NextResponse(null, { status: 403 });
+    }
 
     // Get session cookie
     const sessionCookie = request.cookies.get('__session');
@@ -53,12 +73,23 @@ export function middleware(request: NextRequest) {
     // without additional setup. Role-based checks will be done client-side
     // in the withAuth HOC and server-side in page components.
 
+    // Add CORS headers to API responses
+    if (pathname.startsWith('/api/')) {
+        const response = NextResponse.next();
+        const corsHeaders = getCorsHeaders(origin);
+        Object.entries(corsHeaders).forEach(([key, value]) => {
+            response.headers.set(key, value);
+        });
+        return response;
+    }
+
     return NextResponse.next();
 }
 
 // Configure which routes the middleware should run on
 export const config = {
     matcher: [
+        '/api/:path*',
         '/dashboard/:path*',
         '/account/:path*',
         '/onboarding',
