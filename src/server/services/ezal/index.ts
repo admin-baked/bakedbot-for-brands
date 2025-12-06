@@ -1,4 +1,4 @@
-'use server';
+// src/server/services/ezal/index.ts
 
 // src/server/services/ezal/index.ts
 /**
