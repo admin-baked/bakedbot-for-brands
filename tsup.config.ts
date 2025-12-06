@@ -3,7 +3,10 @@ import path from 'path';
 import alias from 'esbuild-plugin-alias';
 
 export default defineConfig({
-    entry: { chatbot: 'src/embed/index.tsx' },
+    entry: {
+        chatbot: 'src/embed/index.tsx',
+        locator: 'src/embed/locator.tsx',
+    },
     outExtension({ format }) {
         return {
             js: `.js`,
