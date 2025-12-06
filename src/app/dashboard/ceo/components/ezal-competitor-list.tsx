@@ -27,7 +27,7 @@ import { Loader2, Plus, RefreshCw, Trash2, ExternalLink, Search } from 'lucide-r
 import { Competitor } from '@/types/ezal-scraper';
 import { useToast } from "@/hooks/use-toast";
 
-interface EzalCompetitorListProps {
+export interface EzalCompetitorListProps {
     tenantId: string;
 }
 
