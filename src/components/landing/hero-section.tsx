@@ -1,60 +1,50 @@
-// src/components/landing/hero-section.tsx
-import styles from '@/app/home.module.css';
-import { HeroInput } from '@/components/home/hero-input';
-import { DemoChatTrigger } from '@/components/landing/demo-chat-trigger';
-import { ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Bot, ArrowRight, Sparkles } from 'lucide-react';
 
 export function HeroSection() {
   return (
-    <section className={styles.hero}>
-      <div className={styles.heroGrid}>
-        <div>
-          <div className={styles.eyebrow}>
-            <div className={styles.eyebrowPill}>New</div>
-            Agentic Commerce OS for Cannabis
-          </div>
-          <h1 className={styles.heroTitle}>
-            Keep the customer in <br />
-            your <span className={styles.gradient}>brand funnel</span>.
-          </h1>
-          <p className={styles.heroSubtitle}>
-            BakedBot is a multi-agent AI workforce that powers your brand's headless menu, marketing, and competitive intelligence—all while routing orders to your retail partners.
-            <br />
-            <span className={styles.eyebrowPill} style={{ marginTop: '1rem', display: 'inline-block' }}>
-              ✨ New: Biometric Payments & ID Verification
-            </span>
-          </p>
-          <HeroInput />
-          <p className={styles.heroFootnote}>
-            Get started free, no credit card required.
-          </p>
-
-          {/* Demo CTAs */}
-          <div className={styles.heroCtas}>
-            <DemoChatTrigger />
-            <Link href="/shop/demo" className={styles.btnSecondary}>
-              <ShoppingBag size={16} />
-              Browse Demo Menu
-            </Link>
-          </div>
+    <section className="relative pt-20 pb-32 overflow-hidden">
+      {/* Background Gradients */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl blur-3xl opacity-20">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-primary rounded-full mix-blend-multiply animate-blob" />
+          <div className="absolute top-20 right-20 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply animate-blob animation-delay-4000" />
         </div>
-        <div className="hidden lg:block">
-          <div className={styles.heroImageContainer}>
-            <Image
-              src="/demo-menu-hero.png"
-              alt="40 Tons Demo Menu - AI-powered headless cannabis menu"
-              width={600}
-              height={500}
-              className={styles.heroImage}
-              priority
-            />
-            <div className={styles.heroImageBadge}>
-              <span className={styles.dot} />
-              Live Demo
-            </div>
-          </div>
+      </div>
+
+      <div className="flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto z-10">
+        <Badge variant="secondary" className="px-4 py-2 text-sm border-primary/20 backdrop-blur-sm bg-background/50 animate-fade-in-up">
+          <Bot className="w-4 h-4 mr-2 text-primary" />
+          <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent font-medium">
+            Agentic Commerce OS v1.0
+          </span>
+        </Badge>
+
+        <h1 className="text-5xl font-bold tracking-tight sm:text-7xl font-teko uppercase animate-fade-in-up animation-delay-100">
+          Build a Cannabis Empire with <br />
+          <span className="text-primary">Autonomous Agents</span>
+        </h1>
+
+        <p className="text-xl text-muted-foreground max-w-2xl animate-fade-in-up animation-delay-200">
+          Stop manually managing menus, emails, and compliance. Deploy a team of AI specialists that work 24/7 to grow your brand, drive foot traffic, and automate your operations.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4 w-full justify-center animate-fade-in-up animation-delay-300">
+          <Link href="/brand-login">
+            <Button size="lg" className="h-14 px-8 text-lg w-full sm:w-auto shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-shadow">
+              Deploy Your Agents
+              <Sparkles className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
+          <Link href="/demo">
+            <Button size="lg" variant="outline" className="h-14 px-8 text-lg w-full sm:w-auto backdrop-blur-sm bg-background/50">
+              See Live Demo
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
