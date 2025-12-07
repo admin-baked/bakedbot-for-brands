@@ -28,64 +28,9 @@ import {
     MessageSquare, Image, RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useMockData } from '@/hooks/use-mock-data';
 
-// Mock tickets data
-const MOCK_TICKETS = [
-    {
-        id: 'TKT-001',
-        title: 'Dashboard fails to load analytics data',
-        description: 'The analytics dashboard shows infinite loading spinner. API timeout suspected.',
-        reporterEmail: 'admin@greenvalley.com',
-        orgName: 'Green Valley Dispensary',
-        userRole: 'dispensary',
-        status: 'new',
-        priority: 'high',
-        category: 'bug',
-        screenshotUrl: '/api/placeholder/800/600',
-        pageUrl: '/dashboard/analytics',
-        createdAt: new Date(Date.now() - 1000 * 60 * 30), // 30 min ago
-        aiSuggestion: {
-            possibleCauses: ['API endpoint returning 500 error', 'Auth token expired'],
-            suggestedFixes: ['Check API logs', 'Clear user session cache']
-        }
-    },
-    {
-        id: 'TKT-002',
-        title: 'Cannot connect Shopify integration',
-        description: 'OAuth flow fails with redirect error.',
-        reporterEmail: 'team@kushbrands.com',
-        orgName: 'Kush Brands Co',
-        userRole: 'brand',
-        status: 'in_progress',
-        priority: 'medium',
-        category: 'integration_issue',
-        screenshotUrl: '/api/placeholder/800/600',
-        pageUrl: '/dashboard/settings',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-        assignedTo: 'Dev Team',
-        aiSuggestion: {
-            possibleCauses: ['Shopify callback URL mismatch', 'Missing scope permissions'],
-            suggestedFixes: ['Verify callback URL in Shopify app settings', 'Update OAuth scopes']
-        }
-    },
-    {
-        id: 'TKT-003',
-        title: 'Email campaign not sending',
-        description: 'Created campaign but it shows stuck in "Sending" status.',
-        reporterEmail: 'marketing@pacificcanna.com',
-        orgName: 'Pacific Cannabis',
-        userRole: 'dispensary',
-        status: 'resolved',
-        priority: 'high',
-        category: 'bug',
-        screenshotUrl: '/api/placeholder/800/600',
-        pageUrl: '/dashboard/campaigns',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-        resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 12),
-        resolution: 'Email queue was backed up due to rate limiting. Cleared queue and increased throughput.'
-    },
-];
+
+// Mock support removed. Live data only.
 
 type TicketStatus = 'new' | 'triaging' | 'in_progress' | 'waiting_on_user' | 'resolved' | 'closed';
 type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
@@ -108,21 +53,17 @@ const PRIORITY_COLORS: Record<TicketPriority, string> = {
 
 export default function TicketsTab() {
     const { toast } = useToast();
-    const [selectedTicket, setSelectedTicket] = useState<typeof MOCK_TICKETS[0] | null>(null);
+    const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
 
-    const { isMock, isLoading: isMockLoading } = useMockData();
-    const [tickets, setTickets] = useState<any[]>(MOCK_TICKETS);
+    // const { isMock, isLoading: isMockLoading } = useMockData(); // Mock data disabled
+    const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchTickets = async () => {
-            if (isMock) {
-                setTickets(MOCK_TICKETS);
-                setLoading(false);
-                return;
-            }
+            // Live fetch only
 
             try {
                 setLoading(true);
@@ -139,10 +80,10 @@ export default function TicketsTab() {
             }
         };
 
-        if (!isMockLoading) {
+        if (true) {
             fetchTickets();
         }
-    }, [isMock, isMockLoading]);
+    }, []);
 
     const filteredTickets = tickets.filter(ticket => {
         const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
@@ -155,7 +96,7 @@ export default function TicketsTab() {
         return matchesStatus && matchesSearch;
     });
 
-    const handleCopyDetails = (ticket: typeof MOCK_TICKETS[0]) => {
+    const handleCopyDetails = (ticket: any) => {
         const text = `
 Ticket: ${ticket.id}
 Title: ${ticket.title}
