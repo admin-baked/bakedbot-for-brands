@@ -162,6 +162,27 @@ export async function getBrands(): Promise<Brand[]> {
   }
 }
 
+export async function getDispensaries(): Promise<{ id: string; name: string }[]> {
+  try {
+    const firestore = getAdminFirestore();
+    const snapshot = await firestore
+      .collection('organizations')
+      .where('type', '==', 'dispensary')
+      .get();
+
+    return snapshot.docs.map((doc: any) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name || 'Unknown Dispensary',
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching dispensaries via admin:', error);
+    return [];
+  }
+}
+
 export async function getCoupons(): Promise<Coupon[]> {
   try {
     const firestore = getAdminFirestore();
