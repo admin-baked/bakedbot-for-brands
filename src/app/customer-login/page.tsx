@@ -96,6 +96,11 @@ export default function CustomerLoginPage() {
     e.preventDefault();
     if (!auth || !email || !password) return;
 
+    if (password.length < 6) {
+      toast({ variant: 'destructive', title: 'Invalid Password', description: 'Password must be at least 6 characters long.' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       if (isSignUp) {
