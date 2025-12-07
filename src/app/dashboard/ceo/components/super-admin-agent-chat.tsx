@@ -197,12 +197,20 @@ export default function SuperAdminAgentChat() {
                                             {message.toolCalls && message.toolCalls.length > 0 && (
                                                 <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
                                                     {message.toolCalls.map(tool => (
-                                                        <div key={tool.id} className="flex items-center gap-2 text-xs">
-                                                            {tool.status === 'running' && <Loader2 className="h-3 w-3 animate-spin text-yellow-500" />}
-                                                            {tool.status === 'success' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
-                                                            {tool.status === 'error' && <AlertCircle className="h-3 w-3 text-red-500" />}
-                                                            <span className="text-muted-foreground">{tool.name}</span>
-                                                            {tool.agent && <Badge variant="secondary" className="text-[10px] py-0">{tool.agent}</Badge>}
+                                                        <div key={tool.id} className="space-y-1">
+                                                            <div className="flex items-center gap-2 text-xs">
+                                                                {tool.status === 'running' && <Loader2 className="h-3 w-3 animate-spin text-yellow-500" />}
+                                                                {tool.status === 'success' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                                                                {tool.status === 'error' && <AlertCircle className="h-3 w-3 text-red-500" />}
+                                                                <span className="text-muted-foreground font-medium">{tool.name}</span>
+                                                                {tool.agent && <Badge variant="secondary" className="text-[10px] py-0">{tool.agent}</Badge>}
+                                                            </div>
+                                                            {tool.result && (
+                                                                <div className="ml-5 p-2 bg-black/5 rounded text-[10px] font-mono text-muted-foreground whitespace-pre-wrap border border-black/5">
+                                                                    {tool.result.slice(0, 300)}
+                                                                    {tool.result.length > 300 && '...'}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ))}
                                                 </div>

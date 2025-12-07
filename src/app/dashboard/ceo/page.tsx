@@ -9,6 +9,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import dynamic from 'next/dynamic';
 
 const TabLoader = () => <div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
@@ -70,7 +71,7 @@ export default function CeoDashboardPage() {
                         <Shield className="h-5 w-5 text-green-600" />
                     </div>
                     <div>
-                        <p className="font-semibold text-green-900">Super Admin Mode</p>
+                        <p className="font-display text-xl font-bold text-green-900">Super Admin Mode</p>
                         <p className="text-sm text-green-700">{superAdminEmail}</p>
                     </div>
                 </div>
@@ -85,19 +86,21 @@ export default function CeoDashboardPage() {
 
             {/* CEO Dashboard Tabs */}
             <Tabs defaultValue="agent-chat">
-                <TabsList className="grid w-full grid-cols-11">
-                    <TabsTrigger value="agent-chat" className="font-semibold">🤖 Agent Chat</TabsTrigger>
-                    <TabsTrigger value="ezal" className="font-semibold">🕵️‍♀️ Ezal</TabsTrigger>
-                    <TabsTrigger value="playbooks" className="font-semibold">📋 Playbooks</TabsTrigger>
-                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                    <TabsTrigger value="foot-traffic">Foot Traffic</TabsTrigger>
-                    <TabsTrigger value="tickets">Tickets</TabsTrigger>
-                    <TabsTrigger value="ai-agent-embed">AI Embed</TabsTrigger>
-                    <TabsTrigger value="data-manager">Data</TabsTrigger>
-                    <TabsTrigger value="ai-search">AI Search</TabsTrigger>
-                    <TabsTrigger value="coupons">Coupons</TabsTrigger>
-                    <TabsTrigger value="cannmenus">CannMenus</TabsTrigger>
-                </TabsList>
+                <ScrollArea className="w-full pb-2">
+                    <TabsList className="inline-flex w-full min-w-max justify-start px-2 h-auto py-1">
+                        <TabsTrigger value="agent-chat" className="font-semibold">🤖 Agent Chat</TabsTrigger>
+                        <TabsTrigger value="ezal" className="font-semibold">🕵️‍♀️ Ezal</TabsTrigger>
+                        <TabsTrigger value="playbooks" className="font-semibold">📋 Playbooks</TabsTrigger>
+                        <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                        <TabsTrigger value="foot-traffic">Foot Traffic</TabsTrigger>
+                        <TabsTrigger value="tickets">Tickets</TabsTrigger>
+                        <TabsTrigger value="ai-agent-embed">AI Embed</TabsTrigger>
+                        <TabsTrigger value="data-manager">Data</TabsTrigger>
+                        <TabsTrigger value="ai-search">AI Search</TabsTrigger>
+                        <TabsTrigger value="coupons">Coupons</TabsTrigger>
+                        <TabsTrigger value="cannmenus">CannMenus</TabsTrigger>
+                    </TabsList>
+                </ScrollArea>
                 <div className="mt-6">
                     <ClientOnly fallback={<div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
                         <TabsContent value="agent-chat" className="mt-0">
