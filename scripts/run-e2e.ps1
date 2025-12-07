@@ -18,7 +18,8 @@ if (-not (Test-PortListening $port)) {
     Write-Host "Dev server not detected on port $port; starting via helper..."
     $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
     $startHelper = Join-Path $scriptDir "start-dev-with-firebase.ps1"
-    $devProc = Start-Process -FilePath powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File '$startHelper'" -WorkingDirectory (Resolve-Path "$scriptDir\..\") -PassThru -NoNewWindow
+    $args = @('-NoProfile','-ExecutionPolicy','Bypass','-File',$startHelper)
+    $devProc = Start-Process -FilePath powershell -ArgumentList $args -WorkingDirectory (Resolve-Path "$scriptDir\..\") -PassThru -NoNewWindow
     $startedServer = $true
     # Wait for server to come up (increase timeout)
     $max = 120
