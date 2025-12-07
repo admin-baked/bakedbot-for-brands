@@ -153,7 +153,7 @@ ${ticket.aiSuggestion?.suggestedFixes?.map((f: any) => `- ${f}`).join('\n') || '
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-muted-foreground">New</p>
-                                <p className="text-2xl font-bold">3</p>
+                                <p className="text-2xl font-bold">{tickets.filter(t => t.status === 'new').length}</p>
                             </div>
                             <AlertTriangle className="h-8 w-8 text-blue-500" />
                         </div>
@@ -164,7 +164,7 @@ ${ticket.aiSuggestion?.suggestedFixes?.map((f: any) => `- ${f}`).join('\n') || '
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-muted-foreground">In Progress</p>
-                                <p className="text-2xl font-bold">5</p>
+                                <p className="text-2xl font-bold">{tickets.filter(t => ['in_progress', 'triaging'].includes(t.status)).length}</p>
                             </div>
                             <Clock className="h-8 w-8 text-yellow-500" />
                         </div>
@@ -174,8 +174,8 @@ ${ticket.aiSuggestion?.suggestedFixes?.map((f: any) => `- ${f}`).join('\n') || '
                     <CardContent className="pt-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground">Resolved Today</p>
-                                <p className="text-2xl font-bold">8</p>
+                                <p className="text-sm text-muted-foreground">Resolved</p>
+                                <p className="text-2xl font-bold">{tickets.filter(t => t.status === 'resolved').length}</p>
                             </div>
                             <CheckCircle2 className="h-8 w-8 text-green-500" />
                         </div>
@@ -185,10 +185,10 @@ ${ticket.aiSuggestion?.suggestedFixes?.map((f: any) => `- ${f}`).join('\n') || '
                     <CardContent className="pt-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground">Avg Resolution</p>
-                                <p className="text-2xl font-bold">4.2h</p>
+                                <p className="text-sm text-muted-foreground">Total Reports</p>
+                                <p className="text-2xl font-bold">{tickets.length}</p>
                             </div>
-                            <Clock className="h-8 w-8 text-muted-foreground" />
+                            <Bug className="h-8 w-8 text-muted-foreground" />
                         </div>
                     </CardContent>
                 </Card>
