@@ -13,13 +13,19 @@ import { FloatingCartPill } from '@/components/floating-cart-pill';
 /**
  * This component centralizes all the global context providers for the application.
  */
+import { ErrorBoundary } from '@/components/error-boundary';
+
+// ...
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <FirebaseClientProvider>
       <DemoModeProvider>
         <ThemeProvider>
           <ServiceWorkerRegistration />
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
           <Toaster />
           <CartSheet />
           <FloatingCartPill />
