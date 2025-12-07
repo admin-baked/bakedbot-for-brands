@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createCoupon, type ActionResult } from '../actions';
+import { createCoupon, getBrands, type ActionResult } from '../actions';
 import { SubmitButton } from './submit-button';
 import { useEffect, useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -40,26 +40,36 @@ export default function CouponManagerTab() {
   const { data: realCoupons, isLoading: couponsLoading } = useCollection<Coupon>(couponsQuery);
   const coupons = isMock ? [] : realCoupons;
 
-  const brandsQuery = useMemo(() => {
-    if (!firestore || isMock) return null;
-    return query(collection(firestore, 'brands'));
-  }, [firestore, isMock]);
-
-  const { data: realBrands, isLoading: brandsLoading, error: brandsError } = useCollection<Brand>(brandsQuery as Query<Brand> | null);
-
-  // Fallback to demo brand if error occurs to prevent crash
-  const brands = (isMock || brandsError) ? [{ id: DEMO_BRAND_ID, name: 'BakedBot Demo Brand' }] : realBrands;
+  // Fetch brands via Server Action to avoid Permission Denied (auth: null)
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [brandsLoading, setBrandsLoading] = useState(true);
 
   useEffect(() => {
-    if (brandsError) {
-      console.warn('Failed to load brands:', brandsError);
-      toast({
-        title: 'Warning',
-        description: 'Could not load brands. Using demo data.',
-        variant: 'destructive',
-      });
+    async function loadBrands() {
+      if (isMock) {
+        setBrands([{ id: DEMO_BRAND_ID, name: 'BakedBot Demo Brand' }]);
+        setBrandsLoading(false);
+        return;
+      }
+
+      try {
+        const fetchedBrands = await getBrands();
+        setBrands(fetchedBrands.length > 0 ? fetchedBrands : [{ id: DEMO_BRAND_ID, name: 'BakedBot Demo Brand' }]);
+      } catch (err) {
+        console.error('Failed to load brands:', err);
+        toast({
+          title: 'Warning',
+          description: 'Could not load brands. Using demo data.',
+          variant: 'destructive',
+        });
+        setBrands([{ id: DEMO_BRAND_ID, name: 'BakedBot Demo Brand' }]);
+      } finally {
+        setBrandsLoading(false);
+      }
     }
-  }, [brandsError, toast]);
+
+    loadBrands();
+  }, [isMock, toast]);
 
   useEffect(() => {
     if (formState.message) {
