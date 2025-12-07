@@ -100,7 +100,7 @@ export async function getBrands(): Promise<Brand[]> {
     const firestore = getAdminFirestore();
     const snapshot = await firestore.collection('brands').get();
 
-    return snapshot.docs.map(doc => ({
+    return snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data()
     })) as Brand[];
@@ -115,7 +115,7 @@ export async function getCoupons(): Promise<Coupon[]> {
     const firestore = getAdminFirestore();
     const snapshot = await firestore.collection('coupons').get();
 
-    return snapshot.docs.map(doc => ({
+    return snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data()
     })) as Coupon[];

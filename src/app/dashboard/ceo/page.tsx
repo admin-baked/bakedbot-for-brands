@@ -41,7 +41,7 @@ export default function CeoDashboardPage() {
     const { isSuperAdmin, isLoading, superAdminEmail, logout } = useSuperAdmin();
 
     // Sync tabs with URL ?tab=...
-    const currentTab = searchParams.get('tab') || 'agent-chat';
+    const currentTab = searchParams?.get('tab') || 'agent-chat';
 
     const handleTabChange = useCallback((value: string) => {
         const params = new URLSearchParams(searchParams);
