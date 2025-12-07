@@ -10,6 +10,18 @@ import { completeOnboarding } from './actions';
 import { SubmitButton } from './components/submit-button';
 import { logger } from '@/lib/logger';
 import { searchCannMenusRetailers } from '@/server/actions/cannmenus'; // Correct Import
+import { useFirebase } from '@/firebase/provider';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { LogIn } from 'lucide-react';
 
 type BrandResult = {
   id: string;
@@ -43,6 +55,38 @@ export default function OnboardingPage() {
       window.location.assign('/dashboard');
     }
   }
+
+  // Session Recovery Logic
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const { auth } = useFirebase();
+
+  // Detect session expiry
+  if (formState.error && formState.message.includes('Session expired') && !showLoginModal) {
+    setShowLoginModal(true);
+  }
+
+  const handleReLogin = async () => {
+    if (!auth) return;
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+
+      // Re-establish server session
+      const idToken = await result.user.getIdToken(true);
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+
+      toast({ title: 'Session Restored', description: 'You can now continue setup.' });
+      setShowLoginModal(false);
+      // Optional: Clear form error state if we could, but letting them re-submit is fine.
+    } catch (err) {
+      console.error(err);
+      toast({ variant: 'destructive', title: 'Login Failed', description: 'Please try again.' });
+    }
+  };
 
   async function searchCannMenus(term: string) {
     if (term.length < 2) {
@@ -301,6 +345,24 @@ export default function OnboardingPage() {
         {step === 'integrations' && renderIntegrationsStep()}
         {step === 'features' && renderFeaturesStep()}
         {step === 'review' && renderReviewStep()}
+
+        <AlertDialog open={showLoginModal} onOpenChange={setShowLoginModal}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Session Expired</AlertDialogTitle>
+              <AlertDialogDescription>
+                Your session timed out while you were setting up.
+                Please log in again to save your progress and continue.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <Button onClick={handleReLogin} className="w-full sm:w-auto">
+                <LogIn className="w-4 h-4 mr-2" />
+                Log In to Continue
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </main>
   );
