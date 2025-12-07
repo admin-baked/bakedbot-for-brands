@@ -26,6 +26,7 @@ import {
 import { Loader2, Plus, RefreshCw, Trash2, ExternalLink, Search } from 'lucide-react';
 import { Competitor } from '@/types/ezal-scraper';
 import { useToast } from "@/hooks/use-toast";
+import { getEzalCompetitors, createEzalCompetitor } from '../actions';
 
 export interface EzalCompetitorListProps {
     tenantId: string;
@@ -53,17 +54,9 @@ export function EzalCompetitorList({ tenantId }: EzalCompetitorListProps) {
     const fetchCompetitors = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(`/api/ezal/competitors?tenantId=${tenantId}`);
-            const json = await res.json();
-            if (json.success) {
-                setCompetitors(json.data);
-            } else {
-                toast({
-                    title: "Error",
-                    description: json.error || 'Failed to fetch competitors',
-                    variant: "destructive",
-                });
-            }
+            // Server Action call
+            const data = await getEzalCompetitors(tenantId);
+            setCompetitors(data);
         } catch (error) {
             toast({
                 title: "Error",
@@ -90,18 +83,10 @@ export function EzalCompetitorList({ tenantId }: EzalCompetitorListProps) {
         }
 
         try {
-            const res = await fetch('/api/ezal/competitors', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    tenantId,
-                    quickSetup: true,
-                    ...newCompetitor
-                }),
-            });
-            const json = await res.json();
+            // Server Action call
+            const result = await createEzalCompetitor(tenantId, newCompetitor);
 
-            if (json.success) {
+            if (!result.error) {
                 toast({
                     title: "Success",
                     description: 'Competitor added successfully',
@@ -112,7 +97,7 @@ export function EzalCompetitorList({ tenantId }: EzalCompetitorListProps) {
             } else {
                 toast({
                     title: "Error",
-                    description: json.error || 'Failed to add competitor',
+                    description: result.message || 'Failed to add competitor',
                     variant: "destructive",
                 });
             }

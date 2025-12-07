@@ -166,19 +166,78 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
   }
 }
 
-import type { EzalInsight } from '@/types/ezal-scraper';
+import type { EzalInsight, Competitor } from '@/types/ezal-scraper';
 
 export async function getEzalInsights(tenantId: string, limitVal: number = 20): Promise<EzalInsight[]> {
   try {
     const firestore = getAdminFirestore();
-    // Real query would go here:
-    // const q = firestore.collection('insights').where('tenantId', '==', tenantId).limit(limitVal).get();
+    const snapshot = await firestore
+      .collection('ezal_insights')
+      .where('tenantId', '==', tenantId)
+      .orderBy('createdAt', 'desc')
+      .limit(limitVal)
+      .get();
 
-    // Return empty for now to prove separation
-    return [];
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate() || new Date()
+    })) as EzalInsight[];
   } catch (error) {
     console.error('Error fetching ezal insights:', error);
     return [];
+  }
+}
+
+export async function getEzalCompetitors(tenantId: string): Promise<Competitor[]> {
+  try {
+    const firestore = getAdminFirestore();
+    const snapshot = await firestore
+      .collection('competitors')
+      .where('tenantId', '==', tenantId)
+      .get();
+
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Competitor[];
+  } catch (error) {
+    console.error('Error fetching ezal competitors:', error);
+    return [];
+  }
+}
+
+export async function createEzalCompetitor(tenantId: string, data: any): Promise<ActionResult> {
+  try {
+    const firestore = getAdminFirestore();
+
+    // Basic validation
+    if (!data.name || !data.menuUrl) {
+      return { message: 'Name and Menu URL are required', error: true };
+    }
+
+    // Creating competitor doc
+    const newComp = {
+      tenantId,
+      name: data.name,
+      menuUrl: data.menuUrl,
+      type: data.type || 'dispensary',
+      city: data.city || '',
+      state: data.state || '',
+      zip: data.zip || '',
+      brandsFocus: [],
+      active: true,
+      primaryDomain: data.menuUrl, // simplified
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    await firestore.collection('competitors').add(newComp);
+
+    return { message: 'Competitor created successfully' };
+  } catch (error: any) {
+    console.error('Error creating competitor:', error);
+    return { message: `Failed to create competitor: ${error.message}`, error: true };
   }
 }
 

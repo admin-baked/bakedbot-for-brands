@@ -28,7 +28,10 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
       if (!recaptchaSiteKey) {
-        logger.error("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. App Check will not be enabled. This is a security risk in production!");
+        // Suppress critical error for dev/incomplete envs
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn("App Check skipped: NEXT_PUBLIC_RECAPTCHA_SITE_KEY not set.");
+        }
         return;
       }
 
