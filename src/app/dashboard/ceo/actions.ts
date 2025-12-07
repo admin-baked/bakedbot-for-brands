@@ -89,3 +89,22 @@ export async function clearAllData(prevState: ActionResult, formData?: FormData)
   await requireUser(['owner']);
   return { message: 'Data cleared (Mock)' };
 }
+
+import { getAdminFirestore } from '@/firebase/admin';
+import type { Brand } from '@/types/domain';
+
+export async function getBrands(): Promise<Brand[]> {
+  try {
+    // Note: getAdminFirestore() uses firebase-admin which bypasses security rules
+    const firestore = getAdminFirestore();
+    const snapshot = await firestore.collection('brands').get();
+
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Brand[];
+  } catch (error) {
+    console.error('Error fetching brands via admin:', error);
+    return [];
+  }
+}

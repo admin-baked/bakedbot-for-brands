@@ -109,6 +109,15 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/demo-menu',
+        destination: '/shop/demo',
+        permanent: true,
+      },
+    ];
+  },
 };
 // Cache invalidate: Force rebuild for new secret v7. 2025-12-04 14:51:51
 module.exports = nextConfig;
