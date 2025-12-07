@@ -76,8 +76,8 @@ export default function SuperAdminAgentChat() {
         const map: Record<string, string> = {
             'Platform Analytics': 'analytics',
             'Debugging & Tickets': 'tickets',
-            'All AI Agents': 'agent-chat', // or maybe 'ai-agent-embed'
-            'Multi-Org Access': 'data-manager',
+            'All AI Agents': 'agent-chat',
+            'Multi-Org Access': 'analytics', // Shows platform analytics with multi-org view
             'Reports & Exports': 'analytics'
         };
         const tab = map[capName];

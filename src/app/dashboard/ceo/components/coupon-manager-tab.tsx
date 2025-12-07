@@ -124,11 +124,20 @@ export default function CouponManagerTab() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="code">Coupon Code</Label>
-                  <Input id="code" name="code" placeholder="e.g., LAUNCH20" />
+                  <Input
+                    id="code"
+                    name="code"
+                    placeholder="e.g., LAUNCH20"
+                    required
+                    minLength={3}
+                    pattern="[A-Z0-9]+"
+                    title="Coupon code must be at least 3 characters (uppercase letters and numbers only)"
+                  />
+                  <p className="text-xs text-muted-foreground">Min 3 characters, uppercase letters and numbers</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="brandId">Target (Brand or Dispensary)</Label>
-                  <Select name="brandId" disabled={targetsLoading}>
+                  <Select name="brandId" disabled={targetsLoading} required>
                     <SelectTrigger id="brandId">
                       <SelectValue placeholder="Select target" />
                     </SelectTrigger>
@@ -143,7 +152,7 @@ export default function CouponManagerTab() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="type">Discount Type</Label>
-                  <Select name="type" defaultValue="percentage">
+                  <Select name="type" defaultValue="percentage" required>
                     <SelectTrigger id="type">
                       <SelectValue placeholder="Select a type" />
                     </SelectTrigger>
@@ -155,7 +164,16 @@ export default function CouponManagerTab() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="value">Value</Label>
-                  <Input id="value" name="value" type="number" placeholder="e.g., 20" />
+                  <Input
+                    id="value"
+                    name="value"
+                    type="number"
+                    placeholder="e.g., 20"
+                    required
+                    min="0.01"
+                    step="0.01"
+                  />
+                  <p className="text-xs text-muted-foreground">Must be greater than 0</p>
                 </div>
               </div>
             </CardContent>
