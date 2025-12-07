@@ -41,25 +41,29 @@ export function ErrorReporter({ className }: ErrorReporterProps) {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Capture screenshot using browser API
+    // Capture screenshot using html2canvas
     const captureScreen = async () => {
         setIsCapturing(true);
         try {
-            // Use html2canvas or similar library in production
-            // For now, simulate capture
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Dynamically import html2canvas to ensure it's client-side only and compatible with Next.js
+            const html2canvas = (await import('html2canvas')).default;
 
-            // In production, you'd do:
-            // const canvas = await html2canvas(document.body);
-            // const dataUrl = canvas.toDataURL('image/png');
+            const canvas = await html2canvas(document.body, {
+                useCORS: true, // Allow cross-origin images if possible
+                logging: false, // Cleaner logs
+                scale: 1, // Standard scale to keep size reasonable
+            });
 
-            // Simulated screenshot
-            setScreenshot('/api/placeholder/800/600');
+            // Convert to JPEG with 0.7 quality for compression
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+            setScreenshot(dataUrl);
             setIsOpen(true);
 
-            // Trigger AI analysis
-            analyzeScreenshot();
+            // Trigger AI analysis (Simulated for now, could be real API later)
+            analyzeScreenshot(dataUrl);
         } catch (err) {
+            console.error("Screenshot capture failed:", err);
             toast({
                 variant: 'destructive',
                 title: 'Failed to capture screenshot',
@@ -76,37 +80,46 @@ export function ErrorReporter({ className }: ErrorReporterProps) {
         if (file) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                setScreenshot(event.target?.result as string);
-                analyzeScreenshot();
+                const result = event.target?.result as string;
+                setScreenshot(result);
+                analyzeScreenshot(result);
             };
             reader.readAsDataURL(file);
         }
     };
 
-    // AI Analysis (simulated)
-    const analyzeScreenshot = async () => {
+    // AI Analysis (Simulated for now - could be connected to Gemini later)
+    const analyzeScreenshot = async (imageData: string) => {
         setIsAnalyzing(true);
         try {
-            // Simulate AI analysis
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Using a simpler timeout for the "AI" feeling
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // In production, send to AI endpoint
-            setAiSuggestion({
-                title: 'Dashboard fails to load data',
-                description: 'The analytics dashboard is showing a loading spinner indefinitely. This appears to be a data fetching issue, possibly related to API timeout or authentication.',
+            // Basic heuristic based on URL to make it feel smarter
+            const currentPath = window.location.pathname;
+            let suggestion = {
+                title: 'Issue Report',
+                description: `Issue encountered on ${currentPath}.`,
                 category: 'bug',
-                priority: 'high',
-                possibleCauses: [
-                    'API endpoint returning 500 error',
-                    'Authentication token expired',
-                    'Network connectivity issue'
-                ]
-            });
+                priority: 'medium',
+                possibleCauses: ['Unknown error'],
+            };
 
-            setTitle('Dashboard fails to load data');
-            setDescription('The analytics dashboard is showing a loading spinner indefinitely. This appears to be a data fetching issue, possibly related to API timeout or authentication.');
+            if (currentPath.includes('dashboard')) {
+                suggestion = {
+                    title: 'Dashboard Display Issue',
+                    description: `I encountered a problem while viewing the dashboard at ${currentPath}.`,
+                    category: 'bug',
+                    priority: 'medium',
+                    possibleCauses: ['Data loading failure', 'Rendering error', 'Browser compatibility'],
+                };
+            }
+
+            setAiSuggestion(suggestion);
+            setTitle(suggestion.title);
+            setDescription(suggestion.description);
         } catch (err) {
-            // Silent fail - user can still describe manually
+            // Silent fail
         } finally {
             setIsAnalyzing(false);
         }
@@ -121,8 +134,29 @@ export function ErrorReporter({ className }: ErrorReporterProps) {
 
         setIsSubmitting(true);
         try {
-            // In production, submit to Firestore
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const response = await fetch('/api/tickets', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title,
+                    description,
+                    priority: aiSuggestion?.priority || 'medium',
+                    category: aiSuggestion?.category || 'system_error',
+                    screenshotUrl: screenshot,
+                    pageUrl: window.location.pathname,
+                    reporterEmail: 'user@example.com', // In real app, this comes from session
+                    orgName: 'My Organization', // In real app, this comes from session
+                    userRole: 'user', // In real app, this comes from session
+                    userAgent: navigator.userAgent,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Failed to submit ticket');
+            }
 
             toast({
                 title: 'Ticket submitted!',
@@ -135,11 +169,12 @@ export function ErrorReporter({ className }: ErrorReporterProps) {
             setTitle('');
             setDescription('');
             setAiSuggestion(null);
-        } catch (err) {
+        } catch (err: any) {
+            console.error("Ticket submission failed:", err);
             toast({
                 variant: 'destructive',
                 title: 'Failed to submit ticket',
-                description: 'Please try again.'
+                description: err.message || 'Please try again.',
             });
         } finally {
             setIsSubmitting(false);
