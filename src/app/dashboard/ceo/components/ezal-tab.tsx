@@ -5,9 +5,10 @@ import { EzalCompetitorList } from "./ezal-competitor-list";
 import { EzalInsightsFeed } from "./ezal-insights-feed";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Database, Globe } from 'lucide-react';
-
 import { useMockData } from '@/hooks/use-mock-data';
 import { useState, useEffect } from 'react';
+import { getEzalCompetitors, getEzalInsights } from '../actions';
+import type { Competitor, EzalInsight } from "@/types/ezal-scraper";
 
 export default function EzalTab() {
     const defaultTenantId = 'admin-baked'; // Default for Super Admin view
@@ -36,23 +37,23 @@ export default function EzalTab() {
             }
 
             try {
-                // Fetch competitors
-                const compRes = await fetch(`/api/ezal/competitors?tenantId=${defaultTenantId}`);
-                const compJson = await compRes.json();
-                const competitors = compJson.success ? compJson.data : [];
+                // Fetch competitors via Server Action
+                const competitors = await getEzalCompetitors(defaultTenantId);
 
-                // Fetch insights summary
-                const insRes = await fetch(`/api/ezal/insights?tenantId=${defaultTenantId}&limit=1`);
-                const insJson = await insRes.json();
-                const insightsSummary = insJson.summary || { total: 0 };
+                // Fetch insights via Server Action
+                const insights = await getEzalInsights(defaultTenantId, 50);
+
+                // Calculate simple stats
+                const totalInsights = insights.length;
+                const activeScrapers = competitors.filter((c: any) => c.active).length;
 
                 setStats({
-                    scrapers: competitors.filter((c: any) => c.active).length,
-                    scrapersTrend: 0, // No historical data yet
-                    products: 0, // Need product count from somewhere, defaulting 0 or fetching
+                    scrapers: activeScrapers,
+                    scrapersTrend: 0,
+                    products: 0, // Placeholder
                     productsCompetitors: competitors.length,
-                    insights: insightsSummary.total,
-                    insightsDrops: 0 // Need detailed breakdown
+                    insights: totalInsights,
+                    insightsDrops: insights.filter((i: any) => i.type === 'price_drop').length
                 });
 
             } catch (error) {
