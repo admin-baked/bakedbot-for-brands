@@ -144,7 +144,7 @@ export default function DispensaryShopPage() {
                         <h1 className="text-3xl font-bold tracking-tight">Shop Products</h1>
                         <p className="text-muted-foreground">Browse our selection</p>
                     </div>
-                    <Link href="/">
+                    <Link href="/product-locator">
                         <Button variant="outline">
                             Change Location
                         </Button>

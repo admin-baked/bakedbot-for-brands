@@ -40,9 +40,26 @@ export default function CouponManagerTab() {
   const { data: realCoupons, isLoading: couponsLoading } = useCollection<Coupon>(couponsQuery);
   const coupons = isMock ? [] : realCoupons;
 
-  const brandsQuery = (firestore && !isMock) ? query(collection(firestore, 'brands')) : null;
-  const { data: realBrands, isLoading: brandsLoading } = useCollection<Brand>(brandsQuery as Query<Brand> | null);
-  const brands = isMock ? [{ id: DEMO_BRAND_ID, name: 'BakedBot Demo Brand' }] : realBrands;
+  const brandsQuery = useMemo(() => {
+    if (!firestore || isMock) return null;
+    return query(collection(firestore, 'brands'));
+  }, [firestore, isMock]);
+
+  const { data: realBrands, isLoading: brandsLoading, error: brandsError } = useCollection<Brand>(brandsQuery as Query<Brand> | null);
+
+  // Fallback to demo brand if error occurs to prevent crash
+  const brands = (isMock || brandsError) ? [{ id: DEMO_BRAND_ID, name: 'BakedBot Demo Brand' }] : realBrands;
+
+  useEffect(() => {
+    if (brandsError) {
+      console.warn('Failed to load brands:', brandsError);
+      toast({
+        title: 'Warning',
+        description: 'Could not load brands. Using demo data.',
+        variant: 'destructive',
+      });
+    }
+  }, [brandsError, toast]);
 
   useEffect(() => {
     if (formState.message) {

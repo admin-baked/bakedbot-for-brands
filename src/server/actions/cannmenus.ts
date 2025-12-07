@@ -27,18 +27,66 @@ const MOCK_RETAILERS: CannMenusResult[] = [
 ];
 
 export async function searchCannMenusRetailers(query: string): Promise<CannMenusResult[]> {
-    // Determine if we need auth here. Search might be public for onboarding? 
-    // Usually onboarding is protected by "Authenticated but no role yet".
-    // Let's assume we allow it for any authenticated user.
-    // await requireUser(); 
-
     if (!query || query.length < 2) return [];
 
-    const lowerQuery = query.toLowerCase();
-    return MOCK_RETAILERS.filter(r =>
-        r.name.toLowerCase().includes(lowerQuery) ||
-        r.id.toLowerCase().includes(lowerQuery)
-    ).slice(0, 10); // Limit results
+    const base = process.env.CANNMENUS_API_BASE || process.env.CANNMENUS_API_URL;
+    const apiKey = process.env.CANNMENUS_API_KEY;
+
+    // Fallback to mock if no API key (for dev/demo without keys)
+    if (!base || !apiKey) {
+        console.warn('CannMenus API keys missing, using mock data for onboarding search.');
+        const lowerQuery = query.toLowerCase();
+        return MOCK_RETAILERS.filter(r =>
+            r.name.toLowerCase().includes(lowerQuery) ||
+            r.id.toLowerCase().includes(lowerQuery)
+        ).slice(0, 10);
+    }
+
+    try {
+        const headers = {
+            "Accept": "application/json",
+            "User-Agent": "BakedBot/1.0",
+            "X-Token": apiKey.trim().replace(/^['"']|['"']$/g, ""),
+        };
+
+        // Parallel fetch for Brands and Retailers
+        const [brandsRes, retailersRes] = await Promise.all([
+            fetch(`${base}/v1/brands?name=${encodeURIComponent(query)}`, { headers }),
+            fetch(`${base}/v1/retailers?name=${encodeURIComponent(query)}`, { headers })
+        ]);
+
+        let results: CannMenusResult[] = [];
+
+        if (brandsRes.ok) {
+            const brandsData = await brandsRes.json();
+            if (brandsData.data) {
+                const brands = brandsData.data.map((b: any) => ({
+                    name: b.brand_name,
+                    id: String(b.id),
+                    type: 'brand' as const
+                }));
+                results = [...results, ...brands];
+            }
+        }
+
+        if (retailersRes.ok) {
+            const retailersData = await retailersRes.json();
+            if (retailersData.data) {
+                const retailers = retailersData.data.map((r: any) => ({
+                    name: r.dispensary_name,
+                    id: String(r.id),
+                    type: 'dispensary' as const
+                }));
+                results = [...results, ...retailers];
+            }
+        }
+
+        return results.slice(0, 20);
+
+    } catch (error) {
+        console.error('Error searching CannMenus:', error);
+        return [];
+    }
 }
 
 export async function syncCannMenusProducts(
