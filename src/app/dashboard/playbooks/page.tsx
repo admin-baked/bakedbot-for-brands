@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Search } from 'lucide-react';
 import { useUserRole } from '@/hooks/use-user-role';
+import { useToast } from '@/hooks/use-toast';
 import { ActivityFeed } from './components/activity-feed';
 import { UsageMeter } from './components/usage-meter';
 import { AgentChat } from './components/agent-chat';
@@ -63,6 +64,7 @@ const MOCK_PLAYBOOKS: Playbook[] = [
 
 export default function PlaybooksPage() {
   const { role } = useUserRole();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Disabled'>('All');
 
@@ -122,7 +124,10 @@ export default function PlaybooksPage() {
               {status}
             </Button>
           ))}
-          <Button variant="outline" size="sm" className="ml-2">
+          <Button variant="outline" size="sm" className="ml-2" onClick={() => toast({
+            title: 'Coming Soon',
+            description: 'Manual playbook creation will be available in a future update. Use the Agent Chat above to create playbooks with AI assistance.',
+          })}>
             Create Manually
           </Button>
         </div>
