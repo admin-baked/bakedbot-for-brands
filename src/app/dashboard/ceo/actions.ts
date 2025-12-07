@@ -79,9 +79,51 @@ export async function initializeAllEmbeddings(): Promise<EmbeddingActionResult> 
   }
 }
 
-export async function createCoupon(data: any): Promise<ActionResult> {
+export async function createCoupon(prevState: ActionResult, formData: FormData): Promise<ActionResult> {
   await requireUser(['owner']);
-  return { message: 'Coupon created (Mock)' };
+
+  try {
+    const firestore = getAdminFirestore();
+
+    const code = formData.get('code')?.toString().toUpperCase().trim();
+    const brandId = formData.get('brandId')?.toString();
+    const type = formData.get('type')?.toString() || 'percentage';
+    const value = parseFloat(formData.get('value')?.toString() || '0');
+
+    if (!code || code.length < 3) {
+      return { message: 'Coupon code must be at least 3 characters.', error: true };
+    }
+    if (!brandId) {
+      return { message: 'Please select a brand.', error: true };
+    }
+    if (value <= 0) {
+      return { message: 'Value must be greater than 0.', error: true };
+    }
+
+    // Check for duplicate code
+    const existing = await firestore.collection('coupons').where('code', '==', code).get();
+    if (!existing.empty) {
+      return { message: `Coupon code ${code} already exists.`, error: true };
+    }
+
+    const newCoupon = {
+      code,
+      brandId,
+      type,
+      value,
+      uses: 0,
+      active: true,
+      createdAt: new Date(), // Firestore converts to Timestamp automatically
+      updatedAt: new Date(),
+    };
+
+    await firestore.collection('coupons').add(newCoupon);
+
+    return { message: `Coupon ${code} created successfully.` };
+  } catch (error: any) {
+    console.error('Error creating coupon:', error);
+    return { message: `Failed to create coupon: ${error.message}`, error: true };
+  }
 }
 
 // Updated signatures to match useFormState
