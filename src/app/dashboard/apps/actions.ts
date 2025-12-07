@@ -23,9 +23,19 @@ export async function getApps(): Promise<AppDefinition[]> {
 
     // For now, we return our static supported list, checking the dispensary config for installation status.
 
-    const doc = await firestore.collection('dispensaries').doc(user.uid).get(); // Assuming user.uid is disp ID for now
-    const data = doc.data() || {};
-    const posConfig = data.posConfig || {};
+    let posConfig: any = {};
+
+    try {
+        // Only try to fetch dispensary config if user is a dispensary role
+        if (user.role === 'dispensary') {
+            const doc = await firestore.collection('dispensaries').doc(user.uid).get();
+            const data = doc.data() || {};
+            posConfig = data.posConfig || {};
+        }
+    } catch (error) {
+        console.error('Error fetching dispensary config:', error);
+        // Continue with empty posConfig
+    }
 
     return [
         {
