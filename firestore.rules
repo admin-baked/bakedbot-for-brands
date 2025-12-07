@@ -121,7 +121,8 @@ service cloud.firestore {
     // --- Brands Collection ---
     match /brands/{brandId} {
       // Anyone can read brand profiles (for public product pages).
-      allow read: if true;
+      // Explicitly allow list queries for authenticated users to fix permission errors.
+      allow read, list: if true;
 
       // Only brand managers can update their own brand.
       allow update: if isBrandManager(brandId);

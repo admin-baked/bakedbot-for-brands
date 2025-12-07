@@ -60,10 +60,14 @@ export default function CannMenusTestTab() {
             const data = await response.json();
             setRetailerResults(data.data?.data || []);
             setRetailerMeta(data.data?.pagination || null);
+            if (!data.data?.data?.length) {
+                console.log('No retailers found for search:', retailerSearch);
+            }
         } catch (error) {
             console.error('Retailer search failed:', error);
             setRetailerResults([]);
             setRetailerMeta(null);
+            // Optionally set an error state to show in UI
         } finally {
             setRetailerLoading(false);
         }
