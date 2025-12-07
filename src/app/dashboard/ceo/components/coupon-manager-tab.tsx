@@ -6,14 +6,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createCoupon, getBrands, type ActionResult } from '../actions';
+import { createCoupon, getBrands, getCoupons, type ActionResult } from '../actions';
 import { SubmitButton } from './submit-button';
 import { useEffect, useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useCollection } from '@/firebase/firestore/use-collection';
-import { collection, query, type Query } from 'firebase/firestore';
-import { couponConverter, type Coupon } from '@/firebase/converters';
-import { useFirebase } from '@/firebase/provider';
+import { type Coupon } from '@/firebase/converters';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -25,20 +22,38 @@ import { useMockData } from '@/hooks/use-mock-data';
 const initialState: ActionResult = { message: '', error: false };
 
 export default function CouponManagerTab() {
-  const { firestore } = useFirebase();
+
   const { toast } = useToast();
   const { isMock } = useMockData();
   const [formState, formAction] = useFormState(createCoupon, initialState);
 
-  // Correctly construct the typed query
-  const couponsQuery = useMemo(() => {
-    if (isMock || !firestore) return null;
-    const couponsCol = collection(firestore, 'coupons').withConverter(couponConverter);
-    return query(couponsCol);
-  }, [firestore, isMock]);
+  // Fetch coupons via Server Action to avoid Permission Denied
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [couponsLoading, setCouponsLoading] = useState(true);
 
-  const { data: realCoupons, isLoading: couponsLoading } = useCollection<Coupon>(couponsQuery);
-  const coupons = isMock ? [] : realCoupons;
+  useEffect(() => {
+    async function loadCoupons() {
+      if (isMock) {
+        setCoupons([]); // Or some mock coupons
+        setCouponsLoading(false);
+        return;
+      }
+      try {
+        const fetchedCoupons = await getCoupons();
+        setCoupons(fetchedCoupons);
+      } catch (err) {
+        console.error('Failed to load coupons:', err);
+        toast({
+          title: 'Error',
+          description: 'Failed to load coupons.',
+          variant: 'destructive',
+        });
+      } finally {
+        setCouponsLoading(false);
+      }
+    }
+    loadCoupons();
+  }, [isMock, toast]);
 
   // Fetch brands via Server Action to avoid Permission Denied (auth: null)
   const [brands, setBrands] = useState<Brand[]>([]);

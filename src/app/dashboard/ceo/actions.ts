@@ -92,6 +92,7 @@ export async function clearAllData(prevState: ActionResult, formData?: FormData)
 
 import { getAdminFirestore } from '@/firebase/admin';
 import type { Brand } from '@/types/domain';
+import type { Coupon } from '@/firebase/converters';
 
 export async function getBrands(): Promise<Brand[]> {
   try {
@@ -108,3 +109,19 @@ export async function getBrands(): Promise<Brand[]> {
     return [];
   }
 }
+
+export async function getCoupons(): Promise<Coupon[]> {
+  try {
+    const firestore = getAdminFirestore();
+    const snapshot = await firestore.collection('coupons').get();
+
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Coupon[];
+  } catch (error) {
+    console.error('Error fetching coupons via admin:', error);
+    return [];
+  }
+}
+
