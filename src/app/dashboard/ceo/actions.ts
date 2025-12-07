@@ -16,8 +16,13 @@ export type EmbeddingActionResult = ActionResult & {
 };
 
 export async function searchCannMenusRetailers(query: string): Promise<CannMenusResult[]> {
-  await requireUser(['owner']); // Strict auth for Dashboard
-  return searchShared(query);
+  try {
+    await requireUser(['owner']); // Strict auth for Dashboard
+    return await searchShared(query);
+  } catch (error) {
+    console.error('Action searchCannMenusRetailers failed:', error);
+    return [];
+  }
 }
 
 // Restoring Missing Actions (Stubs to pass build)
