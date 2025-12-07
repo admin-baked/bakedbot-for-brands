@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch'; // Ensure this exists or use checkmark
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Check, Eye, Code, Sparkles, Search, ShoppingCart } from 'lucide-react';
+import { Copy, Check, Eye, Code, Sparkles, Search, ShoppingCart, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -44,6 +44,7 @@ export default function AIAgentEmbedTab() {
   // Search State
   const [searchResults, setSearchResults] = useState<CannMenusResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Preview Data
   const [previewProducts, setPreviewProducts] = useState<any[]>([]);
@@ -54,22 +55,33 @@ export default function AIAgentEmbedTab() {
   useEffect(() => {
     if (customerName.length < 2) {
       setSearchResults([]);
+      setIsDropdownOpen(false);
       return;
     }
+
+    // Don't search if we just selected (heuristic: if name length > 5 and matches a result, maybe skip? 
+    // better: just rely on isDropdownOpen being reset on select, and only set it true on input change)
+    // Actually, we can just let it search, but we need to ensure we don't auto-open if it's a "selection"
+    // The easiest way is to track if the *input* caused the change.
+
+    // For now, standard debounce logic, but we open dropdown when results come in
     const delayDebounceFn = setTimeout(async () => {
       setIsSearching(true);
       try {
         const results = await searchCannMenusRetailers(customerName);
         setSearchResults(results);
+        if (results.length > 0) setIsDropdownOpen(true);
       } catch (err) {
         console.error(err);
       } finally {
         setIsSearching(false);
       }
-    }, 300);
+    }, 500); // Increased debounce to 500ms
 
     return () => clearTimeout(delayDebounceFn);
   }, [customerName]);
+
+
 
   // Fetch products for preview when CannMenus ID changes
   useEffect(() => {
@@ -111,11 +123,7 @@ export default function AIAgentEmbedTab() {
     return () => clearTimeout(debounce);
   }, [cannMenusId, firebase]);
 
-  const selectCustomer = (result: CannMenusResult) => {
-    setCustomerName(result.name);
-    setCannMenusId(result.id);
-    setSearchResults([]); // Close dropdown
-  };
+
 
   // Generate embed code
   const generateEmbedCode = () => {
@@ -208,24 +216,38 @@ export default function AIAgentEmbedTab() {
                 <div className="space-y-2 relative">
                   <Label htmlFor="customer-name">Customer Name *</Label>
                   <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    {isSearching ? (
+                      <Loader2 className="absolute left-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    )}
                     <Input
                       id="customer-name"
                       placeholder="Start typing to search CannMenus database..."
                       value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
+                      onChange={(e) => {
+                        setCustomerName(e.target.value);
+                        if (e.target.value.length < 2) setIsDropdownOpen(false);
+                        else setIsDropdownOpen(true); // User typing re-activates dropdown intent
+                      }}
                       className="pl-9"
                       autoComplete="off"
                     />
                   </div>
                   {/* SEARCH RESULTS DROPDOWN */}
-                  {searchResults.length > 0 && (
-                    <div className="absolute z-10 w-full bg-popover text-popover-foreground border rounded-md shadow-md mt-1 overflow-hidden">
+                  {isDropdownOpen && searchResults.length > 0 && (
+                    <div className="absolute z-50 w-full bg-popover text-popover-foreground border rounded-md shadow-md mt-1 overflow-hidden max-h-[300px] overflow-y-auto">
                       {searchResults.map((result) => (
                         <button
                           key={result.id}
-                          className="w-full text-left px-4 py-2 hover:bg-accent hover:text-accent-foreground text-sm flex justify-between items-center"
-                          onClick={() => selectCustomer(result)}
+                          className="w-full text-left px-4 py-2 hover:bg-accent hover:text-accent-foreground text-sm flex justify-between items-center bg-background"
+                          onClick={() => {
+                            setCustomerName(result.name);
+                            setCannMenusId(result.id);
+                            setIsDropdownOpen(false);
+                            // We don't clear results, so if they type again they appear.
+                            // The key is allow setIsDropdownOpen to remain false until next manual input.
+                          }}
                         >
                           <span>{result.name}</span>
                           <span className="text-xs text-muted-foreground ml-2">{result.id}</span>
