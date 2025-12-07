@@ -286,13 +286,16 @@ export async function geocodeZipCode(zipCode: string): Promise<{ lat: number; ln
 /**
  * Search products by brand and state
  */
-export async function getProducts(brandId: string, state: string): Promise<any[]> {
+export async function getProducts(brandId: string, state?: string): Promise<any[]> {
     try {
         const params = new URLSearchParams({
             brands: brandId,
-            states: state,
             limit: '100'
         });
+
+        if (state) {
+            params.append('states', state);
+        }
 
         const response = await fetch(
             `${CANNMENUS_BASE_URL}/v2/products?${params}`,

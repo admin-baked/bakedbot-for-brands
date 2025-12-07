@@ -94,25 +94,15 @@ export default function AIAgentEmbedTab() {
       return;
     }
 
-    if (!firebase?.firestore || !cannMenusId || cannMenusId.length < 3) {
+    if (!cannMenusId || cannMenusId.length < 3) {
       setPreviewProducts([]);
       return;
     }
 
-    const db = firebase.firestore!;
-
     const fetchPreviewProducts = async () => {
       try {
-        const q = query(
-          collection(db, 'products'),
-          where('brand_id', '==', cannMenusId),
-          limit(5)
-        );
-        const snapshot = await getDocs(q);
-        const products = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const { getLivePreviewProducts } = await import('../actions'); // Dynamically import to avoid circular dep if any
+        const products = await getLivePreviewProducts(cannMenusId);
         setPreviewProducts(products);
       } catch (error) {
         console.error('Error fetching preview products:', error);
@@ -121,7 +111,7 @@ export default function AIAgentEmbedTab() {
 
     const debounce = setTimeout(fetchPreviewProducts, 1000);
     return () => clearTimeout(debounce);
-  }, [cannMenusId, firebase]);
+  }, [cannMenusId]); // Removed firebase dependency
 
 
 
