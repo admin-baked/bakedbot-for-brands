@@ -473,3 +473,21 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
     return { message: `Failed to seed page: ${error.message}`, error: true };
   }
 }
+
+export async function getLivePreviewProducts(cannMenusId: string) {
+  try {
+    const { getProducts } = await import('@/lib/cannmenus-api');
+    // Try to fetch products. We don't pass state to get broad results.
+    const products = await getProducts(cannMenusId);
+    return products.slice(0, 5).map(p => ({
+      id: p.id || p.cann_sku_id, // ensure ID mapping
+      name: p.name || p.product_name,
+      price: p.price || p.latest_price,
+      category: p.category,
+      image: p.image || p.image_url
+    }));
+  } catch (error) {
+    console.error('Error fetching live preview products:', error);
+    return [];
+  }
+}
