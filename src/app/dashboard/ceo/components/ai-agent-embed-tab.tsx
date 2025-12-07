@@ -132,8 +132,8 @@ export default function AIAgentEmbedTab() {
 <script>
   window.BakedBotConfig = ${JSON.stringify(config, null, 2)};
 </script>
-<script src="https://bakedbot-for-brands--studio-567050101-bc6e8.us-east4.hosted.app/embed/chatbot.js" async></script>
-<link rel="stylesheet" href="https://bakedbot-for-brands--studio-567050101-bc6e8.us-east4.hosted.app/embed/chatbot.css">
+<script src="https://bakedbot.ai/embed/chatbot.js" async></script>
+<link rel="stylesheet" href="https://bakedbot.ai/embed/chatbot.css">
 <!-- End BakedBot AI Agent -->`;
 
     return embedCode;

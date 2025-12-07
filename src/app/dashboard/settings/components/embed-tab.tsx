@@ -28,7 +28,7 @@ export default function EmbedGeneratorTab() {
     const [copied, setCopied] = useState(false);
 
     const getScriptSrc = (type: string) => {
-        const baseUrl = 'https://bakedbot-for-brands--studio-567050101-bc6e8.us-east4.hosted.app/embed';
+        const baseUrl = 'https://bakedbot.ai/embed';
         if (type === 'locator') return `${baseUrl}/locator.js`;
         return `${baseUrl}/chatbot.js`;
     };
