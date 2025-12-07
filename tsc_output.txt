@@ -1,0 +1,2 @@
+.next/types/validator.ts(980,39): error TS2307: Cannot find module '../../src/app/api/foot-traffic/seo/seed/route.js' or its corresponding type declarations.
+.next/types/validator.ts(1097,39): error TS2307: Cannot find module '../../src/app/api/super-admin/analytics/route.js' or its corresponding type declarations.
