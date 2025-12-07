@@ -149,9 +149,21 @@ export async function getBrands(): Promise<Brand[]> {
 
     return snapshot.docs.map((doc: any) => {
       const data = doc.data();
+
+      // Ensure chatbotConfig dates are converted
+      let safeChatbotConfig = undefined;
+      if (data.chatbotConfig) {
+        safeChatbotConfig = {
+          ...data.chatbotConfig,
+          updatedAt: data.chatbotConfig.updatedAt?.toDate?.() || data.chatbotConfig.updatedAt || null
+        };
+      }
+
       return {
         id: doc.id,
-        ...data,
+        name: data.name || 'Unknown',
+        logoUrl: data.logoUrl || null,
+        chatbotConfig: safeChatbotConfig,
         createdAt: data.createdAt?.toDate?.() || new Date(),
         updatedAt: data.updatedAt?.toDate?.() || new Date(),
       };
