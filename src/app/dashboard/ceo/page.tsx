@@ -44,7 +44,7 @@ export default function CeoDashboardPage() {
     const currentTab = searchParams?.get('tab') || 'agent-chat';
 
     const handleTabChange = useCallback((value: string) => {
-        const params = new URLSearchParams(searchParams);
+        const params = new URLSearchParams(searchParams?.toString());
         params.set('tab', value);
         router.push(`${pathname}?${params.toString()}`);
     }, [pathname, router, searchParams]);
