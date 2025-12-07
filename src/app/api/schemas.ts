@@ -228,3 +228,39 @@ export const experimentTrackSchema = z.object({
 });
 
 export type ExperimentTrackRequest = z.infer<typeof experimentTrackSchema>;
+
+// ============================================================================
+// EZAL SCHEMAS
+// ============================================================================
+
+export const ezalCreateCompetitorSchema = z.object({
+  tenantId: z.string().min(1, 'Tenant ID is required'),
+  name: z.string().min(1, 'Name is required'),
+  type: z.string().optional().default('dispensary'),
+  state: z.string().optional(),
+  city: z.string().optional(),
+  zip: z.string().optional(),
+  menuUrl: z.string().url().optional(),
+  primaryDomain: z.string().url().optional(),
+  brandsFocus: z.array(z.string()).optional(),
+  quickSetup: z.boolean().optional(),
+  parserProfileId: z.string().optional(),
+  frequencyMinutes: z.number().int().positive().optional(),
+});
+
+export type EzalCreateCompetitorRequest = z.infer<typeof ezalCreateCompetitorSchema>;
+
+// ============================================================================
+// TICKET SCHEMAS
+// ============================================================================
+
+export const createTicketSchema = z.object({
+  description: z.string().min(1, 'Description is required').max(2000),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional().default('medium'),
+  category: z.string().optional().default('system_error'),
+  screenshotUrl: z.string().url().optional(),
+  metadata: z.record(z.any()).optional(),
+  url: z.string().optional(),
+});
+
+export type CreateTicketRequest = z.infer<typeof createTicketSchema>;

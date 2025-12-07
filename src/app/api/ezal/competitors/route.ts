@@ -13,83 +13,91 @@ import {
     searchCompetitors
 } from '@/server/services/ezal';
 import { logger } from '@/lib/logger';
+import { verifySuperAdmin } from '@/server/utils/auth-check';
+import { CompetitorType } from '@/types/ezal-scraper';
 
-export async function POST(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const { tenantId, quickSetup, ...data } = body;
+import { withProtection } from '@/server/middleware/with-protection';
+import { ezalCreateCompetitorSchema, type EzalCreateCompetitorRequest } from '@/app/api/schemas';
 
-        if (!tenantId) {
-            return NextResponse.json(
-                { error: 'tenantId is required' },
-                { status: 400 }
-            );
+export const POST = withProtection(
+    async (request: NextRequest, data?: EzalCreateCompetitorRequest) => {
+        if (!await verifySuperAdmin(request)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+        try {
+            // Data is validated by Zod
+            const { tenantId, quickSetup, ...competitorData } = data!;
 
-        // Quick setup creates competitor + data source together
-        if (quickSetup) {
-            if (!data.name || !data.menuUrl) {
+
+            // Quick setup creates competitor + data source together
+            if (quickSetup) {
+                if (!competitorData.name || !competitorData.menuUrl) {
+                    return NextResponse.json(
+                        { error: 'name and menuUrl are required for quick setup' },
+                        { status: 400 }
+                    );
+                }
+
+                const result = await quickSetupCompetitor(tenantId, {
+                    name: competitorData.name,
+                    type: (competitorData.type || 'dispensary') as CompetitorType,
+                    state: competitorData.state || '',
+                    city: competitorData.city || '',
+                    zip: competitorData.zip || '',
+                    menuUrl: competitorData.menuUrl as string,
+                    parserProfileId: competitorData.parserProfileId || 'generic_html_v1',
+                    brandsFocus: competitorData.brandsFocus || [],
+                    frequencyMinutes: competitorData.frequencyMinutes || 60,
+                });
+
+                return NextResponse.json({
+                    success: true,
+                    data: {
+                        competitor: result.competitor,
+                        dataSource: result.dataSource,
+                    },
+                });
+            }
+
+            // Standard competitor creation
+            if (!competitorData.name || !competitorData.state || !competitorData.city) {
                 return NextResponse.json(
-                    { error: 'name and menuUrl are required for quick setup' },
+                    { error: 'name, state, and city are required' },
                     { status: 400 }
                 );
             }
 
-            const result = await quickSetupCompetitor(tenantId, {
-                name: data.name,
-                type: data.type || 'dispensary',
-                state: data.state || '',
-                city: data.city || '',
-                zip: data.zip || '',
-                menuUrl: data.menuUrl,
-                parserProfileId: data.parserProfileId || 'generic_html_v1',
-                brandsFocus: data.brandsFocus || [],
-                frequencyMinutes: data.frequencyMinutes || 60,
+            const competitor = await createCompetitor(tenantId, {
+                name: competitorData.name,
+                type: (competitorData.type || 'dispensary') as CompetitorType,
+                state: competitorData.state,
+                city: competitorData.city,
+                zip: competitorData.zip || '',
+                primaryDomain: competitorData.primaryDomain || '',
+                brandsFocus: competitorData.brandsFocus || [],
+                active: true,
             });
 
             return NextResponse.json({
                 success: true,
-                data: {
-                    competitor: result.competitor,
-                    dataSource: result.dataSource,
-                },
+                data: competitor,
             });
-        }
 
-        // Standard competitor creation
-        if (!data.name || !data.state || !data.city) {
+        } catch (error) {
+            logger.error('[Ezal API] Create competitor failed:', error instanceof Error ? error : new Error(String(error)));
             return NextResponse.json(
-                { error: 'name, state, and city are required' },
-                { status: 400 }
+                { error: 'Failed to create competitor' },
+                { status: 500 }
             );
         }
-
-        const competitor = await createCompetitor(tenantId, {
-            name: data.name,
-            type: data.type || 'dispensary',
-            state: data.state,
-            city: data.city,
-            zip: data.zip || '',
-            primaryDomain: data.primaryDomain || '',
-            brandsFocus: data.brandsFocus || [],
-            active: true,
-        });
-
-        return NextResponse.json({
-            success: true,
-            data: competitor,
-        });
-
-    } catch (error) {
-        logger.error('[Ezal API] Create competitor failed:', error instanceof Error ? error : new Error(String(error)));
-        return NextResponse.json(
-            { error: 'Failed to create competitor' },
-            { status: 500 }
-        );
-    }
-}
+    },
+    { schema: ezalCreateCompetitorSchema }
+);
 
 export async function GET(request: NextRequest) {
+    if (!await verifySuperAdmin(request)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     try {
         const { searchParams } = new URL(request.url);
         const tenantId = searchParams.get('tenantId');

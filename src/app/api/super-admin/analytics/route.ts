@@ -1,11 +1,18 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
+import { verifySuperAdmin } from '@/server/utils/auth-check';
 
 export async function GET(request: NextRequest) {
     try {
+        const isAuthorized = await verifySuperAdmin(request);
+        if (!isAuthorized) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { firestore } = await createServerClient();
+
+
 
         // 1. Get Users count
         const usersSnap = await firestore.collection('users').count().get();
