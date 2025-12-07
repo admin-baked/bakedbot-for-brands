@@ -32,40 +32,41 @@ export async function GET(request: NextRequest) {
     }
 }
 
-import { withProtection } from '@/server/middleware/with-protection';
-import { createTicketSchema, type CreateTicketRequest } from '@/app/api/schemas';
+export async function POST(request: NextRequest) {
+    try {
+        const body = await request.json();
 
-export const POST = withProtection(
-    async (request: NextRequest, data?: CreateTicketRequest) => {
-        try {
-            const user = await verifySession(request);
-            if (!user) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-            }
-
-            const { firestore } = await createServerClient();
-            // Data is already validated by withProtection
-            const body = data!;
-
-            const newTicket = {
-                ...body,
-                status: 'new',
-                createdAt: new Date(),
-                priority: body.priority || 'medium',
-                category: body.category || 'system_error',
-            };
-
-            const docRef = await firestore.collection('tickets').add(newTicket);
-
-            return NextResponse.json({
-                id: docRef.id,
-                message: 'Ticket created successfully'
-            });
-
-        } catch (error) {
-            logger.error('[Tickets API] Create failed', { error });
-            return NextResponse.json({ error: 'Failed to create ticket' }, { status: 500 });
+        // Manual validation since withProtection is strict on auth
+        const validation = createTicketSchema.safeParse(body);
+        if (!validation.success) {
+            return NextResponse.json({ error: 'Invalid request', details: validation.error }, { status: 400 });
         }
-    },
-    { schema: createTicketSchema }
-);
+
+        const data = validation.data;
+        const user = await verifySession(request);
+        // Note: We allow unauthenticated users (e.g. signup errors) to report tickets
+
+        const { firestore } = await createServerClient();
+
+        const newTicket = {
+            ...data,
+            status: 'new',
+            createdAt: new Date(),
+            priority: data.priority || 'medium',
+            category: data.category || 'system_error',
+            reporterId: user ? user.uid : 'guest',
+            reporterEmail: data.reporterEmail || (user ? user.email : 'anonymous'),
+        };
+
+        const docRef = await firestore.collection('tickets').add(newTicket);
+
+        return NextResponse.json({
+            id: docRef.id,
+            message: 'Ticket created successfully'
+        });
+
+    } catch (error) {
+        logger.error('[Tickets API] Create failed', { error });
+        return NextResponse.json({ error: 'Failed to create ticket' }, { status: 500 });
+    }
+}

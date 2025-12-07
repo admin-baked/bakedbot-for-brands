@@ -31,39 +31,47 @@ const OnboardingSchema = z.object({
 });
 
 export async function completeOnboarding(prevState: any, formData: FormData) {
-  const { firestore, auth } = await createServerClient();
-  const user = await requireUser();
-  const uid = user.uid;
-
-  const rawData = Object.fromEntries(formData.entries());
-
-  // Parse features JSON if present
-  let features = {};
-  if (rawData.features && typeof rawData.features === 'string') {
-    try {
-      features = JSON.parse(rawData.features);
-    } catch (e) { }
-  }
-
-  const validatedFields = OnboardingSchema.safeParse(rawData);
-
-  if (!validatedFields.success) {
-    logger.warn('Onboarding validation failed', validatedFields.error.flatten());
-    return {
-      message: 'Please fill out all required fields.',
-      error: true,
-      errors: validatedFields.error.flatten().fieldErrors,
-    };
-  }
-
-  const {
-    role, locationId, brandId, brandName,
-    manualBrandName, manualProductName, manualDispensaryName,
-    chatbotPersonality, chatbotTone, chatbotSellingPoints,
-    posProvider, posApiKey, posDispensaryId
-  } = validatedFields.data;
-
   try {
+    const { firestore, auth } = await createServerClient();
+    let user;
+    try {
+      user = await requireUser();
+    } catch (authError) {
+      logger.warn('Onboarding failed: User not authenticated.');
+      return { message: 'Session expired. Please refresh and log in again.', error: true };
+    }
+    const uid = user.uid;
+
+    const rawData = Object.fromEntries(formData.entries());
+
+    // Parse features JSON if present
+    let features = {};
+    if (rawData.features && typeof rawData.features === 'string') {
+      try {
+        features = JSON.parse(rawData.features);
+      } catch (e) { }
+    }
+
+    const validatedFields = OnboardingSchema.safeParse(rawData);
+
+    if (!validatedFields.success) {
+      logger.warn('Onboarding validation failed', validatedFields.error.flatten());
+      return {
+        message: 'Please fill out all required fields.',
+        error: true,
+        errors: validatedFields.error.flatten().fieldErrors,
+      };
+    }
+
+    const {
+      role, locationId, brandId, brandName,
+      manualBrandName, manualProductName, manualDispensaryName,
+      chatbotPersonality, chatbotTone, chatbotSellingPoints,
+      posProvider, posApiKey, posDispensaryId
+    } = validatedFields.data;
+
+    // Proceed with Firestore logic...
+
     const userDocRef = firestore.collection('users').doc(uid);
     const userProfileData: Record<string, any> = {
       isNewUser: false, // Mark as onboarded
