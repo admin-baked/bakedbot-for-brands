@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { verifySession, verifySuperAdmin } from '@/server/utils/auth-check';
+import { createTicketSchema } from '@/app/api/schemas';
 
 export async function GET(request: NextRequest) {
     try {
