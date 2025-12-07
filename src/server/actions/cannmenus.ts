@@ -29,6 +29,14 @@ const MOCK_RETAILERS: CannMenusResult[] = [
 export async function searchCannMenusRetailers(query: string): Promise<CannMenusResult[]> {
     if (!query || query.length < 2) return [];
 
+    // Force mock for demo/testing
+    if (query.toLowerCase().includes('demo') || query.toLowerCase().includes('test')) {
+        return MOCK_RETAILERS.filter(r =>
+            r.name.toLowerCase().includes(query.toLowerCase()) ||
+            r.type.includes(query.toLowerCase())
+        );
+    }
+
     const base = process.env.CANNMENUS_API_BASE || process.env.CANNMENUS_API_URL;
     const apiKey = process.env.CANNMENUS_API_KEY;
 
@@ -49,11 +57,16 @@ export async function searchCannMenusRetailers(query: string): Promise<CannMenus
             "X-Token": apiKey.trim().replace(/^['"']|['"']$/g, ""),
         };
 
+        console.log(`[CannMenus] Searching for: ${query} on ${base}`);
+
         // Parallel fetch for Brands and Retailers
         const [brandsRes, retailersRes] = await Promise.all([
             fetch(`${base}/v1/brands?name=${encodeURIComponent(query)}`, { headers }),
             fetch(`${base}/v1/retailers?name=${encodeURIComponent(query)}`, { headers })
         ]);
+
+        if (!brandsRes.ok) console.warn(`[CannMenus] Brands fetch failed: ${brandsRes.status}`);
+        if (!retailersRes.ok) console.warn(`[CannMenus] Retailers fetch failed: ${retailersRes.status}`);
 
         let results: CannMenusResult[] = [];
 
@@ -81,6 +94,7 @@ export async function searchCannMenusRetailers(query: string): Promise<CannMenus
             }
         }
 
+        console.log(`[CannMenus] Found ${results.length} results.`);
         return results.slice(0, 20);
 
     } catch (error) {

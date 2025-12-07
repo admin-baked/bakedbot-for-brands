@@ -258,9 +258,15 @@ export const createTicketSchema = z.object({
   description: z.string().min(1, 'Description is required').max(2000),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional().default('medium'),
   category: z.string().optional().default('system_error'),
-  screenshotUrl: z.string().url().optional(),
+  screenshotUrl: z.union([z.string().url(), z.literal('')]).optional(),
   metadata: z.record(z.any()).optional(),
   url: z.string().optional(),
+  title: z.string().optional(), // Added to match client payload
+  pageUrl: z.string().optional(), // Added to match client payload
+  reporterEmail: z.string().optional(), // Added to match client payload
+  userAgent: z.string().optional(), // Added to match client payload
+  errorDigest: z.string().optional(), // Added to match client payload
+  errorStack: z.string().optional(), // Added to match client payload
 });
 
 export type CreateTicketRequest = z.infer<typeof createTicketSchema>;
