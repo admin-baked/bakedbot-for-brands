@@ -38,7 +38,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       user = await requireUser();
     } catch (authError) {
       logger.warn('Onboarding failed: User not authenticated.');
-      return { message: 'Session expired. Please refresh and log in again.', error: true };
+      return { message: 'Session expired. Please click "Log In to Continue" below.', error: true };
     }
     const uid = user.uid;
 

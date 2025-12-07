@@ -50,9 +50,18 @@ export default function OnboardingPage() {
 
   const [formState, formAction] = useFormState(completeOnboarding, { message: '', error: false });
 
-  if (!formState.error && formState.message.includes('Onboarding complete')) {
+  if (!formState.error && (formState.message.includes('Onboarding complete') || formState.message.includes('Welcome!'))) {
     if (typeof window !== 'undefined') {
-      window.location.assign('/dashboard');
+      // Force token refresh to pick up new claims (role, brandId)
+      if (auth?.currentUser) {
+        auth.currentUser.getIdToken(true).then(() => {
+          window.location.assign('/dashboard');
+        }).catch(() => {
+          window.location.assign('/dashboard');
+        });
+      } else {
+        window.location.assign('/dashboard');
+      }
     }
   }
 
@@ -79,9 +88,8 @@ export default function OnboardingPage() {
         body: JSON.stringify({ idToken }),
       });
 
-      toast({ title: 'Session Restored', description: 'You can now continue setup.' });
+      toast({ title: 'Session Restored', description: 'Please click "Continue" again to finish setup.' });
       setShowLoginModal(false);
-      // Optional: Clear form error state if we could, but letting them re-submit is fine.
     } catch (err) {
       console.error(err);
       toast({ variant: 'destructive', title: 'Login Failed', description: 'Please try again.' });
