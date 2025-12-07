@@ -1,4 +1,5 @@
 import Chatbot from '@/components/chatbot';
+import Image from 'next/image';
 import { ProductGrid } from '@/components/product-grid';
 import { demoProducts } from '@/lib/demo/demo-data'; // Keep as fallback/demo
 import { fetchBrandPageData } from '@/lib/brand-data';
@@ -66,8 +67,7 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
                     {/* Placeholder for Brand Logo if available */}
                     {brand.logoUrl && (
                         <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-primary/20 bg-muted">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={brand.logoUrl} alt={brand.name} className="object-cover w-full h-full" />
+                            <Image src={brand.logoUrl} alt={brand.name} fill className="object-cover" />
                         </div>
                     )}
                 </header>

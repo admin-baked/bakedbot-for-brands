@@ -9,17 +9,21 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DataManagerTab from "./components/data-manager-tab";
-import AISearchIndexTab from "./components/ai-search-index-tab";
-import CouponManagerTab from "./components/coupon-manager-tab";
-import AIAgentEmbedTab from "./components/ai-agent-embed-tab";
-import CannMenusTestTab from "./components/cannmenus-test-tab";
-import PlatformAnalyticsTab from "./components/platform-analytics-tab";
-import TicketsTab from "./components/tickets-tab";
-import FootTrafficTab from "./components/foot-traffic-tab";
-import SuperAdminAgentChat from "./components/super-admin-agent-chat";
-import SuperAdminPlaybooksTab from "./components/super-admin-playbooks-tab";
-import EzalTab from "./components/ezal-tab";
+import dynamic from 'next/dynamic';
+
+const TabLoader = () => <div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+
+const DataManagerTab = dynamic(() => import("./components/data-manager-tab"), { loading: TabLoader });
+const AISearchIndexTab = dynamic(() => import("./components/ai-search-index-tab"), { loading: TabLoader });
+const CouponManagerTab = dynamic(() => import("./components/coupon-manager-tab"), { loading: TabLoader });
+const AIAgentEmbedTab = dynamic(() => import("./components/ai-agent-embed-tab"), { loading: TabLoader });
+const CannMenusTestTab = dynamic(() => import("./components/cannmenus-test-tab"), { loading: TabLoader });
+const PlatformAnalyticsTab = dynamic(() => import("./components/platform-analytics-tab"), { loading: TabLoader });
+const TicketsTab = dynamic(() => import("./components/tickets-tab"), { loading: TabLoader });
+const FootTrafficTab = dynamic(() => import("./components/foot-traffic-tab"), { loading: TabLoader });
+const SuperAdminAgentChat = dynamic(() => import("./components/super-admin-agent-chat"), { loading: TabLoader });
+const SuperAdminPlaybooksTab = dynamic(() => import("./components/super-admin-playbooks-tab"), { loading: TabLoader });
+const EzalTab = dynamic(() => import("./components/ezal-tab"), { loading: TabLoader });
 import { useSuperAdmin } from '@/hooks/use-super-admin';
 import { Loader2, Shield, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
