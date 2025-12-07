@@ -105,10 +105,15 @@ export async function getBrands(): Promise<Brand[]> {
     const firestore = getAdminFirestore();
     const snapshot = await firestore.collection('brands').get();
 
-    return snapshot.docs.map((doc: any) => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Brand[];
+    return snapshot.docs.map((doc: any) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+      };
+    }) as Brand[];
   } catch (error) {
     console.error('Error fetching brands via admin:', error);
     return [];
@@ -120,10 +125,16 @@ export async function getCoupons(): Promise<Coupon[]> {
     const firestore = getAdminFirestore();
     const snapshot = await firestore.collection('coupons').get();
 
-    return snapshot.docs.map((doc: any) => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Coupon[];
+    return snapshot.docs.map((doc: any) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+        expiresAt: data.expiresAt?.toDate?.() || null, // Optional
+      };
+    }) as Coupon[];
   } catch (error) {
     console.error('Error fetching coupons via admin:', error);
     return [];
