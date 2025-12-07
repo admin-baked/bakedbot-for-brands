@@ -107,10 +107,11 @@ Priority: ${ticket.priority}
 Category: ${ticket.category}
 
 AI Suggested Causes:
-${ticket.aiSuggestion?.possibleCauses.map(c => `- ${c}`).join('\n') || 'N/A'}
+AI Suggested Causes:
+${ticket.aiSuggestion?.possibleCauses?.map((c: any) => `- ${c}`).join('\n') || 'N/A'}
 
 AI Suggested Fixes:
-${ticket.aiSuggestion?.suggestedFixes.map(f => `- ${f}`).join('\n') || 'N/A'}
+${ticket.aiSuggestion?.suggestedFixes?.map((f: any) => `- ${f}`).join('\n') || 'N/A'}
         `.trim();
 
         navigator.clipboard.writeText(text);
@@ -329,7 +330,7 @@ ${ticket.aiSuggestion?.suggestedFixes.map(f => `- ${f}`).join('\n') || 'N/A'}
                                             <div>
                                                 <p className="font-medium text-blue-700">Possible Causes:</p>
                                                 <ul className="list-disc ml-4 text-blue-600">
-                                                    {selectedTicket.aiSuggestion.possibleCauses.map((cause, i) => (
+                                                    {selectedTicket.aiSuggestion.possibleCauses.map((cause: any, i: number) => (
                                                         <li key={i}>{cause}</li>
                                                     ))}
                                                 </ul>
@@ -337,7 +338,7 @@ ${ticket.aiSuggestion?.suggestedFixes.map(f => `- ${f}`).join('\n') || 'N/A'}
                                             <div>
                                                 <p className="font-medium text-blue-700">Suggested Fixes:</p>
                                                 <ul className="list-disc ml-4 text-blue-600">
-                                                    {selectedTicket.aiSuggestion.suggestedFixes.map((fix, i) => (
+                                                    {selectedTicket.aiSuggestion.suggestedFixes.map((fix: any, i: number) => (
                                                         <li key={i}>{fix}</li>
                                                     ))}
                                                 </ul>
