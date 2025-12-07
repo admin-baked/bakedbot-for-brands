@@ -9,18 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Loader2, Package, Store } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { searchCannMenusRetailers, type CannMenusResult } from '../actions';
+// import { type RetailerLocation } from '@/lib/cannmenus-api'; // Unused now
 
 type BrandResult = {
     id: number;
     brand_name: string;
     aproperhigh_brand_website?: string;
-};
-
-type RetailerResult = {
-    id: number;
-    dispensary_name: string;
-    city?: string;
-    state?: string;
 };
 
 export default function CannMenusTestTab() {
@@ -29,7 +24,7 @@ export default function CannMenusTestTab() {
     const [brandLoading, setBrandLoading] = useState(false);
     const [retailerLoading, setRetailerLoading] = useState(false);
     const [brandResults, setBrandResults] = useState<BrandResult[]>([]);
-    const [retailerResults, setRetailerResults] = useState<RetailerResult[]>([]);
+    const [retailerResults, setRetailerResults] = useState<CannMenusResult[]>([]);
     const [brandMeta, setBrandMeta] = useState<any>(null);
     const [retailerMeta, setRetailerMeta] = useState<any>(null);
 
@@ -56,18 +51,23 @@ export default function CannMenusTestTab() {
 
         setRetailerLoading(true);
         try {
-            const response = await fetch(`/api/cannmenus/retailers?search=${encodeURIComponent(retailerSearch)}`);
-            const data = await response.json();
-            setRetailerResults(data.data?.data || []);
-            setRetailerMeta(data.data?.pagination || null);
-            if (!data.data?.data?.length) {
+            // Updated to use Server Action directly
+            const results = await searchCannMenusRetailers(retailerSearch);
+
+            // Server Action returns mixed results, filter for dispensaries
+            const dispensaries = results.filter(r => r.type === 'dispensary');
+
+            // Server Action returns CannMenusResult[] which matches our state type
+            setRetailerResults(dispensaries);
+            setRetailerMeta(null); // Pagination not currently supported by action wrapper
+
+            if (dispensaries.length === 0) {
                 console.log('No retailers found for search:', retailerSearch);
             }
         } catch (error) {
             console.error('Retailer search failed:', error);
             setRetailerResults([]);
             setRetailerMeta(null);
-            // Optionally set an error state to show in UI
         } finally {
             setRetailerLoading(false);
         }
@@ -184,13 +184,11 @@ export default function CannMenusTestTab() {
                                             <CardHeader className="p-4">
                                                 <CardTitle className="text-sm flex items-center gap-2">
                                                     <Store className="h-4 w-4" />
-                                                    {retailer.dispensary_name}
+                                                    {retailer.name}
                                                 </CardTitle>
                                                 <CardDescription className="text-xs">
                                                     ID: {retailer.id}
-                                                    {retailer.city && retailer.state && (
-                                                        <> • {retailer.city}, {retailer.state}</>
-                                                    )}
+                                                    {/* City/State removed to match CannMenusResult type */}
                                                 </CardDescription>
                                             </CardHeader>
                                         </Card>
