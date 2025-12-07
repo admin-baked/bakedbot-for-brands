@@ -6,8 +6,8 @@
  * Protected by super admin check
  */
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import dynamic from 'next/dynamic';
@@ -36,7 +36,18 @@ import { MockDataToggle } from '@/components/debug/mock-data-toggle';
 
 export default function CeoDashboardPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
     const { isSuperAdmin, isLoading, superAdminEmail, logout } = useSuperAdmin();
+
+    // Sync tabs with URL ?tab=...
+    const currentTab = searchParams.get('tab') || 'agent-chat';
+
+    const handleTabChange = useCallback((value: string) => {
+        const params = new URLSearchParams(searchParams);
+        params.set('tab', value);
+        router.push(`${pathname}?${params.toString()}`);
+    }, [pathname, router, searchParams]);
 
     // Not authorized - redirect to login
     useEffect(() => {
@@ -85,7 +96,7 @@ export default function CeoDashboardPage() {
             </div>
 
             {/* CEO Dashboard Tabs */}
-            <Tabs defaultValue="agent-chat">
+            <Tabs value={currentTab} onValueChange={handleTabChange}>
                 <ScrollArea className="w-full pb-2">
                     <TabsList className="inline-flex w-full min-w-max justify-start px-2 h-auto py-1">
                         <TabsTrigger value="agent-chat" className="font-semibold">🤖 Agent Chat</TabsTrigger>
