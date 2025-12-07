@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -166,11 +167,14 @@ export default function ShopNearMeWidget({
                 {(productImage || productName) && (
                     <div className="flex items-center gap-3 mb-4">
                         {productImage && (
-                            <img
-                                src={productImage}
-                                alt={productName || 'Product'}
-                                className="w-16 h-16 rounded-lg object-cover"
-                            />
+                            <div className="relative w-16 h-16 flex-shrink-0">
+                                <Image
+                                    src={productImage}
+                                    alt={productName || 'Product'}
+                                    fill
+                                    className="rounded-lg object-cover"
+                                />
+                            </div>
                         )}
                         <div>
                             {productName && (

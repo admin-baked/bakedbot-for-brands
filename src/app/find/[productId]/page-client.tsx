@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import type { Product } from '@/firebase/converters';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -31,9 +32,9 @@ export default function ProductFinderClient({ product }: { product: Product & { 
             <div className="w-full max-w-md space-y-8">
                 {/* Product Hero */}
                 <div className="text-center space-y-2">
-                    <div className="w-32 h-32 bg-secondary/20 rounded-full mx-auto flex items-center justify-center mb-4">
+                    <div className="relative w-32 h-32 bg-secondary/20 rounded-full mx-auto flex items-center justify-center mb-4">
                         {product.imageUrl ? (
-                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover rounded-full" />
+                            <Image src={product.imageUrl} alt={product.name} fill className="object-cover rounded-full" />
                         ) : (
                             <Star className="h-12 w-12 text-primary/40" />
                         )}

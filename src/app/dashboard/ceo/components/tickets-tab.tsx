@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import NextImage from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -355,10 +356,12 @@ ${ticket.aiSuggestion?.suggestedFixes.map(f => `- ${f}`).join('\n') || 'N/A'}
                                 <div>
                                     <h4 className="font-medium mb-2">Screenshot</h4>
                                     <div className="relative rounded-lg border overflow-hidden bg-slate-100">
-                                        <img
+                                        <NextImage
                                             src={selectedTicket.screenshotUrl}
                                             alt="Error screenshot"
-                                            className="w-full"
+                                            width={800}
+                                            height={600}
+                                            className="w-full h-auto"
                                         />
                                         <Button
                                             size="sm"
