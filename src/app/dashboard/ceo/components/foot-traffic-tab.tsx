@@ -60,8 +60,9 @@ import {
     XCircle,
     AlertTriangle,
 } from 'lucide-react';
-import { db } from '@/firebase/client';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+// import { db } from '@/firebase/client'; // Removed client db usage
+// import { collection, getDocs, query, orderBy } from 'firebase/firestore'; // Removed
+import { getSeoPagesAction, seedSeoPageAction } from '../actions';
 
 // ... existing imports
 import type { GeoZone, DropAlertConfig, LocalOffer, LocalSEOPage, FootTrafficMetrics } from '@/types/foot-traffic';
@@ -213,14 +214,11 @@ export default function FootTrafficTab() {
     // Fetch SEO Pages
     const fetchSeoPages = async () => {
         try {
-            const pagesRef = collection(db, 'foot_traffic', 'config', 'seo_pages');
-            const q = query(pagesRef);
-            const snapshot = await getDocs(q);
-            const pages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as LocalSEOPage[];
+            // Replaced with Server Action
+            const pages = await getSeoPagesAction();
             setSeoPages(pages);
         } catch (error) {
             console.error('Error fetching SEO pages:', error);
-            // Don't toast here to avoid spamming on load if it fails silently (e.g. permission)
         }
     };
 
@@ -243,24 +241,24 @@ export default function FootTrafficTab() {
         setIsSeeding(true);
 
         try {
-            const response = await fetch('/api/foot-traffic/seo/seed', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(seedData),
-            });
+            // Replaced with Server Action
+            const result = await seedSeoPageAction(seedData);
 
-            if (!response.ok) throw new Error('Failed to seed page');
-
-            const result = await response.json();
-
-            toast({
-                title: 'Page Generated',
-                description: `SEO page for ${seedData.zipCode} has been generated successfully.`,
-            });
-
-            setSeedData({ zipCode: '', featuredDispensaryName: '' });
-            setIsGeneratePageOpen(false);
-            fetchSeoPages(); // Refresh list
+            if (result.error) {
+                toast({
+                    title: 'Generation Failed',
+                    description: result.message,
+                    variant: 'destructive',
+                });
+            } else {
+                toast({
+                    title: 'Page Generated',
+                    description: result.message,
+                });
+                setSeedData({ zipCode: '', featuredDispensaryName: '' });
+                setIsGeneratePageOpen(false);
+                fetchSeoPages(); // Refresh list
+            }
 
         } catch (error) {
             console.error('Error seeding page:', error);
