@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default async function AgentsPage() {
   try {
-    await requireUser(['brand', 'owner']);
+    await requireUser(['brand', 'owner', 'dispensary']);
   } catch (error) {
     redirect('/dashboard');
   }

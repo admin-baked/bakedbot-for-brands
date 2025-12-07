@@ -902,7 +902,10 @@ export default function FootTrafficTab() {
                                 Automated notifications for restocks, price drops, and competitor stockouts
                             </p>
                         </div>
-                        <Button>
+                        <Button onClick={() => toast({
+                            title: 'Coming Soon',
+                            description: 'Alert rule creation will be available in a future update.',
+                        })}>
                             <Plus className="h-4 w-4 mr-2" />
                             Create Alert Rule
                         </Button>
@@ -1018,11 +1021,17 @@ export default function FootTrafficTab() {
                             </p>
                         </div>
                         <div className="flex gap-2">
-                            <Button variant="outline">
+                            <Button variant="outline" onClick={() => toast({
+                                title: 'Coming Soon',
+                                description: 'AI-generated offers will be available in a future update.',
+                            })}>
                                 <Zap className="h-4 w-4 mr-2" />
                                 AI Generate
                             </Button>
-                            <Button>
+                            <Button onClick={() => toast({
+                                title: 'Coming Soon',
+                                description: 'Manual offer creation will be available in a future update.',
+                            })}>
                                 <Plus className="h-4 w-4 mr-2" />
                                 Create Offer
                             </Button>
