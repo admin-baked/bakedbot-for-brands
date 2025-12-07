@@ -91,7 +91,7 @@ export async function parseHtml(
             profileId
         });
 
-        $productBlocks.each((i, el) => {
+        $productBlocks.each((i: number, el: any) => {
             try {
                 const $el = $(el);
                 const product = extractProduct($, $el, selectors, profile.categoryMapping || {}, i);

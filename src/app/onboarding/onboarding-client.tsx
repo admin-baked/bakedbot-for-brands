@@ -50,6 +50,10 @@ export default function OnboardingPage() {
 
   const [formState, formAction] = useFormState(completeOnboarding, { message: '', error: false });
 
+  // Session Recovery Logic
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const { auth } = useFirebase();
+
   if (!formState.error && (formState.message.includes('Onboarding complete') || formState.message.includes('Welcome!'))) {
     if (typeof window !== 'undefined') {
       // Force token refresh to pick up new claims (role, brandId)
@@ -64,10 +68,6 @@ export default function OnboardingPage() {
       }
     }
   }
-
-  // Session Recovery Logic
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const { auth } = useFirebase();
 
   // Detect session expiry
   if (formState.error && formState.message.includes('Session expired') && !showLoginModal) {
