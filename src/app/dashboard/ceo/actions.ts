@@ -242,3 +242,143 @@ export async function createEzalCompetitor(tenantId: string, data: any): Promise
 }
 
 
+import type { LocalSEOPage } from '@/types/foot-traffic';
+import { getZipCodeCoordinates, getRetailersByZipCode, discoverNearbyProducts } from '@/server/services/geo-discovery';
+import type { ProductSummary, DealSummary } from '@/types/foot-traffic';
+
+export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
+  try {
+    const firestore = getAdminFirestore();
+    const snapshot = await firestore
+      .collection('foot_traffic')
+      .doc('config')
+      .collection('seo_pages')
+      .get();
+
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      lastRefreshed: doc.data().lastRefreshed?.toDate() || new Date(),
+      nextRefresh: doc.data().nextRefresh?.toDate() || new Date(),
+    })) as LocalSEOPage[];
+  } catch (error) {
+    console.error('Error fetching SEO pages via admin:', error);
+    return [];
+  }
+}
+
+export async function seedSeoPageAction(data: { zipCode: string; featuredDispensaryName?: string }): Promise<ActionResult> {
+  await requireUser(['owner']); // Ensure only admins can seed
+
+  try {
+    const { zipCode, featuredDispensaryName } = data;
+
+    if (!zipCode) {
+      return { message: 'Zip Code is required', error: true };
+    }
+
+    // 1. Get location info
+    const coords = await getZipCodeCoordinates(zipCode);
+    if (!coords) {
+      return { message: 'Invalid ZIP code', error: true };
+    }
+
+    // 2. Fetch retailers
+    const retailers = await getRetailersByZipCode(zipCode, 20);
+
+    // 3. Find featured dispensary
+    let featuredDispensaryId = undefined;
+    if (featuredDispensaryName) {
+      const match = retailers.find(r =>
+        r.name.toLowerCase().includes(featuredDispensaryName.toLowerCase())
+      );
+      if (match) {
+        featuredDispensaryId = match.id;
+      }
+    }
+
+    // 4. Discover products
+    const discoveryResult = await discoverNearbyProducts({
+      lat: coords.lat,
+      lng: coords.lng,
+      radiusMiles: 15,
+      limit: 50,
+      sortBy: 'score',
+    });
+
+    // 5. Generate content
+    const topStrains: ProductSummary[] = discoveryResult.products.slice(0, 10).map(p => ({
+      id: p.id,
+      name: p.name,
+      brandName: p.brandName,
+      category: p.category,
+      price: p.price,
+      imageUrl: p.imageUrl,
+      thcPercent: p.thcPercent,
+      retailerCount: p.retailerCount,
+    }));
+
+    const topDeals: DealSummary[] = discoveryResult.products
+      .filter(p => p.isOnSale)
+      .slice(0, 5)
+      .map(p => ({
+        productId: p.id,
+        productName: p.name,
+        brandName: p.brandName,
+        originalPrice: p.originalPrice || p.price,
+        salePrice: p.price,
+        discountPercent: p.originalPrice ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0,
+        retailerName: p.availability[0]?.retailerName || 'Local Dispensary',
+      }));
+
+    const categoryBreakdown = ['Flower', 'Edibles', 'Concentrates', 'Pre-Rolls', 'Vape Pens'].map(cat => ({
+      category: cat,
+      count: discoveryResult.products.filter(p => p.category === cat).length
+    }));
+
+    // 6. Config Object
+    const seoPageConfig: LocalSEOPage = {
+      id: zipCode,
+      zipCode,
+      city: retailers[0]?.city || 'Unknown City',
+      state: retailers[0]?.state || 'Unknown State',
+      featuredDispensaryId,
+      featuredDispensaryName,
+      content: {
+        title: `Cannabis Dispensaries Near ${zipCode}`,
+        metaDescription: `Find the best cannabis in ${zipCode}.`,
+        h1: `Cannabis Near ${zipCode}`,
+        introText: `Discover top rated dispensaries in ${zipCode}...`,
+        topStrains,
+        topDeals,
+        nearbyRetailers: retailers.slice(0, 10),
+        categoryBreakdown,
+      },
+      structuredData: {
+        localBusiness: {},
+        products: [],
+        breadcrumb: {},
+      },
+      lastRefreshed: new Date(),
+      nextRefresh: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      refreshFrequency: 'daily',
+      published: true,
+      metrics: {
+        pageViews: 0,
+        uniqueVisitors: 0,
+        bounceRate: 0,
+        avgTimeOnPage: 0,
+      },
+    };
+
+    // 7. Save to Firestore (via Admin)
+    const firestore = getAdminFirestore();
+    await firestore.collection('foot_traffic').doc('config').collection('seo_pages').doc(zipCode).set(seoPageConfig);
+
+    return { message: `Successfully seeded page for ${zipCode}` };
+
+  } catch (error: any) {
+    console.error('Error seeding SEO page:', error);
+    return { message: `Failed to seed page: ${error.message}`, error: true };
+  }
+}
