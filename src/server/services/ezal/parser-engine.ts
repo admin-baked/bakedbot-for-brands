@@ -4,6 +4,7 @@
 /**
  * Parser Engine
  * Config-driven HTML/JSON parsing for competitive menu data
+ * NOW POWERED BY CHEERIO 🥣
  */
 
 import { logger } from '@/lib/logger';
@@ -15,6 +16,7 @@ import {
     PricePoint
 } from '@/types/ezal-scraper';
 import { getParserProfile, mapCategory } from '@/config/ezal-parser-profiles';
+import { load } from 'cheerio'; // Import cheerio
 
 // =============================================================================
 // PARSED PRODUCT TYPE
@@ -50,7 +52,7 @@ export interface ParseResult {
 }
 
 // =============================================================================
-// HTML PARSING
+// HTML PARSING (with Cheerio)
 // =============================================================================
 
 /**
@@ -77,23 +79,22 @@ export async function parseHtml(
     const parseErrors: string[] = [];
 
     try {
-        // Use regex-based parsing since we're in Node.js without DOM
-        // In production, consider using cheerio or jsdom for better parsing
-
+        // Load HTML into Cheerio
+        const $ = load(html);
         const selectors = profile.selectors;
 
-        // Find product containers using simplified pattern matching
-        const productMatches = findProductBlocks(html, selectors.productContainer);
+        // Select all product containers
+        const $productBlocks = $(selectors.productContainer);
 
         logger.info('[Ezal Parser] Found product blocks:', {
-            count: productMatches.length,
+            count: $productBlocks.length,
             profileId
         });
 
-        for (let i = 0; i < productMatches.length; i++) {
+        $productBlocks.each((i, el) => {
             try {
-                const block = productMatches[i];
-                const product = extractProduct(block, selectors, profile.categoryMapping || {}, i);
+                const $el = $(el);
+                const product = extractProduct($, $el, selectors, profile.categoryMapping || {}, i);
 
                 if (product && product.productName && product.price > 0) {
                     products.push(product);
@@ -101,13 +102,13 @@ export async function parseHtml(
             } catch (error) {
                 parseErrors.push(`Failed to parse product ${i}: ${error instanceof Error ? error.message : String(error)}`);
             }
-        }
+        });
 
         return {
             success: true,
             products,
             parseErrors,
-            totalFound: productMatches.length,
+            totalFound: $productBlocks.length,
             parseTimeMs: Date.now() - startTime,
         };
 
@@ -128,91 +129,63 @@ export async function parseHtml(
 }
 
 /**
- * Find product blocks using simplified pattern matching
- * This is a basic implementation - in production, use cheerio or JSDOM
- */
-function findProductBlocks(html: string, containerSelector: string): string[] {
-    const blocks: string[] = [];
-
-    // Try to extract common product container patterns
-    // This is simplified - real implementation would use proper HTML parsing
-
-    // Convert selector to patterns
-    const patterns = containerSelector.split(',').map(s => s.trim());
-
-    for (const pattern of patterns) {
-        // Handle class selectors
-        if (pattern.startsWith('.')) {
-            const className = pattern.slice(1).split(/[.\s\[]/)[0];
-            const regex = new RegExp(`<[^>]+class="[^"]*\\b${className}\\b[^"]*"[^>]*>([\\s\\S]*?)<\\/\\w+>`, 'gi');
-
-            let match;
-            while ((match = regex.exec(html)) !== null) {
-                blocks.push(match[0]);
-                if (blocks.length >= 500) break; // Safety limit
-            }
-        }
-
-        // Handle data attribute selectors
-        if (pattern.includes('[data-')) {
-            const attrMatch = pattern.match(/\[([^\]=]+)(?:="([^"]*)")?\]/);
-            if (attrMatch) {
-                const attrName = attrMatch[1];
-                const attrValue = attrMatch[2];
-
-                let regex;
-                if (attrValue) {
-                    regex = new RegExp(`<[^>]+${attrName}="${attrValue}"[^>]*>([\\s\\S]*?)<\\/\\w+>`, 'gi');
-                } else {
-                    regex = new RegExp(`<[^>]+${attrName}[^>]*>([\\s\\S]*?)<\\/\\w+>`, 'gi');
-                }
-
-                let match;
-                while ((match = regex.exec(html)) !== null) {
-                    blocks.push(match[0]);
-                    if (blocks.length >= 500) break;
-                }
-            }
-        }
-
-        if (blocks.length >= 500) break;
-    }
-
-    return blocks;
-}
-
-/**
- * Extract product data from a block
+ * Extract product data from a Cheerio element
  */
 function extractProduct(
-    block: string,
+    $: any,
+    $el: any,
     selectors: ParserProfile['selectors'],
     categoryMapping: Record<string, ProductCategory>,
     index: number
 ): ParsedProduct | null {
     if (!selectors) return null;
 
-    const productName = extractText(block, selectors.productName);
-    const brandName = extractText(block, selectors.brandName) || 'Unknown';
-    const priceText = extractText(block, selectors.price);
-    const regularPriceText = selectors.regularPrice ? extractText(block, selectors.regularPrice) : null;
-    const categoryText = selectors.category ? extractText(block, selectors.category) : '';
-    const thcText = selectors.thc ? extractText(block, selectors.thc) : '';
-    const cbdText = selectors.cbd ? extractText(block, selectors.cbd) : '';
-    const imageUrl = selectors.imageUrl ? extractAttribute(block, selectors.imageUrl, 'src') : undefined;
-    const productUrl = selectors.productUrl ? extractAttribute(block, selectors.productUrl, 'href') : undefined;
-    const strainText = selectors.strain ? extractText(block, selectors.strain) : '';
+    // Helper to safely get text
+    const getText = (selector?: string) => {
+        if (!selector) return '';
+        // Check if matching self
+        if (selector === '&') return $el.text().trim();
+        return $el.find(selector).first().text().trim();
+    };
+
+    // Helper to safely get attribute
+    const getAttr = (selector: string | undefined, attr: string) => {
+        if (!selector) return undefined;
+        if (selector === '&') return $el.attr(attr);
+        return $el.find(selector).first().attr(attr);
+    };
+
+    const productName = getText(selectors.productName);
+    const brandName = getText(selectors.brandName) || 'Unknown';
+    const priceText = getText(selectors.price);
+    const regularPriceText = selectors.regularPrice ? getText(selectors.regularPrice) : null;
+    const categoryText = selectors.category ? getText(selectors.category) : '';
+    const thcText = selectors.thc ? getText(selectors.thc) : '';
+    const cbdText = selectors.cbd ? getText(selectors.cbd) : '';
+    const imageUrl = selectors.imageUrl ? getAttr(selectors.imageUrl, 'src') : undefined;
+    const productUrl = selectors.productUrl ? getAttr(selectors.productUrl, 'href') : undefined;
+    const strainText = selectors.strain ? getText(selectors.strain) : '';
 
     // Check stock status
-    const outOfStockIndicator = selectors.outOfStockIndicator || '';
-    const isOutOfStock = outOfStockIndicator && block.toLowerCase().includes('out-of-stock') ||
-        block.toLowerCase().includes('sold-out') ||
-        block.toLowerCase().includes('unavailable');
+    let isOutOfStock = false;
+    if (selectors.outOfStockIndicator) {
+        // Can be a class on the container itself or a child element
+        if ($el.is(selectors.outOfStockIndicator) || $el.find(selectors.outOfStockIndicator).length > 0) {
+            isOutOfStock = true;
+        }
+    }
+
+    // Also check for "Sold Out" text keywords if generic parser or specific indicator wasn't found
+    const fullText = $el.text().toLowerCase();
+    if (!isOutOfStock && (fullText.includes('out of stock') || fullText.includes('sold out'))) {
+        isOutOfStock = true;
+    }
 
     // Parse price
     const price = parsePrice(priceText);
     const regularPrice = regularPriceText ? parsePrice(regularPriceText) : null;
 
+    // Basic validity check
     if (!productName || price <= 0) {
         return null;
     }
@@ -228,6 +201,7 @@ function extractProduct(
     const strainType = inferStrainType(strainText || productName);
 
     // Generate external ID
+    // TODO: Ideally use a real ID from the DOM (e.g. data-id), but this generation is okay for v1
     const externalProductId = generateProductId(brandName, productName, index);
 
     return {
@@ -250,50 +224,14 @@ function extractProduct(
 }
 
 /**
- * Extract text from HTML using selector pattern
- */
-function extractText(html: string, selector?: string): string {
-    if (!selector) return '';
-
-    // Try class selector
-    if (selector.startsWith('.')) {
-        const className = selector.slice(1).split(/[.\s\[]/)[0];
-        const regex = new RegExp(`class="[^"]*\\b${className}\\b[^"]*"[^>]*>([^<]+)<`, 'i');
-        const match = html.match(regex);
-        return match ? match[1].trim() : '';
-    }
-
-    // Try data attribute selector
-    if (selector.includes('[data-')) {
-        const attrMatch = selector.match(/\[([^\]=]+)(?:="([^"]*)")?\]/);
-        if (attrMatch) {
-            const attrName = attrMatch[1];
-            const regex = new RegExp(`${attrName}[^>]*>([^<]+)<`, 'i');
-            const match = html.match(regex);
-            return match ? match[1].trim() : '';
-        }
-    }
-
-    return '';
-}
-
-/**
- * Extract attribute from HTML
- */
-function extractAttribute(html: string, selector: string, attr: string): string | undefined {
-    const regex = new RegExp(`${attr}=["']([^"']+)["']`, 'i');
-    const match = html.match(regex);
-    return match ? match[1] : undefined;
-}
-
-/**
  * Parse price from text
  */
 function parsePrice(text: string): number {
     if (!text) return 0;
-    const match = text.match(/\$?([\d,]+(?:\.\d{2})?)/);
+    // Handles $50.00, 50.00, $50, etc.
+    const match = text.match(/\$?(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/);
     if (!match) return 0;
-    return parseFloat(match[1].replace(',', ''));
+    return parseFloat(match[1].replace(/,/g, ''));
 }
 
 /**
@@ -349,7 +287,7 @@ function generateProductId(brand: string, name: string, index: number): string {
 }
 
 // =============================================================================
-// JSON PARSING
+// JSON PARSING (Unchanged)
 // =============================================================================
 
 /**
