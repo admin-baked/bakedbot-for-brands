@@ -17,7 +17,7 @@ export type EmbeddingActionResult = ActionResult & {
 
 export async function searchCannMenusRetailers(query: string): Promise<CannMenusResult[]> {
   try {
-    await requireUser(['owner']); // Strict auth for Dashboard
+    await requireUser(); // Allow any authenticated user to search
     return await searchShared(query);
   } catch (error) {
     console.error('Action searchCannMenusRetailers failed:', error);
