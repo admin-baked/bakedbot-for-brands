@@ -23,7 +23,8 @@ export function SimulationBanner() {
         // Clear cookies
         document.cookie = 'x-simulated-role=; path=/; max-age=0';
         document.cookie = 'x-use-mock-data=; path=/; max-age=0';
-        window.location.reload();
+        // Redirect to CEO dashboard which is the hub for Super Admins
+        window.location.href = '/dashboard/ceo';
     };
 
     if (!simulatedRole && !isMock) return null;

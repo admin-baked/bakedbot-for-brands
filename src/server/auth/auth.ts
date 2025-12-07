@@ -67,8 +67,8 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
   }
 
   // --- ROLE SIMULATION LOGIC ---
-  // Only allow simulation if the REAL user has the 'owner' role.
-  if (decodedToken.role === 'owner') {
+  // Only allow simulation if the REAL user has the 'owner' or admin role.
+  if (['owner', 'admin', 'super-admin'].includes(decodedToken.role)) {
     const simulatedRole = cookieStore.get('x-simulated-role')?.value as Role | undefined;
     if (simulatedRole && ['brand', 'dispensary', 'customer'].includes(simulatedRole)) {
       // Override the role in the returned token
