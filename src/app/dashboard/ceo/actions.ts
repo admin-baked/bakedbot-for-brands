@@ -125,3 +125,61 @@ export async function getCoupons(): Promise<Coupon[]> {
   }
 }
 
+// Analytics Types
+export type PlatformAnalyticsData = {
+  signups: { today: number; week: number; month: number; total: number; trend: number; trendUp: boolean; };
+  activeUsers: { daily: number; weekly: number; monthly: number; trend: number; trendUp: boolean; };
+  retention: { day1: number; day7: number; day30: number; trend: number; trendUp: boolean; };
+  revenue: { mrr: number; arr: number; arpu: number; trend: number; trendUp: boolean; };
+  featureAdoption: { name: string; usage: number; trend: number; status: 'healthy' | 'warning' | 'growing' | 'secondary' }[];
+  recentSignups: { id: string; name: string; email: string; plan: string; date: string; role: string }[];
+  agentUsage: { agent: string; calls: number; avgDuration: string; successRate: number; costToday: number }[];
+};
+
+export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
+  try {
+    const firestore = getAdminFirestore();
+    // Example: fetch real totals if they existed
+    // const stats = await firestore.collection('system_stats').doc('current').get();
+
+    // Returning empty/zero state for "Live" mode as requested to differentiate from Mock
+    return {
+      signups: { today: 0, week: 0, month: 0, total: 0, trend: 0, trendUp: true },
+      activeUsers: { daily: 0, weekly: 0, monthly: 0, trend: 0, trendUp: true },
+      retention: { day1: 0, day7: 0, day30: 0, trend: 0, trendUp: true },
+      revenue: { mrr: 0, arr: 0, arpu: 0, trend: 0, trendUp: true },
+      featureAdoption: [],
+      recentSignups: [],
+      agentUsage: []
+    };
+  } catch (error) {
+    console.error('Error fetching platform analytics:', error);
+    return {
+      signups: { today: 0, week: 0, month: 0, total: 0, trend: 0, trendUp: true },
+      activeUsers: { daily: 0, weekly: 0, monthly: 0, trend: 0, trendUp: true },
+      retention: { day1: 0, day7: 0, day30: 0, trend: 0, trendUp: true },
+      revenue: { mrr: 0, arr: 0, arpu: 0, trend: 0, trendUp: true },
+      featureAdoption: [],
+      recentSignups: [],
+      agentUsage: []
+    };
+  }
+}
+
+import type { EzalInsight } from '@/types/ezal-scraper';
+
+export async function getEzalInsights(tenantId: string, limitVal: number = 20): Promise<EzalInsight[]> {
+  try {
+    const firestore = getAdminFirestore();
+    // Real query would go here:
+    // const q = firestore.collection('insights').where('tenantId', '==', tenantId).limit(limitVal).get();
+
+    // Return empty for now to prove separation
+    return [];
+  } catch (error) {
+    console.error('Error fetching ezal insights:', error);
+    return [];
+  }
+}
+
+
