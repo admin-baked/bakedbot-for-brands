@@ -19,6 +19,11 @@ export function SimulationBanner() {
         setIsMock(mockMatch ? mockMatch[2] === 'true' : false);
     }, []);
 
+    const handleRoleSwitch = (role: string) => {
+        document.cookie = `x-simulated-role=${role}; path=/; max-age=3600`;
+        window.location.reload();
+    };
+
     const handleExit = () => {
         // Clear cookies
         document.cookie = 'x-simulated-role=; path=/; max-age=0';
@@ -30,29 +35,59 @@ export function SimulationBanner() {
     if (!simulatedRole && !isMock) return null;
 
     return (
-        <div className={`fixed bottom-0 left-0 right-0 ${isMock ? 'bg-purple-600' : 'bg-amber-500'} text-white p-2 z-50 flex items-center justify-center gap-4 shadow-lg transition-colors`}>
-            <span className="font-semibold text-sm flex gap-2">
-                {simulatedRole && <span>Role: <span className="uppercase">{simulatedRole}</span></span>}
-                {simulatedRole && isMock && <span>|</span>}
-                {isMock && <span>Data: <span className="uppercase">MOCK</span></span>}
-            </span>
+        <div className={`fixed bottom-0 left-0 right-0 ${isMock ? 'bg-purple-600' : 'bg-amber-500'} text-white p-2 z-50 flex items-center justify-between px-6 shadow-lg transition-colors`}>
+            <div className="flex items-center gap-4">
+                <span className="font-semibold text-sm flex gap-2 items-center">
+                    {simulatedRole && (
+                        <div className="flex items-center gap-1 bg-black/20 px-2 py-1 rounded">
+                            <span className="text-xs opacity-70">ROLE:</span>
+                            <span className="uppercase font-bold">{simulatedRole}</span>
+                        </div>
+                    )}
+                    {isMock && (
+                        <div className="flex items-center gap-1 bg-black/20 px-2 py-1 rounded">
+                            <span className="text-xs opacity-70">DATA:</span>
+                            <span className="uppercase font-bold">MOCK</span>
+                        </div>
+                    )}
+                </span>
+            </div>
+
             <div className="flex items-center gap-2">
+                {/* Role Switcher */}
+                <select
+                    className="h-8 text-xs bg-black/20 text-white border-0 rounded px-2 cursor-pointer hover:bg-black/30 outline-none focus:ring-1 focus:ring-white/50"
+                    value={simulatedRole || ''}
+                    onChange={(e) => handleRoleSwitch(e.target.value)}
+                >
+                    <option value="" disabled>Switch Role...</option>
+                    <option value="brand">Brand</option>
+                    <option value="dispensary">Dispensary</option>
+                    <option value="customer">Customer</option>
+                    <option value="owner">Owner</option>
+                </select>
+
+                <div className="h-4 w-px bg-white/20 mx-1" />
+
+                {/* Quick Links */}
                 {simulatedRole && (
                     <Button
-                        variant="link"
-                        className="h-6 text-xs text-white underline hover:text-gray-200"
-                        onClick={() => window.location.href = simulatedRole === 'customer' ? '/account' : '/dashboard/playbooks'}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs text-white hover:bg-white/20 hover:text-white"
+                        onClick={() => window.location.href = simulatedRole === 'customer' ? '/shop/demo' : '/dashboard/playbooks'}
                     >
-                        Go to {simulatedRole.charAt(0).toUpperCase() + simulatedRole.slice(1)} Dashboard
+                        Go to Dashboard
                     </Button>
                 )}
+
                 <Button
                     variant="secondary"
                     size="sm"
-                    className={`h-6 text-xs bg-white hover:bg-gray-100 ${isMock ? 'text-purple-700' : 'text-amber-600'}`}
+                    className={`h-8 text-xs border-0 ${isMock ? 'bg-white text-purple-700 hover:bg-gray-100' : 'bg-white text-amber-600 hover:bg-gray-100'}`}
                     onClick={handleExit}
                 >
-                    Exit Simulation
+                    Exit to Super Admin
                 </Button>
             </div>
         </div>
