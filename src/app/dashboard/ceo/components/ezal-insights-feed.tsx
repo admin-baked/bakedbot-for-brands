@@ -12,20 +12,46 @@ export interface EzalInsightsFeedProps {
     tenantId: string;
 }
 
+const MOCK_INSIGHTS: EzalInsight[] = [
+    {
+        id: '1', tenantId: 't1', type: 'price_drop', brandName: 'Wyld', competitorId: 'c1', competitorProductId: 'cp1',
+        previousValue: 20, currentValue: 18, severity: 'medium', jurisdiction: 'CA', createdAt: new Date(Date.now() - 3600000), dismissed: false, consumedBy: []
+    },
+    {
+        id: '2', tenantId: 't1', type: 'new_product', brandName: 'Stiiizy', competitorId: 'c2', competitorProductId: 'cp2',
+        currentValue: 45, severity: 'low', jurisdiction: 'CA', createdAt: new Date(Date.now() - 7200000), dismissed: false, consumedBy: []
+    },
+    {
+        id: '3', tenantId: 't1', type: 'out_of_stock', brandName: 'Kiva', competitorId: 'c1', competitorProductId: 'cp3',
+        currentValue: 0, severity: 'high', jurisdiction: 'CA', createdAt: new Date(Date.now() - 14400000), dismissed: false, consumedBy: []
+    },
+];
+
+import { useMockData } from '@/hooks/use-mock-data';
+import { getEzalInsights } from '../actions';
+
 export function EzalInsightsFeed({ tenantId }: EzalInsightsFeedProps) {
     const [insights, setInsights] = useState<EzalInsight[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(new Date());
+    const { isMock, isLoading: isMockLoading } = useMockData();
 
     const fetchInsights = async () => {
         setIsLoading(true);
+
+        if (isMock) {
+            // Simulate network delay for realism
+            await new Promise(r => setTimeout(r, 800));
+            setInsights(MOCK_INSIGHTS);
+            setLastRefreshed(new Date());
+            setIsLoading(false);
+            return;
+        }
+
         try {
-            const res = await fetch(`/api/ezal/insights?tenantId=${tenantId}&limit=20`);
-            const json = await res.json();
-            if (json.success) {
-                setInsights(json.data);
-                setLastRefreshed(new Date());
-            }
+            const data = await getEzalInsights(tenantId);
+            setInsights(data);
+            setLastRefreshed(new Date());
         } catch (error) {
             console.error('Failed to fetch insights', error);
         } finally {
@@ -34,11 +60,15 @@ export function EzalInsightsFeed({ tenantId }: EzalInsightsFeedProps) {
     };
 
     useEffect(() => {
-        fetchInsights();
+        if (!isMockLoading) {
+            fetchInsights();
+        }
         // Auto-refresh every 60s
-        const interval = setInterval(fetchInsights, 60000);
+        const interval = setInterval(() => {
+            if (!isMockLoading) fetchInsights();
+        }, 60000);
         return () => clearInterval(interval);
-    }, [tenantId]);
+    }, [tenantId, isMock, isMockLoading]);
 
     const getIcon = (type: string) => {
         switch (type) {
@@ -75,7 +105,10 @@ export function EzalInsightsFeed({ tenantId }: EzalInsightsFeedProps) {
         <Card className="h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="space-y-1">
-                    <CardTitle>Recent Insights</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                        Recent Insights
+                        {isMock && <Badge variant="secondary" className="text-[10px] h-5">MOCK</Badge>}
+                    </CardTitle>
                     <CardDescription>
                         Updated {timeAgo(lastRefreshed)}
                     </CardDescription>
@@ -97,7 +130,10 @@ export function EzalInsightsFeed({ tenantId }: EzalInsightsFeedProps) {
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                 ) : insights.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">No recent insights.</p>
+                    <div className="text-center py-8 space-y-2">
+                        <p className="text-sm text-muted-foreground">No recent insights.</p>
+                        {!isMock && <p className="text-xs text-muted-foreground">(Live Data Mode)</p>}
+                    </div>
                 ) : (
                     <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
                         {insights.map((insight) => (
@@ -133,3 +169,4 @@ export function EzalInsightsFeed({ tenantId }: EzalInsightsFeedProps) {
         </Card>
     );
 }
+
