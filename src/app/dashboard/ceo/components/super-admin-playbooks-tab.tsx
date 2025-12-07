@@ -145,10 +145,23 @@ const categoryColors: Record<string, string> = {
     reporting: 'bg-green-100 text-green-700',
 };
 
+
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 export default function SuperAdminPlaybooksTab() {
     const [playbooks, setPlaybooks] = useState(INTERNAL_PLAYBOOKS);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
+    const [selectedPlaybook, setSelectedPlaybook] = useState<InternalPlaybook | null>(null);
 
     const filteredPlaybooks = playbooks.filter(pb => {
         const matchesSearch = pb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -157,13 +170,15 @@ export default function SuperAdminPlaybooksTab() {
         return matchesSearch && matchesCategory;
     });
 
-    const togglePlaybook = (id: string) => {
+    const togglePlaybook = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
         setPlaybooks(prev => prev.map(pb =>
             pb.id === id ? { ...pb, active: !pb.active } : pb
         ));
     };
 
-    const runPlaybook = (id: string) => {
+    const runPlaybook = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
         // In production, this would trigger the playbook
         console.log('Running playbook:', id);
     };
@@ -265,7 +280,11 @@ export default function SuperAdminPlaybooksTab() {
             {/* Playbooks Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredPlaybooks.map(playbook => (
-                    <Card key={playbook.id} className={!playbook.active ? 'opacity-60' : ''}>
+                    <Card
+                        key={playbook.id}
+                        className={`transition-colors hover:bg-muted/50 cursor-pointer ${!playbook.active ? 'opacity-60' : ''}`}
+                        onClick={() => setSelectedPlaybook(playbook)}
+                    >
                         <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-3">
@@ -281,7 +300,12 @@ export default function SuperAdminPlaybooksTab() {
                                 </div>
                                 <Switch
                                     checked={playbook.active}
-                                    onCheckedChange={() => togglePlaybook(playbook.id)}
+                                    onCheckedChange={(c) => {
+                                        // Creating a synthetic event object since Switch's onCheckedChange only gives boolean
+                                        const syntheticEvent = { stopPropagation: () => { } } as React.MouseEvent;
+                                        togglePlaybook(playbook.id, syntheticEvent);
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
                                 />
                             </div>
                         </CardHeader>
@@ -305,7 +329,7 @@ export default function SuperAdminPlaybooksTab() {
                                     <Button
                                         size="sm"
                                         variant="ghost"
-                                        onClick={() => runPlaybook(playbook.id)}
+                                        onClick={(e) => runPlaybook(playbook.id, e)}
                                         className="h-7 px-2"
                                     >
                                         <Play className="h-3 w-3" />
@@ -321,6 +345,122 @@ export default function SuperAdminPlaybooksTab() {
                     </Card>
                 ))}
             </div>
+
+            {/* Playbook Details Dialog */}
+            <Dialog open={!!selectedPlaybook} onOpenChange={(open) => !open && setSelectedPlaybook(null)}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${selectedPlaybook ? categoryColors[selectedPlaybook.category] : ''}`}>
+                                {selectedPlaybook && categoryIcons[selectedPlaybook.category]}
+                            </div>
+                            <div>
+                                <DialogTitle>{selectedPlaybook?.name}</DialogTitle>
+                                <DialogDescription>{selectedPlaybook?.description}</DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+
+                    {selectedPlaybook && (
+                        <div className="space-y-6">
+                            <Tabs defaultValue="overview" className="w-full">
+                                <TabsList className="w-full justify-start">
+                                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                                    <TabsTrigger value="configuration">Configuration</TabsTrigger>
+                                    <TabsTrigger value="logs">Execution Logs</TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="overview" className="space-y-4 mt-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium text-muted-foreground">Schedule</p>
+                                            <div className="flex items-center gap-2">
+                                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                                <span className="font-mono text-sm">{selectedPlaybook.schedule}</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium text-muted-foreground">Status</p>
+                                            <Badge variant={selectedPlaybook.active ? "default" : "secondary"}>
+                                                {selectedPlaybook.active ? "Active" : "Inactive"}
+                                            </Badge>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium text-muted-foreground">Last Run</p>
+                                            <p className="text-sm">{selectedPlaybook.lastRun?.toLocaleString() || 'Never'}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium text-muted-foreground">Next Run</p>
+                                            <p className="text-sm">{selectedPlaybook.nextRun?.toLocaleString() || 'Not scheduled'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <p className="text-sm font-medium text-muted-foreground">Participating Agents</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedPlaybook.agents.map(agent => (
+                                                <div key={agent} className="flex items-center gap-2 rounded-md border p-2 bg-muted/50">
+                                                    <Bot className="h-4 w-4 text-primary" />
+                                                    <span className="text-sm font-medium">{agent}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="configuration" className="mt-4">
+                                    <div className="rounded-md bg-muted p-4">
+                                        <pre className="text-xs font-mono whitespace-pre-wrap">
+                                            {`# Playbook Configuration
+name: ${selectedPlaybook.name}
+type: ${selectedPlaybook.category}
+schedule: "${selectedPlaybook.schedule}"
+agents:
+${selectedPlaybook.agents.map(a => `  - ${a}`).join('\n')}
+
+# Steps
+1. Initialize environment
+2. Check preconditions
+3. Execute main task
+4. Report results
+`}
+                                        </pre>
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="logs" className="mt-4">
+                                    <div className="space-y-2">
+                                        {selectedPlaybook.lastRun ? (
+                                            <div className="rounded-md border p-3 flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-sm font-medium">Execution Success</p>
+                                                        <p className="text-xs text-muted-foreground">{selectedPlaybook.lastRun.toLocaleString()}</p>
+                                                    </div>
+                                                </div>
+                                                <Button variant="ghost" size="sm">View Output</Button>
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">No recent execution logs.</p>
+                                        )}
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setSelectedPlaybook(null)}>Close</Button>
+                        {selectedPlaybook?.active ? (
+                            <Button variant="destructive" onClick={(e) => selectedPlaybook && togglePlaybook(selectedPlaybook.id, e as any)}>Pause Playbook</Button>
+                        ) : (
+                            <Button onClick={(e) => selectedPlaybook && togglePlaybook(selectedPlaybook.id, e as any)}>Activate Playbook</Button>
+                        )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+
