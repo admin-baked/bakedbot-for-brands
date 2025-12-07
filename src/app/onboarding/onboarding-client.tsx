@@ -33,6 +33,7 @@ type Step = 'role' | 'brand-search' | 'manual' | 'integrations' | 'features' | '
 
 export default function OnboardingPage() {
   const { toast } = useToast();
+  const { auth } = useFirebase();
   const [step, setStep] = useState<Step>('role');
   const [role, setRole] = useState<'brand' | 'dispensary' | 'customer' | 'skip' | null>(null);
   const [query, setQuery] = useState('');
@@ -67,7 +68,7 @@ export default function OnboardingPage() {
 
   // Session Recovery Logic
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const { auth } = useFirebase();
+  // const { auth } = useFirebase(); // Moved up
 
   // Detect session expiry
   if (formState.error && formState.message.includes('Session expired') && !showLoginModal) {
