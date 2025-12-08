@@ -7,14 +7,51 @@ import DomainSettingsTab from './components/domain-tab';
 import EmbedGeneratorTab from './components/embed-tab';
 import WordPressPluginTab from './components/wordpress-tab';
 
+import { Button } from '@/components/ui/button';
+import { ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import { useUserRole } from '@/hooks/use-user-role';
+import { useUser } from '@/firebase/auth/use-user';
+import { useState, useEffect } from 'react';
+
 export default function SettingsPage() {
+  const { role } = useUserRole();
+  const { user } = useUser();
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Cast user to any to access role-specific fields
+    const profile = user as any;
+
+    if (role === 'brand' && profile.brandId) {
+      setPreviewUrl(`/${profile.brandId}`);
+    } else if (role === 'dispensary' && profile.locationId) {
+      setPreviewUrl(`/shop/${profile.locationId}`);
+    } else if (role === 'owner') {
+      // Owners might want to see demo or a specific one, fallback to demo for now
+      setPreviewUrl('/demo');
+    }
+  }, [user, role]);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your domain, website integrations, and download plugins.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+          <p className="text-muted-foreground">
+            Manage your domain, website integrations, and download plugins.
+          </p>
+        </div>
+
+        {previewUrl && (
+          <Button asChild variant="outline" className="gap-2">
+            <Link href={previewUrl} target="_blank">
+              Preview Menu <ExternalLink className="h-4 w-4" />
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="embeds" className="space-y-4">
