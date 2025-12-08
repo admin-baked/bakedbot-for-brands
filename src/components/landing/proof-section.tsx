@@ -9,7 +9,7 @@ const proofs = [
 
 export function ProofSection() {
     return (
-        <section className={styles.section}>
+        <section id="proof" className={styles.section}>
             <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>Proof</h2>
                 <p className={styles.sectionKicker}>BakedBot is built with input from leading brands in the cannabis industry.</p>

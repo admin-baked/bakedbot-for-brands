@@ -23,15 +23,15 @@ export function Navbar() {
             />
           </Link>
           <div className={styles.navLinks}>
-            <Link href="/dashboard/playbooks">Playbooks</Link>
-            <Link href="/shop/demo">Demo Menu</Link>
-            <Link href="/dashboard/analytics">Analytics</Link>
-            <Link href="/pricing">Pricing</Link>
+            <Link href="/#product">Product</Link>
+            <Link href="/#solutions">Solutions</Link>
+            <Link href="/#pricing">Pricing</Link>
+            <Link href="/#proof">Proof</Link>
           </div>
         </div>
         <div className={styles.navCta}>
           <Link href="/brand-login" className={styles.navGhost}>
-            Brand Login
+            Login
           </Link>
           <Link href="/onboarding" className={styles.navPrimary}>
             Get Started

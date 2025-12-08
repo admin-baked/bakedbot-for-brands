@@ -7,7 +7,7 @@ import Image from 'next/image';
 
 export function LocalSeoSection() {
     return (
-        <section className="py-24 bg-background">
+        <section id="solutions" className="py-24 bg-background">
             <div className="container px-4 mx-auto">
                 <div className="grid lg:grid-cols-2 gap-16 items-center">
                     <div className="space-y-8">
