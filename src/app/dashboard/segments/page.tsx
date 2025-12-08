@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Users, Zap, Star } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const SEGMENTS = [
     {
@@ -40,6 +41,8 @@ const SEGMENTS = [
 ];
 
 export default function SegmentsPage() {
+    const { toast } = useToast();
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -47,7 +50,10 @@ export default function SegmentsPage() {
                     <h1 className="text-3xl font-bold tracking-tight">Segments</h1>
                     <p className="text-muted-foreground">Group your customers for targeted marketing campaigns.</p>
                 </div>
-                <Button>
+                <Button onClick={() => toast({
+                    title: 'Coming Soon',
+                    description: 'Custom segment creation will be available in a future update. Use the pre-built segments below.',
+                })}>
                     <Plus className="mr-2 h-4 w-4" /> Create Segment
                 </Button>
             </div>
@@ -68,7 +74,10 @@ export default function SegmentsPage() {
                                 <CardDescription>{segment.description}</CardDescription>
                             </CardHeader>
                             <CardFooter className="mt-auto pt-0">
-                                <Button variant="outline" className="w-full">View Customers</Button>
+                                <Button variant="outline" className="w-full" onClick={() => toast({
+                                    title: 'Coming Soon',
+                                    description: `Customer list for ${segment.name} will be available in a future update.`,
+                                })}>View Customers</Button>
                             </CardFooter>
                         </Card>
                     );
