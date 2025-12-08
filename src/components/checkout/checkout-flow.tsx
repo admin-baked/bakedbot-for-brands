@@ -91,7 +91,8 @@ export function CheckoutFlow() {
             }
         } catch (error) {
             logger.error('Order submission error:', error instanceof Error ? error : new Error(String(error)));
-            toast({ variant: 'destructive', title: 'Order Failed', description: 'Something went wrong. Please try again.' });
+            const errorMessage = error instanceof Error ? error.message : 'Unable to process your order. Please check your payment information and try again.';
+            toast({ variant: 'destructive', title: 'Order Failed', description: errorMessage });
         } finally {
             setLoading(false);
         }
