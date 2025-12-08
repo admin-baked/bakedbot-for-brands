@@ -7,6 +7,7 @@
 export const SUPER_ADMIN_EMAILS = [
     'martez@bakedbot.ai',
     'jack@bakedbot.ai',
+    'owner@bakedbot.ai', // Dev persona for local development
 ] as const;
 
 export type SuperAdminEmail = typeof SUPER_ADMIN_EMAILS[number];

@@ -14,8 +14,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useSuperAdmin } from '@/hooks/use-super-admin';
 import { useFirebase } from '@/firebase/provider';
-import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut, signInWithCustomToken } from 'firebase/auth';
 import { isSuperAdminEmail } from '@/lib/super-admin-config';
+import { createDevLoginToken } from '@/app/actions/dev-login';
+
+const isProd = process.env.NODE_ENV === 'production';
 
 export default function SuperAdminLogin() {
     const router = useRouter();
@@ -83,6 +86,50 @@ export default function SuperAdminLogin() {
         logout();
         // Clear server cookie
         await fetch('/api/auth/session', { method: 'DELETE' });
+    };
+
+    const handleDevLogin = async () => {
+        if (!auth) {
+            setError('Authentication service not ready. Please refresh.');
+            return;
+        }
+
+        setError(null);
+        setIsSubmitting(true);
+
+        try {
+            // 1. Create dev token for owner persona
+            const result = await createDevLoginToken('owner');
+            if ('error' in result) {
+                throw new Error(result.error);
+            }
+
+            // 2. Sign in with custom token
+            const userCredential = await signInWithCustomToken(auth, result.token);
+
+            // 3. Set Server Session Cookie
+            const idToken = await userCredential.user.getIdToken(true);
+            const sessionRes = await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken }),
+            });
+
+            if (!sessionRes.ok) {
+                throw new Error('Failed to establish secure session.');
+            }
+
+            // 4. Set Client State (Super Admin localStorage)
+            login('owner@bakedbot.ai');
+
+            // 5. Redirect
+            router.push('/dashboard/ceo');
+
+        } catch (err: any) {
+            console.error('Dev Login Error:', err);
+            setError(err.message || 'Dev login failed. Please try again.');
+            setIsSubmitting(false);
+        }
     };
 
     // Already logged in as super admin
@@ -171,6 +218,38 @@ export default function SuperAdminLogin() {
                         </>
                     )}
                 </Button>
+
+                {!isProd && (
+                    <>
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-background px-2 text-muted-foreground">
+                                    Or for development
+                                </span>
+                            </div>
+                        </div>
+                        <Button
+                            onClick={handleDevLogin}
+                            variant="outline"
+                            className="w-full py-6 text-lg"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    Logging in...
+                                </>
+                            ) : (
+                                <>
+                                    🔧 Dev Login (Owner)
+                                </>
+                            )}
+                        </Button>
+                    </>
+                )}
 
                 <div className="text-center text-xs text-muted-foreground">
                     <p>Protected by Firebase Auth & Server Middleware</p>
