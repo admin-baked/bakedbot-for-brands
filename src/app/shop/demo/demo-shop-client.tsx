@@ -19,6 +19,7 @@ import { useStore } from '@/hooks/use-store';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Product } from '@/types/domain';
+import DispensaryLocator from '@/components/dispensary-locator';
 
 // Dynamic import to prevent Firebase initialization during prerender
 const Chatbot = dynamicImport(() => import('@/components/chatbot'), { ssr: false });
@@ -107,6 +108,14 @@ export default function DemoShopClient() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Dispensary Locator */}
+                    <div className="mt-6 mb-6">
+                        <DispensaryLocator
+                            locations={demoRetailers}
+                            className="py-6 bg-card border shadow-sm max-w-none"
+                        />
+                    </div>
                 </div>
 
                 {/* Filters */}
@@ -240,86 +249,91 @@ export default function DemoShopClient() {
                             }
 
                             return (
-                                <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all group">
-                                    {/* Product Image */}
-                                    <div className="aspect-square relative bg-muted">
-                                        {product.imageUrl ? (
-                                            <Image
-                                                src={product.imageUrl}
-                                                alt={product.name}
-                                                fill
-                                                className="object-cover group-hover:scale-105 transition-transform"
-                                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                                            />
-                                        ) : (
-                                            <div className="flex items-center justify-center h-full">
-                                                <ShoppingCart className="h-12 w-12 text-muted-foreground" />
-                                            </div>
-                                        )}
-
-                                        {/* Quick Actions */}
-                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button size="icon" variant="secondary" className="rounded-full">
-                                                <Heart className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-
-                                        {/* Brand Badge */}
-                                        <Badge className="absolute top-2 left-2 bg-black/70">
-                                            40 Tons
-                                        </Badge>
-                                    </div>
-
-                                    {/* Product Info */}
-                                    <CardHeader className="p-4">
-                                        <div className="space-y-1">
-                                            <CardTitle className="text-base line-clamp-2 leading-tight">
-                                                {product.name}
-                                            </CardTitle>
-                                            <CardDescription className="text-xs line-clamp-2">
-                                                {product.description}
-                                            </CardDescription>
-                                        </div>
-                                    </CardHeader>
-
-                                    <CardContent className="p-4 pt-0 space-y-3">
-                                        {/* Category Badge */}
-                                        <Badge variant="outline" className="text-xs">
-                                            {product.category}
-                                        </Badge>
-
-                                        {/* Engagement */}
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <span>👍 {product.likes}</span>
-                                        </div>
-
-                                        {/* Price and Add to Cart */}
-                                        <div className="flex items-center justify-between pt-2 border-t">
-                                            <span className="text-lg font-bold">
-                                                ${product.price.toFixed(2)}
-                                            </span>
-                                        </div>
-
-                                        <Button
-                                            onClick={() => handleAddToCart(product)}
-                                            className="w-full"
-                                            size="sm"
-                                            variant={inCart ? "secondary" : "default"}
-                                        >
-                                            {inCart ? (
-                                                <>
-                                                    <ShoppingCart className="h-4 w-4 mr-2" />
-                                                    In Cart ({getCartItemQuantity(product.id)})
-                                                </>
+                                <Link key={product.id} href={`/demo-40tons/products/${product.id}`} className="block group">
+                                    <Card className="overflow-hidden hover:shadow-lg transition-all h-full flex flex-col">
+                                        {/* Product Image */}
+                                        <div className="aspect-square relative bg-muted">
+                                            {product.imageUrl ? (
+                                                <Image
+                                                    src={product.imageUrl}
+                                                    alt={product.name}
+                                                    fill
+                                                    className="object-cover group-hover:scale-105 transition-transform"
+                                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                                />
                                             ) : (
-                                                <>
-                                                    <Plus className="h-4 w-4 mr-2" />
-                                                    Add to Cart
-                                                </>
+                                                <div className="flex items-center justify-center h-full">
+                                                    <ShoppingCart className="h-12 w-12 text-muted-foreground" />
+                                                </div>
                                             )}
-                                        </Button>
-                                    </CardContent>
-                                </Card>
+
+                                            {/* Quick Actions */}
+                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button size="icon" variant="secondary" className="rounded-full" onClick={(e) => { e.preventDefault(); /* Like logic? */ }}>
+                                                    <Heart className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+
+                                            {/* Brand Badge */}
+                                            <Badge className="absolute top-2 left-2 bg-black/70">
+                                                40 Tons
+                                            </Badge>
+                                        </div>
+
+                                        {/* Product Info */}
+                                        <CardHeader className="p-4">
+                                            <div className="space-y-1">
+                                                <CardTitle className="text-base line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                                                    {product.name}
+                                                </CardTitle>
+                                                <CardDescription className="text-xs line-clamp-2">
+                                                    {product.description}
+                                                </CardDescription>
+                                            </div>
+                                        </CardHeader>
+
+                                        <CardContent className="p-4 pt-0 space-y-3 mt-auto">
+                                            {/* Category Badge */}
+                                            <Badge variant="outline" className="text-xs">
+                                                {product.category}
+                                            </Badge>
+
+                                            {/* Engagement */}
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <span>👍 {product.likes}</span>
+                                            </div>
+
+                                            {/* Price and Add to Cart */}
+                                            <div className="flex items-center justify-between pt-2 border-t">
+                                                <span className="text-lg font-bold">
+                                                    ${product.price.toFixed(2)}
+                                                </span>
+                                            </div>
+
+                                            <Button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleAddToCart(product);
+                                                }}
+                                                className="w-full"
+                                                size="sm"
+                                                variant={inCart ? "secondary" : "default"}
+                                            >
+                                                {inCart ? (
+                                                    <>
+                                                        <ShoppingCart className="h-4 w-4 mr-2" />
+                                                        In Cart ({getCartItemQuantity(product.id)})
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Plus className="h-4 w-4 mr-2" />
+                                                        Add to Cart
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
                             );
                         })}
                     </div>
