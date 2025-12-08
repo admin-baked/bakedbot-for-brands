@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, ShoppingCart, Plus, Heart } from 'lucide-react';
+import { Loader2, Search, ShoppingCart, Plus, Heart, Grid, List } from 'lucide-react';
 import { getRetailerProducts } from '@/lib/cannmenus-api';
 import { CannMenusProduct } from '@/types/cannmenus';
 import { useCartStore } from '@/stores/cart-store';
@@ -38,6 +38,7 @@ export default function DispensaryShopPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [sortBy, setSortBy] = useState<string>('name');
+    const [viewMode, setViewMode] = useState<'grid' | 'compact'>('grid');
     const [sessionId] = useState(() => getOrCreateSessionId());
 
     const { addItem, items: cartItems, setDispensary } = useCartStore();
@@ -199,10 +200,29 @@ export default function DispensaryShopPage() {
             </Card>
 
             {/* Results Count */}
-            <div className="mb-4">
+            <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-muted-foreground">
                     Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
                 </p>
+
+                <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+                    <Button
+                        variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('grid')}
+                        className="h-8 w-8 p-0"
+                    >
+                        <Grid className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant={viewMode === 'compact' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('compact')}
+                        className="h-8 w-8 p-0"
+                    >
+                        <List className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
 
             {/* Products Grid */}
@@ -217,9 +237,70 @@ export default function DispensaryShopPage() {
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className={viewMode === 'grid'
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                    : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                }>
                     {filteredProducts.map((product) => {
                         const inCart = getCartItemQuantity(product.cann_sku_id) > 0;
+
+                        if (viewMode === 'compact') {
+                            return (
+                                <Card key={product.cann_sku_id} className="overflow-hidden hover:shadow-md transition-all flex flex-row h-32 group">
+                                    <div className="relative w-32 h-full bg-muted shrink-0">
+                                        {product.image_url ? (
+                                            <Image
+                                                src={product.image_url}
+                                                alt={product.product_name}
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex items-center justify-center h-full">
+                                                <ShoppingCart className="h-8 w-8 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                        {/* Sale Badge (Compact) */}
+                                        {product.original_price !== product.latest_price && (
+                                            <Badge className="absolute top-1 left-1 bg-destructive text-[10px] px-1 h-5">
+                                                Sale
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col justify-between p-3 flex-1 min-w-0">
+                                        <div>
+                                            <h3 className="font-semibold text-sm line-clamp-1" title={product.product_name}>{product.product_name}</h3>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Badge variant="outline" className="text-[10px] px-1 h-5">
+                                                    {product.category}
+                                                </Badge>
+                                                {product.percentage_thc && (
+                                                    <span className="text-[10px] text-muted-foreground">
+                                                        {product.percentage_thc}% THC
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="mt-2 font-bold text-sm">
+                                                {product.original_price !== product.latest_price && (
+                                                    <span className="text-xs text-muted-foreground line-through mr-1 font-normal">
+                                                        ${product.original_price.toFixed(2)}
+                                                    </span>
+                                                )}
+                                                ${product.latest_price.toFixed(2)}
+                                            </div>
+                                        </div>
+                                        <Button
+                                            onClick={() => handleAddToCart(product)}
+                                            size="sm"
+                                            variant={inCart ? "secondary" : "outline"}
+                                            className="w-full h-8 text-xs"
+                                        >
+                                            {inCart ? 'In Cart' : 'Add'}
+                                        </Button>
+                                    </div>
+                                </Card>
+                            );
+                        }
 
                         return (
                             <Card key={product.cann_sku_id} className="overflow-hidden hover:shadow-lg transition-all group">
