@@ -101,7 +101,8 @@ function SubscriptionCheckoutContent() {
                 toast({ variant: 'destructive', title: 'Error', description: result.error });
             }
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Something went wrong.' });
+            const errorMessage = error instanceof Error ? error.message : 'Unable to process subscription. Please verify your payment information and try again.';
+            toast({ variant: 'destructive', title: 'Subscription Error', description: errorMessage });
         } finally {
             setLoading(false);
         }
