@@ -19,14 +19,11 @@ async function getProductData(brandSlug: string, productId: string) {
         const brand: Brand = {
             id: 'demo-40tons',
             name: '40 Tons',
-            slug: 'demo-40tons',
-            bio: 'Breaking the chains of cannabis injustice.',
-            logoUrl: 'https://storage.googleapis.com/bakedbot-global-assets/40tons-logo.png', // Fallback or placeholder
-            primaryColor: '#000000',
-            createdAt: { seconds: 0, nanoseconds: 0 } as any,
-            updatedAt: { seconds: 0, nanoseconds: 0 } as any,
-            status: 'active',
-            ownerId: 'demo-owner'
+            logoUrl: 'https://storage.googleapis.com/bakedbot-global-assets/40tons-logo.png',
+            chatbotConfig: {
+                basePrompt: 'You are a knowledgeable budtender for 40 Tons Cannabis.',
+                welcomeMessage: 'Welcome to 40 Tons - Breaking the chains of cannabis injustice.',
+            },
         };
 
         if (product) {
