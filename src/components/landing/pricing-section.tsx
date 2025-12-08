@@ -5,7 +5,7 @@ import { PRICING_PLANS } from '@/lib/config/pricing';
 
 export function PricingSection() {
     return (
-        <section className={styles.section}>
+        <section id="pricing" className={styles.section}>
             <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>Pricing</h2>
                 <p className={styles.sectionKicker}>Simple, transparent pricing that scales with you. No hidden fees, no long-term contracts.</p>

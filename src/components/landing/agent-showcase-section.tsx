@@ -19,7 +19,7 @@ export function AgentShowcaseSection() {
     const showcaseAgents = agents.filter(a => ['smokey', 'deebo', 'craig', 'pops'].includes(a.id));
 
     return (
-        <section className="py-24 bg-secondary/5">
+        <section id="product" className="py-24 bg-secondary/5">
             <div className="container px-4 mx-auto">
                 <div className="flex flex-col items-center text-center space-y-4 mb-16">
                     <Badge variant="outline" className="px-4 py-1 text-base border-primary/20 text-primary">
