@@ -27,6 +27,7 @@ export function Navbar() {
             <Link href="/#solutions">Solutions</Link>
             <Link href="/#pricing">Pricing</Link>
             <Link href="/#proof">Proof</Link>
+            <Link href="/demo">Demo</Link>
           </div>
         </div>
         <div className={styles.navCta}>

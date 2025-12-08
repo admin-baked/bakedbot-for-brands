@@ -116,6 +116,11 @@ const nextConfig = {
         destination: '/shop/demo',
         permanent: true,
       },
+      {
+        source: '/demo',
+        destination: '/shop/demo',
+        permanent: true,
+      },
     ];
   },
 };
