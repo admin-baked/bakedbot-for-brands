@@ -79,9 +79,9 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       role: role === 'skip' ? 'customer' : role, // Default to customer if skipped
       // Store raw preferences
       preferences: {
-        chatbotPersonality,
-        chatbotTone,
-        chatbotSellingPoints
+        chatbotPersonality: chatbotPersonality || null,
+        chatbotTone: chatbotTone || null,
+        chatbotSellingPoints: chatbotSellingPoints || null
       },
       features
     };
