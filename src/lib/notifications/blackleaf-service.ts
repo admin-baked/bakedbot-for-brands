@@ -29,10 +29,10 @@ export class BlackleafService {
      */
     private async sendMessage({ to, body, imageUrl }: SMSOptions): Promise<boolean> {
         if (!BLACKLEAF_API_KEY) {
-            logger.warn('BLACKLEAF_API_KEY is missing. Mocking SMS send:', { to, body });
-            // In development, log the message
+            logger.warn('[SMS_BLACKLEAF] API key missing - mock mode', { to });
+            // In development, log the message via structured logger
             if (process.env.NODE_ENV !== 'production') {
-                console.log(`[MOCK SMS to ${to}]: ${body}`);
+                logger.debug('[SMS_BLACKLEAF] Mock message', { to, body });
             }
             return true;
         }

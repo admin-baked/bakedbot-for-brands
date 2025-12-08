@@ -3,6 +3,7 @@ import sgMail from "@sendgrid/mail";
 import type { ServerOrderPayload } from '@/app/checkout/actions/submitOrder';
 import type { Retailer } from "@/firebase/converters";
 import type { OrderStatus } from "@/types/domain";
+import { logger } from '@/lib/logger';
 
 type SendArgs = {
   to: string | string[];
@@ -113,14 +114,14 @@ export async function sendOrderEmail(args: SendArgs) {
   const { SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME } = process.env;
 
   if (!SENDGRID_API_KEY || !SENDGRID_FROM_EMAIL) {
-    // In dev, log to console instead of throwing
+    // In dev, log to structured logger instead of throwing
     if (process.env.NODE_ENV !== 'production') {
-      console.log('--- SENDGRID IS NOT CONFIGURED ---');
-      console.log('To:', args.to);
-      console.log('Subject:', args.subject);
-      console.log('--- HTML (begin) ---');
-      console.log(generateHtml(args));
-      console.log('--- HTML (end) ---');
+      logger.warn('[EMAIL_SENDGRID] SendGrid not configured - mock mode', {
+        to: typeof args.to === 'string' ? args.to : args.to.join(', '),
+        subject: args.subject,
+        orderId: args.orderId,
+        recipientType: args.recipientType,
+      });
       return;
     }
     throw new Error("SendGrid not configured (SENDGRID_API_KEY/SENDGRID_FROM_EMAIL).");

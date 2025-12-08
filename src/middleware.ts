@@ -37,7 +37,8 @@ export function middleware(request: NextRequest) {
     const isOnboardingRoute = pathname === '/onboarding';
     const isProtectedRoute = isDashboardRoute || isAccountRoute || isOnboardingRoute;
 
-    // CEO dashboard has special super admin access via localStorage
+    // CEO dashboard requires server-side role verification
+    // This is no longer allowed to be handled client-side via localStorage
     const isCeoDashboard = pathname.startsWith('/dashboard/ceo');
 
     // Allow public routes
@@ -45,17 +46,24 @@ export function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Allow CEO dashboard through - super admin auth handled client-side
+    // CRITICAL: CEO dashboard now requires session and server-side role verification
     if (isCeoDashboard) {
-        return NextResponse.next();
+        if (!sessionCookie) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/brand-login';
+            url.searchParams.set('redirect', pathname);
+            return NextResponse.redirect(url);
+        }
+        // Note: Actual role verification will happen in the page component via requireUser(['owner'])
     }
 
     // Redirect to login if no session cookie on other protected routes
-    // Exception: If running in simulation mode (client-side auth will verify role/token)
+    // Exception: If running in simulation mode (for development only)
     const activeSimulation = request.cookies.get('x-simulated-role');
+    const isDev = process.env.NODE_ENV === 'development';
 
     if (!sessionCookie && !activeSimulation) {
-        // Determine which login page to redirect to based on the route
+        // PRODUCTION ENFORCEMENT: Redirect to appropriate login page
         let loginUrl = '/customer-login';
 
         if (isDashboardRoute || isOnboardingRoute) {
@@ -63,11 +71,19 @@ export function middleware(request: NextRequest) {
             loginUrl = '/brand-login';
         }
 
-        // const url = request.nextUrl.clone();
-        // url.pathname = loginUrl;
-        // url.searchParams.set('redirect', pathname);
-        // return NextResponse.redirect(url);
-        return NextResponse.next(); // TEMPORARY: Allow access for testing
+        const url = request.nextUrl.clone();
+        url.pathname = loginUrl;
+        url.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(url);
+    }
+
+    // Development mode: Allow x-simulated-role for testing different personas
+    if (!isDev && activeSimulation && !sessionCookie) {
+        // Reject simulation mode in production
+        console.warn('[AUTH] x-simulated-role rejected in production environment');
+        const url = request.nextUrl.clone();
+        url.pathname = '/brand-login';
+        return NextResponse.redirect(url);
     }
 
     // Note: We can't verify the session cookie or decode JWT in Edge middleware

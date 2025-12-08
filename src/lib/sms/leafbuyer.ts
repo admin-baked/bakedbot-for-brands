@@ -28,10 +28,10 @@ export class LeafbuyerService {
      */
     async sendMessage({ to, message, from }: SMSOptions): Promise<boolean> {
         if (!LEAFBUYER_API_KEY || !LEAFBUYER_API_SECRET) {
-            logger.warn('Leafbuyer credentials missing. Mocking SMS send:', { to, message });
-            // In development, log the message
+            logger.warn('[SMS_LEAFBUYER] Credentials missing - mock mode', { to });
+            // In development, log the message via structured logger
             if (process.env.NODE_ENV !== 'production') {
-                console.log(`[MOCK SMS to ${to}]: ${message}`);
+                logger.debug('[SMS_LEAFBUYER] Mock message', { to, message });
             }
             return true;
         }

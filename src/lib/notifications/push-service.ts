@@ -7,6 +7,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
+import { logger } from '@/lib/logger';
 
 export interface NotificationPayload {
     title: string;
@@ -31,7 +32,7 @@ export async function sendPushNotification(
         const fcmTokens = userDoc.data()?.fcmTokens || [];
 
         if (fcmTokens.length === 0) {
-            console.log('[Push] No FCM tokens for user:', userId);
+            logger.info('[PUSH_NOTIFICATION] No FCM tokens for user', { userId });
             return false;
         }
 
@@ -86,10 +87,10 @@ export async function sendPushNotification(
             createdAt: new Date(),
         });
 
-        console.log('[Push] Notification sent to user:', userId);
+        logger.info('[PUSH_NOTIFICATION] Sent to user', { userId });
         return true;
     } catch (error) {
-        console.error('[Push] Error sending notification:', error);
+        logger.error('[PUSH_NOTIFICATION] Error', { userId, error: String(error) });
         return false;
     }
 }

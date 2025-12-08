@@ -15,6 +15,8 @@ export interface AnalyticsEvent {
     sessionId?: string;
 }
 
+import { logger } from '@/lib/logger';
+
 export const trackEvent = async (event: AnalyticsEvent) => {
     // In a real implementation, this would send data to:
     // 1. Google Analytics 4
@@ -28,7 +30,7 @@ export const trackEvent = async (event: AnalyticsEvent) => {
     };
 
     if (process.env.NODE_ENV === 'development') {
-        console.log('[Analytics]', payload.name, payload);
+        logger.debug('[ANALYTICS] Event tracked', { eventName: payload.name, ...payload });
     }
 
     // TODO: Fire-and-forget server action to save to DB
