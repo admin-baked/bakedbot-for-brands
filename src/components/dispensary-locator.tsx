@@ -20,9 +20,10 @@ import { logger } from '@/lib/logger';
 interface DispensaryLocatorProps {
   locations?: Retailer[];
   isLoading?: boolean;
+  className?: string;
 }
 
-export default function DispensaryLocator({ locations = [], isLoading = false }: DispensaryLocatorProps) {
+export default function DispensaryLocator({ locations = [], isLoading = false, className }: DispensaryLocatorProps) {
   const {
     selectedRetailerId,
     setSelectedRetailerId,
@@ -156,7 +157,7 @@ export default function DispensaryLocator({ locations = [], isLoading = false }:
   const displayLocations = sortedLocations.length > 0 ? sortedLocations : locations;
 
   return (
-    <div className="py-12 bg-muted/40 rounded-lg" id="locator">
+    <div className={cn("py-12 bg-muted/40 rounded-lg", className)} id="locator">
       <div className="container mx-auto text-center max-w-4xl">
         <h2 className="text-2xl font-bold font-teko tracking-wider uppercase mb-4">
           Find a Dispensary Near You

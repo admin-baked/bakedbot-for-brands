@@ -9,8 +9,33 @@ import { AddToCartButton } from '@/components/add-to-cart-button';
 import { ProductAvailability } from './product-availability';
 import type { Metadata, ResolvingMetadata } from 'next';
 
+import { demoProducts } from '@/lib/demo/demo-data';
+
 // Helper to fetch data
 async function getProductData(brandSlug: string, productId: string) {
+    // 0. Handle Demo 40 Tons Data
+    if (brandSlug === 'demo-40tons') {
+        const product = demoProducts.find(p => p.id === productId) as Product | undefined;
+        const brand: Brand = {
+            id: 'demo-40tons',
+            name: '40 Tons',
+            slug: 'demo-40tons',
+            bio: 'Breaking the chains of cannabis injustice.',
+            logoUrl: 'https://storage.googleapis.com/bakedbot-global-assets/40tons-logo.png', // Fallback or placeholder
+            primaryColor: '#000000',
+            createdAt: { seconds: 0, nanoseconds: 0 } as any,
+            updatedAt: { seconds: 0, nanoseconds: 0 } as any,
+            status: 'active',
+            ownerId: 'demo-owner'
+        };
+
+        if (product) {
+            // Ensure product has the correct brandId for consistency
+            return { brand, product: { ...product, brandId: 'demo-40tons' } };
+        }
+        return { brand, product: null };
+    }
+
     const { firestore } = await createServerClient();
 
     // 1. Get Brand (reuse logic or simple fetch)

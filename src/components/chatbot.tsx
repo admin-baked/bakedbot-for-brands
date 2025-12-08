@@ -59,6 +59,7 @@ const ChatWindow = ({
   strategy = 'fixed',
   startClassName,
   isSuperAdmin = false,
+  onClose,
 }: {
   products: Product[];
   onAskSmokey: (product: Product) => void;
@@ -81,6 +82,7 @@ const ChatWindow = ({
   strategy?: 'fixed' | 'absolute' | 'relative';
   startClassName?: string;
   isSuperAdmin?: boolean;
+  onClose?: () => void;
 }) => {
   const { chatExperience } = useStore();
 
@@ -91,7 +93,12 @@ const ChatWindow = ({
       strategy === 'relative' ? "max-w-none shadow-none border-0" : "",
       startClassName
     )}>
-      <Card className="flex h-[75vh] max-h-[700px] flex-col border-0">
+      <Card className="flex h-[75vh] max-h-[700px] flex-col border-0 relative">
+        <div className="absolute top-2 right-2 z-10">
+          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full bg-background/50 hover:bg-background" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
 
         {chatExperience === 'default' && hasStartedChat && (
           <div className="border-b">
@@ -481,6 +488,7 @@ export default function Chatbot({ products = [], brandId = "", initialOpen = fal
           clearContext={clearContext}
           strategy={positionStrategy}
           startClassName={windowClassName}
+          onClose={() => setIsOpen(false)}
         />
       )}
     </>
