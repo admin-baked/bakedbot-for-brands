@@ -38,16 +38,11 @@ async function getProductData(brandSlug: string, productId: string) {
 
     const { firestore } = await createServerClient();
 
-    // 1. Get Brand (reuse logic or simple fetch)
+    // 1. Get Brand - treat brandSlug as brand ID
     let brand: Brand | null = null;
     const brandDoc = await firestore.collection('brands').doc(brandSlug).get();
     if (brandDoc.exists) {
         brand = { id: brandDoc.id, ...brandDoc.data() } as Brand;
-    } else {
-        const slugQuery = await firestore.collection('brands').where('slug', '==', brandSlug).limit(1).get();
-        if (!slugQuery.empty) {
-            brand = { id: slugQuery.docs[0].id, ...slugQuery.docs[0].data() } as Brand;
-        }
     }
 
     // 2. Get Product
