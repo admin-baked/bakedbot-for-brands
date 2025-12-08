@@ -22,11 +22,7 @@ export async function POST(req: NextRequest) {
         const userId = decodedToken.uid;
 
         const body = await req.json();
-        const { amount, orderId, customerId } = body;
-
-        if (!amount || amount <= 0) {
-            return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
-        }
+        const { orderId, customerId } = body;
 
         // Verify order exists and belongs to user
         const orderDoc = await firestore.collection('orders').doc(orderId).get();
@@ -39,7 +35,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
-        const paymentIntent = await createPaymentIntent(Math.round(amount * 100), 'usd', {
+        // FAILSAFE: Use server-side total
+        const amountToCharge = orderData?.total || orderData?.amount || 0;
+
+        if (amountToCharge <= 0) {
+            return NextResponse.json({ error: 'Invalid order total' }, { status: 400 });
+        }
+
+        const paymentIntent = await createPaymentIntent(Math.round(amountToCharge * 100), 'usd', {
             orderId,
             customerId,
             brandId: orderData?.brandId || '',
