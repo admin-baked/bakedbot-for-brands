@@ -16,8 +16,8 @@ export function MenuPage({ brandId }: { brandId?: string }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to the working shop page with demo dispensary
-    router.replace(`/shop/${DEMO_DISPENSARY_ID}`);
+    // Redirect to the new Dispensary Menu Demo
+    router.replace('/demo');
   }, [router]);
 
   return (

@@ -1,27 +1,13 @@
+import { CategoryNav } from '@/components/dispensary/category-nav';
+import { DealsCarousel } from '@/components/dispensary/deals-carousel';
 import Chatbot from '@/components/chatbot';
-import Image from 'next/image';
 import { ProductGrid } from '@/components/product-grid';
-import { demoProducts } from '@/lib/demo/demo-data'; // Keep as fallback/demo
+import { demoProducts } from '@/lib/demo/demo-data';
 import { fetchBrandPageData } from '@/lib/brand-data';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import DispensaryLocator from '@/components/dispensary-locator';
-
-export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
-    const { brand: brandParam } = await params;
-    const { brand } = await fetchBrandPageData(brandParam);
-
-    if (!brand) {
-        return {
-            title: 'Store Not Found',
-        };
-    }
-
-    return {
-        title: `${brand.name} | Official Store`,
-        description: `Shop the best cannabis products from ${brand.name}.`,
-    };
-}
+import { DispensaryHeader } from '@/components/dispensary/dispensary-header';
 
 export default async function BrandPage({ params }: { params: Promise<{ brand: string }> }) {
     const { brand: brandParam } = await params;
@@ -35,14 +21,10 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
         if (brandParam === 'demo' || brandParam === 'demo-brand') {
             return (
                 <main className="relative min-h-screen">
+                    <DispensaryHeader brandName="Demo Dispensary" />
+                    <CategoryNav />
+                    <DealsCarousel />
                     <div className="container mx-auto py-8">
-                        <h1 className="text-3xl font-bold mb-6 capitalize">Demo Brand</h1>
-                        <div className="p-8 border rounded-lg bg-card text-card-foreground shadow-sm mb-8">
-                            <h2 className="text-xl mb-4">Welcome to the Demo Store</h2>
-                            <p className="text-muted-foreground mb-4">
-                                This is a demonstration of the Headless Menu system.
-                            </p>
-                        </div>
                         <ProductGrid products={demoProducts} isLoading={false} />
                     </div>
                     {/* Demo locator if we had demo retailers, or empty */}
@@ -56,36 +38,13 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
 
     return (
         <main className="relative min-h-screen">
+            <CategoryNav />
+            <DealsCarousel />
+
             <div className="container mx-auto py-8 px-4 md:px-6">
-                <header className="mb-10 flex flex-col md:flex-row gap-6 items-center md:items-start justify-between">
-                    <div>
-                        <h1 className="text-4xl font-extrabold tracking-tight mb-2">{brand.name}</h1>
-                        <p className="text-muted-foreground max-w-2xl">
-                            Welcome to our official product catalog. Explore our latest strains, edibles, and vapes.
-                        </p>
-                    </div>
-                    {/* Placeholder for Brand Logo if available */}
-                    {brand.logoUrl && (
-                        <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-primary/20 bg-muted">
-                            <Image src={brand.logoUrl} alt={brand.name} fill className="object-cover" />
-                        </div>
-                    )}
-                </header>
 
                 {/* Category Navigation */}
-                <nav className="mb-8 overflow-x-auto pb-2">
-                    <div className="flex space-x-2">
-                        {['Flower', 'Pre-Rolls', 'Vapes', 'Edibles', 'Concentrates'].map((cat) => (
-                            <a
-                                key={cat}
-                                href={`/${brandParam}/collections/${cat.toLowerCase().replace(' ', '-')}`}
-                                className="px-4 py-2 bg-secondary/50 hover:bg-secondary text-secondary-foreground rounded-full text-sm font-medium whitespace-nowrap transition-colors"
-                            >
-                                {cat}
-                            </a>
-                        ))}
-                    </div>
-                </nav>
+
 
                 <section className="mb-16">
                     <ProductGrid products={products} isLoading={false} brandSlug={brandParam} />
