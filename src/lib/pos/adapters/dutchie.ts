@@ -1,4 +1,5 @@
 import type { POSClient, POSConfig, POSProduct } from '../types';
+import { logger } from '@/lib/logger';
 
 export class DutchieClient implements POSClient {
     private config: POSConfig;
@@ -9,14 +10,14 @@ export class DutchieClient implements POSClient {
 
     async validateConnection(): Promise<boolean> {
         // Mock validation
-        console.log(`[Dutchie] Validating connection for store ${this.config.storeId}`);
+        logger.info('[POS_DUTCHIE] Validating connection', { storeId: this.config.storeId });
         // Simulate API check
         if (this.config.storeId === 'invalid') return false;
         return true;
     }
 
     async fetchMenu(): Promise<POSProduct[]> {
-        console.log(`[Dutchie] Fetching menu for ${this.config.storeId}`);
+        logger.info('[POS_DUTCHIE] Fetching menu', { storeId: this.config.storeId });
 
         // Mock Data Response (Simulating a Dutchie GraphQL response)
         // In prod, this would be a fetch() to https://plus.dutchie.com/graphql

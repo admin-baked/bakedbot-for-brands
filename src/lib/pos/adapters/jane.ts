@@ -1,4 +1,5 @@
 import type { POSClient, POSConfig, POSProduct } from '../types';
+import { logger } from '@/lib/logger';
 
 export class JaneClient implements POSClient {
     private config: POSConfig;
@@ -8,13 +9,13 @@ export class JaneClient implements POSClient {
     }
 
     async validateConnection(): Promise<boolean> {
-        console.log(`[Jane] Validating connection for store ${this.config.storeId}`);
+        logger.info('[POS_JANE] Validating connection', { storeId: this.config.storeId });
         if (!this.config.storeId) return false;
         return true;
     }
 
     async fetchMenu(): Promise<POSProduct[]> {
-        console.log(`[Jane] Fetching menu for ${this.config.storeId}`);
+        logger.info('[POS_JANE] Fetching menu', { storeId: this.config.storeId });
 
         // Mock Jane API response
         return [
