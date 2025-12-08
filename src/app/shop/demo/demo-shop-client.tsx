@@ -13,7 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, ShoppingCart, Plus, Heart, Sparkles, ArrowLeft, Grid, List } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, ShoppingCart, Plus, Heart, Sparkles, ArrowLeft, Grid, List, Building2, Store } from 'lucide-react';
 import { demoProducts, demoRetailers } from '@/lib/demo/demo-data';
 import { useStore } from '@/hooks/use-store';
 import Image from 'next/image';
@@ -35,6 +36,17 @@ export default function DemoShopClient() {
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [sortBy, setSortBy] = useState<string>('name');
     const [viewMode, setViewMode] = useState<'grid' | 'compact'>('grid');
+    const [demoMode, setDemoMode] = useState<'brand' | 'dispensary'>('brand');
+
+    const handleModeChange = (val: string) => {
+        const mode = val as 'brand' | 'dispensary';
+        setDemoMode(mode);
+        if (mode === 'dispensary') {
+            setViewMode('compact');
+        } else {
+            setViewMode('grid');
+        }
+    };
 
     const { addToCart, cartItems, setSelectedRetailerId } = useStore();
 
@@ -85,15 +97,37 @@ export default function DemoShopClient() {
             <div className="container mx-auto px-4 py-8">
                 {/* Page Header */}
                 <div className="mb-8">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-2">
+                    <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+                        <div className="w-full md:w-auto">
+                            <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
                                 <ArrowLeft size={16} />
                                 Back to Home
                             </Link>
-                            <h1 className="text-3xl font-bold tracking-tight">40 Tons Demo Menu</h1>
-                            <p className="text-muted-foreground">Experience our headless menu powered by AI</p>
+                            
+                            <Tabs value={demoMode} onValueChange={handleModeChange} className="w-full md:w-[400px]">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="brand" className="flex items-center gap-2">
+                                        <Sparkles className="h-4 w-4" />
+                                        Brand Menu
+                                    </TabsTrigger>
+                                    <TabsTrigger value="dispensary" className="flex items-center gap-2">
+                                        <Store className="h-4 w-4" />
+                                        Dispensary Menu
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
                         </div>
+                    </div>
+
+                    <div className="mb-6">
+                        <h1 className="text-3xl font-bold tracking-tight">
+                            {demoMode === 'brand' ? '40 Tons Brand Menu' : 'Dispensary Demo Menu'}
+                        </h1>
+                        <p className="text-muted-foreground">
+                            {demoMode === 'brand' 
+                                ? 'Experience a premium, brand-centric shopping experience.' 
+                                : 'Experience a high-volume, inventory-focused dispensary menu.'}
+                        </p>
                     </div>
 
                     {/* Retailer Info */}
