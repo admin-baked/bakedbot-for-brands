@@ -4,7 +4,7 @@
 
 import { Providers } from '@/app/providers';
 import { DashboardHeader } from '@/components/dashboard/header';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { DashboardSidebar } from '@/components/dashboard/sidebar';
 import type { ReactNode } from 'react';
 import { withAuth } from '@/lib/with-auth';
@@ -14,10 +14,12 @@ function DashboardLayout({ children }: { children: ReactNode }) {
     <Providers>
       <SidebarProvider>
         <DashboardSidebar />
-        <main className="flex-1 p-6">
-          <DashboardHeader />
-          {children}
-        </main>
+        <SidebarInset>
+          <div className="flex-1 p-4 md:p-6">
+            <DashboardHeader />
+            {children}
+          </div>
+        </SidebarInset>
       </SidebarProvider>
     </Providers>
   );
