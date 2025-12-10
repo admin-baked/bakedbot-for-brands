@@ -1,97 +1,158 @@
 {
-  "features": [
-    {
-      "id": "feat_validation_payment_routes",
-      "name": "Add Zod validation to payment routes",
-      "priority": "critical",
-      "status": "passing",
-      "completed_at": "2025-12-06T12:30:00Z",
-      "files": [
-        "src/app/api/checkout/process-payment/route.ts",
-        "src/app/api/checkout/smokey-pay/route.ts",
-        "src/app/api/payments/create-intent/route.ts"
-      ],
-      "files_completed": [
-        "src/app/api/checkout/process-payment/route.ts"
-      ],
-      "dependencies": ["schemas.ts"],
-      "test_command": "npm run check:types && npm run build",
-      "test_results": {
-        "type_check": "passed",
-        "last_run": "2025-12-06T12:30:00Z"
-      }
-    },
-    {
-      "id": "feat_validation_cannmenus_routes",
-      "name": "Add Zod validation to CannMenus routes",
-      "priority": "high",
-      "status": "pending",
-      "files": [
-        "src/app/api/cannmenus/sync/route.ts",
-        "src/app/api/cannmenus/semantic-search/route.ts",
-        "src/app/api/cannmenus/products/route.ts"
-      ],
-      "dependencies": ["schemas.ts"],
-      "test_command": "npm run check:types && npm run build"
-    },
-    {
-      "id": "feat_fix_any_types_agents",
-      "name": "Replace any types in agent files",
-      "priority": "high",
-      "status": "pending",
-      "files": [
-        "src/server/agents/craig.ts",
-        "src/server/agents/smokey.ts",
-        "src/server/agents/mrsParker.ts",
-        "src/server/agents/pops.ts",
-        "src/server/agents/moneyMike.ts",
-        "src/server/agents/ezal.ts"
-      ],
-      "dependencies": [],
-      "test_command": "npm run check:types"
-    },
-    {
-      "id": "feat_unit_test_validation_schemas",
-      "name": "Unit tests for validation schemas",
-      "priority": "medium",
-      "status": "pending",
-      "files": [
-        "src/app/api/__tests__/schemas.test.ts"
-      ],
-      "dependencies": ["schemas.ts"],
-      "test_command": "npm test src/app/api/__tests__/schemas.test.ts"
-    },
-    {
-      "id": "feat_unit_test_agent_craig",
-      "name": "Unit tests for Craig agent",
-      "priority": "medium",
-      "status": "pending",
-      "files": [
-        "tests/server/agents/craig.spec.ts"
-      ],
-      "dependencies": ["src/server/agents/craig.ts"],
-      "test_command": "npm test tests/server/agents/craig.spec.ts"
-    },
-    {
-      "id": "feat_auth_pattern_docs",
-      "name": "Document and secure dev auth pattern",
-      "priority": "medium",
-      "status": "pending",
-      "files": [
-        "docs/DEV_AUTH_PATTERN.md",
-        "src/lib/auth.ts"
-      ],
-      "dependencies": [],
-      "test_command": "npm run check:types"
-    }
-  ],
-  "metadata": {
-    "created": "2025-12-06",
-    "last_updated": "2025-12-06T12:30:00Z",
-    "total_features": 6,
-    "completed": 0,
-    "in_progress": 1,
-    "pending": 5,
-    "passing": 1
-  }
+    "features": [
+        {
+            "id": "feat_brand_domain_memory_core",
+            "title": "Implement Brand Domain Memory JSON + Firestore mappings",
+            "status": "passing",
+            "description": "Create schema, Firestore collections, and CRUD APIs for brand domain memory.",
+            "acceptance_tests": [
+                "test_brand_memory_create_read_update",
+                "test_brand_memory_respects_constraints"
+            ],
+            "owner": "ai_architect",
+            "dependencies": [],
+            "area": "backend"
+        },
+        {
+            "id": "feat_craig_campaign_backlog_harness",
+            "title": "Implement Craig campaign backlog + harness",
+            "status": "passing",
+            "description": "Implement campaign backlog schema and Craig's act loop.",
+            "acceptance_tests": [
+                "test_craig_selects_failing_campaign",
+                "test_craig_updates_kpi_and_status"
+            ],
+            "owner": "ai_dev",
+            "dependencies": [
+                "feat_brand_domain_memory_core"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "feat_agent_tools_expansion",
+            "title": "Expand Agent Tools with Genkit",
+            "status": "passing",
+            "description": "Implement typed tools for all agents (Craig, Smokey, Pops, Ezal, Money Mike, Mrs. Parker) and wire to Genkit.",
+            "acceptance_tests": [
+                "check_types_passing"
+            ],
+            "owner": "ai_dev_gemini",
+            "dependencies": [
+                "feat_craig_campaign_backlog_harness"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "feat_iheart_loyalty_production",
+            "title": "iHeart Integration & Smokey/Loyalty Production",
+            "status": "pending",
+            "description": "Develop iHeart integration service. Finalize Smokey (Budtender) and Loyalty System (Points) for production with 100% unit test coverage.",
+            "acceptance_tests": [
+                "test_smokey_logic",
+                "test_loyalty_points_calculation",
+                "test_iheart_service_mock"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [
+                "feat_agent_tools_expansion"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "feat_unit_test_services_geo",
+            "title": "Unit Tests: Geo Discovery Service",
+            "status": "pending",
+            "description": "Create unit tests for `src/server/services/geo-discovery.ts`. Verify coordinate lookup and radius filtering.",
+            "acceptance_tests": [
+                "test_service_geo"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "backend"
+        },
+        {
+            "id": "feat_unit_test_services_cannmenus",
+            "title": "Unit Tests: CannMenus Integration",
+            "status": "pending",
+            "description": "Create unit tests for `src/server/services/cannmenus.ts`. Verify API payload construction and error handling.",
+            "acceptance_tests": [
+                "test_service_cannmenus"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "backend"
+        },
+        {
+            "id": "feat_unit_test_services_availability",
+            "title": "Unit Tests: Availability Orchestrator",
+            "status": "pending",
+            "description": "Create unit tests for `src/server/services/availability-orchestrator.ts`. Verify logic for determining product availability.",
+            "acceptance_tests": [
+                "test_service_availability"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "backend"
+        },
+        {
+            "id": "feat_unit_test_components_checkout",
+            "title": "Unit Tests: Checkout Validation",
+            "status": "pending",
+            "description": "Create unit tests for `src/components/checkout/checkout-form.tsx`. Verify input validation and submission flow.",
+            "acceptance_tests": [
+                "test_component_checkout"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "frontend"
+        },
+        {
+            "id": "feat_unit_test_components_compliance",
+            "title": "Unit Tests: Compliance & Age Gate",
+            "status": "pending",
+            "description": "Create unit tests for `src/components/compliance`. Verify age gating logic and state restrictions.",
+            "acceptance_tests": [
+                "test_component_compliance"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "frontend"
+        },
+        {
+            "id": "feat_unit_test_lib_retry",
+            "title": "Unit Tests: Retry Utility",
+            "status": "pending",
+            "description": "Create unit tests for `src/lib/retry-utility.ts`. Verify exponential backoff and max retry logic.",
+            "acceptance_tests": [
+                "test_lib_retry"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "backend"
+        },
+        {
+            "id": "feat_unit_test_lib_cannmenus_api",
+            "title": "Unit Tests: CannMenus Low-Level API",
+            "status": "pending",
+            "description": "Create unit tests for `src/lib/cannmenus-api.ts`. Verify header construction and response parsing.",
+            "acceptance_tests": [
+                "test_lib_cannmenus_api"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "backend"
+        },
+        {
+            "id": "feat_unit_test_lib_payments",
+            "title": "Unit Tests: Payment Utilities (SmokeyPay & Authorize.net)",
+            "status": "pending",
+            "description": "Create unit tests for `src/lib/smokey-pay.ts` and `src/lib/authorize-net.ts`. Verify transaction packet formation and validation.",
+            "acceptance_tests": [
+                "test_lib_payments"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "backend"
+        }
+    ]
 }

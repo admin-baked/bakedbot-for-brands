@@ -11,7 +11,7 @@ import { useMemo } from 'react';
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import type { Product } from '@/types/domain';
 
-export function ProductCard({ product, brandSlug }: { product: Product, brandSlug?: string }) {
+export function ProductCard({ product, brandSlug, variant = 'standard' }: { product: Product, brandSlug?: string, variant?: 'standard' | 'large' }) {
   const { selectedRetailerId, cartItems, updateQuantity, removeFromCart } = useStore();
   // const { toast } = useToast(); // No longer needed directly here
 
@@ -50,7 +50,7 @@ export function ProductCard({ product, brandSlug }: { product: Product, brandSlu
   return (
     <div data-testid={`product-card-${product.id}`} className="bg-card text-card-foreground rounded-lg overflow-hidden flex flex-col group border">
       <Link href={`/${brandSlug || product.brandId || 'default'}/products/${product.id}`} className="block">
-        <div className="relative h-48">
+        <div className={`relative ${variant === 'large' ? 'h-72' : 'h-48'} transition-all duration-300`}>
           <Image
             src={product.imageUrl}
             alt={product.name}
@@ -98,7 +98,7 @@ export function ProductCard({ product, brandSlug }: { product: Product, brandSlu
           <span className="text-xs font-semibold uppercase text-primary tracking-wider">{product.category}</span>
         )}
 
-        <h3 className="text-lg font-bold mt-1 mb-2 line-clamp-2">
+        <h3 className={`${variant === 'large' ? 'text-xl' : 'text-lg'} font-bold mt-1 mb-2 line-clamp-2`}>
           <Link href={`/${brandSlug || product.brandId || 'default'}/products/${product.id}`} className="hover:underline">
             {product.name}
           </Link>
@@ -111,7 +111,7 @@ export function ProductCard({ product, brandSlug }: { product: Product, brandSlu
         )}
 
         <div className="flex items-center justify-between mt-auto">
-          <span className="text-xl font-bold">
+          <span className={`${variant === 'large' ? 'text-2xl' : 'text-xl'} font-bold`}>
             {priceDisplay}
           </span>
           <AddToCartButton product={product} size="sm" />

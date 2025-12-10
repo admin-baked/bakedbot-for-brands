@@ -1,61 +1,118 @@
 {
-  "test_commands": {
-    "type_check": {
-      "command": "npm run check:types",
-      "description": "TypeScript type checking",
-      "timeout": 120000
-    },
-    "build": {
-      "command": "npm run build",
-      "description": "Production build verification",
-      "timeout": 300000
-    },
-    "unit_test": {
-      "command": "npm test",
-      "description": "Jest unit tests",
-      "timeout": 60000
-    },
-    "lint": {
-      "command": "npx next lint",
-      "description": "ESLint code quality check",
-      "timeout": 120000
-    },
-    "e2e": {
-      "command": "npx playwright test",
-      "description": "End-to-end tests",
-      "timeout": 300000
-    }
-  },
-  "test_suites": {
-    "api_validation": {
-      "commands": ["type_check", "build"],
-      "required_for": ["feat_validation_payment_routes", "feat_validation_cannmenus_routes"]
-    },
-    "type_safety": {
-      "commands": ["type_check"],
-      "required_for": ["feat_fix_any_types_agents"]
-    },
-    "unit_tests": {
-      "commands": ["unit_test"],
-      "required_for": ["feat_unit_test_validation_schemas", "feat_unit_test_agent_craig"]
-    },
-    "documentation": {
-      "commands": ["type_check"],
-      "required_for": ["feat_auth_pattern_docs"]
-    }
-  },
-  "quality_gates": {
-    "critical_features": {
-      "must_pass": ["type_check", "build"],
-      "can_skip": ["lint", "e2e"]
-    },
-    "high_features": {
-      "must_pass": ["type_check"],
-      "can_skip": ["build", "lint", "e2e"]
-    },
-    "medium_features": {
-      "must_pass": ["type_check"],
-      "can_skip": ["build", "lint", "e2e"]
-    }
-  }
+    "tests": [
+        {
+            "id": "test_brand_memory_create_read_update",
+            "command": "npm test -- brandMemory.test.ts",
+            "files": [
+                "src/server/agents/schemas.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_craig_selects_failing_campaign",
+            "command": "npm test -- craig.test.ts",
+            "files": [
+                "src/server/agents/craig.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "check_types_passing",
+            "command": "npm run check:types",
+            "files": [
+                "src/**/*.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_smokey_logic",
+            "command": "npm test -- smokey.test.ts",
+            "files": [
+                "src/server/agents/smokey.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_loyalty_points_calculation",
+            "command": "npm test -- loyalty.test.ts",
+            "files": [
+                "src/server/agents/mrsParker.ts",
+                "src/server/services/loyalty.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_iheart_service_mock",
+            "command": "npm test -- iheart.test.ts",
+            "files": [
+                "src/server/services/iheart.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_service_geo",
+            "command": "npm test -- geo-discovery.test.ts",
+            "files": [
+                "src/server/services/geo-discovery.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_service_cannmenus",
+            "command": "npm test -- cannmenus.test.ts",
+            "files": [
+                "src/server/services/cannmenus.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_service_availability",
+            "command": "npm test -- availability.test.ts",
+            "files": [
+                "src/server/services/availability-orchestrator.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_component_checkout",
+            "command": "npm test -- checkout-form.test.tsx",
+            "files": [
+                "src/components/checkout/checkout-form.tsx"
+            ],
+            "area": "frontend"
+        },
+        {
+            "id": "test_component_compliance",
+            "command": "npm test -- compliance.test.tsx",
+            "files": [
+                "src/components/compliance"
+            ],
+            "area": "frontend"
+        },
+        {
+            "id": "test_lib_retry",
+            "command": "npm test -- retry.test.ts",
+            "files": [
+                "src/lib/retry-utility.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_lib_cannmenus_api",
+            "command": "npm test -- cannmenus-api.test.ts",
+            "files": [
+                "src/lib/cannmenus-api.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_lib_payments",
+            "command": "npm test -- payments.test.ts",
+            "files": [
+                "src/lib/smokey-pay.ts",
+                "src/lib/authorize-net.ts"
+            ],
+            "area": "backend"
+        }
+    ]
 }
