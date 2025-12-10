@@ -2,8 +2,18 @@ import { AgentImplementation } from './harness';
 import { PopsMemory, HypothesisSchema } from './schemas';
 import { logger } from '@/lib/logger';
 
-// Pops: The Business Intelligence Agent
-export const popsAgent: AgentImplementation<PopsMemory> = {
+// --- Tool Definitions ---
+
+export interface PopsTools {
+  // Execute a natural language query against business data
+  analyzeData(query: string, context: any): Promise<{ insight: string; trend: 'up' | 'down' | 'flat' }>;
+  // Check for anomalies in specific metrics
+  detectAnomalies(metric: string, history: number[]): Promise<boolean>;
+}
+
+// --- Pops Agent Implementation ---
+
+export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
   agentName: 'pops',
 
   async initialize(brandMemory, agentMemory) {
@@ -29,7 +39,7 @@ export const popsAgent: AgentImplementation<PopsMemory> = {
     return null;
   },
 
-  async act(brandMemory, agentMemory, targetId, tools: any) {
+  async act(brandMemory, agentMemory, targetId, tools: PopsTools) {
     const hypothesis = agentMemory.hypotheses_backlog.find(h => h.id === targetId);
 
     if (!hypothesis) throw new Error(`Hypothesis ${targetId} not found`);
@@ -40,31 +50,33 @@ export const popsAgent: AgentImplementation<PopsMemory> = {
       hypothesis.status = 'running';
       resultMessage = `Started validating hypothesis: ${hypothesis.description}`;
     } else if (hypothesis.status === 'running') {
-      // Analyze Logic (Stub)
-      // Simulate checking metrics
-      const isPositiveResult = Math.random() > 0.4; // 60% chance of success for demo
+      // Use Tool: Analyze Data
+      const analysis = await tools.analyzeData(
+        `Validate hypothesis: ${hypothesis.description}`,
+        { metric: hypothesis.metrics.primary }
+      );
 
-      if (isPositiveResult) {
+      if (analysis.trend === 'up') {
         hypothesis.status = 'validated';
-        resultMessage = 'Hypothesis Validated: Metrics show positive lift.';
+        resultMessage = `Hypothesis Validated: ${analysis.insight}`;
 
         // Log decision
         agentMemory.decision_journal.push({
           id: `dec_${Date.now()}`,
           hypothesis_id: hypothesis.id,
           decision: 'validated',
-          summary: 'Metrics improved by >5%. Adopted as standard.',
-          timestamp: new Date()
+          summary: analysis.insight,
+          timestamp: new Date() // Will be serialized
         });
       } else {
         hypothesis.status = 'invalidated';
-        resultMessage = 'Hypothesis Invalidated: Metrics flat or negative.';
+        resultMessage = `Hypothesis Invalidated: ${analysis.insight}`;
 
         agentMemory.decision_journal.push({
           id: `dec_${Date.now()}`,
           hypothesis_id: hypothesis.id,
           decision: 'invalidated',
-          summary: 'No significant lift observed. Reverting.',
+          summary: analysis.insight,
           timestamp: new Date()
         });
       }
@@ -80,6 +92,7 @@ export const popsAgent: AgentImplementation<PopsMemory> = {
     };
   }
 };
+
 
 export async function handlePopsEvent(orgId: string, eventId: string) {
   logger.info(`[Pops] Handled event ${eventId} for org ${orgId} (Stub)`);

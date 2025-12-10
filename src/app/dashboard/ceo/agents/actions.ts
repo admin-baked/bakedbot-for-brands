@@ -23,7 +23,7 @@ const AGENT_MAP = {
 };
 
 
-// --- Tools Implementation (Mocks/Stubs for Phase 6) ---
+// --- Tools Implementation (Mocks/Stubs for Phase 6 & 8) ---
 
 const defaultCraigTools = {
     generateCopy: async (prompt: string, context: any) => {
@@ -49,16 +49,53 @@ const defaultCraigTools = {
         return await deebo.checkContent(jurisdiction, 'sms', content);
     },
     sendSms: async (to: string, body: string) => {
-        // Stub: Log it
         console.log(`[Tool:SMS] Sending to ${to}: ${body}`);
         return true;
     },
     getCampaignMetrics: async (campaignId: string) => {
-        // Stub: Random improvement
         return { kpi: Math.random() }; // Random 0-1
     }
 };
 
+const defaultSmokeyTools = {
+    analyzeExperimentResults: async (experimentId: string, data: any[]) => {
+        // Genkit Stub: Analyze data for significance
+        // In reality, pass data JSON to Gemini for insight
+        return { winner: 'Variant B', confidence: 0.98 };
+    },
+    rankProductsForSegment: async (segmentId: string, products: any[]) => {
+        // Genkit Stub: Semantic match
+        return products;
+    }
+};
+
+const defaultPopsTools = {
+    analyzeData: async (query: string, context: any) => {
+        // Genkit real call for insight
+        try {
+            const response = await ai.generate({
+                prompt: `Analyze business query: ${query}. Context: ${JSON.stringify(context)}. Return JSON with 'insight' and 'trend'.`,
+            });
+            // Mock parse
+            return { insight: "Revenue is up 5% week over week.", trend: "up" as const };
+        } catch (e) {
+            return { insight: "Could not analyze.", trend: "flat" as const };
+        }
+    },
+    detectAnomalies: async (metric: string, history: number[]) => {
+        return false;
+    }
+};
+
+const defaultEzalTools = {
+    scrapeMenu: async (url: string) => {
+        // Mock Scrape
+        return { products: [{ name: 'Live Rosin', price: 45 }, { name: 'Gummies', price: 20 }] };
+    },
+    comparePricing: async (myProducts: any[], competitorProducts: any[]) => {
+        return { price_index: 0.95 }; // We are slightly cheaper
+    }
+};
 
 export async function triggerAgentRun(agentName: string) {
     const brandId = 'demo-brand-123'; // Hardcoded for demo
@@ -73,9 +110,16 @@ export async function triggerAgentRun(agentName: string) {
     let tools: any = {};
     if (agentName === 'craig') {
         tools = defaultCraigTools;
+    } else if (agentName === 'smokey') {
+        tools = defaultSmokeyTools;
+    } else if (agentName === 'pops') {
+        tools = defaultPopsTools;
+    } else if (agentName === 'ezal') {
+        tools = defaultEzalTools;
     } else {
         tools = {};
     }
+
 
 
     try {
