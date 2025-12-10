@@ -1,5 +1,5 @@
 
-import { treasuryMemory } from '../memory/adapter';
+import { treasuryMemory, TreasuryDomainMemory } from '../memory/adapter';
 
 export type ActionType = "OPEN_POSITION" | "ADJUST_POSITION" | "CLOSE_POSITION" | "MOVE_LIQUIDITY";
 
