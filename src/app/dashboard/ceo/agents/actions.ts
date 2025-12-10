@@ -1,10 +1,10 @@
 'use server';
 
 import { deebo } from '@/server/agents/deebo';
-
-
+import { ai } from '@/ai/genkit';
 import { runAgent } from '@/server/agents/harness';
 import { persistence } from '@/server/agents/persistence';
+
 import { craigAgent } from '@/server/agents/craig';
 import { smokeyAgent } from '@/server/agents/smokey';
 import { popsAgent } from '@/server/agents/pops';
@@ -22,12 +22,25 @@ const AGENT_MAP = {
     mrs_parker: mrsParkerAgent,
 };
 
+
 // --- Tools Implementation (Mocks/Stubs for Phase 6) ---
 
 const defaultCraigTools = {
     generateCopy: async (prompt: string, context: any) => {
-        // Stub: In reality, call LLM service
-        return `[Generated Copy for ${prompt}]`;
+        try {
+            const response = await ai.generate({
+                prompt: `
+                Context: ${JSON.stringify(context)}
+                Task: ${prompt}
+                
+                Generate a concise, high-converting SMS copy. No intro/outro.
+                `,
+            });
+            return response.text;
+        } catch (e) {
+            console.error('Gemini Gen Failed:', e);
+            return `[Fallback Copy] ${prompt}`;
+        }
     },
     validateCompliance: async (content: string, jurisdictions: string[]) => {
         // Use real Deebo checking
