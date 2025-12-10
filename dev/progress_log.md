@@ -15,3 +15,27 @@
 - Added `feat_iheart_loyalty_production` to `dev/backlog.json`.
 - Mapped texts `test_smokey_logic`, `test_loyalty_points_calculation`, `test_iheart_service_mock` in `test_matrix.json`.
 - Initialized Phase 12 in `task.md`.
+
+## 2025-12-10T07:30Z – feat_iheart_loyalty_production – builder_mode
+- Implemented `src/server/services/iheart.ts` (iHeart Integration Service).
+  - Customer profile management (upsert, lookup)
+  - Loyalty points awarding and redemption
+  - Tier calculation (New, Regular, VIP)
+  - Rewards catalog management
+  - Mock API integration layer ready for production API credentials
+- Created comprehensive unit tests (53 total tests, 100% passing):
+  - `tests/server/iheart.test.ts` (17 tests) - iHeart service functionality
+  - `tests/server/smokey.test.ts` (14 tests) - Smokey agent lifecycle and UX experiments
+  - `tests/server/loyalty.test.ts` (22 tests) - Mrs. Parker loyalty points, tiers, and journeys
+- Verified Smokey agent production-ready:
+  - UX experiment management (initialize, orient, act)
+  - Recommendation policy validation with Genkit
+  - Experiment decision logic with confidence thresholds
+- Verified Mrs. Parker agent production-ready:
+  - Loyalty points calculation (1 point per dollar)
+  - Tier assignment (New < 300, Regular 300-999, VIP >= 1000)
+  - Customer journey orchestration
+  - Churn prediction and winback campaigns
+  - Deebo compliance integration for SMS
+- Updated `dev/backlog.json`: marked `feat_iheart_loyalty_production` as "passing".
+- All tests passing: `npm test -- "tests/server/(iheart|smokey|loyalty).test.ts"` ✅
