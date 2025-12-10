@@ -52,3 +52,21 @@
   - ZIP code to retailer lookup
 - Firestore integration tests (caching, geo zones) require additional mock setup - deferred.
 - Updated `dev/backlog.json`: marked `feat_unit_test_services_geo` as "passing".
+
+## 2025-12-10T08:30Z – feat_unit_test_services_cannmenus – builder_mode
+- Created comprehensive unit tests for `src/server/services/cannmenus.ts` (`tests/server/cannmenus.test.ts`).
+- All CannMenus API integration functionality fully tested (17/17 tests - 100% passing):
+  - `findRetailersCarryingBrand()` - retailer discovery with deduplication (5 tests)
+  - `searchProducts()` - product search with all parameters (4 tests)
+  - API error handling (401, 500, network errors)
+  - Request timeout handling (30s for retailers, 10s for search)
+  - Request headers validation (X-Token, Accept, User-Agent)
+  - Data transformation (CannMenus API → RetailerDoc format)
+  - Empty/edge cases (null data, no results)
+  - Retry logic integration with `withRetry` wrapper
+  - Rate limiting mock verification
+- Fixed Jest configuration issues:
+  - Added uuid module mock to avoid ES module parsing errors
+  - Fixed `coverageThresholds` → `coverageThreshold` typo
+  - Properly mocked `monitorApiCall` and `withRetry` to await async functions
+- Updated `dev/backlog.json`: marked `feat_unit_test_services_cannmenus` as "passing".
