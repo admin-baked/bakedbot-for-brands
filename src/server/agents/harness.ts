@@ -82,7 +82,7 @@ export async function runAgent<TMemory extends AgentMemory>(
         logger.info(`[Harness] ${agentName}: Cycle complete. Target ${targetId} processed.`);
 
     } catch (error) {
-        logger.error(`[Harness] ${agentName} failed:`, error);
+        logger.error(`[Harness] ${agentName} failed:`, error as any);
         // In a real system, we might want to write a "failure" log entry here
         throw error;
     }

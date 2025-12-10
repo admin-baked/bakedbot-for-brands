@@ -79,3 +79,8 @@ export const popsAgent: AgentImplementation<PopsMemory> = {
     };
   }
 };
+
+export async function handlePopsEvent(orgId: string, eventId: string) {
+  logger.info(`[Pops] Handled event ${eventId} for org ${orgId} (Stub)`);
+}
+

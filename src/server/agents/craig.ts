@@ -113,3 +113,8 @@ export const craigAgent: AgentImplementation<CraigMemory> = {
     };
   }
 };
+
+export async function handleCraigEvent(orgId: string, eventId: string) {
+  logger.info(`[Craig] Handled event ${eventId} for org ${orgId} (Stub)`);
+}
+

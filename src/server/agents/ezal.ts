@@ -68,3 +68,8 @@ export const ezalAgent: AgentImplementation<EzalMemory> = {
     throw new Error(`Unknown target action ${targetId}`);
   }
 };
+
+export async function handleEzalEvent(orgId: string, eventId: string) {
+  logger.info(`[Ezal] Handled event ${eventId} for org ${orgId} (Stub)`);
+}
+
