@@ -5,13 +5,13 @@ import { Carousel } from '@/types/carousels';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 
-const db = getAdminFirestore();
 const CAROUSELS_COLLECTION = 'carousels';
 
 export async function getCarousels(orgId: string): Promise<{ success: boolean; data?: Carousel[]; error?: string }> {
     try {
         if (!orgId) throw new Error('Organization ID is required');
 
+        const db = getAdminFirestore();
         const snapshot = await db.collection(CAROUSELS_COLLECTION)
             .where('orgId', '==', orgId)
             .orderBy('displayOrder', 'asc')
@@ -38,6 +38,7 @@ export async function createCarousel(data: Partial<Carousel>): Promise<{ success
         }
 
         const id = uuidv4();
+        const db = getAdminFirestore();
         const now = new Date();
 
         const newCarousel: Carousel = {
@@ -68,6 +69,7 @@ export async function updateCarousel(id: string, data: Partial<Carousel>): Promi
     try {
         if (!id) throw new Error('ID is required');
 
+        const db = getAdminFirestore();
         await db.collection(CAROUSELS_COLLECTION).doc(id).update({
             ...data,
             updatedAt: new Date(),
@@ -85,6 +87,7 @@ export async function deleteCarousel(id: string): Promise<{ success: boolean; er
     try {
         if (!id) throw new Error('ID is required');
 
+        const db = getAdminFirestore();
         await db.collection(CAROUSELS_COLLECTION).doc(id).delete();
 
         revalidatePath('/dashboard/carousels');
