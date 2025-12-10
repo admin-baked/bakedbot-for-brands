@@ -5,28 +5,25 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import Autoplay from "embla-carousel-autoplay"
 import { Button } from "@/components/ui/button"
 
-export function DealsCarousel() {
-    // Mock data for now - will be replaced by props later
-    const slides = [
-        {
-            id: 1,
-            title: "20% OFF ANY TWO ITEMS",
-            subtitle: "FROM 8AM - 12PM",
-            description: "The Best Deal in San Jose is Back!",
-            cta: "Shop Now",
-            bgColor: "bg-black",
-            textColor: "text-white"
-        },
-        {
-            id: 2,
-            title: "HAPPY HOUR",
-            subtitle: "4PM - 6PM EVERY DAY",
-            description: "Get 15% off your entire order!",
-            cta: "View Details",
-            bgColor: "bg-primary/20",
-            textColor: "text-foreground"
-        }
-    ];
+export interface CarouselSlide {
+    id: string | number;
+    title: string;
+    subtitle?: string;
+    description: string;
+    cta: string;
+    bgColor: string;
+    textColor: string;
+    image?: string;
+}
+
+interface DealsCarouselProps {
+    slides: CarouselSlide[];
+}
+
+export function DealsCarousel({ slides }: DealsCarouselProps) {
+    if (!slides || slides.length === 0) {
+        return null; // Or return a fallback/skeleton
+    }
 
     return (
         <div className="w-full bg-background">
@@ -47,7 +44,9 @@ export function DealsCarousel() {
                                         <h2 className="text-4xl md:text-6xl font-bold uppercase tracking-tight leading-none">
                                             {slide.title}
                                             <br />
-                                            <span className="text-primary">{slide.subtitle}</span>
+                                            {slide.subtitle && (
+                                                <span className="text-primary">{slide.subtitle}</span>
+                                            )}
                                         </h2>
                                         <p className="text-lg md:text-xl opacity-90 font-medium">
                                             {slide.description}

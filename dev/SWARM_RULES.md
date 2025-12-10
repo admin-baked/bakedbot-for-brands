@@ -2,7 +2,12 @@
 
 All Agents working in the `dev/` context must adhere to these protocols.
 
-## 1. The Testing Mandate
+## 1. Grid Sync Protocol (Git)
+**CRITICAL**: Before touching ANY code, you must ensure you are on the latest commit.
+*   Run: `git pull origin main --rebase`
+*   If you encounter conflicts that you cannot easily resolve, stop and notify the user.
+
+## 2. The Testing Mandate
 **CRITICAL**: You may NOT complete a coding task without ensuring test coverage.
 
 *   **Option A (Preferred)**: Implement the unit test immediately in the corresponding `.test.ts` file and verify it passes.

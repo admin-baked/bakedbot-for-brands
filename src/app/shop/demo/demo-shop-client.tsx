@@ -14,13 +14,16 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, ShoppingCart, Plus, Heart, Sparkles, ArrowLeft, Grid, List, Building2, Store } from 'lucide-react';
-import { demoProducts, demoRetailers } from '@/lib/demo/demo-data';
+import { Search, ShoppingCart, Plus, Heart, Sparkles, ArrowLeft, Grid, List, Building2, Store, Gift } from 'lucide-react';
+import { demoProducts, demoRetailers, demoSlides } from '@/lib/demo/demo-data'; // Added demoSlides
 import { useStore } from '@/hooks/use-store';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Product } from '@/types/domain';
 import DispensaryLocator from '@/components/dispensary-locator';
+import { DealsCarousel } from '@/components/dispensary/deals-carousel'; // Added DealsCarousel
+import { BundleBuilder } from '@/components/dispensary/bundle-builder'; // Added BundleBuilder
+import { BundleDeal } from '@/types/bundles';
 
 // Dynamic import to prevent Firebase initialization during prerender
 const Chatbot = dynamicImport(() => import('@/components/chatbot'), { ssr: false });
@@ -31,12 +34,25 @@ const chatProducts: Product[] = demoProducts.map(p => ({
     brandId: 'demo-40tons',
 }));
 
+// Mock bundle deal for demo
+const DEMO_BUNDLE_DEAL: BundleDeal = {
+    id: 'demo-bundle-1',
+    name: 'Sleep & Relax Bundle',
+    description: 'Choose any 3 sleep-focused edibles for a special price.',
+    type: 'mix_match',
+    minProducts: 3,
+    bundlePrice: 50.00,
+    eligibleProductIds: ['demo-40t-gummies', 'demo-40t-cookies'], // Mock logic handles filtering
+    originalTotal: 66.00
+};
+
 export default function DemoShopClient() {
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [sortBy, setSortBy] = useState<string>('name');
     const [viewMode, setViewMode] = useState<'grid' | 'compact'>('grid');
     const [demoMode, setDemoMode] = useState<'brand' | 'dispensary'>('brand');
+    const [showBundleBuilder, setShowBundleBuilder] = useState(false); // State for bundle builder
 
     const handleModeChange = (val: string) => {
         const mode = val as 'brand' | 'dispensary';
@@ -103,7 +119,7 @@ export default function DemoShopClient() {
                                 <ArrowLeft size={16} />
                                 Back to Home
                             </Link>
-                            
+
                             <Tabs value={demoMode} onValueChange={handleModeChange} className="w-full md:w-[400px]">
                                 <TabsList className="grid w-full grid-cols-2">
                                     <TabsTrigger value="brand" className="flex items-center gap-2">
@@ -119,15 +135,34 @@ export default function DemoShopClient() {
                         </div>
                     </div>
 
-                    <div className="mb-6">
-                        <h1 className="text-3xl font-bold tracking-tight">
-                            {demoMode === 'brand' ? '40 Tons Brand Menu' : 'Dispensary Demo Menu'}
-                        </h1>
-                        <p className="text-muted-foreground">
-                            {demoMode === 'brand' 
-                                ? 'Experience a premium, brand-centric shopping experience.' 
-                                : 'Experience a high-volume, inventory-focused dispensary menu.'}
-                        </p>
+                    {/* Carousel - Only show in Dispensary Mode or if verified generally */}
+                    {demoMode === 'dispensary' && (
+                        <div className="mb-8 rounded-xl overflow-hidden shadow-lg border">
+                            <DealsCarousel slides={demoSlides} />
+                        </div>
+                    )}
+
+                    <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight">
+                                {demoMode === 'brand' ? '40 Tons Brand Menu' : 'Dispensary Demo Menu'}
+                            </h1>
+                            <p className="text-muted-foreground">
+                                {demoMode === 'brand'
+                                    ? 'Experience a premium, brand-centric shopping experience.'
+                                    : 'Experience a high-volume, inventory-focused dispensary menu.'}
+                            </p>
+                        </div>
+                        {/* Bundle Trigger */}
+                        {demoMode === 'dispensary' && (
+                            <Button
+                                onClick={() => setShowBundleBuilder(true)}
+                                className="bg-purple-600 hover:bg-purple-700 text-white gap-2"
+                            >
+                                <Gift className="h-4 w-4" />
+                                View Bundle Deals
+                            </Button>
+                        )}
                     </div>
 
                     {/* Retailer Info */}
@@ -383,6 +418,13 @@ export default function DemoShopClient() {
 
             {/* Smokey Chatbot */}
             <Chatbot products={chatProducts} brandId="demo-40tons" />
+
+            {/* Bundle Builder Modal */}
+            <BundleBuilder
+                deal={DEMO_BUNDLE_DEAL}
+                open={showBundleBuilder}
+                onOpenChange={setShowBundleBuilder}
+            />
         </div>
     );
 }
