@@ -23,6 +23,96 @@
                 "src/**/*.ts"
             ],
             "area": "backend"
+        },
+        {
+            "id": "test_smokey_logic",
+            "command": "npm test -- smokey.test.ts",
+            "files": [
+                "src/server/agents/smokey.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_loyalty_points_calculation",
+            "command": "npm test -- loyalty.test.ts",
+            "files": [
+                "src/server/agents/mrsParker.ts",
+                "src/server/services/loyalty.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_iheart_service_mock",
+            "command": "npm test -- iheart.test.ts",
+            "files": [
+                "src/server/services/iheart.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_service_geo",
+            "command": "npm test -- geo-discovery.test.ts",
+            "files": [
+                "src/server/services/geo-discovery.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_service_cannmenus",
+            "command": "npm test -- cannmenus.test.ts",
+            "files": [
+                "src/server/services/cannmenus.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_service_availability",
+            "command": "npm test -- availability.test.ts",
+            "files": [
+                "src/server/services/availability-orchestrator.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_component_checkout",
+            "command": "npm test -- checkout-form.test.tsx",
+            "files": [
+                "src/components/checkout/checkout-form.tsx"
+            ],
+            "area": "frontend"
+        },
+        {
+            "id": "test_component_compliance",
+            "command": "npm test -- compliance.test.tsx",
+            "files": [
+                "src/components/compliance"
+            ],
+            "area": "frontend"
+        },
+        {
+            "id": "test_lib_retry",
+            "command": "npm test -- retry.test.ts",
+            "files": [
+                "src/lib/retry-utility.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_lib_cannmenus_api",
+            "command": "npm test -- cannmenus-api.test.ts",
+            "files": [
+                "src/lib/cannmenus-api.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_lib_payments",
+            "command": "npm test -- payments.test.ts",
+            "files": [
+                "src/lib/smokey-pay.ts",
+                "src/lib/authorize-net.ts"
+            ],
+            "area": "backend"
         }
     ]
 }

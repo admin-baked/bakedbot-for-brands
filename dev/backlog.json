@@ -41,6 +41,118 @@
                 "feat_craig_campaign_backlog_harness"
             ],
             "area": "backend"
+        },
+        {
+            "id": "feat_iheart_loyalty_production",
+            "title": "iHeart Integration & Smokey/Loyalty Production",
+            "status": "pending",
+            "description": "Develop iHeart integration service. Finalize Smokey (Budtender) and Loyalty System (Points) for production with 100% unit test coverage.",
+            "acceptance_tests": [
+                "test_smokey_logic",
+                "test_loyalty_points_calculation",
+                "test_iheart_service_mock"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [
+                "feat_agent_tools_expansion"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "feat_unit_test_services_geo",
+            "title": "Unit Tests: Geo Discovery Service",
+            "status": "pending",
+            "description": "Create unit tests for `src/server/services/geo-discovery.ts`. Verify coordinate lookup and radius filtering.",
+            "acceptance_tests": [
+                "test_service_geo"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "backend"
+        },
+        {
+            "id": "feat_unit_test_services_cannmenus",
+            "title": "Unit Tests: CannMenus Integration",
+            "status": "pending",
+            "description": "Create unit tests for `src/server/services/cannmenus.ts`. Verify API payload construction and error handling.",
+            "acceptance_tests": [
+                "test_service_cannmenus"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "backend"
+        },
+        {
+            "id": "feat_unit_test_services_availability",
+            "title": "Unit Tests: Availability Orchestrator",
+            "status": "pending",
+            "description": "Create unit tests for `src/server/services/availability-orchestrator.ts`. Verify logic for determining product availability.",
+            "acceptance_tests": [
+                "test_service_availability"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "backend"
+        },
+        {
+            "id": "feat_unit_test_components_checkout",
+            "title": "Unit Tests: Checkout Validation",
+            "status": "pending",
+            "description": "Create unit tests for `src/components/checkout/checkout-form.tsx`. Verify input validation and submission flow.",
+            "acceptance_tests": [
+                "test_component_checkout"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "frontend"
+        },
+        {
+            "id": "feat_unit_test_components_compliance",
+            "title": "Unit Tests: Compliance & Age Gate",
+            "status": "pending",
+            "description": "Create unit tests for `src/components/compliance`. Verify age gating logic and state restrictions.",
+            "acceptance_tests": [
+                "test_component_compliance"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "frontend"
+        },
+        {
+            "id": "feat_unit_test_lib_retry",
+            "title": "Unit Tests: Retry Utility",
+            "status": "pending",
+            "description": "Create unit tests for `src/lib/retry-utility.ts`. Verify exponential backoff and max retry logic.",
+            "acceptance_tests": [
+                "test_lib_retry"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "backend"
+        },
+        {
+            "id": "feat_unit_test_lib_cannmenus_api",
+            "title": "Unit Tests: CannMenus Low-Level API",
+            "status": "pending",
+            "description": "Create unit tests for `src/lib/cannmenus-api.ts`. Verify header construction and response parsing.",
+            "acceptance_tests": [
+                "test_lib_cannmenus_api"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "backend"
+        },
+        {
+            "id": "feat_unit_test_lib_payments",
+            "title": "Unit Tests: Payment Utilities (SmokeyPay & Authorize.net)",
+            "status": "pending",
+            "description": "Create unit tests for `src/lib/smokey-pay.ts` and `src/lib/authorize-net.ts`. Verify transaction packet formation and validation.",
+            "acceptance_tests": [
+                "test_lib_payments"
+            ],
+            "owner": "ai_builder_swarm",
+            "dependencies": [],
+            "area": "backend"
         }
     ]
 }
