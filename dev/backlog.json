@@ -3,7 +3,7 @@
         {
             "id": "feat_brand_domain_memory_core",
             "title": "Implement Brand Domain Memory JSON + Firestore mappings",
-            "status": "in_progress",
+            "status": "passing",
             "description": "Create schema, Firestore collections, and CRUD APIs for brand domain memory.",
             "acceptance_tests": [
                 "test_brand_memory_create_read_update",
@@ -11,6 +11,35 @@
             ],
             "owner": "ai_architect",
             "dependencies": [],
+            "area": "backend"
+        },
+        {
+            "id": "feat_craig_campaign_backlog_harness",
+            "title": "Implement Craig campaign backlog + harness",
+            "status": "passing",
+            "description": "Implement campaign backlog schema and Craig's act loop.",
+            "acceptance_tests": [
+                "test_craig_selects_failing_campaign",
+                "test_craig_updates_kpi_and_status"
+            ],
+            "owner": "ai_dev",
+            "dependencies": [
+                "feat_brand_domain_memory_core"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "feat_agent_tools_expansion",
+            "title": "Expand Agent Tools with Genkit",
+            "status": "passing",
+            "description": "Implement typed tools for all agents (Craig, Smokey, Pops, Ezal, Money Mike, Mrs. Parker) and wire to Genkit.",
+            "acceptance_tests": [
+                "check_types_passing"
+            ],
+            "owner": "ai_dev_gemini",
+            "dependencies": [
+                "feat_craig_campaign_backlog_harness"
+            ],
             "area": "backend"
         }
     ]
