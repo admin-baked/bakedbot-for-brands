@@ -1,12 +1,21 @@
-import { BrandDomainMemory, AgentMemory, AgentLogEntry, BrandDomainMemorySchema } from './schemas';
+import { BrandDomainMemory, AgentMemory, AgentLogEntry } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
-// Mock DB for Phase 4 (In reality, use firebase-admin here)
-// This persistence layer allows us to swap backend storage easily.
+// --- Memory Adapter Interface ---
 
-export const persistence = {
+export interface MemoryAdapter {
+    loadBrandMemory(brandId: string): Promise<BrandDomainMemory>;
+    loadAgentMemory<T extends AgentMemory>(brandId: string, agentName: string): Promise<T>;
+    saveAgentMemory<T extends AgentMemory>(brandId: string, agentName: string, memory: T): Promise<void>;
+    appendLog(brandId: string, agentName: string, entry: AgentLogEntry): Promise<void>;
+    getRecentLogs(brandId: string, limit?: number): Promise<AgentLogEntry[]>;
+}
 
+
+// --- Mock Adapter (Dev/Test) ---
+
+export const mockMemoryAdapter: MemoryAdapter = {
     async loadBrandMemory(brandId: string): Promise<BrandDomainMemory> {
         // Stub: Return default memory if not found
         return {
@@ -19,20 +28,14 @@ export const persistence = {
         };
     },
 
-    async loadAgentMemory<T extends AgentMemory>(brandId: string, agentName: string, schema: z.ZodType<T>): Promise<T> {
-        // Stub: In real app, fetch from `brands/{brandId}/agents/{agentName}`
-        // Return empty/default structure validatable by schema
-        // We construct a minimal valid object based on the schema if possible, or expect init to handle it.
-
-        // For the purpose of this harness, we return a "blank" memory that the agent's initialize() will hydrate/fix.
-        // This is a bit tricky with Zod types without defaults, so we mock a "fresh" state.
-
+    async loadAgentMemory<T extends AgentMemory>(brandId: string, agentName: string): Promise<T> {
         const base = {
             last_active: new Date(),
             current_task_id: undefined
         };
 
         // Specific mocks for known agents to avoid schema validation errors in this non-DB env
+        // Note: In a real adapter, we'd just fetch the JSON/Doc.
         if (agentName === 'craig') return { ...base, campaigns: [] } as any;
         if (agentName === 'smokey') return { ...base, rec_policies: [], ux_experiments: [], faq_coverage: { unanswered_questions_last_7d: [], todo_items: [] } } as any;
         if (agentName === 'pops') return { ...base, hypotheses_backlog: [], decision_journal: [] } as any;
@@ -44,16 +47,13 @@ export const persistence = {
     },
 
     async saveAgentMemory<T extends AgentMemory>(brandId: string, agentName: string, memory: T): Promise<void> {
-        logger.info(`[Persistence] Saved memory for ${agentName} (Brand: ${brandId})`);
-        // Stub: Firestore.doc(...).set(memory)
+        logger.info(`[MockPersistence] Saved memory for ${agentName} (Brand: ${brandId})`);
     },
 
     async appendLog(brandId: string, agentName: string, entry: AgentLogEntry): Promise<void> {
-        logger.info(`[Persistence] Log appended for ${agentName}: ${entry.action} -> ${entry.result}`);
-        // Stub: Firestore.collection(...).add(entry)
+        logger.info(`[MockPersistence] Log appended for ${agentName}: ${entry.action} -> ${entry.result}`);
     },
 
-    // Specific method to get recent logs for UI
     async getRecentLogs(brandId: string, limit: number = 20): Promise<AgentLogEntry[]> {
         return [
             {
@@ -75,3 +75,22 @@ export const persistence = {
         ];
     }
 };
+
+
+// --- Firestore Adapter (Prod) ---
+// TODO: Implement actual Firestore logic here in Phase 5 refinement
+export const firestoreMemoryAdapter: MemoryAdapter = {
+    ...mockMemoryAdapter, // Fallback for now
+    async saveAgentMemory<T extends AgentMemory>(brandId: string, agentName: string, memory: T): Promise<void> {
+        logger.info(`[FirestorePersistence] Saving memory for ${agentName} to DB...`);
+        // Actual DB call would go here
+    },
+    async getRecentLogs(brandId: string, limit: number = 20): Promise<AgentLogEntry[]> {
+        return [];
+    }
+};
+
+
+// Export default adapter based on env
+export const persistence = process.env.NODE_ENV === 'production' ? firestoreMemoryAdapter : mockMemoryAdapter;
+

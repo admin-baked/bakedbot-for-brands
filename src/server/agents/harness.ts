@@ -1,24 +1,25 @@
 import { logger } from '@/lib/logger';
 import { AgentMemory, AgentLogEntry, BrandDomainMemory } from './schemas';
+import { MemoryAdapter } from './persistence';
 
 // Define the shape of an Agent implementation
-export interface AgentImplementation<TMemory extends AgentMemory> {
+// TTools: A specific type defining the external capabilities this agent is allowed to use.
+export interface AgentImplementation<TMemory extends AgentMemory, TTools = any> {
     agentName: string;
 
     // 1. Initialize & Sanity Checks
-    // Returns updated memory if repairs were needed, or just same memory
     initialize(brandMemory: BrandDomainMemory, agentMemory: TMemory): Promise<TMemory>;
 
     // 2. Orient
-    // Pick a target ID (task, experiment, backlog item) to work on
     orient(brandMemory: BrandDomainMemory, agentMemory: TMemory): Promise<string | null>;
 
     // 3. Act
-    // Perform work on the target. Returns a result object and log data.
+    // Now accepts tools explicitly injected by the harness/caller
     act(
         brandMemory: BrandDomainMemory,
         agentMemory: TMemory,
-        targetId: string
+        targetId: string,
+        tools: TTools
     ): Promise<{
         updatedMemory: TMemory;
         logEntry: Omit<AgentLogEntry, 'id' | 'timestamp' | 'agent_name'>
@@ -27,19 +28,12 @@ export interface AgentImplementation<TMemory extends AgentMemory> {
 
 /**
  * The Standard Agent Harness
- * 
- * Orchestrates the lifecycle:
- * Load -> Initialize -> Orient -> Act -> Update -> Log
  */
-export async function runAgent<TMemory extends AgentMemory>(
+export async function runAgent<TMemory extends AgentMemory, TTools = any>(
     brandId: string,
-    loader: {
-        loadBrandMemory: (brandId: string) => Promise<BrandDomainMemory>;
-        loadAgentMemory: (brandId: string, agentName: string) => Promise<TMemory>;
-        saveAgentMemory: (brandId: string, agentName: string, memory: TMemory) => Promise<void>;
-        appendLog: (brandId: string, agentName: string, entry: AgentLogEntry) => Promise<void>;
-    },
-    implementation: AgentImplementation<TMemory>
+    adapter: MemoryAdapter,
+    implementation: AgentImplementation<TMemory, TTools>,
+    tools: TTools // Dependency Injection for effects
 ): Promise<void> {
 
     const { agentName } = implementation;
@@ -47,8 +41,8 @@ export async function runAgent<TMemory extends AgentMemory>(
 
     try {
         // A. Load State
-        const brandMemory = await loader.loadBrandMemory(brandId);
-        let agentMemory = await loader.loadAgentMemory(brandId, agentName);
+        const brandMemory = await adapter.loadBrandMemory(brandId);
+        let agentMemory = await adapter.loadAgentMemory<TMemory>(brandId, agentName);
 
         // B. Initialize
         agentMemory = await implementation.initialize(brandMemory, agentMemory);
@@ -58,32 +52,32 @@ export async function runAgent<TMemory extends AgentMemory>(
 
         if (!targetId) {
             logger.info(`[Harness] ${agentName}: No work target selected. Exiting.`);
-            return; // No work to do
+            return;
         }
 
         logger.info(`[Harness] ${agentName}: Selected target ${targetId}`);
 
         // D. Act
-        const result = await implementation.act(brandMemory, agentMemory, targetId);
+        const result = await implementation.act(brandMemory, agentMemory, targetId, tools);
 
         // E. Persist
-        await loader.saveAgentMemory(brandId, agentName, result.updatedMemory);
+        await adapter.saveAgentMemory(brandId, agentName, result.updatedMemory);
 
         const logEntry: AgentLogEntry = {
             id: crypto.randomUUID(),
-            timestamp: new Date(), // serialized by schema
+            timestamp: new Date(),
             agent_name: agentName,
             target_id: targetId,
             ...result.logEntry
         };
 
-        await loader.appendLog(brandId, agentName, logEntry);
+        await adapter.appendLog(brandId, agentName, logEntry);
 
         logger.info(`[Harness] ${agentName}: Cycle complete. Target ${targetId} processed.`);
 
     } catch (error) {
         logger.error(`[Harness] ${agentName} failed:`, error as any);
-        // In a real system, we might want to write a "failure" log entry here
         throw error;
     }
 }
+

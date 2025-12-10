@@ -187,8 +187,9 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory> = {
     return null;
   },
 
-  async act(brandMemory, agentMemory, targetId) {
+  async act(brandMemory, agentMemory, targetId, tools: any) {
     if (targetId.startsWith('journey:')) {
+
       const journeyId = targetId.split(':')[1];
       const journey = agentMemory.journeys.find(j => j.id === journeyId);
       if (!journey) throw new Error(`Journey ${journeyId} not found`);
