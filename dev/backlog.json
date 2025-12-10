@@ -1,0 +1,17 @@
+{
+    "features": [
+        {
+            "id": "feat_brand_domain_memory_core",
+            "title": "Implement Brand Domain Memory JSON + Firestore mappings",
+            "status": "in_progress",
+            "description": "Create schema, Firestore collections, and CRUD APIs for brand domain memory.",
+            "acceptance_tests": [
+                "test_brand_memory_create_read_update",
+                "test_brand_memory_respects_constraints"
+            ],
+            "owner": "ai_architect",
+            "dependencies": [],
+            "area": "backend"
+        }
+    ]
+}
