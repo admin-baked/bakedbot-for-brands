@@ -2,8 +2,18 @@ import { AgentImplementation } from './harness';
 import { SmokeyMemory, RecPolicySchema, UXExperimentSchema } from './schemas';
 import { logger } from '@/lib/logger';
 
-// Smokey: The AI Budtender & Headless Menu Agent
-export const smokeyAgent: AgentImplementation<SmokeyMemory> = {
+// --- Tool Definitions ---
+
+export interface SmokeyTools {
+    // Analyze user behavior or experiment data
+    analyzeExperimentResults(experimentId: string, data: any[]): Promise<{ winner: string; confidence: number }>;
+    // Get recommendation ranking (Genkit powered for semantic matching)
+    rankProductsForSegment(segmentId: string, products: any[]): Promise<string[]>;
+}
+
+// --- Smokey Agent Implementation ---
+
+export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
     agentName: 'smokey',
 
     async initialize(brandMemory, agentMemory) {
@@ -47,7 +57,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory> = {
         return null; // Nothing urgent
     },
 
-    async act(brandMemory, agentMemory, targetId) {
+    async act(brandMemory, agentMemory, targetId, tools: SmokeyTools) {
         let resultMessage = '';
 
         // Check if target is Experiment
@@ -57,24 +67,17 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory> = {
                 exp.status = 'running';
                 resultMessage = 'Launched UX Experiment.';
             } else if (exp.status === 'running') {
-                // Analyze results (Stub)
-                // Find best variant
-                let bestVariant = exp.variants[0];
-                for (const v of exp.variants) {
-                    if (v.add_to_cart_rate > bestVariant.add_to_cart_rate) {
-                        bestVariant = v;
-                    }
-                }
+                // Use Tool: Analyze Results
+                const analysis = await tools.analyzeExperimentResults(exp.id, exp.variants);
 
-                // Declare winner if significance met (Stub logic)
-                const improvement = bestVariant.add_to_cart_rate - 0.10; // baseline
-                if (improvement > 0.05) {
+                // Declare winner if confidence met
+                if (analysis.confidence > 0.95) {
                     exp.status = 'completed';
-                    exp.winner = bestVariant.name;
-                    resultMessage = `Concluded Experiment. Winner: ${bestVariant.name} (+${(improvement * 100).toFixed(1)}%).`;
+                    exp.winner = analysis.winner;
+                    resultMessage = `Concluded Experiment. Winner: ${analysis.winner} (Confidence: ${(analysis.confidence * 100).toFixed(1)}%).`;
                 } else {
                     // Continue running
-                    resultMessage = `Monitoring Experiment. Leader: ${bestVariant.name}.`;
+                    resultMessage = `Monitoring Experiment. Current Leader: ${analysis.winner} (Confidence: ${(analysis.confidence * 100).toFixed(1)}%).`;
                 }
             }
 
@@ -91,19 +94,26 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory> = {
         // Check if target is Rec Policy
         const policy = agentMemory.rec_policies.find(p => p.id === targetId);
         if (policy) {
-            // Simulate evaluating a policy
-            // e.g. checking if customer satisfaction is high
+            // Use Tool: Rank Products to validate policy effectiveness
+            // We mock looking up a segment and finding products for it
+            const products = ['prod_1', 'prod_2', 'prod_3']; // Stub list
+            const ranked = await tools.rankProductsForSegment('test_segment', products);
 
-            // Stub: Mark as passing after "analysis"
-            policy.status = 'passing';
-            resultMessage = 'Validated experimental policy. Promoted to passing.';
+            // Stub: validation logic
+            if (ranked.length > 0) {
+                policy.status = 'passing';
+                resultMessage = 'Validated experimental policy via Genkit Ranking.';
+            } else {
+                resultMessage = 'Policy produced no valid rankings.';
+            }
+
 
             return {
                 updatedMemory: agentMemory,
                 logEntry: {
                     action: 'validate_policy',
                     result: resultMessage,
-                    metadata: { policy_id: policy.id }
+                    metadata: { policy_id: policy.id, ranked_count: ranked.length }
                 }
             };
         }
@@ -111,3 +121,4 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory> = {
         throw new Error(`Target ${targetId} not found in memory`);
     }
 };
+
