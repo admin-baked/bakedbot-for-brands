@@ -145,13 +145,15 @@ export async function fetchAgentLogs() {
 
 // --- Playbook Logic ---
 
-export interface PlaybookResult {
+interface PlaybookResult {
+
     success: boolean;
     message: string;
     logs: string[];
 }
 
-export const PLAYBOOK_REGISTRY: Record<string, () => Promise<PlaybookResult>> = {
+const PLAYBOOK_REGISTRY: Record<string, () => Promise<PlaybookResult>> = {
+
     'welcome-sequence': async () => {
         const logs: string[] = [];
         logs.push("Starting 'Welcome Email Sequence' Playbook...");
@@ -234,7 +236,8 @@ export async function executePlaybook(playbookId: string): Promise<PlaybookResul
 
 // -- Chat & Intent Router --
 
-export interface ChatResponse {
+interface ChatResponse {
+
     content: string;
     toolCalls?: { id: string; name: string; status: 'success' | 'error' | 'running'; result: string }[];
 }
