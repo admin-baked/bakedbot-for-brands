@@ -118,6 +118,36 @@ export const demoProducts: Product[] = [
   }
 ];
 
+export const demoSlides = [
+  {
+    id: 1,
+    title: "20% OFF ANY TWO ITEMS",
+    subtitle: "FROM 8AM - 12PM",
+    description: "The Best Deal in San Jose is Back!",
+    cta: "Shop Now",
+    bgColor: "bg-black",
+    textColor: "text-white"
+  },
+  {
+    id: 2,
+    title: "HAPPY HOUR",
+    subtitle: "4PM - 6PM EVERY DAY",
+    description: "Get 15% off your entire order!",
+    cta: "View Details",
+    bgColor: "bg-primary/20",
+    textColor: "text-foreground"
+  },
+  {
+    id: 3,
+    title: "NEW ARRIVALS",
+    subtitle: "FRESH DROPS",
+    description: "Check out the latest strains from 40 Tons!",
+    cta: "Shop New",
+    bgColor: "bg-green-900",
+    textColor: "text-white"
+  }
+];
+
 export const demoRetailers: Retailer[] = [
   {
     id: 'bayside-cannabis',

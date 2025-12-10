@@ -17,7 +17,7 @@ const customJestConfig = {
     // Handle module aliases (this will be automatically configured for you soon)
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  testEnvironment: 'jest-environment-node',
+  testEnvironment: 'jest-environment-jsdom',
   testMatch: [
     '**/tests/**/*.spec.ts',
     '**/tests/**/*.spec.tsx',
@@ -30,7 +30,7 @@ const customJestConfig = {
     '!src/**/*.stories.{js,jsx,ts,tsx}',
     '!src/**/__tests__/**',
   ],
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       branches: 70,
       functions: 70,
