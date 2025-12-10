@@ -1,99 +1,70 @@
-
-// src/server/agents/ezal.ts
-import { createServerClient } from "@/firebase/server-client";
-import { EventType } from "@/types/domain";
-import { FieldValue } from "firebase-admin/firestore";
-
+import { AgentImplementation } from './harness';
+import { EzalMemory } from './schemas';
 import { logger } from '@/lib/logger';
-const HANDLED_TYPES: EventType[] = [
-  "checkout.failed",
-];
 
-async function handleDeadLetter(orgId: string, eventId: string, eventData: any, error: any) {
-  const { firestore: db } = await createServerClient();
-  const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
-  const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
+// Ezal: The Competitive Intelligence Agent
+export const ezalAgent: AgentImplementation<EzalMemory> = {
+  agentName: 'ezal',
 
-  const batch = db.batch();
-  batch.set(dlqRef, {
-    ...eventData,
-    _failedAt: FieldValue.serverTimestamp(),
-    _error: error?.message || String(error),
-    _agentId: 'ezal',
-  });
-  batch.delete(originalEventRef);
-  await batch.commit();
-}
+  async initialize(brandMemory, agentMemory) {
+    logger.info('[Ezal] Initializing. Checking watchlist...');
+    return agentMemory;
+  },
 
-export async function handleEzalEvent(orgId: string, eventId: string) {
-  const { firestore: db } = await createServerClient();
-  const agentId = 'ezal';
+  async orient(brandMemory, agentMemory) {
+    // 1. Check for stale competitor data (> 7 days old)
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 
-  const eventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
-  const eventSnap = await eventRef.get();
+    // Find a competitor who hasn't been scraped recently
+    const staleCompetitor = agentMemory.competitor_watchlist.find(c => {
+      if (!c.last_scrape) return true;
+      const last = typeof c.last_scrape === 'string' ? new Date(c.last_scrape).getTime() :
+        c.last_scrape instanceof Date ? c.last_scrape.getTime() : 0;
+      return last < sevenDaysAgo;
+    });
 
-  if (!eventSnap.exists) return;
-  const event = eventSnap.data() as any;
+    if (staleCompetitor) {
+      return `scrape:${staleCompetitor.id}`;
+    }
 
-  // Check if this agent has already handled this event.
-  if (event.processedBy && event.processedBy[agentId]) {
-    return;
+    // 2. Check for open gaps that need detail filling (Not fully implemented in this phase)
+    return null;
+  },
+
+  async act(brandMemory, agentMemory, targetId) {
+    let resultMessage = '';
+
+    if (targetId.startsWith('scrape:')) {
+      const competitorId = targetId.split(':')[1];
+      const competitor = agentMemory.competitor_watchlist.find(c => c.id === competitorId);
+
+      if (!competitor) throw new Error(`Competitor ${competitorId} not found`);
+
+      // Simulate Scrape
+      resultMessage = `Scraped ${competitor.name}. Found 2 potential gaps.`;
+
+      // Update timestamp
+      competitor.last_scrape = new Date();
+
+      // Simulate Finding a Gap
+      const newGapId = `gap_${Date.now()}`;
+      agentMemory.open_gaps.push({
+        id: newGapId,
+        description: `Competitor ${competitor.name} has lower price on Live Rosin 1g`,
+        status: 'open',
+        recommended_owner: 'money_mike'
+      });
+
+      return {
+        updatedMemory: agentMemory,
+        logEntry: {
+          action: 'scrape_competitor',
+          result: resultMessage,
+          metadata: { competitor_id: competitorId, new_gap_id: newGapId }
+        }
+      };
+    }
+
+    throw new Error(`Unknown target action ${targetId}`);
   }
-
-  if (!HANDLED_TYPES.includes(event.type)) {
-    // Mark as processed even if not handled to prevent re-scanning
-    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-    return;
-  }
-
-  try {
-    // For now, only inspect failures tagged with pricing issues (later)
-    if (event.data?.reason !== "pricing") {
-      await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-      return;
-    };
-
-    const orderId = event.refId;
-    if (!orderId) {
-      await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-      return;
-    };
-
-    const orderSnap = await db
-      .collection("organizations")
-      .doc(orgId)
-      .collection("orders")
-      .doc(orderId)
-      .get();
-
-    if (!orderSnap.exists) {
-      await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-      return;
-    };
-    const order = orderSnap.data() as any;
-
-    // TODO: for each item, compare to CannMenus competitor data
-    // and compute if we're overpriced vs nearby menus.
-
-    // Example placeholder insight:
-    const insightsRef = db
-      .collection("organizations")
-      .doc(orgId)
-      .collection("meta")
-      .doc("competitiveInsights");
-
-    await insightsRef.set(
-      {
-        lastUpdatedAt: new Date(),
-        notes: "Ezal placeholder – plug in CannMenus price comparison here.",
-      },
-      { merge: true }
-    );
-
-    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-
-  } catch (error) {
-    logger.error(`[${agentId}] Error processing event ${eventId}:`, error instanceof Error ? error : new Error(String(error)));
-    await handleDeadLetter(orgId, eventId, event, error);
-  }
-}
+};

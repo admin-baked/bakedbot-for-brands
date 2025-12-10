@@ -1,133 +1,81 @@
-
-// src/server/agents/pops.ts
-import { createServerClient } from "@/firebase/server-client";
-import { EventType } from "@/types/domain";
-import { FieldValue } from "firebase-admin/firestore";
-
+import { AgentImplementation } from './harness';
+import { PopsMemory, HypothesisSchema } from './schemas';
 import { logger } from '@/lib/logger';
-const HANDLED_TYPES: EventType[] = [
-  "reach.entry",
-  "checkout.started",
-  "checkout.paid",
-  "checkout.failed",
-  "subscription.updated",
-];
 
-async function handleDeadLetter(orgId: string, eventId: string, eventData: any, error: any) {
-  const { firestore: db } = await createServerClient();
-  const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
-  const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
+// Pops: The Business Intelligence Agent
+export const popsAgent: AgentImplementation<PopsMemory> = {
+  agentName: 'pops',
 
-  const batch = db.batch();
-  batch.set(dlqRef, {
-    ...eventData,
-    _failedAt: FieldValue.serverTimestamp(),
-    _error: error?.message || String(error),
-    _agentId: 'pops',
-  });
-  batch.delete(originalEventRef);
-  await batch.commit();
-}
+  async initialize(brandMemory, agentMemory) {
+    logger.info('[Pops] Initializing. Checking data freshness...');
+    // Stub: In reality, we'd check if our connections to POS/Ecommerce are live
+    return agentMemory;
+  },
 
-function toDateKey(ts: FirebaseFirestore.Timestamp | Date) {
-  const d = ts instanceof Date ? ts : ts.toDate();
-  const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  return `${yyyy}${mm}${dd}`;
-}
+  async orient(brandMemory, agentMemory) {
+    // Priority: Validate running hypotheses
+    const runningHypothesis = agentMemory.hypotheses_backlog.find(h => h.status === 'running');
+    if (runningHypothesis) {
+      return runningHypothesis.id;
+    }
 
-export async function handlePopsEvent(orgId: string, eventId: string) {
-  const { firestore: db } = await createServerClient();
-  const agentId = 'pops';
+    // Secondary: Propose new hypotheses (if backlog empty) - Out of scope for this simple loop
+    // Tertiary: Pick a proposed hypothesis to start running
+    const proposed = agentMemory.hypotheses_backlog.find(h => h.status === 'proposed');
+    if (proposed) {
+      return proposed.id;
+    }
 
-  const eventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
-  const eventSnap = await eventRef.get();
+    return null;
+  },
 
-  if (!eventSnap.exists) return;
-  const event = eventSnap.data() as any;
+  async act(brandMemory, agentMemory, targetId) {
+    const hypothesis = agentMemory.hypotheses_backlog.find(h => h.id === targetId);
+    if (!hypothesis) throw new Error(`Hypothesis ${targetId} not found`);
 
-  // Check if this agent has already handled this event.
-  if (event.processedBy && event.processedBy[agentId]) {
-    return;
-  }
+    let resultMessage = '';
 
-  if (!HANDLED_TYPES.includes(event.type)) {
-    // Mark as processed even if not handled to prevent re-scanning
-    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-    return;
-  }
+    if (hypothesis.status === 'proposed') {
+      hypothesis.status = 'running';
+      resultMessage = `Started validating hypothesis: ${hypothesis.description}`;
+    } else if (hypothesis.status === 'running') {
+      // Analyze Logic (Stub)
+      // Simulate checking metrics
+      const isPositiveResult = Math.random() > 0.4; // 60% chance of success for demo
 
-  const createdAt: FirebaseFirestore.Timestamp =
-    event.timestamp || FieldValue.serverTimestamp();
-  const dateKey = toDateKey(createdAt.toDate());
+      if (isPositiveResult) {
+        hypothesis.status = 'validated';
+        resultMessage = 'Hypothesis Validated: Metrics show positive lift.';
 
-  const dailyRef = db
-    .collection("organizations")
-    .doc(orgId)
-    .collection("analytics")
-    .doc(`daily-${dateKey}`);
+        // Log decision
+        agentMemory.decision_journal.push({
+          id: `dec_${Date.now()}`,
+          hypothesis_id: hypothesis.id,
+          decision: 'validated',
+          summary: 'Metrics improved by >5%. Adopted as standard.',
+          timestamp: new Date()
+        });
+      } else {
+        hypothesis.status = 'invalidated';
+        resultMessage = 'Hypothesis Invalidated: Metrics flat or negative.';
 
-  try {
-    await db.runTransaction(async (tx: any) => {
-      const snap = await tx.get(dailyRef);
-      const current = (snap.exists ? snap.data() : {}) as any;
-
-      const totals = current.totals || {};
-      const channels = current.channels || {};
-      const subscription = current.subscription || {};
-
-      switch (event.type as EventType) {
-        case "reach.entry": {
-          const channel = event.data?.channel || "unknown";
-          const ch = channels[channel] || { sessions: 0, checkoutsStarted: 0, paidCheckouts: 0 };
-          ch.sessions += 1;
-          channels[channel] = ch;
-          break;
-        }
-
-        case "checkout.started": {
-          totals.checkoutsStarted = (totals.checkoutsStarted || 0) + 1;
-          break;
-        }
-
-        case "checkout.paid": {
-          totals.paidCheckouts = (totals.paidCheckouts || 0) + 1;
-          totals.orders = (totals.orders || 0) + 1;
-          const amount = event.data?.total ?? 0;
-          totals.gmv = (totals.gmv || 0) + amount;
-          break;
-        }
-
-        case "checkout.failed": {
-          totals.failedCheckouts = (totals.failedCheckouts || 0) + 1;
-          break;
-        }
-
-        case "subscription.updated": {
-          subscription.currentPlanId = event.data?.planId || subscription.currentPlanId || null;
-          subscription.currentAmount = event.data?.amount ?? subscription.currentAmount ?? null;
-          break;
-        }
+        agentMemory.decision_journal.push({
+          id: `dec_${Date.now()}`,
+          hypothesis_id: hypothesis.id,
+          decision: 'invalidated',
+          summary: 'No significant lift observed. Reverting.',
+          timestamp: new Date()
+        });
       }
+    }
 
-      tx.set(
-        dailyRef,
-        {
-          date: `${dateKey.slice(0, 4)}-${dateKey.slice(4, 6)}-${dateKey.slice(6, 8)}`,
-          totals,
-          channels,
-          subscription,
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-    });
-
-    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-
-  } catch (error) {
-    logger.error(`[${agentId}] Error processing event ${eventId}:`, error instanceof Error ? error : new Error(String(error)));
-    await handleDeadLetter(orgId, eventId, event, error);
+    return {
+      updatedMemory: agentMemory,
+      logEntry: {
+        action: hypothesis.status === 'validated' ? 'validate_hypothesis' : 'analyze_hypothesis',
+        result: resultMessage,
+        metadata: { hypothesis_id: hypothesis.id }
+      }
+    };
   }
-}
+};
