@@ -40,6 +40,9 @@ export interface BundleDeal {
     savingsAmount: number;
     savingsPercent: number;
 
+    // Mix & Match Configuration
+    eligibleProductIds?: string[]; // IDs of products eligible for this bundle
+
     // Tiers for tiered bundles
     tiers?: {
         qty: number;

@@ -144,7 +144,7 @@ export default function DispensaryShopPage() {
             {/* New Dispensary Header & Navigation */}
             <DispensaryHeader brandName="Dispensary Name" />
             <CategoryNav />
-            <DealsCarousel />
+            <DealsCarousel slides={[]} />
 
             <div className="container mx-auto px-4 py-8">
                 {/* Removed old simple header, kept content below */}
