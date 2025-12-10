@@ -171,9 +171,18 @@ export async function handleMrsParkerEvent(orgId: string, eventId: string) {
   }
 }
 
+// --- Tool Definitions ---
+
+export interface MrsParkerTools {
+  // Predict churn risk for a segment (Genkit analysis of frequency)
+  predictChurnRisk(segmentId: string): Promise<{ riskLevel: 'high' | 'medium' | 'low'; atRiskCount: number }>;
+  // Generate a loyalty campaign concept
+  generateLoyaltyCampaign(segmentId: string, goal: string): Promise<{ subject: string; body: string }>;
+}
+
 // --- Mrs. Parker Agent Implementation (Harness) ---
 
-export const mrsParkerAgent: AgentImplementation<MrsParkerMemory> = {
+export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools> = {
   agentName: 'mrs_parker',
 
   async initialize(brandMemory, agentMemory) {
@@ -187,25 +196,35 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory> = {
     return null;
   },
 
-  async act(brandMemory, agentMemory, targetId, tools: any) {
+  async act(brandMemory, agentMemory, targetId, tools: MrsParkerTools) {
     if (targetId.startsWith('journey:')) {
 
       const journeyId = targetId.split(':')[1];
       const journey = agentMemory.journeys.find(j => j.id === journeyId);
       if (!journey) throw new Error(`Journey ${journeyId} not found`);
 
-      const resultMessage = `Processed step 1 for journey ${journeyId}. Triggered 45 emails via Craig.`;
+      // Use Tool: Predict Churn (Context aware step)
+      const churnRisk = await tools.predictChurnRisk('vip_segment');
+
+      let resultMessage = `Processed step 1 for journey ${journeyId}. Churn Risk for VIPs: ${churnRisk.riskLevel}.`;
+
+      if (churnRisk.riskLevel === 'high') {
+        // Use Tool: Generate Winback Campaign
+        const campaign = await tools.generateLoyaltyCampaign('vip_segment', 'Retain High Value Customers');
+        resultMessage += ` Generated Winback Campaign: "${campaign.subject}".`;
+      }
 
       return {
         updatedMemory: agentMemory,
         logEntry: {
           action: 'process_journey_step',
           result: resultMessage,
-          metadata: { journey_id: journey.id, step: 1 }
+          metadata: { journey_id: journey.id, step: 1, churn_risk: churnRisk.riskLevel }
         }
       };
     }
     throw new Error(`Unknown target ${targetId}`);
   }
 };
+
 
