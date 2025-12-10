@@ -42,8 +42,21 @@ const DEMO_BUNDLE_DEAL: BundleDeal = {
     type: 'mix_match',
     minProducts: 3,
     bundlePrice: 50.00,
-    eligibleProductIds: ['demo-40t-gummies', 'demo-40t-cookies'], // Mock logic handles filtering
-    originalTotal: 66.00
+    eligibleProductIds: ['demo-40t-gummies', 'demo-40t-cookies'],
+    originalTotal: 66.00,
+
+    // Required properties
+    status: 'active',
+    createdBy: 'brand',
+    brandId: 'demo-40tons',
+    products: [], // Empty for mix & match as selection happens dynamically
+    savingsAmount: 16.00,
+    savingsPercent: 24,
+    currentRedemptions: 0,
+    featured: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    orgId: 'demo-org-40tons'
 };
 
 export default function DemoShopClient() {
