@@ -159,6 +159,18 @@
             "owner": "ai_builder_swarm",
             "dependencies": [],
             "area": "backend"
+        },
+        {
+            "id": "feat_mobile_optimization",
+            "title": "Mobile Optimization (Tools & Dashboards)",
+            "status": "in-progress",
+            "description": "Ensure responsive layouts for all role dashboards (Brand, Dispensary, Customer, Super Admin) and embedded tools (Chatbot, Locator). Fix overflow, touch targets, and sidebar visibility on mobile.",
+            "acceptance_tests": [
+                "manual_verify_mobile_layouts"
+            ],
+            "owner": "antigravity",
+            "dependencies": [],
+            "area": "frontend"
         }
     ]
 }
