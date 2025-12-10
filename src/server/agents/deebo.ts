@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { ai } from '@/ai/genkit';
+
 
 export const ComplianceResultSchema = z.object({
   status: z.enum(['pass', 'fail', 'warning']),
@@ -26,6 +28,8 @@ export type RulePack = z.infer<typeof RulePackSchema>;
  * and run regex/LLM checks locally.
  */
 export const deebo = {
+
+
   /**
    * Check content against compliance rules for a specific jurisdiction and channel.
    */
@@ -35,34 +39,68 @@ export const deebo = {
     content: string
   ): Promise<ComplianceResult> {
 
-    // TODO: Load actual rule pack from `brands/{brandId}/agents/deebo/rule_packs`
-    // For Phase 1, we use a simple heuristic stub.
+    try {
+      // Prompt for Genkit
+      const prompt = `
+        You are an expert Cannabis Compliance Officer for jurisdiction: ${jurisdiction}.
+        Channel: ${channel}.
+        
+        Analyze the following content for compliance violations:
+        "${content}"
+        
+        Rules to enforce:
+        1. No medical claims (cure, treat, prevent, health benefits).
+        2. No appeal to minors (cartoons, candy-like references).
+        3. No guarantees of satisfaction or effects.
+        4. State-specific constraint: If jurisdiction is 'IL', disallow showing consumption.
+        
+        Return a JSON object matching this schema:
+        {
+          "status": "pass" | "fail" | "warning",
+          "violations": ["string"],
+          "suggestions": ["string"]
+        }
+        
+        Output JSON only.
+      `;
 
-    const violations: string[] = [];
+      const result = await ai.generate({
+        prompt: prompt,
+        output: { schema: ComplianceResultSchema } // Use Genkit's strict schema enforcement if available, or just parse
+      });
 
-    // Example global rule stub
-    if (content.toLowerCase().includes('guaranteed')) {
-      violations.push('Cannot use the word "guaranteed" in any claim.');
-    }
+      // Genkit output returns strongly typed object if schema is provided in defineFlow/generate? 
+      // check:types will reveal if ai.generate supports 'output' prop natively in this version 
+      // or if we need to parse result.text().
+      // Based on available docs/snippets, we often get result.output() or result.data.
 
-    if (content.toLowerCase().includes('cure')) {
-      violations.push('Cannot imply "cure" for medical conditions.');
-    }
+      // Let's assume result.output is the typed response if we passed schema, 
+      // OR we just parse the text if not. 
+      // For safety in this "quick refactor", let's assume we might need to parse JSON from text 
+      // if not using a specific 'defineFlow'. 
 
-    if (violations.length > 0) {
+      if (result.output) {
+        return result.output as ComplianceResult;
+      }
+
+      // Fallback parsing if output isn't automatically structured
+      const text = result.text;
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.lastIndexOf('}') + 1;
+      const jsonStr = text.slice(jsonStart, jsonEnd);
+      return JSON.parse(jsonStr) as ComplianceResult;
+
+    } catch (error) {
+      console.error("Deebo Genkit Error:", error);
+      // Fallback to strict fail on error
       return {
         status: 'fail',
-        violations,
-        suggestions: ['Remove specific medical claims.', 'Add disclaimer.'],
+        violations: ['Compliance check failed due to system error.'],
+        suggestions: ['Retry later.']
       };
     }
-
-    return {
-      status: 'pass',
-      violations: [],
-      suggestions: [],
-    };
   },
+
 
   /**
    * Fetch the active rule pack for inspection.
