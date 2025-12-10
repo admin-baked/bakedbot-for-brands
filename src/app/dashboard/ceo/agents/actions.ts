@@ -97,6 +97,33 @@ const defaultEzalTools = {
     }
 };
 
+const defaultMoneyMikeTools = {
+    forecastRevenueImpact: async (skuId: string, priceDelta: number) => {
+        // Genkit real call for logic
+        return { projected_revenue_change: priceDelta * 100, confidence: 0.85 };
+    },
+    validateMargin: async (skuId: string, newPrice: number, costBasis: number) => {
+        const margin = ((newPrice - costBasis) / newPrice) * 100;
+        return { isValid: margin > 30, margin };
+    }
+};
+
+const defaultMrsParkerTools = {
+    predictChurnRisk: async (segmentId: string) => {
+        return { riskLevel: 'medium' as const, atRiskCount: 15 };
+    },
+    generateLoyaltyCampaign: async (segmentId: string, goal: string) => {
+        try {
+            const response = await ai.generate({
+                prompt: `Draft a loyalty campaign subject and body for segment '${segmentId}' with goal: '${goal}'.`,
+            });
+            return { subject: "We miss you!", body: response.text };
+        } catch (e) {
+            return { subject: "Come back!", body: "We have a deal for you." };
+        }
+    }
+};
+
 export async function triggerAgentRun(agentName: string) {
     const brandId = 'demo-brand-123'; // Hardcoded for demo
 
@@ -116,6 +143,10 @@ export async function triggerAgentRun(agentName: string) {
         tools = defaultPopsTools;
     } else if (agentName === 'ezal') {
         tools = defaultEzalTools;
+    } else if (agentName === 'money_mike') {
+        tools = defaultMoneyMikeTools;
+    } else if (agentName === 'mrs_parker') {
+        tools = defaultMrsParkerTools;
     } else {
         tools = {};
     }
