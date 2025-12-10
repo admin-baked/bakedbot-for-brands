@@ -40,8 +40,9 @@ export const craigAgent: AgentImplementation<CraigMemory> = {
     return candidates.length > 0 ? candidates[0].id : null;
   },
 
-  async act(brandMemory, agentMemory, targetId) {
+  async act(brandMemory, agentMemory, targetId, tools: any) {
     const campaignIndex = agentMemory.campaigns.findIndex(c => c.id === targetId);
+
     if (campaignIndex === -1) {
       throw new Error(`Target campaign ${targetId} not found`);
     }

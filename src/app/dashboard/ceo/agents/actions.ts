@@ -27,19 +27,12 @@ export async function triggerAgentRun(agentName: string) {
         throw new Error(`Unknown agent: ${agentName}`);
     }
 
-    // Adapter for the loader interface to match persistence signature
-    const loaderAdapter = {
-        loadBrandMemory: persistence.loadBrandMemory,
-        loadAgentMemory: (bId: string, aName: string) => persistence.loadAgentMemory(bId, aName, {} as any), // Schema passed as any since harness treats it generically, but we might need stricter typing in real app
-        saveAgentMemory: persistence.saveAgentMemory,
-        appendLog: persistence.appendLog,
-    };
+    // Adapter is now the persistence object itself
+    // We pass a dummy tools object for now, or specific tools if we have them
+    const tools = {};
 
     try {
-        // In TS, the harness expects <T> but since we have a map of different T's, 
-        // we might need to cast or use a more flexible harness signature.
-        // For this Server Action, we assume valid types.
-        await runAgent(brandId, loaderAdapter as any, agentImpl as any);
+        await runAgent(brandId, persistence, agentImpl as any, tools);
 
         revalidatePath('/dashboard/ceo/agents'); // Refresh the UI
         return { success: true, message: `Ran ${agentName} successfully.` };
@@ -47,6 +40,7 @@ export async function triggerAgentRun(agentName: string) {
         return { success: false, message: error.message };
     }
 }
+
 
 export async function fetchAgentLogs() {
     const brandId = 'demo-brand-123';

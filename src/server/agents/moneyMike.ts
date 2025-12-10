@@ -106,8 +106,9 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory> = {
     return null;
   },
 
-  async act(brandMemory, agentMemory, targetId) {
+  async act(brandMemory, agentMemory, targetId, tools: any) {
     const exp = agentMemory.pricing_experiments.find(e => e.id === targetId);
+
     if (!exp) throw new Error(`Experiment ${targetId} not found`);
 
     let resultMessage = '';

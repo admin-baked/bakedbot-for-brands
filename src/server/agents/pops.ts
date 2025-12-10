@@ -29,8 +29,9 @@ export const popsAgent: AgentImplementation<PopsMemory> = {
     return null;
   },
 
-  async act(brandMemory, agentMemory, targetId) {
+  async act(brandMemory, agentMemory, targetId, tools: any) {
     const hypothesis = agentMemory.hypotheses_backlog.find(h => h.id === targetId);
+
     if (!hypothesis) throw new Error(`Hypothesis ${targetId} not found`);
 
     let resultMessage = '';

@@ -31,8 +31,9 @@ export const ezalAgent: AgentImplementation<EzalMemory> = {
     return null;
   },
 
-  async act(brandMemory, agentMemory, targetId) {
+  async act(brandMemory, agentMemory, targetId, tools: any) {
     let resultMessage = '';
+
 
     if (targetId.startsWith('scrape:')) {
       const competitorId = targetId.split(':')[1];
