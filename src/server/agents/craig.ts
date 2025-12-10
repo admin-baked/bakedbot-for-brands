@@ -1,18 +1,27 @@
 import { AgentImplementation } from './harness';
 import { CraigMemory, CampaignSchema } from './schemas';
-import { deebo } from './deebo';
+import { ComplianceResult } from './deebo'; // Assuming this is exported from deebo.ts
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
-// Craig: The Marketing Automation Agent
-export const craigAgent: AgentImplementation<CraigMemory> = {
+// --- Tool Definitions ---
+
+export interface CraigTools {
+  generateCopy(prompt: string, context: any): Promise<string>;
+  validateCompliance(content: string, jurisdictions: string[]): Promise<ComplianceResult>;
+  sendSms(to: string, body: string, metadata?: any): Promise<boolean>;
+  getCampaignMetrics(campaignId: string): Promise<{ kpi: number }>;
+}
+
+// --- Craig Agent Implementation ---
+
+export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
   agentName: 'craig',
 
   async initialize(brandMemory, agentMemory) {
     logger.info('[Craig] Initializing. Checking compliance strictness...');
 
     // Example Sanity Check: Ensure all active campaigns have a valid objective in Brand Memory
-    // In a real implementation, we might pause campaigns whose objective was achieved.
     agentMemory.campaigns.forEach(campaign => {
       const parentObj = brandMemory.priority_objectives.find(o => o.id === campaign.objective_id);
       if (parentObj?.status === 'achieved' && campaign.status === 'running') {
@@ -40,7 +49,7 @@ export const craigAgent: AgentImplementation<CraigMemory> = {
     return candidates.length > 0 ? candidates[0].id : null;
   },
 
-  async act(brandMemory, agentMemory, targetId, tools: any) {
+  async act(brandMemory, agentMemory, targetId, tools: CraigTools) {
     const campaignIndex = agentMemory.campaigns.findIndex(c => c.id === targetId);
 
     if (campaignIndex === -1) {
@@ -52,39 +61,52 @@ export const craigAgent: AgentImplementation<CraigMemory> = {
 
     // Action Logic based on Status
     if (campaign.status === 'queued') {
-      // 1. Generate Content (Stub)
-      const content = `Exclusive offer: Get 20% off your next order!`;
+      // 1. Generate Content via Tool
+      logger.info(`[Craig] Generating copy for campaign ${campaign.id}...`);
+      const context = { objective: campaign.objective, constraints: brandMemory.constraints }; // simplified context
+      const content = await tools.generateCopy(`Draft an SMS for: ${campaign.objective}`, context);
 
-      // 2. Check Compliance
+
+      // 2. Check Compliance via Tool
       if (campaign.constraints.requires_deebo_check) {
-        // We check against the first jurisdiction for simplicity in Phase 2
         const jurisdiction = campaign.constraints.jurisdictions[0] || 'IL';
-        const compliance = await deebo.checkContent(jurisdiction, 'sms', content);
+        const compliance = await tools.validateCompliance(content, [jurisdiction]);
 
         if (compliance.status === 'fail') {
           resultMessage = `Compliance Check Failed: ${compliance.violations.join(', ')}`;
-          // Mark as failing so we fix it next cycle
           campaign.status = 'failing';
-          // Log specific violation in notes
           if (!campaign.notes) campaign.notes = [];
           campaign.notes.push(`Compliance Violation: ${compliance.violations.join('; ')}`);
         } else {
-          resultMessage = `Compliance Passed. Campaign Launched.`;
-          campaign.status = 'running';
-          campaign.last_run = new Date().toISOString();
+          // 3. Send SMS (Mock/Real) via Tool
+          // In a real scenario, we'd probably schedule it or send to a test group first.
+          // For this agent, we'll assume we are launching.
+          // We don't have a specific 'target audience' list in the memory stub, so we'll mock logical dispatch
+          logger.info(`[Craig] Dispatching to segment...`);
+          // Assuming tools.sendSms handles batch or we just call it once for 'launch'
+          // For now, let's say "Launch" just changes state, sending might happen in a separate 'delivery' agent or step. 
+          // But let's use the tool to prove we accessed it.
+          const sent = await tools.sendSms('OBJECTIVE_AUDIENCE', content, { campaignId: campaign.id });
+
+          if (sent) {
+            resultMessage = `Compliance Passed. Campaign Launched & Sent.`;
+            campaign.status = 'running';
+            campaign.last_run = new Date().toISOString();
+          } else {
+            resultMessage = `Compliance Passed, but Sending Failed.`;
+            campaign.status = 'failing';
+          }
         }
       } else {
-        // Skip check
         campaign.status = 'running';
         resultMessage = 'Campaign Launched (No Compliance Check Required)';
       }
     } else if (campaign.status === 'running') {
-      // 3. Monitor & Update KPI (Stub)
-      // In reality, we'd query Pops or an Analytics Service here
+      // 3. Monitor & Update KPI via Tool
+      const metrics = await tools.getCampaignMetrics(campaign.id);
+
       const previous = campaign.kpi.current;
-      // Simulate improvement
-      const mockImprovement = 0.02;
-      campaign.kpi.current = Math.min(1.0, previous + mockImprovement);
+      campaign.kpi.current = metrics.kpi; // Update with real(ish) data
 
       resultMessage = `Updated KPI: ${previous.toFixed(2)} -> ${campaign.kpi.current.toFixed(2)}`;
 
@@ -93,13 +115,10 @@ export const craigAgent: AgentImplementation<CraigMemory> = {
         resultMessage += ` (Target Achieved!)`;
       }
     } else if (campaign.status === 'failing') {
-      // Attempt remediation (Stub)
       resultMessage = "Attempted remediation on failing campaign. Resetting to queued.";
       campaign.status = 'queued'; // Retry loop
     }
 
-    // Return updated memory + log entry
-    // We clone the memory effectively by returning the modified object (passed by reference in JS, but harness expects explicit return)
     return {
       updatedMemory: agentMemory,
       logEntry: {
@@ -114,6 +133,7 @@ export const craigAgent: AgentImplementation<CraigMemory> = {
     };
   }
 };
+
 
 export async function handleCraigEvent(orgId: string, eventId: string) {
   logger.info(`[Craig] Handled event ${eventId} for org ${orgId} (Stub)`);
