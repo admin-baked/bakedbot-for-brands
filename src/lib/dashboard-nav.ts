@@ -108,6 +108,27 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     badge: 'coming-soon',
   },
   {
+    key: 'menu-bundles',
+    label: 'Menu Bundles',
+    href: '/dashboard/bundles',
+    icon: 'package-plus',
+    group: 'growth',
+  },
+  {
+    key: 'carousels',
+    label: 'Carousels',
+    href: '/dashboard/carousels',
+    icon: 'images',
+    group: 'growth',
+  },
+  {
+    key: 'loyalty',
+    label: 'Loyalty',
+    href: '/dashboard/loyalty',
+    icon: 'award',
+    group: 'lifecycle',
+  },
+  {
     key: 'settings',
     label: 'Settings',
     href: '/dashboard/settings',
