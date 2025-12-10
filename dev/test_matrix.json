@@ -1,0 +1,12 @@
+{
+    "tests": [
+        {
+            "id": "test_brand_memory_create_read_update",
+            "command": "npm test -- brandMemory.test.ts",
+            "files": [
+                "src/server/agents/schemas.ts"
+            ],
+            "area": "backend"
+        }
+    ]
+}
