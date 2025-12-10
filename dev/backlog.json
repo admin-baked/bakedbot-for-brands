@@ -45,13 +45,19 @@
         {
             "id": "feat_iheart_loyalty_production",
             "title": "iHeart Integration & Smokey/Loyalty Production",
-            "status": "pending",
+            "status": "passing",
             "description": "Develop iHeart integration service. Finalize Smokey (Budtender) and Loyalty System (Points) for production with 100% unit test coverage.",
             "acceptance_tests": [
                 "test_smokey_logic",
                 "test_loyalty_points_calculation",
                 "test_iheart_service_mock"
             ],
+            "completed_at": "2025-12-10T07:30:00Z",
+            "test_results": {
+                "test_smokey_logic": "passed (14 tests)",
+                "test_loyalty_points_calculation": "passed (22 tests)",
+                "test_iheart_service_mock": "passed (17 tests)"
+            },
             "owner": "ai_builder_swarm",
             "dependencies": [
                 "feat_agent_tools_expansion"
