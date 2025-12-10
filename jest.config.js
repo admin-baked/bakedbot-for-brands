@@ -31,7 +31,7 @@ const customJestConfig = {
     '!src/**/__tests__/**',
   ],
   transformIgnorePatterns: [
-    'node_modules/(?!(uuid)/)',
+    'node_modules/(?!(uuid|firebase|@firebase)/)',
   ],
   coverageThreshold: {
     global: {

@@ -4,13 +4,13 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { LoyaltySettings } from '@/types/customers';
 import { revalidatePath } from 'next/cache';
 
-const db = getAdminFirestore();
 const SETTINGS_COLLECTION = 'loyalty_settings';
 
 export async function getLoyaltySettings(orgId: string): Promise<{ success: boolean; data?: LoyaltySettings; error?: string }> {
     try {
         if (!orgId) throw new Error('Org ID is required');
 
+        const db = getAdminFirestore();
         const doc = await db.collection(SETTINGS_COLLECTION).doc(orgId).get();
 
         if (doc.exists) {
@@ -39,6 +39,7 @@ export async function updateLoyaltySettings(orgId: string, data: LoyaltySettings
     try {
         if (!orgId) throw new Error('Org ID is required');
 
+        const db = getAdminFirestore();
         await db.collection(SETTINGS_COLLECTION).doc(orgId).set(data);
 
         revalidatePath('/dashboard/loyalty');

@@ -6,7 +6,6 @@ import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-const db = getAdminFirestore();
 const BUNDLES_COLLECTION = 'bundles';
 
 // Schema for creation validation
@@ -24,6 +23,7 @@ export async function getBundles(orgId: string): Promise<{ success: boolean; dat
     try {
         if (!orgId) throw new Error('Organization ID is required');
 
+        const db = getAdminFirestore();
         const snapshot = await db.collection(BUNDLES_COLLECTION)
             .where('orgId', '==', orgId)
             .orderBy('createdAt', 'desc')
@@ -56,6 +56,7 @@ export async function createBundle(data: Partial<BundleDeal>): Promise<{ success
         }
 
         const id = uuidv4();
+        const db = getAdminFirestore();
         const now = new Date(); // Firestore Admin SDK supports Date objects directly usually, or use Timestamp
 
         const newBundle: BundleDeal = {
@@ -94,6 +95,7 @@ export async function updateBundle(id: string, data: Partial<BundleDeal>): Promi
     try {
         if (!id) throw new Error('Bundle ID is required');
 
+        const db = getAdminFirestore();
         await db.collection(BUNDLES_COLLECTION).doc(id).update({
             ...data,
             updatedAt: new Date(),
@@ -111,6 +113,7 @@ export async function deleteBundle(id: string): Promise<{ success: boolean; erro
     try {
         if (!id) throw new Error('Bundle ID is required');
 
+        const db = getAdminFirestore();
         await db.collection(BUNDLES_COLLECTION).doc(id).delete();
 
         revalidatePath('/dashboard/bundles');
