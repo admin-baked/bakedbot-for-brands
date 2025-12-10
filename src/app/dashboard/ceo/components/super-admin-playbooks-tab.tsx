@@ -28,6 +28,9 @@ import {
     Settings,
     Bot
 } from 'lucide-react';
+import { executePlaybook } from '../agents/actions';
+import { useToast } from '@/hooks/use-toast';
+
 
 interface InternalPlaybook {
     id: string;
@@ -177,11 +180,34 @@ export default function SuperAdminPlaybooksTab() {
         ));
     };
 
-    const runPlaybook = (id: string, e: React.MouseEvent) => {
+    // ... inside component
+
+    const { toast } = useToast();
+
+    const runPlaybook = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        // In production, this would trigger the playbook
-        console.log('Running playbook:', id);
+        toast({ title: 'Starting Playbook...', description: `Executing ${id}` });
+
+        try {
+            const result = await executePlaybook(id);
+            if (result.success) {
+                toast({
+                    title: 'Playbook Completed',
+                    description: result.message,
+                    variant: 'default'
+                });
+            } else {
+                toast({
+                    title: 'Playbook Failed',
+                    description: result.message,
+                    variant: 'destructive'
+                });
+            }
+        } catch (err) {
+            toast({ title: 'Error', description: 'Failed to trigger playbook.', variant: 'destructive' });
+        }
     };
+
 
     const stats = {
         active: playbooks.filter(p => p.active).length,
