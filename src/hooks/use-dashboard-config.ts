@@ -160,6 +160,27 @@ export function useDashboardConfig() {
         roles: ['dispensary', 'owner'],
       },
       {
+        label: 'Menu Bundles',
+        href: '/dashboard/bundles',
+        icon: 'PackagePlus',
+        description: 'Create and manage product bundles.',
+        roles: ['dispensary', 'owner'],
+      },
+      {
+        label: 'Carousels',
+        href: '/dashboard/carousels',
+        icon: 'Images',
+        description: 'Manage featured product carousels.',
+        roles: ['dispensary', 'owner'],
+      },
+      {
+        label: 'Loyalty',
+        href: '/dashboard/loyalty',
+        icon: 'Award',
+        description: 'Manage loyalty points and tiered rewards.',
+        roles: ['dispensary', 'owner'],
+      },
+      {
         label: 'Segments',
         href: '/dashboard/segments',
         icon: 'PieChart',
