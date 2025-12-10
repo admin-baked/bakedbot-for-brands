@@ -63,6 +63,7 @@ const cartItemSchema = z.object({
   quantity: z.number().int().positive(),
   price: z.number().positive(),
   category: z.string().optional(),
+  productType: z.enum(['flower', 'concentrate', 'edibles']).optional(),
   thcPercent: z.number().optional(),
   cbdPercent: z.number().optional(),
 });

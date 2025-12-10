@@ -1,0 +1,97 @@
+{
+  "features": [
+    {
+      "id": "feat_validation_payment_routes",
+      "name": "Add Zod validation to payment routes",
+      "priority": "critical",
+      "status": "passing",
+      "completed_at": "2025-12-06T12:30:00Z",
+      "files": [
+        "src/app/api/checkout/process-payment/route.ts",
+        "src/app/api/checkout/smokey-pay/route.ts",
+        "src/app/api/payments/create-intent/route.ts"
+      ],
+      "files_completed": [
+        "src/app/api/checkout/process-payment/route.ts"
+      ],
+      "dependencies": ["schemas.ts"],
+      "test_command": "npm run check:types && npm run build",
+      "test_results": {
+        "type_check": "passed",
+        "last_run": "2025-12-06T12:30:00Z"
+      }
+    },
+    {
+      "id": "feat_validation_cannmenus_routes",
+      "name": "Add Zod validation to CannMenus routes",
+      "priority": "high",
+      "status": "pending",
+      "files": [
+        "src/app/api/cannmenus/sync/route.ts",
+        "src/app/api/cannmenus/semantic-search/route.ts",
+        "src/app/api/cannmenus/products/route.ts"
+      ],
+      "dependencies": ["schemas.ts"],
+      "test_command": "npm run check:types && npm run build"
+    },
+    {
+      "id": "feat_fix_any_types_agents",
+      "name": "Replace any types in agent files",
+      "priority": "high",
+      "status": "pending",
+      "files": [
+        "src/server/agents/craig.ts",
+        "src/server/agents/smokey.ts",
+        "src/server/agents/mrsParker.ts",
+        "src/server/agents/pops.ts",
+        "src/server/agents/moneyMike.ts",
+        "src/server/agents/ezal.ts"
+      ],
+      "dependencies": [],
+      "test_command": "npm run check:types"
+    },
+    {
+      "id": "feat_unit_test_validation_schemas",
+      "name": "Unit tests for validation schemas",
+      "priority": "medium",
+      "status": "pending",
+      "files": [
+        "src/app/api/__tests__/schemas.test.ts"
+      ],
+      "dependencies": ["schemas.ts"],
+      "test_command": "npm test src/app/api/__tests__/schemas.test.ts"
+    },
+    {
+      "id": "feat_unit_test_agent_craig",
+      "name": "Unit tests for Craig agent",
+      "priority": "medium",
+      "status": "pending",
+      "files": [
+        "tests/server/agents/craig.spec.ts"
+      ],
+      "dependencies": ["src/server/agents/craig.ts"],
+      "test_command": "npm test tests/server/agents/craig.spec.ts"
+    },
+    {
+      "id": "feat_auth_pattern_docs",
+      "name": "Document and secure dev auth pattern",
+      "priority": "medium",
+      "status": "pending",
+      "files": [
+        "docs/DEV_AUTH_PATTERN.md",
+        "src/lib/auth.ts"
+      ],
+      "dependencies": [],
+      "test_command": "npm run check:types"
+    }
+  ],
+  "metadata": {
+    "created": "2025-12-06",
+    "last_updated": "2025-12-06T12:30:00Z",
+    "total_features": 6,
+    "completed": 0,
+    "in_progress": 1,
+    "pending": 5,
+    "passing": 1
+  }
+}
