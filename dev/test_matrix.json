@@ -1,0 +1,61 @@
+{
+  "test_commands": {
+    "type_check": {
+      "command": "npm run check:types",
+      "description": "TypeScript type checking",
+      "timeout": 120000
+    },
+    "build": {
+      "command": "npm run build",
+      "description": "Production build verification",
+      "timeout": 300000
+    },
+    "unit_test": {
+      "command": "npm test",
+      "description": "Jest unit tests",
+      "timeout": 60000
+    },
+    "lint": {
+      "command": "npx next lint",
+      "description": "ESLint code quality check",
+      "timeout": 120000
+    },
+    "e2e": {
+      "command": "npx playwright test",
+      "description": "End-to-end tests",
+      "timeout": 300000
+    }
+  },
+  "test_suites": {
+    "api_validation": {
+      "commands": ["type_check", "build"],
+      "required_for": ["feat_validation_payment_routes", "feat_validation_cannmenus_routes"]
+    },
+    "type_safety": {
+      "commands": ["type_check"],
+      "required_for": ["feat_fix_any_types_agents"]
+    },
+    "unit_tests": {
+      "commands": ["unit_test"],
+      "required_for": ["feat_unit_test_validation_schemas", "feat_unit_test_agent_craig"]
+    },
+    "documentation": {
+      "commands": ["type_check"],
+      "required_for": ["feat_auth_pattern_docs"]
+    }
+  },
+  "quality_gates": {
+    "critical_features": {
+      "must_pass": ["type_check", "build"],
+      "can_skip": ["lint", "e2e"]
+    },
+    "high_features": {
+      "must_pass": ["type_check"],
+      "can_skip": ["build", "lint", "e2e"]
+    },
+    "medium_features": {
+      "must_pass": ["type_check"],
+      "can_skip": ["build", "lint", "e2e"]
+    }
+  }
+}
