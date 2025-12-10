@@ -15,6 +15,7 @@ export type DashboardNavLink = {
   hidden?: boolean;
   active?: boolean;
   roles?: Role[]; // Roles that can access this link
+  badge?: 'beta' | 'locked' | 'coming-soon';
 };
 
 /**
@@ -64,6 +65,7 @@ export function useDashboardConfig() {
         icon: 'Map',
         description: 'Visualize SKU coverage and retail partners.',
         roles: ['brand', 'owner'],
+        badge: 'coming-soon',
       },
       {
         label: 'Content AI',
@@ -71,6 +73,7 @@ export function useDashboardConfig() {
         icon: 'PenSquare',
         description: 'Generate product descriptions, social images, and review summaries.',
         roles: ['brand', 'owner'],
+        badge: 'coming-soon',
       },
       {
         label: 'Analytics',
@@ -78,6 +81,7 @@ export function useDashboardConfig() {
         icon: 'BarChart3',
         description: 'Explore sales data and product performance.',
         roles: ['brand', 'owner'],
+        badge: 'coming-soon',
       },
       {
         label: 'Loyalty',
@@ -107,6 +111,7 @@ export function useDashboardConfig() {
         icon: 'Tag',
         description: 'AI-driven inventory promotions.',
         roles: ['brand', 'owner'],
+        badge: 'coming-soon',
       },
       {
         label: 'App Store',
@@ -114,6 +119,7 @@ export function useDashboardConfig() {
         icon: 'LayoutGrid',
         description: 'Manage POS and marketing integrations.',
         roles: ['brand', 'owner', 'dispensary'],
+        badge: 'coming-soon',
       },
       // Shared Commerce & E-com
       {
@@ -143,6 +149,7 @@ export function useDashboardConfig() {
         icon: 'Megaphone',
         description: 'Manage brand ambassadors and referral programs.',
         roles: ['brand', 'owner'],
+        badge: 'coming-soon',
       },
       // Dispensary-specific links (Remaining)
       {
@@ -165,6 +172,7 @@ export function useDashboardConfig() {
         icon: 'Eye',
         description: 'Real-time camera analytics and operations monitoring.',
         roles: ['brand', 'dispensary', 'owner'],
+        badge: 'coming-soon',
       },
       // Duplicate App Store link removed
       // Owner-specific link

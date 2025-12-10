@@ -4,7 +4,7 @@ export type DashboardNavItem = {
   label: string;
   href: string;
   icon?: string; // we'll map these to actual icons later
-  badge?: 'beta' | 'locked';
+  badge?: 'beta' | 'locked' | 'coming-soon';
   group?: 'core' | 'growth' | 'lifecycle' | 'settings';
 };
 
@@ -29,7 +29,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     href: '/dashboard/sanctum',
     icon: 'shield',
     group: 'core',
-    badge: 'beta',
+    badge: 'coming-soon',
   },
   {
     key: 'knowledge-base',
@@ -37,6 +37,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     href: '/dashboard/knowledge-base',
     icon: 'book-open',
     group: 'core',
+    badge: 'coming-soon',
   },
   {
     key: 'growth-engine',
@@ -44,6 +45,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     href: '/dashboard/growth',
     icon: 'trending-up',
     group: 'growth',
+    badge: 'coming-soon',
   },
   {
     key: 'campaigns',
@@ -51,7 +53,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     href: '/dashboard/campaigns',
     icon: 'send',
     group: 'growth',
-    badge: 'locked',
+    badge: 'coming-soon',
   },
   {
     key: 'playbooks',
@@ -87,6 +89,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     href: '/dashboard/distribution',
     icon: 'truck',
     group: 'growth',
+    badge: 'coming-soon',
   },
   {
     key: 'content',
@@ -94,6 +97,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     href: '/dashboard/content',
     icon: 'pen-tool',
     group: 'growth',
+    badge: 'coming-soon',
   },
   {
     key: 'analytics',
@@ -101,6 +105,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     href: '/dashboard/analytics',
     icon: 'bar-chart',
     group: 'growth',
+    badge: 'coming-soon',
   },
   {
     key: 'settings',
