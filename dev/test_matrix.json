@@ -7,6 +7,22 @@
                 "src/server/agents/schemas.ts"
             ],
             "area": "backend"
+        },
+        {
+            "id": "test_craig_selects_failing_campaign",
+            "command": "npm test -- craig.test.ts",
+            "files": [
+                "src/server/agents/craig.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "check_types_passing",
+            "command": "npm run check:types",
+            "files": [
+                "src/**/*.ts"
+            ],
+            "area": "backend"
         }
     ]
 }
