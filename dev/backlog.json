@@ -84,11 +84,16 @@
         {
             "id": "feat_unit_test_services_cannmenus",
             "title": "Unit Tests: CannMenus Integration",
-            "status": "pending",
+            "status": "passing",
             "description": "Create unit tests for `src/server/services/cannmenus.ts`. Verify API payload construction and error handling.",
             "acceptance_tests": [
                 "test_service_cannmenus"
             ],
+            "completed_at": "2025-12-10T08:30:00Z",
+            "test_results": {
+                "test_service_cannmenus": "passed (17/17 tests - 100% passing)"
+            },
+            "notes": "All CannMenus API integration functionality fully tested including findRetailersCarryingBrand, searchProducts, error handling, retry logic, and data transformation.",
             "owner": "ai_builder_swarm",
             "dependencies": [],
             "area": "backend"
