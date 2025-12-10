@@ -78,3 +78,45 @@ export const deebo = {
     };
   }
 };
+
+// --- Legacy / Specific Compliance Checks (imported by other modules) ---
+
+export async function deeboCheckMessage(params: { orgId: string, channel: string, stateCode: string, content: string }) {
+  // Stub implementation
+  const result = await deebo.checkContent(params.stateCode, params.channel, params.content);
+  return {
+    ok: result.status === 'pass',
+    reason: result.violations.join(', ')
+  };
+}
+
+export function deeboCheckAge(dob: Date | string, jurisdiction: string) {
+  // Stub: 21+ check
+  const birthDate = new Date(dob);
+  const ageDifMs = Date.now() - birthDate.getTime();
+  const ageDate = new Date(ageDifMs);
+  const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+
+  if (age < 21) {
+    return { allowed: false, reason: "Must be 21+", minAge: 21 };
+  }
+  return { allowed: true, minAge: 21 };
+}
+
+
+export function deeboCheckStateAllowed(state: string) {
+  // Stub
+  const blocked = ['ID', 'NE', 'KS']; // Example
+  if (blocked.includes(state)) {
+    return { allowed: false, reason: "Shipping not allowed to this state." };
+  }
+  return { allowed: true };
+}
+
+export function deeboCheckCheckout(cart: any) {
+  // Stub
+  return { allowed: true, violations: [], warnings: [], errors: [] };
+}
+
+
+

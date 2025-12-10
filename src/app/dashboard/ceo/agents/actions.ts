@@ -6,8 +6,8 @@ import { craigAgent } from '@/server/agents/craig';
 import { smokeyAgent } from '@/server/agents/smokey';
 import { popsAgent } from '@/server/agents/pops';
 import { ezalAgent } from '@/server/agents/ezal';
-import { moneyMikeAgent } from '@/server/agents/money-mike';
-import { mrsParkerAgent } from '@/server/agents/mrs-parker';
+import { moneyMikeAgent } from '@/server/agents/moneyMike';
+import { mrsParkerAgent } from '@/server/agents/mrsParker';
 import { revalidatePath } from 'next/cache';
 
 const AGENT_MAP = {

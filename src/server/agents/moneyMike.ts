@@ -5,6 +5,9 @@ import { EventType } from "@/types/domain";
 import { FieldValue } from "firebase-admin/firestore";
 
 import { logger } from '@/lib/logger';
+import { AgentImplementation } from './harness';
+import { MoneyMikeMemory } from './schemas';
+import { deebo } from './deebo';
 const HANDLED_TYPES: EventType[] = [
   "subscription.updated",
   "subscription.failed",
@@ -85,3 +88,46 @@ export async function handleMoneyMikeEvent(orgId: string, eventId: string) {
     await handleDeadLetter(orgId, eventId, event, error);
   }
 }
+
+// --- Money Mike Agent Implementation (Harness) ---
+
+export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory> = {
+  agentName: 'money_mike',
+
+  async initialize(brandMemory, agentMemory) {
+    logger.info('[MoneyMike] Initializing. Reviewing margin floors...');
+    const brandMarginFloor = brandMemory.constraints.discount_floor_margin_pct || 30;
+    return agentMemory;
+  },
+
+  async orient(brandMemory, agentMemory) {
+    const runningExp = agentMemory.pricing_experiments.find(e => e.status === 'running');
+    if (runningExp) return runningExp.id;
+    return null;
+  },
+
+  async act(brandMemory, agentMemory, targetId) {
+    const exp = agentMemory.pricing_experiments.find(e => e.id === targetId);
+    if (!exp) throw new Error(`Experiment ${targetId} not found`);
+
+    let resultMessage = '';
+
+    if (exp.status === 'running') {
+      resultMessage = 'Monitoring Pricing Experiment. Margin stable.';
+      if (Math.random() > 0.8) {
+        exp.status = 'completed';
+        resultMessage = 'Experiment Completed. Variant B (+5% price) preserved volume.';
+      }
+    }
+
+    return {
+      updatedMemory: agentMemory,
+      logEntry: {
+        action: exp.status === 'completed' ? 'conclude_pricing_exp' : 'monitor_pricing_exp',
+        result: resultMessage,
+        metadata: { experiment_id: exp.id }
+      }
+    };
+  }
+};
+

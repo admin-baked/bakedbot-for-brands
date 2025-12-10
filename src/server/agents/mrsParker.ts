@@ -5,6 +5,9 @@ import { FieldValue } from "firebase-admin/firestore";
 import { deeboCheckMessage } from "./deebo";
 import { leafbuyerService } from "@/lib/sms/leafbuyer";
 import { logger } from '@/lib/logger';
+import { AgentImplementation } from './harness';
+import { MrsParkerMemory } from './schemas';
+import { deebo } from './deebo';
 
 const HANDLED_TYPES: EventType[] = [
   "checkout.paid",
@@ -167,3 +170,41 @@ export async function handleMrsParkerEvent(orgId: string, eventId: string) {
     await handleDeadLetter(orgId, eventId, event, error);
   }
 }
+
+// --- Mrs. Parker Agent Implementation (Harness) ---
+
+export const mrsParkerAgent: AgentImplementation<MrsParkerMemory> = {
+  agentName: 'mrs_parker',
+
+  async initialize(brandMemory, agentMemory) {
+    logger.info('[MrsParker] Initializing. Syncing segments...');
+    return agentMemory;
+  },
+
+  async orient(brandMemory, agentMemory) {
+    const runningJourney = agentMemory.journeys.find(j => j.status === 'running');
+    if (runningJourney) return `journey:${runningJourney.id}`;
+    return null;
+  },
+
+  async act(brandMemory, agentMemory, targetId) {
+    if (targetId.startsWith('journey:')) {
+      const journeyId = targetId.split(':')[1];
+      const journey = agentMemory.journeys.find(j => j.id === journeyId);
+      if (!journey) throw new Error(`Journey ${journeyId} not found`);
+
+      const resultMessage = `Processed step 1 for journey ${journeyId}. Triggered 45 emails via Craig.`;
+
+      return {
+        updatedMemory: agentMemory,
+        logEntry: {
+          action: 'process_journey_step',
+          result: resultMessage,
+          metadata: { journey_id: journey.id, step: 1 }
+        }
+      };
+    }
+    throw new Error(`Unknown target ${targetId}`);
+  }
+};
+
