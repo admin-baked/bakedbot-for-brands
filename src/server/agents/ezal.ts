@@ -1,99 +1,105 @@
-
-// src/server/agents/ezal.ts
-import { createServerClient } from "@/firebase/server-client";
-import { EventType } from "@/types/domain";
-import { FieldValue } from "firebase-admin/firestore";
-
+import { AgentImplementation } from './harness';
+import { EzalMemory } from './schemas';
 import { logger } from '@/lib/logger';
-const HANDLED_TYPES: EventType[] = [
-  "checkout.failed",
-];
 
-async function handleDeadLetter(orgId: string, eventId: string, eventData: any, error: any) {
-  const { firestore: db } = await createServerClient();
-  const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
-  const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
+// --- Tool Definitions ---
 
-  const batch = db.batch();
-  batch.set(dlqRef, {
-    ...eventData,
-    _failedAt: FieldValue.serverTimestamp(),
-    _error: error?.message || String(error),
-    _agentId: 'ezal',
-  });
-  batch.delete(originalEventRef);
-  await batch.commit();
+export interface EzalTools {
+  // Scrape a competitor menu (Mock for now, or fetch HTML)
+  scrapeMenu(url: string): Promise<{ products: any[] }>;
+  // Compare my prices vs competitor prices
+  comparePricing(myProducts: any[], competitorProducts: any[]): Promise<{ price_index: number }>;
 }
+
+// --- Ezal Agent Implementation ---
+
+export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
+  agentName: 'ezal',
+
+  async initialize(brandMemory, agentMemory) {
+    logger.info('[Ezal] Initializing. Checking watchlist...');
+    return agentMemory;
+  },
+
+  async orient(brandMemory, agentMemory) {
+    // 1. Check for stale competitor data (> 7 days old)
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+
+    // Find a competitor who hasn't been scraped recently
+    const staleCompetitor = agentMemory.competitor_watchlist.find(c => {
+      if (!c.last_scrape) return true;
+      const last = typeof c.last_scrape === 'string' ? new Date(c.last_scrape).getTime() :
+        c.last_scrape instanceof Date ? c.last_scrape.getTime() : 0;
+      return last < sevenDaysAgo;
+    });
+
+    if (staleCompetitor) {
+      return `scrape:${staleCompetitor.id}`;
+    }
+
+    // 2. Check for open gaps that need detail filling (Not fully implemented in this phase)
+    return null;
+  },
+
+  async act(brandMemory, agentMemory, targetId, tools: EzalTools) {
+    let resultMessage = '';
+
+    if (targetId.startsWith('scrape:')) {
+      const competitorId = targetId.split(':')[1];
+      const competitor = agentMemory.competitor_watchlist.find(c => c.id === competitorId);
+
+      if (!competitor) throw new Error(`Competitor ${competitorId} not found`);
+
+      // Mock URL logic (in real implementation, stored in competitor metadata)
+      const mockUrl = `https://${competitor.name.toLowerCase().replace(/\s/g, '')}.com/menu`;
+
+      // Use Tool: Scrape Menu
+      const menuData = await tools.scrapeMenu(mockUrl);
+
+      // Update timestamp
+      competitor.last_scrape = new Date();
+
+      // Use Tool: Compare Pricing (Mocking "My Products" for now)
+      // In reality, we'd fetch our own inventory from Brand Memory or a tool
+      const myMockProducts = [{ name: 'Live Rosin 1g', price: 60 }];
+      const comparison = await tools.comparePricing(myMockProducts, menuData.products);
+
+      resultMessage = `Scraped ${competitor.name}. Found ${menuData.products.length} items. Price Index: ${comparison.price_index.toFixed(2)}.`;
+
+      // Logic to find gaps based on comparison
+      if (comparison.price_index < 0.9) {
+        // If we are significantly cheaper, maybe opportunity? Or if expensive, gap?
+        // Let's say if competitor is cheaper (index > 1.0 implies we are expensive? No, let's say index = One's Price / Competitor Price)
+        // If index > 1.1, we are expensive.
+      }
+
+      // Stubbing simple gap finding from tool output directly or just keeping existing stub logic but enriched
+      if (menuData.products.some(p => p.price < 50)) { // Simple check
+        const newGapId = `gap_${Date.now()}`;
+        agentMemory.open_gaps.push({
+          id: newGapId,
+          description: `Competitor ${competitor.name} has sub-$50 Rosin`,
+          status: 'open',
+          recommended_owner: 'money_mike'
+        });
+      }
+
+      return {
+        updatedMemory: agentMemory,
+        logEntry: {
+          action: 'scrape_competitor',
+          result: resultMessage,
+          metadata: { competitor_id: competitorId, items_scraped: menuData.products.length }
+        }
+      };
+    }
+
+    throw new Error(`Unknown target action ${targetId}`);
+  }
+};
+
 
 export async function handleEzalEvent(orgId: string, eventId: string) {
-  const { firestore: db } = await createServerClient();
-  const agentId = 'ezal';
-
-  const eventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
-  const eventSnap = await eventRef.get();
-
-  if (!eventSnap.exists) return;
-  const event = eventSnap.data() as any;
-
-  // Check if this agent has already handled this event.
-  if (event.processedBy && event.processedBy[agentId]) {
-    return;
-  }
-
-  if (!HANDLED_TYPES.includes(event.type)) {
-    // Mark as processed even if not handled to prevent re-scanning
-    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-    return;
-  }
-
-  try {
-    // For now, only inspect failures tagged with pricing issues (later)
-    if (event.data?.reason !== "pricing") {
-      await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-      return;
-    };
-
-    const orderId = event.refId;
-    if (!orderId) {
-      await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-      return;
-    };
-
-    const orderSnap = await db
-      .collection("organizations")
-      .doc(orgId)
-      .collection("orders")
-      .doc(orderId)
-      .get();
-
-    if (!orderSnap.exists) {
-      await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-      return;
-    };
-    const order = orderSnap.data() as any;
-
-    // TODO: for each item, compare to CannMenus competitor data
-    // and compute if we're overpriced vs nearby menus.
-
-    // Example placeholder insight:
-    const insightsRef = db
-      .collection("organizations")
-      .doc(orgId)
-      .collection("meta")
-      .doc("competitiveInsights");
-
-    await insightsRef.set(
-      {
-        lastUpdatedAt: new Date(),
-        notes: "Ezal placeholder – plug in CannMenus price comparison here.",
-      },
-      { merge: true }
-    );
-
-    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-
-  } catch (error) {
-    logger.error(`[${agentId}] Error processing event ${eventId}:`, error instanceof Error ? error : new Error(String(error)));
-    await handleDeadLetter(orgId, eventId, event, error);
-  }
+  logger.info(`[Ezal] Handled event ${eventId} for org ${orgId} (Stub)`);
 }
+

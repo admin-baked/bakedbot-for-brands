@@ -23,6 +23,7 @@ const PlatformAnalyticsTab = dynamic(() => import("./components/platform-analyti
 const TicketsTab = dynamic(() => import("./components/tickets-tab"), { loading: TabLoader });
 const FootTrafficTab = dynamic(() => import("./components/foot-traffic-tab"), { loading: TabLoader });
 const SuperAdminAgentChat = dynamic(() => import("./components/super-admin-agent-chat"), { loading: TabLoader });
+const AgentDashboardClient = dynamic(() => import("./agents/agent-dashboard-client"), { loading: TabLoader }); // New Integration
 const SuperAdminPlaybooksTab = dynamic(() => import("./components/super-admin-playbooks-tab"), { loading: TabLoader });
 const EzalTab = dynamic(() => import("./components/ezal-tab"), { loading: TabLoader });
 import { useSuperAdmin } from '@/hooks/use-super-admin';
@@ -41,7 +42,7 @@ export default function CeoDashboardPage() {
     const { isSuperAdmin, isLoading, superAdminEmail, logout } = useSuperAdmin();
 
     // Sync tabs with URL ?tab=...
-    const currentTab = searchParams?.get('tab') || 'agent-chat';
+    const currentTab = searchParams?.get('tab') || 'agent-command'; // Default to new tab
 
     const handleTabChange = useCallback((value: string) => {
         const params = new URLSearchParams(searchParams?.toString());
@@ -99,6 +100,7 @@ export default function CeoDashboardPage() {
             <Tabs value={currentTab} onValueChange={handleTabChange}>
                 <ScrollArea className="w-full pb-2">
                     <TabsList className="inline-flex w-full min-w-max justify-start px-2 h-auto py-1">
+                        <TabsTrigger value="agent-command" className="font-semibold text-green-700">🚀 Agent Command</TabsTrigger>
                         <TabsTrigger value="agent-chat" className="font-semibold">🤖 Agent Chat</TabsTrigger>
                         <TabsTrigger value="ezal" className="font-semibold">🕵️‍♀️ Ezal</TabsTrigger>
                         <TabsTrigger value="playbooks" className="font-semibold">📋 Playbooks</TabsTrigger>
@@ -114,6 +116,9 @@ export default function CeoDashboardPage() {
                 </ScrollArea>
                 <div className="mt-6">
                     <ClientOnly fallback={<div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+                        <TabsContent value="agent-command" className="mt-0">
+                            <AgentDashboardClient initialLogs={[]} />
+                        </TabsContent>
                         <TabsContent value="agent-chat" className="mt-0">
                             <SuperAdminAgentChat />
                         </TabsContent>
@@ -153,5 +158,6 @@ export default function CeoDashboardPage() {
         </div>
     );
 }
+
 
 

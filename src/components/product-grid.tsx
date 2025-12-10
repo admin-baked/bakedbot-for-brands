@@ -29,9 +29,10 @@ interface ProductGridProps {
   products: Product[];
   isLoading: boolean;
   brandSlug?: string;
+  variant?: 'standard' | 'brand';
 }
 
-export function ProductGrid({ products, isLoading, brandSlug }: ProductGridProps) {
+export function ProductGrid({ products, isLoading, brandSlug, variant = 'standard' }: ProductGridProps) {
   const { isDemo } = useDemoMode();
 
   if (isLoading) {
@@ -65,10 +66,19 @@ export function ProductGrid({ products, isLoading, brandSlug }: ProductGridProps
     );
   }
 
+  const gridClassName = variant === 'brand'
+    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+    : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6";
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className={gridClassName}>
       {products.map(product => (
-        <ProductCard key={product.id} product={product} brandSlug={brandSlug} />
+        <ProductCard
+          key={product.id}
+          product={product}
+          brandSlug={brandSlug}
+          variant={variant === 'brand' ? 'large' : 'standard'}
+        />
       ))}
     </div>
   );
