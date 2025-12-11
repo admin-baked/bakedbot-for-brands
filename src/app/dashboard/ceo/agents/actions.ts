@@ -17,6 +17,7 @@ import { browserAction, BrowserActionParams } from '@/server/tools/browser';
 import { scheduleTask, ScheduleParams } from '@/server/tools/scheduler';
 import { manageWebhooks, WebhookParams } from '@/server/tools/webhooks';
 import { gmailAction, GmailParams } from '@/server/tools/gmail';
+import { calendarAction, CalendarParams } from '@/server/tools/calendar';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -670,6 +671,85 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
                     }
                 } else {
                     output = `⚠️ **Gmail Error**\n\n${result.error}\n\n*Note: Ensure you have added the 'gmail' doc to 'integrations' in Firestore with an accessToken.*`;
+                    executedTools[executedTools.length - 1].result = result.error || 'Error';
+                }
+
+                return {
+                    content: output,
+                    toolCalls: executedTools
+                };
+
+            } catch (e: any) {
+                console.error(e);
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+            }
+        }
+
+        // Check for Calendar actions
+        const isCalendarAction =
+            lowerMessage.includes('calendar') ||
+            lowerMessage.includes('meeting') ||
+            lowerMessage.includes('schedule event') ||
+            lowerMessage.includes('what am i doing today');
+
+        if (isCalendarAction) {
+            executedTools.push({
+                id: `cal-${Date.now()}`,
+                name: 'Calendar',
+                status: 'running',
+                result: 'Accessing calendar...'
+            });
+
+            // Use AI to generate calendar params
+            const conversion = await ai.generate({
+                prompt: `Convert this request into a Calendar tool action (JSON).
+                User Request: "${userMessage}"
+                
+                Actions: 'list' | 'create'
+                Fields: 
+                - action: required
+                - timeMin: string (ISO for list, optional)
+                - maxResults: number (for list)
+                - summary, startTime, endTime: string (ISO for create)
+
+                Current Time: ${new Date().toISOString()}
+
+                Example 1: "What meetings do I have?" ->
+                { "action": "list", "maxResults": 5 }
+
+                Example 2: "Schedule a meeting with Pops tomorrow at 2pm for 1 hour" ->
+                { "action": "create", "summary": "Meeting with Pops", "startTime": "2025-12-12T14:00:00Z", "endTime": "2025-12-12T15:00:00Z" }
+
+                Output JSON Schema: CalendarParams
+                Only return the JSON.`,
+            });
+
+            try {
+                const params = JSON.parse(conversion.text) as CalendarParams;
+
+                executedTools[executedTools.length - 1].result = `${params.action.toUpperCase()} event`;
+
+                const result = await calendarAction(params);
+
+                executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
+
+                let output = '';
+                if (result.success) {
+                    if (params.action === 'list') {
+                        const events = result.data || [];
+                        output = `📅 **Upcoming Events**\n\n${events.length === 0 ? 'No upcoming events.' : ''}`;
+                        events.forEach((e: any) => {
+                            const start = e.start.dateTime || e.start.date;
+                            output += `• **${e.summary}**\n  Time: \`${new Date(start).toLocaleString()}\`\n  Link: [View](${e.htmlLink})\n\n`;
+                        });
+                        executedTools[executedTools.length - 1].result = `Found ${events.length} events`;
+                    } else {
+                        output = `✅ **Event Created**\n\n**${result.data.summary}**\nTime: ${new Date(result.data.start.dateTime).toLocaleString()}\nLink: [View](${result.data.htmlLink})`;
+                        executedTools[executedTools.length - 1].result = 'Created event';
+                    }
+                } else {
+                    output = `⚠️ **Calendar Error**\n\n${result.error}\n\n*Note: Ensure you have added the 'calendar' doc to 'integrations' in Firestore.*`;
                     executedTools[executedTools.length - 1].result = result.error || 'Error';
                 }
 
