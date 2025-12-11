@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { config } from 'dotenv';
-config();
+config({ path: '.env.local' });
 
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';

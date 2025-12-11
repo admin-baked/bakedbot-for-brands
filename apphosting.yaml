@@ -45,6 +45,8 @@ runConfig:
     # AI/Tools
     - variable: CLAUDE_API_KEY
       secret: CLAUDE_API_KEY
+    - variable: GEMINI_API_KEY
+      secret: GEMINI_API_KEY
     # SMS
     - variable: LEAFBUYER_API_KEY
       secret: LEAFBUYER_API_KEY
