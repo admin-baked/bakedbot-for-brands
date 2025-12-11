@@ -1,6 +1,33 @@
 {
     "features": [
         {
+            "id": "feat_intuition_os",
+            "title": "Intuition OS - Firebase Architecture for Intelligent Agents",
+            "status": "in_progress",
+            "description": "Implement the four intuition loops (Log, Summarize, Retrieve, Evolve) that transform agents from reactive tools into intuitive decision partners. Includes agentEvents, agentMemories, heuristics engine, and multi-agent coordination.",
+            "acceptance_tests": [
+                "test_agent_events_logging",
+                "test_customer_memory_aggregation",
+                "test_heuristics_engine",
+                "test_confidence_scoring",
+                "test_multi_agent_messaging"
+            ],
+            "spec_doc": "docs/intuition-os-spec.md",
+            "phases": [
+                "Phase 1: Foundation (agentEvents, security rules, starter packs)",
+                "Phase 2: Customer Memory (profiles, embeddings, vector store)",
+                "Phase 3: Heuristics Engine (JSON DSL, confidence scoring)",
+                "Phase 4: Feedback Loop (outcomes, heuristic evolution)",
+                "Phase 5: Pops + Deebo (metrics, anomaly detection, compliance)",
+                "Phase 6: Multi-Agent (messaging, coordination, dream cycles)"
+            ],
+            "owner": "ai_architect",
+            "dependencies": [
+                "feat_algorithms_backbone_v1"
+            ],
+            "area": "backend"
+        },
+        {
             "id": "feat_algorithms_backbone_v1",
             "title": "Algorithm Backbone v1 (Roadmap Implementation)",
             "status": "passing",
