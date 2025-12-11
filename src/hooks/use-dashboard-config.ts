@@ -88,7 +88,7 @@ export function useDashboardConfig() {
         href: '/dashboard/loyalty',
         icon: 'Crown',
         description: 'Manage rewards, tiers, and VIP automations.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'dispensary', 'owner'],
       },
       {
         label: 'Leads',
@@ -173,13 +173,7 @@ export function useDashboardConfig() {
         description: 'Manage featured product carousels.',
         roles: ['dispensary', 'owner'],
       },
-      {
-        label: 'Loyalty',
-        href: '/dashboard/loyalty',
-        icon: 'Award',
-        description: 'Manage loyalty points and tiered rewards.',
-        roles: ['dispensary', 'owner'],
-      },
+
       {
         label: 'Segments',
         href: '/dashboard/segments',
