@@ -1,6 +1,25 @@
 {
     "features": [
         {
+            "id": "feat_algorithms_backbone_v1",
+            "title": "Algorithm Backbone v1 (Roadmap Implementation)",
+            "status": "passing",
+            "description": "Implement the core algorithms defined in docs/algorithms-roadmap.md (Smokey Scoring, Craig Bandits, Pops Forecasting).",
+            "acceptance_tests": [
+                "check_scoring_function_exists",
+                "check_bandit_logic_exists"
+            ],
+            "completed_at": "2025-12-10T20:15:00Z",
+            "test_results": {
+                "smokey_scoring": "passed (10 tests)",
+                "craig_priority": "passed (13 tests)",
+                "pops_anomaly": "passed (8 tests)"
+            },
+            "owner": "ai_architect",
+            "dependencies": [],
+            "area": "backend"
+        },
+        {
             "id": "feat_brand_domain_memory_core",
             "title": "Implement Brand Domain Memory JSON + Firestore mappings",
             "status": "passing",
