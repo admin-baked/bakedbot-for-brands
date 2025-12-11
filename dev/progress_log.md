@@ -70,3 +70,11 @@
   - Fixed `coverageThresholds` → `coverageThreshold` typo
   - Properly mocked `monitorApiCall` and `withRetry` to await async functions
 - Updated `dev/backlog.json`: marked `feat_unit_test_services_cannmenus` as "passing".
+
+## 2025-12-11T04:52Z – fix_gemini_api_key_config – antigravity
+- Fixed FAILED_PRECONDITION error for Genkit: "Please pass in the API key or set the GEMINI_API_KEY or GOOGLE_API_KEY environment variable."
+- Root cause: `googleAI()` plugin in `src/ai/genkit.ts` was not receiving the API key.
+- Solution: Modified `src/ai/genkit.ts` to explicitly pass the API key via `googleAI({ apiKey })`.
+- Added fallback logic: `GEMINI_API_KEY` takes priority, falls back to `GOOGLE_API_KEY`.
+- Added warning log if no API key is configured.
+- Build verified passing (`npx tsc --noEmit --skipLibCheck` exit code 0).
