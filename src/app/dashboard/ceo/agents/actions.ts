@@ -19,6 +19,7 @@ import { manageWebhooks, WebhookParams } from '@/server/tools/webhooks';
 import { gmailAction, GmailParams } from '@/server/tools/gmail';
 import { calendarAction, CalendarParams } from '@/server/tools/calendar';
 import { sheetsAction, SheetsParams } from '@/server/tools/sheets';
+import { leaflinkAction, LeafLinkParams } from '@/server/tools/leaflink';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -831,6 +832,88 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
                     }
                 } else {
                     output = `⚠️ **Sheets Error**\n\n${result.error}\n\n*Note: Ensure you have added the 'sheets' doc to 'integrations' in Firestore.*`;
+                    executedTools[executedTools.length - 1].result = result.error || 'Error';
+                }
+
+                return {
+                    content: output,
+                    toolCalls: executedTools
+                };
+
+            } catch (e: any) {
+                console.error(e);
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+            }
+        }
+
+        // Check for LeafLink actions
+        const isLeafLinkAction =
+            lowerMessage.includes('leaflink') ||
+            lowerMessage.includes('wholesale') ||
+            lowerMessage.includes('inventory update');
+
+        if (isLeafLinkAction) {
+            executedTools.push({
+                id: `leaf-${Date.now()}`,
+                name: 'LeafLink',
+                status: 'running',
+                result: 'Accessing LeafLink...'
+            });
+
+            // Use AI to generate leaflink params
+            const conversion = await ai.generate({
+                prompt: `Convert this request into a LeafLink tool action (JSON).
+                User Request: "${userMessage}"
+                
+                Actions: 'list_orders' | 'list_products' | 'update_inventory'
+                Fields: 
+                - action: required
+                - status: string (for list_orders, e.g. "Accepted")
+                - productId: string (for update_inventory)
+                - quantity: number (for update_inventory)
+
+                Example 1: "Show me new wholesale orders" ->
+                { "action": "list_orders", "status": "Submitted" }
+
+                Example 2: "Update inventory for SKU 123 to 50" ->
+                { "action": "update_inventory", "productId": "123", "quantity": 50 }
+
+                Output JSON Schema: LeafLinkParams
+                Only return the JSON.`,
+            });
+
+            try {
+                const params = JSON.parse(conversion.text) as LeafLinkParams;
+
+                executedTools[executedTools.length - 1].result = `${params.action.toUpperCase().replace('_', ' ')}`;
+
+                const result = await leaflinkAction(params);
+
+                executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
+
+                let output = '';
+                if (result.success) {
+                    if (params.action === 'list_orders') {
+                        const orders = result.data || [];
+                        output = `📦 **Wholesale Orders**\n\n${orders.length === 0 ? 'No orders found.' : ''}`;
+                        orders.forEach((o: any) => {
+                            output += `• **#${o.id}** (${o.status})\n  Customer: ${o.customer}\n  Total: $${o.total}\n\n`;
+                        });
+                        executedTools[executedTools.length - 1].result = `Found ${orders.length} orders`;
+                    } else if (params.action === 'list_products') {
+                        const prods = result.data || [];
+                        output = `🌿 **Product Catalog**\n\n`;
+                        prods.forEach((p: any) => {
+                            output += `• **${p.name}** (SKU: ${p.sku})\n  Inventory: ${p.inventory}\n\n`;
+                        });
+                        executedTools[executedTools.length - 1].result = `Listed ${prods.length} products`;
+                    } else {
+                        output = `✅ **Inventory Updated**\n\nNew Quantity: ${result.data.new_inventory}`;
+                        executedTools[executedTools.length - 1].result = 'Updated inventory';
+                    }
+                } else {
+                    output = `⚠️ **LeafLink Error**\n\n${result.error}\n\n*Note: Ensure you have added the 'leaflink' doc to 'integrations' in Firestore.*`;
                     executedTools[executedTools.length - 1].result = result.error || 'Error';
                 }
 
