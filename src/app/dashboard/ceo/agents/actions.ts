@@ -16,6 +16,7 @@ import { httpRequest, HttpRequestOptions } from '@/server/tools/http-client';
 import { browserAction, BrowserActionParams } from '@/server/tools/browser';
 import { scheduleTask, ScheduleParams } from '@/server/tools/scheduler';
 import { manageWebhooks, WebhookParams } from '@/server/tools/webhooks';
+import { gmailAction, GmailParams } from '@/server/tools/gmail';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -586,6 +587,89 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
                     }
                 } else {
                     output = `⚠️ **Webhook Error**\n\n${result.error}`;
+                    executedTools[executedTools.length - 1].result = result.error || 'Error';
+                }
+
+                return {
+                    content: output,
+                    toolCalls: executedTools
+                };
+
+            } catch (e: any) {
+                console.error(e);
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+            }
+        }
+
+        // Check for Gmail actions
+        const isGmailAction =
+            lowerMessage.includes('email') ||
+            lowerMessage.includes('gmail') ||
+            lowerMessage.includes('inbox') ||
+            lowerMessage.includes('send message');
+
+        // Avoid triggering if it's just "what is your email"
+        const isAuthQuestion = lowerMessage.includes('your email') || lowerMessage.includes('login');
+
+        if (isGmailAction && !isAuthQuestion) {
+            executedTools.push({
+                id: `gmail-${Date.now()}`,
+                name: 'Gmail',
+                status: 'running',
+                result: 'Accessing inbox...'
+            });
+
+            // Use AI to generate gmail params
+            const conversion = await ai.generate({
+                prompt: `Convert this request into a Gmail tool action (JSON).
+                User Request: "${userMessage}"
+                
+                Actions: 'list' | 'read' | 'send'
+                Fields: 
+                - action: required
+                - query: string (for list, e.g. "is:unread")
+                - messageId: string (for read)
+                - to, subject, body: string (for send)
+
+                Example 1: "Check unread emails from boss" ->
+                { "action": "list", "query": "is:unread from:boss" }
+
+                Example 2: "Send email to test@test.com saying hello" ->
+                { "action": "send", "to": "test@test.com", "subject": "Hello", "body": "Just saying hi!" }
+
+                Output JSON Schema: GmailParams
+                Only return the JSON.`,
+            });
+
+            try {
+                const params = JSON.parse(conversion.text) as GmailParams;
+
+                executedTools[executedTools.length - 1].result = `${params.action.toUpperCase()} email`;
+
+                const result = await gmailAction(params);
+
+                executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
+
+                let output = '';
+                if (result.success) {
+                    if (params.action === 'list') {
+                        const threads = result.data || [];
+                        output = `📧 **Inbox Results**\n\n${threads.length === 0 ? 'No emails found.' : ''}`;
+                        threads.forEach((t: any) => {
+                            output += `• **${t.subject || '(No Subject)'}**\n  From: ${t.from}\n  *${t.snippet}*\n  ID: \`${t.id}\`\n\n`;
+                        });
+                        executedTools[executedTools.length - 1].result = `Found ${threads.length} emails`;
+                    } else if (params.action === 'read') {
+                        const email = result.data;
+                        output = `📧 **${email.subject || 'Email Content'}**\n\n${email.body}`;
+                        executedTools[executedTools.length - 1].result = 'Read email';
+                    } else {
+                        output = `✅ **Email Sent**\n\nTo: ${params.to}`;
+                        executedTools[executedTools.length - 1].result = 'Sent email';
+                    }
+                } else {
+                    output = `⚠️ **Gmail Error**\n\n${result.error}\n\n*Note: Ensure you have added the 'gmail' doc to 'integrations' in Firestore with an accessToken.*`;
                     executedTools[executedTools.length - 1].result = result.error || 'Error';
                 }
 
