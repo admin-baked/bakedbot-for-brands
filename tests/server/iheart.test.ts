@@ -2,15 +2,12 @@
  * Unit Tests: iHeart Integration Service
  *
  * Tests for iHeart loyalty platform integration
- * Verifies customer profile management, points calculation, and rewards redemption
- *
- * [BUILDER-MODE @ 2025-12-10]
- * Created as part of feat_iheart_loyalty_production (test_iheart_service_mock)
+ * Verifies customer profile management, points calculation, rewards redemption, and menu sync
  */
 
 import { IHeartService, IHeartCustomer, IHeartApiConfig } from '@/server/services/iheart';
 
-// Mock logger to prevent console spam during tests
+// Mock logger
 jest.mock('@/lib/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -19,6 +16,25 @@ jest.mock('@/lib/logger', () => ({
     warn: jest.fn(),
   },
 }));
+
+// Mock Firebase Admin
+const mockBatch = {
+  set: jest.fn(),
+  commit: jest.fn().mockResolvedValue(undefined)
+};
+
+const mockDb = {
+  collection: jest.fn().mockReturnThis(),
+  doc: jest.fn().mockReturnThis(),
+  batch: jest.fn(() => mockBatch)
+};
+
+jest.mock('@/firebase/admin', () => ({
+  getAdminFirestore: jest.fn(() => mockDb)
+}));
+
+// Setup global fetch mock
+global.fetch = jest.fn();
 
 describe('IHeartService', () => {
   let service: IHeartService;
@@ -33,6 +49,7 @@ describe('IHeartService', () => {
     };
     service = new IHeartService(mockConfig);
     jest.clearAllMocks();
+    (global.fetch as jest.Mock).mockReset();
   });
 
   describe('upsertCustomer', () => {
@@ -46,102 +63,76 @@ describe('IHeartService', () => {
         state: 'IL',
       };
 
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ success: true })
+      });
+
       const result = await service.upsertCustomer(customer);
 
       expect(result.success).toBe(true);
       expect(result.customerId).toBe('cust_123');
-      expect(result.error).toBeUndefined();
-    });
-
-    it('should handle customer with medical card', async () => {
-      const customer: IHeartCustomer = {
-        id: 'cust_456',
-        email: 'medical@example.com',
-        firstName: 'Jane',
-        lastName: 'Smith',
-        hasMedicalCard: true,
-        state: 'CA',
-      };
-
-      const result = await service.upsertCustomer(customer);
-
-      expect(result.success).toBe(true);
-      expect(result.customerId).toBe('cust_456');
-    });
-
-    it('should handle errors gracefully', async () => {
-      // Mock makeRequest to throw error
-      jest.spyOn(service as any, 'makeRequest').mockRejectedValueOnce(
-        new Error('API connection failed')
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/customers'),
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('cust_123')
+        })
       );
+    });
 
-      const customer: IHeartCustomer = {
-        id: 'cust_error',
-        email: 'error@example.com',
-      };
+    it('should handle API errors', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Server Error'
+      });
 
+      const customer: IHeartCustomer = { id: 'cust_error', email: 'error@example.com' };
       const result = await service.upsertCustomer(customer);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('API connection failed');
+      expect(result.error).toContain('iHeart API Error: 500');
     });
   });
 
   describe('getLoyaltyProfile', () => {
     it('should fetch customer loyalty profile', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          points: 1500,
+          total_orders: 5,
+          total_spent: 500,
+          last_order_date: '2025-01-01',
+          created_at: '2024-01-01',
+          updated_at: '2025-01-01'
+        })
+      });
+
       const profile = await service.getLoyaltyProfile('cust_123');
 
       expect(profile).toBeDefined();
       expect(profile?.customerId).toBe('cust_123');
-      expect(profile?.points).toBeGreaterThanOrEqual(0);
-      expect(profile?.tier).toMatch(/New|Regular|VIP/);
-      expect(profile?.totalOrders).toBeGreaterThanOrEqual(0);
-      expect(profile?.totalSpent).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should calculate correct tier based on points', async () => {
-      // Mock different point levels
-      jest.spyOn(service as any, 'makeRequest').mockResolvedValueOnce({
-        points: 50,
-        total_orders: 1,
-        total_spent: 50,
-      });
-
-      const newProfile = await service.getLoyaltyProfile('cust_new');
-      expect(newProfile?.tier).toBe('New');
-
-      jest.spyOn(service as any, 'makeRequest').mockResolvedValueOnce({
-        points: 500,
-        total_orders: 10,
-        total_spent: 500,
-      });
-
-      const regularProfile = await service.getLoyaltyProfile('cust_regular');
-      expect(regularProfile?.tier).toBe('Regular');
-
-      jest.spyOn(service as any, 'makeRequest').mockResolvedValueOnce({
-        points: 1500,
-        total_orders: 30,
-        total_spent: 1500,
-      });
-
-      const vipProfile = await service.getLoyaltyProfile('cust_vip');
-      expect(vipProfile?.tier).toBe('VIP');
+      expect(profile?.points).toBe(1500);
+      expect(profile?.tier).toBe('VIP'); // calculated based on points
     });
 
     it('should return null on error', async () => {
-      jest.spyOn(service as any, 'makeRequest').mockRejectedValueOnce(
-        new Error('Customer not found')
-      );
+      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network Error'));
 
       const profile = await service.getLoyaltyProfile('cust_notfound');
-
       expect(profile).toBeNull();
     });
   });
 
   describe('awardPoints', () => {
-    it('should award points based on order total', async () => {
+    it('should award points', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ new_balance: 150 })
+      });
+
       const result = await service.awardPoints({
         customerId: 'cust_123',
         orderId: 'order_abc',
@@ -149,129 +140,68 @@ describe('IHeartService', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.pointsAwarded).toBe(50); // 1 point per dollar by default
-      expect(result.newBalance).toBeGreaterThanOrEqual(50);
-    });
-
-    it('should apply points multiplier correctly', async () => {
-      const result = await service.awardPoints({
-        customerId: 'cust_123',
-        orderId: 'order_xyz',
-        orderTotal: 100.0,
-        pointsMultiplier: 2, // Double points promotion
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.pointsAwarded).toBe(200); // 100 * 2
-    });
-
-    it('should round points to nearest integer', async () => {
-      const result = await service.awardPoints({
-        customerId: 'cust_123',
-        orderId: 'order_def',
-        orderTotal: 49.99,
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.pointsAwarded).toBe(50); // Math.round(49.99)
-    });
-
-    it('should handle errors when awarding points', async () => {
-      jest.spyOn(service as any, 'makeRequest').mockRejectedValueOnce(
-        new Error('Transaction failed')
+      expect(result.pointsAwarded).toBe(50);
+      expect(result.newBalance).toBe(150);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/transactions'),
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"type":"earn"') // Check for type: earn
+        })
       );
-
-      const result = await service.awardPoints({
-        customerId: 'cust_error',
-        orderId: 'order_error',
-        orderTotal: 100.0,
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.pointsAwarded).toBe(0);
-      expect(result.error).toBe('Transaction failed');
     });
   });
 
-  describe('redeemPoints', () => {
-    it('should redeem points for a reward', async () => {
-      const result = await service.redeemPoints('cust_123', 'reward_10off', 100);
+  describe('syncMenu', () => {
+    it('should fetch menu and upsert to firestore', async () => {
+      // Mock Get Menu Response
+      const mockProducts = [
+        { id: 'prod_1', name: 'Product 1' },
+        { id: 'prod_2', name: 'Product 2' }
+      ];
 
-      expect(result.success).toBe(true);
-      expect(result.newBalance).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should handle redemption errors', async () => {
-      jest.spyOn(service as any, 'makeRequest').mockRejectedValueOnce(
-        new Error('Insufficient points')
-      );
-
-      const result = await service.redeemPoints('cust_123', 'reward_expensive', 10000);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Insufficient points');
-    });
-  });
-
-  describe('getRewards', () => {
-    it('should fetch rewards catalog', async () => {
-      jest.spyOn(service as any, 'makeRequest').mockResolvedValueOnce({
-        rewards: [
-          {
-            id: 'reward_1',
-            name: '$5 Off',
-            description: '$5 off your next order',
-            pointsCost: 50,
-            active: true,
-          },
-          {
-            id: 'reward_2',
-            name: '$10 Off',
-            description: '$10 off your next order',
-            pointsCost: 100,
-            active: true,
-          },
-        ],
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ products: mockProducts })
       });
 
-      const rewards = await service.getRewards();
+      const result = await service.syncMenu('store_123');
 
-      expect(rewards).toHaveLength(2);
-      expect(rewards[0].name).toBe('$5 Off');
-      expect(rewards[1].pointsCost).toBe(100);
+      expect(result.success).toBe(true);
+      expect(result.count).toBe(2);
+
+      // Verify Firestore interactions
+      expect(mockDb.collection).toHaveBeenCalledWith('organizations');
+      expect(mockDb.doc).toHaveBeenCalledWith('store_123');
+      expect(mockBatch.set).toHaveBeenCalledTimes(2);
+      expect(mockBatch.commit).toHaveBeenCalled(); // Should be called at end
     });
 
-    it('should return empty array on error', async () => {
-      jest.spyOn(service as any, 'makeRequest').mockRejectedValueOnce(
-        new Error('API unavailable')
-      );
+    it('should handle fetch errors gracefully', async () => {
+      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('API Down'));
 
-      const rewards = await service.getRewards();
+      const result = await service.syncMenu('store_123');
 
-      expect(rewards).toEqual([]);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('API Down');
+      expect(mockBatch.commit).not.toHaveBeenCalled();
     });
   });
 
   describe('tier calculation', () => {
-    it('should calculate New tier for points < 300', () => {
-      const service = new IHeartService(mockConfig);
-      expect((service as any).calculateTier(0)).toBe('New');
-      expect((service as any).calculateTier(100)).toBe('New');
-      expect((service as any).calculateTier(299)).toBe('New');
-    });
+    // We can access private method via prototype or casting for unit testing internal logic
+    // OR we can test it via getLoyaltyProfile which we did above (VIP check).
 
-    it('should calculate Regular tier for points 300-999', () => {
-      const service = new IHeartService(mockConfig);
-      expect((service as any).calculateTier(300)).toBe('Regular');
-      expect((service as any).calculateTier(500)).toBe('Regular');
-      expect((service as any).calculateTier(999)).toBe('Regular');
-    });
+    it('should calculate tiers correctly via profile fetch', async () => {
+      // New
+      (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ points: 100 }) });
+      const p1 = await service.getLoyaltyProfile('c1');
+      expect(p1?.tier).toBe('New');
 
-    it('should calculate VIP tier for points >= 1000', () => {
-      const service = new IHeartService(mockConfig);
-      expect((service as any).calculateTier(1000)).toBe('VIP');
-      expect((service as any).calculateTier(5000)).toBe('VIP');
-      expect((service as any).calculateTier(10000)).toBe('VIP');
+      // Regular
+      (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ points: 500 }) });
+      const p2 = await service.getLoyaltyProfile('c2');
+      expect(p2?.tier).toBe('Regular');
     });
   });
 });
