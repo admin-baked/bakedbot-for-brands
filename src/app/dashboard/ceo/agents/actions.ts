@@ -244,6 +244,17 @@ interface ChatResponse {
 
 export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
     try {
+        // Import tool registry and register built-in tools
+        const { getToolRegistry, registerBuiltInTools } = await import('@/server/tools/tool-registry');
+        const { getEmailTool } = await import('@/server/tools/email-tool');
+
+        await registerBuiltInTools();
+        const toolRegistry = getToolRegistry();
+        const emailTool = getEmailTool();
+
+        const executedTools: ChatResponse['toolCalls'] = [];
+
+        // Define Genkit tools for AI to call
         const playbookTool = ai.defineTool({
             name: 'execute_playbook',
             description: 'Executes a predefined playbook process. Use this when the user asks to "run" a specific workflow like welcome emails, scans, or health checks.',
@@ -258,35 +269,75 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
             return await executePlaybook(input.playbookId);
         });
 
+        const emailToolGenkit = ai.defineTool({
+            name: 'send_email',
+            description: 'Send an email via SendGrid. Use this when the user explicitly asks to send an email or email campaign.',
+            inputSchema: z.object({
+                to: z.string().describe('Recipient email address'),
+                subject: z.string().describe('Email subject line'),
+                body: z.string().describe('Email body content'),
+                bodyType: z.enum(['text', 'html']).optional().describe('Content type'),
+            }),
+            outputSchema: z.object({
+                success: z.boolean(),
+                messageId: z.string().optional(),
+                error: z.string().optional(),
+            }),
+        }, async (input) => {
+            const result = await emailTool.execute(input, {
+                userId: 'system',
+                agentId: 'baked-hq',
+            });
+
+            executedTools.push({
+                id: `email-${Date.now()}`,
+                name: `Send Email: ${input.subject}`,
+                status: result.success ? 'success' : 'error',
+                result: result.success
+                    ? `Email sent to ${input.to}`
+                    : result.error?.message || 'Failed to send'
+            });
+
+            return {
+                success: result.success,
+                messageId: result.data?.messageId,
+                error: result.error?.message,
+            };
+        });
+
+        // Generate response with available tools
         const response = await ai.generate({
-            prompt: `You are 'Baked HQ', a Super Admin assistant. 
+            prompt: `You are 'Baked HQ', a Super Admin assistant for BakedBot. 
              User Request: "${userMessage}"
              
-             Available Playbooks:
-             - welcome-sequence: Send welcome emails to new users.
-             - competitor-scan: Check pricing of competitors using Ezal.
-             - churn-predictor: Check for at-risk customers using Mrs. Parker.
-             - platform-health: Run diagnostics using Pops.
+             Available Tools:
+             - execute_playbook: Run automated workflows
+               - welcome-sequence: Send welcome emails to new users
+               - competitor-scan: Check pricing of competitors
+               - churn-predictor: Check for at-risk customers
+               - platform-health: Run diagnostics
+             - send_email: Send an email directly via SendGrid
              
-             If the user asks to run one of these, USE THE TOOL.
+             If the user asks to run a playbook or send an email, USE THE APPROPRIATE TOOL.
              Otherwise, answer their question helpfully.`,
-            tools: [playbookTool],
+            tools: [playbookTool, emailToolGenkit],
         });
 
         const text = response.text;
         const toolCalls = (response as any).toolCalls;
 
-        const executedTools: { id: string; name: string; status: 'success' | 'error' | 'running'; result: string }[] = [];
-
+        // Process any playbook tool calls
         if (toolCalls && toolCalls.length > 0) {
             for (const call of toolCalls) {
-                const args = call.args as any;
-                executedTools.push({
-                    id: call.ref || `call-${Date.now()}`,
-                    name: `Execute Playbook: ${args.playbookId}`,
-                    status: 'success',
-                    result: "Executed via Genkit Tool"
-                });
+                if (call.toolId === 'execute_playbook') {
+                    const args = call.args as any;
+                    executedTools.push({
+                        id: call.ref || `call-${Date.now()}`,
+                        name: `Execute Playbook: ${args.playbookId}`,
+                        status: 'success',
+                        result: "Executed via Genkit Tool"
+                    });
+                }
             }
         }
 
