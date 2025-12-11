@@ -1,9 +1,35 @@
 {
     "features": [
         {
+            "id": "feat_super_user_agent_ux",
+            "title": "Super User Agent Command UX",
+            "status": "in_progress",
+            "description": "Update Agent Command UX for Super Users (CEO dashboard) with the Playbooks-style interface from Brand/Dispensary dashboards. Enable internal operations automation: welcome emails for signups, competitor pricing research (AIQ), internal reports. Demonstrate full agent capability for BakedBot's own operations.",
+            "acceptance_tests": [
+                "test_super_user_playbooks_page_renders",
+                "test_agent_command_input_works",
+                "test_triggers_modal_opens",
+                "test_vault_integration",
+                "test_playbook_execution"
+            ],
+            "use_cases": [
+                "Welcome emails for customers that signup",
+                "Competitor pricing research (AIQ, etc.)",
+                "Weekly report generation",
+                "Internal operations automation",
+                "Browser-based workflows"
+            ],
+            "ui_reference": "Playbooks page from Brand/Dispensary dashboard with command input, triggers, vault",
+            "owner": "ai_architect",
+            "dependencies": [
+                "feat_intuition_os"
+            ],
+            "area": "frontend"
+        },
+        {
             "id": "feat_intuition_os",
             "title": "Intuition OS - Firebase Architecture for Intelligent Agents",
-            "status": "in_progress",
+            "status": "passing",
             "description": "Implement the four intuition loops (Log, Summarize, Retrieve, Evolve) that transform agents from reactive tools into intuitive decision partners. Includes agentEvents, agentMemories, heuristics engine, and multi-agent coordination.",
             "acceptance_tests": [
                 "test_agent_events_logging",
@@ -14,13 +40,13 @@
             ],
             "spec_doc": "docs/intuition-os-spec.md",
             "phases": [
-                "Phase 1: Foundation (agentEvents, security rules, starter packs)",
-                "Phase 2: Customer Memory (profiles, embeddings, vector store)",
-                "Phase 3: Heuristics Engine (JSON DSL, confidence scoring)",
-                "Phase 4: Feedback Loop (outcomes, heuristic evolution)",
-                "Phase 5: Pops + Deebo (metrics, anomaly detection, compliance)",
-                "Phase 6: Multi-Agent (messaging, coordination, dream cycles)"
+                "Phase 1: Foundation (agentEvents, security rules, starter packs) ✅",
+                "Phase 2: Customer Memory (profiles, embeddings, vector store) ✅",
+                "Phase 3: Heuristics Engine (JSON DSL, confidence scoring) ✅",
+                "Phase 4: Feedback Loop (outcomes, heuristic evolution) ✅",
+                "Phase 5: Multi-Agent (messaging, coordination, dream cycles) ✅"
             ],
+            "completed_at": "2025-12-10T21:32:00Z",
             "owner": "ai_architect",
             "dependencies": [
                 "feat_algorithms_backbone_v1"
