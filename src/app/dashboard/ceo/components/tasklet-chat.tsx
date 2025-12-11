@@ -350,132 +350,157 @@ Would you like me to run the first automation now?`;
         }));
     };
 
-    return (
-        <div className="flex flex-col h-full bg-background">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b">
-                <div className="flex items-center gap-3">
-                    {onBack && (
-                        <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
-                            <ArrowLeft className="h-4 w-4" />
+    const hasMessages = state.messages.length > 0;
+
+    // Input component (reusable for both positions)
+    const InputArea = (
+        <div className={cn("p-4", hasMessages ? "border-t" : "border-b")}>
+            <div className="max-w-3xl mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner">
+                <Textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={hasMessages ? "Reply to continue..." : "Ask Baked HQ anything... Try: 'Research competitor deals daily and email me'"}
+                    className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base"
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSubmit();
+                        }
+                    }}
+                />
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Upload className="h-4 w-4" />
                         </Button>
-                    )}
-                    <h2 className="font-semibold">{state.title}</h2>
-                </div>
-                <div className="flex items-center gap-2">
-                    {state.isConnected && (
-                        <Badge variant="outline" className="bg-white">
-                            <span className="text-xs">Connected</span>
-                            <span className="ml-1">🎨🌿</span>
-                        </Badge>
-                    )}
+                        <span className="text-xs text-muted-foreground px-2 border-l">Standard</span>
+                        <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                    <Button
+                        size="icon"
+                        className={cn("h-8 w-8 rounded-full transition-all", input.trim() ? "bg-primary" : "bg-muted text-muted-foreground")}
+                        disabled={!input.trim() || isProcessing}
+                        onClick={handleSubmit}
+                    >
+                        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    </Button>
                 </div>
             </div>
+            {!hasMessages && (
+                <div className="text-center mt-2">
+                    <p className="text-[10px] text-muted-foreground">AI can make mistakes. Verify critical automations.</p>
+                </div>
+            )}
+            {isProcessing && hasMessages && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="h-1 flex-1 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 animate-pulse" style={{ width: '11%' }} />
+                    </div>
+                    <span>Processing...</span>
+                </div>
+            )}
+        </div>
+    );
 
-            {/* Content Area */}
-            <ScrollArea className="flex-1">
-                <div className="p-4 space-y-4">
-                    {/* Messages */}
-                    {state.messages.map(message => (
-                        <div key={message.id}>
-                            {message.role === 'user' ? (
-                                <div className="flex justify-end">
-                                    <div className="bg-muted rounded-lg px-4 py-2 max-w-[80%]">
-                                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+    return (
+        <div className="flex flex-col h-full bg-background border rounded-lg">
+            {/* Header - only show if we have messages */}
+            {hasMessages && (
+                <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-violet-50 to-purple-50">
+                    <div className="flex items-center gap-3">
+                        {onBack && (
+                            <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                        )}
+                        <h2 className="font-semibold">{state.title}</h2>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {state.isConnected && (
+                            <Badge variant="outline" className="bg-white">
+                                <span className="text-xs">Connected</span>
+                                <span className="ml-1">🎨🌿</span>
+                            </Badge>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Input at TOP when no messages */}
+            {!hasMessages && InputArea}
+
+            {/* Content Area - only show if we have messages */}
+            {hasMessages && (
+                <ScrollArea className="flex-1">
+                    <div className="p-4 space-y-4">
+                        {/* Messages */}
+                        {state.messages.map(message => (
+                            <div key={message.id}>
+                                {message.role === 'user' ? (
+                                    <div className="flex justify-end">
+                                        <div className="bg-primary text-primary-foreground rounded-lg px-4 py-2 max-w-[80%]">
+                                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {message.isThinking ? (
-                                        <ThinkingIndicator duration={message.workDuration} />
-                                    ) : (
-                                        <>
-                                            {message.workDuration && (
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                                                    <Sparkles className="h-3 w-3" />
-                                                    <span>Worked for {message.workDuration}s</span>
-                                                    <ChevronDown className="h-3 w-3" />
+                                ) : (
+                                    <div className="space-y-2">
+                                        {message.isThinking ? (
+                                            <ThinkingIndicator duration={message.workDuration} />
+                                        ) : (
+                                            <>
+                                                {message.workDuration && (
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                                                        <Sparkles className="h-3 w-3" />
+                                                        <span>Worked for {message.workDuration}s</span>
+                                                        <ChevronDown className="h-3 w-3" />
+                                                    </div>
+                                                )}
+                                                <div className="prose prose-sm max-w-none">
+                                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                                                 </div>
-                                            )}
-                                            <div className="prose prose-sm max-w-none">
-                                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
 
-                    {/* Permissions Panel */}
-                    {state.permissions.length > 0 && showPermissions && (
-                        <Card className="mt-4">
-                            <CardContent className="p-0">
-                                <div className="p-3 border-b">
-                                    <h3 className="font-medium text-sm">Grant permissions to agent?</h3>
-                                    <p className="text-xs text-muted-foreground">
-                                        The agent wants the ability to use tools from your connections
-                                    </p>
-                                </div>
-                                {state.permissions.map(permission => (
-                                    <PermissionCard
-                                        key={permission.id}
-                                        permission={permission}
-                                        onGrant={() => handleGrantPermission(permission.id)}
-                                    />
-                                ))}
-                            </CardContent>
-                        </Card>
-                    )}
+                        {/* Permissions Panel */}
+                        {state.permissions.length > 0 && showPermissions && (
+                            <Card className="mt-4">
+                                <CardContent className="p-0">
+                                    <div className="p-3 border-b">
+                                        <h3 className="font-medium text-sm">Grant permissions to agent?</h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            The agent wants the ability to use tools from your connections
+                                        </p>
+                                    </div>
+                                    {state.permissions.map(permission => (
+                                        <PermissionCard
+                                            key={permission.id}
+                                            permission={permission}
+                                            onGrant={() => handleGrantPermission(permission.id)}
+                                        />
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        )}
 
-                    {/* Triggers */}
-                    {state.triggers.length > 0 && (
-                        <TriggerIndicator
-                            triggers={state.triggers}
-                            expanded={showTriggers}
-                            onToggle={() => setShowTriggers(!showTriggers)}
-                        />
-                    )}
-                </div>
-            </ScrollArea>
-
-            {/* Input Area */}
-            <div className="p-4 border-t">
-                <div className="flex items-center gap-2">
-                    <div className="flex-1 relative">
-                        <Textarea
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Reply to Tasklet..."
-                            className="min-h-[44px] max-h-[120px] pr-24 resize-none"
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSubmit();
-                                }
-                            }}
-                        />
-                        <div className="absolute right-2 bottom-2 flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <Upload className="h-4 w-4" />
-                            </Button>
-                            <span className="text-xs text-muted-foreground px-2">Standard</span>
-                            <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <Mic className="h-4 w-4" />
-                            </Button>
-                        </div>
+                        {/* Triggers */}
+                        {state.triggers.length > 0 && (
+                            <TriggerIndicator
+                                triggers={state.triggers}
+                                expanded={showTriggers}
+                                onToggle={() => setShowTriggers(!showTriggers)}
+                            />
+                        )}
                     </div>
-                </div>
-                {isProcessing && (
-                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                        <div className="h-1 flex-1 bg-muted rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500 animate-pulse" style={{ width: '11%' }} />
-                        </div>
-                        <span>11%</span>
-                    </div>
-                )}
-            </div>
+                </ScrollArea>
+            )}
+
+            {/* Input at BOTTOM when we have messages */}
+            {hasMessages && InputArea}
         </div>
     );
 }
+
