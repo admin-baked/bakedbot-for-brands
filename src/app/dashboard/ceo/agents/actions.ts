@@ -244,12 +244,133 @@ interface ChatResponse {
 
 export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
     console.log('[runAgentChat] Starting with message:', userMessage);
+    const executedTools: ChatResponse['toolCalls'] = [];
 
-    // TEMPORARY: Return static response to debug empty model error
-    return {
-        content: `**Debug Mode Active**\n\nReceived: "${userMessage}"\n\nPlaybooks available:\n- Run welcome-sequence\n- Run competitor-scan\n- Run churn-predictor\n- Run platform-health`,
-        toolCalls: [
-            { id: 'debug-1', name: 'Debug Mode', status: 'success', result: 'AI disabled for testing' }
-        ]
-    };
+    try {
+        // Import dependencies
+        const { routeToAgent, AGENT_CAPABILITIES } = await import('@/server/agents/agent-router');
+        const { getIntuitionSummary } = await import('@/server/algorithms/intuition-engine');
+
+        // Route to the appropriate agent
+        const routing = await routeToAgent(userMessage);
+        const agentInfo = AGENT_CAPABILITIES.find(a => a.id === routing.primaryAgent);
+
+        // Get Intuition context
+        const brandId = 'demo-brand';
+        const intuition = getIntuitionSummary(brandId);
+
+        // Add routing info
+        executedTools.push({
+            id: `route-${Date.now()}`,
+            name: `Agent: ${agentInfo?.name || 'General'}`,
+            status: 'success',
+            result: `${agentInfo?.specialty || 'General Assistant'} (${Math.round(routing.confidence * 100)}% confidence)`
+        });
+
+        // Add Intuition context
+        executedTools.push({
+            id: `intuition-${Date.now()}`,
+            name: `Learning: ${intuition.stage}`,
+            status: 'success',
+            result: `${Math.round(intuition.confidence * 100)}% personalization · ${intuition.interactions} interactions`
+        });
+
+        // Check for playbook commands (pattern matching)
+        const lowerMessage = userMessage.toLowerCase();
+
+        if (lowerMessage.includes('welcome') || lowerMessage.includes('welcome-sequence')) {
+            const result = await executePlaybook('welcome-sequence');
+            executedTools.push({
+                id: `playbook-${Date.now()}`,
+                name: 'Execute: welcome-sequence',
+                status: result.success ? 'success' : 'error',
+                result: result.message
+            });
+            return {
+                content: `✅ **Welcome Sequence Executed**\n\n${result.message}\n\n${result.logs.join('\n')}`,
+                toolCalls: executedTools
+            };
+        }
+
+        if (lowerMessage.includes('competitor') || lowerMessage.includes('competitor-scan')) {
+            const result = await executePlaybook('competitor-scan');
+            executedTools.push({
+                id: `playbook-${Date.now()}`,
+                name: 'Execute: competitor-scan',
+                status: result.success ? 'success' : 'error',
+                result: result.message
+            });
+            return {
+                content: `🔍 **Competitor Scan Complete**\n\n${result.message}\n\n${result.logs.join('\n')}`,
+                toolCalls: executedTools
+            };
+        }
+
+        if (lowerMessage.includes('churn') || lowerMessage.includes('churn-predictor')) {
+            const result = await executePlaybook('churn-predictor');
+            executedTools.push({
+                id: `playbook-${Date.now()}`,
+                name: 'Execute: churn-predictor',
+                status: result.success ? 'success' : 'error',
+                result: result.message
+            });
+            return {
+                content: `⚠️ **Churn Analysis Complete**\n\n${result.message}\n\n${result.logs.join('\n')}`,
+                toolCalls: executedTools
+            };
+        }
+
+        if (lowerMessage.includes('health') || lowerMessage.includes('platform-health') || lowerMessage.includes('diagnostic')) {
+            const result = await executePlaybook('platform-health');
+            executedTools.push({
+                id: `playbook-${Date.now()}`,
+                name: 'Execute: platform-health',
+                status: result.success ? 'success' : 'error',
+                result: result.message
+            });
+            return {
+                content: `🏥 **Platform Health Check Complete**\n\n${result.message}\n\n${result.logs.join('\n')}`,
+                toolCalls: executedTools
+            };
+        }
+
+        // Use AI for general queries
+        try {
+            const response = await ai.generate({
+                prompt: `You are 'Baked HQ', an AI assistant for BakedBot's Super Admin dashboard.
+
+User message: "${userMessage}"
+
+Provide a helpful, concise response. You can mention these available playbooks:
+- Run welcome-sequence: Send welcome emails to new users
+- Run competitor-scan: Research competitor pricing
+- Run churn-predictor: Check for at-risk customers
+- Run platform-health: Run system diagnostics
+
+Keep your response brief and actionable.`,
+            });
+
+            if (response.text) {
+                return {
+                    content: response.text,
+                    toolCalls: executedTools
+                };
+            }
+        } catch (aiError) {
+            console.error('AI generation failed:', aiError);
+        }
+
+        // Fallback if AI fails
+        return {
+            content: `👋 **Hello! I'm Baked HQ.**\n\nI'm routed to **${agentInfo?.name || 'General'}** (${agentInfo?.specialty || 'General Assistant'}).\n\n**Available Playbooks:**\n• \`Run welcome-sequence\`\n• \`Run competitor-scan\`\n• \`Run churn-predictor\`\n• \`Run platform-health\`\n\nWhat would you like me to help with?`,
+            toolCalls: executedTools
+        };
+
+    } catch (e: any) {
+        console.error("Agent Chat Error:", e);
+        return {
+            content: "I encountered an error. Try: `Run welcome-sequence` or `Run platform-health`",
+            toolCalls: executedTools.length > 0 ? executedTools : undefined
+        };
+    }
 }
