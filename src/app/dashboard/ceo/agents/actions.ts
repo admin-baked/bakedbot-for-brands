@@ -14,6 +14,7 @@ import { mrsParkerAgent } from '@/server/agents/mrsParker';
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { httpRequest, HttpRequestOptions } from '@/server/tools/http-client';
 import { browserAction, BrowserActionParams } from '@/server/tools/browser';
+import { scheduleTask, ScheduleParams } from '@/server/tools/scheduler';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -429,6 +430,89 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
                     output += `**Scraped Data**:\n\`\`\`\n${typeof result.data === 'string' ? result.data.slice(0, 500) : JSON.stringify(result.data).slice(0, 500)}...\n\`\`\`\n`;
                 }
                 output += `**Logs**:\n${result.logs.map(l => `- ${l}`).join('\n')}`;
+
+                return {
+                    content: output,
+                    toolCalls: executedTools
+                };
+
+            } catch (e: any) {
+                console.error(e);
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+            }
+        }
+
+        // Check for Scheduler actions
+        const isSchedulerAction =
+            lowerMessage.includes('schedule') ||
+            lowerMessage.includes('remind me') ||
+            lowerMessage.includes('every day') ||
+            lowerMessage.includes('every week') ||
+            lowerMessage.includes('recurring') ||
+            lowerMessage.includes('list tasks');
+
+        if (isSchedulerAction) {
+            executedTools.push({
+                id: `schedule-${Date.now()}`,
+                name: 'Scheduler',
+                status: 'running',
+                result: 'Configuring schedule...'
+            });
+
+            // Use AI to generate scheduler params
+            const conversion = await ai.generate({
+                prompt: `Convert this request into a Scheduler tool action (JSON).
+                User Request: "${userMessage}"
+                
+                Actions: 'create' | 'list' | 'delete'
+                Fields: 
+                - action: required
+                - cron: string (cron syntax, e.g. "0 9 * * *" for daily 9am) - REQUIRED for create
+                - task: string (description) - REQUIRED for create
+                - scheduleId: string (for delete)
+
+                Example 1: "Remind me to check emails every day at 9am" ->
+                { "action": "create", "cron": "0 9 * * *", "task": "Check emails" }
+
+                Example 2: "List my schedules" ->
+                { "action": "list" }
+
+                Output JSON Schema: ScheduleParams
+                Only return the JSON.`,
+            });
+
+            try {
+                const params = JSON.parse(conversion.text) as ScheduleParams;
+
+                // If create, show intent
+                if (params.action === 'create') {
+                    executedTools[executedTools.length - 1].result = `Scheduling "${params.task}" (${params.cron})`;
+                } else {
+                    executedTools[executedTools.length - 1].result = `${params.action.toUpperCase()} schedules`;
+                }
+
+                const result = await scheduleTask(params);
+
+                executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
+
+                let output = '';
+                if (result.success) {
+                    if (params.action === 'list') {
+                        const tasks = result.data || [];
+                        output = `📅 **Active Schedules**\n\n${tasks.length === 0 ? 'No recurring tasks found.' : ''}`;
+                        tasks.forEach((t: any) => {
+                            output += `• **${t.task}**\n  Cron: \`${t.cron}\` | ID: \`${t.id}\`\n\n`;
+                        });
+                        executedTools[executedTools.length - 1].result = `Found ${tasks.length} tasks`;
+                    } else {
+                        output = `✅ **Schedule Configured**\n\n${result.data?.message || 'Done'}`;
+                        executedTools[executedTools.length - 1].result = 'Success';
+                    }
+                } else {
+                    output = `⚠️ **Schedule Error**\n\n${result.error}`;
+                    executedTools[executedTools.length - 1].result = result.error || 'Error';
+                }
 
                 return {
                     content: output,
