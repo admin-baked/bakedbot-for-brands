@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Paperclip, Send, ChevronDown, Sparkles, Loader2, Play, CheckCircle2, Bot, CalendarClock, Target, Laptop, Monitor, MousePointer2, Save, FileCode, Copy, Download, Key } from 'lucide-react';
@@ -233,11 +233,44 @@ function ModelSelector({ value, onChange }: { value: ThinkingLevel, onChange: (v
     );
 }
 
-export function AgentChat() {
+// --- Props Interface ---
+
+export type AgentChatMode = 'standard' | 'superuser';
+
+export interface AgentChatProps {
+    /** Mode determines visual and behavioral enhancements */
+    mode?: AgentChatMode;
+    /** Custom placeholder text */
+    placeholder?: string;
+    /** Default thinking level */
+    defaultThinkingLevel?: ThinkingLevel;
+    /** External input injected from parent (e.g., quick actions) */
+    externalInput?: string;
+    /** Custom simulation handler - if provided, overrides default simulation */
+    onSimulate?: (userInput: string, setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>) => Promise<void>;
+    /** Callback when playbook is saved */
+    onSavePlaybook?: (msgId: string) => void;
+}
+
+export function AgentChat({
+    mode = 'standard',
+    placeholder = "I'm ready to handle complex workflows. Try: 'Automate weekly report download' or 'Log into Shopify'",
+    defaultThinkingLevel = 'standard',
+    externalInput,
+    onSimulate,
+    onSavePlaybook,
+}: AgentChatProps = {}) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
-    const [model, setModel] = useState<ThinkingLevel>('standard');
+    const [model, setModel] = useState<ThinkingLevel>(defaultThinkingLevel);
     const [isSimulating, setIsSimulating] = useState(false);
+
+    // Handle external input from parent component
+    useEffect(() => {
+        if (externalInput) {
+            setInput(externalInput);
+        }
+    }, [externalInput]);
 
     const runSimulation = async (userInput: string) => {
         const lowerInput = userInput.toLowerCase();
@@ -326,17 +359,30 @@ steps:
     };
 
     const handleSavePlaybook = (msgId: string) => {
-        // In real implementation, this would open a modal or save to Firestore
-        console.log('Saving playbook for message:', msgId);
+        if (onSavePlaybook) {
+            onSavePlaybook(msgId);
+        } else {
+            // Default implementation
+            console.log('Saving playbook for message:', msgId);
+        }
     };
 
     const sendMessage = async () => {
         if (!input.trim()) return;
         const userMsg: ChatMessage = { id: Date.now().toString(), type: 'user', content: input, timestamp: new Date() };
         setMessages(prev => [...prev, userMsg]);
+        const messageToProcess = input;
         setInput('');
         setIsSimulating(true);
-        await runSimulation(input);
+
+        if (onSimulate) {
+            // Use custom simulation from parent
+            await onSimulate(messageToProcess, setMessages);
+            setIsSimulating(false);
+        } else {
+            // Use default simulation
+            await runSimulation(messageToProcess);
+        }
     };
 
     const hasMessages = messages.length > 0;
@@ -348,7 +394,7 @@ steps:
                 <div className="max-w-3xl mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner">
                     <Textarea
                         value={input} onChange={e => setInput(e.target.value)}
-                        placeholder="I'm ready to handle complex workflows. Try: 'Automate weekly report download' or 'Log into Shopify'"
+                        placeholder={placeholder}
                         className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base"
                         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                     />
