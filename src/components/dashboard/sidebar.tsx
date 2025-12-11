@@ -1,5 +1,6 @@
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 import {
   Sidebar,
@@ -25,11 +26,15 @@ import { useUserRole } from '@/hooks/use-user-role';
 
 import { logger } from '@/lib/logger';
 export function DashboardSidebar() {
+  const pathname = usePathname();
   const { navLinks, current, role } = useDashboardConfig();
   const { user } = useUser();
   const { auth } = useFirebase();
   const { toast } = useToast();
   const { loginRoute } = useUserRole();
+
+  // Hide nav links on CEO dashboard (Super Admin has access via tabs)
+  const isCeoDashboard = pathname?.startsWith('/dashboard/ceo');
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -62,47 +67,55 @@ export function DashboardSidebar() {
         <Logo />
       </SidebarHeader>
       <SidebarContent>
-        <SidebarMenu>
-          {navLinks.filter(link => !link.hidden).map((link) => {
-            const iconKey = (link.icon ?? 'Folder') as keyof typeof LucideIcons;
-            const Icon = (LucideIcons as any)[iconKey] || LucideIcons.Folder as ElementType;
+        {isCeoDashboard ? (
+          /* CEO Dashboard: Hide nav links - Super Admin uses tabs */
+          <div className="p-4 text-center text-muted-foreground text-xs">
+            <p className="font-medium text-foreground">Admin Console</p>
+            <p className="mt-1">Use tabs above for navigation</p>
+          </div>
+        ) : (
+          <SidebarMenu>
+            {navLinks.filter(link => !link.hidden).map((link) => {
+              const iconKey = (link.icon ?? 'Folder') as keyof typeof LucideIcons;
+              const Icon = (LucideIcons as any)[iconKey] || LucideIcons.Folder as ElementType;
 
-            const isComingSoon = link.badge === 'coming-soon';
-            // If badge is 'locked', hide it completely for non-owners
-            if (link.badge === 'locked' && role !== 'owner') {
-              return null;
-            }
-            const isLocked = isComingSoon && role !== 'owner';
+              const isComingSoon = link.badge === 'coming-soon';
+              // If badge is 'locked', hide it completely for non-owners
+              if (link.badge === 'locked' && role !== 'owner') {
+                return null;
+              }
+              const isLocked = isComingSoon && role !== 'owner';
 
-            if (isLocked) {
+              if (isLocked) {
+                return (
+                  <SidebarMenuItem key={link.href}>
+                    <div className="flex w-full items-center gap-2 p-2 px-3 text-sm text-muted-foreground/50 cursor-not-allowed">
+                      <Icon className="h-4 w-4" />
+                      <span>{link.label}</span>
+                      <span className="ml-auto text-[10px] uppercase font-bold bg-muted-foreground/20 px-1.5 py-0.5 rounded text-muted-foreground">
+                        Soon
+                      </span>
+                    </div>
+                  </SidebarMenuItem>
+                );
+              }
+
               return (
                 <SidebarMenuItem key={link.href}>
-                  <div className="flex w-full items-center gap-2 p-2 px-3 text-sm text-muted-foreground/50 cursor-not-allowed">
-                    <Icon className="h-4 w-4" />
-                    <span>{link.label}</span>
-                    <span className="ml-auto text-[10px] uppercase font-bold bg-muted-foreground/20 px-1.5 py-0.5 rounded text-muted-foreground">
-                      Soon
-                    </span>
-                  </div>
+                  <SidebarMenuButton asChild isActive={link.href === current?.href} tooltip={link.label}>
+                    <Link href={link.href} className="flex items-center gap-2">
+                      <Icon />
+                      <span>{link.label}</span>
+                      {link.badge === 'beta' && (
+                        <span className="ml-auto text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded font-medium">BETA</span>
+                      )}
+                    </Link>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               );
-            }
-
-            return (
-              <SidebarMenuItem key={link.href}>
-                <SidebarMenuButton asChild isActive={link.href === current?.href} tooltip={link.label}>
-                  <Link href={link.href} className="flex items-center gap-2">
-                    <Icon />
-                    <span>{link.label}</span>
-                    {link.badge === 'beta' && (
-                      <span className="ml-auto text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded font-medium">BETA</span>
-                    )}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
+            })}
+          </SidebarMenu>
+        )}
       </SidebarContent>
       <SidebarFooter>
         {user && (

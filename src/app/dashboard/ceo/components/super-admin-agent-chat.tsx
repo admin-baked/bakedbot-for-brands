@@ -2,9 +2,10 @@
 
 // src/app/dashboard/ceo/components/super-admin-agent-chat.tsx
 /**
- * Super Admin Agent Chat - With Chat History Sidebar
- * Uses AgentChat component with real backend via runAgentChat
- * Sidebar includes Chat History, New Chat button, and Run Agents
+ * Super Admin Agent Chat - Three Column Layout
+ * LEFT: Chat History + New Chat
+ * CENTER: AgentChat with Playbooks UX
+ * RIGHT: Capabilities, Quick Actions, Run Agents
  */
 
 import { useState, useCallback } from 'react';
@@ -12,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { AgentChat, ChatMessage, ToolCallStep } from '@/app/dashboard/playbooks/components/agent-chat';
 import {
@@ -20,7 +22,14 @@ import {
     Plus,
     MessageSquare,
     Clock,
+    BarChart3,
+    Bug,
+    Building2,
+    FileText,
+    Sparkles,
+    Terminal,
 } from 'lucide-react';
+import { SUPER_ADMIN_SMOKEY } from '@/config/super-admin-smokey-config';
 import { runAgentChat, triggerAgentRun } from '../agents/actions';
 import { cn } from '@/lib/utils';
 
@@ -49,17 +58,18 @@ function formatRelativeTime(date: Date): string {
 }
 
 export default function SuperAdminAgentChat() {
+    const router = useRouter();
     const { toast } = useToast();
 
     // Chat session state
     const [sessions, setSessions] = useState<ChatSession[]>([
-        // Initial mock sessions for demonstration
         { id: 'demo-1', title: 'Platform Health Check', preview: 'Run platform health...', timestamp: new Date(Date.now() - 3600000), messages: [] },
         { id: 'demo-2', title: 'Analytics Overview', preview: 'Show analytics summary...', timestamp: new Date(Date.now() - 7200000), messages: [] },
     ]);
     const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
     const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
-    const [chatKey, setChatKey] = useState(0); // Key to force AgentChat remount
+    const [chatKey, setChatKey] = useState(0);
+    const [externalInput, setExternalInput] = useState<string>('');
 
     // Agent runner state
     const [runningAgent, setRunningAgent] = useState<string | null>(null);
@@ -67,7 +77,6 @@ export default function SuperAdminAgentChat() {
 
     // Create new chat session
     const handleNewChat = useCallback(() => {
-        // Save current chat to sessions if it has messages
         if (currentMessages.length > 0) {
             const firstUserMsg = currentMessages.find(m => m.type === 'user');
             const newSession: ChatSession = {
@@ -79,16 +88,13 @@ export default function SuperAdminAgentChat() {
             };
             setSessions(prev => [newSession, ...prev]);
         }
-
-        // Clear current chat
         setActiveSessionId(null);
         setCurrentMessages([]);
-        setChatKey(prev => prev + 1); // Force AgentChat remount
+        setChatKey(prev => prev + 1);
     }, [currentMessages]);
 
     // Load a previous chat session
     const handleLoadSession = useCallback((session: ChatSession) => {
-        // Save current chat first if it has messages
         if (currentMessages.length > 0 && !activeSessionId) {
             const firstUserMsg = currentMessages.find(m => m.type === 'user');
             if (firstUserMsg) {
@@ -102,18 +108,16 @@ export default function SuperAdminAgentChat() {
                 setSessions(prev => [newSession, ...prev.filter(s => s.id !== session.id)]);
             }
         }
-
         setActiveSessionId(session.id);
         setCurrentMessages(session.messages);
         setChatKey(prev => prev + 1);
     }, [currentMessages, activeSessionId]);
 
-    // Custom simulation handler that calls the real backend
+    // Custom simulation handler
     const handleAgentChatSimulate = async (
         userInput: string,
         setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
     ) => {
-        // Add a "thinking" message
         const thinkingId = `thinking-${Date.now()}`;
         setMessages(prev => {
             const updated = [...prev, {
@@ -127,14 +131,12 @@ export default function SuperAdminAgentChat() {
                     plan: ['Route to agent', 'Process request', 'Generate response']
                 }
             }];
-            setCurrentMessages(updated); // Keep track of messages for history
+            setCurrentMessages(updated);
             return updated;
         });
 
         try {
             const response = await runAgentChat(userInput);
-
-            // Convert tool calls to ToolCallStep format
             const steps: ToolCallStep[] = response.toolCalls?.map(tc => ({
                 id: tc.id,
                 toolName: tc.name,
@@ -143,19 +145,10 @@ export default function SuperAdminAgentChat() {
                 description: tc.result || tc.name,
             })) || [];
 
-            // Replace thinking message with actual response
             setMessages(prev => {
                 const updated = prev.map(m =>
                     m.id === thinkingId
-                        ? {
-                            ...m,
-                            content: response.content,
-                            thinking: steps.length > 0 ? {
-                                isThinking: false,
-                                steps,
-                                plan: []
-                            } : undefined
-                        }
+                        ? { ...m, content: response.content, thinking: steps.length > 0 ? { isThinking: false, steps, plan: [] } : undefined }
                         : m
                 );
                 setCurrentMessages(updated);
@@ -166,15 +159,7 @@ export default function SuperAdminAgentChat() {
             setMessages(prev => {
                 const updated = prev.map(m =>
                     m.id === thinkingId
-                        ? {
-                            ...m,
-                            content: 'I ran into an issue. Please try again.',
-                            thinking: {
-                                isThinking: false,
-                                steps: [{ id: 'err', toolName: 'Error', status: 'failed' as const, description: 'Connection failed' }],
-                                plan: []
-                            }
-                        }
+                        ? { ...m, content: 'I ran into an issue. Please try again.', thinking: { isThinking: false, steps: [{ id: 'err', toolName: 'Error', status: 'failed' as const, description: 'Connection failed' }], plan: [] } }
                         : m
                 );
                 setCurrentMessages(updated);
@@ -183,9 +168,25 @@ export default function SuperAdminAgentChat() {
         }
     };
 
+    const handleCapabilityClick = (capName: string) => {
+        const map: Record<string, string> = {
+            'Platform Analytics': 'analytics',
+            'Debugging & Tickets': 'tickets',
+            'All AI Agents': 'agents',
+            'Multi-Org Access': 'analytics',
+            'Reports & Exports': 'analytics'
+        };
+        const tab = map[capName];
+        if (tab) router.push(`?tab=${tab}`);
+    };
+
+    const handleQuickAction = (prompt: string) => {
+        setExternalInput(prompt);
+        setTimeout(() => setExternalInput(''), 100);
+    };
+
     const handleRunAgent = async (agentId: string, displayName: string) => {
         if (runningAgent) return;
-
         setRunningAgent(agentId);
         setAgentStatus(`Running ${displayName}...`);
 
@@ -199,11 +200,7 @@ export default function SuperAdminAgentChat() {
             });
         } catch (error) {
             setAgentStatus('Error running agent');
-            toast({
-                title: 'Agent Error',
-                description: 'Failed to run agent.',
-                variant: 'destructive',
-            });
+            toast({ title: 'Agent Error', description: 'Failed to run agent.', variant: 'destructive' });
         } finally {
             setRunningAgent(null);
             setTimeout(() => setAgentStatus(null), 3000);
@@ -211,64 +208,40 @@ export default function SuperAdminAgentChat() {
     };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Main Chat Area - Using Playbooks AgentChat */}
-            <div className="lg:col-span-3">
-                <AgentChat
-                    key={chatKey}
-                    mode="superuser"
-                    placeholder="Ask Baked HQ anything... Try: 'Run platform health' or 'Show analytics summary'"
-                    defaultThinkingLevel="advanced"
-                    onSimulate={handleAgentChatSimulate}
-                />
-            </div>
-
-            {/* Sidebar - Chat History & Run Agents */}
-            <div className="space-y-4">
-                {/* New Chat Button */}
-                <Button
-                    onClick={handleNewChat}
-                    className="w-full bg-green-600 hover:bg-green-700"
-                >
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
+            {/* LEFT SIDEBAR - Chat History */}
+            <div className="lg:col-span-1 space-y-3">
+                <Button onClick={handleNewChat} className="w-full bg-green-600 hover:bg-green-700" size="sm">
                     <Plus className="h-4 w-4 mr-2" />
                     New Chat
                 </Button>
 
-                {/* Chat History */}
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                            <MessageSquare className="h-4 w-4 text-green-500" />
-                            Chat History
+                    <CardHeader className="py-2 px-3">
+                        <CardTitle className="text-xs flex items-center gap-1.5">
+                            <MessageSquare className="h-3.5 w-3.5 text-green-500" />
+                            History
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <ScrollArea className="h-[200px]">
-                            <div className="space-y-1 p-3 pt-0">
+                        <ScrollArea className="h-[400px]">
+                            <div className="space-y-1 p-2 pt-0">
                                 {sessions.length === 0 ? (
-                                    <p className="text-xs text-muted-foreground text-center py-4">
-                                        No previous chats
-                                    </p>
+                                    <p className="text-[10px] text-muted-foreground text-center py-4">No chats yet</p>
                                 ) : (
                                     sessions.map(session => (
                                         <button
                                             key={session.id}
                                             onClick={() => handleLoadSession(session)}
                                             className={cn(
-                                                "w-full text-left p-2 rounded-lg transition-colors hover:bg-muted",
+                                                "w-full text-left p-2 rounded transition-colors hover:bg-muted text-xs",
                                                 activeSessionId === session.id && "bg-muted border border-green-200"
                                             )}
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm font-medium truncate flex-1">
-                                                    {session.title}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-1 mt-1">
-                                                <Clock className="h-3 w-3 text-muted-foreground" />
-                                                <span className="text-[10px] text-muted-foreground">
-                                                    {formatRelativeTime(session.timestamp)}
-                                                </span>
+                                            <span className="font-medium truncate block">{session.title}</span>
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                                <Clock className="h-2.5 w-2.5 text-muted-foreground" />
+                                                <span className="text-[10px] text-muted-foreground">{formatRelativeTime(session.timestamp)}</span>
                                             </div>
                                         </button>
                                     ))
@@ -277,42 +250,106 @@ export default function SuperAdminAgentChat() {
                         </ScrollArea>
                     </CardContent>
                 </Card>
+            </div>
 
-                {/* Agent Commander - Kept */}
+            {/* CENTER - AgentChat */}
+            <div className="lg:col-span-4">
+                <AgentChat
+                    key={chatKey}
+                    mode="superuser"
+                    placeholder="Ask Baked HQ anything... Try: 'Run platform health' or 'Show analytics summary'"
+                    defaultThinkingLevel="advanced"
+                    externalInput={externalInput}
+                    onSimulate={handleAgentChatSimulate}
+                />
+            </div>
+
+            {/* RIGHT SIDEBAR - Capabilities, Quick Actions, Run Agents */}
+            <div className="lg:col-span-1 space-y-3">
+                {/* Capabilities */}
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                            <Bot className="h-4 w-4 text-green-500" />
+                    <CardHeader className="py-2 px-3">
+                        <CardTitle className="text-xs flex items-center gap-1.5">
+                            <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+                            Capabilities
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-1 p-2 pt-0">
+                        {SUPER_ADMIN_SMOKEY.capabilities.map(cap => (
+                            <div
+                                key={cap.id}
+                                className="flex items-center gap-1.5 text-[11px] cursor-pointer hover:bg-muted p-1 rounded transition-colors"
+                                onClick={() => handleCapabilityClick(cap.name)}
+                            >
+                                {cap.icon === 'BarChart3' && <BarChart3 className="h-3 w-3 text-muted-foreground" />}
+                                {cap.icon === 'Bug' && <Bug className="h-3 w-3 text-muted-foreground" />}
+                                {cap.icon === 'Bot' && <Bot className="h-3 w-3 text-muted-foreground" />}
+                                {cap.icon === 'Building2' && <Building2 className="h-3 w-3 text-muted-foreground" />}
+                                {cap.icon === 'FileText' && <FileText className="h-3 w-3 text-muted-foreground" />}
+                                <span>{cap.name}</span>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+
+                {/* Quick Actions */}
+                <Card>
+                    <CardHeader className="py-2 px-3">
+                        <CardTitle className="text-xs flex items-center gap-1.5">
+                            <Terminal className="h-3.5 w-3.5 text-violet-500" />
+                            Quick Actions
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-1 p-2 pt-0">
+                        {SUPER_ADMIN_SMOKEY.quickActions.map((action, idx) => (
+                            <Button
+                                key={idx}
+                                variant="outline"
+                                size="sm"
+                                className="w-full justify-start text-[10px] h-7"
+                                onClick={() => handleQuickAction(action.prompt)}
+                            >
+                                {action.label}
+                            </Button>
+                        ))}
+                    </CardContent>
+                </Card>
+
+                {/* Run Agents */}
+                <Card>
+                    <CardHeader className="py-2 px-3">
+                        <CardTitle className="text-xs flex items-center gap-1.5">
+                            <Bot className="h-3.5 w-3.5 text-green-500" />
                             Run Agents
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2">
+                    <CardContent className="space-y-1 p-2 pt-0">
                         {[
-                            { id: 'craig', name: 'Craig', specialty: 'Marketing' },
-                            { id: 'smokey', name: 'Smokey', specialty: 'Operations' },
-                            { id: 'pops', name: 'Pops', specialty: 'Analytics' },
+                            { id: 'craig', name: 'Craig', specialty: 'Mkt' },
+                            { id: 'smokey', name: 'Smokey', specialty: 'Ops' },
+                            { id: 'pops', name: 'Pops', specialty: 'Data' },
                             { id: 'ezal', name: 'Ezal', specialty: 'Intel' },
-                            { id: 'money_mike', name: 'Money Mike', specialty: 'Finance' },
-                            { id: 'mrs_parker', name: 'Mrs Parker', specialty: 'Customer' },
+                            { id: 'money_mike', name: 'M.Mike', specialty: 'Fin' },
+                            { id: 'mrs_parker', name: 'Parker', specialty: 'CX' },
                         ].map(agent => (
                             <Button
                                 key={agent.id}
                                 variant="outline"
                                 size="sm"
-                                className="w-full justify-between text-xs"
+                                className="w-full justify-between text-[10px] h-7"
                                 onClick={() => handleRunAgent(agent.id, agent.name)}
                                 disabled={runningAgent !== null}
                             >
-                                <span>{agent.name} <span className="text-muted-foreground">({agent.specialty})</span></span>
+                                <span>{agent.name}</span>
                                 {runningAgent === agent.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    <Loader2 className="h-2.5 w-2.5 animate-spin" />
                                 ) : (
-                                    <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700">Run</Badge>
+                                    <Badge variant="outline" className="text-[8px] px-1 bg-green-50 text-green-700">Run</Badge>
                                 )}
                             </Button>
                         ))}
                         {agentStatus && (
-                            <div className="mt-2 p-2 text-xs bg-green-50 text-green-700 rounded border border-green-200">
+                            <div className="mt-1 p-1.5 text-[10px] bg-green-50 text-green-700 rounded border border-green-200">
                                 {agentStatus}
                             </div>
                         )}
