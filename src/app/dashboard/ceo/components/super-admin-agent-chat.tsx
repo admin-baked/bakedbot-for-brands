@@ -16,6 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { AgentChat, ChatMessage, ToolCallStep } from '@/app/dashboard/playbooks/components/agent-chat';
+import { TaskletChat } from './tasklet-chat';
 import {
     Bot,
     Loader2,
@@ -252,15 +253,12 @@ export default function SuperAdminAgentChat() {
                 </Card>
             </div>
 
-            {/* CENTER - AgentChat */}
-            <div className="lg:col-span-4">
-                <AgentChat
+            {/* CENTER - TaskletChat */}
+            <div className="lg:col-span-4 h-[600px]">
+                <TaskletChat
                     key={chatKey}
-                    mode="superuser"
-                    placeholder="Ask Baked HQ anything... Try: 'Run platform health' or 'Show analytics summary'"
-                    defaultThinkingLevel="advanced"
-                    externalInput={externalInput}
-                    onSimulate={handleAgentChatSimulate}
+                    initialTitle="Baked HQ"
+                    onBack={handleNewChat}
                 />
             </div>
 
