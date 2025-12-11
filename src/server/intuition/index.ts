@@ -57,3 +57,52 @@ export {
     getBaselineMetrics,
     hasStarterPack,
 } from './starter-packs';
+
+// --- Phase 2: Customer Memory ---
+
+export {
+    getCustomerMemory,
+    createCustomerMemory,
+    updateCustomerMemory,
+    aggregateCustomerEvents,
+    updateMemoryFromEvents,
+    getPatternClusters,
+    assignCustomerToCluster,
+    findSimilarCustomers,
+    getCustomerContext,
+} from './customer-memory';
+
+// --- Phase 3: Feedback Loop ---
+
+export {
+    recordOutcome,
+    getRecentOutcomes,
+    analyzeHeuristicPerformance,
+    runHeuristicEvolutionJob,
+    analyzeSystemPerformance,
+    type HeuristicPerformance,
+    type SystemPerformance,
+} from './outcomes';
+
+// --- Phase 4: Multi-Agent Coordination ---
+
+export {
+    sendAgentMessage,
+    recordReaction,
+    getPendingMessages,
+    getMessagesRequiringReaction,
+    broadcastDemandSpike,
+    broadcastComplianceRisk,
+    sendCustomerTrend,
+    sendInventoryAlert,
+    cleanupExpiredMessages,
+} from './agent-bus';
+
+// --- Phase 5: Nightly Dream Cycle ---
+
+export {
+    runDreamCycle,
+    runGlobalDreamCycle,
+    type DreamCycleConfig,
+    type DreamCycleResult,
+} from './dream-cycle';
