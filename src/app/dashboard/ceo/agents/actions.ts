@@ -11,6 +11,7 @@ import { popsAgent } from '@/server/agents/pops';
 import { ezalAgent } from '@/server/agents/ezal';
 import { moneyMikeAgent } from '@/server/agents/moneyMike';
 import { mrsParkerAgent } from '@/server/agents/mrsParker';
+import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -277,6 +278,47 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
 
         // Check for playbook commands (pattern matching)
         const lowerMessage = userMessage.toLowerCase();
+
+        // Check for web search requests FIRST
+        const isSearchRequest =
+            lowerMessage.includes('search') ||
+            lowerMessage.includes('find') ||
+            lowerMessage.includes('articles') ||
+            lowerMessage.includes('news about') ||
+            lowerMessage.includes('look up') ||
+            lowerMessage.includes('google');
+
+        if (isSearchRequest) {
+            // Extract search query (clean up common prefixes)
+            let searchQuery = userMessage
+                .replace(/^(find|search|look up|google|get me|show me)/i, '')
+                .replace(/^(a list of|articles|news|information)\s*(about|on|for)?/i, '')
+                .trim();
+
+            if (!searchQuery) searchQuery = userMessage; // Fallback to original
+
+            executedTools.push({
+                id: `search-${Date.now()}`,
+                name: 'Web Search',
+                status: 'running',
+                result: `Searching for: ${searchQuery}`
+            });
+
+            const searchResults = await searchWeb(searchQuery, 5);
+
+            // Update tool status
+            executedTools[executedTools.length - 1].status = searchResults.success ? 'success' : 'error';
+            executedTools[executedTools.length - 1].result = searchResults.success
+                ? `Found ${searchResults.results.length} results`
+                : searchResults.error || 'Search failed';
+
+            const formattedResults = formatSearchResults(searchResults);
+
+            return {
+                content: formattedResults,
+                toolCalls: executedTools
+            };
+        }
 
         if (lowerMessage.includes('welcome') || lowerMessage.includes('welcome-sequence')) {
             const result = await executePlaybook('welcome-sequence');
