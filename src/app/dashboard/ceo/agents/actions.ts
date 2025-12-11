@@ -13,6 +13,7 @@ import { moneyMikeAgent } from '@/server/agents/moneyMike';
 import { mrsParkerAgent } from '@/server/agents/mrsParker';
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { httpRequest, HttpRequestOptions } from '@/server/tools/http-client';
+import { browserAction, BrowserActionParams } from '@/server/tools/browser';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -362,6 +363,82 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
             } catch (e) {
                 executedTools[executedTools.length - 1].status = 'error';
                 executedTools[executedTools.length - 1].result = 'Failed to parse request';
+            }
+        }
+
+        // Check for Browser actions
+        const isBrowserAction =
+            lowerMessage.includes('browser') ||
+            lowerMessage.includes('scrape') ||
+            lowerMessage.includes('login to') ||
+            lowerMessage.includes('go to ') ||
+            lowerMessage.includes('visit ') ||
+            lowerMessage.includes('screenshot');
+
+        if (isBrowserAction) {
+            executedTools.push({
+                id: `browser-${Date.now()}`,
+                name: 'Cloud Browser',
+                status: 'running',
+                result: 'Generating automation script...'
+            });
+
+            // Use AI to generate the browser script
+            const conversion = await ai.generate({
+                prompt: `Convert this user request into a Playwright automation script (JSON steps).
+                User Request: "${userMessage}"
+                
+                Available Actions:
+                - { action: 'goto', url: string }
+                - { action: 'type', selector: string, text: string }
+                - { action: 'click', selector: string }
+                - { action: 'wait', selector: string } (use for waiting for elements)
+                - { action: 'scrape', selector?: string } (default: body)
+                - { action: 'screenshot' }
+                
+                Example: Login to example.com ->
+                { "steps": [
+                    { "action": "goto", "url": "https://example.com/login" },
+                    { "action": "type", "selector": "#email", "text": "user@test.com" },
+                    { "action": "click", "selector": "#login" },
+                    { "action": "wait", "selector": "#dashboard" },
+                    { "action": "scrape", "selector": "#stats" }
+                ]}
+                
+                Output JSON Schema: { steps: BrowserStep[], headless?: boolean }
+                Only return the JSON.`,
+            });
+
+            try {
+                const params = JSON.parse(conversion.text) as BrowserActionParams;
+
+                executedTools[executedTools.length - 1].result = `Running ${params.steps.length} steps...`;
+
+                const result = await browserAction(params);
+
+                executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
+                executedTools[executedTools.length - 1].result = result.success
+                    ? `Completed ${result.logs.length} actions`
+                    : result.error || 'Browser Error';
+
+                let output = `🖥️ **Browser Action Complete**\n\n`;
+                if (result.screenshot) {
+                    output += `![Screenshot](data:image/png;base64,${result.screenshot})\n\n`;
+                }
+                if (result.data) {
+                    output += `**Scraped Data**:\n\`\`\`\n${typeof result.data === 'string' ? result.data.slice(0, 500) : JSON.stringify(result.data).slice(0, 500)}...\n\`\`\`\n`;
+                }
+                output += `**Logs**:\n${result.logs.map(l => `- ${l}`).join('\n')}`;
+
+                return {
+                    content: output,
+                    toolCalls: executedTools
+                };
+
+            } catch (e: any) {
+                console.error(e);
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
             }
         }
 
