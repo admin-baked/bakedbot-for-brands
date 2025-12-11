@@ -128,15 +128,38 @@ export async function handleMrsParkerEvent(orgId: string, eventId: string) {
       .doc(customerKey);
 
     const total = order.total || 0;
-    const earnedPoints = Math.round(total); // 1 point per $ for now
+
+    // INTEGRATION: iHeart Loyalty
+    // Call iHeart API to award points and get the canonical balance
+    const { getAdminAuth } = await import('@/firebase/admin'); // Import helper if needed, but not used here directly yet
+    const { iheartService } = await import('@/server/services/iheart');
+
+    const iheartResult = await iheartService.awardPoints({
+      customerId: customerKey, // Ensure this matches iHeart ID format (often external_id)
+      orderId: orderId,
+      orderTotal: total,
+      pointsMultiplier: 1
+    });
+
+    if (!iheartResult.success) {
+      logger.error(`[MrsParker] Failed to award iHeart points for ${orderId}: ${iheartResult.error}`);
+      // Optionally throw or continue with local fallback
+    }
 
     await db.runTransaction(async (tx: any) => {
+      // NOTE: We are re-reading/writing to ensure consistency, but we used values from iHeart above.
+      // Ideally we should do iHeart call OUTSIDE transaction to avoid blocking it for too long, which we did.
+
       const snap = await tx.get(loyaltyRef);
       const current = (snap.exists ? snap.data() : {}) as any;
 
       const newTotalOrders = (current.totalOrders || 0) + 1;
       const newTotalGmv = (current.totalGmv || 0) + total;
-      const newPoints = (current.points || 0) + earnedPoints;
+
+      const earnedPoints = iheartResult.success ? iheartResult.pointsAwarded : Math.round(total);
+      const newPoints = iheartResult.success ? iheartResult.newBalance : (current.points || 0) + earnedPoints;
+
+      // Tier is now driven by iHeart (if available), or local fallback
       const tier = computeTier(newPoints);
 
       // Check if this is the first order to send a welcome SMS.
