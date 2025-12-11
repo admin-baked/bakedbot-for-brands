@@ -7,7 +7,40 @@ All Agents working in the `dev/` context must adhere to these protocols.
 *   Run: `git pull origin main --rebase`
 *   If you encounter conflicts that you cannot easily resolve, stop and notify the user.
 
-## 2. The Testing Mandate
+## 2. Exploration Sequence Protocol (MANDATORY)
+**CRITICAL**: Never assume or speculate what is inside a file. Always read and investigate fully based on actual file contents.
+
+Before ANY implementation or coding, you MUST complete this 4-step exploration sequence:
+
+### Step 1: Directory Tree
+Explore the directory structure to understand the project layout.
+*   Run: `list_dir` on the relevant directories
+*   Identify where related files live
+*   Map out the folder structure
+
+### Step 2: Related Files
+Find all files that may be affected by or related to the task.
+*   Run: `find_by_name` for patterns like `*.ts`, `*component*`, etc.
+*   Run: `grep_search` for function names, imports, or patterns
+*   Run: `codebase_search` for semantic discovery
+
+### Step 3: Deep Read
+Read the actual contents of each relevant file.
+*   Run: `view_file` or `view_file_outline` for each file
+*   Do NOT skip this step - read the actual code
+*   Note existing patterns, imports, and conventions
+*   Identify dependencies and relationships
+
+### Step 4: Pattern Summary
+Before writing any code, summarize:
+*   Existing patterns and conventions observed
+*   File structure and naming patterns
+*   Import patterns and dependencies
+*   Any potential conflicts or considerations
+
+Only AFTER completing all 4 steps may you proceed to implementation.
+
+## 3. The Testing Mandate
 **CRITICAL**: You may NOT complete a coding task without ensuring test coverage.
 
 *   **Option A (Preferred)**: Implement the unit test immediately in the corresponding `.test.ts` file and verify it passes.
@@ -16,12 +49,20 @@ All Agents working in the `dev/` context must adhere to these protocols.
     *   **Status**: `pending`
     *   **Owner**: `ai_builder_swarm`
 
-## 2. Verification Integrity
+## 4. Verification Integrity
 *   Never change a task status to `"passing"` in `backlog.json` unless you have actually ran the command found in `test_matrix.json` and received a success exit code.
 *   If a test fails, the task status is `"failing"`.
 
-## 3. Logging
+## 5. Logging
 *   Every session must end with a log entry in `dev/progress_log.md` summarizing:
     *   Task ID completed.
     *   Tests run (and result).
     *   New tasks created (if any).
+
+## 6. File Investigation Rules
+*   **Never assume** file contents based on filename alone
+*   **Always read** before modifying
+*   **Verify imports** exist before using them
+*   **Check existing patterns** before introducing new ones
+*   **Confirm dependencies** are installed before importing
+
