@@ -12,6 +12,7 @@ import { ezalAgent } from '@/server/agents/ezal';
 import { moneyMikeAgent } from '@/server/agents/moneyMike';
 import { mrsParkerAgent } from '@/server/agents/mrsParker';
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
+import { httpRequest, HttpRequestOptions } from '@/server/tools/http-client';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -318,6 +319,50 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
                 content: formattedResults,
                 toolCalls: executedTools
             };
+        }
+
+        // Check for HTTP requests
+        const isHttpRequest =
+            lowerMessage.includes('http request') ||
+            lowerMessage.includes('call api') ||
+            lowerMessage.includes('fetch url') ||
+            (lowerMessage.startsWith('get ') && lowerMessage.includes('http'));
+
+        if (isHttpRequest) {
+            executedTools.push({
+                id: `http-${Date.now()}`,
+                name: 'HTTP Request',
+                status: 'running',
+                result: 'Parsing request...'
+            });
+
+            // Use AI to parse the natural language request into HTTP options
+            const conversion = await ai.generate({
+                prompt: `Convert this user request into a JSON object for an HTTP request.
+                User Request: "${userMessage}"
+                Output JSON Schema: { method: "GET"|"POST"|"PUT"|"DELETE", url: "string", headers?: object, body?: object }
+                Only return the JSON.`,
+            });
+
+            try {
+                const options = JSON.parse(conversion.text) as HttpRequestOptions;
+
+                executedTools[executedTools.length - 1].result = `${options.method} ${options.url}`;
+
+                const response = await httpRequest(options);
+
+                executedTools[executedTools.length - 1].status = response.success ? 'success' : 'error';
+                executedTools[executedTools.length - 1].result = `Status: ${response.status}\nDuration: ${response.durationMs}ms`;
+
+                return {
+                    content: `🌐 **HTTP Request Complete**\n\n**${options.method}** ${options.url}\n**Status**: ${response.status} ${response.statusText}\n\n\`\`\`json\n${JSON.stringify(response.data, null, 2)}\n\`\`\``,
+                    toolCalls: executedTools
+                };
+
+            } catch (e) {
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = 'Failed to parse request';
+            }
         }
 
         if (lowerMessage.includes('welcome') || lowerMessage.includes('welcome-sequence')) {
