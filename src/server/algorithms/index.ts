@@ -82,3 +82,39 @@ export {
     type CampaignOptimizationRequest,
     type CampaignOptimizationResponse,
 } from './craig-optimizer';
+
+// --- Phase 3: Cross-Tenant Learning ---
+
+// Global Priors
+export {
+    getEffectPrior,
+    getGlobalWeights,
+    getWarmStartWeights,
+    contributeBanditStats,
+    contributeWeights,
+    generateCrossTenantInsights,
+    getTopPatterns,
+    getPatternSuccessRate,
+    initializeGlobalPriors,
+    type GlobalPrior,
+    type AggregatedBanditStats,
+    type GlobalScoringWeights,
+    type SegmentPattern,
+    type CrossTenantInsight,
+} from './global-priors';
+
+// Intuition Engine
+export {
+    getBrandIntuition,
+    getBlendedWeights,
+    recordInteraction,
+    updateLocalWeights,
+    getEffectBoosts,
+    getBrandInsights,
+    getIntuitionSummary,
+    getAgentIntuition,
+    getGlobalLearningStats,
+    runLearningAggregation,
+    type BrandIntuition,
+    type IntuitionConfig,
+} from './intuition-engine';
