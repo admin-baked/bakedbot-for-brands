@@ -1,0 +1,23 @@
+{
+  "strategy_meta": {
+    "id": "str_basis_kraken_btc",
+    "venue": "kraken",
+    "risk_bucket": "green",
+    "status": "running"
+  },
+  "config": {
+    "min_funding_apr": 0.1,
+    "max_position_size_usd": 5000
+  },
+  "performance": {
+    "lifetime_pnl_usd": 0,
+    "last_30d_pnl_usd": 0,
+    "max_drawdown_pct": 0,
+    "num_trades": 0,
+    "win_rate": 0
+  },
+  "state": {
+    "current_position_usd": 0
+  },
+  "logs": []
+}

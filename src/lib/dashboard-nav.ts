@@ -135,4 +135,12 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     icon: 'settings',
     group: 'settings',
   },
+  {
+    key: 'treasury',
+    label: 'Treasury',
+    href: '/dashboard/treasury',
+    icon: 'wallet',
+    group: 'core',
+    badge: 'locked', // Hidden for non-owners via role check
+  },
 ];
