@@ -88,6 +88,25 @@ export class EmailService {
     async sendCustomEmail(options: EmailOptions): Promise<boolean> {
         return this.sendEmail(options);
     }
+    /**
+     * Send an invitation email to a new user
+     */
+    async sendInvitationEmail(to: string, link: string, role: string, businessName?: string) {
+        const subject = `Welcome to BakedBot! Invitation to join as ${role}`;
+        const html = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1>You've been invited!</h1>
+                <p>You have been invited to join BakedBot as a <strong>${role}</strong>${businessName ? ` for <strong>${businessName}</strong>` : ''}.</p>
+                <p>Click the link below to set your password and access your dashboard:</p>
+                <p style="margin: 20px 0;">
+                    <a href="${link}" style="background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Accept Invitation</a>
+                </p>
+                <p>Or copy this link: <br/>${link}</p>
+                <p>If you didn't expect this invitation, you can ignore this email.</p>
+            </div>
+        `;
+        return this.sendEmail({ to, subject, html });
+    }
 }
 
 export const emailService = new EmailService();

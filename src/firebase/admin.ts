@@ -1,5 +1,6 @@
 import { getApps, initializeApp, cert, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 
 function getServiceAccount() {
     const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
@@ -31,4 +32,21 @@ export function getAdminFirestore() {
         }
     }
     return getFirestore();
+}
+
+export function getAdminAuth() {
+    if (getApps().length === 0) {
+        const serviceAccount = getServiceAccount();
+        if (serviceAccount) {
+            initializeApp({
+                credential: cert(serviceAccount)
+            });
+        } else {
+            initializeApp({
+                credential: applicationDefault(),
+                projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
+            });
+        }
+    }
+    return getAuth();
 }
