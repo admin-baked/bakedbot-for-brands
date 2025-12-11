@@ -28,6 +28,7 @@ import {
     Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { runAgentChat } from '../agents/actions';
 
 // ============ Types ============
 
@@ -248,13 +249,16 @@ export function TaskletChat({
         }, 1000);
 
         try {
-            // Simulate AI response with tool setup
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Call the real AI backend
+            const response = await runAgentChat(userInput);
 
-            // Check if message mentions integrations
-            const needsGmail = userInput.toLowerCase().includes('email') || userInput.toLowerCase().includes('send');
-            const needsDrive = userInput.toLowerCase().includes('spreadsheet') || userInput.toLowerCase().includes('sheet') || userInput.toLowerCase().includes('save');
-            const needsSchedule = userInput.toLowerCase().includes('daily') || userInput.toLowerCase().includes('weekly');
+            clearInterval(durationInterval);
+
+            // Check if response mentions integrations (for showing permission cards)
+            const responseText = response.content.toLowerCase();
+            const needsGmail = responseText.includes('email') || responseText.includes('gmail') || userInput.toLowerCase().includes('email');
+            const needsDrive = responseText.includes('spreadsheet') || responseText.includes('sheet') || responseText.includes('drive') || userInput.toLowerCase().includes('sheet');
+            const needsSchedule = responseText.includes('daily') || responseText.includes('schedule') || userInput.toLowerCase().includes('daily');
 
             const newPermissions: ToolPermission[] = [];
             const newTriggers: TaskletTrigger[] = [];
@@ -291,29 +295,14 @@ export function TaskletChat({
                 });
             }
 
-            clearInterval(durationInterval);
-
-            // Generate response
-            const responseContent = `I love this idea! Let me set up a daily deal hunting automation for these two dispensaries. Here's what I'll do:
-
-1. **Research the sites daily** for offers and deals
-2. **Track everything in a spreadsheet** for easy auditing  
-3. **Send daily emails** with the finds to Jack and you
-4. **Run it immediately** to get today's deals
-
-${newPermissions.length > 0 ? `Perfect! I've connected to ${newPermissions.map(p => p.name).join(' and ')}. Let me get the tools available for those connections.` : ''}
-
-${newTriggers.length > 0 ? `I've also set up ${newTriggers.length} trigger${newTriggers.length > 1 ? 's' : ''} to run this automation daily.` : ''}
-
-Would you like me to run the first automation now?`;
-
+            // Use the actual AI response
             setState(prev => ({
                 ...prev,
                 permissions: [...prev.permissions, ...newPermissions],
                 triggers: [...prev.triggers, ...newTriggers],
                 messages: prev.messages.map(m =>
                     m.id === thinkingId
-                        ? { ...m, content: responseContent, isThinking: false, workDuration: duration }
+                        ? { ...m, content: response.content, isThinking: false, workDuration: duration }
                         : m
                 ),
             }));
