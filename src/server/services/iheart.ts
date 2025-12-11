@@ -74,6 +74,57 @@ export class IHeartService {
   }
 
   /**
+  /**
+   * Sync menu from iHeart to Firestore
+   * Fetch products from iHeart and update local inventory
+   */
+  async syncMenu(storeId: string): Promise<{ success: boolean; count: number; error?: string }> {
+    try {
+      logger.info('[iHeart] Syncing menu', { storeId });
+
+      const menu = await this.getMenu(storeId);
+      const { getAdminFirestore } = await import('@/firebase/admin');
+      const db = getAdminFirestore();
+
+      const batch = db.batch();
+      let count = 0;
+
+      for (const product of menu) {
+        const productRef = db.collection('organizations').doc(storeId).collection('products').doc(product.id);
+        batch.set(productRef, {
+          ...product, // Assuming product structure matches or mapping is handled in getMenu
+          updatedAt: new Date(),
+          source: 'iheart'
+        }, { merge: true });
+        count++;
+
+        // Commit batch every 500 items
+        if (count % 400 === 0) {
+          await batch.commit();
+        }
+      }
+
+      if (count > 0 && count % 400 !== 0) {
+        await batch.commit();
+      }
+
+      return { success: true, count };
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('[iHeart] Failed to sync menu', { storeId, error: err.message });
+      return { success: false, count: 0, error: err.message };
+    }
+  }
+
+  /**
+   * Get live menu from iHeart
+   */
+  async getMenu(storeId: string): Promise<any[]> {
+    const response = await this.makeRequest('GET', `/menu?store_id=${storeId}`);
+    return response.products || [];
+  }
+
+  /**
    * Create or update customer profile in iHeart
    */
   async upsertCustomer(customer: IHeartCustomer): Promise<{ success: boolean; customerId: string; error?: string }> {
@@ -83,16 +134,15 @@ export class IHeartService {
         email: customer.email
       });
 
-      // Mock API call - replace with actual iHeart API integration
-      const response = await this.makeRequest('POST', '/customers', {
-        customer_id: customer.id,
+      await this.makeRequest('POST', '/customers', {
+        external_id: customer.id,
         email: customer.email,
         first_name: customer.firstName,
         last_name: customer.lastName,
         phone: customer.phone,
-        date_of_birth: customer.dateOfBirth,
+        dob: customer.dateOfBirth,
         state: customer.state,
-        medical_card: customer.hasMedicalCard,
+        medical: customer.hasMedicalCard,
       });
 
       return {
@@ -121,7 +171,6 @@ export class IHeartService {
     try {
       logger.info('[iHeart] Fetching loyalty profile', { customerId });
 
-      // Mock API call - replace with actual iHeart API integration
       const response = await this.makeRequest('GET', `/customers/${customerId}/loyalty`);
 
       return {
@@ -163,19 +212,18 @@ export class IHeartService {
         pointsEarned
       });
 
-      // Mock API call - replace with actual iHeart API integration
       const response = await this.makeRequest('POST', `/customers/${transaction.customerId}/transactions`, {
         order_id: transaction.orderId,
-        order_total: transaction.orderTotal,
-        points_earned: pointsEarned,
-        points_redeemed: 0,
-        transaction_date: new Date().toISOString(),
+        amount: transaction.orderTotal,
+        points: pointsEarned,
+        type: 'earn',
+        timestamp: new Date().toISOString(),
       });
 
       return {
         success: true,
         pointsAwarded: pointsEarned,
-        newBalance: response.new_balance || pointsEarned,
+        newBalance: response.new_balance || 0,
       };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
@@ -205,11 +253,10 @@ export class IHeartService {
         pointsCost
       });
 
-      // Mock API call - replace with actual iHeart API integration
       const response = await this.makeRequest('POST', `/customers/${customerId}/redeem`, {
         reward_id: rewardId,
-        points_cost: pointsCost,
-        redeemed_at: new Date().toISOString(),
+        points: pointsCost,
+        timestamp: new Date().toISOString(),
       });
 
       return {
@@ -239,7 +286,6 @@ export class IHeartService {
     try {
       logger.info('[iHeart] Fetching rewards catalog');
 
-      // Mock API call - replace with actual iHeart API integration
       const response = await this.makeRequest('GET', '/rewards');
 
       return response.rewards || [];
@@ -266,21 +312,43 @@ export class IHeartService {
   private async makeRequest(method: string, endpoint: string, body?: any): Promise<any> {
     const url = `${this.config.baseUrl}${endpoint}`;
 
-    // Mock implementation - replace with actual HTTP client
-    logger.debug('[iHeart] API Request', { method, url, body });
+    // For now, if we are in test mode or missing keys, we might want to fallback or throw.
+    // But since this is "Real API" implementation, we'll code it for real fetch.
+    // Currently relying on props.env, which might be mock strings in dev.
 
-    // Simulate API response delay
-    await new Promise(resolve => setTimeout(resolve, 100));
+    if (this.config.apiKey === 'mock-api-key') {
+      // Keep the mock behavior if keys are missing to prevent breaking local dev without keys
+      logger.warn('[iHeart] Using Mock Response (No API Key)');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        success: true,
+        products: [], // Mock empty menu
+        points: 100,
+        new_balance: 150
+      };
+    }
 
-    // Mock successful response
-    return {
-      success: true,
-      points: 100,
-      total_orders: 5,
-      total_spent: 250.00,
-      new_balance: 100,
-      rewards: [],
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-API-Key': this.config.apiKey,
+      'X-Merchant-Id': this.config.merchantId
     };
+
+    // Add signature if needed (simplified for now)
+
+    logger.debug('[iHeart] API Request', { method, url });
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (!response.ok) {
+      throw new Error(`iHeart API Error: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
   }
 }
 

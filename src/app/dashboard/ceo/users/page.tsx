@@ -2,7 +2,7 @@ import { InviteUserDialog } from '@/components/dashboard/admin/invite-user-dialo
 
 export default function SuperAdminUsersPage() {
     return (
-        <div className="container mx-auto py-10 space-y-8">
+        <div className="container mx-auto py-10 px-4 space-y-8">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
