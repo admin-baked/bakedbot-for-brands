@@ -1,0 +1,44 @@
+{
+  "treasury_profile": {
+    "entity_name": "BakedBot Treasury",
+    "base_currency": "USD",
+    "reporting_interval_days": 7
+  },
+  "runway_model": {
+    "monthly_burn_usd": 25000,
+    "min_runway_months": 12,
+    "warning_runway_months": 9
+  },
+  "allocation_policy": {
+    "max_total_crypto_pct": 40,
+    "risk_buckets": {
+      "green": 20,
+      "yellow": 15,
+      "red": 5
+    },
+    "max_per_asset_pct": {
+      "BTC": 20,
+      "ETH": 15,
+      "SOL": 5,
+      "USDC": 100
+    }
+  },
+  "venue_limits": {
+    "centralized": {
+      "kraken": {
+        "status": "approved",
+        "max_exposure_pct": 30
+      }
+    },
+    "defi": {
+      "aave_v3": {
+        "status": "approved",
+        "max_exposure_pct": 10,
+        "chains": [
+          "mainnet"
+        ]
+      }
+    }
+  },
+  "strategy_registry": []
+}

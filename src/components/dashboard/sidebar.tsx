@@ -68,6 +68,10 @@ export function DashboardSidebar() {
             const Icon = (LucideIcons as any)[iconKey] || LucideIcons.Folder as ElementType;
 
             const isComingSoon = link.badge === 'coming-soon';
+            // If badge is 'locked', hide it completely for non-owners
+            if (link.badge === 'locked' && role !== 'owner') {
+              return null;
+            }
             const isLocked = isComingSoon && role !== 'owner';
 
             if (isLocked) {
