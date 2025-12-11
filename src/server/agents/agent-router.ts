@@ -126,14 +126,14 @@ export async function routeToAgent(userMessage: string): Promise<RoutingResult> 
         };
     }
 
-    // Low confidence - use AI to determine
+    // Low confidence - skip AI for now, just use general
+    // (AI routing disabled due to empty response issues)
     if (topResult.score === 0) {
-        try {
-            const aiResult = await detectIntentWithAI(userMessage);
-            return aiResult;
-        } catch (error) {
-            logger.error('AI intent detection failed:', { error: String(error) });
-        }
+        return {
+            primaryAgent: 'general',
+            confidence: 0.5,
+            reasoning: 'No specific keywords matched. Using general assistant.',
+        };
     }
 
     // Fallback to general
@@ -152,8 +152,9 @@ async function detectIntentWithAI(userMessage: string): Promise<RoutingResult> {
         .map(a => `- ${a.id}: ${a.specialty} - ${a.description}`)
         .join('\n');
 
-    const response = await ai.generate({
-        prompt: `You are an intent router. Given the user's message, determine which agent should handle it.
+    try {
+        const response = await ai.generate({
+            prompt: `You are an intent router. Given the user's message, determine which agent should handle it.
 
 Available Agents:
 ${agentDescriptions}
@@ -167,9 +168,12 @@ Respond with JSON only:
   "confidence": 0.0-1.0,
   "reasoning": "brief explanation"
 }`,
-    });
+        });
 
-    try {
+        if (!response.text) {
+            throw new Error('Empty response from AI');
+        }
+
         const text = response.text.replace(/```json\n?|\n?```/g, '').trim();
         const parsed = JSON.parse(text);
 
@@ -178,11 +182,13 @@ Respond with JSON only:
             confidence: parsed.confidence,
             reasoning: parsed.reasoning,
         };
-    } catch {
+    } catch (error) {
+        // Log but don't fail - return fallback
+        logger.warn('AI intent detection failed, using fallback', { error: String(error) });
         return {
             primaryAgent: 'general',
             confidence: 0.5,
-            reasoning: 'AI parsing failed, defaulting to general.',
+            reasoning: 'AI routing unavailable, defaulting to general assistant.',
         };
     }
 }

@@ -1,6 +1,32 @@
 {
     "features": [
         {
+            "id": "feat_production_readiness_audit",
+            "title": "Production Readiness Audit",
+            "status": "in_progress",
+            "description": "Comprehensive code review to ensure production readiness. Verify all user roles work (Customer, Brand, Dispensary, CEO). Test menus, playbooks, agents, AI budtender. Remove any stubs or mock data. Verify CannMenus and POS integrations.",
+            "acceptance_tests": [
+                "test_ceo_dashboard_renders",
+                "test_brand_menu_works",
+                "test_dispensary_menu_works",
+                "test_customer_ordering_flow",
+                "test_ai_budtender_chat",
+                "test_cannmenus_integration",
+                "test_no_mock_data_in_prod"
+            ],
+            "phases": [
+                "Phase 1: CEO Dashboard ✅",
+                "Phase 2: Brand Dashboard",
+                "Phase 3: Dispensary Dashboard",
+                "Phase 4: Customer Experience",
+                "Phase 5: Integrations",
+                "Phase 6: Final QA Prep"
+            ],
+            "owner": "antigravity",
+            "dependencies": [],
+            "area": "full_stack"
+        },
+        {
             "id": "feat_super_user_agent_ux",
             "title": "Super User Agent Command UX",
             "status": "in_progress",
