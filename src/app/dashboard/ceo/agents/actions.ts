@@ -18,6 +18,7 @@ import { scheduleTask, ScheduleParams } from '@/server/tools/scheduler';
 import { manageWebhooks, WebhookParams } from '@/server/tools/webhooks';
 import { gmailAction, GmailParams } from '@/server/tools/gmail';
 import { calendarAction, CalendarParams } from '@/server/tools/calendar';
+import { sheetsAction, SheetsParams } from '@/server/tools/sheets';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -750,6 +751,86 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
                     }
                 } else {
                     output = `⚠️ **Calendar Error**\n\n${result.error}\n\n*Note: Ensure you have added the 'calendar' doc to 'integrations' in Firestore.*`;
+                    executedTools[executedTools.length - 1].result = result.error || 'Error';
+                }
+
+                return {
+                    content: output,
+                    toolCalls: executedTools
+                };
+
+            } catch (e: any) {
+                console.error(e);
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+            }
+        }
+
+        // Check for Sheets actions
+        const isSheetsAction =
+            lowerMessage.includes('sheet') ||
+            lowerMessage.includes('excel') ||
+            lowerMessage.includes('spreadsheet') ||
+            lowerMessage.includes('csv');
+
+        if (isSheetsAction) {
+            executedTools.push({
+                id: `sheet-${Date.now()}`,
+                name: 'Google Sheets',
+                status: 'running',
+                result: 'Accessing sheets...'
+            });
+
+            // Use AI to generate sheets params
+            const conversion = await ai.generate({
+                prompt: `Convert this request into a Sheets tool action (JSON).
+                User Request: "${userMessage}"
+                
+                Actions: 'read' | 'append' | 'create'
+                Fields: 
+                - action: required
+                - spreadsheetId: string (optional, infer or ask if missing)
+                - range: string (e.g. "A1:B2", for read/append)
+                - values: string[][] (for append)
+                - title: string (for create)
+
+                Example 1: "Create a sheet called Sales Report" ->
+                { "action": "create", "title": "Sales Report" }
+
+                Example 2: "Add John Doe (row) to sheet ID 123ABC..." ->
+                { "action": "append", "spreadsheetId": "123ABC...", "range": "Sheet1!A1", "values": [["John Doe"]] }
+
+                Output JSON Schema: SheetsParams
+                Only return the JSON.`,
+            });
+
+            try {
+                const params = JSON.parse(conversion.text) as SheetsParams;
+
+                executedTools[executedTools.length - 1].result = `${params.action.toUpperCase()} sheet`;
+
+                const result = await sheetsAction(params);
+
+                executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
+
+                let output = '';
+                if (result.success) {
+                    if (params.action === 'read') {
+                        const rows = result.data.values || [];
+                        output = `📊 **Sheet Data** (${result.data.range})\n\n`;
+                        rows.forEach((row: string[]) => {
+                            output += `| ${row.join(' | ')} |\n`;
+                        });
+                        executedTools[executedTools.length - 1].result = `Read ${rows.length} rows`;
+                    } else if (params.action === 'create') {
+                        output = `✅ **Sheet Created**\n\nTitle: ${result.data.title}\nURL: [Open Sheet](${result.data.url})\nID: \`${result.data.spreadsheetId}\` (Save this ID!)`;
+                        executedTools[executedTools.length - 1].result = 'Created sheet';
+                    } else {
+                        output = `✅ **Rows Appended**\n\n${result.data.updates?.updatedRows || 1} rows added.`;
+                        executedTools[executedTools.length - 1].result = 'Appended rows';
+                    }
+                } else {
+                    output = `⚠️ **Sheets Error**\n\n${result.error}\n\n*Note: Ensure you have added the 'sheets' doc to 'integrations' in Firestore.*`;
                     executedTools[executedTools.length - 1].result = result.error || 'Error';
                 }
 
