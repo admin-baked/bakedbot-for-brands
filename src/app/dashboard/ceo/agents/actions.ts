@@ -15,6 +15,7 @@ import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { httpRequest, HttpRequestOptions } from '@/server/tools/http-client';
 import { browserAction, BrowserActionParams } from '@/server/tools/browser';
 import { scheduleTask, ScheduleParams } from '@/server/tools/scheduler';
+import { manageWebhooks, WebhookParams } from '@/server/tools/webhooks';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -511,6 +512,80 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
                     }
                 } else {
                     output = `⚠️ **Schedule Error**\n\n${result.error}`;
+                    executedTools[executedTools.length - 1].result = result.error || 'Error';
+                }
+
+                return {
+                    content: output,
+                    toolCalls: executedTools
+                };
+
+            } catch (e: any) {
+                console.error(e);
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+            }
+        }
+
+        // Check for Webhook actions
+        const isWebhookAction =
+            lowerMessage.includes('webhook') ||
+            lowerMessage.includes('hook url') ||
+            lowerMessage.includes('endpoint');
+
+        if (isWebhookAction) {
+            executedTools.push({
+                id: `hook-${Date.now()}`,
+                name: 'Webhook Manager',
+                status: 'running',
+                result: 'Configuring webhook...'
+            });
+
+            // Use AI to generate webhook params
+            const conversion = await ai.generate({
+                prompt: `Convert this request into a Webhook tool action (JSON).
+                User Request: "${userMessage}"
+                
+                Actions: 'create' | 'list' | 'delete'
+                Fields: 
+                - action: required
+                - description: string (optional)
+                - webhookId: string (for delete)
+
+                Example 1: "Create a webhook for Zapier" ->
+                { "action": "create", "description": "Zapier Integration" }
+
+                Output JSON Schema: WebhookParams
+                Only return the JSON.`,
+            });
+
+            try {
+                const params = JSON.parse(conversion.text) as WebhookParams;
+
+                executedTools[executedTools.length - 1].result = `${params.action.toUpperCase()} webhooks`;
+
+                const result = await manageWebhooks(params);
+
+                executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
+
+                let output = '';
+                if (result.success) {
+                    if (params.action === 'list') {
+                        const hooks = result.data || [];
+                        output = `🔗 **Active Webhooks**\n\n${hooks.length === 0 ? 'No webhooks found.' : ''}`;
+                        hooks.forEach((h: any) => {
+                            output += `• **${h.description}**\n  URL: \`${h.url}\`\n  ID: \`${h.id}\`\n\n`;
+                        });
+                        executedTools[executedTools.length - 1].result = `Found ${hooks.length} hooks`;
+                    } else if (params.action === 'create') {
+                        output = `✅ **Webhook Created**\n\nURL: \`${result.data.url}\`\n\n(Send POST requests here to trigger events)`;
+                        executedTools[executedTools.length - 1].result = 'Created endpoint';
+                    } else {
+                        output = `✅ **Webhook Deleted**\n\n${result.data?.message}`;
+                        executedTools[executedTools.length - 1].result = 'Deleted endpoint';
+                    }
+                } else {
+                    output = `⚠️ **Webhook Error**\n\n${result.error}`;
                     executedTools[executedTools.length - 1].result = result.error || 'Error';
                 }
 
