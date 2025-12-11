@@ -198,6 +198,13 @@ export function useDashboardConfig() {
       // Duplicate App Store link removed
       // Owner-specific link
       {
+        label: 'Operations',
+        href: '/dashboard/ceo/playbooks',
+        icon: 'Wand2',
+        description: 'Internal agent commands and automation playbooks.',
+        roles: ['owner'],
+      },
+      {
         label: 'Admin Console',
         href: '/dashboard/ceo',
         icon: 'Shield',
