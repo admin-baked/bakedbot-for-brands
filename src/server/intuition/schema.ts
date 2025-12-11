@@ -253,11 +253,11 @@ export interface AgentMessage {
     topic: MessageTopic;
     payload: Record<string, any>;
     requiredReactions: AgentName[];
-    reactions: Record<AgentName, {
+    reactions: Partial<Record<AgentName, {
         acknowledged: boolean;
         actionTaken?: string;
         timestamp: string;
-    }>;
+    }>>;
     expiresAt: string;
     createdAt: string;
 }
