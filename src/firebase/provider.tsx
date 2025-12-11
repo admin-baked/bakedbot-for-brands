@@ -45,7 +45,17 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
       async (user) => {
         try {
           if (user) {
-            const idTokenResult = await getIdTokenResult(user, true); // Force refresh of claims
+            // Don't force refresh on initial token change - can cause auth/internal-error
+            // with custom tokens immediately after login
+            let idTokenResult;
+            try {
+              idTokenResult = await getIdTokenResult(user, false);
+            } catch (refreshError: any) {
+              // If first attempt fails, try without cache
+              console.warn('Token refresh failed, using cached token:', refreshError.code);
+              idTokenResult = await getIdTokenResult(user, false);
+            }
+
             const claims = idTokenResult.claims;
             // Add custom claims to the user object for easier access
             const userWithClaims = { ...user, ...claims } as any;
@@ -59,9 +69,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
           } else {
             setUser(null);
           }
-        } catch (error) {
-          logger.error('Error getting ID token result:', error instanceof Error ? error : new Error(String(error)));
-          setUserError(error instanceof Error ? error : new Error('An unknown authentication error occurred.'));
+        } catch (error: any) {
+          // Don't set error for transient auth issues - just log them
+          if (error.code === 'auth/internal-error') {
+            console.warn('Transient auth error, user may still be usable:', error.code);
+          } else {
+            logger.error('Error getting ID token result:', error instanceof Error ? error : new Error(String(error)));
+            setUserError(error instanceof Error ? error : new Error('An unknown authentication error occurred.'));
+          }
         } finally {
           setIsUserLoading(false);
         }

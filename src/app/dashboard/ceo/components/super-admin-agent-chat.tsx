@@ -32,7 +32,7 @@ import {
 import { SUPER_ADMIN_SMOKEY } from '@/config/super-admin-smokey-config';
 import { cn } from '@/lib/utils';
 import { getPlatformAnalytics } from '../actions';
-import { runAgentChat } from '../agents/actions';
+import { runAgentChat, triggerAgentRun } from '../agents/actions';
 
 
 
@@ -67,6 +67,8 @@ export default function SuperAdminAgentChat() {
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [runningAgent, setRunningAgent] = useState<string | null>(null);
+    const [agentStatus, setAgentStatus] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom on new messages
@@ -92,12 +94,32 @@ export default function SuperAdminAgentChat() {
         }
     };
 
-    const handleAgentInteraction = (agentName: string) => {
-        toast({
-            title: `Connecting to ${agentName.split(' ')[0]}...`,
-            description: "Agent simulation context loaded.",
-        });
-        setInput(`Verify status for agent: ${agentName}`);
+    const handleRunAgent = async (agentId: string, displayName: string) => {
+        if (runningAgent) return; // Prevent multiple runs
+
+        setRunningAgent(agentId);
+        setAgentStatus(`Running ${displayName}...`);
+
+        try {
+            const result = await triggerAgentRun(agentId);
+            setAgentStatus(result.message);
+            toast({
+                title: result.success ? `${displayName} Complete` : `${displayName} Error`,
+                description: result.message,
+                variant: result.success ? 'default' : 'destructive',
+            });
+        } catch (error) {
+            setAgentStatus('Error running agent');
+            toast({
+                title: 'Agent Error',
+                description: 'Failed to run agent. Check console for details.',
+                variant: 'destructive',
+            });
+        } finally {
+            setRunningAgent(null);
+            // Clear status after 3 seconds
+            setTimeout(() => setAgentStatus(null), 3000);
+        }
     };
 
     const handleSubmit = async (overrideInput?: string) => {
@@ -346,22 +368,44 @@ export default function SuperAdminAgentChat() {
                     </CardContent>
                 </Card>
 
-                {/* Agent Status */}
+                {/* Agent Commander */}
                 <Card>
                     <CardHeader className="pb-3">
-                        <CardTitle className="text-sm">Available Agents</CardTitle>
+                        <CardTitle className="text-sm flex items-center gap-2">
+                            <Bot className="h-4 w-4 text-green-500" />
+                            Run Agents
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                        {['Ezal (Intel)', 'Craig (Marketing)', 'Pops (Analytics)', 'Money Mike (Finance)', 'Deebo (Compliance)'].map(agent => (
-                            <div
-                                key={agent}
-                                className="flex items-center justify-between text-sm cursor-pointer hover:bg-muted p-1 rounded transition-colors"
-                                onClick={() => handleAgentInteraction(agent)}
+                        {[
+                            { id: 'craig', name: 'Craig', specialty: 'Marketing' },
+                            { id: 'smokey', name: 'Smokey', specialty: 'Operations' },
+                            { id: 'pops', name: 'Pops', specialty: 'Analytics' },
+                            { id: 'ezal', name: 'Ezal', specialty: 'Intel' },
+                            { id: 'money_mike', name: 'Money Mike', specialty: 'Finance' },
+                            { id: 'mrs_parker', name: 'Mrs Parker', specialty: 'Customer' },
+                        ].map(agent => (
+                            <Button
+                                key={agent.id}
+                                variant="outline"
+                                size="sm"
+                                className="w-full justify-between text-xs"
+                                onClick={() => handleRunAgent(agent.id, agent.name)}
+                                disabled={runningAgent !== null}
                             >
-                                <span>{agent}</span>
-                                <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700">Ready</Badge>
-                            </div>
+                                <span>{agent.name} <span className="text-muted-foreground">({agent.specialty})</span></span>
+                                {runningAgent === agent.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                    <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700">Run</Badge>
+                                )}
+                            </Button>
                         ))}
+                        {agentStatus && (
+                            <div className="mt-2 p-2 text-xs bg-green-50 text-green-700 rounded border border-green-200">
+                                {agentStatus}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

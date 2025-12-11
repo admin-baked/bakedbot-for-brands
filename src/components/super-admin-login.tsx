@@ -98,17 +98,22 @@ export default function SuperAdminLogin() {
         setIsSubmitting(true);
 
         try {
+            console.log('[DevLogin] Step 1: Creating dev token...');
             // 1. Create dev token for owner persona
             const result = await createDevLoginToken('owner');
             if ('error' in result) {
                 throw new Error(result.error);
             }
+            console.log('[DevLogin] Step 2: Token created, signing in...');
 
             // 2. Sign in with custom token
             const userCredential = await signInWithCustomToken(auth, result.token);
+            console.log('[DevLogin] Step 3: Signed in, getting ID token...');
 
             // 3. Set Server Session Cookie
             const idToken = await userCredential.user.getIdToken(true);
+            console.log('[DevLogin] Step 4: Got ID token, setting session...');
+
             const sessionRes = await fetch('/api/auth/session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -116,8 +121,11 @@ export default function SuperAdminLogin() {
             });
 
             if (!sessionRes.ok) {
+                const sessionError = await sessionRes.text();
+                console.error('[DevLogin] Session error:', sessionError);
                 throw new Error('Failed to establish secure session.');
             }
+            console.log('[DevLogin] Step 5: Session set, redirecting...');
 
             // 4. Set Client State (Super Admin localStorage)
             login('owner@bakedbot.ai');
@@ -126,8 +134,21 @@ export default function SuperAdminLogin() {
             router.push('/dashboard/ceo');
 
         } catch (err: any) {
-            console.error('Dev Login Error:', err);
-            setError(err.message || 'Dev login failed. Please try again.');
+            console.error('[DevLogin] Error:', err);
+            console.error('[DevLogin] Error code:', err.code);
+            console.error('[DevLogin] Error message:', err.message);
+
+            // Provide more specific error messages
+            let errorMessage = 'Dev login failed. Please try again.';
+            if (err.code === 'auth/internal-error') {
+                errorMessage = 'Firebase authentication failed. This may be a temporary issue - please try again or check the console for details.';
+            } else if (err.code === 'auth/invalid-custom-token') {
+                errorMessage = 'Invalid authentication token. Please check service account configuration.';
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+
+            setError(errorMessage);
             setIsSubmitting(false);
         }
     };

@@ -42,7 +42,7 @@ export default function CeoDashboardPage() {
     const { isSuperAdmin, isLoading, superAdminEmail, logout } = useSuperAdmin();
 
     // Sync tabs with URL ?tab=...
-    const currentTab = searchParams?.get('tab') || 'agent-command'; // Default to new tab
+    const currentTab = searchParams?.get('tab') || 'agents'; // Default to Agents tab
 
     const handleTabChange = useCallback((value: string) => {
         const params = new URLSearchParams(searchParams?.toString());
@@ -100,8 +100,7 @@ export default function CeoDashboardPage() {
             <Tabs value={currentTab} onValueChange={handleTabChange}>
                 <ScrollArea className="w-full pb-2">
                     <TabsList className="inline-flex w-full min-w-max justify-start px-2 h-auto py-1">
-                        <TabsTrigger value="agent-command" className="font-semibold text-green-700">🚀 Agent Command</TabsTrigger>
-                        <TabsTrigger value="agent-chat" className="font-semibold">🤖 Agent Chat</TabsTrigger>
+                        <TabsTrigger value="agents" className="font-semibold text-green-700">🤖 Agents</TabsTrigger>
                         <TabsTrigger value="ezal" className="font-semibold">🕵️‍♀️ Ezal</TabsTrigger>
                         <TabsTrigger value="playbooks" className="font-semibold">📋 Playbooks</TabsTrigger>
                         <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -116,10 +115,7 @@ export default function CeoDashboardPage() {
                 </ScrollArea>
                 <div className="mt-6">
                     <ClientOnly fallback={<div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
-                        <TabsContent value="agent-command" className="mt-0">
-                            <AgentDashboardClient initialLogs={[]} />
-                        </TabsContent>
-                        <TabsContent value="agent-chat" className="mt-0">
+                        <TabsContent value="agents" className="mt-0">
                             <SuperAdminAgentChat />
                         </TabsContent>
                         <TabsContent value="ezal" className="mt-0">
