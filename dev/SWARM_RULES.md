@@ -2,6 +2,16 @@
 
 All Agents working in the `dev/` context must adhere to these protocols.
 
+## 0. Core Philosophy: KEEP IT SIMPLE
+**CRITICAL**: Never over-engineer. Always choose the simplest solution that works.
+
+*   **Minimum viable fix**: Solve the immediate problem, nothing more.
+*   **No speculative code**: Don't add features "just in case" or for hypothetical future needs.
+*   **Avoid abstraction creep**: Don't create interfaces, factories, or wrapper classes unless absolutely necessary.
+*   **One file > two files**: If the solution fits cleanly in one place, don't split it.
+*   **Direct > clever**: Prefer readable, direct code over clever optimizations.
+*   **Fix first, refactor never**: Ship the fix. Refactoring is a separate task (if ever needed).
+
 ## 1. Grid Sync Protocol (Git)
 **CRITICAL**: Before touching ANY code, you must ensure you are on the latest commit.
 *   Run: `git pull origin main --rebase`

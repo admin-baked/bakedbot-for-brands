@@ -17,6 +17,11 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   // This is guarded to only run in the browser.
   const firebaseServices = useMemo(() => {
     if (typeof window !== 'undefined') {
+      // CRITICAL: Set App Check debug token BEFORE any Firebase initialization
+      // This must happen before auth state listeners are set up
+      if (process.env.NODE_ENV === 'development') {
+        (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      }
       return initializeFirebase();
     }
     return null;
@@ -36,11 +41,6 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       }
 
       try {
-        // The `self` property is a reference to the window object in browsers.
-        // This is a common pattern for setting debug tokens in development.
-        if (process.env.NODE_ENV === 'development') {
-          (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-        }
 
         initializeAppCheck(firebaseServices.firebaseApp, {
           provider: new ReCaptchaV3Provider(recaptchaSiteKey),
