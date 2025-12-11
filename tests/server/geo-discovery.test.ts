@@ -8,6 +8,32 @@
  * Created as part of feat_unit_test_services_geo
  */
 
+// Mock firebase-admin to prevent initialization crashes
+jest.mock('firebase-admin/app', () => ({
+  getApps: jest.fn(() => []),
+  getApp: jest.fn(),
+  initializeApp: jest.fn(),
+  cert: jest.fn(),
+  applicationDefault: jest.fn(),
+}));
+
+jest.mock('firebase-admin/firestore', () => ({
+  getFirestore: jest.fn(),
+}));
+
+jest.mock('firebase-admin/auth', () => ({
+  getAuth: jest.fn(),
+}));
+
+jest.mock('firebase-admin', () => ({
+  apps: [],
+  initializeApp: jest.fn(),
+  credential: {
+    cert: jest.fn(),
+  },
+  firestore: jest.fn(),
+}));
+
 import {
   discoverNearbyProducts,
   getRetailersByZipCode,
@@ -30,22 +56,7 @@ jest.mock('@/lib/cannmenus-api', () => ({
 }));
 
 // Mock Firebase server client
-let mockFirestoreChain: any;
-
-jest.mock('@/firebase/server-client', () => ({
-  createServerClient: jest.fn().mockImplementation(() => {
-    mockFirestoreChain = {
-      collection: jest.fn().mockReturnThis(),
-      doc: jest.fn().mockReturnThis(),
-      get: jest.fn(),
-      set: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      orderBy: jest.fn().mockReturnThis(),
-    };
-    return Promise.resolve({ firestore: mockFirestoreChain });
-  }),
-}));
+jest.mock('@/firebase/server-client');
 
 import {
   searchNearbyRetailers,
@@ -55,16 +66,24 @@ import {
 import { createServerClient } from '@/firebase/server-client';
 
 describe('Geo Discovery Service', () => {
+  let mockFirestoreChain: any;
+
   beforeEach(async () => {
     jest.clearAllMocks();
-    // Initialize mockFirestoreChain for each test
-    await createServerClient();
-    // Reset the mock chain to return itself for chaining
-    if (mockFirestoreChain) {
-      mockFirestoreChain.collection.mockReturnThis();
-      mockFirestoreChain.doc.mockReturnThis();
-      mockFirestoreChain.orderBy.mockReturnThis();
-    }
+
+    mockFirestoreChain = {
+      collection: jest.fn().mockReturnThis(),
+      doc: jest.fn().mockReturnThis(),
+      get: jest.fn(),
+      set: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      orderBy: jest.fn().mockReturnThis(),
+    };
+
+    (createServerClient as jest.Mock).mockResolvedValue({
+      firestore: mockFirestoreChain,
+    });
   });
 
   describe('discoverNearbyProducts', () => {
@@ -589,9 +608,13 @@ describe('Geo Discovery Service', () => {
     });
 
     it('should create a new geo zone', async () => {
-      mockFirestoreChain.doc.mockReturnValueOnce({
-        id: 'new_zone_id',
-      });
+      // First doc call is for 'config', second is for new ID
+      mockFirestoreChain.doc
+        .mockReturnValueOnce(mockFirestoreChain) // .doc('config')
+        .mockReturnValueOnce({                   // .doc() -> new ref
+          id: 'new_zone_id',
+          set: mockFirestoreChain.set,
+        });
 
       mockFirestoreChain.set.mockResolvedValueOnce(undefined);
 
