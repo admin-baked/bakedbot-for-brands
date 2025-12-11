@@ -247,12 +247,25 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
         // Import tool registry and register built-in tools
         const { getToolRegistry, registerBuiltInTools } = await import('@/server/tools/tool-registry');
         const { getEmailTool } = await import('@/server/tools/email-tool');
+        const { routeToAgent, AGENT_CAPABILITIES } = await import('@/server/agents/agent-router');
 
         await registerBuiltInTools();
         const toolRegistry = getToolRegistry();
         const emailTool = getEmailTool();
 
+        // Route to the appropriate agent
+        const routing = await routeToAgent(userMessage);
+        const agentInfo = AGENT_CAPABILITIES.find(a => a.id === routing.primaryAgent);
+
         const executedTools: ChatResponse['toolCalls'] = [];
+
+        // Add routing info as first "tool call" for visibility
+        executedTools.push({
+            id: `route-${Date.now()}`,
+            name: `Agent: ${agentInfo?.name || 'General'}`,
+            status: 'success',
+            result: `${agentInfo?.specialty || 'General Assistant'} (${Math.round(routing.confidence * 100)}% confidence)`
+        });
 
         // Define Genkit tools for AI to call
         const playbookTool = ai.defineTool({
