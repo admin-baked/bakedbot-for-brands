@@ -20,6 +20,7 @@ import { gmailAction, GmailParams } from '@/server/tools/gmail';
 import { calendarAction, CalendarParams } from '@/server/tools/calendar';
 import { sheetsAction, SheetsParams } from '@/server/tools/sheets';
 import { leaflinkAction, LeafLinkParams } from '@/server/tools/leaflink';
+import { dutchieAction, DutchieParams } from '@/server/tools/dutchie';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -914,6 +915,85 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
                     }
                 } else {
                     output = `⚠️ **LeafLink Error**\n\n${result.error}\n\n*Note: Ensure you have added the 'leaflink' doc to 'integrations' in Firestore.*`;
+                    executedTools[executedTools.length - 1].result = result.error || 'Error';
+                }
+
+                return {
+                    content: output,
+                    toolCalls: executedTools
+                };
+
+            } catch (e: any) {
+                console.error(e);
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+            }
+        }
+
+        // Check for Dutchie actions
+        const isDutchieAction =
+            lowerMessage.includes('dutchie') ||
+            lowerMessage.includes('menu') ||
+            lowerMessage.includes('dispensary') ||
+            lowerMessage.includes('check orders');
+
+        if (isDutchieAction && !isLeafLinkAction) { // Prioritize LeafLink if ambiguity, or ensure distinct keywords
+            executedTools.push({
+                id: `dutchie-${Date.now()}`,
+                name: 'Dutchie',
+                status: 'running',
+                result: 'Accessing Dutchie...'
+            });
+
+            // Use AI to generate dutchie params
+            const conversion = await ai.generate({
+                prompt: `Convert this request into a Dutchie tool action (JSON).
+                User Request: "${userMessage}"
+                
+                Actions: 'list_menu' | 'list_orders'
+                Fields: 
+                - action: required
+                - search: string (for list_menu, e.g. "Pre-rolls")
+                - limit: number
+
+                Example 1: "Check for new orders" ->
+                { "action": "list_orders" }
+
+                Example 2: "Search menu for Blue Dream" ->
+                { "action": "list_menu", "search": "Blue Dream" }
+
+                Output JSON Schema: DutchieParams
+                Only return the JSON.`,
+            });
+
+            try {
+                const params = JSON.parse(conversion.text) as DutchieParams;
+
+                executedTools[executedTools.length - 1].result = `${params.action.toUpperCase().replace('_', ' ')}`;
+
+                const result = await dutchieAction(params);
+
+                executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
+
+                let output = '';
+                if (result.success) {
+                    if (params.action === 'list_menu') {
+                        const items = result.data || [];
+                        output = `🌿 **Dispensary Menu**\n\n`;
+                        items.forEach((p: any) => {
+                            output += `• **${p.name}**\n  Brand: ${p.brand || 'N/A'}\n  Price: $${p.price}\n  Stock: ${p.stock}\n\n`;
+                        });
+                        executedTools[executedTools.length - 1].result = `Found ${items.length} items`;
+                    } else {
+                        const orders = result.data || [];
+                        output = `🛒 **Ecommerce Orders**\n\n`;
+                        orders.forEach((o: any) => {
+                            output += `• **#${o.id}** (${o.status})\n  Customer: ${o.customer}\n  Total: $${o.total}\n\n`;
+                        });
+                        executedTools[executedTools.length - 1].result = `Found ${orders.length} orders`;
+                    }
+                } else {
+                    output = `⚠️ **Dutchie Error**\n\n${result.error}\n\n*Note: Ensure you have added the 'dutchie' doc to 'integrations' in Firestore.*`;
                     executedTools[executedTools.length - 1].result = result.error || 'Error';
                 }
 
