@@ -43,3 +43,42 @@ export {
     type AnomalyConfig,
     type ExperimentStats,
 } from './pops-anomaly';
+
+// --- Phase 2: Bandit Learning ---
+
+// Multi-Armed Bandit
+export {
+    createBandit,
+    selectArm,
+    updateArm,
+    thompsonSample,
+    ucbSelect,
+    epsilonGreedySelect,
+    getBestArm,
+    getBanditStats,
+    type BanditState,
+    type BanditArm,
+    type BanditSelection,
+} from './bandit';
+
+// Smokey Recommender
+export {
+    getRecommendations,
+    recordFeedback,
+    getRecommendationStats,
+    type RecommendationRequest,
+    type RecommendationResponse,
+} from './smokey-recommender';
+
+// Craig Optimizer
+export {
+    optimizeCampaignSelection,
+    recordCampaignEngagement,
+    getCampaignStats,
+    computeSegmentFatigue,
+    updateCampaignFatigue,
+    type CampaignVariant,
+    type OptimizedCampaign,
+    type CampaignOptimizationRequest,
+    type CampaignOptimizationResponse,
+} from './craig-optimizer';
