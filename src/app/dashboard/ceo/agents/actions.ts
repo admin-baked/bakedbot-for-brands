@@ -259,12 +259,25 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
 
         const executedTools: ChatResponse['toolCalls'] = [];
 
+        // Get Intuition context for personalization
+        const { getIntuitionSummary } = await import('@/server/algorithms/intuition-engine');
+        const brandId = 'demo-brand'; // TODO: Get from session context
+        const intuition = getIntuitionSummary(brandId);
+
         // Add routing info as first "tool call" for visibility
         executedTools.push({
             id: `route-${Date.now()}`,
             name: `Agent: ${agentInfo?.name || 'General'}`,
             status: 'success',
             result: `${agentInfo?.specialty || 'General Assistant'} (${Math.round(routing.confidence * 100)}% confidence)`
+        });
+
+        // Add Intuition context
+        executedTools.push({
+            id: `intuition-${Date.now()}`,
+            name: `Learning: ${intuition.stage}`,
+            status: 'success',
+            result: `${Math.round(intuition.confidence * 100)}% personalization · ${intuition.interactions} interactions`
         });
 
         // Define Genkit tools for AI to call
