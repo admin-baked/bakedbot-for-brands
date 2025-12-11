@@ -114,6 +114,38 @@ export class ToolRegistry {
     }
 
     /**
+     * Get tools available to a specific role
+     * CEO/SuperUser: All tools
+     * Brand: Communication, analysis, data tools
+     * Dispensary: Data, compliance tools
+     * Customer: Limited research tools only
+     */
+    getByRole(role: 'ceo' | 'brand' | 'dispensary' | 'customer'): Tool[] {
+        const allTools = this.getAll();
+
+        switch (role) {
+            case 'ceo':
+                // Super users get all tools
+                return allTools;
+            case 'brand':
+                // Brands get communication, analysis, and data tools
+                return allTools.filter(t =>
+                    ['communication', 'analysis', 'data', 'research'].includes(t.category)
+                );
+            case 'dispensary':
+                // Dispensaries get data and compliance tools
+                return allTools.filter(t =>
+                    ['data', 'compliance', 'integration'].includes(t.category)
+                );
+            case 'customer':
+                // Customers get limited tools (only visible, default tools)
+                return allTools.filter(t => t.isDefault && t.visible);
+            default:
+                return [];
+        }
+    }
+
+    /**
      * Search tools by name or description
      */
     search(query: string): Tool[] {
@@ -281,8 +313,11 @@ export function getToolRegistry(): ToolRegistry {
 export async function registerBuiltInTools(): Promise<void> {
     const registry = getToolRegistry();
 
-    // Tools will be imported and registered here
-    // This will be populated as we create tools
+    // Import and register tools
+    const { getEmailTool } = await import('./email-tool');
+
+    // Register email tool
+    registry.register(getEmailTool());
 
     logger.info('📦 Built-in tools registered:', { tools: registry.toString() });
 }
