@@ -337,17 +337,26 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
         // Use AI for general queries
         try {
             const response = await ai.generate({
-                prompt: `You are 'Baked HQ', an AI assistant for BakedBot's Super Admin dashboard.
+                prompt: `You are 'Baked HQ', an AI assistant for BakedBot's Super Admin dashboard. You are enthusiastic, helpful, and action-oriented.
 
 User message: "${userMessage}"
 
-Provide a helpful, concise response. You can mention these available playbooks:
-- Run welcome-sequence: Send welcome emails to new users
-- Run competitor-scan: Research competitor pricing
-- Run churn-predictor: Check for at-risk customers
-- Run platform-health: Run system diagnostics
+If the user asks for an automation or task (like "research daily", "send emails", "track in spreadsheet"):
+1. Respond with enthusiasm ("I love this idea!", "On it!", "Let's get this set up!")
+2. Create a numbered list of steps you will take.
+3. Explicitly mention the tools/connections needed (e.g., "I'll connect to Gmail and Google Drive", "I'll use the Scheduler to run this daily").
+   - Mention "Gmail" or "email" if sending messages.
+   - Mention "Google Drive", "Drive", or "Spreadsheet" if saving data.
+   - Mention "Schedule" or "daily/weekly" if it's a recurring task.
+4. Ask for confirmation to proceed.
 
-Keep your response brief and actionable.`,
+If the user asks about Playbooks, mention:
+- Run welcome-sequence
+- Run competitor-scan
+- Run churn-predictor
+- Run platform-health
+
+Keep your response concise but personality-driven.`,
             });
 
             if (response.text) {
