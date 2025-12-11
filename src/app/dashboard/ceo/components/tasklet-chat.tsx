@@ -14,18 +14,30 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
     ArrowLeft,
     Upload,
     Mic,
     ChevronDown,
     ChevronUp,
     Check,
+    CheckCircle2,
     Loader2,
     Mail,
     FolderOpen,
     Calendar,
     Globe,
     Sparkles,
+    Brain,
+    Zap,
+    Rocket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { runAgentChat } from '../agents/actions';
@@ -66,7 +78,45 @@ export interface TaskletState {
     messages: TaskletMessage[];
 }
 
+// ThinkingLevel type for intelligence selector
+export type ThinkingLevel = 'standard' | 'advanced' | 'expert' | 'genius';
+
 // ============ Sub-components ============
+
+function ModelSelector({ value, onChange }: { value: ThinkingLevel, onChange: (v: ThinkingLevel) => void }) {
+    const options: Record<ThinkingLevel, { label: string, desc: string, icon: any }> = {
+        standard: { label: 'Standard', desc: 'Fast & cost-effective', icon: Sparkles },
+        advanced: { label: 'Advanced', desc: 'Complex logic', icon: Brain },
+        expert: { label: 'Expert', desc: 'Deep reasoning', icon: Zap },
+        genius: { label: 'Genius', desc: 'Maximum intelligence', icon: Rocket },
+    };
+    const SelectedIcon = options[value].icon;
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs font-medium border border-transparent hover:border-border hover:bg-background">
+                    <SelectedIcon className="h-3 w-3 text-primary" />
+                    {options[value].label}
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[280px]">
+                <DropdownMenuLabel>Intelligence Level</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {(Object.entries(options) as [ThinkingLevel, typeof options['standard']][]).map(([key, opt]) => (
+                    <DropdownMenuItem key={key} onClick={() => onChange(key)} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
+                        <div className="flex items-center gap-2 w-full">
+                            <opt.icon className="h-4 w-4 text-primary" />
+                            <span className="font-medium flex-1">{opt.label}</span>
+                            {value === key && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
+                        </div>
+                        <span className="text-xs text-muted-foreground ml-6">{opt.desc}</span>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
 
 function ConnectionIcon({ type }: { type: ToolPermission['icon'] }) {
     switch (type) {
@@ -200,6 +250,7 @@ export function TaskletChat({
     const [isProcessing, setIsProcessing] = useState(false);
     const [showTriggers, setShowTriggers] = useState(false);
     const [showPermissions, setShowPermissions] = useState(true);
+    const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
 
     const handleSubmit = useCallback(async () => {
         if (!input.trim() || isProcessing) return;
@@ -362,8 +413,9 @@ export function TaskletChat({
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                             <Upload className="h-4 w-4" />
                         </Button>
-                        <span className="text-xs text-muted-foreground px-2 border-l">Standard</span>
-                        <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                        <div className="border-l pl-2">
+                            <ModelSelector value={thinkingLevel} onChange={setThinkingLevel} />
+                        </div>
                     </div>
                     <Button
                         size="icon"
