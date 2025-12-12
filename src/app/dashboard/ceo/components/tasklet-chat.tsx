@@ -41,6 +41,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { runAgentChat } from '../agents/actions';
+import { AgentPersona } from '../agents/personas';
+import { User, Briefcase, Search, ShoppingCart } from 'lucide-react';
 
 // ============ Types ============
 
@@ -104,6 +106,41 @@ function ModelSelector({ value, onChange }: { value: ThinkingLevel, onChange: (v
                 <DropdownMenuLabel>Intelligence Level</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {(Object.entries(options) as [ThinkingLevel, typeof options['standard']][]).map(([key, opt]) => (
+                    <DropdownMenuItem key={key} onClick={() => onChange(key)} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
+                        <div className="flex items-center gap-2 w-full">
+                            <opt.icon className="h-4 w-4 text-primary" />
+                            <span className="font-medium flex-1">{opt.label}</span>
+                            {value === key && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
+                        </div>
+                        <span className="text-xs text-muted-foreground ml-6">{opt.desc}</span>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
+function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (v: AgentPersona) => void }) {
+    const options: Record<AgentPersona, { label: string, desc: string, icon: any }> = {
+        tasklet: { label: 'Tasklet', desc: 'General Assistant', icon: Sparkles },
+        wholesale_analyst: { label: 'Wholesale', desc: 'LeafLink & Inventory', icon: Briefcase },
+        menu_watchdog: { label: 'Watchdog', desc: 'Menu Monitoring', icon: ShoppingCart },
+        sales_scout: { label: 'Scout', desc: 'Lead Generation', icon: Search },
+    };
+    const SelectedIcon = options[value].icon;
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs font-medium border border-transparent hover:border-border hover:bg-background">
+                    <SelectedIcon className="h-3 w-3 text-primary" />
+                    {options[value].label}
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[280px]">
+                <DropdownMenuLabel>Agent Persona</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {(Object.entries(options) as [AgentPersona, typeof options['tasklet']][]).map(([key, opt]) => (
                     <DropdownMenuItem key={key} onClick={() => onChange(key)} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
                         <div className="flex items-center gap-2 w-full">
                             <opt.icon className="h-4 w-4 text-primary" />
@@ -251,6 +288,7 @@ export function TaskletChat({
     const [showTriggers, setShowTriggers] = useState(false);
     const [showPermissions, setShowPermissions] = useState(true);
     const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
+    const [persona, setPersona] = useState<AgentPersona>('tasklet');
 
     const handleSubmit = useCallback(async () => {
         if (!input.trim() || isProcessing) return;
@@ -301,7 +339,7 @@ export function TaskletChat({
 
         try {
             // Call the real AI backend
-            const response = await runAgentChat(userInput);
+            const response = await runAgentChat(userInput, persona);
 
             clearInterval(durationInterval);
 
@@ -413,7 +451,8 @@ export function TaskletChat({
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                             <Upload className="h-4 w-4" />
                         </Button>
-                        <div className="border-l pl-2">
+                        <div className="border-l pl-2 flex items-center gap-1">
+                            <PersonaSelector value={persona} onChange={setPersona} />
                             <ModelSelector value={thinkingLevel} onChange={setThinkingLevel} />
                         </div>
                     </div>
