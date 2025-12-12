@@ -302,23 +302,33 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
             lowerMessage.includes('articles') ||
             lowerMessage.includes('news about') ||
             lowerMessage.includes('look up') ||
-            lowerMessage.includes('google');
+            lowerMessage.includes('google') ||
+            lowerMessage.includes('research');
 
         if (isSearchRequest) {
-            // Extract search query (clean up common prefixes)
-            let searchQuery = userMessage
-                .replace(/^(find|search|look up|google|get me|show me)/i, '')
-                .replace(/^(a list of|articles|news|information)\s*(about|on|for)?/i, '')
-                .trim();
-
-            if (!searchQuery) searchQuery = userMessage; // Fallback to original
-
             executedTools.push({
                 id: `search-${Date.now()}`,
                 name: 'Web Search',
                 status: 'running',
-                result: `Searching for: ${searchQuery}`
+                result: 'Generating search query...'
             });
+
+            // Use AI to extract the optimal search query
+            const conversion = await ai.generate({
+                prompt: `You are an expert search engine operator.
+                Convert this user request into a single, highly effective Google search query.
+                User Request: "${userMessage}"
+                
+                Goal: Extract the core topic and remove conversational fluff.
+                If the user asks to "research X", search for "X analysis" or "X competitors".
+                
+                Output: Return ONLY the search query string. No quotes, no markdown.`,
+            });
+
+            const searchQuery = conversion.text.trim().replace(/^"|"$/g, '');
+
+            executedTools[executedTools.length - 1].result = `Searching for: ${searchQuery}`;
+
 
             const searchResults = await searchWeb(searchQuery, 5);
 
