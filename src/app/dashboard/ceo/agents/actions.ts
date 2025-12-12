@@ -330,7 +330,7 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
             executedTools[executedTools.length - 1].result = `Searching for: ${searchQuery}`;
 
 
-            const searchResults = await searchWeb(searchQuery, 5);
+            const searchResults = await searchWeb(searchQuery, 7);
 
             // Update tool status
             executedTools[executedTools.length - 1].status = searchResults.success ? 'success' : 'error';
@@ -338,7 +338,42 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
                 ? `Found ${searchResults.results.length} results`
                 : searchResults.error || 'Search failed';
 
-            const formattedResults = await formatSearchResults(searchResults);
+            // Use AI to synthesize a research report from the results
+            let formattedResults = '';
+            if (searchResults.success && searchResults.results.length > 0) {
+                executedTools.push({
+                    id: `analyze-${Date.now()}`,
+                    name: 'Research Agent',
+                    status: 'running',
+                    result: 'Synthesizing report...'
+                });
+
+                const synthesis = await ai.generate({
+                    prompt: `You are an expert Research Analyst.
+                    The user asked: "${userMessage}"
+                    
+                    I searched for: "${searchQuery}"
+                    Found these results:
+                    ${JSON.stringify(searchResults.results)}
+                    
+                    Task: Write a comprehensive, high-quality response based on these findings.
+                    
+                    Guidelines:
+                    1. **Structure**: specific to the query (e.g., if "competitors", use "Competitor Map", "Strengths/Weaknesses", "Strategic Analysis").
+                    2. **Style**: Professional, insightful, and "consultancy grade" (like the user provided example).
+                    3. **Citations**: ALWAYS cite the sources provided in the search results using [Title](Link) format appropriately.
+                    4. **Completeness**: If the results are thin, answer the best you can and suggest a follow-up search.
+                    
+                    Output: A beautifully formatted Markdown report.`
+                });
+
+                formattedResults = synthesis.text;
+
+                executedTools[executedTools.length - 1].status = 'success';
+                executedTools[executedTools.length - 1].result = 'Report generated';
+            } else {
+                formattedResults = await formatSearchResults(searchResults);
+            }
 
             return {
                 content: formattedResults,
