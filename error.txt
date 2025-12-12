@@ -1,0 +1,6 @@
+﻿
+> nextn@0.1.0 check:types
+> tsc --noEmit
+
+src/app/dashboard/playbooks/components/agent-chat.tsx(434,49): error TS2322: Type '{ children: string; className: string; remarkPlugins: ((options?: Options | null | undefined) => undefined)[]; components: { a: ({ node, ...props }: ClassAttributes<HTMLAnchorElement> & AnchorHTMLAttributes<...> & ExtraProps) => Element; }; }' is not assignable to type 'IntrinsicAttributes & Readonly<Options>'.
+  Property 'className' does not exist on type 'IntrinsicAttributes & Readonly<Options>'.
