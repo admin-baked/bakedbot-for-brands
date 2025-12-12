@@ -23,6 +23,7 @@ import { leaflinkAction, LeafLinkParams } from '@/server/tools/leaflink';
 import { dutchieAction, DutchieParams } from '@/server/tools/dutchie';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { PERSONAS, AgentPersona } from './personas';
 
 const AGENT_MAP = {
     craig: craigAgent,
@@ -252,8 +253,14 @@ interface ChatResponse {
     toolCalls?: { id: string; name: string; status: 'success' | 'error' | 'running'; result: string }[];
 }
 
-export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
-    console.log('[runAgentChat] Starting with message:', userMessage);
+export async function runAgentChat(userMessage: string, personaId?: string): Promise<ChatResponse> {
+    console.log('[runAgentChat] Starting with message:', userMessage, 'Persona:', personaId);
+
+    // Select Persona
+    const activePersona = personaId && PERSONAS[personaId as AgentPersona]
+        ? PERSONAS[personaId as AgentPersona]
+        : PERSONAS.tasklet;
+
     const executedTools: ChatResponse['toolCalls'] = [];
 
     try {
@@ -321,7 +328,7 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
                 ? `Found ${searchResults.results.length} results`
                 : searchResults.error || 'Search failed';
 
-            const formattedResults = formatSearchResults(searchResults);
+            const formattedResults = await formatSearchResults(searchResults);
 
             return {
                 content: formattedResults,
@@ -1068,9 +1075,9 @@ export async function runAgentChat(userMessage: string): Promise<ChatResponse> {
         // Use AI for general queries
         try {
             const response = await ai.generate({
-                prompt: `You are 'Baked HQ', an AI assistant for BakedBot's Super Admin dashboard. You are enthusiastic, helpful, and action-oriented.
-
-IMPORTANT: You must provide COMPLETE responses. Do NOT promise to "search the web" or "be back shortly" - you cannot perform real-time web searches. Instead, provide helpful information based on what you know or explain how to set up an automation.
+                prompt: `${activePersona.systemPrompt}
+                
+IMPORTANT: You must provide COMPLETE responses. Do NOT promise to "search the web" or "be back shortly" - you cannot perform real-time web searches unless you use the "Web Search" tool. Instead, provide helpful information based on what you know or explain how to set up an automation.
 
 User message: "${userMessage}"
 
@@ -1081,14 +1088,13 @@ YOUR CAPABILITIES:
 - Provide guidance on cannabis marketing and operations
 
 YOUR LIMITATIONS:
-- You CANNOT search the web in real-time
-- You CANNOT access external websites live
+- You CANNOT search the web in real-time unless you use the tool.
+- You CANNOT access external websites live unless you use the tool.
 
 RESPONSE RULES:
-1. If asked to "find articles" or "search for news" → Explain that you can set up a recurring research automation OR provide general knowledge about the topic
-2. If asked for an automation → Create a step-by-step plan mentioning Gmail, Drive, Schedule as needed
-3. If asked about playbooks → List available playbooks
-4. Always provide a COMPLETE answer - never say "I'll be back" or "give me a moment"
+1. If asked for an automation → Create a step-by-step plan mentioning the tools available to you.
+2. If asked about playbooks → List available playbooks
+3. Be helpful and proactive.
 
 For automation requests, be enthusiastic and mention tools:
 - "Gmail" or "email" if sending messages

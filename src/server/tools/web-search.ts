@@ -92,7 +92,7 @@ export async function searchWeb(query: string, numResults: number = 5): Promise<
 /**
  * Format search results as markdown for display
  */
-export function formatSearchResults(response: SearchResponse): string {
+export async function formatSearchResults(response: SearchResponse): Promise<string> {
     if (!response.success) {
         return `⚠️ **Search Issue**: ${response.error}`;
     }
