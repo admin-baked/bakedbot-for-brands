@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Paperclip, Send, ChevronDown, Sparkles, Loader2, Play, CheckCircle2, Bot, CalendarClock, Target, Laptop, Monitor, MousePointer2, Save, FileCode, Copy, Download, Key } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Card } from '@/components/ui/card';
 import {
     DropdownMenu,
@@ -427,7 +429,16 @@ steps:
                             <div key={msg.id} className={cn("flex flex-col gap-2", msg.type === 'user' ? "items-end" : "items-start")}>
                                 {msg.content && (
                                     <div className={cn("px-4 py-3 rounded-2xl max-w-xl text-sm leading-relaxed shadow-sm", msg.type === 'user' ? "bg-primary text-primary-foreground rounded-br-none" : "bg-white border border-border/50 text-foreground rounded-tl-none")}>
-                                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                                        <div className="w-full min-w-0 prose prose-sm dark:prose-invert max-w-none break-words [&>p]:mb-2 [&>p]:last:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={{
+                                                    a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4" {...props} />,
+                                                }}
+                                            >
+                                                {msg.content}
+                                            </ReactMarkdown>
+                                        </div>
 
                                         {msg.artifact && msg.artifact.type === 'yaml' && (
                                             <YamlArtifact artifact={msg.artifact} />
