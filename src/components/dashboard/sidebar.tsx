@@ -24,7 +24,9 @@ import type { ElementType } from 'react';
 import { useUserRole } from '@/hooks/use-user-role';
 
 
+import { CeoSidebarHistory } from '@/components/dashboard/ceo-sidebar-history';
 import { logger } from '@/lib/logger';
+
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { navLinks, current, role } = useDashboardConfig();
@@ -68,11 +70,8 @@ export function DashboardSidebar() {
       </SidebarHeader>
       <SidebarContent>
         {isCeoDashboard ? (
-          /* CEO Dashboard: Hide nav links - Super Admin uses tabs */
-          <div className="p-4 text-center text-muted-foreground text-xs">
-            <p className="font-medium text-foreground">Admin Console</p>
-            <p className="mt-1">Use tabs above for navigation</p>
-          </div>
+          /* CEO Dashboard: Show Chat History */
+          <CeoSidebarHistory />
         ) : (
           <SidebarMenu>
             {navLinks.filter(link => !link.hidden).map((link) => {
