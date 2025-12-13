@@ -360,20 +360,21 @@
             "feat_algorithms_phase_4"
         ],
         "area": "frontend",
-        {
-            "id": "feat_nav_refactor_v1",
-            "title": "Super Admin Navigation Refactor",
-            "status": "passing",
-            "description": "Refactor CEO Dashboard to use a grouped sidebar (Operations, Insights, Admin) and URL-driven navigation instead of top tabs.",
-            "acceptance_tests": [
-                "manual_verify_sidebar_switch",
-                "manual_verify_url_updates"
-            ],
-            "owner": "antigravity",
-            "dependencies": [],
-            "area": "dashboard",
-            "completed_at": "2025-12-13T12:45:00Z"
-        }
-    ]
-}
+        "completed_at": "2025-12-13T11:55:00Z"
+    },
+    {
+        "id": "feat_nav_refactor_v1",
+        "title": "Super Admin Navigation Refactor",
+        "status": "passing",
+        "description": "Refactor CEO Dashboard to use a grouped sidebar (Operations, Insights, Admin) and URL-driven navigation instead of top tabs.",
+        "acceptance_tests": [
+            "manual_verify_sidebar_switch",
+            "manual_verify_url_updates"
+        ],
+        "owner": "antigravity",
+        "dependencies": [],
+        "area": "dashboard",
+        "completed_at": "2025-12-13T12:45:00Z"
+    }
+]
 }
