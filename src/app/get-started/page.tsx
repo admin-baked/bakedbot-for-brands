@@ -8,6 +8,8 @@ import { useSearchParams } from "next/navigation";
 // UI Components
 // -----------------------------
 
+import Logo from "@/components/logo";
+
 function Button({ children, className = "", variant = "default", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "default" | "outline", className?: string }) {
     const base = "inline-flex items-center justify-center whitespace-nowrap rounded-2xl text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2";
     const variants = {
@@ -62,10 +64,9 @@ export default function GetStartedPage() {
         <div className="min-h-screen bg-background text-foreground flex flex-col">
             <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-50">
                 <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2 font-semibold">
-                        <div className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 font-bold">B</div>
-                        BakedBot AI
-                    </Link>
+                    <div className="flex items-center gap-2 font-semibold">
+                        <Logo height={32} />
+                    </div>
                     <Link href="/brand-login" className="text-sm text-muted-foreground hover:text-foreground">
                         Already have an account? Login
                     </Link>

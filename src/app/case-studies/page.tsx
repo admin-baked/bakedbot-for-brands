@@ -3,6 +3,8 @@
 import React from "react";
 import Link from "next/link";
 
+import Logo from "@/components/logo";
+
 function Badge({ children }: { children: React.ReactNode }) {
     return <span className="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">{children}</span>;
 }
@@ -12,10 +14,9 @@ export default function CaseStudiesPage() {
         <div className="min-h-screen bg-background text-foreground">
             <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-50">
                 <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2 font-semibold">
-                        <div className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 font-bold">B</div>
-                        BakedBot AI
-                    </Link>
+                    <div className="flex items-center gap-2 font-semibold">
+                        <Logo height={32} />
+                    </div>
                     <nav className="hidden md:flex text-sm font-medium gap-6">
                         <Link href="/get-started">Get Started</Link>
                     </nav>
