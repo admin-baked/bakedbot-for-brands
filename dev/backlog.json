@@ -279,6 +279,30 @@
             "owner": "antigravity",
             "dependencies": [],
             "area": "frontend"
+        },
+        {
+            "id": "feat_algorithms_phase_2",
+            "title": "Algorithm Backbone v2 (Lightweight Learning)",
+            "status": "passing",
+            "description": "Implement feedback loops for Smokey, bandit algorithms for Craig, and elasticity models for Money Mike.",
+            "test_results": {
+                "smokey_feedback": "passed (3 tests)",
+                "craig_bandit": "passed (3 tests)",
+                "moneymike_elasticity": "passed (4 tests)",
+                "pops_seasonality": "passed (2 tests)"
+            },
+            "acceptance_tests": [
+                "test_smokey_feedback_loop",
+                "test_craig_bandit_selection",
+                "test_moneymike_elasticity",
+                "test_pops_seasonality"
+            ],
+            "completed_at": "2025-12-13T16:00:00Z",
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_algorithms_backbone_v1"
+            ],
+            "area": "backend"
         }
     ]
 }

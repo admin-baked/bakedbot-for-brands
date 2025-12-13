@@ -98,3 +98,37 @@ export function computeSkuScore(
         explanations
     };
 }
+
+/**
+ * Updates scoring weights based on user feedback.
+ * Simple feedback loop: If user likes result, boost weights of high-scoring components.
+ */
+export function updateRecWeights(
+    currentConfig: BrandConfig,
+    feedback: 'thumbs_up' | 'thumbs_down',
+    attribution: { effectScore: number; marginScore?: number; availabilityScore?: number }
+): BrandConfig {
+    const newConfig = JSON.parse(JSON.stringify(currentConfig)); // Deep copy
+    const delta = 0.05;
+
+    // Helper to adjust weight
+    const adjust = (key: keyof BrandConfig['weights'], direction: 1 | -1) => {
+        let w = newConfig.weights[key];
+        w += delta * direction;
+        newConfig.weights[key] = Math.min(Math.max(w, 0.1), 1.0); // Clamp 0.1 - 1.0
+    };
+
+    // Logic: Look for "Drivers" (> 0.7 score)
+    // If Thumbs Up: Increase Driver weights (Trust these signals more)
+    // If Thumbs Down: Decrease Driver weights (These signals misled us)
+
+    if (attribution.effectScore > 0.7) {
+        adjust('effect_match', feedback === 'thumbs_up' ? 1 : -1);
+    }
+
+    if ((attribution.marginScore || 0) > 0.7) {
+        adjust('margin', feedback === 'thumbs_up' ? 1 : -1);
+    }
+
+    return newConfig;
+}
