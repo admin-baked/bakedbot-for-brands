@@ -1,0 +1,50 @@
+{
+    "effects": {
+        "sleep": [
+            {
+                "tag": "indica",
+                "weight": 0.8
+            },
+            {
+                "tag": "cbn",
+                "weight": 0.9
+            },
+            {
+                "tag": "edible",
+                "weight": 0.6
+            }
+        ],
+        "energy": [
+            {
+                "tag": "sativa",
+                "weight": 0.8
+            },
+            {
+                "tag": "thcv",
+                "weight": 0.7
+            }
+        ],
+        "pain": [
+            {
+                "tag": "cbd",
+                "weight": 0.7
+            },
+            {
+                "tag": "topical",
+                "weight": 0.9
+            },
+            {
+                "tag": "indica",
+                "weight": 0.5
+            }
+        ]
+    },
+    "elasticity": {
+        "flower": -1.2,
+        "vapes": -0.8,
+        "edibles": -0.5,
+        "extracts": -1.0,
+        "prerolls": -1.5,
+        "default": -1.0
+    }
+}

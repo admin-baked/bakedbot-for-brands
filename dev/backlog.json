@@ -303,6 +303,26 @@
                 "feat_algorithms_backbone_v1"
             ],
             "area": "backend"
+        },
+        {
+            "id": "feat_algorithms_phase_3",
+            "title": "Algorithm Backbone v3 (Cross-Tenant Intuition)",
+            "status": "passing",
+            "description": "Implement Global Priors (Category Baselines & Effect Maps) to solve cold-start problems for Smokey (Recs) and Money Mike (Elasticity).",
+            "test_results": {
+                "global_priors_service": "passed (integration test)",
+                "smokey_cold_start": "passed (boosts score from prior)",
+                "moneymike_cold_start": "passed (uses category elasticity)"
+            },
+            "acceptance_tests": [
+                "test_phase3_global_priors"
+            ],
+            "completed_at": "2025-12-13T17:00:00Z",
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_algorithms_phase_2"
+            ],
+            "area": "backend"
         }
     ]
 }
