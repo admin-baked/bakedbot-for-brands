@@ -126,7 +126,15 @@
 
 ## 2025-12-13T17:55Z  feat_frontend_integration_v1  antigravity
 - **Completed Phase 5: Frontend Integration**:
-  - **Backend**: Updated unAgentChat in ctions.ts to return standardized AgentResult with rich metadata.
+  - **Backend**: Updated 
+unAgentChat in ctions.ts to return standardized AgentResult with rich metadata.
   - **Frontend**: Enabled AgentChat component to render ComplianceAlert (Deebo) and ProductRec (Smokey) cards.
   - **Fixes**: Resolved build error in smokey.ts (missing 	ags / category in CandidateSku).
   - **Status**: Ready for Deployment & Manual QA.
+
+## 2025-12-13T18:45Z – feat_nav_refactor_v1 – antigravity
+- **Completed Phase 6: Navigation Refactor**:
+  - **Sidebar**: Created `SuperAdminSidebar` grouping tools into Operations, Insights, and Admin.
+  - **Navigation**: Moved from Tab-based to Side-nav + URL-driven routing (`?tab=...`).
+  - **Cleanup**: Removed unused Tab components from `CeoDashboardPage`.
+  - **Status**: Verified manually. Clean and organized.
