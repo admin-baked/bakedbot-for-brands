@@ -1,6 +1,7 @@
 import { AgentImplementation } from './harness';
 import { EzalMemory } from './schemas';
 import { logger } from '@/lib/logger';
+import { calculateGapScore } from '../algorithms/ezal-algo';
 
 // --- Tool Definitions ---
 
@@ -75,10 +76,18 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
 
       // Stubbing simple gap finding from tool output directly or just keeping existing stub logic but enriched
       if (menuData.products.some(p => p.price < 50)) { // Simple check
+
+        // Calculate gap score
+        const gapScore = calculateGapScore({
+          missing_price_tiers: 1, // Found inexpensive item, implies we might not have it contextually? Or other way around. Logic is stubbed.
+          missing_forms: 0,
+          underrepresented_effects: 2
+        });
+
         const newGapId = `gap_${Date.now()}`;
         agentMemory.open_gaps.push({
           id: newGapId,
-          description: `Competitor ${competitor.name} has sub-$50 Rosin`,
+          description: `Competitor ${competitor.name} has sub-$50 Rosin (Score: ${gapScore})`,
           status: 'open',
           recommended_owner: 'money_mike'
         });
