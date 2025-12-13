@@ -1,6 +1,10 @@
+import { GlobalIntelligenceService } from '../intelligence/global-priors';
+import { logger } from '@/lib/logger';
+
 export interface SkuScoreContext {
     user_segments: string[];
     requested_effects: string[]; // e.g., ['sleep', 'pain']
+    intent?: string; // e.g., 'sleep', 'energy'
     tolerance_level: 'low' | 'med' | 'high';
 }
 
@@ -8,6 +12,8 @@ export interface CandidateSku {
     id: string;
     name: string;
     effects: string[]; // e.g. ['sleep', 'relax']
+    tags: string[]; // General metadata tags
+    category: string;
     margin_pct: number; // 0-100
     inventory_level: number;
     thc_mg_per_serving: number;
@@ -50,20 +56,37 @@ export function computeSkuScore(
     const { weights } = config;
     const explanations: string[] = [];
 
-    // 1. Effect Match (0.0 - 1.0)
-    // Simple Jaccard index or overlap for now
-    const intersection = sku.effects.filter(e => context.requested_effects.includes(e));
+    // 1. Context Relevance (Effect Match)
+    // Phase 3: Mix in Global Priors
     let effectScore = 0;
-    if (context.requested_effects.length > 0) {
-        effectScore = intersection.length / context.requested_effects.length;
-    } else {
-        // If no specific effects requested, neutral score
-        effectScore = 0.5;
+
+    // Check local keyword match (basic)
+    if (context.intent && sku.tags.includes(context.intent)) {
+        effectScore += 0.5;
     }
+
+    // Check Global Priors (Semantic Match)
+    if (context.intent) {
+        const priors = GlobalIntelligenceService.getEffectPriors(context.intent);
+        for (const prior of priors) {
+            if (sku.tags.includes(prior.tag) || sku.category.toLowerCase().includes(prior.tag)) {
+                effectScore += (prior.weight * 0.5); // Weighted boost
+            }
+        }
+    }
+
+    // Normalize effect score
+    effectScore = Math.min(effectScore, 1.0);
+
+    // Fallback: Use requested_effects overlap if intent logic didn't yield high score
+    if (effectScore < 0.3 && context.requested_effects.length > 0) {
+        const intersection = sku.effects.filter(e => context.requested_effects.includes(e));
+        effectScore = Math.max(effectScore, intersection.length / context.requested_effects.length);
+    }
+
 
     if (effectScore > 0.8) explanations.push('Perfect match for requested effects.');
 
-    // 2. Margin Score (0.0 - 1.0)
     // Normalize margin: assume 50% is max "good", 20% is low
     const marginScore = Math.min(Math.max(sku.margin_pct / 50, 0), 1);
     if (sku.margin_pct > 40) explanations.push('High margin product.');

@@ -1,20 +1,40 @@
-export interface PricePoint {
+import { GlobalIntelligenceService } from '../intelligence/global-priors';
+
+export interface TransactionPoint {
     price: number;
     quantity: number;
+    category?: string; // Phase 3: Needed for Prior lookup
+}
+
+export interface ElasticityResult {
+    elasticity: number;
+    confidence: number;
+    is_elastic: boolean;
+    source: 'model' | 'prior';
 }
 
 /**
- * Estimates Price Elasticity of Demand (PED).
- * PED = % Change in Qty / % Change in Price
- * 
- * Uses simple Linear Regression to find slope (dQ/dP) over the dataset,
- * then multiplies by (Avg Price / Avg Qty) to get Elasticity.
- * 
- * Formula: E = (dQ/dP) * (P_bar / Q_bar)
+ * Estimates price elasticity of demand.
+ * Phase 3: Uses Global Priors for cold start/sparse data.
  */
-export function estimateElasticity(data: PricePoint[]): number {
+export function estimateElasticity(data: TransactionPoint[], minDataPoints = 30): ElasticityResult {
+    // 1. Cold Start Check
+    if (data.length < minDataPoints) {
+        // Try to find category from available data or default
+        const category = data.find(d => d.category)?.category || 'default';
+        const prior = GlobalIntelligenceService.getElasticityBaseline(category);
+
+        return {
+            elasticity: prior,
+            confidence: 0.3, // Low confidence in generic prior
+            is_elastic: Math.abs(prior) > 1.0,
+            source: 'prior'
+        };
+    }
+
+    // If we have enough data points, proceed with model estimation
     if (!data || data.length < 2) {
-        throw new Error("Insufficient data to estimate elasticity (need at least 2 points)");
+        throw new Error("Insufficient data to estimate elasticity (need at least 2 points for model)");
     }
 
     // 1. Calculate Averages (Means)
@@ -44,9 +64,13 @@ export function estimateElasticity(data: PricePoint[]): number {
 
     if (denominator === 0) {
         // Vertical line (Price didn't change but Quantity did? Or single point duplicated?)
-        // If Price constant, Elasticity is undefined (or 0/Inf depending on Q).
-        // Let's return 0 to be safe (Inelastic).
-        return 0;
+        // Inelastic fallback
+        return {
+            elasticity: 0,
+            confidence: 0,
+            is_elastic: false,
+            source: 'model'
+        };
     }
 
     const slope = numerator / denominator; // dQ / dP
@@ -55,5 +79,10 @@ export function estimateElasticity(data: PricePoint[]): number {
     // E = Slope * (P / Q)
     const elasticity = slope * (avgP / avgQ);
 
-    return elasticity;
+    return {
+        elasticity,
+        confidence: Math.min(data.length / 100, 1.0), // Simple confidence based on sample size
+        is_elastic: Math.abs(elasticity) > 1.0,
+        source: 'model'
+    };
 }
