@@ -41,7 +41,7 @@ export default function CeoDashboardPage() {
     const { isSuperAdmin, isLoading, superAdminEmail, logout } = useSuperAdmin();
 
     // Sync tabs with URL ?tab=...
-    const currentTab = searchParams?.get('tab') || 'agents'; // Default to Agents tab
+    const currentTab = searchParams?.get('tab') || 'playbooks'; // Default to Playbooks tab
 
 
 
