@@ -1,0 +1,63 @@
+
+> nextn@0.1.0 test
+> jest tests/server/blackleaf-migration.test.ts
+
+FAIL tests/server/blackleaf-migration.test.ts
+  ● Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when your code or its dependencies use non-standard JavaScript syntax, or when Jest is not configured to support such syntax.
+
+    Out of the box Jest supports Babel, which will be used to transform your files into valid JS based on your Babel configuration.
+
+    By default "node_modules" folder is ignored by transformers.
+
+    Here's what you can do:
+     • If you are trying to use ECMAScript Modules, see https://jestjs.io/docs/ecmascript-modules for how to enable it.
+     • If you are trying to use TypeScript, see https://jestjs.io/docs/getting-started#using-typescript
+     • To have some of your "node_modules" files transformed, you can specify a custom "transformIgnorePatterns" in your config.
+     • If you need a custom transformation specify a "transform" option in your config.
+     • If you simply want to mock your non-JS modules (e.g. binary assets) you can stub them out with the "moduleNameMapper" config option.
+
+    You'll find more details and examples of these config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\jose\dist\browser\index.js:1
+    ({"Object.<anonymous>":function(module,exports,require,__dirname,__filename,jest){export { compactDecrypt } from './jwe/compact/decrypt.js';
+                                                                                      ^^^^^^
+
+    SyntaxError: Unexpected token 'export'
+
+    [0m [90m 32 |[39m     [36mthrow[39m [36mnew[39m [33mError[39m([32m"FIREBASE_SERVICE_ACCOUNT_KEY is not a valid Base64-encoded JSON string."[39m)[33m;[39m
+     [90m 33 |[39m   }
+    [31m[1m>[22m[39m[90m 34 |[39m }
+     [90m    |[39m  [31m[1m^[22m[39m
+     [90m 35 |[39m
+     [90m 36 |[39m [90m/**[39m
+     [90m 37 |[39m [90m * Creates a server-side Firebase client (admin SDK).[39m[0m
+
+      at Runtime.createScriptFromCode (node_modules/jest-runtime/build/index.js:1505:14)
+      at Object.<anonymous> (node_modules/jwks-rsa/src/utils.js:1:116)
+      at Object.<anonymous> (node_modules/jwks-rsa/src/JwksClient.js:2:33)
+      at Object.<anonymous> (node_modules/jwks-rsa/src/index.js:1:126)
+      at Object.<anonymous> (node_modules/firebase-admin/lib/utils/jwt.js:24:14)
+      at Object.<anonymous> (node_modules/firebase-admin/lib/auth/token-verifier.js:26:15)
+      at Object.<anonymous> (node_modules/firebase-admin/lib/auth/base-auth.js:26:26)
+      at Object.<anonymous> (node_modules/firebase-admin/lib/auth/tenant-manager.js:23:21)
+      at Object.<anonymous> (node_modules/firebase-admin/lib/auth/auth.js:22:26)
+      at Object.<anonymous> (node_modules/firebase-admin/lib/auth/index.js:27:16)
+      at Object.<anonymous> (src/firebase/server-client.ts:34:15)
+      at Object.<anonymous> (src/server/services/usage.ts:11:23)
+      at Object.<anonymous> (src/lib/sms/twilio.ts:13:16)
+      at Object.<anonymous> (tests/server/blackleaf-migration.test.ts:13:17)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        3.365 s
+Ran all test suites matching /tests\\server\\blackleaf-migration.test.ts/i.
