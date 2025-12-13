@@ -435,12 +435,20 @@ export default function HomePage() {
               <Button size="lg" asChild href="/free-audit">
                 Run a Free Menu + SEO Audit <span className="ml-2">→</span>
               </Button>
-              <Button size="lg" variant="outline" asChild href="/demo">
+              <Button size="lg" variant="outline" asChild href="/shop/demo">
                 See Live Demo
               </Button>
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-10 relative rounded-xl overflow-hidden shadow-2xl border border-border">
+              <img
+                src="https://bakedbot.ai/demo-menu-hero.png"
+                alt="BakedBot AI Demo Menu"
+                className="w-full h-auto"
+              />
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">✓ Compliance-by-design</span>
               <span className="opacity-50">•</span>
               <span className="inline-flex items-center gap-1">✓ Headless SEO menus</span>
