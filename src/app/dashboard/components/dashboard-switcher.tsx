@@ -32,24 +32,23 @@ export default function DashboardSwitcher() {
         );
     }
 
-    // 1. Super Admin View (Big Worm HQ)
-    if (isSuperAdmin) {
-        return <AgentInterface />;
-    }
-
-    // 2. Brand / Owner View
+    // 1. Brand / Owner View
     if (role === 'brand' || role === 'owner') {
         const brandId = (user as any)?.brandId || user?.uid || 'unknown-brand';
         return <DashboardPageComponent brandId={brandId} />;
     }
 
-    // 3. Dispensary View (Using generic dashboard for now)
+    // 2. Dispensary View
     if (role === 'dispensary') {
         const brandId = (user as any)?.brandId || user?.uid || 'unknown-dispensary';
         return <DispensaryDashboardClient brandId={brandId} />;
     }
 
-    // 4. Fallback (Safe Default)
-    // Avoid showing Big Worm HQ to unprivileged users
+    // 3. Super Admin View (Big Worm HQ) - Fallback for real admins or explicit access
+    if (isSuperAdmin) {
+        return <AgentInterface />;
+    }
+
+    // 4. Default Fallback
     return <DashboardPageComponent brandId={(user as any)?.brandId || user?.uid || 'guest'} />;
 }
