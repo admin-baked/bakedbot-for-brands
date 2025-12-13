@@ -26,7 +26,8 @@ import {
     TrendingUp,
     AlertCircle,
     Settings,
-    Bot
+    Bot,
+    Sparkles
 } from 'lucide-react';
 import { executePlaybook } from '../agents/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -162,13 +163,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { SuperAdminRightSidebar } from './super-admin-right-sidebar';
 
+import { TaskletChat } from './tasklet-chat';
+import { useAgentChatStore } from '@/lib/store/agent-chat-store';
+import { useEffect } from 'react';
+
+// ... (existing imports)
+
 export default function SuperAdminPlaybooksTab() {
-    // ... (existing state) ...
+    // ... (existing state)
     const [playbooks, setPlaybooks] = useState(INTERNAL_PLAYBOOKS);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [selectedPlaybook, setSelectedPlaybook] = useState<InternalPlaybook | null>(null);
 
+    // Chat State
+    const { activeSessionId, createSession } = useAgentChatStore();
+    const [chatKey, setChatKey] = useState(0);
+
+    useEffect(() => {
+        setChatKey(prev => prev + 1);
+    }, [activeSessionId]);
+
+    // ... (existing filter logic)
     const filteredPlaybooks = playbooks.filter(pb => {
         const matchesSearch = pb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             pb.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -209,7 +225,6 @@ export default function SuperAdminPlaybooksTab() {
         }
     };
 
-
     const stats = {
         active: playbooks.filter(p => p.active).length,
         total: playbooks.length,
@@ -222,6 +237,7 @@ export default function SuperAdminPlaybooksTab() {
             <div className="lg:col-span-5 space-y-6">
                 {/* Stats Header */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
                     <Card>
                         <CardContent className="pt-6">
                             <div className="flex items-center justify-between">
@@ -274,6 +290,23 @@ export default function SuperAdminPlaybooksTab() {
                             </div>
                         </CardContent>
                     </Card>
+                </div>
+
+                {/* Super Agent Chat Interface */}
+                <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                    <div className="bg-muted/30 p-4 border-b">
+                        <h3 className="font-semibold text-sm flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            Ask Baked HQ
+                        </h3>
+                    </div>
+                    <div className="h-[400px]">
+                        <TaskletChat
+                            key={chatKey}
+                            initialTitle={activeSessionId ? "Chat Session" : "New Chat"}
+                            onBack={() => createSession()}
+                        />
+                    </div>
                 </div>
 
                 {/* Filters */}
