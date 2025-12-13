@@ -22,6 +22,7 @@ import { sheetsAction, SheetsParams } from '@/server/tools/sheets';
 import { leaflinkAction, LeafLinkParams } from '@/server/tools/leaflink';
 import { dutchieAction, DutchieParams } from '@/server/tools/dutchie';
 import { revalidatePath } from 'next/cache';
+import { blackleafService } from '@/lib/notifications/blackleaf-service';
 import { z } from 'zod';
 import { PERSONAS, AgentPersona } from './personas';
 
@@ -57,7 +58,12 @@ const defaultCraigTools = {
         return await deebo.checkContent(jurisdiction, 'sms', content);
     },
     sendSms: async (to: string, body: string) => {
-        return true;
+        try {
+            return await blackleafService.sendCustomMessage(to, body);
+        } catch (e) {
+            console.error('BlackLeaf SMS Failed:', e);
+            return false;
+        }
     },
     getCampaignMetrics: async (campaignId: string) => {
         return { kpi: Math.random() };
@@ -293,7 +299,7 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
         });
 
         // --- Specialized Agent Execution ---
-        if (agentInfo && agentInfo.id !== 'tasklet' && routing.confidence > 0.6) {
+        if (agentInfo && routing.confidence > 0.6) {
             executedTools.push({
                 id: `agent-${Date.now()}`,
                 name: agentInfo.name,
