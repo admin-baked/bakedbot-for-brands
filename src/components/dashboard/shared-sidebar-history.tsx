@@ -6,6 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, MessageSquare, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter, usePathname } from 'next/navigation';
+import { useUserRole } from '@/hooks/use-user-role';
+import { useEffect } from 'react';
 
 function formatRelativeTime(date: Date | string): string {
     const d = new Date(date);
@@ -22,9 +24,18 @@ function formatRelativeTime(date: Date | string): string {
 }
 
 export function SharedSidebarHistory() {
-    const { sessions, activeSessionId, clearCurrentSession, setActiveSession } = useAgentChatStore();
+    const { sessions, activeSessionId, clearCurrentSession, setActiveSession, setCurrentRole } = useAgentChatStore();
     const router = useRouter();
     const pathname = usePathname();
+    const { role } = useUserRole();
+
+    // Ensure store knows current role
+    useEffect(() => {
+        if (role) setCurrentRole(role);
+    }, [role, setCurrentRole]);
+
+    // Filter sessions by current role
+    const roleSessions = sessions.filter(s => s.role === role);
 
     const handleNewChat = () => {
         clearCurrentSession();
@@ -60,12 +71,12 @@ export function SharedSidebarHistory() {
 
             <div className="px-2">
                 <div className="space-y-0.5 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
-                    {sessions.length === 0 ? (
+                    {roleSessions.length === 0 ? (
                         <p className="text-[10px] text-muted-foreground text-center py-2 italic opacity-60">
                             No recent chats
                         </p>
                     ) : (
-                        sessions.slice(0, 5).map(session => (
+                        roleSessions.slice(0, 5).map(session => (
                             <button
                                 key={session.id}
                                 onClick={() => handleSelectSession(session.id)}

@@ -19,15 +19,18 @@ export interface ChatSession {
     preview: string;
     timestamp: Date;
     messages: ChatMessage[];
+    role?: string; // e.g. 'brand', 'dispensary', 'owner'
 }
 
 interface AgentChatState {
     sessions: ChatSession[];
     activeSessionId: string | null;
     currentMessages: ChatMessage[];
+    currentRole: string | null;
 
     // Actions
-    createSession: (firstMessage?: ChatMessage) => void;
+    setCurrentRole: (role: string) => void;
+    createSession: (firstMessage?: ChatMessage, role?: string) => void;
     setActiveSession: (sessionId: string) => void;
     addMessage: (message: ChatMessage) => void;
     updateMessage: (id: string, updates: Partial<ChatMessage>) => void;
@@ -40,6 +43,9 @@ export const useAgentChatStore = create<AgentChatState>()(
             sessions: [],
             activeSessionId: null,
             currentMessages: [],
+            currentRole: null,
+
+            setCurrentRole: (role) => set({ currentRole: role }),
 
             addMessage: (message) => {
                 set((state) => {
@@ -124,8 +130,8 @@ export const useAgentChatStore = create<AgentChatState>()(
                 set({ activeSessionId: null, currentMessages: [] });
             },
 
-            createSession: (firstMessage) => {
-                const { currentMessages } = get();
+            createSession: (firstMessage, role) => {
+                const { currentMessages, currentRole } = get();
                 // If there are messages in the current view that need saving
                 const messagesToSave = currentMessages.length > 0 ? currentMessages : (firstMessage ? [firstMessage] : []);
 
@@ -137,6 +143,7 @@ export const useAgentChatStore = create<AgentChatState>()(
                         preview: firstMsg?.content.slice(0, 50) || '',
                         timestamp: new Date(),
                         messages: messagesToSave,
+                        role: role || currentRole || undefined
                     };
 
                     set((state) => ({
@@ -156,7 +163,8 @@ export const useAgentChatStore = create<AgentChatState>()(
             partialize: (state) => ({
                 sessions: state.sessions,
                 activeSessionId: state.activeSessionId,
-                currentMessages: state.currentMessages
+                currentMessages: state.currentMessages,
+                currentRole: state.currentRole
             }),
         }
     )

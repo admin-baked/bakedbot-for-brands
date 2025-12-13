@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import { runAgentChat } from '../../ceo/agents/actions';
 import { AgentPersona } from '../../ceo/agents/personas';
 import { useAgentChatStore } from '@/lib/store/agent-chat-store';
+import { useUserRole } from '@/hooks/use-user-role';
 
 // ============ Types ============
 
@@ -279,7 +280,13 @@ export function AgentChat({
     onSubmit
 }: AgentChatProps) {
     // Global Store State
-    const { currentMessages, addMessage, updateMessage, createSession } = useAgentChatStore();
+    const { currentMessages, addMessage, updateMessage, setCurrentRole } = useAgentChatStore();
+    const { role } = useUserRole();
+
+    // Ensure store knows current role
+    useEffect(() => {
+        if (role) setCurrentRole(role);
+    }, [role, setCurrentRole]);
 
     const [state, setState] = useState<TaskletState>({
         title: initialTitle,
