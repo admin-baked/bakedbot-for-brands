@@ -42,6 +42,25 @@ import { useUserRole } from '@/hooks/use-user-role';
 
 // ============ Types ============
 
+export type { ChatMessage } from '@/lib/store/agent-chat-store';
+
+export interface ToolCallStep {
+    id: string;
+    toolName: string;
+    description: string;
+    status: 'pending' | 'in-progress' | 'completed' | 'failed';
+    durationMs?: number;
+    subagentId?: string;
+    isComputerUse?: boolean;
+}
+
+export interface ChatArtifact {
+    id: string;
+    type: 'code' | 'image' | 'file' | 'yaml' | 'json';
+    title: string;
+    content: string;
+}
+
 export interface ToolPermission {
     id: string;
     name: string;
