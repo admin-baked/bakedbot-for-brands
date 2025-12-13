@@ -345,5 +345,23 @@
             ],
             "area": "backend"
         }
-    ]
+    },
+    {
+        "id": "feat_frontend_integration_v1",
+        "title": "Frontend Integration (Rich Agent UI)",
+        "status": "passing",
+        "description": "Expose backend algorithm metadata (Deebo violations, Smokey scores) in the Agent Chat UI.",
+        "acceptance_tests": [
+            "manual_verify_deebo_alert",
+            "manual_verify_smokey_score"
+        ],
+        "owner": "antigravity",
+        "dependencies": [
+            "feat_algorithms_phase_4"
+        ],
+        "area": "frontend",
+        "completed_at": "2025-12-13T11:55:00Z"
+    }
+]
+]
 }

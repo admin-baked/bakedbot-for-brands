@@ -105,13 +105,17 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             // Perform Algorithmic Scoring on mocked products
             const scoredProducts = products.map(p => {
                 const { score, explanations } = computeSkuScore({
+
                     id: p,
                     name: `Product ${p}`,
                     effects: ['relax', 'sleep'], // Stub
                     margin_pct: 45,
                     inventory_level: 50,
                     thc_mg_per_serving: 5,
-                    is_new: false
+                    is_new: false,
+                    // Fix: Add missing fields for Phase 3 algo
+                    tags: ['indica'],
+                    category: 'Edibles'
                 }, {
                     user_segments: ['new_consumer'],
                     requested_effects: ['sleep'],

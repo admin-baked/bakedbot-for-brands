@@ -30,9 +30,11 @@ import {
     Brain,
     Zap,
     Rocket,
+
     Briefcase,
     ShoppingCart,
-    Search
+    Search,
+    ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { runAgentChat } from '../../ceo/agents/actions';
@@ -78,6 +80,7 @@ export interface TaskletTrigger {
     config?: Record<string, any>;
 }
 
+
 export interface TaskletMessage {
     id: string;
     role: 'user' | 'assistant';
@@ -86,6 +89,10 @@ export interface TaskletMessage {
     isThinking?: boolean;
     workDuration?: number; // seconds
     steps?: ToolCallStep[];
+    metadata?: {
+        type: 'compliance_report' | 'product_rec' | 'elasticity_analysis';
+        data: any;
+    };
 }
 
 export interface TaskletState {
@@ -423,9 +430,11 @@ export function AgentChat({
             }));
             if (newPermissions.length > 0) setShowPermissions(true);
 
+
             // Update Global Store with response
             updateMessage(thinkingId, {
                 content: response.content,
+                metadata: response.metadata, // Store rich metadata
                 thinking: {
                     isThinking: false,
                     steps: response.toolCalls?.map(tc => ({
@@ -549,6 +558,7 @@ export function AgentChat({
             {hasMessages && (
                 <ScrollArea className="flex-1">
                     <div className="p-4 space-y-4">
+
                         {/* Messages */}
                         {displayMessages.map(message => (
                             <div key={message.id}>
@@ -567,6 +577,47 @@ export function AgentChat({
                                             <ThinkingIndicator duration={message.workDuration} />
                                         ) : (
                                             <>
+                                                {/* Rich Metadata Rendering */}
+                                                {message.metadata?.type === 'compliance_report' && (
+                                                    <Card className="border-red-200 bg-red-50 mb-2">
+                                                        <CardContent className="p-3">
+                                                            <div className="flex items-center gap-2 text-red-700 font-semibold mb-2">
+                                                                <ShieldCheck className="h-4 w-4" />
+                                                                <span>Compliance Violation Detected</span>
+                                                            </div>
+                                                            <ul className="list-disc list-inside text-xs text-red-600 space-y-1">
+                                                                {message.metadata.data.violations.map((v: string, i: number) => (
+                                                                    <li key={i}>{v}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+
+                                                {message.metadata?.type === 'product_rec' && (
+                                                    <Card className="border-emerald-200 bg-emerald-50 mb-2">
+                                                        <CardContent className="p-3">
+                                                            <div className="flex items-center gap-2 text-emerald-700 font-semibold mb-2">
+                                                                <ShoppingCart className="h-4 w-4" />
+                                                                <span>Smokey's Picks</span>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                {message.metadata.data.products.map((p: any, i: number) => (
+                                                                    <div key={i} className="flex justify-between items-center bg-white p-2 rounded border border-emerald-100">
+                                                                        <div>
+                                                                            <p className="text-sm font-medium">{p.name}</p>
+                                                                            <p className="text-[10px] text-muted-foreground">{p.reason}</p>
+                                                                        </div>
+                                                                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
+                                                                            {Math.round(p.score * 100)}% Match
+                                                                        </Badge>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+
                                                 <div className="prose prose-sm max-w-none">
                                                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                                                 </div>

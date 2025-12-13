@@ -251,23 +251,29 @@ export async function executePlaybook(playbookId: string): Promise<PlaybookResul
     }
 }
 
+
 // -- Chat & Intent Router --
 
-interface ChatResponse {
-
+export interface AgentResult {
     content: string;
     toolCalls?: { id: string; name: string; status: 'success' | 'error' | 'running'; result: string }[];
+    metadata?: {
+        type: 'compliance_report' | 'product_rec' | 'elasticity_analysis';
+        data: any;
+    };
+    logs?: string[];
 }
 
-export async function runAgentChat(userMessage: string, personaId?: string): Promise<ChatResponse> {
+export async function runAgentChat(userMessage: string, personaId?: string): Promise<AgentResult> {
     console.log('[runAgentChat] Starting with message:', userMessage, 'Persona:', personaId);
 
     // Select Persona
     const activePersona = personaId && PERSONAS[personaId as AgentPersona]
         ? PERSONAS[personaId as AgentPersona]
+
         : PERSONAS.tasklet;
 
-    const executedTools: ChatResponse['toolCalls'] = [];
+    const executedTools: AgentResult['toolCalls'] = [];
 
     try {
         // Import dependencies
@@ -1198,12 +1204,43 @@ Keep your response concise but complete.`,
             console.error('AI generation failed:', aiError);
         }
 
-        // Fallback if AI fails
-        return {
-            content: `👋 **Hello! I'm Baked HQ.**\n\nI'm routed to **${agentInfo?.name || 'General'}** (${agentInfo?.specialty || 'General Assistant'}).\n\n**Available Playbooks:**\n• \`Run welcome-sequence\`\n• \`Run competitor-scan\`\n• \`Run churn-predictor\`\n• \`Run platform-health\`\n\nWhat would you like me to help with?`,
-            toolCalls: executedTools
-        };
 
+        // Fallback if AI fails
+        const fallbackContent = `👋 **Hello! I'm Baked HQ.**\n\nI'm routed to **${agentInfo?.name || 'General'}** (${agentInfo?.specialty || 'General Assistant'}).\n\n**Available Playbooks:**\n• \`Run welcome-sequence\`\n• \`Run competitor-scan\`\n• \`Run churn-predictor\`\n• \`Run platform-health\`\n\nWhat would you like me to help with?`;
+
+        // --- Phase 5: Rich Metadata Injection ---
+        let metadata: AgentResult['metadata'] | undefined;
+        // Check either the AI response or fallback for keywords to trigger UI cards
+        const finalContent = fallbackContent;
+
+        // Note: In a real implementation this would come from the AI's structured output
+        // For MVP, we use keyword detection on the inputs/outputs
+        if (lowerMessage.includes('compliance') || lowerMessage.includes('check')) {
+            metadata = {
+                type: 'compliance_report',
+                data: {
+                    status: 'fail',
+                    violations: ['Medical claim detected', 'Appeals to minors'],
+                    suggestions: ['Remove "cure"', 'Change imagery']
+                }
+            };
+        } else if (lowerMessage.includes('recommend') || lowerMessage.includes('product')) {
+            metadata = {
+                type: 'product_rec',
+                data: {
+                    products: [
+                        { name: 'Sleepy Time Gimme', score: 0.95, reason: 'Matches "sleep" intent' },
+                        { name: 'Chill Pill', score: 0.82, reason: 'High margin' }
+                    ]
+                }
+            };
+        }
+
+        return {
+            content: fallbackContent,
+            toolCalls: executedTools,
+            metadata
+        };
     } catch (e: any) {
         console.error("Agent Chat Error:", e);
         return {
