@@ -138,3 +138,11 @@ unAgentChat in ctions.ts to return standardized AgentResult with rich metadata.
   - **Navigation**: Moved from Tab-based to Side-nav + URL-driven routing (`?tab=...`).
   - **Cleanup**: Removed unused Tab components from `CeoDashboardPage`.
   - **Status**: Verified manually. Clean and organized.
+
+## 2025-12-13T18:55Z – feat_nav_refactor_v2 – antigravity
+- **Completed Phase 7: Dashboard Polish**:
+  - **Right Sidebar**: Extracted and restored `SuperAdminRightSidebar` (Capabilities, Quick Actions, Run Agents).
+  - **Layout**: Applied sidebar to both `SuperAdminAgentChat` and `SuperAdminPlaybooksTab`.
+  - **Defaults**: Set `CeoDashboardPage` to default to `playbooks` tab.
+  - **Status**: Visuals restored and navigation streamlined.
+
