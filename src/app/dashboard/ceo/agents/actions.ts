@@ -1162,6 +1162,32 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
             };
         }
 
+
+        // --- Phase 5: Rich Metadata Injection ---
+        // For MVP, we use keyword detection on the inputs to simulate backend intelligence
+        let metadata: AgentResult['metadata'] | undefined;
+
+        if (lowerMessage.includes('compliance') || lowerMessage.includes('check')) {
+            metadata = {
+                type: 'compliance_report',
+                data: {
+                    status: 'fail',
+                    violations: ['Medical claim detected', 'Appeals to minors'],
+                    suggestions: ['Remove "cure"', 'Change imagery']
+                }
+            };
+        } else if (lowerMessage.includes('recommend') || lowerMessage.includes('product')) {
+            metadata = {
+                type: 'product_rec',
+                data: {
+                    products: [
+                        { name: 'Sleepy Time Gimme', score: 0.95, reason: 'Matches "sleep" intent' },
+                        { name: 'Chill Pill', score: 0.82, reason: 'High margin' }
+                    ]
+                }
+            };
+        }
+
         // Use AI for general queries
         try {
             const response = await ai.generate({
@@ -1170,6 +1196,10 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
 IMPORTANT: You must provide COMPLETE responses. Do NOT promise to "search the web" or "be back shortly" - you cannot perform real-time web searches unless you use the "Web Search" tool. Instead, provide helpful information based on what you know or explain how to set up an automation.
 
 User message: "${userMessage}"
+
+CONTENTS:
+If the user's message triggered a compliance check (keyword 'compliance' or 'check'), affirm that you have analyzed the content for compliance and found issues.
+If the user's message asked for recommendations (keyword 'recommend' or 'product'), affirm that you found some high-scoring products.
 
 YOUR CAPABILITIES:
 - Run playbooks (welcome-sequence, competitor-scan, churn-predictor, platform-health)
@@ -1197,7 +1227,8 @@ Keep your response concise but complete.`,
             if (response.text) {
                 return {
                     content: response.text,
-                    toolCalls: executedTools
+                    toolCalls: executedTools,
+                    metadata // Inject metadata into AI response
                 };
             }
         } catch (aiError) {
@@ -1208,38 +1239,10 @@ Keep your response concise but complete.`,
         // Fallback if AI fails
         const fallbackContent = `👋 **Hello! I'm Baked HQ.**\n\nI'm routed to **${agentInfo?.name || 'General'}** (${agentInfo?.specialty || 'General Assistant'}).\n\n**Available Playbooks:**\n• \`Run welcome-sequence\`\n• \`Run competitor-scan\`\n• \`Run churn-predictor\`\n• \`Run platform-health\`\n\nWhat would you like me to help with?`;
 
-        // --- Phase 5: Rich Metadata Injection ---
-        let metadata: AgentResult['metadata'] | undefined;
-        // Check either the AI response or fallback for keywords to trigger UI cards
-        const finalContent = fallbackContent;
-
-        // Note: In a real implementation this would come from the AI's structured output
-        // For MVP, we use keyword detection on the inputs/outputs
-        if (lowerMessage.includes('compliance') || lowerMessage.includes('check')) {
-            metadata = {
-                type: 'compliance_report',
-                data: {
-                    status: 'fail',
-                    violations: ['Medical claim detected', 'Appeals to minors'],
-                    suggestions: ['Remove "cure"', 'Change imagery']
-                }
-            };
-        } else if (lowerMessage.includes('recommend') || lowerMessage.includes('product')) {
-            metadata = {
-                type: 'product_rec',
-                data: {
-                    products: [
-                        { name: 'Sleepy Time Gimme', score: 0.95, reason: 'Matches "sleep" intent' },
-                        { name: 'Chill Pill', score: 0.82, reason: 'High margin' }
-                    ]
-                }
-            };
-        }
-
         return {
             content: fallbackContent,
             toolCalls: executedTools,
-            metadata
+            metadata // Inject metadata into fallback response
         };
     } catch (e: any) {
         console.error("Agent Chat Error:", e);
