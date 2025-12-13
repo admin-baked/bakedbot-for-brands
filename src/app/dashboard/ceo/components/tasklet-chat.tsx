@@ -260,12 +260,14 @@ export interface TaskletChatProps {
     initialTitle?: string;
     onBack?: () => void;
     onSubmit?: (message: string) => Promise<void>;
+    promptSuggestions?: string[];
 }
 
 export function TaskletChat({
     initialTitle = 'New Automation',
     onBack,
-    onSubmit
+    onSubmit,
+    promptSuggestions = []
 }: TaskletChatProps) {
     // Global Store State
     const { currentMessages, addMessage, updateMessage, createSession } = useAgentChatStore();
@@ -430,6 +432,21 @@ export function TaskletChat({
     const InputArea = (
         <div className={cn("p-4", hasMessages ? "border-t" : "border-b")}>
             <div className="max-w-3xl mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner">
+                {promptSuggestions.length > 0 && !hasMessages && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                        {promptSuggestions.map((suggestion, i) => (
+                            <Button
+                                key={i}
+                                variant="outline"
+                                size="sm"
+                                className="h-6 text-xs bg-background/50 hover:bg-background"
+                                onClick={() => setInput(suggestion)}
+                            >
+                                {suggestion}
+                            </Button>
+                        ))}
+                    </div>
+                )}
                 <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
