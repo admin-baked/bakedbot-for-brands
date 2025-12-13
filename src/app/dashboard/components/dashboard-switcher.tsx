@@ -5,6 +5,7 @@ import { useUserRole } from '@/hooks/use-user-role';
 import { getSuperAdminSession } from '@/lib/super-admin-config';
 import AgentInterface from './agent-interface';
 import DashboardPageComponent from '../page-client';
+import DispensaryDashboardClient from '../dispensary/dashboard-client';
 import { Loader2 } from 'lucide-react';
 
 export default function DashboardSwitcher() {
@@ -45,7 +46,7 @@ export default function DashboardSwitcher() {
     // 3. Dispensary View (Using generic dashboard for now)
     if (role === 'dispensary') {
         const brandId = (user as any)?.brandId || user?.uid || 'unknown-dispensary';
-        return <DashboardPageComponent brandId={brandId} />;
+        return <DispensaryDashboardClient brandId={brandId} />;
     }
 
     // 4. Fallback (Safe Default)
