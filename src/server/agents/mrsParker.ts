@@ -3,7 +3,7 @@ import { createServerClient } from "@/firebase/server-client";
 import { EventType } from "@/types/domain";
 import { FieldValue } from "firebase-admin/firestore";
 import { deeboCheckMessage } from "./deebo";
-import { leafbuyerService } from "@/lib/sms/leafbuyer";
+import { blackleafService } from "@/lib/notifications/blackleaf-service";
 import { logger } from '@/lib/logger';
 import { AgentImplementation } from './harness';
 import { MrsParkerMemory } from './schemas';
@@ -60,11 +60,11 @@ async function sendSms(orgId: string, state: string, phone: string, message: str
     return false; // Stop if compliance check fails
   }
 
-  // 2. If compliant, send via Leafbuyer
+  // 2. If compliant, send via Blackleaf
   try {
-    const success = await leafbuyerService.sendMessage({ to: phone, message });
+    const success = await blackleafService.sendCustomMessage(phone, message);
     if (success) {
-      logger.info('Mrs. Parker: SMS sent successfully', { phone, orderId: order?.id });
+      logger.info('Mrs. Parker: SMS sent successfully via Blackleaf', { phone, orderId: order?.id });
     }
     return success;
   } catch (error) {

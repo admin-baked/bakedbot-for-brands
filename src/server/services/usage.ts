@@ -9,7 +9,8 @@ export type UsageMetric =
     | 'menu_pageviews'
     | 'menu_sync_jobs'
     | 'tracked_events'
-    | 'messages_sent';
+    | 'messages_sent'
+    | 'sms_sent';
 
 export interface DailyUsageStats {
     orgId: string;
@@ -73,7 +74,8 @@ export class UsageService {
                 menu_pageviews: 0,
                 menu_sync_jobs: 0,
                 tracked_events: 0,
-                messages_sent: 0
+                messages_sent: 0,
+                sms_sent: 0
             };
 
             snapshot.forEach(doc => {
@@ -119,7 +121,8 @@ export class UsageService {
                     menu_pageviews: 0,
                     menu_sync_jobs: 0,
                     tracked_events: 0,
-                    messages_sent: 0
+                    messages_sent: 0,
+                    sms_sent: 0
                 } as Record<UsageMetric, number>,
                 byOrg: {} as Record<string, Record<UsageMetric, number>>
             };
