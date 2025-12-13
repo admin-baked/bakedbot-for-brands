@@ -51,6 +51,19 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
         agentMemory = await implementation.initialize(brandMemory, agentMemory);
 
         // C. Orient
+        // Check for urgent messages on the bus
+        try {
+            // Import dynamically to avoid circular deps
+            const { getPendingMessages } = await import('../intuition/agent-bus');
+            const messages = await getPendingMessages(brandId, agentName as any);
+            if (messages.length > 0) {
+                logger.info(`[Harness] ${agentName}: Has ${messages.length} pending messages. (Topic: ${messages[0].topic})`);
+                // TODO: In future, inject these messages into 'stimulus' or 'agentMemory' context
+            }
+        } catch (e) {
+            // Ignore bus errors, don't crash agent
+        }
+
         const targetId = await implementation.orient(brandMemory, agentMemory, stimulus);
 
         if (!targetId) {
@@ -66,9 +79,11 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
         // E. Persist
         await adapter.saveAgentMemory(brandId, agentName, result.updatedMemory);
 
+        const now = new Date(); // Capture time for consistency and type safety
+
         const logEntry: AgentLogEntry = {
             id: crypto.randomUUID(),
-            timestamp: new Date(),
+            timestamp: now,
             agent_name: agentName,
             target_id: targetId,
             stimulus: stimulus ? JSON.stringify(stimulus).slice(0, 100) : undefined,
@@ -76,6 +91,33 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
         };
 
         await adapter.appendLog(brandId, agentName, logEntry);
+
+        // --- Intuition OS Integration: Loop 1 (Log Everything) ---
+        // Fire and forget logging to global event stream
+        try {
+            // Import dynamically to avoid circular deps if any (though clear here)
+            const { logAgentEvent } = await import('../intuition/agent-events');
+
+            await logAgentEvent({
+                id: logEntry.id, // Align IDs for traceability
+                tenantId: brandId,
+                agent: agentName as any, // Cast to AgentName
+                sessionId: 'harness_session', // TODO: Pass session ID through harness
+                type: 'task_completed',
+                payload: {
+                    action: result.logEntry.action,
+                    result: result.logEntry.result,
+                    targetId,
+                    stimulus: logEntry.stimulus,
+                    ...(result.logEntry.metadata || {})
+                },
+                confidenceScore: result.logEntry.metadata?.confidence ? Number(result.logEntry.metadata.confidence) : undefined,
+                systemMode: 'slow', // Harness runs are generally "System 2" / Offline / Slow
+                createdAt: now.toISOString(),
+            });
+        } catch (e) {
+            logger.warn(`[Harness] Failed to log intuition event: ${e}`);
+        }
 
         logger.info(`[Harness] ${agentName}: Cycle complete. Target ${targetId} processed.`);
         return logEntry;

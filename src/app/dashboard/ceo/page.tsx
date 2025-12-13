@@ -25,6 +25,7 @@ const AgentDashboardClient = dynamic(() => import("./agents/agent-dashboard-clie
 const SuperAdminPlaybooksTab = dynamic(() => import("./components/super-admin-playbooks-tab"), { loading: TabLoader });
 const UsageTab = dynamic(() => import("./components/usage-tab"), { loading: TabLoader });
 const EzalTab = dynamic(() => import("./components/ezal-tab"), { loading: TabLoader });
+const SuperAdminInsightsTab = dynamic(() => import("./components/super-admin-insights-tab").then(mod => mod.SuperAdminInsightsTab), { loading: TabLoader });
 import { useSuperAdmin } from '@/hooks/use-super-admin';
 import { Loader2, Shield, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,7 @@ export default function CeoDashboardPage() {
             case 'agents': return <SuperAdminAgentChat />;
             case 'usage': return <UsageTab />;
             case 'ezal': return <EzalTab />;
+            case 'insights': return <SuperAdminInsightsTab />;
             case 'playbooks': return <SuperAdminPlaybooksTab />;
             case 'analytics': return <PlatformAnalyticsTab />;
             case 'foot-traffic': return <FootTrafficTab />;

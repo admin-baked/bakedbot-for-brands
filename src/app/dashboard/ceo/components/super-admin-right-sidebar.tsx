@@ -15,9 +15,11 @@ import {
     FileText,
     Sparkles,
     Terminal,
+    Activity,
 } from 'lucide-react';
 import { SUPER_ADMIN_SMOKEY } from '@/config/super-admin-smokey-config';
 import { triggerAgentRun } from '../agents/actions';
+import { triggerPatternAnalysis, triggerComplianceScan, generateDailyReport } from '@/app/dashboard/ceo/actions/intuition-actions';
 
 export function SuperAdminRightSidebar() {
     const router = useRouter();
@@ -62,6 +64,27 @@ export function SuperAdminRightSidebar() {
             toast({ title: 'Agent Error', description: 'Failed to run agent.', variant: 'destructive' });
         } finally {
             setRunningAgent(null);
+            setTimeout(() => setAgentStatus(null), 3000);
+        }
+    };
+
+    const handleIntuitionAction = async (actionFn: (tid: string) => Promise<any>, name: string) => {
+        if (agentStatus) return; // simple lock
+        setAgentStatus(`Running ${name}...`);
+
+        try {
+            // Using a stub tenantId for now, in prod getting from context/auth
+            const result = await actionFn('demo-brand');
+            setAgentStatus(result.message);
+            toast({
+                title: result.success ? `${name} Complete` : `${name} Error`,
+                description: result.message,
+                variant: result.success ? 'default' : 'destructive'
+            });
+        } catch (e) {
+            setAgentStatus(`Error: ${name}`);
+            toast({ title: 'Error', description: 'Action failed', variant: 'destructive' });
+        } finally {
             setTimeout(() => setAgentStatus(null), 3000);
         }
     };
@@ -155,6 +178,36 @@ export function SuperAdminRightSidebar() {
                             {agentStatus}
                         </div>
                     )}
+                </CardContent>
+            </Card>
+
+            {/* Intuition OS Controls */}
+            <Card>
+                <CardHeader className="py-2 px-3">
+                    <CardTitle className="text-xs flex items-center gap-1.5">
+                        <Activity className="h-3.5 w-3.5 text-blue-500" />
+                        Intuition Controls
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 p-2 pt-0">
+                    <Button
+                        variant="outline" size="sm" className="w-full justify-start text-[10px] h-7"
+                        onClick={() => handleIntuitionAction(generateDailyReport, 'Pops Daily Report')}
+                    >
+                        📊 Generate Daily Report
+                    </Button>
+                    <Button
+                        variant="outline" size="sm" className="w-full justify-start text-[10px] h-7"
+                        onClick={() => handleIntuitionAction(triggerComplianceScan, 'Deebo Scan')}
+                    >
+                        🛡️ Run Compliance Scan
+                    </Button>
+                    <Button
+                        variant="outline" size="sm" className="w-full justify-start text-[10px] h-7"
+                        onClick={() => handleIntuitionAction(triggerPatternAnalysis, 'Pattern Analysis')}
+                    >
+                        🧩 Run Pattern Analysis
+                    </Button>
                 </CardContent>
             </Card>
         </div>

@@ -25,7 +25,7 @@ function getEventsCollection(tenantId: string) {
 // --- Event Queue for Batching ---
 
 interface QueuedEvent {
-    event: Omit<AgentEvent, 'id' | 'createdAt'>;
+    event: Omit<AgentEvent, 'createdAt'> & { createdAt?: string };
     resolve: (eventId: string) => void;
     reject: (error: Error) => void;
 }
@@ -38,12 +38,14 @@ const FLUSH_INTERVAL_MS = 5000;
 /**
  * Logs an agent event to Firestore.
  * Events are batched for cost optimization.
+ * 
+ * @param event - The event data. ID can be provided for idempotency.
  */
 export async function logAgentEvent(
-    event: Omit<AgentEvent, 'id' | 'createdAt'>
+    event: Omit<AgentEvent, 'createdAt'> & { createdAt?: string }
 ): Promise<string> {
     return new Promise((resolve, reject) => {
-        eventQueue.push({ event, resolve, reject });
+        eventQueue.push({ event: event as any, resolve, reject });
 
         // Flush immediately if batch is full
         if (eventQueue.length >= BATCH_SIZE) {
@@ -77,19 +79,22 @@ async function flushEventQueue(): Promise<void> {
         const eventIds: string[] = [];
 
         for (const { event } of batch) {
-            const eventId = uuidv4();
-            const timestamp = new Date().toISOString();
+            // Use provided ID or generate new UUID
+            const eventId = event.id || uuidv4();
+            const timestamp = event.createdAt || new Date().toISOString();
 
             const fullEvent: AgentEvent = {
                 ...event,
                 id: eventId,
                 createdAt: timestamp,
+                // Ensure optional fields are present or handled naturally by optionality
             };
 
             const docRef = firestore
                 .collection(getEventsCollection(event.tenantId))
                 .doc(eventId);
 
+            // Use set for idempotency (overwrites same ID with same data)
             writeBatch.set(docRef, fullEvent);
             eventIds.push(eventId);
         }
@@ -224,21 +229,20 @@ export async function logRecommendationShown(
         customerId?: string;
         confidenceScore?: number;
         systemMode?: 'fast' | 'slow';
-        heuristicsApplied?: string[];
+        traceId?: string;
     } = {}
 ): Promise<string> {
     return logAgentEvent({
+        id: uuidv4(), // Or generate deterministic ID
         agent,
         tenantId,
         sessionId,
         customerId: options.customerId,
         type: 'recommendation_shown',
         payload: { products },
-        metadata: {
-            confidenceScore: options.confidenceScore,
-            systemMode: options.systemMode,
-            heuristicsApplied: options.heuristicsApplied,
-        },
+        confidenceScore: options.confidenceScore,
+        systemMode: options.systemMode,
+        traceId: options.traceId,
     });
 }
 
@@ -250,15 +254,17 @@ export async function logProductClicked(
     agent: AgentName,
     sessionId: string,
     productId: string,
-    customerId?: string
+    customerId?: string,
+    additionalPayload: Record<string, any> = {}
 ): Promise<string> {
     return logAgentEvent({
+        id: uuidv4(),
         agent,
         tenantId,
         sessionId,
         customerId,
         type: 'product_clicked',
-        payload: { productId },
+        payload: { productId, ...additionalPayload },
     });
 }
 
@@ -272,15 +278,17 @@ export async function logOrderCompleted(
     orderId: string,
     products: string[],
     totalAmount: number,
-    customerId?: string
+    customerId?: string,
+    additionalPayload: Record<string, any> = {}
 ): Promise<string> {
     return logAgentEvent({
+        id: uuidv4(),
         agent,
         tenantId,
         sessionId,
         customerId,
         type: 'order_completed',
-        payload: { orderId, products, totalAmount },
+        payload: { orderId, products, totalAmount, ...additionalPayload },
     });
 }
 
@@ -293,14 +301,36 @@ export async function logFeedback(
     sessionId: string,
     feedbackType: 'thumbs_up' | 'thumbs_down' | 'rating' | 'comment',
     value: number | string,
-    customerId?: string
+    customerId?: string,
+    additionalPayload: Record<string, any> = {}
 ): Promise<string> {
     return logAgentEvent({
+        id: uuidv4(),
         agent,
         tenantId,
         sessionId,
         customerId,
         type: 'feedback',
-        payload: { feedbackType, value },
+        payload: { feedbackType, value, ...additionalPayload },
+    });
+}
+
+/**
+ * Creates a task started event (for internal agents).
+ */
+export async function logTaskStarted(
+    tenantId: string,
+    agent: AgentName,
+    sessionId: string,
+    taskName: string,
+    inputs: Record<string, any>
+): Promise<string> {
+    return logAgentEvent({
+        id: uuidv4(),
+        agent,
+        tenantId,
+        sessionId,
+        type: 'task_started',
+        payload: { taskName, inputs },
     });
 }
