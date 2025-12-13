@@ -25,6 +25,7 @@ import { useUserRole } from '@/hooks/use-user-role';
 
 
 import { CeoSidebarHistory } from '@/components/dashboard/ceo-sidebar-history';
+import { SharedSidebarHistory } from '@/components/dashboard/shared-sidebar-history';
 import { logger } from '@/lib/logger';
 
 export function DashboardSidebar() {
@@ -73,47 +74,50 @@ export function DashboardSidebar() {
           /* CEO Dashboard: Show Chat History */
           <CeoSidebarHistory />
         ) : (
-          <SidebarMenu>
-            {navLinks.filter(link => !link.hidden).map((link) => {
-              const iconKey = (link.icon ?? 'Folder') as keyof typeof LucideIcons;
-              const Icon = (LucideIcons as any)[iconKey] || LucideIcons.Folder as ElementType;
+          <>
+            <SharedSidebarHistory />
+            <SidebarMenu>
+              {navLinks.filter(link => !link.hidden).map((link) => {
+                const iconKey = (link.icon ?? 'Folder') as keyof typeof LucideIcons;
+                const Icon = (LucideIcons as any)[iconKey] || LucideIcons.Folder as ElementType;
 
-              const isComingSoon = link.badge === 'coming-soon';
-              // If badge is 'locked', hide it completely for non-owners
-              if (link.badge === 'locked' && role !== 'owner') {
-                return null;
-              }
-              const isLocked = isComingSoon && role !== 'owner';
+                const isComingSoon = link.badge === 'coming-soon';
+                // If badge is 'locked', hide it completely for non-owners
+                if (link.badge === 'locked' && role !== 'owner') {
+                  return null;
+                }
+                const isLocked = isComingSoon && role !== 'owner';
 
-              if (isLocked) {
+                if (isLocked) {
+                  return (
+                    <SidebarMenuItem key={link.href}>
+                      <div className="flex w-full items-center gap-2 p-2 px-3 text-sm text-muted-foreground/50 cursor-not-allowed">
+                        <Icon className="h-4 w-4" />
+                        <span>{link.label}</span>
+                        <span className="ml-auto text-[10px] uppercase font-bold bg-muted-foreground/20 px-1.5 py-0.5 rounded text-muted-foreground">
+                          Soon
+                        </span>
+                      </div>
+                    </SidebarMenuItem>
+                  );
+                }
+
                 return (
                   <SidebarMenuItem key={link.href}>
-                    <div className="flex w-full items-center gap-2 p-2 px-3 text-sm text-muted-foreground/50 cursor-not-allowed">
-                      <Icon className="h-4 w-4" />
-                      <span>{link.label}</span>
-                      <span className="ml-auto text-[10px] uppercase font-bold bg-muted-foreground/20 px-1.5 py-0.5 rounded text-muted-foreground">
-                        Soon
-                      </span>
-                    </div>
+                    <SidebarMenuButton asChild isActive={link.href === current?.href} tooltip={link.label}>
+                      <Link href={link.href} className="flex items-center gap-2">
+                        <Icon />
+                        <span>{link.label}</span>
+                        {link.badge === 'beta' && (
+                          <span className="ml-auto text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded font-medium">BETA</span>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
-              }
-
-              return (
-                <SidebarMenuItem key={link.href}>
-                  <SidebarMenuButton asChild isActive={link.href === current?.href} tooltip={link.label}>
-                    <Link href={link.href} className="flex items-center gap-2">
-                      <Icon />
-                      <span>{link.label}</span>
-                      {link.badge === 'beta' && (
-                        <span className="ml-auto text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded font-medium">BETA</span>
-                      )}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
+              })}
+            </SidebarMenu>
+          </>
         )}
       </SidebarContent>
       <SidebarFooter>
@@ -147,6 +151,6 @@ export function DashboardSidebar() {
           Debug: Role={role || 'null'}, Links={navLinks.length}
         </div>
       </SidebarFooter>
-    </Sidebar>
+    </Sidebar >
   );
 }
