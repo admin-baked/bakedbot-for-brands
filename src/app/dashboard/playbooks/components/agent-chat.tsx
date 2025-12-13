@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Send, ChevronDown, Sparkles, Loader2, Play, CheckCircle2, Bot, CalendarClock, Target, Laptop, Monitor, MousePointer2, Save, FileCode, Copy, Download, Key } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Card } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -15,198 +14,78 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    ArrowLeft,
+    Upload,
+    ChevronDown,
+    ChevronUp,
+    Check,
+    CheckCircle2,
+    Loader2,
+    Mail,
+    FolderOpen,
+    Calendar,
+    Globe,
+    Sparkles,
+    Brain,
+    Zap,
+    Rocket,
+    Briefcase,
+    ShoppingCart,
+    Search
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { runAgentChat } from '../../ceo/agents/actions';
+import { AgentPersona } from '../../ceo/agents/personas';
+import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 
-// --- Types ---
+// ============ Types ============
 
-export type MessageType = 'user' | 'agent';
-export type ToolCallStatus = 'running' | 'completed' | 'failed';
-export type ArtifactType = 'code' | 'yaml' | 'file' | 'table';
-
-export interface ChatArtifact {
+export interface ToolPermission {
     id: string;
-    type: ArtifactType;
-    title: string;
-    content: string;
-    language?: string;
-}
-
-export interface ToolCallStep {
-    id: string;
-    toolName: string;
-    status: ToolCallStatus;
-    durationMs?: number;
-    result?: string;
+    name: string;
+    icon: 'mail' | 'drive' | 'calendar' | 'web';
+    email?: string;
     description: string;
-    subagentId?: string;
-    isComputerUse?: boolean;
-    requiresPermission?: boolean;
-    permissionType?: 'login' | 'download';
+    status: 'pending' | 'granted' | 'denied';
+    tools: string[];
 }
 
-export interface AgentThinking {
-    isThinking: boolean;
-    steps: ToolCallStep[];
-    plan: string[];
-}
-
-export interface ChatMessage {
+export interface TaskletTrigger {
     id: string;
-    type: MessageType;
-    content: string;
-    thinking?: AgentThinking;
-    timestamp: Date;
-    attachments?: string[];
-    artifact?: ChatArtifact;
-    canSaveAsPlaybook?: boolean;
+    type: 'schedule' | 'webhook' | 'event';
+    label: string;
+    config?: Record<string, any>;
 }
 
+export interface TaskletMessage {
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: Date;
+    isThinking?: boolean;
+    workDuration?: number; // seconds
+}
+
+export interface TaskletState {
+    title: string;
+    isConnected: boolean;
+    permissions: ToolPermission[];
+    triggers: TaskletTrigger[];
+    // Messages are now in global store
+}
+
+// ThinkingLevel type for intelligence selector
 export type ThinkingLevel = 'standard' | 'advanced' | 'expert' | 'genius';
 
-// --- Artifact Components ---
-
-function YamlArtifact({ artifact }: { artifact: ChatArtifact }) {
-    const [copied, setCopied] = useState(false);
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(artifact.content);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    return (
-        <div className="mt-3 rounded-lg border border-border bg-slate-900 overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border-b border-slate-700">
-                <div className="flex items-center gap-2">
-                    <FileCode className="h-4 w-4 text-green-400" />
-                    <span className="text-sm text-slate-300 font-medium">{artifact.title}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-slate-400 hover:text-white" onClick={handleCopy}>
-                        {copied ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-slate-400 hover:text-white">
-                        <Download className="h-3.5 w-3.5" />
-                    </Button>
-                </div>
-            </div>
-            <pre className="p-3 text-xs text-green-300 font-mono overflow-x-auto max-h-48">
-                <code>{artifact.content}</code>
-            </pre>
-        </div>
-    );
-}
-
-function PermissionPrompt({ step, onApprove, onDeny }: { step: ToolCallStep, onApprove: () => void, onDeny: () => void }) {
-    return (
-        <div className="mt-2 p-3 rounded-lg border border-yellow-500/50 bg-yellow-500/10">
-            <div className="flex items-start gap-3">
-                <Key className="h-5 w-5 text-yellow-500 mt-0.5" />
-                <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Permission Required</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        {step.permissionType === 'login' ? 'Agent wants to log into a website using saved credentials.' : 'Agent wants to download a file from this site.'}
-                    </p>
-                    <div className="flex gap-2 mt-3">
-                        <Button size="sm" variant="outline" onClick={onDeny}>Deny</Button>
-                        <Button size="sm" onClick={onApprove}>Allow</Button>
-                        <Button size="sm" variant="ghost" className="text-xs">Always Allow</Button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-// --- Core Components ---
-
-function ComputerUseBlock({ step }: { step: ToolCallStep }) {
-    return (
-        <div className="mt-2 mb-2 rounded-lg border border-slate-700 bg-slate-900 overflow-hidden font-mono text-xs w-full max-w-md shadow-lg">
-            <div className="bg-slate-800 p-2 flex items-center gap-2 border-b border-slate-700">
-                <div className="flex gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
-                </div>
-                <div className="flex-1 bg-slate-900 rounded px-2 py-0.5 text-slate-400 text-[10px] truncate">
-                    {step.description.includes('Navigating') ? 'https://...' : 'remote-desktop://session-8291'}
-                </div>
-            </div>
-            <div className="p-4 h-32 flex flex-col items-center justify-center text-slate-400 relative">
-                <Monitor className="h-8 w-8 mb-2 opacity-50" />
-                <span className="animate-pulse">{step.description}</span>
-                <MousePointer2 className="absolute top-1/2 left-1/3 h-4 w-4 text-white fill-white animate-bounce" style={{ animationDuration: '3s' }} />
-            </div>
-        </div>
-    );
-}
-
-function ThinkingBlock({ thinking }: { thinking: AgentThinking }) {
-    const [expanded, setExpanded] = useState(true);
-    if (!thinking.isThinking && thinking.steps.length === 0 && thinking.plan.length === 0) return null;
-
-    return (
-        <div className="mb-4 rounded-md border border-border/50 bg-muted/30 overflow-hidden text-sm">
-            <div className="flex items-center gap-2 p-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setExpanded(!expanded)}>
-                <div className="flex items-center gap-2 flex-1">
-                    {thinking.isThinking ? <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> : <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
-                    <span className="font-medium text-muted-foreground">
-                        {thinking.isThinking ? 'Processing & Executing...' : `Completed in ${(thinking.steps.reduce((acc, s) => acc + (s.durationMs || 0), 0) / 1000).toFixed(1)}s`}
-                    </span>
-                </div>
-                <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", expanded && "rotate-180")} />
-            </div>
-
-            {expanded && (
-                <div className="px-3 pb-3 space-y-3 border-t border-border/50 pt-3">
-                    {thinking.plan.length > 0 && (
-                        <div className="space-y-2 mb-4">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                <Target className="h-3 w-3" /> Execution Plan
-                            </p>
-                            {thinking.plan.map((step, idx) => (
-                                <div key={idx} className="flex items-start gap-2 text-muted-foreground">
-                                    <div className={cn("mt-1.5 h-1.5 w-1.5 rounded-full", idx < thinking.steps.length ? "bg-green-500" : "bg-primary/40")} />
-                                    <span>{step}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {thinking.steps.length > 0 && (
-                        <div className="space-y-2">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Activity Log</p>
-                            {thinking.steps.map((step) => (
-                                <div key={step.id}>
-                                    <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground bg-background/50 p-2 rounded border">
-                                        {step.subagentId ? <Bot className="h-3 w-3 text-purple-500" /> :
-                                            step.isComputerUse ? <Laptop className="h-3 w-3 text-orange-500" /> :
-                                                <Play className="h-3 w-3 text-blue-500" />}
-                                        <span className="font-semibold text-foreground">
-                                            {step.subagentId ? `Subagent: ${step.subagentId}` : step.toolName}
-                                        </span>
-                                        <span className="truncate flex-1">{step.description}</span>
-                                        {step.durationMs && <span className="ml-auto text-muted-foreground/50">{step.durationMs}ms</span>}
-                                    </div>
-                                    {step.isComputerUse && step.status === 'completed' && <ComputerUseBlock step={step} />}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-}
+// ============ Sub-components ============
 
 function ModelSelector({ value, onChange }: { value: ThinkingLevel, onChange: (v: ThinkingLevel) => void }) {
     const options: Record<ThinkingLevel, { label: string, desc: string, icon: any }> = {
         standard: { label: 'Standard', desc: 'Fast & cost-effective', icon: Sparkles },
-        advanced: { label: 'Advanced', desc: 'Complex logic', icon: Sparkles },
-        expert: { label: 'Expert', desc: 'Deep reasoning', icon: Sparkles },
-        genius: { label: 'Genius', desc: 'Maximum intelligence', icon: Sparkles },
+        advanced: { label: 'Advanced', desc: 'Complex logic', icon: Brain },
+        expert: { label: 'Expert', desc: 'Deep reasoning', icon: Zap },
+        genius: { label: 'Genius', desc: 'Maximum intelligence', icon: Rocket },
     };
     const SelectedIcon = options[value].icon;
     return (
@@ -218,16 +97,17 @@ function ModelSelector({ value, onChange }: { value: ThinkingLevel, onChange: (v
                     <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[280px]">
+            <DropdownMenuContent align="start" className="w-[280px]">
                 <DropdownMenuLabel>Intelligence Level</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {(Object.entries(options) as [ThinkingLevel, typeof options['standard']][]).map(([key, opt]) => (
                     <DropdownMenuItem key={key} onClick={() => onChange(key)} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
                         <div className="flex items-center gap-2 w-full">
+                            <opt.icon className="h-4 w-4 text-primary" />
                             <span className="font-medium flex-1">{opt.label}</span>
                             {value === key && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
                         </div>
-                        <span className="text-xs text-muted-foreground">{opt.desc}</span>
+                        <span className="text-xs text-muted-foreground ml-6">{opt.desc}</span>
                     </DropdownMenuItem>
                 ))}
             </DropdownMenuContent>
@@ -235,235 +115,437 @@ function ModelSelector({ value, onChange }: { value: ThinkingLevel, onChange: (v
     );
 }
 
-// --- Props Interface ---
+function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (v: AgentPersona) => void }) {
+    const options: Record<AgentPersona, { label: string, desc: string, icon: any }> = {
+        tasklet: { label: 'Tasklet', desc: 'General Assistant', icon: Sparkles },
+        wholesale_analyst: { label: 'Wholesale', desc: 'LeafLink & Inventory', icon: Briefcase },
+        menu_watchdog: { label: 'Watchdog', desc: 'Menu Monitoring', icon: ShoppingCart },
+        sales_scout: { label: 'Scout', desc: 'Lead Generation', icon: Search },
+    };
+    const SelectedIcon = options[value].icon;
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs font-medium border border-transparent hover:border-border hover:bg-background">
+                    <SelectedIcon className="h-3 w-3 text-primary" />
+                    {options[value].label}
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[280px]">
+                <DropdownMenuLabel>Agent Persona</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {(Object.entries(options) as [AgentPersona, typeof options['tasklet']][]).map(([key, opt]) => (
+                    <DropdownMenuItem key={key} onClick={() => onChange(key)} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
+                        <div className="flex items-center gap-2 w-full">
+                            <opt.icon className="h-4 w-4 text-primary" />
+                            <span className="font-medium flex-1">{opt.label}</span>
+                            {value === key && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
+                        </div>
+                        <span className="text-xs text-muted-foreground ml-6">{opt.desc}</span>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
 
-export type AgentChatMode = 'standard' | 'superuser';
+function ConnectionIcon({ type }: { type: ToolPermission['icon'] }) {
+    switch (type) {
+        case 'mail':
+            return (
+                <div className="h-10 w-10 rounded-lg bg-white shadow-sm border flex items-center justify-center">
+                    <Mail className="h-5 w-5 text-red-500" />
+                </div>
+            );
+        case 'drive':
+            return (
+                <div className="h-10 w-10 rounded-lg bg-white shadow-sm border flex items-center justify-center">
+                    <FolderOpen className="h-5 w-5 text-yellow-500" />
+                </div>
+            );
+        case 'calendar':
+            return (
+                <div className="h-10 w-10 rounded-lg bg-white shadow-sm border flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-blue-500" />
+                </div>
+            );
+        case 'web':
+            return (
+                <div className="h-10 w-10 rounded-lg bg-white shadow-sm border flex items-center justify-center">
+                    <Globe className="h-5 w-5 text-green-500" />
+                </div>
+            );
+    }
+}
+
+function PermissionCard({ permission, onGrant }: { permission: ToolPermission; onGrant: () => void }) {
+    return (
+        <div className="flex items-start gap-3 p-3 border-b last:border-b-0">
+            <ConnectionIcon type={permission.icon} />
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">{permission.name}</span>
+                    {permission.email && (
+                        <span className="text-xs text-muted-foreground">{permission.email}</span>
+                    )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                    {permission.description}
+                </p>
+                {permission.tools.length > 0 && (
+                    <div className="mt-2">
+                        <p className="text-[10px] text-muted-foreground mb-1">Requesting access to tools:</p>
+                        <div className="flex flex-wrap gap-1">
+                            {permission.tools.map(tool => (
+                                <Button
+                                    key={tool}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 text-[10px] px-2 bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                >
+                                    {tool}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+            <div>
+                {permission.status === 'granted' ? (
+                    <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
+                        <Check className="h-3 w-3 mr-1" />
+                        Granted
+                    </Badge>
+                ) : permission.status === 'pending' ? (
+                    <Button size="sm" variant="outline" onClick={onGrant} className="text-xs">
+                        Grant
+                    </Button>
+                ) : (
+                    <Badge variant="outline" className="bg-red-50 text-red-500 border-red-200">
+                        Denied
+                    </Badge>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function TriggerIndicator({ triggers, expanded, onToggle }: { triggers: TaskletTrigger[]; expanded: boolean; onToggle: () => void }) {
+    if (triggers.length === 0) return null;
+
+    return (
+        <button
+            onClick={onToggle}
+            className="w-full flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg transition-colors"
+        >
+            <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-sm font-medium">{triggers.length} trigger{triggers.length !== 1 ? 's' : ''}</span>
+            </div>
+            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+    );
+}
+
+function ThinkingIndicator({ duration }: { duration?: number }) {
+    return (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Worked for {duration || 0}s</span>
+            <ChevronDown className="h-4 w-4" />
+        </div>
+    );
+}
+
+// ============ Main Component ============
 
 export interface AgentChatProps {
-    /** Mode determines visual and behavioral enhancements */
-    mode?: AgentChatMode;
-    /** Custom placeholder text */
+    initialTitle?: string;
+    onBack?: () => void;
+    onSubmit?: (message: string) => Promise<void>;
+    // Keep standard props for compatibility if needed, but unused here
+    mode?: any;
     placeholder?: string;
-    /** Default thinking level */
-    defaultThinkingLevel?: ThinkingLevel;
-    /** External input injected from parent (e.g., quick actions) */
+    defaultThinkingLevel?: any;
     externalInput?: string;
-    /** Custom simulation handler - if provided, overrides default simulation */
-    onSimulate?: (userInput: string, setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>) => Promise<void>;
-    /** Callback when playbook is saved */
-    onSavePlaybook?: (msgId: string) => void;
+    onSimulate?: any;
+    onSavePlaybook?: any;
 }
 
 export function AgentChat({
-    mode = 'standard',
-    placeholder = "I'm ready to handle complex workflows. Try: 'Automate weekly report download' or 'Log into Shopify'",
-    defaultThinkingLevel = 'standard',
-    externalInput,
-    onSimulate,
-    onSavePlaybook,
-}: AgentChatProps = {}) {
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    initialTitle = 'New Automation',
+    onBack,
+    onSubmit
+}: AgentChatProps) {
+    // Global Store State
+    const { currentMessages, addMessage, updateMessage, createSession } = useAgentChatStore();
+
+    const [state, setState] = useState<TaskletState>({
+        title: initialTitle,
+        isConnected: true,
+        permissions: [],
+        triggers: [],
+    });
+
     const [input, setInput] = useState('');
-    const [model, setModel] = useState<ThinkingLevel>(defaultThinkingLevel);
-    const [isSimulating, setIsSimulating] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [showTriggers, setShowTriggers] = useState(false);
+    const [showPermissions, setShowPermissions] = useState(true);
+    const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
+    const [persona, setPersona] = useState<AgentPersona>('tasklet');
 
-    // Handle external input from parent component
-    useEffect(() => {
-        if (externalInput) {
-            setInput(externalInput);
-        }
-    }, [externalInput]);
+    // Map store messages to TaskletMessage structure
+    const displayMessages: TaskletMessage[] = currentMessages.map(m => ({
+        id: m.id,
+        role: m.type === 'agent' ? 'assistant' : 'user',
+        content: m.content,
+        timestamp: new Date(m.timestamp),
+        isThinking: m.thinking?.isThinking,
+        workDuration: 0 // Not persisted but OK
+    }));
 
-    const runSimulation = async (userInput: string) => {
-        const lowerInput = userInput.toLowerCase();
-        const agentMsgId = (Date.now() + 1).toString();
+    const handleSubmit = useCallback(async () => {
+        if (!input.trim() || isProcessing) return;
 
-        let plan: string[] = [];
-        let steps: ToolCallStep[] = [];
-        let responseText = "";
-        let artifact: ChatArtifact | undefined;
-        let canSaveAsPlaybook = false;
+        const userInput = input;
 
-        if (lowerInput.includes('login') || lowerInput.includes('computer') || lowerInput.includes('browser')) {
-            plan = ['Launch Remote Browser Session', 'Navigate to Target Site', 'Perform Login Sequence', 'Extract Data'];
-            steps = [
-                { id: 't1', toolName: 'vault.getCredential', description: 'Retrieving saved credentials...', status: 'completed', durationMs: 200 },
-                { id: 't2', toolName: 'computer_use.launch', description: 'Initializing secure browser...', status: 'completed', durationMs: 1200, isComputerUse: true },
-                { id: 't3', toolName: 'computer_use.interact', description: 'Navigating to portal...', status: 'completed', durationMs: 2500, isComputerUse: true },
-                { id: 't4', toolName: 'computer_use.type', description: 'Typing credentials...', status: 'completed', durationMs: 800, isComputerUse: true }
-            ];
-            responseText = "I've logged in and extracted the report. Credentials saved to your **Secure Vault** for future use.";
-            canSaveAsPlaybook = true;
-        } else if (lowerInput.includes('automate') || lowerInput.includes('schedule') || lowerInput.includes('every')) {
-            plan = ['Parse Automation Request', 'Generate Playbook YAML', 'Save to Playbooks'];
-            steps = [
-                { id: 't1', toolName: 'planner', description: 'Parsing request...', status: 'completed', durationMs: 300 },
-                { id: 't2', toolName: 'yaml.generate', description: 'Generating playbook...', status: 'completed', durationMs: 500 }
-            ];
-            responseText = "I've created a playbook for this automation:";
-            artifact = {
-                id: 'yaml-1',
-                type: 'yaml',
-                title: 'weekly-report.yaml',
-                content: `name: Weekly Report Automation
-triggers:
-  - type: schedule
-    cron: "0 9 * * 1"
-steps:
-  - action: computer_use.login
-    domain: shopify.com
-    credential: vault://shopify-admin
-  - action: download
-    selector: "#export-button"
-    save_to: files://reports/weekly.csv
-  - action: email
-    to: "{{user.email}}"
-    subject: "Weekly Report"
-    attach: files://reports/weekly.csv`
-            };
-            canSaveAsPlaybook = true;
-        } else {
-            const isWholesale = lowerInput.includes('wholesale');
-            plan = isWholesale ? ['Optimize Wholesale Pricing', 'Analyze Competitors', 'Update Rules'] : ['Grow Retail Margins', 'Scan Competitors', 'Optimize Menu'];
-            steps = [
-                { id: 't1', toolName: 'analyze_data', description: 'Analyzing margins...', status: 'completed', durationMs: 450 },
-                { id: 't2', subagentId: 'Researcher', toolName: 'delegate', description: 'Scanning competitors...', status: 'completed', durationMs: 2500 },
-                { id: 't3', toolName: 'optimize', description: 'Adjusting pricing...', status: 'completed', durationMs: 800 }
-            ];
-            responseText = isWholesale ? "I've optimized your **Wholesale Pricing**." : "I've started the **Margin Growth Campaign**.";
-            canSaveAsPlaybook = true;
-        }
+        const userMsgId = `user-${Date.now()}`;
+        addMessage({
+            id: userMsgId,
+            type: 'user',
+            content: userInput,
+            timestamp: new Date()
+        });
 
-        const initialAgentMsg: ChatMessage = {
-            id: agentMsgId,
+        setInput('');
+        setIsProcessing(true);
+
+        const thinkingId = `thinking-${Date.now()}`;
+        addMessage({
+            id: thinkingId,
             type: 'agent',
             content: '',
             timestamp: new Date(),
-            thinking: { isThinking: true, steps: [], plan: plan }
-        };
-        setMessages(prev => [...prev, initialAgentMsg]);
+            thinking: { isThinking: true, steps: [], plan: [] }
+        });
 
-        for (let i = 0; i < steps.length; i++) {
-            await new Promise(r => setTimeout(r, 800 + Math.random() * 400));
-            const currentSteps = steps.slice(0, i + 1);
-            setMessages(prev => prev.map(m => m.id === agentMsgId ? { ...m, thinking: { ...m.thinking!, steps: currentSteps } } : m));
+        const durationInterval = setInterval(() => {
+            // duration update logic
+        }, 1000);
+
+        try {
+            // Call the real AI backend
+            const response = await runAgentChat(userInput, persona);
+
+            clearInterval(durationInterval);
+
+            // Check if response mentions integrations
+            const responseText = response.content.toLowerCase();
+            const needsGmail = responseText.includes('email') || responseText.includes('gmail') || userInput.toLowerCase().includes('email');
+            const needsSchedule = responseText.includes('daily') || responseText.includes('schedule') || userInput.toLowerCase().includes('daily');
+
+            const newPermissions: ToolPermission[] = [];
+            const newTriggers: TaskletTrigger[] = [];
+
+            if (needsGmail) {
+                newPermissions.push({
+                    id: 'gmail',
+                    name: 'Gmail',
+                    icon: 'mail',
+                    email: 'martez@bakedbot.ai',
+                    description: 'Integration with Gmail',
+                    status: 'granted',
+                    tools: ['Send Message'],
+                });
+            }
+
+            if (needsSchedule) newTriggers.push({ id: 'schedule-1', type: 'schedule', label: 'Daily at 9:00 AM' });
+
+            // Update local state for permissions/triggers (not persisted in store yet, acceptable trade-off)
+            setState(prev => ({
+                ...prev,
+                permissions: [...prev.permissions, ...newPermissions],
+                triggers: [...prev.triggers, ...newTriggers],
+            }));
+            if (newPermissions.length > 0) setShowPermissions(true);
+
+            // Update Global Store with response
+            updateMessage(thinkingId, {
+                content: response.content,
+                thinking: { isThinking: false, steps: [], plan: [] } // Clear thinking
+            });
+
+        } catch (error) {
+            clearInterval(durationInterval);
+            console.error(error);
+            updateMessage(thinkingId, {
+                content: 'I ran into an issue. Please try again.',
+                thinking: { isThinking: false, steps: [], plan: [] }
+            });
         }
 
-        await new Promise(r => setTimeout(r, 600));
-        setMessages(prev => prev.map(m => m.id === agentMsgId ? {
-            ...m,
-            content: responseText,
-            thinking: { ...m.thinking!, isThinking: false },
-            artifact,
-            canSaveAsPlaybook
-        } : m));
-        setIsSimulating(false);
-    };
+        setIsProcessing(false);
 
-    const handleSavePlaybook = (msgId: string) => {
-        if (onSavePlaybook) {
-            onSavePlaybook(msgId);
-        } else {
-            // Default implementation
-            console.log('Saving playbook for message:', msgId);
+        if (onSubmit) {
+            await onSubmit(userInput);
         }
+    }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona]);
+
+    const handleGrantPermission = (permissionId: string) => {
+        setState(prev => ({
+            ...prev,
+            permissions: prev.permissions.map(p =>
+                p.id === permissionId ? { ...p, status: 'granted' } : p
+            ),
+        }));
     };
 
-    const sendMessage = async () => {
-        if (!input.trim()) return;
-        const userMsg: ChatMessage = { id: Date.now().toString(), type: 'user', content: input, timestamp: new Date() };
-        setMessages(prev => [...prev, userMsg]);
-        const messageToProcess = input;
-        setInput('');
-        setIsSimulating(true);
+    const hasMessages = displayMessages.length > 0;
 
-        if (onSimulate) {
-            // Use custom simulation from parent
-            await onSimulate(messageToProcess, setMessages);
-            setIsSimulating(false);
-        } else {
-            // Use default simulation
-            await runSimulation(messageToProcess);
-        }
-    };
-
-    const hasMessages = messages.length > 0;
-    const hasActiveThinking = messages.some(m => m.thinking?.isThinking);
+    // Input component (reusable for both positions)
+    const InputArea = (
+        <div className={cn("p-4", hasMessages ? "border-t" : "border-b")}>
+            <div className="max-w-3xl mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner">
+                <Textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={hasMessages ? "Reply to continue..." : "Ask Baked HQ anything..."}
+                    className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base"
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSubmit();
+                        }
+                    }}
+                />
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Upload className="h-4 w-4" />
+                        </Button>
+                        <div className="border-l pl-2 flex items-center gap-1">
+                            <PersonaSelector value={persona} onChange={setPersona} />
+                            <ModelSelector value={thinkingLevel} onChange={setThinkingLevel} />
+                        </div>
+                    </div>
+                    <Button
+                        size="icon"
+                        className={cn("h-8 w-8 rounded-full transition-all", input.trim() ? "bg-primary" : "bg-muted text-muted-foreground")}
+                        disabled={!input.trim() || isProcessing}
+                        onClick={handleSubmit}
+                    >
+                        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    </Button>
+                </div>
+            </div>
+            {!hasMessages && (
+                <div className="text-center mt-2">
+                    <p className="text-[10px] text-muted-foreground">AI can make mistakes. Verify critical automations.</p>
+                </div>
+            )}
+            {isProcessing && hasMessages && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="h-1 flex-1 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 animate-pulse" style={{ width: '11%' }} />
+                    </div>
+                    <span>Processing...</span>
+                </div>
+            )}
+        </div>
+    );
 
     return (
-        <Card className={cn("flex flex-col shadow-sm border-muted transition-all duration-300", hasMessages ? "h-[500px]" : "h-auto")}>
-            <div className="p-4 bg-background border-b">
-                <div className="max-w-3xl mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner">
-                    <Textarea
-                        value={input} onChange={e => setInput(e.target.value)}
-                        placeholder={placeholder}
-                        className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base"
-                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                    />
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <ModelSelector value={model} onChange={setModel} />
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full"><Paperclip className="h-4 w-4" /></Button>
-                            <div className="h-4 w-px bg-border/50 mx-1" />
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground px-2">
-                                <CalendarClock className="h-3 w-3" />
-                                <span>Triggers</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground px-2 border-l border-border/50">
-                                <Key className="h-3 w-3" />
-                                <span>Vault</span>
-                            </div>
-                        </div>
-                        <Button size="icon" className={cn("h-8 w-8 rounded-full transition-all", input.trim() ? "bg-primary" : "bg-muted text-muted-foreground")} disabled={!input.trim() || isSimulating} onClick={sendMessage}>
-                            <Send className="h-4 w-4" />
-                        </Button>
+        <div className="flex flex-col h-full bg-background border rounded-lg">
+            {/* Header - only show if we have messages */}
+            {hasMessages && (
+                <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-violet-50 to-purple-50">
+                    <div className="flex items-center gap-3">
+                        {onBack && (
+                            <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                        )}
+                        <h2 className="font-semibold">{state.title}</h2>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {state.isConnected && (
+                            <Badge variant="outline" className="bg-white">
+                                <span className="text-xs">Connected</span>
+                                <span className="ml-1">🎨🌿</span>
+                            </Badge>
+                        )}
                     </div>
                 </div>
-                <div className="text-center mt-2"><p className="text-[10px] text-muted-foreground">AI can make mistakes. Verify critical automations.</p></div>
-            </div>
+            )}
 
+            {/* Input at TOP when no messages */}
+            {!hasMessages && InputArea}
+
+            {/* Content Area - only show if we have messages */}
             {hasMessages && (
-                <ScrollArea className="flex-1 p-4 bg-slate-50/50">
-                    <div className="space-y-6 max-w-3xl mx-auto">
-                        {messages.map((msg) => (
-                            <div key={msg.id} className={cn("flex flex-col gap-2", msg.type === 'user' ? "items-end" : "items-start")}>
-                                {msg.content && (
-                                    <div className={cn("px-4 py-3 rounded-2xl max-w-xl text-sm leading-relaxed shadow-sm", msg.type === 'user' ? "bg-primary text-primary-foreground rounded-br-none" : "bg-white border border-border/50 text-foreground rounded-tl-none")}>
-                                        <div className="w-full min-w-0 prose prose-sm dark:prose-invert max-w-none break-words [&>p]:mb-2 [&>p]:last:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
-                                            <ReactMarkdown
-                                                remarkPlugins={[remarkGfm]}
-                                                components={{
-                                                    a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4" {...props} />,
-                                                }}
-                                            >
-                                                {msg.content}
-                                            </ReactMarkdown>
+                <ScrollArea className="flex-1">
+                    <div className="p-4 space-y-4">
+                        {/* Messages */}
+                        {displayMessages.map(message => (
+                            <div key={message.id}>
+                                {message.role === 'user' ? (
+                                    <div className="flex justify-end">
+                                        <div className="bg-primary text-primary-foreground rounded-lg px-4 py-2 max-w-[80%]">
+                                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                                         </div>
-
-                                        {msg.artifact && msg.artifact.type === 'yaml' && (
-                                            <YamlArtifact artifact={msg.artifact} />
-                                        )}
-
-                                        {msg.canSaveAsPlaybook && !msg.thinking?.isThinking && (
-                                            <div className="mt-3 pt-3 border-t border-border/30">
-                                                <Button variant="outline" size="sm" className="gap-2" onClick={() => handleSavePlaybook(msg.id)}>
-                                                    <Save className="h-3.5 w-3.5" />
-                                                    Save as Playbook
-                                                </Button>
-                                            </div>
-                                        )}
                                     </div>
-                                )}
-                                {msg.type === 'agent' && msg.thinking && (
-                                    <div className="w-full max-w-xl">
-                                        <ThinkingBlock thinking={msg.thinking} />
+                                ) : (
+                                    <div className="space-y-2">
+                                        {message.isThinking ? (
+                                            <ThinkingIndicator duration={message.workDuration} />
+                                        ) : (
+                                            <>
+                                                <div className="prose prose-sm max-w-none">
+                                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>
                         ))}
+
+                        {/* Permissions Panel */}
+                        {state.permissions.length > 0 && showPermissions && (
+                            <Card className="mt-4">
+                                <CardContent className="p-0">
+                                    <div className="p-3 border-b">
+                                        <h3 className="font-medium text-sm">Grant permissions to agent?</h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            The agent wants the ability to use tools from your connections
+                                        </p>
+                                    </div>
+                                    {state.permissions.map(permission => (
+                                        <PermissionCard
+                                            key={permission.id}
+                                            permission={permission}
+                                            onGrant={() => handleGrantPermission(permission.id)}
+                                        />
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Triggers */}
+                        {state.triggers.length > 0 && (
+                            <TriggerIndicator
+                                triggers={state.triggers}
+                                expanded={showTriggers}
+                                onToggle={() => setShowTriggers(!showTriggers)}
+                            />
+                        )}
                     </div>
                 </ScrollArea>
             )}
-        </Card>
+
+            {/* Input at BOTTOM when we have messages */}
+            {hasMessages && InputArea}
+        </div>
     );
 }
