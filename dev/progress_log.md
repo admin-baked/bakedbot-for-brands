@@ -78,3 +78,23 @@
 - Added fallback logic: `GEMINI_API_KEY` takes priority, falls back to `GOOGLE_API_KEY`.
 - Added warning log if no API key is configured.
 - Build verified passing (`npx tsc --noEmit --skipLibCheck` exit code 0).
+
+## 2025-12-13T15:20Z – feat_harness_integration – antigravity
+- **Completed Phase 1 Algorithms**:
+  - Implemented `computeSkuScore` (Smokey), `calculateCampaignPriority` (Craig), `calculateGapScore` (Ezal), `detectAnomaly` (Pops).
+  - Verified with `tests/server/algorithms.test.ts` (7/7 passed).
+- **Completed Harness Integration**:
+  - Refactored `runAgentChat` to trigger `runAgent` harness for specialized agents.
+  - Updated `harness.ts` to support Chat Stimulus.
+  - Updated `craig.ts` and `smokey.ts` to respond to chat.
+- **Artifacts Updated**: `implementation_plan.md` (Phase 2 added), `walkthrough.md`, `task.md`.
+- **Started Phase 2 Algorithms**:
+  - Implemented `updateRecWeights` (Smokey Feedback Loop).
+  - Verified with `tests/server/smokey-learning.test.ts`.
+  - Implemented `selectVariant` (Craig Multi-Armed Bandit).
+  - Verified with `tests/server/craig-bandit.test.ts`.
+  - Implemented `estimateElasticity` (Money Mike Pricing).
+  - Verified with `tests/server/moneymike-elasticity.test.ts`.
+  - Implemented `forecastDemandSeasonality` (Pops Forecasting).
+  - Verified with `tests/server/pops-forecast.test.ts`.
+
