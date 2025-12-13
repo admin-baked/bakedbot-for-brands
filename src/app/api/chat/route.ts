@@ -3,6 +3,7 @@ import { analyzeQuery, generateChatResponse, type ConversationMessage } from '@/
 import type { CannMenusProduct, ChatbotProduct } from '@/types/cannmenus';
 import { getConversationContext, addMessageToSession, createChatSession } from '@/lib/chat/session-manager';
 import { CannMenusService, type SearchParams } from '@/server/services/cannmenus';
+import { UsageService } from '@/server/services/usage';
 import { logger } from '@/lib/logger';
 import { withProtection } from '@/server/middleware/with-protection';
 import { chatRequestSchema, type ChatRequest } from '../schemas';
@@ -26,6 +27,8 @@ export const POST = withProtection(
                 if (!currentSessionId) {
                     // Create new session
                     currentSessionId = await createChatSession(userId);
+                    // Track new chat session
+                    await UsageService.increment(brandId, 'chat_sessions');
                 } else {
                     // Get existing conversation context and convert Firestore Timestamps to Dates
                     const firestoreMessages = await getConversationContext(userId, currentSessionId);
@@ -42,6 +45,7 @@ export const POST = withProtection(
 
             // 2.5️⃣ Handle Competitive Intelligence Requests (Ezal)
             if (analysis.searchType === 'competitive') {
+                await UsageService.increment(brandId, 'agent_calls');
                 const { EzalAgent } = await import('@/server/services/ezal');
                 const params = analysis.competitiveParams || {};
                 let ezalResponse = "I couldn't process that competitive request.";
@@ -95,6 +99,7 @@ export const POST = withProtection(
 
             // 2.6️⃣ Handle Marketing Requests (Craig)
             if (analysis.searchType === 'marketing') {
+                await UsageService.increment(brandId, 'agent_calls');
                 const params = analysis.marketingParams || {};
                 let response = "I'm Craig, your marketing agent. I can help drafts emails and campaigns.";
 
@@ -113,6 +118,8 @@ export const POST = withProtection(
 
             // 2.7️⃣ Handle Compliance Requests (Deebo)
             if (analysis.searchType === 'compliance') {
+                await UsageService.increment(brandId, 'agent_calls');
+                await UsageService.increment(brandId, 'deebo_checks');
                 const params = analysis.complianceParams || {};
                 let response = "I'm Deebo. I keep it compliant. What do you need checked?";
 
@@ -131,6 +138,7 @@ export const POST = withProtection(
 
             // 2.8️⃣ Handle Analytics Requests (Pops)
             if (analysis.searchType === 'analytics') {
+                await UsageService.increment(brandId, 'agent_calls');
                 const params = analysis.analyticsParams || {};
                 let response = "Pops here. Let's look at the numbers.";
 

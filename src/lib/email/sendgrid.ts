@@ -1,35 +1,37 @@
 // src/lib/email/sendgrid.ts
 import sgMail from '@sendgrid/mail';
 import { logger } from '@/lib/monitoring';
+import { UsageService } from '@/server/services/usage';
 
 const API_KEY = process.env.SENDGRID_API_KEY;
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'orders@bakedbot.ai';
 const FROM_NAME = process.env.SENDGRID_FROM_NAME || 'BakedBot Orders';
 
 if (API_KEY) {
-    sgMail.setApiKey(API_KEY);
+  sgMail.setApiKey(API_KEY);
 } else {
-    logger.warn('SENDGRID_API_KEY is missing. Emails will not be sent.');
+  logger.warn('SENDGRID_API_KEY is missing. Emails will not be sent.');
 }
 
 type OrderEmailData = {
-    orderId: string;
-    customerName: string;
-    customerEmail: string;
-    total: number;
-    items: Array<{
-        name: string;
-        qty: number;
-        price: number;
-    }>;
-    retailerName: string;
-    pickupAddress: string;
+  orderId: string;
+  customerName: string;
+  customerEmail: string;
+  total: number;
+  items: Array<{
+    name: string;
+    qty: number;
+    price: number;
+  }>;
+  retailerName: string;
+  pickupAddress: string;
+  retailerId?: string;
 };
 
 export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<boolean> {
-    if (!API_KEY) return false;
+  if (!API_KEY) return false;
 
-    const itemsHtml = data.items.map(item => `
+  const itemsHtml = data.items.map(item => `
     <tr>
       <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
       <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.qty}</td>
@@ -37,14 +39,14 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
     </tr>
   `).join('');
 
-    const msg = {
-        to: data.customerEmail,
-        from: {
-            email: FROM_EMAIL,
-            name: FROM_NAME,
-        },
-        subject: `Order Confirmation #${data.orderId.substring(0, 7)}`,
-        html: `
+  const msg = {
+    to: data.customerEmail,
+    from: {
+      email: FROM_EMAIL,
+      name: FROM_NAME,
+    },
+    subject: `Order Confirmation #${data.orderId.substring(0, 7)}`,
+    html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #2e7d32;">Order Confirmed!</h1>
         <p>Hi ${data.customerName},</p>
@@ -81,14 +83,19 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
         </p>
       </div>
     `,
-    };
+  };
 
-    try {
-        await sgMail.send(msg);
-        logger.info('Order confirmation email sent', { orderId: data.orderId, email: data.customerEmail });
-        return true;
-    } catch (error: any) {
-        logger.error('Failed to send email', { error: error.message, response: error.response?.body });
-        return false;
+  try {
+    await sgMail.send(msg);
+    logger.info('Order confirmation email sent', { orderId: data.orderId, email: data.customerEmail });
+
+    if (data.retailerId) {
+      await UsageService.increment(data.retailerId, 'messages_sent');
     }
+
+    return true;
+  } catch (error: any) {
+    logger.error('Failed to send email', { error: error.message, response: error.response?.body });
+    return false;
+  }
 }

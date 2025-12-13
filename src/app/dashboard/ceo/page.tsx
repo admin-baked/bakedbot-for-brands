@@ -25,6 +25,7 @@ const FootTrafficTab = dynamic(() => import("./components/foot-traffic-tab"), { 
 const SuperAdminAgentChat = dynamic(() => import("./components/super-admin-agent-chat"), { loading: TabLoader });
 const AgentDashboardClient = dynamic(() => import("./agents/agent-dashboard-client"), { loading: TabLoader }); // New Integration
 const SuperAdminPlaybooksTab = dynamic(() => import("./components/super-admin-playbooks-tab"), { loading: TabLoader });
+const UsageTab = dynamic(() => import("./components/usage-tab"), { loading: TabLoader });
 const EzalTab = dynamic(() => import("./components/ezal-tab"), { loading: TabLoader });
 import { useSuperAdmin } from '@/hooks/use-super-admin';
 import { Loader2, Shield, ShieldX } from 'lucide-react';
@@ -101,6 +102,7 @@ export default function CeoDashboardPage() {
                 <ScrollArea className="w-full pb-2">
                     <TabsList className="inline-flex w-full min-w-max justify-start px-2 h-auto py-1">
                         <TabsTrigger value="agents" className="font-semibold text-green-700">🤖 Agents</TabsTrigger>
+                        <TabsTrigger value="usage" className="font-semibold text-blue-700">📈 Usage</TabsTrigger>
                         <TabsTrigger value="ezal" className="font-semibold">🕵️‍♀️ Ezal</TabsTrigger>
                         <TabsTrigger value="playbooks" className="font-semibold">📋 Playbooks</TabsTrigger>
                         <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -117,6 +119,9 @@ export default function CeoDashboardPage() {
                     <ClientOnly fallback={<div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
                         <TabsContent value="agents" className="mt-0">
                             <SuperAdminAgentChat />
+                        </TabsContent>
+                        <TabsContent value="usage" className="mt-0">
+                            <UsageTab />
                         </TabsContent>
                         <TabsContent value="ezal" className="mt-0">
                             <EzalTab />
