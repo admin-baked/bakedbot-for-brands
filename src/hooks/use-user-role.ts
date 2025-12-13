@@ -19,17 +19,17 @@ export function useUserRole() {
     }, [user]);
 
     const role = useMemo(() => {
-        // 1. Try to get role from user object (Firebase Auth)
-        if (user && (user as any).role) {
-            return (user as any).role as Role;
-        }
-
-        // 2. Fallback: Check for simulation cookie (for Super Admins or Dev mode)
+        // 1. Check for simulation cookie (Dev/Admin Override)
         if (typeof document !== 'undefined') {
             const match = document.cookie.match(new RegExp('(^| )x-simulated-role=([^;]+)'));
             if (match) {
                 return match[2] as Role;
             }
+        }
+
+        // 2. Fallback: Get role from user object (Firebase Auth)
+        if (user && (user as any).role) {
+            return (user as any).role as Role;
         }
 
         return null;
