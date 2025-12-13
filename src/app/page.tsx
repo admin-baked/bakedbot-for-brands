@@ -377,6 +377,8 @@ function Tabs({
 // Component
 // -----------------------------
 
+import Logo from "@/components/logo";
+
 export default function HomePage() {
   const year = new Date().getFullYear();
 
@@ -385,13 +387,11 @@ export default function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <A href="/" className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-              <span className="text-emerald-600 font-bold">B</span>
-            </div>
-            <span className="font-semibold">BakedBot AI</span>
+          <div className="flex items-center gap-2">
+            <Logo height={40} />
+            <span className="font-semibold sr-only">BakedBot AI</span> {/* Hide text visually since logo has it, keep for screen readers if logo is image only */}
             <Badge className="ml-2">Launch</Badge>
-          </A>
+          </div>
 
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             {nav.map((n) => (

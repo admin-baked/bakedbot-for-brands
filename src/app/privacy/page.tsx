@@ -3,15 +3,16 @@
 import React from "react";
 import Link from "next/link";
 
+import Logo from "@/components/logo";
+
 export default function PrivacyPage() {
     return (
         <div className="min-h-screen bg-background text-foreground">
             <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-50">
                 <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2 font-semibold">
-                        <div className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 font-bold">B</div>
-                        BakedBot AI
-                    </Link>
+                    <div className="flex items-center gap-2 font-semibold">
+                        <Logo height={32} />
+                    </div>
                 </div>
             </header>
 

@@ -23,6 +23,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowRight, Download, RotateCcw } from "lucide-react";
+import Logo from "@/components/logo";
 
 /**
  * FFF Audit Lead Magnet (Compact Preview)
@@ -422,6 +423,13 @@ export default function FFFAuditLeadMagnetCompact() {
 
     return (
         <div className="min-h-screen bg-background text-foreground">
+            <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-50">
+                <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 font-semibold">
+                        <Logo height={32} />
+                    </div>
+                </div>
+            </header>
             <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
                 <div className="flex items-start justify-between gap-3">
                     <div className="space-y-2">
