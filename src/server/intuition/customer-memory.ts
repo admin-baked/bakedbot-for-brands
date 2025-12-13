@@ -12,8 +12,9 @@ import {
     AgentEvent,
     PatternCluster,
     PotencyTolerance,
+    AgentEventType
 } from './schema';
-import { getRecentEvents, getSessionEvents } from './agent-events';
+import { getRecentEvents } from './agent-events';
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
@@ -161,42 +162,45 @@ export async function aggregateCustomerEvents(
 
         for (const event of events) {
             result.totalEvents++;
+            const { payload } = event;
 
             switch (event.type) {
                 case 'product_clicked':
-                    if (event.payload.productId) {
-                        result.productsViewed.push(event.payload.productId);
+                    if (payload.productId) {
+                        result.productsViewed.push(payload.productId);
                     }
-                    // Track effects/formats if available
-                    if (event.payload.effects) {
-                        for (const effect of event.payload.effects) {
+                    if (payload.effects && Array.isArray(payload.effects)) {
+                        for (const effect of payload.effects) {
                             result.effectsLiked.set(effect, (result.effectsLiked.get(effect) || 0) + 1);
                         }
                     }
-                    if (event.payload.form) {
-                        result.formatsUsed.set(event.payload.form, (result.formatsUsed.get(event.payload.form) || 0) + 1);
+                    if (payload.form) {
+                        result.formatsUsed.set(payload.form, (result.formatsUsed.get(payload.form) || 0) + 1);
                     }
                     break;
 
                 case 'order_completed':
-                    if (event.payload.products) {
-                        result.productsPurchased.push(...event.payload.products);
+                    if (payload.products && Array.isArray(payload.products)) {
+                        result.productsPurchased.push(...payload.products);
                     }
+                    // Derive format preferences from orders implicitly in V2 with product catalog lookup
                     break;
 
                 case 'feedback':
-                    if (event.payload.feedbackType === 'thumbs_up') {
-                        const effects = event.payload.effects || [];
-                        for (const effect of effects) {
-                            result.effectsLiked.set(effect, (result.effectsLiked.get(effect) || 0) + 2);
-                        }
+                    if (payload.feedbackType === 'thumbs_up') {
                         result.feedbackPositive++;
-                    } else if (event.payload.feedbackType === 'thumbs_down') {
-                        const effects = event.payload.effects || [];
-                        for (const effect of effects) {
-                            result.effectsDisliked.set(effect, (result.effectsDisliked.get(effect) || 0) + 1);
+                        if (payload.effects && Array.isArray(payload.effects)) {
+                            for (const effect of payload.effects) {
+                                result.effectsLiked.set(effect, (result.effectsLiked.get(effect) || 0) + 2);
+                            }
                         }
+                    } else if (payload.feedbackType === 'thumbs_down') {
                         result.feedbackNegative++;
+                        if (payload.effects && Array.isArray(payload.effects)) {
+                            for (const effect of payload.effects) {
+                                result.effectsDisliked.set(effect, (result.effectsDisliked.get(effect) || 0) + 1);
+                            }
+                        }
                     }
                     break;
             }
@@ -333,9 +337,6 @@ export async function assignCustomerToCluster(
             }
         }
 
-        // Bonus for product overlap (would need product data)
-        // This is simplified for V1
-
         if (score > 0) {
             matchedClusters.push({ cluster, score });
         }
@@ -359,8 +360,6 @@ export async function assignCustomerToCluster(
 
 /**
  * Finds customers with similar preferences.
- * V1: Simple effect/format matching
- * V2: Would use vector embeddings
  */
 export async function findSimilarCustomers(
     tenantId: string,
@@ -376,7 +375,7 @@ export async function findSimilarCustomers(
         // Query customers in same clusters
         const snapshot = await firestore
             .collection(getMemoriesCollection(tenantId))
-            .where('clusters', 'array-contains-any', memory.clusters.slice(0, 3) || ['default'])
+            .where('clusters', 'array-contains-any', memory.clusters.slice(0, 3).length > 0 ? memory.clusters.slice(0, 3) : ['default'])
             .limit(limit + 1)
             .get();
 

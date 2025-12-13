@@ -140,9 +140,14 @@ unAgentChat in ctions.ts to return standardized AgentResult with rich metadata.
   - **Status**: Verified manually. Clean and organized.
 
 ## 2025-12-13T18:55Z – feat_nav_refactor_v2 – antigravity
-- **Completed Phase 7: Dashboard Polish**:
-  - **Right Sidebar**: Extracted and restored `SuperAdminRightSidebar` (Capabilities, Quick Actions, Run Agents).
+- **Completed Phase 7: Agents Right Sidebar**:
+  - **Right Sidebar**: Restored `SuperAdminRightSidebar` (Capabilities, Quick Actions, Run Agents).
   - **Layout**: Applied sidebar to both `SuperAdminAgentChat` and `SuperAdminPlaybooksTab`.
   - **Defaults**: Set `CeoDashboardPage` to default to `playbooks` tab.
   - **Status**: Visuals restored and navigation streamlined.
 
+- **Completed Intuition OS Dashboard Integration (Phase 5)**:
+  - **Widgets**: Created `PopsMetricsWidget` and `DeeboComplianceWidget`.
+  - **Dashboard**: Added "Intelligence" tab (`?tab=insights`) to CEO Dashboard.
+  - **Actions**: Added "Quick Actions" in sidebar to trigger offline intuition loops manually.
+  - **Status**: Visuals integrated, server actions wired.

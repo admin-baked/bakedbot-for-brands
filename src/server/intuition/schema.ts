@@ -19,25 +19,30 @@ export type AgentEventType =
     | 'product_clicked'
     | 'order_completed'
     | 'feedback'
-    | 'compliance_check'
-    | 'insight_generated'
-    | 'alert_triggered';
+    | 'metric_snapshot'         // Pops
+    | 'rule_check'              // Deebo
+    | 'alert_issued'
+    | 'task_started'
+    | 'task_completed';
 
 export interface AgentEvent {
     id: string;
-    agent: AgentName;
     tenantId: string;
-    sessionId?: string;
-    customerId?: string;
+
+    agent: AgentName;
+    sessionId: string;           // stable per chat/task session
+    actorId?: string;            // userId, customerId, employeeId, system
+    customerId?: string;         // optional for Smokey
+
     type: AgentEventType;
-    payload: Record<string, any>;
-    metadata?: {
-        confidenceScore?: number;
-        systemMode?: 'fast' | 'slow';
-        heuristicsApplied?: string[];
-        processingTimeMs?: number;
-    };
-    createdAt: string; // ISO 8601
+
+    payload: Record<string, any>; // keep bounded; large blobs elsewhere
+    createdAt: string; // ISO 8601 (Firestore Timestamp in transit)
+
+    // Dual-system metadata
+    systemMode?: 'fast' | 'slow';
+    confidenceScore?: number;     // 0..1
+    traceId?: string;             // for correlating logs across systems
 }
 
 // --- Customer Memory Profile (Loop 2) ---
@@ -80,6 +85,11 @@ export interface ProductNode {
     complianceFlags: string[];
     priceUsd?: number;
     marginPct?: number;
+
+    // Ephemeral runtime fields (Heuristics)
+    _score?: number;
+    _tags?: string[];
+    _boosted?: boolean;
 }
 
 // --- Heuristics Engine (Loop 3) ---
@@ -93,7 +103,7 @@ export interface HeuristicCondition {
 }
 
 export interface HeuristicAction {
-    type: 'filter' | 'boost' | 'warn' | 'block' | 'tag';
+    type: 'filter' | 'boost' | 'bury' | 'warn' | 'block' | 'tag' | 'message_prepend' | 'message_append';
     target: string;
     params: Record<string, any>;
 }

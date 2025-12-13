@@ -222,9 +222,12 @@ export function applyHeuristicAction(
     switch (action.type) {
         case 'filter':
             return products.filter(product => {
+                // Filter keeps items that MATCH the criteria? Or removes them?
+                // Spec says "removes candidates failing criteria".
+                // So if we have filter (thc < 15), we KEEP items where thc < 15.
                 const value = getNestedValue(product, action.target);
                 const filterValue = action.params.value;
-                const operator = action.params.operator || 'lte';
+                const operator = action.params.operator || 'eq';
 
                 return evaluateCondition(
                     { field: action.target, operator, value: filterValue },
@@ -233,31 +236,43 @@ export function applyHeuristicAction(
             });
 
         case 'boost':
-            // Boost is handled by scoring, not filtering
-            // We just mark products that should be boosted
             return products.map(product => {
                 const value = getNestedValue(product, action.target);
                 const targetValue = action.params.value;
+                const multiplier = action.params.multiplier || 1.1;
 
                 if (value === targetValue) {
-                    return { ...product, _boosted: true } as any;
+                    return { ...product, _score: (product as any)._score ? (product as any)._score * multiplier : multiplier } as any;
+                }
+                return product;
+            });
+
+        case 'bury':
+            return products.map(product => {
+                const value = getNestedValue(product, action.target);
+                const targetValue = action.params.value;
+                const multiplier = action.params.multiplier || 0.5;
+
+                if (value === targetValue) {
+                    return { ...product, _score: (product as any)._score ? (product as any)._score * multiplier : multiplier } as any;
                 }
                 return product;
             });
 
         case 'block':
-            // Remove blocked products entirely
+            // Remove items that match this criteria
             return products.filter(product => {
                 const value = getNestedValue(product, action.target);
-                return value !== action.params.value;
+                const filterValue = action.params.value;
+                // Block if MATCHES. So keep if NOT MATCHES.
+                return value !== filterValue;
             });
 
-        case 'tag':
-            // Add tags for downstream processing
-            return products.map(product => ({
-                ...product,
-                _tags: [...(product as any)._tags || [], action.params.tag],
-            }));
+        case 'message_prepend':
+        case 'message_append':
+            // These don't affect product lists, but are valid actions.
+            // handled higher up or just passed through.
+            return products;
 
         default:
             return products;

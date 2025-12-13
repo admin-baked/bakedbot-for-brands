@@ -344,53 +344,68 @@
                 "feat_algorithms_phase_3"
             ],
             "area": "backend"
+        },
+        {
+            "id": "feat_frontend_integration_v1",
+            "title": "Frontend Integration (Rich Agent UI)",
+            "status": "passing",
+            "description": "Expose backend algorithm metadata (Deebo violations, Smokey scores) in the Agent Chat UI.",
+            "acceptance_tests": [
+                "manual_verify_deebo_alert",
+                "manual_verify_smokey_score"
+            ],
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_algorithms_phase_4"
+            ],
+            "area": "frontend",
+            "completed_at": "2025-12-13T11:55:00Z"
+        },
+        {
+            "id": "feat_nav_refactor_v1",
+            "title": "Super Admin Navigation Refactor",
+            "status": "passing",
+            "description": "Refactor CEO Dashboard to use a grouped sidebar (Operations, Insights, Admin) and URL-driven navigation instead of top tabs.",
+            "acceptance_tests": [
+                "manual_verify_sidebar_switch",
+                "manual_verify_url_updates"
+            ],
+            "owner": "antigravity",
+            "dependencies": [],
+            "area": "dashboard",
+            "completed_at": "2025-12-13T12:45:00Z"
+        },
+        {
+            "id": "18",
+            "title": "Restore Right Sidebar & Playbooks Default",
+            "status": "done",
+            "priority": "normal",
+            "created_at": "2025-12-13T14:45:00Z",
+            "completed_at": "2025-12-13T15:00:00Z"
+        },
+        {
+            "id": "19",
+            "title": "Intuition OS V1 Alignment",
+            "status": "done",
+            "priority": "high",
+            "created_at": "2025-12-13T15:00:00Z",
+            "completed_at": "2025-12-13T15:30:00Z"
+        },
+        {
+            "id": "feat_nav_refactor_v2",
+            "title": "Super Admin Dashboard Polish",
+            "status": "passing",
+            "description": "Restore Right Sidebar (Capabilities, Quick Actions, Run Agents) and set default tab to Playbooks for CEO Dashboard.",
+            "acceptance_tests": [
+                "manual_verify_right_sidebar",
+                "manual_verify_default_tab"
+            ],
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_nav_refactor_v1"
+            ],
+            "area": "dashboard",
+            "completed_at": "2025-12-13T12:55:00Z"
         }
-    },
-    {
-        "id": "feat_frontend_integration_v1",
-        "title": "Frontend Integration (Rich Agent UI)",
-        "status": "passing",
-        "description": "Expose backend algorithm metadata (Deebo violations, Smokey scores) in the Agent Chat UI.",
-        "acceptance_tests": [
-            "manual_verify_deebo_alert",
-            "manual_verify_smokey_score"
-        ],
-        "owner": "antigravity",
-        "dependencies": [
-            "feat_algorithms_phase_4"
-        ],
-        "area": "frontend",
-        "completed_at": "2025-12-13T11:55:00Z"
-    },
-    {
-        "id": "feat_nav_refactor_v1",
-        "title": "Super Admin Navigation Refactor",
-        "status": "passing",
-        "description": "Refactor CEO Dashboard to use a grouped sidebar (Operations, Insights, Admin) and URL-driven navigation instead of top tabs.",
-        "acceptance_tests": [
-            "manual_verify_sidebar_switch",
-            "manual_verify_url_updates"
-        ],
-        "owner": "antigravity",
-        "dependencies": [],
-        "area": "dashboard",
-        "completed_at": "2025-12-13T12:45:00Z"
-    },
-    {
-        "id": "feat_nav_refactor_v2",
-        "title": "Super Admin Dashboard Polish",
-        "status": "passing",
-        "description": "Restore Right Sidebar (Capabilities, Quick Actions, Run Agents) and set default tab to Playbooks for CEO Dashboard.",
-        "acceptance_tests": [
-            "manual_verify_right_sidebar",
-            "manual_verify_default_tab"
-        ],
-        "owner": "antigravity",
-        "dependencies": [
-            "feat_nav_refactor_v1"
-        ],
-        "area": "dashboard",
-        "completed_at": "2025-12-13T12:55:00Z"
-    }
-]
+    ]
 }
