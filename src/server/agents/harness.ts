@@ -11,7 +11,8 @@ export interface AgentImplementation<TMemory extends AgentMemory, TTools = any> 
     initialize(brandMemory: BrandDomainMemory, agentMemory: TMemory): Promise<TMemory>;
 
     // 2. Orient
-    orient(brandMemory: BrandDomainMemory, agentMemory: TMemory): Promise<string | null>;
+    // Stimulus: Optional external trigger (e.g. Chat Message, Webhook Event)
+    orient(brandMemory: BrandDomainMemory, agentMemory: TMemory, stimulus?: any): Promise<string | null>;
 
     // 3. Act
     // Now accepts tools explicitly injected by the harness/caller
@@ -19,7 +20,8 @@ export interface AgentImplementation<TMemory extends AgentMemory, TTools = any> 
         brandMemory: BrandDomainMemory,
         agentMemory: TMemory,
         targetId: string,
-        tools: TTools
+        tools: TTools,
+        stimulus?: any
     ): Promise<{
         updatedMemory: TMemory;
         logEntry: Omit<AgentLogEntry, 'id' | 'timestamp' | 'agent_name'>
@@ -33,8 +35,9 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
     brandId: string,
     adapter: MemoryAdapter,
     implementation: AgentImplementation<TMemory, TTools>,
-    tools: TTools // Dependency Injection for effects
-): Promise<void> {
+    tools: TTools, // Dependency Injection for effects
+    stimulus?: any // Optional input (e.g. user message)
+): Promise<AgentLogEntry | undefined> {
 
     const { agentName } = implementation;
     logger.info(`[Harness] Starting ${agentName} for brand ${brandId}`);
@@ -48,7 +51,7 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
         agentMemory = await implementation.initialize(brandMemory, agentMemory);
 
         // C. Orient
-        const targetId = await implementation.orient(brandMemory, agentMemory);
+        const targetId = await implementation.orient(brandMemory, agentMemory, stimulus);
 
         if (!targetId) {
             logger.info(`[Harness] ${agentName}: No work target selected. Exiting.`);
@@ -58,7 +61,7 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
         logger.info(`[Harness] ${agentName}: Selected target ${targetId}`);
 
         // D. Act
-        const result = await implementation.act(brandMemory, agentMemory, targetId, tools);
+        const result = await implementation.act(brandMemory, agentMemory, targetId, tools, stimulus);
 
         // E. Persist
         await adapter.saveAgentMemory(brandId, agentName, result.updatedMemory);
@@ -68,12 +71,14 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
             timestamp: new Date(),
             agent_name: agentName,
             target_id: targetId,
+            stimulus: stimulus ? JSON.stringify(stimulus).slice(0, 100) : undefined,
             ...result.logEntry
         };
 
         await adapter.appendLog(brandId, agentName, logEntry);
 
         logger.info(`[Harness] ${agentName}: Cycle complete. Target ${targetId} processed.`);
+        return logEntry;
 
     } catch (error) {
         logger.error(`[Harness] ${agentName} failed:`, error as any);

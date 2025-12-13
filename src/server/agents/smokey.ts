@@ -32,7 +32,9 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
         return agentMemory;
     },
 
-    async orient(brandMemory, agentMemory) {
+    async orient(brandMemory, agentMemory, stimulus) {
+        // 0. Chat Override
+        if (stimulus && typeof stimulus === 'string') return 'chat_response';
         // Priority 1: Running UX Experiment near decision
         const runningExp = agentMemory.ux_experiments.find(e => e.status === 'running');
         if (runningExp) {

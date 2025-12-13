@@ -124,7 +124,7 @@ const defaultMrsParkerTools = {
     }
 };
 
-export async function triggerAgentRun(agentName: string) {
+export async function triggerAgentRun(agentName: string, stimulus?: string) {
     const brandId = 'demo-brand-123';
     const agentImpl = AGENT_MAP[agentName as keyof typeof AGENT_MAP];
     if (!agentImpl) {
@@ -140,9 +140,9 @@ export async function triggerAgentRun(agentName: string) {
     else if (agentName === 'mrs_parker') tools = defaultMrsParkerTools;
 
     try {
-        await runAgent(brandId, persistence, agentImpl as any, tools);
+        const logEntry = await runAgent(brandId, persistence, agentImpl as any, tools, stimulus);
         revalidatePath('/dashboard/ceo/agents'); // Refresh the UI
-        return { success: true, message: `Ran ${agentName} successfully.` };
+        return { success: true, message: `Ran ${agentName} successfully.`, log: logEntry };
     } catch (error: any) {
         return { success: false, message: error.message };
     }
@@ -291,6 +291,39 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
             status: 'success',
             result: `${Math.round(intuition.confidence * 100)}% personalization · ${intuition.interactions} interactions`
         });
+
+        // --- Specialized Agent Execution ---
+        if (agentInfo && agentInfo.id !== 'tasklet' && routing.confidence > 0.6) {
+            executedTools.push({
+                id: `agent-${Date.now()}`,
+                name: agentInfo.name,
+                status: 'running',
+                result: 'Thinking...'
+            });
+
+            const agentRun = await triggerAgentRun(agentInfo.id, userMessage);
+
+            if (agentRun.success && agentRun.log) {
+                executedTools[executedTools.length - 1].status = 'success';
+                executedTools[executedTools.length - 1].result = agentRun.log.result;
+
+                // If the agent produced a chat reply, show it
+                if (agentRun.log.action === 'chat_reply') {
+                    return {
+                        content: agentRun.log.result,
+                        toolCalls: executedTools
+                    };
+                }
+                // Else, show what it did (e.g. Launched Campaign)
+                return {
+                    content: `**${agentInfo.name}**: ${agentRun.log.result}\n\n*Action: ${agentRun.log.action}*`,
+                    toolCalls: executedTools
+                };
+            } else {
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = agentRun.message;
+            }
+        }
 
         // Check for playbook commands (pattern matching)
         const lowerMessage = userMessage.toLowerCase();

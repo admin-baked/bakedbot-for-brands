@@ -273,6 +273,7 @@ export const AgentLogEntrySchema = z.object({
     timestamp: TimestampSchema,
     agent_name: z.string(),
     target_id: z.string().optional(),
+    stimulus: z.string().optional(),
     action: z.string(),
     result: z.string(),
     next_step: z.string().optional(),

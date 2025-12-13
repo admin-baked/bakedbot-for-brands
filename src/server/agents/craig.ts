@@ -34,7 +34,11 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
     return agentMemory;
   },
 
-  async orient(brandMemory, agentMemory) {
+  async orient(brandMemory, agentMemory, stimulus) {
+    // 0. Chat / Direct Command Override
+    if (stimulus && typeof stimulus === 'string') {
+      return 'chat_response';
+    }
     // Strategy: Find the first "failing" or "queued" campaign that matches an active objective
     const candidates = agentMemory.campaigns.filter(c =>
       ['failing', 'queued', 'running'].includes(c.status)
