@@ -3,6 +3,7 @@ import { CraigMemory, CampaignSchema } from './schemas';
 import { ComplianceResult } from './deebo'; // Assuming this is exported from deebo.ts
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { calculateCampaignPriority } from '../algorithms/craig-algo';
 
 // --- Tool Definitions ---
 
@@ -39,11 +40,28 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
       ['failing', 'queued', 'running'].includes(c.status)
     );
 
-    // Sort by priority (failing first, then queued)
+    // Sort by algorithmic priority
     candidates.sort((a, b) => {
-      if (a.status === 'failing' && b.status !== 'failing') return -1;
-      if (b.status === 'failing' && a.status !== 'failing') return 1;
-      return 0; // maintain order
+      // Map to candidate shape expected by algo
+      const scoreA = calculateCampaignPriority({
+        id: a.id,
+        objective: a.objective,
+        status: a.status,
+        impact_score: 8, // Stub: Fetch from memory/metadata
+        urgency_score: a.constraints.jurisdictions.includes('IL') ? 9 : 5, // Stub: Heuristic
+        fatigue_score: 2 // Stub
+      });
+
+      const scoreB = calculateCampaignPriority({
+        id: b.id,
+        objective: b.objective,
+        status: b.status,
+        impact_score: 8,
+        urgency_score: b.constraints.jurisdictions.includes('IL') ? 9 : 5,
+        fatigue_score: 2
+      });
+
+      return scoreB - scoreA; // Descending
     });
 
     return candidates.length > 0 ? candidates[0].id : null;

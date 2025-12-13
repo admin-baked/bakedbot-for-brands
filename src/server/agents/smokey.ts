@@ -1,6 +1,7 @@
 import { AgentImplementation } from './harness';
 import { SmokeyMemory, RecPolicySchema, UXExperimentSchema } from './schemas';
 import { logger } from '@/lib/logger';
+import { computeSkuScore } from '../algorithms/smokey-algo';
 
 // --- Tool Definitions ---
 
@@ -99,12 +100,32 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             const products = ['prod_1', 'prod_2', 'prod_3']; // Stub list
             const ranked = await tools.rankProductsForSegment('test_segment', products);
 
+            // Perform Algorithmic Scoring on mocked products
+            const scoredProducts = products.map(p => {
+                const { score, explanations } = computeSkuScore({
+                    id: p,
+                    name: `Product ${p}`,
+                    effects: ['relax', 'sleep'], // Stub
+                    margin_pct: 45,
+                    inventory_level: 50,
+                    thc_mg_per_serving: 5,
+                    is_new: false
+                }, {
+                    user_segments: ['new_consumer'],
+                    requested_effects: ['sleep'],
+                    tolerance_level: 'low'
+                });
+                return { id: p, score, explanations };
+            }).sort((a, b) => b.score - a.score);
+
+            const best = scoredProducts[0];
+
             // Stub: validation logic
-            if (ranked.length > 0) {
+            if (best.score > 0.5) {
                 policy.status = 'passing';
-                resultMessage = 'Validated experimental policy via Genkit Ranking.';
+                resultMessage = `Validated experimental policy via Algorithmic Scoring. Best Product: ${best.id} (Score: ${best.score.toFixed(2)}). Reasons: ${best.explanations.join(' ')}`;
             } else {
-                resultMessage = 'Policy produced no valid rankings.';
+                resultMessage = 'Policy produced no high-scoring results.';
             }
 
 

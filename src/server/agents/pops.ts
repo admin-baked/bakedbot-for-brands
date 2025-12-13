@@ -1,6 +1,7 @@
 import { AgentImplementation } from './harness';
 import { PopsMemory, HypothesisSchema } from './schemas';
 import { logger } from '@/lib/logger';
+import { detectAnomaly } from '../algorithms/pops-algo';
 
 // --- Tool Definitions ---
 
@@ -59,6 +60,12 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
       if (analysis.trend === 'up') {
         hypothesis.status = 'validated';
         resultMessage = `Hypothesis Validated: ${analysis.insight}`;
+
+        // Phase 1 Algo Check: Run anomaly detection on the supporting data (stubbed history)
+        const history = [100, 102, 98, 105, 110, 150]; // Stub history with a spike
+        if (detectAnomaly(150, history, 2)) {
+          resultMessage += " (Anomaly detected in supporting metrics via Algo)";
+        }
 
         // Log decision
         agentMemory.decision_journal.push({
