@@ -122,6 +122,7 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
         </Card>
       </div>
 
+
       {/* Revenue Chart */}
       <Card>
         <CardHeader>
@@ -130,7 +131,7 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
         </CardHeader>
         <CardContent>
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer config={{ gmv: { label: "Revenue", color: "hsl(var(--primary))" } }} className="h-full w-full">
               <RechartsBarChart data={initialData.dailyStats}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis
@@ -153,7 +154,7 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
                 />
                 <Bar dataKey="gmv" fill="var(--primary)" radius={[4, 4, 0, 0]} />
               </RechartsBarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </div>
         </CardContent>
       </Card>
@@ -244,7 +245,7 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
           </CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={{ revenue: { label: "Revenue" } }} className="h-full w-full">
                 <PieChart>
                   <Pie
                     data={initialData.salesByCategory}
@@ -266,7 +267,7 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
                     content={<ChartTooltipContent formatter={(value) => `$${Number(value).toLocaleString()}`} />}
                   />
                 </PieChart>
-              </ResponsiveContainer>
+              </ChartContainer>
               <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                 {initialData.salesByCategory.slice(0, 6).map((item, i) => (
                   <div key={item.category} className="flex items-center gap-1">
@@ -291,7 +292,7 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
           </CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={{ count: { label: "Count", color: "hsl(var(--primary))" } }} className="h-full w-full">
                 <RechartsBarChart data={initialData.conversionFunnel} layout="vertical">
                   <CartesianGrid horizontal={false} />
                   <XAxis type="number" hide />
@@ -303,11 +304,11 @@ export default function AnalyticsDashboard({ initialData }: AnalyticsDashboardPr
                     axisLine={false}
                     fontSize={12}
                   />
-                  <ChartTooltip />
+                  <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="count" fill="#82ca9d" radius={[0, 4, 4, 0]} barSize={40}>
                   </Bar>
                 </RechartsBarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </CardContent>
         </Card>

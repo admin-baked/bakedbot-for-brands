@@ -24,7 +24,7 @@ import type { ElementType } from 'react';
 import { useUserRole } from '@/hooks/use-user-role';
 
 
-import { CeoSidebarHistory } from '@/components/dashboard/ceo-sidebar-history';
+import { SuperAdminSidebar } from '@/components/dashboard/super-admin-sidebar';
 import { SharedSidebarHistory } from '@/components/dashboard/shared-sidebar-history';
 import { logger } from '@/lib/logger';
 
@@ -71,8 +71,8 @@ export function DashboardSidebar() {
       </SidebarHeader>
       <SidebarContent>
         {isCeoDashboard ? (
-          /* CEO Dashboard: Show Chat History */
-          <CeoSidebarHistory />
+          /* CEO Dashboard: Show Super Admin Navigation */
+          <SuperAdminSidebar />
         ) : (
           <>
             <SharedSidebarHistory />

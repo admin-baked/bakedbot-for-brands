@@ -8,8 +8,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import dynamic from 'next/dynamic';
 
 const TabLoader = () => <div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
@@ -45,11 +43,7 @@ export default function CeoDashboardPage() {
     // Sync tabs with URL ?tab=...
     const currentTab = searchParams?.get('tab') || 'agents'; // Default to Agents tab
 
-    const handleTabChange = useCallback((value: string) => {
-        const params = new URLSearchParams(searchParams?.toString());
-        params.set('tab', value);
-        router.push(`${pathname}?${params.toString()}`);
-    }, [pathname, router, searchParams]);
+
 
     // Not authorized - redirect to login
     useEffect(() => {
@@ -75,6 +69,24 @@ export default function CeoDashboardPage() {
     }
 
     // Authorized - show CEO dashboard
+    const renderContent = () => {
+        switch (currentTab) {
+            case 'agents': return <SuperAdminAgentChat />;
+            case 'usage': return <UsageTab />;
+            case 'ezal': return <EzalTab />;
+            case 'playbooks': return <SuperAdminPlaybooksTab />;
+            case 'analytics': return <PlatformAnalyticsTab />;
+            case 'foot-traffic': return <FootTrafficTab />;
+            case 'tickets': return <TicketsTab />;
+            case 'ai-agent-embed': return <AIAgentEmbedTab />;
+            case 'data-manager': return <DataManagerTab />;
+            case 'ai-search': return <AISearchIndexTab />;
+            case 'coupons': return <CouponManagerTab />;
+            case 'cannmenus': return <CannMenusTestTab />;
+            default: return <SuperAdminPlaybooksTab />;
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Super Admin Header */}
@@ -97,65 +109,12 @@ export default function CeoDashboardPage() {
                 </div>
             </div>
 
-            {/* CEO Dashboard Tabs */}
-            <Tabs value={currentTab} onValueChange={handleTabChange}>
-                <ScrollArea className="w-full pb-2">
-                    <TabsList className="inline-flex w-full min-w-max justify-start px-2 h-auto py-1">
-                        <TabsTrigger value="agents" className="font-semibold text-green-700">🤖 Agents</TabsTrigger>
-                        <TabsTrigger value="usage" className="font-semibold text-blue-700">📈 Usage</TabsTrigger>
-                        <TabsTrigger value="ezal" className="font-semibold">🕵️‍♀️ Ezal</TabsTrigger>
-                        <TabsTrigger value="playbooks" className="font-semibold">📋 Playbooks</TabsTrigger>
-                        <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                        <TabsTrigger value="foot-traffic">Foot Traffic</TabsTrigger>
-                        <TabsTrigger value="tickets">Tickets</TabsTrigger>
-                        <TabsTrigger value="ai-agent-embed">AI Embed</TabsTrigger>
-                        <TabsTrigger value="data-manager">Data</TabsTrigger>
-                        <TabsTrigger value="ai-search">AI Search</TabsTrigger>
-                        <TabsTrigger value="coupons">Coupons</TabsTrigger>
-                        <TabsTrigger value="cannmenus">CannMenus</TabsTrigger>
-                    </TabsList>
-                </ScrollArea>
-                <div className="mt-6">
-                    <ClientOnly fallback={<div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
-                        <TabsContent value="agents" className="mt-0">
-                            <SuperAdminAgentChat />
-                        </TabsContent>
-                        <TabsContent value="usage" className="mt-0">
-                            <UsageTab />
-                        </TabsContent>
-                        <TabsContent value="ezal" className="mt-0">
-                            <EzalTab />
-                        </TabsContent>
-                        <TabsContent value="playbooks" className="mt-0">
-                            <SuperAdminPlaybooksTab />
-                        </TabsContent>
-                        <TabsContent value="analytics" className="mt-0">
-                            <PlatformAnalyticsTab />
-                        </TabsContent>
-                        <TabsContent value="foot-traffic" className="mt-0">
-                            <FootTrafficTab />
-                        </TabsContent>
-                        <TabsContent value="tickets" className="mt-0">
-                            <TicketsTab />
-                        </TabsContent>
-                        <TabsContent value="ai-agent-embed" className="mt-0">
-                            <AIAgentEmbedTab />
-                        </TabsContent>
-                        <TabsContent value="data-manager" className="mt-0">
-                            <DataManagerTab />
-                        </TabsContent>
-                        <TabsContent value="ai-search" className="mt-0">
-                            <AISearchIndexTab />
-                        </TabsContent>
-                        <TabsContent value="coupons" className="mt-0">
-                            <CouponManagerTab />
-                        </TabsContent>
-                        <TabsContent value="cannmenus" className="mt-0">
-                            <CannMenusTestTab />
-                        </TabsContent>
-                    </ClientOnly>
-                </div>
-            </Tabs>
+            {/* CEO Dashboard Content (URL Driven) */}
+            <div className="mt-6">
+                <ClientOnly fallback={<div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+                    {renderContent()}
+                </ClientOnly>
+            </div>
         </div>
     );
 }
