@@ -85,6 +85,7 @@ export interface TaskletMessage {
     timestamp: Date;
     isThinking?: boolean;
     workDuration?: number; // seconds
+    steps?: ToolCallStep[];
 }
 
 export interface TaskletState {
@@ -270,10 +271,35 @@ function TriggerIndicator({ triggers, expanded, onToggle }: { triggers: TaskletT
 
 function ThinkingIndicator({ duration }: { duration?: number }) {
     return (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Worked for {duration || 0}s</span>
-            <ChevronDown className="h-4 w-4" />
+            <span>Thinking... {duration ? `(${duration}s)` : ''}</span>
+        </div>
+    );
+}
+
+function StepsList({ steps }: { steps: ToolCallStep[] }) {
+    if (!steps || steps.length === 0) return null;
+
+    return (
+        <div className="flex flex-col gap-2 mb-3 bg-muted/30 p-2 rounded-lg text-xs">
+            <div className="font-semibold text-muted-foreground flex items-center gap-1">
+                <Brain className="h-3 w-3" />
+                <span>Thought Process</span>
+            </div>
+            {steps.map(step => (
+                <div key={step.id} className="flex items-center gap-2">
+                    {step.status === 'completed' ? (
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                    ) : step.status === 'failed' ? (
+                        <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                    ) : (
+                        <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                    )}
+                    <span className="font-medium">{step.toolName}</span>
+                    <span className="text-muted-foreground truncate max-w-[200px]">- {step.description}</span>
+                </div>
+            ))}
         </div>
     );
 }
@@ -328,6 +354,7 @@ export function AgentChat({
         content: m.content,
         timestamp: new Date(m.timestamp),
         isThinking: m.thinking?.isThinking,
+        steps: m.thinking?.steps,
         workDuration: 0 // Not persisted but OK
     }));
 
@@ -399,7 +426,17 @@ export function AgentChat({
             // Update Global Store with response
             updateMessage(thinkingId, {
                 content: response.content,
-                thinking: { isThinking: false, steps: [], plan: [] } // Clear thinking
+                thinking: {
+                    isThinking: false,
+                    steps: response.toolCalls?.map(tc => ({
+                        id: tc.id,
+                        toolName: tc.name, // Mapping 'name' to 'toolName'
+                        description: tc.result, // Using result as description or status
+                        status: tc.status === 'success' ? 'completed' : tc.status === 'error' ? 'failed' : 'pending',
+                        durationMs: 0
+                    })) || [],
+                    plan: []
+                }
             });
 
         } catch (error) {
@@ -523,6 +560,9 @@ export function AgentChat({
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
+                                        {message.steps && message.steps.length > 0 && (
+                                            <StepsList steps={message.steps} />
+                                        )}
                                         {message.isThinking ? (
                                             <ThinkingIndicator duration={message.workDuration} />
                                         ) : (
