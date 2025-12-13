@@ -6,10 +6,15 @@ export interface ChatMessage {
     type: 'user' | 'agent';
     content: string;
     timestamp: Date;
+
     thinking?: {
         isThinking: boolean;
         steps: any[];
         plan: string[];
+    };
+    metadata?: {
+        type: 'compliance_report' | 'product_rec' | 'elasticity_analysis';
+        data: any;
     };
 }
 
