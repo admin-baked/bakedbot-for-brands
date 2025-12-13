@@ -5,6 +5,7 @@ import { withRetry, RateLimiter } from '@/lib/retry-utility';
 import { logger, reportError, monitorApiCall, perfMonitor } from '@/lib/monitoring';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getPlanLimits } from '@/lib/plan-limits';
+import { UsageService } from '@/server/services/usage';
 
 const CANNMENUS_BASE_URL = process.env.CANNMENUS_API_BASE || 'https://api.cannmenus.com';
 const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
@@ -92,6 +93,9 @@ export class CannMenusService {
                 syncId,
                 forceFullSync: options.forceFullSync
             });
+
+            // Track usage
+            await UsageService.increment(brandId, 'menu_sync_jobs');
 
             // Check last sync time for incremental sync
             const lastSyncTime = options.forceFullSync

@@ -16,6 +16,7 @@ export interface AnalyticsEvent {
 }
 
 import { logger } from '@/lib/logger';
+import { trackUsageAction } from '@/app/actions/usage';
 
 export const trackEvent = async (event: AnalyticsEvent) => {
     // In a real implementation, this would send data to:
@@ -31,6 +32,13 @@ export const trackEvent = async (event: AnalyticsEvent) => {
 
     if (process.env.NODE_ENV === 'development') {
         logger.debug('[ANALYTICS] Event tracked', { eventName: payload.name, ...payload });
+    }
+
+    // Track usage stats if orgId/brandId is present
+    const orgId = payload.properties?.orgId || payload.properties?.brandId;
+    if (orgId) {
+        // Fire-and-forget
+        trackUsageAction(orgId, 'tracked_events');
     }
 
     // TODO: Fire-and-forget server action to save to DB

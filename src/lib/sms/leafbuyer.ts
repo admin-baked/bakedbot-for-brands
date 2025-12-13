@@ -5,6 +5,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { UsageService } from '@/server/services/usage';
 
 const LEAFBUYER_API_KEY = process.env.LEAFBUYER_API_KEY;
 const LEAFBUYER_API_SECRET = process.env.LEAFBUYER_API_SECRET;
@@ -14,6 +15,7 @@ interface SMSOptions {
     to: string;
     message: string;
     from?: string; // Optional sender ID
+    orgId?: string; // For usage tracking
 }
 
 interface LeafbuyerResponse {
@@ -26,7 +28,7 @@ export class LeafbuyerService {
     /**
      * Send SMS via Leafbuyer API (public method for direct use)
      */
-    async sendMessage({ to, message, from }: SMSOptions): Promise<boolean> {
+    async sendMessage({ to, message, from, orgId }: SMSOptions): Promise<boolean> {
         if (!LEAFBUYER_API_KEY || !LEAFBUYER_API_SECRET) {
             logger.warn('[SMS_LEAFBUYER] Credentials missing - mock mode', { to });
             // In development, log the message via structured logger
@@ -71,6 +73,11 @@ export class LeafbuyerService {
                 messageId: data.message_id,
                 to
             });
+
+            if (orgId) {
+                UsageService.increment(orgId, 'messages_sent');
+            }
+
             return true;
 
         } catch (error) {
