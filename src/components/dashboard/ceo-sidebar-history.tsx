@@ -6,6 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, MessageSquare, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { useUserRole } from '@/hooks/use-user-role';
+import { useEffect } from 'react';
 
 function formatRelativeTime(date: Date | string): string {
     const d = new Date(date);
@@ -22,7 +24,14 @@ function formatRelativeTime(date: Date | string): string {
 }
 
 export function CeoSidebarHistory() {
-    const { sessions, activeSessionId, clearCurrentSession, setActiveSession } = useAgentChatStore();
+    const { sessions, activeSessionId, clearCurrentSession, setActiveSession, setCurrentRole } = useAgentChatStore();
+    const { role } = useUserRole();
+
+    useEffect(() => {
+        if (role) setCurrentRole(role);
+    }, [role, setCurrentRole]);
+
+    const roleSessions = sessions.filter(s => s.role === role);
 
     return (
         <div className="flex flex-col h-full w-full">
@@ -44,12 +53,12 @@ export function CeoSidebarHistory() {
 
             <ScrollArea className="flex-1 px-2">
                 <div className="space-y-1 pb-4">
-                    {sessions.length === 0 ? (
+                    {roleSessions.length === 0 ? (
                         <p className="text-[10px] text-muted-foreground text-center py-8">
                             No chat history
                         </p>
                     ) : (
-                        sessions.map(session => (
+                        roleSessions.map(session => (
                             <button
                                 key={session.id}
                                 onClick={() => setActiveSession(session.id)}
