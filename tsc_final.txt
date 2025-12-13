@@ -1,0 +1,1 @@
+src/server/services/usage.ts(70,19): error TS2741: Property 'sms_sent' is missing in type '{ chat_sessions: number; agent_calls: number; deebo_checks: number; menu_pageviews: number; menu_sync_jobs: number; tracked_events: number; messages_sent: number; }' but required in type 'Record<UsageMetric, number>'.

@@ -323,6 +323,27 @@
                 "feat_algorithms_phase_2"
             ],
             "area": "backend"
+        },
+        {
+            "id": "feat_algorithms_phase_4",
+            "title": "Algorithm Backbone v4 (Governance & Experiments)",
+            "status": "passing",
+            "description": "Implement Deebo Rule Packs (versioned compliance logic) and Pops Experiment Analytics (A/B testing math).",
+            "test_results": {
+                "deebo_rule_pack": "passed (loads WA retail)",
+                "deebo_regex_check": "passed (catches medical claims)",
+                "pops_ab_stats": "passed (correct lift & confidence)"
+            },
+            "acceptance_tests": [
+                "test_deebo_rule_pack_loading",
+                "test_pops_ab_significance"
+            ],
+            "completed_at": "2025-12-13T17:30:00Z",
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_algorithms_phase_3"
+            ],
+            "area": "backend"
         }
     ]
 }

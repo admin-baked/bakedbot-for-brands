@@ -82,3 +82,61 @@ export function forecastDemandSeasonality(history: DailySales[], horizonDays: nu
 
     return forecast;
 }
+
+// --- Phase 4: Experiment Analytics ---
+
+export interface ExperimentStats {
+    conversionMetrics: {
+        control: { visitors: number; conventions: number; rate: number };
+        treatment: { visitors: number; conventions: number; rate: number };
+    };
+    lift: number; // Percentage lift (e.g. 0.15 for 15%)
+    confidence: number; // 0.0 - 1.0 (e.g. 0.95)
+    isSignificant: boolean; // true if confidence > 0.95
+}
+
+/**
+ * Analyzes A/B test results using a simple Z-test for proportions.
+ */
+export function analyzeExperiment(
+    control: { visitors: number; conversions: number },
+    treatment: { visitors: number; conversions: number }
+): ExperimentStats {
+    const p1 = control.conversions / control.visitors;
+    const p2 = treatment.conversions / treatment.visitors;
+
+    // Lift: (p2 - p1) / p1
+    const lift = p1 === 0 ? 0 : (p2 - p1) / p1;
+
+    // Standard Error
+    // SE = sqrt( p_pool * (1 - p_pool) * (1/n1 + 1/n2) )
+    const pPool = (control.conversions + treatment.conversions) / (control.visitors + treatment.visitors);
+    const se = Math.sqrt(pPool * (1 - pPool) * ((1 / control.visitors) + (1 / treatment.visitors)));
+
+    // Z-Score
+    const z = Math.abs(p1 - p2) / se;
+
+    // Convert Z to Confidence (approximate one-tailed or two-tailed)
+    // For 95% confidence (two-tailed), Z > 1.96
+    // Cumulative normal distribution function approximation could be used, 
+    // but distinct threshold is fine for MVP.
+    const isSignificant = z > 1.96;
+
+    // Rough confidence approximation from Z
+    // Z=1.64 -> 90%, Z=1.96 -> 95%, Z=2.58 -> 99%
+    let confidence = 0.5; // baseline
+    if (z > 2.58) confidence = 0.99;
+    else if (z > 1.96) confidence = 0.95;
+    else if (z > 1.64) confidence = 0.90;
+    else confidence = 0.5 + (z / 4); // simplistic linear scaling for lower values
+
+    return {
+        conversionMetrics: {
+            control: { visitors: control.visitors, conventions: control.conversions, rate: p1 },
+            treatment: { visitors: treatment.visitors, conventions: treatment.conversions, rate: p2 }
+        },
+        lift,
+        confidence,
+        isSignificant
+    };
+}

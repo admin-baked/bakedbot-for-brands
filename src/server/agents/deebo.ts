@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
-
+import waRetailRules from './rules/wa-retail.json';
 
 export const ComplianceResultSchema = z.object({
   status: z.enum(['pass', 'fail', 'warning']),
@@ -20,18 +20,43 @@ export const RulePackSchema = z.object({
 
 export type RulePack = z.infer<typeof RulePackSchema>;
 
+// --- Phase 4: Rule Engine ---
+export class RulePackService {
+  static async getRulePack(jurisdiction: string, channel: string): Promise<RulePack | null> {
+    // In a real app, this would load from Firestore or dynamic path
+    // For MVP, we map rigid paths or return mock
+    if (jurisdiction === 'WA' && channel === 'retail') {
+      return waRetailRules as unknown as RulePack;
+    }
+
+    // Mock fallback for other jurisdictions
+    return {
+      jurisdiction,
+      channel,
+      version: 1,
+      status: 'passing',
+      rules: []
+    };
+  }
+}
+
 /**
  * Deebo SDK
  * 
  * Provides synchronous-like access to compliance constraints.
- * In a real implementation, this might load rule packs from Firestore 
- * and run regex/LLM checks locally.
  */
 export const deebo = {
 
+  /**
+   * Fetch the active rule pack for inspection.
+   */
+  async getRulePack(jurisdiction: string, channel: string): Promise<RulePack | null> {
+    return RulePackService.getRulePack(jurisdiction, channel);
+  },
 
   /**
    * Check content against compliance rules for a specific jurisdiction and channel.
+   * Uses Regex rules first (fast), then LLM (slow).
    */
   async checkContent(
     jurisdiction: string,
@@ -39,47 +64,53 @@ export const deebo = {
     content: string
   ): Promise<ComplianceResult> {
 
-    try {
-      // Prompt for Genkit
-      const prompt = `
-        You are an expert Cannabis Compliance Officer for jurisdiction: ${jurisdiction}.
-        Channel: ${channel}.
-        
-        Analyze the following content for compliance violations:
-        "${content}"
-        
-        Rules to enforce:
-        1. No medical claims (cure, treat, prevent, health benefits).
-        2. No appeal to minors (cartoons, candy-like references).
-        3. No guarantees of satisfaction or effects.
-        4. State-specific constraint: If jurisdiction is 'IL', disallow showing consumption.
-        
-        Return a JSON object matching this schema:
-        {
-          "status": "pass" | "fail" | "warning",
-          "violations": ["string"],
-          "suggestions": ["string"]
+    const violations: string[] = [];
+    const rulePack = await this.getRulePack(jurisdiction, channel);
+
+    // 1. Fast Regex Checks
+    if (rulePack && rulePack.rules) {
+      for (const rule of rulePack.rules) {
+        if (rule.type === 'regex' && rule.pattern) {
+          const re = new RegExp(rule.pattern, 'i');
+          if (re.test(content)) {
+            violations.push(`Violation: ${rule.description}`);
+          }
         }
-        
-        Output JSON only.
-      `;
+      }
+    }
+
+    // If Regex failed, return immediately to save LLM tokens
+    if (violations.length > 0) {
+      return {
+        status: 'fail',
+        violations,
+        suggestions: ['Remove medical claims or prohibited words.']
+      };
+    }
+
+    try {
+      // Prompt for Genkit (Semantic Check)
+      const prompt = `
+            You are an expert Cannabis Compliance Officer for jurisdiction: ${jurisdiction}.
+            Channel: ${channel}.
+            
+            Analyze the following content for compliance violations:
+            "${content}"
+            
+            Rules to enforce:
+            1. No medical claims (cure, treat, prevent, health benefits).
+            2. No appeal to minors (cartoons, candy-like imagery).
+            3. No false or misleading statements.
+            
+            Return JSON: { "status": "pass" | "fail" | "warning", "violations": [], "suggestions": [] }
+            `;
 
       const result = await ai.generate({
         prompt: prompt,
-        output: { schema: ComplianceResultSchema } // Use Genkit's strict schema enforcement if available, or just parse
+        output: { schema: ComplianceResultSchema }
       });
 
-      // Genkit output returns strongly typed object if schema is provided in defineFlow/generate? 
-      // check:types will reveal if ai.generate supports 'output' prop natively in this version 
-      // or if we need to parse result.text().
-      // Based on available docs/snippets, we often get result.output() or result.data.
-
-      // Let's assume result.output is the typed response if we passed schema, 
-      // OR we just parse the text if not. 
-      // For safety in this "quick refactor", let's assume we might need to parse JSON from text 
-      // if not using a specific 'defineFlow'. 
-
-      if (result.output) {
+      if (result && result.output) {
         return result.output as ComplianceResult;
       }
 
@@ -92,28 +123,12 @@ export const deebo = {
 
     } catch (error) {
       console.error("Deebo Genkit Error:", error);
-      // Fallback to strict fail on error
       return {
         status: 'fail',
         violations: ['Compliance check failed due to system error.'],
         suggestions: ['Retry later.']
       };
     }
-  },
-
-
-  /**
-   * Fetch the active rule pack for inspection.
-   */
-  async getRulePack(jurisdiction: string, channel: string): Promise<RulePack | null> {
-    // Stub
-    return {
-      jurisdiction,
-      channel,
-      version: 1,
-      rules: [],
-      status: 'passing',
-    };
   }
 };
 
@@ -141,7 +156,6 @@ export function deeboCheckAge(dob: Date | string, jurisdiction: string) {
   return { allowed: true, minAge: 21 };
 }
 
-
 export function deeboCheckStateAllowed(state: string) {
   // Stub
   const blocked = ['ID', 'NE', 'KS']; // Example
@@ -155,6 +169,3 @@ export function deeboCheckCheckout(cart: any) {
   // Stub
   return { allowed: true, violations: [], warnings: [], errors: [] };
 }
-
-
-

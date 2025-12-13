@@ -1,0 +1,30 @@
+{
+    "jurisdiction": "WA",
+    "channel": "retail",
+    "version": 1,
+    "status": "passing",
+    "rules": [
+        {
+            "id": "limit_flower_daily",
+            "type": "limit",
+            "category": "flower",
+            "max_quantity": 28,
+            "unit": "g",
+            "description": "Daily limit: 1 oz (28g) of usable marijuana."
+        },
+        {
+            "id": "limit_concentrate_daily",
+            "type": "limit",
+            "category": "concentrate",
+            "max_quantity": 7,
+            "unit": "g",
+            "description": "Daily limit: 7g of marijuana concentrate."
+        },
+        {
+            "id": "ban_medical_claims",
+            "type": "regex",
+            "pattern": "(cure|treat|prevent|heal).*(cancer|disease|pain|anxiety)",
+            "description": "No unapproved medical claims."
+        }
+    ]
+}
