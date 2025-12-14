@@ -72,6 +72,7 @@ export interface LocalProduct {
     category: string;
     imageUrl: string;
     description?: string;
+    size?: string;
 
     // Pricing
     price: number;

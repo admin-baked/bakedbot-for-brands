@@ -82,6 +82,7 @@ function transformToLocalProduct(
         category: product.category,
         imageUrl: product.image_url,
         description: product.description,
+        size: product.display_weight,
         price: product.latest_price,
         originalPrice: product.original_price !== product.latest_price ? product.original_price : undefined,
         isOnSale,

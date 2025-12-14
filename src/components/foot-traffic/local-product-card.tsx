@@ -52,11 +52,20 @@ export function LocalProductCard({ product }: LocalProductCardProps) {
                 )}
 
                 <div className="mt-2 flex items-center justify-between">
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-lg font-bold">${product.price.toFixed(2)}</span>
-                        {product.originalPrice && (
-                            <span className="text-sm text-muted-foreground line-through">
-                                ${product.originalPrice.toFixed(2)}
+                    <div className="flex flex-col">
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-lg font-bold">
+                                {product.size ? `$${product.price.toFixed(2)}` : `From $${product.price.toFixed(2)}`}
+                            </span>
+                            {product.originalPrice && (
+                                <span className="text-sm text-muted-foreground line-through">
+                                    ${product.originalPrice.toFixed(2)}
+                                </span>
+                            )}
+                        </div>
+                        {product.size && (
+                            <span className="text-xs text-muted-foreground font-medium">
+                                {product.size}
                             </span>
                         )}
                     </div>
