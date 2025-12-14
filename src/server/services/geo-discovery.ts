@@ -328,8 +328,8 @@ export async function getZipCodeCoordinates(
         const data = cached.data() as ZipCodeCache;
         // Cache valid for 30 days
         const cacheAge = Date.now() - (data.cachedAt as any).toMillis();
-        // Check if cache is fresh AND has the new city/state fields
-        if (cacheAge < 30 * 24 * 60 * 60 * 1000 && data.city && data.state) {
+        // Check if cache is fresh AND has valid city/state fields (not empty strings)
+        if (cacheAge < 30 * 24 * 60 * 60 * 1000 && data.city && data.state && data.city.trim() !== '' && data.state.trim() !== '') {
             return {
                 lat: data.lat,
                 lng: data.lng,
@@ -337,6 +337,7 @@ export async function getZipCodeCoordinates(
                 state: data.state
             };
         }
+
 
     }
 
