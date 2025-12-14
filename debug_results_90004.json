@@ -1,0 +1,96 @@
+[
+  "--- Debugging 90004 ---",
+  "API Key present: true",
+  {
+    "step": "geocode",
+    "coords": {
+      "lat": 34.0738761,
+      "lng": -118.3003452
+    }
+  },
+  "\n--- Search Retailers (Default Params) ---",
+  {
+    "step": "search_default",
+    "count": 20
+  },
+  {
+    "name": "\"GreenStone Retail\" CALIFORNIA CITY SUPPLY, LLC",
+    "city": "California City"
+  },
+  {
+    "name": "10th Street Cannabis Co.",
+    "city": "San Jose"
+  },
+  {
+    "name": "101 M St Dispensary Inc.",
+    "city": "Orange"
+  },
+  {
+    "name": "(HOB) House of Blaze, LLC",
+    "city": "Albuquerque"
+  },
+  {
+    "name": "1 Stop Smoke Shop Vapor & Accessories",
+    "city": "Albuquerque"
+  },
+  {
+    "name": "$50 Ounces Dispensary",
+    "city": "Denver"
+  },
+  {
+    "name": "10 Cleveland",
+    "city": "Bozeman"
+  },
+  {
+    "name": "10 Cleveland-Helena Location",
+    "city": "Helena"
+  },
+  {
+    "name": "112th Street Cannabis",
+    "city": "Puyallup"
+  },
+  {
+    "name": "(Under New Ownership) Sedgwick Alternative Relief",
+    "city": "Sedgwick"
+  },
+  {
+    "name": "100 Percent Cannabis",
+    "city": "Port Mcneill"
+  },
+  {
+    "name": "100 Percent Cannabis",
+    "city": "Port Hardy"
+  },
+  {
+    "name": "(2 + 2) Secret Headquarters!!!!",
+    "city": "Tulsa"
+  },
+  {
+    "name": "'Til Death Tattoos",
+    "city": "Appleton"
+  },
+  {
+    "name": "102 CBD VAPE SMOKE",
+    "city": "Milwaukee"
+  },
+  {
+    "name": "100Leafs Cannabis Co.",
+    "city": "Battle Creek"
+  },
+  {
+    "name": "10 Seventeen Cannabis",
+    "city": "Belle River"
+  },
+  {
+    "name": "1 Stop Cannabis",
+    "city": "Simcoe"
+  },
+  {
+    "name": "1 Connection",
+    "city": "North Dighton"
+  },
+  {
+    "name": "1 Mill",
+    "city": "Belfast"
+  }
+]
