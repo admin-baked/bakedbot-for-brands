@@ -12,6 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ActivityFeed } from './components/activity-feed';
 import { UsageMeter } from './components/usage-meter';
 import { AgentChat } from './components/agent-chat';
+import DispensaryDashboardClient from '../dispensary/dashboard-client';
+import BrandDashboardClient from '../brand/dashboard-client';
 
 type Playbook = {
   id: string;
@@ -63,7 +65,19 @@ const MOCK_PLAYBOOKS: Playbook[] = [
 ];
 
 export default function PlaybooksPage() {
-  const { role } = useUserRole();
+  const { role, user } = useUserRole();
+
+  // Redirect Dispensary users to their specific console (which includes playbooks)
+  if (role === 'dispensary') {
+    const brandId = (user as any)?.brandId || user?.uid || 'unknown-dispensary';
+    return <DispensaryDashboardClient brandId={brandId} />;
+  }
+
+  if (role === 'brand') {
+    const brandId = (user as any)?.brandId || user?.uid || 'unknown-brand';
+    return <BrandDashboardClient brandId={brandId} />;
+  }
+
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Disabled'>('All');
