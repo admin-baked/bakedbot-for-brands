@@ -154,18 +154,34 @@ export async function searchNearbyRetailers(
 /**
  * Get products available at a specific retailer
  */
+/**
+ * Get products available at a specific retailer
+ */
 export async function getRetailerProducts(
     retailerId: string,
     options?: {
         category?: string;
         search?: string;
         brands?: string[];
+        state?: string; // v1 API requires state
     }
 ): Promise<CannMenusProduct[]> {
     try {
-        const params = new URLSearchParams({
-            retailers: retailerId,
-        });
+        const params = new URLSearchParams();
+
+        // v1 requires ONE of: states, brands, etc. For retailer filtering, we use retailer_ids AND states.
+        // We fundamentally need the state. If not provided, we might fail or default to 'California' (risky).
+        if (options?.state) {
+            params.append('states', options.state);
+        } else {
+            // Fallback or error? For now, let's try 'California' as fallback if not provided, 
+            // but ideally the caller passes it.
+            console.warn('[CannMenus] State is required for v1/products but not provided. Defaulting to California.');
+            params.append('states', 'California');
+        }
+
+        // Use retailer_ids for v1
+        params.append('retailer_ids', retailerId);
 
         if (options?.category) {
             params.append('category', options.category);
@@ -179,8 +195,11 @@ export async function getRetailerProducts(
             params.append('brands', options.brands.join(','));
         }
 
+        // Default limit
+        params.append('limit', '50');
+
         const response = await fetch(
-            `${CANNMENUS_BASE_URL}/v2/products?${params}`,
+            `${CANNMENUS_BASE_URL}/v1/products?${params}`,
             {
                 headers: {
                     'X-Token': CANNMENUS_API_KEY!,
@@ -191,24 +210,48 @@ export async function getRetailerProducts(
         );
 
         if (!response.ok) {
+            // Log the error body for debugging if it fails again
+            try {
+                const text = await response.text();
+                console.error(`[CannMenus] API Error Body: ${text}`);
+            } catch (e) { }
             throw new Error(`CannMenus API error: ${response.statusText}`);
         }
 
         const data = await response.json();
 
-        // Flatten the products from retailer data
+        // v1 response has 'data' array directly
         const products: CannMenusProduct[] = [];
-        if (data.data) {
-            data.data.forEach((item: any) => {
-                if (item.products && Array.isArray(item.products)) {
-                    products.push(...item.products);
-                }
-            });
-        }
+        const items = data.data || []; // v1 usually puts items in data
+
+        // Transform v1 items to CannMenusProduct structure if needed
+        // v1 item keys: id, brand_id, retailer_id, name, ...
+        // We need to map them to CannMenusProduct (cann_sku_id, etc.)
+        items.forEach((item: any) => {
+            products.push({
+                cann_sku_id: item.id?.toString() || item.sku || '',
+                product_name: item.name || item.product_name,
+                brand_name: item.brand_name || item.brand?.name || 'Unknown Brand',
+                category: item.category || 'Uncategorized',
+                sub_category: item.sub_category,
+                image_url: item.image_url || item.image,
+                latest_price: item.price ? Number(item.price) : 0,
+                percentage_thc: item.thc,
+                percentage_cbd: item.cbd,
+                product_type: item.type,
+                brand_id: item.brand_id?.toString(),
+                url: item.menu_url || '',
+                display_weight: item.weight || '',
+                original_price: item.price ? Number(item.price) : 0,
+                medical: true,
+                recreational: true
+            } as CannMenusProduct);
+
+        });
 
         // Deduplicate by cann_sku_id
         const uniqueProducts = Array.from(
-            new Map(products.map(p => [p.cann_sku_id, p])).values()
+            new Map(products.filter(p => p.cann_sku_id).map(p => [p.cann_sku_id, p])).values()
         );
 
         return uniqueProducts;
@@ -217,6 +260,7 @@ export async function getRetailerProducts(
         return [];
     }
 }
+
 
 /**
  * Get product availability across multiple retailers

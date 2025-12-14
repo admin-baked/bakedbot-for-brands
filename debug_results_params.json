@@ -1,0 +1,340 @@
+[
+  {
+    "step": "geocode",
+    "coords": {
+      "lat": 34.0738761,
+      "lng": -118.3003452,
+      "city": "Los Angeles",
+      "state": "California"
+    }
+  },
+  {
+    "name": "Current (v1, lat/lng, sort=distance)",
+    "url": "https://api.cannmenus.com/v1/retailers?lat=34.0738761&lng=-118.3003452&sort=distance&limit=5",
+    "count": 20,
+    "top3": [
+      {
+        "city": "California City",
+        "state": "California",
+        "lat": 35.1252047,
+        "lng": -118.0120297
+      },
+      {
+        "city": "Denver",
+        "state": "Colorado",
+        "lat": 39.70808869999999,
+        "lng": -105.0245919
+      },
+      {
+        "city": "Appleton",
+        "state": "Wisconsin",
+        "lat": 44.2732113,
+        "lng": -88.4227863
+      }
+    ]
+  },
+  {
+    "name": "With miles=50",
+    "url": "https://api.cannmenus.com/v1/retailers?lat=34.0738761&lng=-118.3003452&sort=distance&miles=50&limit=5",
+    "count": 20,
+    "top3": [
+      {
+        "city": "California City",
+        "state": "California",
+        "lat": 35.1252047,
+        "lng": -118.0120297
+      },
+      {
+        "city": "Denver",
+        "state": "Colorado",
+        "lat": 39.70808869999999,
+        "lng": -105.0245919
+      },
+      {
+        "city": "Appleton",
+        "state": "Wisconsin",
+        "lat": 44.2732113,
+        "lng": -88.4227863
+      }
+    ]
+  },
+  {
+    "name": "With radius=50",
+    "url": "https://api.cannmenus.com/v1/retailers?lat=34.0738761&lng=-118.3003452&sort=distance&radius=50&limit=5",
+    "count": 20,
+    "top3": [
+      {
+        "city": "California City",
+        "state": "California",
+        "lat": 35.1252047,
+        "lng": -118.0120297
+      },
+      {
+        "city": "Denver",
+        "state": "Colorado",
+        "lat": 39.70808869999999,
+        "lng": -105.0245919
+      },
+      {
+        "city": "Appleton",
+        "state": "Wisconsin",
+        "lat": 44.2732113,
+        "lng": -88.4227863
+      }
+    ]
+  },
+  {
+    "name": "With near param",
+    "url": "https://api.cannmenus.com/v1/retailers?near=34.0738761%2C-118.3003452&limit=5",
+    "count": 20,
+    "top3": [
+      {
+        "city": "California City",
+        "state": "California",
+        "lat": 35.1252047,
+        "lng": -118.0120297
+      },
+      {
+        "city": "Denver",
+        "state": "Colorado",
+        "lat": 39.70808869999999,
+        "lng": -105.0245919
+      },
+      {
+        "city": "Appleton",
+        "state": "Wisconsin",
+        "lat": 44.2732113,
+        "lng": -88.4227863
+      }
+    ]
+  },
+  {
+    "name": "With address param",
+    "url": "https://api.cannmenus.com/v1/retailers?address=90004&limit=5",
+    "count": 20,
+    "top3": [
+      {
+        "city": "California City",
+        "state": "California",
+        "lat": 35.1252047,
+        "lng": -118.0120297
+      },
+      {
+        "city": "Denver",
+        "state": "Colorado",
+        "lat": 39.70808869999999,
+        "lng": -105.0245919
+      },
+      {
+        "city": "Appleton",
+        "state": "Wisconsin",
+        "lat": 44.2732113,
+        "lng": -88.4227863
+      }
+    ]
+  },
+  {
+    "name": "With zip_code param",
+    "url": "https://api.cannmenus.com/v1/retailers?zip_code=90004&limit=5",
+    "count": 20,
+    "top3": [
+      {
+        "city": "California City",
+        "state": "California",
+        "lat": 35.1252047,
+        "lng": -118.0120297
+      },
+      {
+        "city": "Denver",
+        "state": "Colorado",
+        "lat": 39.70808869999999,
+        "lng": -105.0245919
+      },
+      {
+        "city": "Appleton",
+        "state": "Wisconsin",
+        "lat": 44.2732113,
+        "lng": -88.4227863
+      }
+    ]
+  },
+  {
+    "name": "With latitude/longitude params",
+    "url": "https://api.cannmenus.com/v1/retailers?latitude=34.0738761&longitude=-118.3003452&sort=distance&limit=5",
+    "count": 20,
+    "top3": [
+      {
+        "city": "California City",
+        "state": "California",
+        "lat": 35.1252047,
+        "lng": -118.0120297
+      },
+      {
+        "city": "Denver",
+        "state": "Colorado",
+        "lat": 39.70808869999999,
+        "lng": -105.0245919
+      },
+      {
+        "city": "Appleton",
+        "state": "Wisconsin",
+        "lat": 44.2732113,
+        "lng": -88.4227863
+      }
+    ]
+  },
+  {
+    "name": "Page 2",
+    "url": "https://api.cannmenus.com/v1/retailers?lat=34.0738761&lng=-118.3003452&page=2&limit=5",
+    "count": 20,
+    "top3": [
+      {
+        "city": "Waterloo",
+        "state": "Ontario",
+        "lat": 43.4626131,
+        "lng": -80.5214304
+      },
+      {
+        "city": "Carstairs",
+        "state": "Alberta",
+        "lat": 51.5671767,
+        "lng": -114.0959168
+      },
+      {
+        "city": "Crossfield",
+        "state": "Alberta",
+        "lat": 51.4288767,
+        "lng": -114.0277515
+      }
+    ]
+  },
+  {
+    "name": "Limit 1",
+    "url": "https://api.cannmenus.com/v1/retailers?lat=34.0738761&lng=-118.3003452&limit=1",
+    "count": 20,
+    "top3": [
+      {
+        "city": "California City",
+        "state": "California",
+        "lat": 35.1252047,
+        "lng": -118.0120297
+      },
+      {
+        "city": "Denver",
+        "state": "Colorado",
+        "lat": 39.70808869999999,
+        "lng": -105.0245919
+      },
+      {
+        "city": "Appleton",
+        "state": "Wisconsin",
+        "lat": 44.2732113,
+        "lng": -88.4227863
+      }
+    ]
+  },
+  {
+    "name": "State=California",
+    "url": "https://api.cannmenus.com/v1/retailers?lat=34.0738761&lng=-118.3003452&states=California&limit=5",
+    "count": 20,
+    "top3": [
+      {
+        "city": "California City",
+        "state": "California",
+        "lat": 35.1252047,
+        "lng": -118.0120297
+      },
+      {
+        "city": "Denver",
+        "state": "Colorado",
+        "lat": 39.70808869999999,
+        "lng": -105.0245919
+      },
+      {
+        "city": "Appleton",
+        "state": "Wisconsin",
+        "lat": 44.2732113,
+        "lng": -88.4227863
+      }
+    ]
+  },
+  {
+    "name": "Search name=\"Los Angeles\"",
+    "url": "https://api.cannmenus.com/v1/retailers?name=Los+Angeles&limit=5",
+    "count": 3,
+    "top3": [
+      {
+        "city": "Los Angeles",
+        "state": "California",
+        "lat": 34.0351373,
+        "lng": -118.2594405
+      },
+      {
+        "city": "Los Angeles",
+        "state": "California",
+        "lat": 34.0272333,
+        "lng": -118.2531681
+      },
+      {
+        "city": "Los Angeles",
+        "state": "California",
+        "lat": 34.0629138,
+        "lng": -118.3626773
+      }
+    ]
+  },
+  {
+    "name": "Search name=\"90004\"",
+    "url": "https://api.cannmenus.com/v1/retailers?name=90004&limit=5",
+    "count": 0
+  },
+  {
+    "step": "geocode_v2",
+    "data": {
+      "lat": 34.0738761,
+      "lng": -118.3003452,
+      "city": "Los Angeles",
+      "state": "California"
+    }
+  },
+  {
+    "name": "Search with cityName=\"Los Angeles\"",
+    "url": "https://api.cannmenus.com/v1/retailers?lat=34.0738761&lng=-118.3003452&cityName=Los+Angeles&state=California&limit=5",
+    "count": 20,
+    "top3": [
+      {
+        "city": "California City",
+        "state": "California",
+        "lat": 35.1252047,
+        "lng": -118.0120297
+      },
+      {
+        "city": "Orange",
+        "state": "California",
+        "lat": 41.7533894,
+        "lng": -124.1920736
+      },
+      {
+        "city": "San Jose",
+        "state": "California",
+        "lat": 37.3099107,
+        "lng": -121.8569069
+      }
+    ]
+  },
+  {
+    "step": "wrapper_test",
+    "count": 3,
+    "top": {
+      "id": "9750",
+      "name": "Los Angeles Cannabis Club",
+      "address": "",
+      "city": "Los Angeles",
+      "state": "California",
+      "postalCode": "",
+      "latitude": 34.0351373,
+      "longitude": -118.2594405,
+      "distance": 3.556485784860751
+    }
+  }
+]
