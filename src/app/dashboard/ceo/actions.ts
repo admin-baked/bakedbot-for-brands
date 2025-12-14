@@ -378,7 +378,7 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
     const retailers = await getRetailersByZipCode(zipCode, 20);
 
     // 3. Find featured dispensary
-    let featuredDispensaryId = undefined;
+    let featuredDispensaryId: string | null = null;
     if (featuredDispensaryName) {
       const match = retailers.find(r =>
         r.name.toLowerCase().includes(featuredDispensaryName.toLowerCase())
