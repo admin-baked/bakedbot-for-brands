@@ -392,10 +392,13 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
     let discoveryResult = await discoverNearbyProducts({
       lat: coords.lat,
       lng: coords.lng,
+      cityName: coords.city,
+      state: coords.state,
       radiusMiles: 15,
       limit: 50,
       sortBy: 'score',
     });
+
 
     // If no products found within 15 miles, try expanding radius
     if (discoveryResult.products.length === 0) {
@@ -403,6 +406,8 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
       discoveryResult = await discoverNearbyProducts({
         lat: coords.lat,
         lng: coords.lng,
+        cityName: coords.city,
+        state: coords.state,
         radiusMiles: 50,
         limit: 50,
         sortBy: 'score',
@@ -415,6 +420,8 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
       discoveryResult = await discoverNearbyProducts({
         lat: coords.lat,
         lng: coords.lng,
+        cityName: coords.city,
+        state: coords.state,
         radiusMiles: 100,
         limit: 50,
         sortBy: 'score',
