@@ -234,19 +234,20 @@ export async function getRetailerProducts(
         // We need to map them to CannMenusProduct (cann_sku_id, etc.)
         items.forEach((item: any) => {
             products.push({
-                cann_sku_id: item.id?.toString() || item.sku || '',
-                product_name: item.name || item.product_name || 'Unknown Product',
-                brand_name: item.brand_name || item.brand?.name || 'Unknown Brand',
-                category: item.category || 'Uncategorized',
-                sub_category: item.sub_category || '',
-                image_url: item.image_url || item.image || '',
-                latest_price: item.price ? Number(item.price) : 0,
-                percentage_thc: item.thc || '',
-                percentage_cbd: item.cbd || '',
-                product_type: item.type || '',
+                cann_sku_id: item.cann_sku_id || item.id?.toString() || '',
+                product_name: item.product_name || item.raw_product_name || 'Unknown Product',
+                brand_name: item.brand_name || 'Unknown Brand',
+                category: item.category || item.raw_product_category || 'Uncategorized',
+                sub_category: item.subcategory || item.raw_subcategory || '',
+                image_url: item.image_url || '',
+                latest_price: typeof item.latest_price === 'number' ? item.latest_price : 0,
+                percentage_thc: item.percentage_thc || '',
+                percentage_cbd: item.percentage_cbd || '',
+                product_type: '', // Not in V1 response
                 brand_id: item.brand_id?.toString() || '',
-                url: item.menu_url || '',
-                display_weight: item.weight || '',
+                url: item.url || '',
+                display_weight: item.display_weight || item.raw_weight_string || '',
+
 
                 original_price: item.price ? Number(item.price) : 0,
                 medical: true,

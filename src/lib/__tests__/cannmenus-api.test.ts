@@ -73,12 +73,14 @@ describe('CannMenus API', () => {
                         products: [
                             {
                                 id: 101,
-                                name: 'Blue Dream',
-                                brand: { name: 'Stiiizy' },
-                                price: 45,
+                                cann_sku_id: '101',
+                                product_name: 'Blue Dream',
+                                brand_name: 'Stiiizy',
+                                latest_price: 45,
                                 category: 'Flower',
                                 image_url: 'http://img.com/1.jpg'
                             }
+
                         ]
                     }
                 ]
