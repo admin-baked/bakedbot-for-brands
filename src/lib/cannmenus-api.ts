@@ -71,6 +71,9 @@ export async function searchNearbyRetailers(
     try {
         const params = new URLSearchParams({
             limit: limit.toString(),
+            lat: latitude.toString(),
+            lng: longitude.toString(),
+            sort: 'distance',
         });
 
         if (state) {
