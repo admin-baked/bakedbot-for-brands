@@ -22,6 +22,7 @@ import { getRetailersByZipCode, getZipCodeCoordinates, discoverNearbyProducts } 
 import { RetailerSummary, LocalProduct, LocalSEOPage, CannMenusSnapshot } from '@/types/foot-traffic';
 
 import { createServerClient } from '@/firebase/server-client';
+import { getSeededConfig } from '@/server/actions/seo-pages';
 
 // Static params for ISR
 export const revalidate = 3600; // Revalidate every hour
@@ -132,17 +133,8 @@ export default async function LocalZipPage({ params }: PageProps) {
     }
 
     // Check for seeded configuration in Firestore (Split Model)
+    const seededConfig = await getSeededConfig(zipCode);
     const { firestore } = await createServerClient();
-
-    // 1. Try Config (local_pages)
-    const configDoc = await firestore.collection('foot_traffic').doc('config').collection('local_pages').doc(zipCode).get();
-    let seededConfig = configDoc.exists ? configDoc.data() as LocalSEOPage : null;
-
-    // 2. Fallback to Legacy (seo_pages)
-    if (!seededConfig) {
-        const legacyDoc = await firestore.collection('foot_traffic').doc('config').collection('seo_pages').doc(zipCode).get();
-        seededConfig = legacyDoc.exists ? legacyDoc.data() as LocalSEOPage : null;
-    }
 
     let snapshotData: { retailers: RetailerSummary[], products: LocalProduct[] } | null = null;
 
