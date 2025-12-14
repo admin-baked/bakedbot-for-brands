@@ -358,13 +358,13 @@ export interface RetailerSummary {
     city: string;
     state: string;
     postalCode: string;
-    distance?: number;
-    productCount?: number;
-    phone?: string;
-    website?: string;
-    hours?: string;
-    lat?: number;
-    lng?: number;
+    distance?: number | null;
+    productCount?: number | null;
+    phone?: string | null;
+    website?: string | null;
+    hours?: string | null;
+    lat?: number | null;
+    lng?: number | null;
 }
 
 /**
