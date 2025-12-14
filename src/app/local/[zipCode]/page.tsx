@@ -297,7 +297,7 @@ export default async function LocalZipPage({ params }: PageProps) {
                                                             {retailer.city}, {retailer.state} {retailer.postalCode}
                                                         </p>
                                                     </div>
-                                                    {retailer.distance !== undefined && (
+                                                    {retailer.distance != null && (
                                                         <Badge variant="outline" className="ml-2 shrink-0">
                                                             {retailer.distance.toFixed(1)} mi
                                                         </Badge>
