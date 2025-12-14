@@ -106,6 +106,10 @@ function transformToLocalProduct(
 /**
  * Discover products available near a location
  */
+
+/**
+ * Discover products available near a location
+ */
 export async function discoverNearbyProducts(
     options: DiscoveryOptions
 ): Promise<DiscoveryResult> {
@@ -118,12 +122,15 @@ export async function discoverNearbyProducts(
         inStockOnly = true,
         limit = DEFAULT_PRODUCT_LIMIT,
         sortBy = 'distance',
+        cityName,
+        state
     } = options;
 
     const searchRadius = Math.min(radiusMiles, MAX_RADIUS_MILES);
 
     // Step 1: Find nearby retailers
-    const retailers = await searchNearbyRetailers(lat, lng, 20); // Get up to 20 retailers
+    // Pass city and state if available to fallback to name search
+    const retailers = await searchNearbyRetailers(lat, lng, 20, state, cityName);
 
     if (retailers.length === 0) {
         return {
@@ -136,8 +143,11 @@ export async function discoverNearbyProducts(
     }
 
     // Filter retailers within radius
+    // Note: If using city fallback, distance might be undefined or based on city center
+    // We should be lenient if distance is missing but city matches
     const nearbyRetailers = retailers.filter(r =>
-        r.distance !== undefined && r.distance <= searchRadius
+        (r.distance !== undefined && r.distance <= searchRadius) ||
+        (cityName && r.city?.toLowerCase() === cityName.toLowerCase())
     );
 
     if (nearbyRetailers.length === 0) {
@@ -243,7 +253,7 @@ export async function getRetailersByZipCode(
     limit: number = 10
 ): Promise<RetailerSummary[]> {
     // Geocode the ZIP code
-    const coords = await geocodeZipCode(zipCode);
+    const coords = await getZipCodeCoordinates(zipCode); // Use getZipCodeCoordinates to benefit from caching
 
     if (!coords) {
         console.error(`[GeoDiscovery] Failed to geocode ZIP: ${zipCode}`);
@@ -251,7 +261,14 @@ export async function getRetailersByZipCode(
     }
 
     // Search for nearby retailers
-    const retailers = await searchNearbyRetailers(coords.lat, coords.lng, limit);
+    // Pass city and state for fallback
+    const retailers = await searchNearbyRetailers(
+        coords.lat,
+        coords.lng,
+        limit,
+        coords.state,
+        coords.city
+    );
 
     return retailers.map(r => ({
         id: r.id,
@@ -284,8 +301,8 @@ export async function cacheZipCodeGeocode(zipCode: string): Promise<ZipCodeCache
         zipCode,
         lat: coords.lat,
         lng: coords.lng,
-        city: '', // Would need reverse geocoding for this
-        state: '',
+        city: coords.city || '',
+        state: coords.state || '',
         cachedAt: new Date(),
     };
 
@@ -299,7 +316,7 @@ export async function cacheZipCodeGeocode(zipCode: string): Promise<ZipCodeCache
  */
 export async function getZipCodeCoordinates(
     zipCode: string
-): Promise<{ lat: number; lng: number } | null> {
+): Promise<{ lat: number; lng: number; city: string; state: string } | null> {
     const { firestore } = await createServerClient();
 
     // Check cache first
@@ -310,14 +327,25 @@ export async function getZipCodeCoordinates(
         // Cache valid for 30 days
         const cacheAge = Date.now() - (data.cachedAt as any).toMillis();
         if (cacheAge < 30 * 24 * 60 * 60 * 1000) {
-            return { lat: data.lat, lng: data.lng };
+            return {
+                lat: data.lat,
+                lng: data.lng,
+                city: data.city || '',
+                state: data.state || ''
+            };
         }
     }
 
     // Fetch and cache
     const result = await cacheZipCodeGeocode(zipCode);
-    return result ? { lat: result.lat, lng: result.lng } : null;
+    return result ? {
+        lat: result.lat,
+        lng: result.lng,
+        city: result.city,
+        state: result.state
+    } : null;
 }
+
 
 // =============================================================================
 // GEO ZONE MANAGEMENT

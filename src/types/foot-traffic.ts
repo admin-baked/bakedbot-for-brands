@@ -116,7 +116,10 @@ export interface DiscoveryOptions {
     inStockOnly?: boolean;
     limit?: number;
     sortBy?: 'distance' | 'price' | 'score';
+    cityName?: string;
+    state?: string;
 }
+
 
 /**
  * Discovery response

@@ -184,6 +184,7 @@ export default async function LocalZipPage({ params }: PageProps) {
     const seededConfig = seededDoc.exists ? seededDoc.data() as LocalSEOPage : null;
 
     // Discovery logic with adaptive radius
+    // Discovery logic with adaptive radius
     const discoverProducts = async (radius: number): Promise<{ products: LocalProduct[] }> => {
         return discoverNearbyProducts({
             lat: coords.lat,
@@ -191,8 +192,11 @@ export default async function LocalZipPage({ params }: PageProps) {
             radiusMiles: radius,
             limit: 20,
             sortBy: 'score',
+            cityName: coords.city,
+            state: coords.state
         });
     };
+
 
     // Parallel fetch for initial radius
     const [retailers, initialDiscovery] = await Promise.all([
