@@ -7,6 +7,7 @@ import AgentInterface from './agent-interface';
 import DashboardPageComponent from '../page-client';
 import DispensaryDashboardClient from '../dispensary/dashboard-client';
 import BrandDashboardClient from '../brand/dashboard-client';
+import CustomerDashboardClient from '../customer/dashboard-client';
 import { Loader2 } from 'lucide-react';
 
 export default function DashboardSwitcher() {
@@ -47,7 +48,12 @@ export default function DashboardSwitcher() {
         return <DispensaryDashboardClient brandId={brandId} />;
     }
 
-    // 3. Super Admin View (Big Worm HQ) - Fallback for real admins or explicit access
+    // 3. Customer View
+    if (role === 'customer') {
+        return <CustomerDashboardClient />;
+    }
+
+    // 4. Super Admin View (Big Worm HQ)
     if (isSuperAdmin) {
         return <AgentInterface />;
     }

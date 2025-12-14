@@ -221,6 +221,35 @@ export function useDashboardConfig() {
         roles: ['brand', 'dispensary', 'owner'],
         hidden: true,
       },
+      // Customer-specific links
+      {
+        label: 'Home',
+        href: '/dashboard',
+        icon: 'Home',
+        description: 'Your personal concierge.',
+        roles: ['customer'],
+      },
+      {
+        label: 'Shop',
+        href: '/dashboard/shop',
+        icon: 'ShoppingBag',
+        description: 'Browse menu and deals.',
+        roles: ['customer'],
+      },
+      {
+        label: 'My Stuff',
+        href: '/dashboard/account',
+        icon: 'User',
+        description: 'Orders, Favorites, and Rewards.',
+        roles: ['customer'],
+      },
+      {
+        label: 'Routines',
+        href: '/dashboard/routines', // This will need a page, or map to playbooks?
+        icon: 'Zap',
+        description: 'Automated shopping shortcuts.',
+        roles: ['customer'],
+      },
     ];
 
     // Filter links based on user's role
