@@ -62,7 +62,7 @@ import {
 } from 'lucide-react';
 // import { db } from '@/firebase/client'; // Removed client db usage
 // import { collection, getDocs, query, orderBy } from 'firebase/firestore'; // Removed
-import { getSeoPagesAction, seedSeoPageAction } from '../actions';
+import { getSeoPagesAction, seedSeoPageAction, deleteSeoPageAction } from '../actions';
 
 // ... existing imports
 import type { GeoZone, DropAlertConfig, LocalOffer, LocalSEOPage, FootTrafficMetrics } from '@/types/foot-traffic';
@@ -270,7 +270,39 @@ export default function FootTrafficTab() {
         } finally {
             setIsSeeding(false);
         }
+
     };
+
+    const handleDeletePage = async (zipCode: string) => {
+        if (!confirm(`Are you sure you want to delete the SEO page for ${zipCode}?`)) {
+            return;
+        }
+
+        try {
+            const result = await deleteSeoPageAction(zipCode);
+            if (result.error) {
+                toast({
+                    title: 'Delete Failed',
+                    description: result.message,
+                    variant: 'destructive',
+                });
+            } else {
+                toast({
+                    title: 'Page Deleted',
+                    description: result.message,
+                });
+                fetchSeoPages(); // Refresh list
+            }
+        } catch (error) {
+            console.error('Error deleting page:', error);
+            toast({
+                title: 'Delete Failed',
+                description: 'An unexpected error occurred.',
+                variant: 'destructive',
+            });
+        }
+    };
+
 
     // New zone form state
     const [newZone, setNewZone] = useState({
