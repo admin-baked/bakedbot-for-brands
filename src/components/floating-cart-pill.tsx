@@ -13,7 +13,7 @@ export function FloatingCartPill() {
     const hydrated = useHydrated();
     const itemCount = getItemCount();
     const { total } = getCartTotal();
-    
+
     if (!hydrated || itemCount === 0) return null;
 
     return (
@@ -29,7 +29,7 @@ export function FloatingCartPill() {
                 onClick={() => setCartSheetOpen(true)}
             >
                 <ShoppingBag className="mr-3" />
-                <span>View Cart</span>
+                <span>Hemp Cart</span>
                 <span className="ml-3 font-bold bg-background/20 text-primary-foreground h-6 w-6 rounded-full flex items-center justify-center text-xs">
                     {formatNumber(itemCount)}
                 </span>

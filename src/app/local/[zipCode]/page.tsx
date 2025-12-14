@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DtcBanner } from '@/components/foot-traffic/dtc-banner';
 import { RetailerCard } from '@/components/foot-traffic/retailer-card';
+import { LocalProductCard } from '@/components/foot-traffic/local-product-card';
 import { AgeGate } from '@/components/foot-traffic/age-gate';
 import { DropAlertModal } from '@/components/foot-traffic/drop-alert-modal';
 
@@ -335,50 +336,7 @@ export default async function LocalZipPage({ params }: PageProps) {
 
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                     {products.slice(0, 6).map((product) => (
-                                        <Card key={product.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                                            <div className="aspect-square relative bg-muted">
-                                                {product.imageUrl && (
-                                                    <Image
-                                                        src={product.imageUrl}
-                                                        alt={product.name}
-                                                        fill
-                                                        className="object-cover"
-                                                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                                                    />
-                                                )}
-                                                {product.isOnSale && (
-                                                    <Badge className="absolute top-2 right-2 bg-red-500">
-                                                        Sale
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                            <CardContent className="p-4">
-                                                <Badge variant="secondary" className="mb-2 text-xs">
-                                                    {product.category}
-                                                </Badge>
-                                                <h3 className="font-semibold line-clamp-1">{product.name}</h3>
-                                                <p className="text-sm text-muted-foreground line-clamp-1">
-                                                    {product.brandName}
-                                                </p>
-                                                <div className="mt-2 flex items-center justify-between">
-                                                    <div className="flex items-baseline gap-2">
-                                                        <span className="text-lg font-bold">${product.price.toFixed(2)}</span>
-                                                        {product.originalPrice && (
-                                                            <span className="text-sm text-muted-foreground line-through">
-                                                                ${product.originalPrice.toFixed(2)}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {product.retailerCount} stores
-                                                    </span>
-                                                </div>
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    <MapPin className="inline h-3 w-3 mr-1" />
-                                                    {product.nearestDistance.toFixed(1)} mi away
-                                                </p>
-                                            </CardContent>
-                                        </Card>
+                                        <LocalProductCard key={product.id} product={product} />
                                     ))}
                                 </div>
                             </section>
