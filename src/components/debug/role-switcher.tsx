@@ -22,7 +22,8 @@ export function RoleSwitcher() {
         document.cookie = `x-simulated-role=${role}; path=/; max-age=3600`;
 
         // Determine redirect path
-        let redirectPath = '/dashboard/playbooks'; // Default for brand/dispensary
+        // Determine redirect path
+        let redirectPath = '/dashboard'; // Default to Overview/Console
         if (role === 'customer') {
             redirectPath = '/account';
         }

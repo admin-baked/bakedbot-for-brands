@@ -56,10 +56,11 @@ export function useUserRole() {
 
     const defaultRoute = useMemo(() => {
         switch (role) {
-            case 'brand':
-            case 'dispensary':
             case 'owner':
                 return '/dashboard/playbooks';
+            case 'brand':
+            case 'dispensary':
+                return '/dashboard'; // Brand & Dispensary Console is on Overview
             case 'customer':
                 return '/account';
             default:

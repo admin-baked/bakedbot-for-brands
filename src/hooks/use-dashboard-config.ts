@@ -31,6 +31,13 @@ export function useDashboardConfig() {
     // Define all possible navigation links with their role requirements
     const allLinks: DashboardNavLink[] = [
       {
+        label: 'Overview',
+        href: '/dashboard',
+        icon: 'LayoutDashboard',
+        description: 'High-level summary of agents, campaigns, and revenue.',
+        roles: ['brand', 'dispensary', 'owner'],
+      },
+      {
         label: 'Playbooks',
         href: '/dashboard/playbooks',
         icon: 'BookOpen',
@@ -42,13 +49,6 @@ export function useDashboardConfig() {
         href: '/dashboard/agents',
         icon: 'Bot',
         description: 'Configure and monitor your AI agents.',
-        roles: ['brand', 'dispensary', 'owner'],
-      },
-      {
-        label: 'Overview',
-        href: '/dashboard',
-        icon: 'LayoutDashboard',
-        description: 'High-level summary of agents, campaigns, and revenue.',
         roles: ['brand', 'dispensary', 'owner'],
       },
       // Brand-specific links
