@@ -1,0 +1,204 @@
+﻿
+> nextn@0.1.0 test
+> jest tests/server/geo-discovery.test.ts
+
+  console.error
+    [GeoDiscovery] Failed to geocode ZIP: 99999
+
+    [0m [90m 259 |[39m
+     [90m 260 |[39m     [36mif[39m ([33m![39mcoords) {
+    [31m[1m>[22m[39m[90m 261 |[39m         console[33m.[39merror([32m`[GeoDiscovery] Failed to geocode ZIP: ${zipCode}`[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 262 |[39m         [36mreturn[39m [][33m;[39m
+     [90m 263 |[39m     }
+     [90m 264 |[39m[0m
+
+      at error (src/server/services/geo-discovery.ts:261:17)
+      at Object.<anonymous> (tests/server/geo-discovery.test.ts:479:22)
+
+node.exe : FAIL tests/serv
+er/geo-discovery.test.ts
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (F  
+  AIL tests/server/geo-   
+ discovery.test.ts:Str    
+ing) [], RemoteExcept    
+ion
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+  Geo Discovery Service
+    discoverNearbyProducts
+      ΓêÜ should discover 
+products near a location 
+(5 ms)
+      ΓêÜ should return 
+empty result when no 
+retailers found (4 ms)
+      ΓêÜ should filter 
+retailers by radius (2 ms)
+      ΓêÜ should apply 
+price filters (1 ms)
+      ΓêÜ should sort 
+products by distance (1 
+ms)
+      ΓêÜ should sort 
+products by price (1 ms)
+      ΓêÜ should limit 
+results (1 ms)
+      ΓêÜ should 
+calculate foot traffic 
+score correctly (13 ms)
+    getRetailersByZipCode
+      ΓêÜ should get 
+retailers by ZIP code (1 
+ms)
+      ΓêÜ should return 
+empty array if geocoding 
+fails (46 ms)
+    ZIP Code Caching
+      ΓêÜ should cache 
+ZIP code coordinates (1 
+ms)
+      ΓêÜ should return 
+null if geocoding fails 
+(1 ms)
+      ├ù should get 
+coordinates from cache if 
+valid (2 ms)
+      ├ù should refresh 
+cache if expired (5 ms)
+    Geo Zone Management
+      ΓêÜ should get all 
+geo zones (1 ms)
+      ΓêÜ should get 
+single geo zone by ID
+      ΓêÜ should return 
+null if zone not found (1 
+ms)
+      ΓêÜ should create a 
+new geo zone (1 ms)
+      ΓêÜ should update a 
+geo zone (1 ms)
+      ΓêÜ should return 
+null when updating 
+non-existent zone (1 ms)
+      ΓêÜ should delete a 
+geo zone (1 ms)
+      ΓêÜ should find 
+zones for ZIP code
+
+  ΓùÅ Geo Discovery 
+Service ΓÇ║ ZIP Code 
+Caching ΓÇ║ should get 
+coordinates from cache if 
+valid
+
+    expect(received).toEqu
+al(expected) // deep 
+equality
+
+    Expected: {"lat": 
+41.8781, "lng": -87.6298}
+    Received: null
+
+    [0m [90m 524 |[39m 
+      [36mconst[39m 
+result [33m=[39m 
+[36mawait[39m getZipCode
+Coordinates([32m'60601'[
+39m)[33m;[39m
+     [90m 525 |[39m
+    
+[31m[1m>[22m[39m[90m 
+526 |[39m       expect(re
+sult)[33m.[39mtoEqual({ 
+lat[33m:[39m [35m41.878
+1[39m[33m,[39m 
+lng[33m:[39m [33m-[39m
+[35m87.6298[39m 
+})[33m;[39m
+     [90m     |[39m     
+                 
+[31m[1m^[22m[39m
+     [90m 527 |[39m     
+  expect(geocodeZipCode)[
+33m.[39mnot[33m.[39mtoH
+aveBeenCalled()[33m;[39m
+     [90m 528 |[39m     
+})[33m;[39m
+     [90m 529 |[39m[0m
+
+      at Object.toEqual (t
+ests/server/geo-discovery.
+test.ts:526:22)
+
+  ΓùÅ Geo Discovery 
+Service ΓÇ║ ZIP Code 
+Caching ΓÇ║ should 
+refresh cache if expired
+
+    expect(received).toEqu
+al(expected) // deep 
+equality
+
+    - Expected  - 0
+    + Received  + 2
+
+      Object {
+    +   "city": "",
+        "lat": 41.88,
+        "lng": -87.64,
+    +   "state": "",
+      }
+
+    [0m [90m 548 |[39m 
+      [36mconst[39m 
+result [33m=[39m 
+[36mawait[39m getZipCode
+Coordinates([32m'60601'[
+39m)[33m;[39m
+     [90m 549 |[39m
+    
+[31m[1m>[22m[39m[90m 
+550 |[39m       expect(re
+sult)[33m.[39mtoEqual({ 
+lat[33m:[39m [35m41.880
+0[39m[33m,[39m 
+lng[33m:[39m [33m-[39m
+[35m87.6400[39m 
+})[33m;[39m
+     [90m     |[39m     
+                 
+[31m[1m^[22m[39m
+     [90m 551 |[39m     
+  expect(geocodeZipCode)[
+33m.[39mtoHaveBeenCalled(
+)[33m;[39m
+     [90m 552 |[39m     
+})[33m;[39m
+     [90m 553 |[39m   
+})[33m;[39m[0m
+
+      at Object.toEqual (t
+ests/server/geo-discovery.
+test.ts:550:22)
+
+Test Suites: 1 failed, 1 
+total
+Tests:       2 failed, 20 
+passed, 22 total
+Snapshots:   0 total
+Time:        2.174 s
+Ran all test suites 
+matching /tests\\server\\g
+eo-discovery.test.ts/i.

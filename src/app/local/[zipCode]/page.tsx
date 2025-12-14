@@ -13,8 +13,14 @@ import { MapPin, Star, Clock, Phone, ExternalLink, ChevronRight } from 'lucide-r
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DtcBanner } from '@/components/foot-traffic/dtc-banner';
+import { RetailerCard } from '@/components/foot-traffic/retailer-card';
+import { AgeGate } from '@/components/foot-traffic/age-gate';
+import { DropAlertModal } from '@/components/foot-traffic/drop-alert-modal';
+
 import { getRetailersByZipCode, getZipCodeCoordinates, discoverNearbyProducts } from '@/server/services/geo-discovery';
-import { RetailerSummary, LocalProduct, LocalSEOPage } from '@/types/foot-traffic';
+import { RetailerSummary, LocalProduct, LocalSEOPage, CannMenusSnapshot } from '@/types/foot-traffic';
+
 import { createServerClient } from '@/firebase/server-client';
 
 // Static params for ISR
@@ -37,7 +43,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     // Get location info
     const coords = await getZipCodeCoordinates(zipCode);
-    const cityName = coords ? 'Your Area' : 'Unknown'; // Would need reverse geocoding for actual city
 
     return {
         title: `Cannabis Dispensaries Near ${zipCode} | Find Weed Near Me | BakedBot`,
@@ -95,71 +100,19 @@ function generateStructuredData(
         }),
     }));
 
-    const productList = products.slice(0, 10).map(product => ({
-        '@type': 'Product',
-        name: product.name,
-        brand: {
-            '@type': 'Brand',
-            name: product.brandName,
-        },
-        image: product.imageUrl,
-        offers: {
-            '@type': 'Offer',
-            price: product.price,
-            priceCurrency: 'USD',
-            availability: 'https://schema.org/InStock',
-        },
-    }));
-
     return {
         '@context': 'https://schema.org',
-        '@graph': [
-            {
-                '@type': 'WebPage',
-                '@id': `https://bakedbot.ai/local/${zipCode}`,
-                url: `https://bakedbot.ai/local/${zipCode}`,
-                name: `Cannabis Near ${zipCode}`,
-                isPartOf: {
-                    '@id': 'https://bakedbot.ai/#website',
-                },
-                breadcrumb: {
-                    '@id': `https://bakedbot.ai/local/${zipCode}#breadcrumb`,
-                },
-            },
-            {
-                '@type': 'BreadcrumbList',
-                '@id': `https://bakedbot.ai/local/${zipCode}#breadcrumb`,
-                itemListElement: [
-                    {
-                        '@type': 'ListItem',
-                        position: 1,
-                        name: 'Home',
-                        item: 'https://bakedbot.ai',
-                    },
-                    {
-                        '@type': 'ListItem',
-                        position: 2,
-                        name: 'Local',
-                        item: 'https://bakedbot.ai/local',
-                    },
-                    {
-                        '@type': 'ListItem',
-                        position: 3,
-                        name: zipCode,
-                    },
-                ],
-            },
-            {
-                '@type': 'ItemList',
-                name: `Dispensaries near ${zipCode}`,
-                itemListElement: localBusinessList.map((business, index) => ({
-                    '@type': 'ListItem',
-                    position: index + 1,
-                    item: business,
-                })),
-            },
-            ...productList,
-        ],
+        '@type': 'CollectionPage',
+        name: `Cannabis Dispensaries in ${zipCode}`,
+        description: `Find local dispensaries and products in ${zipCode}.`,
+        mainEntity: {
+            '@type': 'ItemList',
+            itemListElement: localBusinessList.map((business, index) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                item: business,
+            })),
+        },
     };
 }
 
@@ -178,13 +131,41 @@ export default async function LocalZipPage({ params }: PageProps) {
         notFound();
     }
 
-    // Check for seeded configuration in Firestore
+    // Check for seeded configuration in Firestore (Split Model)
     const { firestore } = await createServerClient();
-    const seededDoc = await firestore.collection('foot_traffic').doc('config').collection('seo_pages').doc(zipCode).get();
-    const seededConfig = seededDoc.exists ? seededDoc.data() as LocalSEOPage : null;
 
-    // Discovery logic with adaptive radius
-    // Discovery logic with adaptive radius
+    // 1. Try Config (local_pages)
+    const configDoc = await firestore.collection('foot_traffic').doc('config').collection('local_pages').doc(zipCode).get();
+    let seededConfig = configDoc.exists ? configDoc.data() as LocalSEOPage : null;
+
+    // 2. Fallback to Legacy (seo_pages)
+    if (!seededConfig) {
+        const legacyDoc = await firestore.collection('foot_traffic').doc('config').collection('seo_pages').doc(zipCode).get();
+        seededConfig = legacyDoc.exists ? legacyDoc.data() as LocalSEOPage : null;
+    }
+
+    let snapshotData: { retailers: RetailerSummary[], products: LocalProduct[] } | null = null;
+
+    // 3. Resolve Data Snapshot if reference exists
+    if (seededConfig?.dataSnapshotRef) {
+        const snapshotDoc = await firestore.collection('foot_traffic').doc('data').collection('cann_menus_snapshots').doc(seededConfig.dataSnapshotRef).get();
+        if (snapshotDoc.exists) {
+            const snap = snapshotDoc.data() as any;
+            snapshotData = {
+                retailers: (snap.dispensaries || []) as any,
+                products: (snap.products || []) as any
+            };
+        }
+    } else if (seededConfig) {
+        // Legacy: Data is in content
+        snapshotData = {
+            retailers: seededConfig.content.nearbyRetailers || [],
+            products: [...(seededConfig.content.topStrains || []), ...(seededConfig.content.topDeals || [])] as any
+        };
+    }
+
+
+    // Discovery logic with adaptive radius (Runtime fallback)
     const discoverProducts = async (radius: number): Promise<{ products: LocalProduct[] }> => {
         return discoverNearbyProducts({
             lat: coords.lat,
@@ -198,40 +179,55 @@ export default async function LocalZipPage({ params }: PageProps) {
     };
 
 
-    // Parallel fetch for initial radius
-    const [retailers, initialDiscovery] = await Promise.all([
-        getRetailersByZipCode(zipCode, 10),
-        discoverProducts(15)
-    ]);
+    let retailers: RetailerSummary[] = [];
+    let products: LocalProduct[] = [];
 
-    let discoveryResult = initialDiscovery;
+    if (snapshotData && snapshotData.products.length > 0) {
+        // Use Snapshot Data
+        retailers = snapshotData.retailers;
+        products = snapshotData.products;
+    } else {
+        // Runtime Discovery (No Valid Snapshot)
+        const [liveRetailers, initialDiscovery] = await Promise.all([
+            getRetailersByZipCode(zipCode, 10),
+            discoverProducts(15)
+        ]);
+        retailers = liveRetailers;
+        let discoveryResult = initialDiscovery;
 
-    // Retry with larger radius if sparsely populated
-    if (discoveryResult.products.length === 0) {
-        console.log(`[LocalPage] No products found within 15 miles of ${zipCode}. Expanding to 50 miles...`);
-        discoveryResult = await discoverProducts(50);
+        if (discoveryResult.products.length === 0) {
+            discoveryResult = await discoverProducts(50);
+        }
+        if (discoveryResult.products.length === 0) {
+            discoveryResult = await discoverProducts(100);
+            products = discoveryResult.products;
+        } else {
+            products = discoveryResult.products;
+        }
+
+        // Prioritize sponsored retailers
+        const sponsoredIds = seededConfig?.sponsoredRetailerIds || [];
+        retailers = [...retailers].sort((a, b) => {
+            const aSponsored = sponsoredIds.includes(a.id);
+            const bSponsored = sponsoredIds.includes(b.id);
+            if (aSponsored && !bSponsored) return -1;
+            if (!aSponsored && bSponsored) return 1;
+            return 0;
+        });
+
+        // If seeded config exists and has a featured dispensary, prioritize it
+        if (seededConfig?.featuredDispensaryId) {
+            products = products.map(p => {
+                const isAtFeatured = p.availability.some(a => a.retailerId === seededConfig!.featuredDispensaryId);
+                if (isAtFeatured) {
+                    return { ...p, footTrafficScore: 100 };
+                }
+                return p;
+            }).sort((a, b) => b.footTrafficScore - a.footTrafficScore);
+        }
     }
 
-    if (discoveryResult.products.length === 0) {
-        console.log(`[LocalPage] No products found within 50 miles of ${zipCode}. Expanding to 100 miles...`);
-        discoveryResult = await discoverProducts(100);
-    }
-
-    let products = discoveryResult.products;
-
-    // If seeded config exists and has a featured dispensary, prioritize it
-    if (seededConfig?.featuredDispensaryId) {
-        // Find products from the featured retailer
-        // Note: discoverNearbyProducts already returns products with availability.
-        // We can boost the score of products available at the featured dispensary.
-        products = products.map(p => {
-            const isAtFeatured = p.availability.some(a => a.retailerId === seededConfig.featuredDispensaryId);
-            if (isAtFeatured) {
-                return { ...p, footTrafficScore: 100 }; // Boost score to max
-            }
-            return p;
-        }).sort((a, b) => b.footTrafficScore - a.footTrafficScore);
-    }
+    const sortedRetailers = retailers;
 
     // Generate structured data
     const structuredData = generateStructuredData(zipCode, retailers, products);
@@ -256,7 +252,14 @@ export default async function LocalZipPage({ params }: PageProps) {
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
             />
 
-            <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+            {/* Age Gate (Client Component) */}
+            <AgeGate />
+
+            {/* Sticky DTC Banner (Mobile) */}
+            <DtcBanner zipCode={zipCode} variant="sticky" />
+
+            <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 pb-16 lg:pb-0">
+
                 {/* Hero Section */}
                 <section className="border-b bg-card">
                     <div className="container py-12">
@@ -294,6 +297,7 @@ export default async function LocalZipPage({ params }: PageProps) {
                     <div className="grid gap-8 lg:grid-cols-3">
                         {/* Main Content */}
                         <div className="lg:col-span-2 space-y-8">
+
                             {/* Nearby Dispensaries */}
                             <section>
                                 <div className="mb-4 flex items-center justify-between">
@@ -306,49 +310,25 @@ export default async function LocalZipPage({ params }: PageProps) {
                                 </div>
 
                                 <div className="grid gap-4 sm:grid-cols-2">
-                                    {retailers.slice(0, 4).map((retailer) => (
-                                        <Card key={retailer.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                                            <CardContent className="p-4">
-                                                <div className="flex items-start justify-between">
-                                                    <div className="flex-1">
-                                                        <h3 className="font-semibold line-clamp-1">{retailer.name}</h3>
-                                                        <p className="mt-1 text-sm text-muted-foreground line-clamp-1">
-                                                            {retailer.address}
-                                                        </p>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {retailer.city}, {retailer.state} {retailer.postalCode}
-                                                        </p>
-                                                    </div>
-                                                    {retailer.distance != null && (
-                                                        <Badge variant="outline" className="ml-2 shrink-0">
-                                                            {retailer.distance.toFixed(1)} mi
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
-                                                    {retailer.phone && (
-                                                        <a href={`tel:${retailer.phone}`} className="flex items-center gap-1 hover:text-foreground">
-                                                            <Phone className="h-3 w-3" />
-                                                            Call
-                                                        </a>
-                                                    )}
-                                                    {retailer.website && (
-                                                        <a
-                                                            href={retailer.website}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex items-center gap-1 hover:text-foreground"
-                                                        >
-                                                            <ExternalLink className="h-3 w-3" />
-                                                            Menu
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
+                                    {sortedRetailers.slice(0, 4).map((retailer) => {
+                                        const isPartner = seededConfig?.featuredDispensaryId === retailer.id;
+                                        const isSponsored = seededConfig?.sponsoredRetailerIds?.includes(retailer.id) || false;
+
+                                        return (
+                                            <RetailerCard
+                                                key={retailer.id}
+                                                retailer={retailer}
+                                                isPartner={isPartner || false}
+                                                zipCode={zipCode}
+                                                isSponsored={isSponsored}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             </section>
+
+                            {/* Inline DTC Banner */}
+                            <DtcBanner zipCode={zipCode} variant="inline" />
 
                             {/* Top Products */}
                             <section>
@@ -470,7 +450,6 @@ export default async function LocalZipPage({ params }: PageProps) {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="flex flex-wrap gap-2">
-                                        {/* Generate nearby ZIP codes (simplified) */}
                                         {[1, 2, 3, 4, 5].map((offset) => {
                                             const nearbyZip = String(parseInt(zipCode) + offset).padStart(5, '0');
                                             return (
@@ -488,15 +467,13 @@ export default async function LocalZipPage({ params }: PageProps) {
                             {/* CTA */}
                             <Card className="bg-primary text-primary-foreground">
                                 <CardContent className="p-6 text-center">
-                                    <h3 className="text-lg font-semibold">Get Personalized Recommendations</h3>
-                                    <p className="mt-2 text-sm opacity-90">
-                                        Chat with Smokey, our AI budtender, for tailored product suggestions
+                                    <h3 className="text-lg font-semibold">Never Miss a Drop</h3>
+                                    <p className="mt-2 text-sm opacity-90 mb-4">
+                                        Get notified when new strains and exclusive drops land in {zipCode}.
                                     </p>
-                                    <Button variant="secondary" className="mt-4 w-full" asChild>
-                                        <Link href="/chat">
-                                            Talk to Smokey
-                                        </Link>
-                                    </Button>
+                                    <div className="flex justify-center">
+                                        <DropAlertModal zipCode={zipCode} />
+                                    </div>
                                 </CardContent>
                             </Card>
                         </aside>

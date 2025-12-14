@@ -5,7 +5,10 @@ export type EventName =
     | 'share_product'
     | 'lead_captured'
     | 'view_promotion'
-    | 'click_affiliate_link';
+    | 'click_affiliate_link'
+    | 'dtc_click'
+    | 'partner_click';
+
 
 export interface AnalyticsEvent {
     name: EventName;

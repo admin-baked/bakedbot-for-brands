@@ -74,7 +74,7 @@ describe('Geo Discovery Service', () => {
     mockFirestoreChain = {
       collection: jest.fn().mockReturnThis(),
       doc: jest.fn().mockReturnThis(),
-      get: jest.fn(),
+      get: jest.fn().mockResolvedValue({ exists: false }),
       set: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -517,13 +517,20 @@ describe('Geo Discovery Service', () => {
           zipCode: '60601',
           lat: 41.8781,
           lng: -87.6298,
+          city: 'Chicago',
+          state: 'IL',
           cachedAt: { toMillis: () => Date.now() - 1000 * 60 * 60 }, // 1 hour ago
         }),
       });
 
       const result = await getZipCodeCoordinates('60601');
 
-      expect(result).toEqual({ lat: 41.8781, lng: -87.6298 });
+      expect(result).toEqual({
+        lat: 41.8781,
+        lng: -87.6298,
+        city: 'Chicago',
+        state: 'IL'
+      });
       expect(geocodeZipCode).not.toHaveBeenCalled();
     });
 
@@ -547,7 +554,12 @@ describe('Geo Discovery Service', () => {
 
       const result = await getZipCodeCoordinates('60601');
 
-      expect(result).toEqual({ lat: 41.8800, lng: -87.6400 });
+      expect(result).toEqual({
+        lat: 41.8800,
+        lng: -87.6400,
+        city: expect.any(String),
+        state: expect.any(String)
+      });
       expect(geocodeZipCode).toHaveBeenCalled();
     });
   });
