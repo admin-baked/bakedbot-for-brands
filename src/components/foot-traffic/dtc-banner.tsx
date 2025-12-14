@@ -53,20 +53,20 @@ export function DtcBanner({ zipCode, variant = 'inline' }: DtcBannerProps) {
 
                 <div className="flex-1 text-center md:text-left">
                     <h3 className="text-xl font-bold text-green-900">
-                        Can't find what you need in {zipCode}?
+                        Top-Tier Legal Hemp, Shipped to {zipCode}
                     </h3>
                     <p className="mt-2 text-green-800/80 max-w-xl">
-                        Don't settle for limited menus. <strong>Ecstatic Edibles</strong> ships premium, federally legal hemp-derived THC products directly to your door in {zipCode}. No medical card required.
+                        Can't make it to the dispensary? <strong>Ecstatic Edibles</strong> delivers premium, federally legal hemp-derived THC straight to your door. No medical card required.
                     </p>
                     <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-4 text-sm font-medium text-green-800/70">
                         <span className="flex items-center gap-1">
-                            <ShoppingBag className="h-4 w-4" /> No Card Needed
+                            <ShoppingBag className="h-4 w-4" /> Legal in {zipCode}
                         </span>
                         <span className="flex items-center gap-1">
-                            <Truck className="h-4 w-4" /> Fast Shipping
+                            <Truck className="h-4 w-4" /> Discreet Shipping
                         </span>
                         <span className="flex items-center gap-1">
-                            <MapPinOff className="h-4 w-4" /> Ships to {zipCode}
+                            <MapPinOff className="h-4 w-4" /> 21+ Verification Only
                         </span>
                     </div>
                 </div>

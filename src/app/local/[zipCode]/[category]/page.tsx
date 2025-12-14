@@ -13,6 +13,8 @@ import {
 } from '@/server/services/geo-discovery';
 import { RetailerCard } from '@/components/foot-traffic/retailer-card';
 import { LocalProductCard } from '@/components/foot-traffic/local-product-card';
+import { SmokeyCtaCard } from '@/components/foot-traffic/smokey-cta-card';
+import { FeaturedPickupPartnerCard } from '@/components/foot-traffic/featured-pickup-partner-card';
 import { DtcBanner } from '@/components/foot-traffic/dtc-banner';
 import { getSeededConfig } from '@/server/actions/seo-pages';
 
@@ -145,6 +147,20 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
                     {/* Sidebar */}
                     <div className="space-y-6">
+                        {/* P1.1 Smokey CTA */}
+                        <SmokeyCtaCard zipCode={zipCode} city={coords.city} state={coords.state} />
+
+                        {/* P1.2 Featured Partner (Conditional) */}
+                        {featuredId && (
+                            <FeaturedPickupPartnerCard
+                                partnerId={featuredId}
+                                zipCode={zipCode}
+                                city={coords.city}
+                                state={coords.state}
+                                retailer={sortedRetailers.find(r => r.id === featuredId)}
+                            />
+                        )}
+
                         <section>
                             <h2 className="mb-4 text-lg font-semibold">Nearby Dispensaries</h2>
                             <div className="space-y-4">

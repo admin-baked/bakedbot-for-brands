@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { DtcBanner } from '@/components/foot-traffic/dtc-banner';
 import { RetailerCard } from '@/components/foot-traffic/retailer-card';
 import { LocalProductCard } from '@/components/foot-traffic/local-product-card';
+import { SmokeyCtaCard } from '@/components/foot-traffic/smokey-cta-card';
+import { FeaturedPickupPartnerCard } from '@/components/foot-traffic/featured-pickup-partner-card';
 import { AgeGate } from '@/components/foot-traffic/age-gate';
 import { DropAlertModal } from '@/components/foot-traffic/drop-alert-modal';
 
@@ -363,6 +365,19 @@ export default async function LocalZipPage({ params }: PageProps) {
 
                         {/* Sidebar */}
                         <aside className="space-y-6">
+                            {/* P1.1 Smokey CTA */}
+                            <SmokeyCtaCard zipCode={zipCode} city={coords.city} state={coords.state} />
+
+                            {/* P1.2 Featured Partner (Conditional) */}
+                            {seededConfig?.featuredDispensaryId && (
+                                <FeaturedPickupPartnerCard
+                                    partnerId={seededConfig.featuredDispensaryId}
+                                    zipCode={zipCode}
+                                    city={coords.city}
+                                    state={coords.state}
+                                    retailer={retailers.find(r => r.id === seededConfig?.featuredDispensaryId)}
+                                />
+                            )}
                             {/* Quick Stats */}
                             <Card>
                                 <CardHeader>
