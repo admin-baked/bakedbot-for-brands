@@ -183,17 +183,35 @@ export default async function LocalZipPage({ params }: PageProps) {
     const seededDoc = await firestore.collection('foot_traffic').doc('config').collection('seo_pages').doc(zipCode).get();
     const seededConfig = seededDoc.exists ? seededDoc.data() as LocalSEOPage : null;
 
-    // Fetch data in parallel
-    const [retailers, discoveryResult] = await Promise.all([
-        getRetailersByZipCode(zipCode, 10),
-        discoverNearbyProducts({
+    // Discovery logic with adaptive radius
+    const discoverProducts = async (radius: number): Promise<{ products: LocalProduct[] }> => {
+        return discoverNearbyProducts({
             lat: coords.lat,
             lng: coords.lng,
-            radiusMiles: 15,
+            radiusMiles: radius,
             limit: 20,
             sortBy: 'score',
-        }),
+        });
+    };
+
+    // Parallel fetch for initial radius
+    const [retailers, initialDiscovery] = await Promise.all([
+        getRetailersByZipCode(zipCode, 10),
+        discoverProducts(15)
     ]);
+
+    let discoveryResult = initialDiscovery;
+
+    // Retry with larger radius if sparsely populated
+    if (discoveryResult.products.length === 0) {
+        console.log(`[LocalPage] No products found within 15 miles of ${zipCode}. Expanding to 50 miles...`);
+        discoveryResult = await discoverProducts(50);
+    }
+
+    if (discoveryResult.products.length === 0) {
+        console.log(`[LocalPage] No products found within 50 miles of ${zipCode}. Expanding to 100 miles...`);
+        discoveryResult = await discoverProducts(100);
+    }
 
     let products = discoveryResult.products;
 

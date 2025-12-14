@@ -507,6 +507,20 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
   }
 }
 
+
+export async function deleteSeoPageAction(zipCode: string): Promise<ActionResult> {
+  await requireUser(['owner']);
+
+  try {
+    const firestore = getAdminFirestore();
+    await firestore.collection('foot_traffic').doc('config').collection('seo_pages').doc(zipCode).delete();
+    return { message: `Successfully deleted page for ${zipCode}` };
+  } catch (error: any) {
+    console.error('Error deleting SEO page:', error);
+    return { message: `Failed to delete page: ${error.message}`, error: true };
+  }
+}
+
 export async function getLivePreviewProducts(cannMenusId: string) {
   try {
     const { getProducts } = await import('@/lib/cannmenus-api');
