@@ -222,7 +222,12 @@ export async function getRetailerProducts(
 
         // v1 response has 'data' array directly
         const products: CannMenusProduct[] = [];
-        const items = data.data || []; // v1 usually puts items in data
+
+        // The v1/products endpoint returns data grouped by retailer:
+        // [{ retailer_id: '...', products: [...] }]
+        // We need to flatten this list.
+        const retailersWithProducts = data.data || [];
+        const items = retailersWithProducts.flatMap((r: any) => r.products || []);
 
         // Transform v1 items to CannMenusProduct structure if needed
         // v1 item keys: id, brand_id, retailer_id, name, ...

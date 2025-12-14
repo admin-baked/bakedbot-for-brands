@@ -70,12 +70,16 @@ describe('CannMenus API', () => {
             const mockResponse = {
                 data: [
                     {
-                        id: 101,
-                        name: 'Blue Dream',
-                        brand: { name: 'Stiiizy' },
-                        price: 45,
-                        category: 'Flower',
-                        image_url: 'http://img.com/1.jpg'
+                        products: [
+                            {
+                                id: 101,
+                                name: 'Blue Dream',
+                                brand: { name: 'Stiiizy' },
+                                price: 45,
+                                category: 'Flower',
+                                image_url: 'http://img.com/1.jpg'
+                            }
+                        ]
                     }
                 ]
             };
