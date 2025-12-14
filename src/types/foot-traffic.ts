@@ -109,8 +109,11 @@ export interface DiscoveryOptions {
     lat: number;
     lng: number;
     radiusMiles?: number;
+    featuredDispensaryId?: string;
+    sponsoredRetailerIds?: string[];
     category?: string;
     brand?: string;
+    seasonalKeywords?: string[];
     minPrice?: number;
     maxPrice?: number;
     inStockOnly?: boolean;
@@ -371,6 +374,23 @@ export interface RetailerSummary {
 }
 
 /**
+ * Raw data snapshot from CannMenus
+ */
+export interface CannMenusSnapshot {
+    id: string;
+    zipCode: string;
+    fetchedAt: Date;
+    dispensaries: RetailerSummary[];
+    products: LocalProduct[];
+    aggregates: {
+        categoryBreakdown: { category: string; count: number }[];
+        totalProducts: number;
+        totalDispensaries: number;
+    };
+    sourceVersion: 'v1';
+}
+
+/**
  * Cached SEO page content
  */
 export interface LocalSEOPage {
@@ -382,6 +402,9 @@ export interface LocalSEOPage {
     // Featured Dispensary
     featuredDispensaryId?: string | null;
     featuredDispensaryName?: string | null;
+
+    // Data Source Reference
+    dataSnapshotRef?: string;
 
     // Generated content
     content: {
@@ -418,6 +441,7 @@ export interface LocalSEOPage {
         avgTimeOnPage: number;
     };
 }
+
 
 // =============================================================================
 // FOOT TRAFFIC ANALYTICS

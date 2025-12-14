@@ -333,9 +333,10 @@ export async function createEzalCompetitor(tenantId: string, data: any): Promise
 }
 
 
-import type { LocalSEOPage } from '@/types/foot-traffic';
+import type { LocalSEOPage, CannMenusSnapshot } from '@/types/foot-traffic';
 import { getZipCodeCoordinates, getRetailersByZipCode, discoverNearbyProducts } from '@/server/services/geo-discovery';
 import type { ProductSummary, DealSummary } from '@/types/foot-traffic';
+
 
 export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
   try {
@@ -459,6 +460,7 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
     }));
 
     // 6. Config Object
+    const snapshotId = `${zipCode}_${Date.now()}`;
     const seoPageConfig: LocalSEOPage = {
       id: zipCode,
       zipCode,
@@ -466,12 +468,13 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
       state: retailers[0]?.state || 'Unknown State',
       featuredDispensaryId,
       featuredDispensaryName,
+      dataSnapshotRef: snapshotId,
       content: {
         title: `Cannabis Dispensaries Near ${zipCode}`,
         metaDescription: `Find the best cannabis in ${zipCode}.`,
         h1: `Cannabis Near ${zipCode}`,
         introText: `Discover top rated dispensaries in ${zipCode}...`,
-        topStrains,
+        topStrains, // Keeping for legacy fallback / hydration
         topDeals,
         nearbyRetailers: retailers.slice(0, 10).map(r => ({
           ...r,
@@ -502,9 +505,35 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
       },
     };
 
-    // 7. Save to Firestore (via Admin)
+    // 7. Save to Firestore (Split Model)
     const firestore = getAdminFirestore();
-    await firestore.collection('foot_traffic').doc('config').collection('seo_pages').doc(zipCode).set(seoPageConfig);
+    const batch = firestore.batch();
+
+    // A. Snapshot
+    const snapshotRef = firestore.collection('foot_traffic').doc('data').collection('cann_menus_snapshots').doc(snapshotId);
+    batch.set(snapshotRef, {
+      id: snapshotId,
+      zipCode,
+      fetchedAt: new Date(),
+      dispensaries: seoPageConfig.content.nearbyRetailers,
+      products: discoveryResult.products, // Full product list
+      aggregates: {
+        categoryBreakdown,
+        totalProducts: discoveryResult.totalProducts,
+        totalDispensaries: retailers.length
+      },
+      sourceVersion: 'v1'
+    });
+
+    // B. Page Config (New Collection)
+    const pageRef = firestore.collection('foot_traffic').doc('config').collection('local_pages').doc(zipCode);
+    batch.set(pageRef, seoPageConfig);
+
+    // C. Legacy Collection (Backwards Compatibility for now)
+    const legacyRef = firestore.collection('foot_traffic').doc('config').collection('seo_pages').doc(zipCode);
+    batch.set(legacyRef, seoPageConfig);
+
+    await batch.commit();
 
     return { message: `Successfully seeded page for ${zipCode}` };
 
