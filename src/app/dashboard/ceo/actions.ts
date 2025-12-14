@@ -442,7 +442,16 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
         introText: `Discover top rated dispensaries in ${zipCode}...`,
         topStrains,
         topDeals,
-        nearbyRetailers: retailers.slice(0, 10),
+        nearbyRetailers: retailers.slice(0, 10).map(r => ({
+          ...r,
+          distance: r.distance ?? null,
+          productCount: r.productCount ?? null,
+          phone: r.phone ?? null,
+          website: r.website ?? null,
+          hours: r.hours ?? null,
+          lat: r.lat ?? null,
+          lng: r.lng ?? null,
+        })),
         categoryBreakdown,
       },
       structuredData: {
