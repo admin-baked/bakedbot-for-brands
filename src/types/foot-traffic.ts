@@ -377,8 +377,8 @@ export interface LocalSEOPage {
     state: string;
 
     // Featured Dispensary
-    featuredDispensaryId?: string;
-    featuredDispensaryName?: string;
+    featuredDispensaryId?: string | null;
+    featuredDispensaryName?: string | null;
 
     // Generated content
     content: {
