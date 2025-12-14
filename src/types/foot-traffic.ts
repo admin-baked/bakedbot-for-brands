@@ -402,6 +402,7 @@ export interface LocalSEOPage {
     // Featured Dispensary
     featuredDispensaryId?: string | null;
     featuredDispensaryName?: string | null;
+    sponsoredRetailerIds?: string[];
 
     // Data Source Reference
     dataSnapshotRef?: string;
