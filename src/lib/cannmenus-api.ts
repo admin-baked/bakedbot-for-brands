@@ -230,8 +230,9 @@ export async function getRetailerProducts(
         items.forEach((item: any) => {
             products.push({
                 cann_sku_id: item.id?.toString() || item.sku || '',
-                product_name: item.name || item.product_name,
+                product_name: item.name || item.product_name || 'Unknown Product',
                 brand_name: item.brand_name || item.brand?.name || 'Unknown Brand',
+
                 category: item.category || 'Uncategorized',
                 sub_category: item.sub_category,
                 image_url: item.image_url || item.image,
