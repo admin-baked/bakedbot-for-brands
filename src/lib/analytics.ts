@@ -9,7 +9,8 @@ export type EventName =
     | 'dtc_click'
     | 'partner_click'
     | 'talk_to_smokey_click'
-    | 'local_pickup_click';
+    | 'local_pickup_click'
+    | 'claim_listing_click';
 
 
 export interface AnalyticsEvent {
