@@ -7,7 +7,9 @@ export type EventName =
     | 'view_promotion'
     | 'click_affiliate_link'
     | 'dtc_click'
-    | 'partner_click';
+    | 'partner_click'
+    | 'talk_to_smokey_click'
+    | 'local_pickup_click';
 
 
 export interface AnalyticsEvent {
