@@ -404,6 +404,8 @@ export interface LocalSEOPage {
     featuredDispensaryId?: string | null;
     featuredDispensaryName?: string | null;
     sponsoredRetailerIds?: string[];
+    metaTitle?: string;
+    metaDescription?: string;
 
     // Data Source Reference
     dataSnapshotRef?: string;

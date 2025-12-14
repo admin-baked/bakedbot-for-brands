@@ -18,6 +18,7 @@ import { RetailerCard } from '@/components/foot-traffic/retailer-card';
 import { LocalProductCard } from '@/components/foot-traffic/local-product-card';
 import { SmokeyCtaCard } from '@/components/foot-traffic/smokey-cta-card';
 import { FeaturedPickupPartnerCard } from '@/components/foot-traffic/featured-pickup-partner-card';
+import { AboutZipSection } from '@/components/foot-traffic/about-zip-section';
 import { AgeGate } from '@/components/foot-traffic/age-gate';
 import { DropAlertModal } from '@/components/foot-traffic/drop-alert-modal';
 
@@ -48,9 +49,33 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // Get location info
     const coords = await getZipCodeCoordinates(zipCode);
 
+    if (!coords) {
+        return {
+            title: 'Location Not Found | BakedBot',
+        };
+    }
+
+    // Fetch seeded config for metadata overrides
+    const seededConfig = await getSeededConfig(zipCode);
+
+    // Fetch products for description count if not using seeded config
+    let products: LocalProduct[] = [];
+    if (!seededConfig?.metaDescription) {
+        const initialDiscovery = await discoverNearbyProducts({
+            lat: coords.lat,
+            lng: coords.lng,
+            radiusMiles: 15,
+            limit: 1, // Only need one to know if there are products
+            sortBy: 'score',
+            cityName: coords.city,
+            state: coords.state
+        });
+        products = initialDiscovery.products;
+    }
+
     return {
-        title: `Cannabis Dispensaries Near ${zipCode} | Find Weed Near Me | BakedBot`,
-        description: `Find the best cannabis dispensaries, products, and deals near ${zipCode}. Compare prices, check availability, and discover top-rated strains in your neighborhood.`,
+        title: seededConfig?.metaTitle || `Cannabis near ${coords.city}, ${coords.state} (${zipCode}) | BakedBot`,
+        description: seededConfig?.metaDescription || `Find dispensaries and delivery services in ${zipCode}. Compare prices on ${products.length} products from local retailers.`,
         keywords: [
             `cannabis near ${zipCode}`,
             `dispensary ${zipCode}`,
@@ -239,6 +264,11 @@ export default async function LocalZipPage({ params }: PageProps) {
 
     const categories = Object.keys(categoryGroups).sort();
 
+    // Sort categories by product count for About section
+    const topCategories = Object.keys(categoryGroups)
+        .sort((a, b) => categoryGroups[b].length - categoryGroups[a].length)
+        .slice(0, 3);
+
     return (
         <>
             {/* Structured Data */}
@@ -378,34 +408,16 @@ export default async function LocalZipPage({ params }: PageProps) {
                                     retailer={retailers.find(r => r.id === seededConfig?.featuredDispensaryId)}
                                 />
                             )}
-                            {/* Quick Stats */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-lg">Area Overview</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-muted-foreground">Dispensaries</span>
-                                        <span className="font-semibold">{retailers.length}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-muted-foreground">Products</span>
-                                        <span className="font-semibold">{products.length}+</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-muted-foreground">Categories</span>
-                                        <span className="font-semibold">{categories.length}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-muted-foreground">Avg. Price</span>
-                                        <span className="font-semibold">
-                                            ${products.length > 0
-                                                ? (products.reduce((sum, p) => sum + p.price, 0) / products.length).toFixed(2)
-                                                : '0.00'}
-                                        </span>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            {/* P3.1 Dynamic About Section */}
+                            <AboutZipSection
+                                zipCode={zipCode}
+                                city={coords.city}
+                                state={coords.state}
+                                productCount={snapshotData?.products.length || 0}
+                                retailerCount={retailers.length}
+                                lowestPrice={products.length > 0 ? Math.min(...products.map(p => p.price)) : 0}
+                                topCategories={topCategories.map(c => ({ name: c, count: categoryGroups[c].length }))}
+                            />
 
                             {/* Nearby ZIP Codes */}
                             <Card>
