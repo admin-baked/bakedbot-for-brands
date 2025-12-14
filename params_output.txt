@@ -1,0 +1,24 @@
+Starting Test
+
+--- Testing: Current (lat/lng) ---
+Found: 20
+First: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC (California City, California)
+
+--- Testing: Full Names ---
+Found: 20
+First: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC (California City, California)
+
+--- Testing: With Radius ---
+Found: 20
+First: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC (California City, California)
+
+--- Testing: State Singular ---
+Found: 0
+
+--- Testing: States Plural ---
+Found: 20
+First: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC (California City, California)
+
+--- Testing: Sort By ---
+Found: 20
+First: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC (California City, California)

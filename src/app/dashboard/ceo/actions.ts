@@ -388,14 +388,38 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
       }
     }
 
-    // 4. Discover products
-    const discoveryResult = await discoverNearbyProducts({
+    // 4. Discover products with adaptive radius to handle sparse areas
+    let discoveryResult = await discoverNearbyProducts({
       lat: coords.lat,
       lng: coords.lng,
       radiusMiles: 15,
       limit: 50,
       sortBy: 'score',
     });
+
+    // If no products found within 15 miles, try expanding radius
+    if (discoveryResult.products.length === 0) {
+      console.log(`[SeedSEO] No products found within 15 miles of ${zipCode}. Expanding search to 50 miles...`);
+      discoveryResult = await discoverNearbyProducts({
+        lat: coords.lat,
+        lng: coords.lng,
+        radiusMiles: 50,
+        limit: 50,
+        sortBy: 'score',
+      });
+    }
+
+    // If still no products, try 100 miles
+    if (discoveryResult.products.length === 0) {
+      console.log(`[SeedSEO] No products found within 50 miles of ${zipCode}. Expanding search to 100 miles...`);
+      discoveryResult = await discoverNearbyProducts({
+        lat: coords.lat,
+        lng: coords.lng,
+        radiusMiles: 100,
+        limit: 50,
+        sortBy: 'score',
+      });
+    }
 
     // 5. Generate content
     const topStrains: ProductSummary[] = discoveryResult.products.slice(0, 10).map(p => ({

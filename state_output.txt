@@ -1,0 +1,20 @@
+Starting State Filter Test
+
+--- Testing: state=IL ---
+Found: 0
+
+--- Testing: state=Illinois ---
+Found: 20
+First: undefined (Quincy, Illinois)
+
+--- Testing: states=IL ---
+Found: 20
+First: undefined (California City, California)
+
+--- Testing: states=Illinois ---
+Found: 20
+First: undefined (California City, California)
+
+--- Testing: address=Chicago, IL ---
+Found: 20
+First: undefined (California City, California)
