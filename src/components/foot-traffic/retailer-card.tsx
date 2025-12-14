@@ -100,30 +100,29 @@ export function RetailerCard({ retailer, isPartner, isSponsored, zipCode }: Reta
                         </Button>
                     )}
                 </div>
-            </div>
 
-            {/* P4.1 Own this listing */}
-            {!isPartner && (
-                <div className="mt-3 pt-3 border-t flex justify-center">
-                    <a
-                        href={`/for-brands?retailerId=${retailer.id}&name=${encodeURIComponent(retailer.name)}`}
-                        className="text-[10px] text-muted-foreground/60 hover:text-indigo-600 hover:underline flex items-center gap-1"
-                        onClick={() => {
-                            trackEvent({
-                                name: 'claim_listing_click',
-                                properties: {
-                                    retailerId: retailer.id,
-                                    retailerName: retailer.name,
-                                    zipCode
-                                }
-                            });
-                        }}
-                    >
-                        Own this business? Manage this listing
-                    </a>
-                </div>
-            )}
-        </CardContent>
+                {/* P4.1 Own this listing */}
+                {!isPartner && (
+                    <div className="mt-3 pt-3 border-t flex justify-center">
+                        <a
+                            href={`/for-brands?retailerId=${retailer.id}&name=${encodeURIComponent(retailer.name)}`}
+                            className="text-[10px] text-muted-foreground/60 hover:text-indigo-600 hover:underline flex items-center gap-1"
+                            onClick={() => {
+                                trackEvent({
+                                    name: 'claim_listing_click',
+                                    properties: {
+                                        retailerId: retailer.id,
+                                        retailerName: retailer.name,
+                                        zipCode
+                                    }
+                                });
+                            }}
+                        >
+                            Own this business? Manage this listing
+                        </a>
+                    </div>
+                )}
+            </CardContent>
         </Card >
     );
 }

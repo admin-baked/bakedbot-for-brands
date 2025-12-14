@@ -269,6 +269,17 @@ export default async function LocalZipPage({ params }: PageProps) {
         .sort((a, b) => categoryGroups[b].length - categoryGroups[a].length)
         .slice(0, 3);
 
+    // Calculate top brands
+    const brandCounts = products.reduce((acc, product) => {
+        const brand = product.brandName || 'Unknown';
+        acc[brand] = (acc[brand] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const topBrands = Object.keys(brandCounts)
+        .sort((a, b) => brandCounts[b] - brandCounts[a])
+        .slice(0, 10); // Top 10 brands
+
     return (
         <>
             {/* Structured Data */}
@@ -372,6 +383,28 @@ export default async function LocalZipPage({ params }: PageProps) {
                                     ))}
                                 </div>
                             </section>
+
+                            {/* Popular Brands (P5) */}
+                            {topBrands.length > 0 && (
+                                <section className="mb-10">
+                                    <h2 className="mb-4 text-2xl font-semibold">Popular Brands</h2>
+                                    <div className="flex flex-wrap gap-2">
+                                        {topBrands.map(brand => {
+                                            const slug = brand.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                                            return (
+                                                <Link
+                                                    key={brand}
+                                                    href={`/local/${zipCode}/brand/${slug}`}
+                                                >
+                                                    <Badge variant="secondary" className="px-3 py-1 hover:bg-indigo-100 hover:text-indigo-800 transition-colors cursor-pointer text-sm">
+                                                        {brand}
+                                                    </Badge>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
+                            )}
 
                             {/* Categories */}
                             <section>
