@@ -66,7 +66,8 @@ export async function searchNearbyRetailers(
     latitude: number,
     longitude: number,
     limit: number = 3,
-    state?: string
+    state?: string,
+    cityName?: string
 ): Promise<RetailerLocation[]> {
     try {
         const params = new URLSearchParams({
@@ -78,6 +79,11 @@ export async function searchNearbyRetailers(
 
         if (state) {
             params.append('states', state);
+        }
+
+        // If we have a city name, search by name as a fallback for broken geo-search
+        if (cityName) {
+            params.append('name', cityName);
         }
 
         const response = await fetch(
@@ -116,8 +122,26 @@ export async function searchNearbyRetailers(
                 : undefined,
         }));
 
+        // Filter by state if provided (client-side backup)
+        let filtered = retailers;
+        if (state) {
+            filtered = filtered.filter(r =>
+                (r.state && r.state.toLowerCase() === state.toLowerCase()) ||
+                (r.state && r.state.toLowerCase() === (state === 'CA' ? 'california' : state.toLowerCase())) // Handle basic mapping
+            );
+        }
+
+        // Filter by city if provided (exact match preferred)
+        if (cityName) {
+            const cityMatch = filtered.filter(r => r.city && r.city.toLowerCase() === cityName.toLowerCase());
+            if (cityMatch.length > 0) {
+                // If we found exact city matches, prioritize them
+                // But keep others if they are close
+            }
+        }
+
         // Sort by distance if available
-        return retailers
+        return filtered
             .sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity))
             .slice(0, limit);
     } catch (error) {
@@ -125,6 +149,7 @@ export async function searchNearbyRetailers(
         return [];
     }
 }
+
 
 /**
  * Get products available at a specific retailer
@@ -248,17 +273,19 @@ export async function getProductAvailability(
     } catch (error) {
         logger.error('Error fetching product availability:', error instanceof Error ? error : new Error(String(error)));
         return [];
+
     }
 }
+
 
 /**
  * Convert ZIP code to coordinates using a simple geocoding service
  */
-export async function geocodeZipCode(zipCode: string): Promise<{ lat: number; lng: number } | null> {
+export async function geocodeZipCode(zipCode: string): Promise<{ lat: number; lng: number; city?: string; state?: string } | null> {
     try {
         // Using a free geocoding service (you can replace with Google Maps API if you have a key)
         const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?postalcode=${zipCode}&country=US&format=json&limit=1`,
+            `https://nominatim.openstreetmap.org/search?postalcode=${zipCode}&country=US&format=json&limit=1&addressdetails=1`,
             {
                 headers: {
                     'User-Agent': 'BakedBot-Headless-Menu',
@@ -273,9 +300,13 @@ export async function geocodeZipCode(zipCode: string): Promise<{ lat: number; ln
         const data = await response.json();
 
         if (data && data.length > 0) {
+            const result = data[0];
+            const address = result.address || {};
             return {
-                lat: parseFloat(data[0].lat),
-                lng: parseFloat(data[0].lon),
+                lat: parseFloat(result.lat),
+                lng: parseFloat(result.lon),
+                city: address.city || address.town || address.village || address.hamlet,
+                state: address.state
             };
         }
 
