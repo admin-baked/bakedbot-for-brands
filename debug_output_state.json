@@ -1,0 +1,128 @@
+{
+  "coords": {
+    "lat": 41.8916645,
+    "lng": -87.6343081
+  },
+  "retailers": [
+    {
+      "name": "102 CBD VAPE SMOKE",
+      "city": "Milwaukee",
+      "state": "Wisconsin",
+      "distance": 74.78624580583805
+    },
+    {
+      "name": "100Leafs Cannabis Co.",
+      "city": "Battle Creek",
+      "state": "Michigan",
+      "distance": 128.53173029585744
+    },
+    {
+      "name": "'Til Death Tattoos",
+      "city": "Appleton",
+      "state": "Wisconsin",
+      "distance": 169.29937603342935
+    },
+    {
+      "name": "10 Seventeen Cannabis",
+      "city": "Belle River",
+      "state": "Ontario",
+      "distance": 254.0079534165169
+    },
+    {
+      "name": "1 Stop Cannabis",
+      "city": "Simcoe",
+      "state": "Ontario",
+      "distance": 379.76578323693985
+    },
+    {
+      "name": "(2 + 2) Secret Headquarters!!!!",
+      "city": "Tulsa",
+      "state": "Oklahoma",
+      "distance": 594.8066663617153
+    },
+    {
+      "name": "(Under New Ownership) Sedgwick Alternative Relief",
+      "city": "Sedgwick",
+      "state": "Colorado",
+      "distance": 773.4326980814873
+    },
+    {
+      "name": "1 Connection",
+      "city": "North Dighton",
+      "state": "Massachusetts",
+      "distance": 845.9778305573785
+    },
+    {
+      "name": "$50 Ounces Dispensary",
+      "city": "Denver",
+      "state": "Colorado",
+      "distance": 920.4017159916091
+    },
+    {
+      "name": "1 Mill",
+      "city": "Belfast",
+      "state": "Maine",
+      "distance": 953.3458548422276
+    },
+    {
+      "name": "(HOB) House of Blaze, LLC",
+      "city": "Albuquerque",
+      "state": "New Mexico",
+      "distance": 1123.7651830241841
+    },
+    {
+      "name": "1 Stop Smoke Shop Vapor & Accessories",
+      "city": "Albuquerque",
+      "state": "New Mexico",
+      "distance": 1123.7884531322502
+    },
+    {
+      "name": "10 Cleveland",
+      "city": "Bozeman",
+      "state": "Montana",
+      "distance": 1192.3003390951064
+    },
+    {
+      "name": "10 Cleveland-Helena Location",
+      "city": "Helena",
+      "state": "Montana",
+      "distance": 1243.5157402050918
+    },
+    {
+      "name": "\"GreenStone Retail\" CALIFORNIA CITY SUPPLY, LLC",
+      "city": "California City",
+      "state": "California",
+      "distance": 1697.8039391932803
+    },
+    {
+      "name": "112th Street Cannabis",
+      "city": "Puyallup",
+      "state": "Washington",
+      "distance": 1733.455378449009
+    },
+    {
+      "name": "10th Street Cannabis Co.",
+      "city": "San Jose",
+      "state": "California",
+      "distance": 1836.785743307498
+    },
+    {
+      "name": "101 M St Dispensary Inc.",
+      "city": "Orange",
+      "state": "California",
+      "distance": 1867.9816609827267
+    },
+    {
+      "name": "100 Percent Cannabis",
+      "city": "Port Mcneill",
+      "state": "British Columbia",
+      "distance": 1952.5381283089544
+    },
+    {
+      "name": "100 Percent Cannabis",
+      "city": "Port Hardy",
+      "state": "British Columbia",
+      "distance": 1970.7794940186332
+    }
+  ]
+}

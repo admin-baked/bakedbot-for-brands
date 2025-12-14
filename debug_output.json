@@ -1,0 +1,38 @@
+{
+  "coords": {
+    "lat": 41.8916645,
+    "lng": -87.6343081
+  },
+  "retailers": [
+    {
+      "name": "102 CBD VAPE SMOKE",
+      "city": "Milwaukee",
+      "state": "Wisconsin",
+      "distance": 74.78624580583805
+    },
+    {
+      "name": "100Leafs Cannabis Co.",
+      "city": "Battle Creek",
+      "state": "Michigan",
+      "distance": 128.53173029585744
+    },
+    {
+      "name": "'Til Death Tattoos",
+      "city": "Appleton",
+      "state": "Wisconsin",
+      "distance": 169.29937603342935
+    },
+    {
+      "name": "10 Seventeen Cannabis",
+      "city": "Belle River",
+      "state": "Ontario",
+      "distance": 254.0079534165169
+    },
+    {
+      "name": "1 Stop Cannabis",
+      "city": "Simcoe",
+      "state": "Ontario",
+      "distance": 379.76578323693985
+    }
+  ]
+}
