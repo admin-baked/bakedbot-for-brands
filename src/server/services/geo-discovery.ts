@@ -167,9 +167,11 @@ export async function discoverNearbyProducts(
         const products = await getRetailerProducts(retailer.id, {
             category,
             search: brand,
+            state: retailer.state, // Pass state for v1 API
         });
 
         for (const product of products) {
+
             const existing = productMap.get(product.cann_sku_id);
             const availabilityEntry = {
                 retailerId: retailer.id,
