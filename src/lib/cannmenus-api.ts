@@ -356,7 +356,7 @@ export async function geocodeZipCode(zipCode: string): Promise<{ lat: number; ln
             return {
                 lat: parseFloat(result.lat),
                 lng: parseFloat(result.lon),
-                city: address.city || address.town || address.village || address.hamlet,
+                city: address.city || address.town || address.village || address.hamlet || (address.county ? address.county.replace(' County', '') : undefined),
                 state: address.state
             };
         }
