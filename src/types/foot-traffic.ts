@@ -117,6 +117,7 @@ export interface DiscoveryOptions {
     seasonalKeywords?: string[];
     minPrice?: number;
     maxPrice?: number;
+    searchQuery?: string;
     inStockOnly?: boolean;
     limit?: number;
     sortBy?: 'distance' | 'price' | 'score';

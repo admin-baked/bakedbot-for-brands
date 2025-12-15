@@ -21,6 +21,7 @@ import { FeaturedPickupPartnerCard } from '@/components/foot-traffic/featured-pi
 import { AboutZipSection } from '@/components/foot-traffic/about-zip-section';
 import { AgeGate } from '@/components/foot-traffic/age-gate';
 import { DropAlertModal } from '@/components/foot-traffic/drop-alert-modal';
+import { LocalSearchBar } from '@/components/foot-traffic/local-search-bar';
 
 import { getRetailersByZipCode, getZipCodeCoordinates, discoverNearbyProducts } from '@/server/services/geo-discovery';
 import { RetailerSummary, LocalProduct, LocalSEOPage, CannMenusSnapshot } from '@/types/foot-traffic';
@@ -315,6 +316,9 @@ export default async function LocalZipPage({ params }: PageProps) {
                                 <p className="mt-2 text-lg text-muted-foreground">
                                     Discover dispensaries, products, and deals in your neighborhood
                                 </p>
+                                <div className="mt-6">
+                                    <LocalSearchBar zipCode={zipCode} className="text-base" />
+                                </div>
                                 <div className="mt-4 flex items-center gap-4 text-sm">
                                     <Badge variant="secondary" className="gap-1">
                                         <MapPin className="h-3 w-3" />
