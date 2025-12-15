@@ -76,7 +76,7 @@ export interface LocalProduct {
 
     // Pricing
     price: number;
-    originalPrice?: number;
+    originalPrice?: number | null;
     isOnSale: boolean;
 
     // Cannabinoids
