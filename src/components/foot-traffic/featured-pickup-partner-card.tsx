@@ -21,7 +21,7 @@ export function FeaturedPickupPartnerCard({
     city,
     retailer
 }: FeaturedPickupPartnerCardProps) {
-    if (!partnerId || !retailer) return null;
+    if (!partnerId && !retailer && partnerId !== 'fallback') return null; // Update validation logic
 
     const handlePickupClick = () => {
         trackEvent({
@@ -40,10 +40,10 @@ export function FeaturedPickupPartnerCard({
             utm_campaign: `zip_${zipCode}`
         });
 
-        // Assuming retailer.website exists or we have a specific partner link logic
-        const targetUrl = retailer.website
+        // Default/Fallback logic
+        const targetUrl = retailer?.website
             ? `${retailer.website}?${utmParams.toString()}`
-            : '#'; // Fallback
+            : 'https://californiacannabis.wc/menu'; // Hardcoded fallback for now
 
         window.open(targetUrl, '_blank');
     };
@@ -60,10 +60,10 @@ export function FeaturedPickupPartnerCard({
 
                 <div>
                     <h3 className="font-bold text-lg text-amber-950 leading-tight">
-                        Order Pickup at {retailer.name}
+                        Order Pickup at {retailer?.name || 'California Cannabis'}
                     </h3>
                     <p className="text-sm text-amber-800/80 mt-1">
-                        Skip the line. Reserve your order now in {city}.
+                        {retailer ? `Skip the line. Reserve your order now in ${city}.` : `Skip the line. Order ahead for pickup in ${city}.`}
                     </p>
                 </div>
 

@@ -63,7 +63,7 @@ export function LocalProductCard({ product }: LocalProductCardProps) {
                                 </span>
                             )}
                         </div>
-                        {product.size && (
+                        {!!product.size && product.size !== '0' && product.size !== '0g' && (
                             <span className="text-xs text-muted-foreground font-medium">
                                 {product.size}
                             </span>

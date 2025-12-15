@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Bell, Loader2, CheckCircle } from 'lucide-react';
 import { subscribeToDropAlert } from '@/server/actions/alerts';
+import { trackEvent } from '@/lib/analytics';
 
 interface DropAlertModalProps {
     zipCode: string;
@@ -28,6 +29,14 @@ export function DropAlertModal({ zipCode }: DropAlertModalProps) {
         setLoading(false);
 
         if (res.success) {
+            trackEvent({
+                name: 'drop_alert_subscribe',
+                properties: {
+                    zip: zipCode,
+                    age_verified: true,
+                    placement: 'modal'
+                }
+            });
             setTimeout(() => {
                 setOpen(false);
                 setResult(null);
@@ -79,6 +88,18 @@ export function DropAlertModal({ zipCode }: DropAlertModalProps) {
                         {result && !result.success && (
                             <p className="text-sm text-red-500">{result.message}</p>
                         )}
+
+                        <div className="flex items-start gap-2 pt-2 pb-2">
+                            <input
+                                type="checkbox"
+                                id="age-consent"
+                                required
+                                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <label htmlFor="age-consent" className="text-xs text-muted-foreground leading-tight cursor-pointer select-none">
+                                I verify that I am 21+ years of age (or a valid medical patient) and consent to receive email alerts.
+                            </label>
+                        </div>
 
                         <Button type="submit" disabled={loading} className="w-full">
                             {loading ? (

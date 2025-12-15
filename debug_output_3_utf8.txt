@@ -1,0 +1,29 @@
+﻿Debugging discovery for 90002 (Bypassing Firebase)...
+1. Searching for retailers...
+Found 3 retailers.
+ - Los Angeles Farmers (ID: 1194) [California] Dist: 5.37 mi
+ - Los Angeles Cannabis Club (ID: 9750) [California] Dist: 5.95 mi
+ - Los Angeles Variety Cannabis (ID: 2756) [California] Dist: 10.28 mi
+
+2. Fetching products for retailer: Los Angeles Farmers (ID: 1194)...
+   Using State param: "California"
+[CannMenus] Fetching: https://api.cannmenus.com/v1/products?states=California&retailer_ids=1194&limit=50
+   Found 20 products.
+   Sample Product: {
+  "cann_sku_id": "0027x5rQIDXmLB0SAxqJCqz1",
+  "product_name": "Plastic Grinder Standard",
+  "brand_name": "Unknown Brand",
+  "category": "Other",
+  "sub_category": "Glassware",
+  "image_url": "https://s3-us-west-2.amazonaws.com/dutchie-images/218124256055402d95f291f12705005d",
+  "latest_price": 3.99,
+  "percentage_thc": "",
+  "percentage_cbd": "",
+  "product_type": "",
+  "brand_id": "",
+  "url": "https://dutchie.com/stores/wellgreens-home/product/plastic-grinder-standard",
+  "display_weight": "",
+  "original_price": 0,
+  "medical": true,
+  "recreational": true
+}
