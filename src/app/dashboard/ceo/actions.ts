@@ -670,22 +670,35 @@ export async function getFootTrafficMetrics(): Promise<FootTrafficMetrics> {
 
     // Initialize metrics
     const metrics: FootTrafficMetrics = {
+      period: 'month', // Default view
+      startDate: new Date(new Date().setDate(1)), // Start of month
+      endDate: new Date(),
       seo: {
         totalPages: snapshot.size,
         totalPageViews: 0,
-        avgTimeOnPage: 0,
-        bounceRate: 0,
+        // avgTimeOnPage: 0, // Not in type definition based on user feedback? Actually type def has it on LocalSEOPage but maybe not aggregated?
+        // Let's re-read the type file carefully. 
+        // Type file shows:
+        // seo: { totalPages: number; totalPageViews: number; topZipCodes: ... }
+        // It does NOT have avgTimeOnPage or bounceRate in the aggregated 'seo' object.
         topZipCodes: []
       },
       alerts: {
         configured: 0,
-        triggeredLast30Days: 0,
+        triggered: 0,
+        sent: 0,
         conversionRate: 0
       },
       offers: {
         active: 0,
+        totalImpressions: 0,
         totalRedemptions: 0,
         revenueGenerated: 0
+      },
+      discovery: {
+        searchesPerformed: 0,
+        productsViewed: 0,
+        retailerClicks: 0
       }
     };
 
@@ -713,9 +726,13 @@ export async function getFootTrafficMetrics(): Promise<FootTrafficMetrics> {
     console.error('Error fetching foot traffic metrics:', error);
     // Return empty metrics on error
     return {
-      seo: { totalPages: 0, totalPageViews: 0, avgTimeOnPage: 0, bounceRate: 0, topZipCodes: [] },
-      alerts: { configured: 0, triggeredLast30Days: 0, conversionRate: 0 },
-      offers: { active: 0, totalRedemptions: 0, revenueGenerated: 0 }
+      period: 'month',
+      startDate: new Date(),
+      endDate: new Date(),
+      seo: { totalPages: 0, totalPageViews: 0, topZipCodes: [] },
+      alerts: { configured: 0, triggered: 0, sent: 0, conversionRate: 0 },
+      offers: { active: 0, totalImpressions: 0, totalRedemptions: 0, revenueGenerated: 0 },
+      discovery: { searchesPerformed: 0, productsViewed: 0, retailerClicks: 0 }
     };
   }
 }
