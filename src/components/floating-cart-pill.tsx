@@ -1,6 +1,8 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useStore } from '@/hooks/use-store';
 import { ShoppingBag } from 'lucide-react';
 import { useHydrated } from '@/hooks/use-hydrated';
@@ -9,9 +11,7 @@ import { cn } from '@/lib/utils';
 import { formatNumber } from '@/lib/utils';
 
 export function FloatingCartPill() {
-    const { items, setIsOpen, getItemCount, getCartTotal, setCartSheetOpen } = useStore(); // Kept original destructuring for functionality, added items and setIsOpen
-    const [mounted, setMounted] = useState(false);
-    const pathname = usePathname();
+    const { getItemCount, getCartTotal, setCartSheetOpen } = useStore(); // Removed invalid props items/setIsOpen
     const hydrated = useHydrated(); // Kept original hydrated check
     const itemCount = getItemCount();
     const { total } = getCartTotal();
