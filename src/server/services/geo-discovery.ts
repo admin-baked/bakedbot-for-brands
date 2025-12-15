@@ -124,7 +124,8 @@ export async function discoverNearbyProducts(
         limit = DEFAULT_PRODUCT_LIMIT,
         sortBy = 'distance',
         cityName,
-        state
+        state,
+        searchQuery
     } = options;
 
     const searchRadius = Math.min(radiusMiles, MAX_RADIUS_MILES);
@@ -200,6 +201,16 @@ export async function discoverNearbyProducts(
     );
 
     // Step 4: Apply filters
+    if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        localProducts = localProducts.filter(p => {
+            const matchName = p.name.toLowerCase().includes(q);
+            const matchBrand = p.brandName?.toLowerCase().includes(q);
+            const matchDesc = p.description?.toLowerCase().includes(q);
+            return matchName || matchBrand || matchDesc;
+        });
+    }
+
     if (options.minPrice !== undefined) {
         localProducts = localProducts.filter(p => p.price >= options.minPrice!);
     }
