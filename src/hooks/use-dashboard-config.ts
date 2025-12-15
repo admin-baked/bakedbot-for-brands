@@ -60,6 +60,13 @@ export function useDashboardConfig() {
         roles: ['brand', 'owner'],
       },
       {
+        label: 'Brand Page',
+        href: '/dashboard/content/brand-page',
+        icon: 'LayoutTemplate',
+        description: 'Manage your public brand page content.',
+        roles: ['brand', 'owner'],
+      },
+      {
         label: 'Distribution',
         href: '/dashboard/distribution',
         icon: 'Map',

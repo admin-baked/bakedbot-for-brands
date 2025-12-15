@@ -55,6 +55,7 @@ export interface SearchParams {
     brands?: string;
     limit?: number;
     page?: number;
+    near?: string;
 }
 
 export class CannMenusService {
@@ -299,6 +300,7 @@ export class CannMenusService {
                 if (params.brands) queryParams.set('brands', params.brands);
                 if (params.limit) queryParams.set('limit', String(params.limit));
                 if (params.page) queryParams.set('page', String(params.page));
+                if (params.near) queryParams.set('near', params.near);
 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout for search

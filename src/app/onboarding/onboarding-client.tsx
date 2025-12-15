@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { useFormState } from 'react-dom';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,27 @@ export default function OnboardingPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Handle URL params for pre-filling (e.g. coming from Claim Page)
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const roleParam = searchParams.get('role');
+    const brandIdParam = searchParams.get('brandId');
+    const brandNameParam = searchParams.get('brandName');
+
+    if (roleParam === 'brand' && brandIdParam && brandNameParam) {
+      setRole('brand');
+      setSelectedCannMenusEntity({ id: brandIdParam, name: brandNameParam });
+      setStep('review'); // Jump to review if we have specific data
+      toast({ title: 'Welcome!', description: `Completing setup for ${brandNameParam}.` });
+    } else if (roleParam) {
+      // Just setting role
+      if (roleParam === 'brand' || roleParam === 'dispensary' || roleParam === 'customer') {
+        setRole(roleParam as any);
+        setStep('brand-search');
+      }
+    }
+  }, [searchParams, toast]);
 
   // Handle successful onboarding redirect
   useEffect(() => {

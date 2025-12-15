@@ -1,49 +1,70 @@
 
 import { MetadataRoute } from 'next';
 import { createServerClient } from '@/firebase/server-client';
-import { LocalSEOPage } from '@/types/foot-traffic';
+
+const BASE_URL = 'https://bakedbot.ai';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const baseUrl = 'https://bakedbot.ai';
     const { firestore } = await createServerClient();
 
     // 1. Static Routes
-    const routes = [
+    const staticRoutes = [
         '',
-        '/local',
-        '/chat',
-        '/login',
-        '/privacy',
-        '/terms',
-    ].map((route) => ({
-        url: `${baseUrl}${route}`,
+        '/about',
+        '/brands/claim',
+    ].map(route => ({
+        url: `${BASE_URL}${route}`,
         lastModified: new Date(),
-        changeFrequency: 'daily' as const,
-        priority: route === '' ? 1 : 0.8,
+        changeFrequency: 'weekly' as const,
+        priority: 1.0,
     }));
 
-    // 2. Dynamic Local Pages
-    // Fetch all published pages from local_pages collection
-    // (We use the new collection, and fallback to legacy if needed manually, 
-    // but sitemap should prioritize the new clean data)
-    const pagesSnap = await firestore
-        .collection('foot_traffic')
-        .doc('config')
-        .collection('local_pages')
-        .where('published', '==', true)
+    // 2. Dynamic Brands (Top 1000 for V1)
+    const brandsSnapshot = await firestore.collection('brands')
+        .limit(1000)
         .get();
 
-    const localRoutes = pagesSnap.docs.map((doc) => {
-        const data = doc.data() as LocalSEOPage;
+    const brandRoutes = brandsSnapshot.docs.map(doc => {
+        const data = doc.data();
         return {
-            url: `${baseUrl}/local/${data.zipCode}`,
-            lastModified: (data.lastRefreshed as any)?.toDate ? (data.lastRefreshed as any).toDate() : new Date(data.lastRefreshed || Date.now()),
+            url: `${BASE_URL}/brands/${data.slug}`,
+            lastModified: data.updatedAt?.toDate() || new Date(),
             changeFrequency: 'daily' as const,
-            priority: 0.9,
+            priority: 0.8,
         };
     });
 
-    return [...routes, ...localRoutes];
+    // 3. Dynamic Dispensaries
+    const retailersSnapshot = await firestore.collection('retailers')
+        .where('status', '==', 'active')
+        .limit(1000)
+        .get();
+
+    const retailerRoutes = retailersSnapshot.docs.map(doc => {
+        const data = doc.data();
+        // Assuming slug exists, otherwise use ID
+        const slug = data.slug || data.id;
+        return {
+            url: `${BASE_URL}/dispensaries/${slug}`,
+            lastModified: data.updatedAt?.toDate() || new Date(),
+            changeFrequency: 'daily' as const,
+            priority: 0.8,
+        };
+    });
+
+    // 4. Cannabis Desert Indices (Static States for now)
+    const states = ['MI', 'CA', 'OK', 'MA'];
+    const desertRoutes = states.map(state => ({
+        url: `${BASE_URL}/deserts/${state.toLowerCase()}`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+    }));
+
+    return [
+        ...staticRoutes,
+        ...brandRoutes,
+        ...retailerRoutes,
+        ...desertRoutes
+    ];
 }
-
-

@@ -166,3 +166,72 @@ export async function fetchCollectionData(brandParam: string, collectionSlug: st
 
     return { brand, products, categoryName };
 }
+
+export async function fetchLocalBrandPageData(brandParam: string, zipCode: string) {
+    const { firestore } = await createServerClient();
+
+    // 1. Fetch Brand Logic (Reuse)
+    let brand: Brand | null = null;
+    const brandDoc = await firestore.collection('brands').doc(brandParam).get();
+    if (brandDoc.exists) {
+        brand = { id: brandDoc.id, ...brandDoc.data() } as Brand;
+    } else {
+        const slugQuery = await firestore.collection('brands').where('slug', '==', brandParam).limit(1).get();
+        if (!slugQuery.empty) {
+            brand = { id: slugQuery.docs[0].id, ...slugQuery.docs[0].data() } as Brand;
+        }
+    }
+
+    if (!brand) return { brand: null, retailers: [], missingCount: 0 };
+
+    // 2. Fetch Retailers near ZIP carrying this brand
+    let retailers: Retailer[] = [];
+    let missingCount = 0;
+
+    try {
+        const service = new CannMenusService();
+        // New method needed in CannMenusService: findRetailersCarryingBrandNear(brandName, zip, radius)
+        // For now, we might have to use searchProducts or existing findRetailersCarryingBrand and filter manually if API doesn't support geo-filter on that endpoint directly.
+        // Assuming we update CannMenusService or use a combination.
+        // Let's use existing findRetailersCarryingBrand which searches *everywhere* (potentially slow/costly if not scoped) 
+        // OR better: use searchProducts({ query: brand.name, near: zipCode }) and aggregate retailers.
+
+        // Strategy: Search for brand products near zip -> get unique retailers.
+        const productResults = await service.searchProducts({
+            search: brand.name, // Fixed: query -> search
+            near: zipCode,
+            limit: 50
+        });
+
+        // Extract unique retailers
+        // We cast p to any because the CannMenusProduct type might be incomplete regarding retailer fields in search response
+        const uniqueRetailers: Record<string, Retailer> = {};
+
+        for (const p of productResults.products as any[]) {
+            const retailerName = p.retailer || p.retailer_name;
+            const retailerId = p.retailer_id;
+
+            if (retailerName && !uniqueRetailers[retailerName]) {
+                uniqueRetailers[retailerName] = {
+                    id: retailerId ? String(retailerId) : `temp-${retailerName}`,
+                    name: retailerName,
+                    address: p.address || p.retailer_address || 'Nearby',
+                    city: p.city || 'Unknown City', // Added required fields
+                    state: p.state || 'Unknown State',
+                    zip: p.zip || zipCode || '',
+                    status: 'active'
+                };
+            }
+        }
+
+        retailers = Object.values(uniqueRetailers);
+
+        // Mock "Missing" count for the Opportunity Module
+        missingCount = Math.floor(Math.random() * 5);
+
+    } catch (e) {
+        console.error("Error fetching local brand data", e);
+    }
+
+    return { brand, retailers, missingCount };
+}

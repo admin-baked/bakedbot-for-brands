@@ -1,54 +1,68 @@
-export type EventName =
-    | 'view_product'
-    | 'add_to_cart'
-    | 'purchase'
-    | 'share_product'
-    | 'lead_captured'
-    | 'view_promotion'
-    | 'click_affiliate_link'
-    | 'dtc_click'
-    | 'partner_click'
-    | 'talk_to_smokey_click'
-    | 'local_pickup_click'
-    | 'claim_listing_click'
-    | 'drop_alert_subscribe'
-    | 'search_used';
 
+import { EntityType } from "@/types/seo-engine";
+
+export type EventName =
+    // Views
+    | 'view_zip_page'
+    | 'view_brand_page'
+    | 'view_brand_near_zip_page'
+    | 'view_dispensary_page'
+    | 'view_rankings_page'
+
+    // Claiming
+    | 'click_claim_cta'
+    | 'start_claim'
+    | 'submit_claim'
+    | 'verify_started'
+    | 'verify_completed'
+
+    // Monetization
+    | 'upgrade_started'
+    | 'upgrade_completed'
+    | 'featured_impression'
+    | 'featured_click'
+
+    // Conversion Actions
+    | 'talk_to_smokey_click'
+    | 'hemp_shop_click'
+    | 'local_pickup_click'
+    | 'click_out_to_partner' // Use for retailer links
+    | 'get_directions'
+    | 'call_store'
+    | 'drop_alert_subscribe';
 
 export interface AnalyticsEvent {
     name: EventName;
     properties?: Record<string, any>;
-    timestamp?: Date;
-    userId?: string;
-    sessionId?: string;
+    userId?: string; // if known
+    sessionId?: string; // cookie based
+    timestamp?: number; // default Date.now()
 }
 
-import { logger } from '@/lib/logger';
-import { trackUsageAction } from '@/app/actions/usage';
+/**
+ * Tracks an event to the analytics system (e.g. wrapper around PostHog/Google Analytics/Firestore).
+ * For now, this just logs to console or a placeholder service.
+ */
+export function trackEvent(event: AnalyticsEvent) {
+    if (typeof window !== 'undefined') {
+        // Client-side tracking logic
+        console.log(`[Analytics] ${event.name}`, event.properties);
 
-export const trackEvent = async (event: AnalyticsEvent) => {
-    // In a real implementation, this would send data to:
-    // 1. Google Analytics 4
-    // 2. Internal Firestore 'events' collection
-    // 3. Segment / Mixpanel
+        // TODO: Integrate real analytics provider
+        // e.g. posthog.capture(event.name, event.properties);
+    } else {
+        // Server-side tracking logic
+        console.log(`[ServerAnalytics] ${event.name}`, event.properties);
+    }
+}
 
-    const payload = {
-        ...event,
-        timestamp: event.timestamp || new Date(),
-        url: typeof window !== 'undefined' ? window.location.href : '',
+/**
+ * Helper to standardise entity event properties
+ */
+export function getEntityProperties(type: EntityType, id: string, slug?: string) {
+    return {
+        entityType: type,
+        entityId: id,
+        entitySlug: slug
     };
-
-    if (process.env.NODE_ENV === 'development') {
-        logger.debug('[ANALYTICS] Event tracked', { eventName: payload.name, ...payload });
-    }
-
-    // Track usage stats if orgId/brandId is present
-    const orgId = payload.properties?.orgId || payload.properties?.brandId;
-    if (orgId) {
-        // Fire-and-forget
-        trackUsageAction(orgId, 'tracked_events');
-    }
-
-    // TODO: Fire-and-forget server action to save to DB
-    // await saveEventAction(payload);
-};
+}

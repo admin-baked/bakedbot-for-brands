@@ -1,0 +1,5 @@
+
+> nextn@0.1.0 check:types
+> tsc --noEmit
+
+src/app/brands/[brandSlug]/near/[zip]/page.tsx(123,26): error TS2304: Cannot find name 'ProductGrid'.
