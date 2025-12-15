@@ -29,7 +29,11 @@ export type EventName =
     | 'click_out_to_partner' // Use for retailer links
     | 'get_directions'
     | 'call_store'
-    | 'drop_alert_subscribe';
+    | 'drop_alert_subscribe'
+    | 'dtc_click'
+    | 'search_used'
+    | 'partner_click'
+    | 'claim_listing_click';
 
 export interface AnalyticsEvent {
     name: EventName;
