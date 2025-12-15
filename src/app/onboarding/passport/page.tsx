@@ -9,8 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Check, Sparkles } from 'lucide-react';
 import { DesiredEffect, ConsumptionMethod, ExperienceLevel } from '@/types/preference-passport';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/firebase/client'; // Utilizing client-side firebase for the wizard? Or server action? 
-// Let's use a server action for submission to be consistent with Next.js 14 patterns, but client state for wizard.
+// Removed invalid client import
 
 // Steps
 const STEPS = ['Experience', 'Effects', 'Methods', 'Review'];

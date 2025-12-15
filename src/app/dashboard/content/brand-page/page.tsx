@@ -53,8 +53,8 @@ export default async function BrandPageManager() {
             // Maybe it's a CannMenus ID?
             // For V1, let's just show the ID
         }
-    } catch (err) {
-        logger.error("Error fetching brand for manager", err);
+    } catch (err: any) {
+        logger.error("Error fetching brand for manager", { error: err.message || err });
     }
 
     return (

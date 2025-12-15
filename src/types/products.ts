@@ -12,6 +12,10 @@ export type Brand = {
         sellingPoints?: string;
         updatedAt?: any;
     };
+    verificationStatus?: 'verified' | 'unverified' | 'featured';
+    dispensaryCount?: number;
+    slug?: string;
+    claimStatus?: 'claimed' | 'unclaimed';
 };
 
 export type ReviewSummaryEmbedding = {
