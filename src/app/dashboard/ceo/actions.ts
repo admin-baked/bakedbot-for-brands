@@ -736,3 +736,246 @@ export async function getFootTrafficMetrics(): Promise<FootTrafficMetrics> {
     };
   }
 }
+
+// =============================================================================
+// BRAND SEO PAGE ACTIONS
+// =============================================================================
+
+import type { BrandSEOPage, CreateBrandPageInput, BrandCTAType } from '@/types/foot-traffic';
+
+/**
+ * Search for brands via CannMenus API
+ */
+export async function searchBrandsAction(query: string): Promise<{ id: string; name: string; }[]> {
+  if (!query || query.length < 2) return [];
+
+  const base = process.env.CANNMENUS_API_BASE || process.env.CANNMENUS_API_URL;
+  const apiKey = process.env.CANNMENUS_API_KEY;
+
+  // Mock data for development
+  const MOCK_BRANDS = [
+    { id: '1001', name: 'Jeeter' },
+    { id: '1002', name: 'Stiiizy' },
+    { id: '1003', name: 'Raw Garden' },
+    { id: '1004', name: 'Kiva Confections' },
+    { id: '1005', name: 'Wyld' },
+    { id: '1006', name: 'Cookies' },
+    { id: '1007', name: 'Glass House Farms' },
+    { id: '1008', name: 'Alien Labs' },
+    { id: '1009', name: 'Connected Cannabis' },
+    { id: '1010', name: 'Camino' },
+  ];
+
+  if (!base || !apiKey) {
+    console.warn('[searchBrandsAction] CannMenus API keys missing, using mock data.');
+    const lowerQuery = query.toLowerCase();
+    return MOCK_BRANDS.filter(b => b.name.toLowerCase().includes(lowerQuery));
+  }
+
+  try {
+    const headers = {
+      "Accept": "application/json",
+      "User-Agent": "BakedBot/1.0",
+      "X-Token": apiKey.trim().replace(/^['\"']|['\"']$/g, ""),
+    };
+
+    const res = await fetch(`${base}/v1/brands?name=${encodeURIComponent(query)}`, { headers });
+
+    if (!res.ok) {
+      console.warn(`[searchBrandsAction] API failed: ${res.status}`);
+      return MOCK_BRANDS.filter(b => b.name.toLowerCase().includes(query.toLowerCase()));
+    }
+
+    const data = await res.json();
+    if (data.data) {
+      return data.data.map((b: any) => ({
+        id: String(b.id),
+        name: b.brand_name
+      }));
+    }
+
+    return [];
+  } catch (error) {
+    console.error('[searchBrandsAction] Error:', error);
+    return [];
+  }
+}
+
+/**
+ * Get products for a brand from CannMenus API
+ */
+export async function getBrandProductsAction(brandId: string, state?: string): Promise<{ id: string; name: string; price: number; imageUrl: string }[]> {
+  try {
+    const { getProducts } = await import('@/lib/cannmenus-api');
+    const products = await getProducts(brandId, state);
+    return products.slice(0, 20).map((p: any) => ({
+      id: p.cann_sku_id || p.id,
+      name: p.product_name || p.name,
+      price: p.latest_price || p.price || 0,
+      imageUrl: p.image_url || p.imageUrl || ''
+    }));
+  } catch (error) {
+    console.error('[getBrandProductsAction] Error:', error);
+    return [];
+  }
+}
+
+/**
+ * Create a new brand SEO page
+ */
+export async function createBrandPageAction(input: CreateBrandPageInput): Promise<ActionResult> {
+  await requireUser(['owner']);
+
+  try {
+    const firestore = getAdminFirestore();
+
+    // Generate slug from brand name
+    const brandSlug = input.brandSlug || input.brandName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+    // Create a page for each ZIP code
+    const batch = firestore.batch();
+    const createdIds: string[] = [];
+
+    for (const zipCode of input.zipCodes) {
+      const pageId = `${brandSlug}_${zipCode}`;
+
+      const brandPage: BrandSEOPage = {
+        id: pageId,
+        brandId: input.brandId,
+        brandName: input.brandName,
+        brandSlug,
+        logoUrl: input.logoUrl,
+        zipCodes: [zipCode], // Each page has one primary ZIP
+        city: input.city,
+        state: input.state,
+        zoneName: input.zoneName,
+        radiusMiles: input.radiusMiles || 15,
+        priority: input.priority || 5,
+        ctaType: input.ctaType,
+        ctaUrl: input.ctaUrl,
+        featuredProductIds: input.featuredProductIds || [],
+        contentBlock: input.contentBlock,
+        seoTags: input.seoTags || {
+          metaTitle: `Buy ${input.brandName} near ${input.city}, ${input.state} (${zipCode})`,
+          metaDescription: `Find ${input.brandName} products at dispensaries near ${zipCode}. Check availability, prices, and order online.`,
+          keywords: [input.brandName.toLowerCase(), 'cannabis', input.city.toLowerCase(), zipCode]
+        },
+        published: input.published ?? false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'martez@bakedbot.ai', // TODO: Get from session
+        metrics: {
+          pageViews: 0,
+          ctaClicks: 0,
+          claimAttempts: 0
+        }
+      };
+
+      const ref = firestore.collection('foot_traffic').doc('config').collection('brand_pages').doc(pageId);
+      batch.set(ref, brandPage);
+      createdIds.push(pageId);
+    }
+
+    await batch.commit();
+
+    return { message: `Successfully created ${createdIds.length} brand page(s) for ${input.brandName}.` };
+  } catch (error: any) {
+    console.error('[createBrandPageAction] Error:', error);
+    return { message: `Failed to create brand page: ${error.message}`, error: true };
+  }
+}
+
+/**
+ * Get all brand SEO pages
+ */
+export async function getBrandPagesAction(): Promise<BrandSEOPage[]> {
+  try {
+    const firestore = getAdminFirestore();
+    const snapshot = await firestore
+      .collection('foot_traffic')
+      .doc('config')
+      .collection('brand_pages')
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+        claimedAt: data.claimedAt?.toDate?.() || null,
+      } as BrandSEOPage;
+    });
+  } catch (error) {
+    console.error('[getBrandPagesAction] Error:', error);
+    return [];
+  }
+}
+
+/**
+ * Update a brand SEO page
+ */
+export async function updateBrandPageAction(id: string, updates: Partial<CreateBrandPageInput>): Promise<ActionResult> {
+  await requireUser(['owner']);
+
+  try {
+    const firestore = getAdminFirestore();
+    const ref = firestore.collection('foot_traffic').doc('config').collection('brand_pages').doc(id);
+
+    const doc = await ref.get();
+    if (!doc.exists) {
+      return { message: 'Brand page not found.', error: true };
+    }
+
+    await ref.update({
+      ...updates,
+      updatedAt: new Date()
+    });
+
+    return { message: 'Brand page updated successfully.' };
+  } catch (error: any) {
+    console.error('[updateBrandPageAction] Error:', error);
+    return { message: `Failed to update brand page: ${error.message}`, error: true };
+  }
+}
+
+/**
+ * Delete a brand SEO page
+ */
+export async function deleteBrandPageAction(id: string): Promise<ActionResult> {
+  await requireUser(['owner']);
+
+  try {
+    const firestore = getAdminFirestore();
+    await firestore.collection('foot_traffic').doc('config').collection('brand_pages').doc(id).delete();
+
+    return { message: 'Brand page deleted successfully.' };
+  } catch (error: any) {
+    console.error('[deleteBrandPageAction] Error:', error);
+    return { message: `Failed to delete brand page: ${error.message}`, error: true };
+  }
+}
+
+/**
+ * Toggle publish status of a brand SEO page
+ */
+export async function toggleBrandPagePublishAction(id: string, published: boolean): Promise<ActionResult> {
+  await requireUser(['owner']);
+
+  try {
+    const firestore = getAdminFirestore();
+    const ref = firestore.collection('foot_traffic').doc('config').collection('brand_pages').doc(id);
+
+    await ref.update({
+      published,
+      updatedAt: new Date()
+    });
+
+    return { message: `Brand page ${published ? 'published' : 'unpublished'} successfully.` };
+  } catch (error: any) {
+    console.error('[toggleBrandPagePublishAction] Error:', error);
+    return { message: `Failed to update publish status: ${error.message}`, error: true };
+  }
+}

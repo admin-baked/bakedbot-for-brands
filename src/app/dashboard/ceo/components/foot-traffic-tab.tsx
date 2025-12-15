@@ -71,10 +71,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 // import { db } from '@/firebase/client'; // Removed client db usage
 // import { collection, getDocs, query, orderBy } from 'firebase/firestore'; // Removed
-import { getSeoPagesAction, seedSeoPageAction, deleteSeoPageAction, getFootTrafficMetrics } from '../actions';
+import { getSeoPagesAction, seedSeoPageAction, deleteSeoPageAction, getFootTrafficMetrics, getBrandPagesAction, deleteBrandPageAction, toggleBrandPagePublishAction } from '../actions';
+
+// Brand Page Components
+import { BrandPageCreatorDialog } from './brand-page-creator-dialog';
 
 // ... existing imports
-import type { GeoZone, DropAlertConfig, LocalOffer, LocalSEOPage, FootTrafficMetrics } from '@/types/foot-traffic';
+import type { GeoZone, DropAlertConfig, LocalOffer, LocalSEOPage, FootTrafficMetrics, BrandSEOPage } from '@/types/foot-traffic';
+import { Sparkles } from 'lucide-react';
 
 // Mock data for demonstration
 const MOCK_GEO_ZONES: GeoZone[] = [
@@ -220,6 +224,10 @@ export default function FootTrafficTab() {
     const [seedData, setSeedData] = useState({ zipCode: '', featuredDispensaryName: '' });
     const [isSeeding, setIsSeeding] = useState(false);
 
+    // Brand Page State
+    const [brandPages, setBrandPages] = useState<BrandSEOPage[]>([]);
+    const [isBrandPageDialogOpen, setIsBrandPageDialogOpen] = useState(false);
+
     // Fetch SEO Pages
     const fetchSeoPages = async () => {
         try {
@@ -235,9 +243,51 @@ export default function FootTrafficTab() {
         }
     };
 
+    // Fetch Brand Pages
+    const fetchBrandPages = async () => {
+        try {
+            const pages = await getBrandPagesAction();
+            setBrandPages(pages);
+        } catch (error) {
+            console.error('Error fetching brand pages:', error);
+        }
+    };
+
+    // Handle delete brand page
+    const handleDeleteBrandPage = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this brand page?')) return;
+        try {
+            const result = await deleteBrandPageAction(id);
+            if (result.error) {
+                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+            } else {
+                toast({ title: 'Deleted', description: result.message });
+                fetchBrandPages();
+            }
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to delete brand page.', variant: 'destructive' });
+        }
+    };
+
+    // Handle toggle publish
+    const handleToggleBrandPagePublish = async (id: string, published: boolean) => {
+        try {
+            const result = await toggleBrandPagePublishAction(id, published);
+            if (result.error) {
+                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+            } else {
+                toast({ title: published ? 'Published' : 'Unpublished', description: result.message });
+                fetchBrandPages();
+            }
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to update publish status.', variant: 'destructive' });
+        }
+    };
+
     useEffect(() => {
         if (activeTab === 'seo-pages') {
             fetchSeoPages();
+            fetchBrandPages();
         }
     }, [activeTab]);
 
@@ -975,6 +1025,166 @@ export default function FootTrafficTab() {
                             </Table>
                         </CardContent>
                     </Card>
+
+                    {/* Brand Pages Section */}
+                    <div className="mt-8 pt-8 border-t">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="text-lg font-semibold flex items-center gap-2">
+                                    <Sparkles className="h-5 w-5 text-primary" />
+                                    Brand Pages
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Brand-specific SEO pages for targeted foot traffic campaigns
+                                </p>
+                            </div>
+                            <Button onClick={() => setIsBrandPageDialogOpen(true)}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Generate Brand Page
+                            </Button>
+                        </div>
+
+                        {/* Brand Pages Stats */}
+                        <div className="grid gap-4 md:grid-cols-3 mb-6">
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Brand Pages</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{brandPages.length}</div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium">Published</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-green-600">
+                                        {brandPages.filter(p => p.published).length}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium">Drafts</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-yellow-600">
+                                        {brandPages.filter(p => !p.published).length}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Brand Pages Table */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Brand Page Directory</CardTitle>
+                                <CardDescription>Manage brand-specific local landing pages</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Brand</TableHead>
+                                            <TableHead>ZIP Code</TableHead>
+                                            <TableHead>City</TableHead>
+                                            <TableHead>State</TableHead>
+                                            <TableHead>CTA</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {brandPages.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                                    No brand pages yet. Click "Generate Brand Page" to create one.
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            brandPages.map(page => (
+                                                <TableRow key={page.id}>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            {page.logoUrl ? (
+                                                                <img src={page.logoUrl} alt={page.brandName} className="h-6 w-6 rounded" />
+                                                            ) : (
+                                                                <div className="h-6 w-6 rounded bg-primary/10 flex items-center justify-center">
+                                                                    <Sparkles className="h-3 w-3 text-primary" />
+                                                                </div>
+                                                            )}
+                                                            <span className="font-medium">{page.brandName}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="font-mono">{page.zipCodes[0]}</TableCell>
+                                                    <TableCell>{page.city}</TableCell>
+                                                    <TableCell><Badge variant="outline">{page.state}</Badge></TableCell>
+                                                    <TableCell>
+                                                        <Badge variant="secondary" className="capitalize">
+                                                            {page.ctaType.replace(/_/g, ' ')}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {page.published ? (
+                                                            <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
+                                                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                                Published
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="secondary">
+                                                                Draft
+                                                            </Badge>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                    <span className="sr-only">Open menu</span>
+                                                                    <MoreHorizontal className="h-4 w-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                                <DropdownMenuItem onClick={() => window.open(`/brands/${page.brandSlug}/near/${page.zipCodes[0]}`, '_blank')}>
+                                                                    <Eye className="mr-2 h-4 w-4" /> View Page
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                {page.published ? (
+                                                                    <DropdownMenuItem onClick={() => handleToggleBrandPagePublish(page.id, false)}>
+                                                                        <XCircle className="mr-2 h-4 w-4" /> Unpublish
+                                                                    </DropdownMenuItem>
+                                                                ) : (
+                                                                    <DropdownMenuItem onClick={() => handleToggleBrandPagePublish(page.id, true)}>
+                                                                        <CheckCircle2 className="mr-2 h-4 w-4" /> Publish
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem
+                                                                    className="text-destructive focus:text-destructive"
+                                                                    onClick={() => handleDeleteBrandPage(page.id)}
+                                                                >
+                                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Brand Page Creator Dialog */}
+                    <BrandPageCreatorDialog
+                        open={isBrandPageDialogOpen}
+                        onOpenChange={setIsBrandPageDialogOpen}
+                        onSuccess={fetchBrandPages}
+                    />
                 </TabsContent>
 
                 {/* Drop Alerts Tab */}
