@@ -10,7 +10,9 @@ export type EventName =
     | 'partner_click'
     | 'talk_to_smokey_click'
     | 'local_pickup_click'
-    | 'claim_listing_click';
+    | 'claim_listing_click'
+    | 'drop_alert_subscribe'
+    | 'search_used';
 
 
 export interface AnalyticsEvent {
