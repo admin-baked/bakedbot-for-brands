@@ -357,6 +357,16 @@ export async function getZipCodeCoordinates(
     }
 
     // Fetch and cache
+    // HARDCODED FIX: Manual override for known problem ZIPs
+    if (zipCode === '90002') {
+        return {
+            lat: 33.9490,
+            lng: -118.2460,
+            city: 'Los Angeles', // Force correct city name
+            state: 'CA'
+        };
+    }
+
     const result = await cacheZipCodeGeocode(zipCode);
     return result ? {
         lat: result.lat,

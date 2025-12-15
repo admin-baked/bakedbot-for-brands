@@ -9,12 +9,22 @@ import { cn } from '@/lib/utils';
 import { formatNumber } from '@/lib/utils';
 
 export function FloatingCartPill() {
-    const { getItemCount, getCartTotal, setCartSheetOpen } = useStore();
-    const hydrated = useHydrated();
+    const { items, setIsOpen, getItemCount, getCartTotal, setCartSheetOpen } = useStore(); // Kept original destructuring for functionality, added items and setIsOpen
+    const [mounted, setMounted] = useState(false);
+    const pathname = usePathname();
+    const hydrated = useHydrated(); // Kept original hydrated check
     const itemCount = getItemCount();
     const { total } = getCartTotal();
 
-    if (!hydrated || itemCount === 0) return null;
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) return null;
+    if (!hydrated) return null; // Keep original hydrated check
+    if (itemCount === 0) return null; // Use itemCount for consistency with original logic
+    if (pathname?.startsWith('/dashboard')) return null;
+    if (pathname === '/checkout') return null;
 
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">

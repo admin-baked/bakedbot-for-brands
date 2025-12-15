@@ -218,6 +218,11 @@ export default function Chatbot({ products = [], brandId = "", initialOpen = fal
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+
+  // HIDE ON DASHBOARD
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  if (pathname.startsWith('/dashboard')) return null;
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
