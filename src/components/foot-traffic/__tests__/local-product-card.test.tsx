@@ -18,6 +18,8 @@ const mockProduct: LocalProduct = {
     imageUrl: 'http://example.com/img.jpg',
     availability: [],
     retailerCount: 5,
+    brandId: 'b1',
+    category: 'Vape',
     nearestDistance: 1.2
 };
 
