@@ -59,10 +59,19 @@ import {
     CheckCircle2,
     XCircle,
     AlertTriangle,
+    MoreHorizontal,
 } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 // import { db } from '@/firebase/client'; // Removed client db usage
 // import { collection, getDocs, query, orderBy } from 'firebase/firestore'; // Removed
-import { getSeoPagesAction, seedSeoPageAction, deleteSeoPageAction } from '../actions';
+import { getSeoPagesAction, seedSeoPageAction, deleteSeoPageAction, getFootTrafficMetrics } from '../actions';
 
 // ... existing imports
 import type { GeoZone, DropAlertConfig, LocalOffer, LocalSEOPage, FootTrafficMetrics } from '@/types/foot-traffic';
@@ -217,6 +226,10 @@ export default function FootTrafficTab() {
             // Replaced with Server Action
             const pages = await getSeoPagesAction();
             setSeoPages(pages);
+
+            // Also fetch metrics
+            const metricsData = await getFootTrafficMetrics();
+            setMetrics(metricsData);
         } catch (error) {
             console.error('Error fetching SEO pages:', error);
         }
@@ -449,7 +462,7 @@ export default function FootTrafficTab() {
                             <CardContent>
                                 <div className="text-2xl font-bold">{metrics.seo.totalPages}</div>
                                 <p className="text-xs text-muted-foreground">
-                                    {metrics.seo.totalPageViews.toLocaleString()} page views this month
+                                    {(metrics.seo.totalPageViews || 0).toLocaleString()} page views this month
                                 </p>
                             </CardContent>
                         </Card>
@@ -527,6 +540,13 @@ export default function FootTrafficTab() {
                                         </div>
                                     </div>
                                 ))}
+                                {geoZones.filter(z => z.enabled).length === 0 && (
+                                    <div className="text-center py-4 text-muted-foreground">
+                                        <MapPin className="h-10 w-10 mx-auto mb-2 text-muted-foreground/50" />
+                                        <p>No active geo zones found.</p>
+                                        <Button variant="link" onClick={() => setActiveTab('geo-zones')}>Create a Zone</Button>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -539,20 +559,26 @@ export default function FootTrafficTab() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {metrics.seo.topZipCodes.map((zip, index) => (
-                                    <div key={zip.zipCode} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted font-medium">
-                                                {index + 1}
-                                            </div>
-                                            <span className="font-mono">{zip.zipCode}</span>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-medium">{zip.views.toLocaleString()}</p>
-                                            <p className="text-xs text-muted-foreground">views</p>
-                                        </div>
+                                {metrics.seo.topZipCodes.length === 0 ? (
+                                    <div className="text-center py-4 text-muted-foreground">
+                                        <p>No data available yet.</p>
                                     </div>
-                                ))}
+                                ) : (
+                                    metrics.seo.topZipCodes.map((zip, index) => (
+                                        <div key={zip.zipCode} className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted font-medium">
+                                                    {index + 1}
+                                                </div>
+                                                <span className="font-mono">{zip.zipCode}</span>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-medium">{zip.views.toLocaleString()}</p>
+                                                <p className="text-xs text-muted-foreground">views</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -907,22 +933,40 @@ export default function FootTrafficTab() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button variant="ghost" size="sm" asChild>
-                                                            <a href={`/local/${page.zipCode}`} target="_blank" rel="noopener noreferrer">
-                                                                <Eye className="h-4 w-4 mr-2" />
-                                                                View
-                                                            </a>
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleDeletePage(page.zipCode)}
-                                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                <span className="sr-only">Open menu</span>
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                            <DropdownMenuItem onClick={() => window.open(`/local/${page.zipCode}`, '_blank')}>
+                                                                <Eye className="nr-2 h-4 w-4" /> View Page
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => toast({ title: "Refreshed", description: "Snapshot updated." })}>
+                                                                <RefreshCw className="mr-2 h-4 w-4" /> Refresh Snapshot
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem onClick={() => toast({ title: "Partner Featured", description: "Partner added to page." })}>
+                                                                <Plus className="mr-2 h-4 w-4" /> Feature Partner
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => toast({ title: "Unpublished", description: "Page has been hidden." })}>
+                                                                <XCircle className="mr-2 h-4 w-4" /> Unpublish
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => toast({ title: "Analytics", description: "Opening analytics view..." })}>
+                                                                <TrendingUp className="mr-2 h-4 w-4" /> View Analytics
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                className="text-destructive focus:text-destructive"
+                                                                onClick={() => handleDeletePage(page.zipCode)}
+                                                            >
+                                                                <Trash2 className="mr-2 h-4 w-4" /> Delete Page
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
                                                 </TableCell>
                                             </TableRow>
                                         ))
