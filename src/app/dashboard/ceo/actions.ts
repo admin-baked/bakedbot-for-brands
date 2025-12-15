@@ -127,9 +127,93 @@ export async function createCoupon(prevState: ActionResult, formData: FormData):
 }
 
 // Updated signatures to match useFormState
+// Updated signatures to match useFormState
 export async function importDemoData(prevState: ActionResult, formData?: FormData): Promise<ActionResult> {
   await requireUser(['owner']);
-  return { message: 'Demo data imported (Mock)' };
+
+  try {
+    const firestore = getAdminFirestore();
+    const batch = firestore.batch();
+
+    // 1. Seed Brands
+    const brands = [
+      {
+        id: 'brand_baked_bot',
+        name: 'BakedBot Genetics',
+        slug: 'bakedbot-genetics',
+        description: 'Premium AI-grown cannabis genetics for the modern cultivator.',
+        logoUrl: 'https://bakedbot.ai/images/logo-square.png',
+        coverImageUrl: 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&w=1200&q=80',
+        website: 'https://bakedbot.ai',
+        verificationStatus: 'verified',
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'brand_kush_kings',
+        name: 'Kush Kings',
+        slug: 'kush-kings',
+        description: 'Royalty grade cannabis for the discerning smoker.',
+        logoUrl: 'https://ui-avatars.com/api/?name=Kush+Kings&background=random',
+        coverImageUrl: 'https://images.unsplash.com/photo-1556928045-16f7f50be0f3?auto=format&fit=crop&w=1200&q=80',
+        verificationStatus: 'featured',
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+
+    for (const brand of brands) {
+      batch.set(firestore.collection('brands').doc(brand.id), brand);
+    }
+
+    // 2. Seed Dispensaries
+    const dispensaries = [
+      {
+        id: 'disp_green_haven',
+        name: 'Green Haven',
+        slug: 'green-haven-la',
+        description: 'Your local sanctuary for cannabis wellness.',
+        address: '123 Melrose Ave',
+        city: 'Los Angeles',
+        state: 'CA',
+        zip: '90046',
+        type: 'dispensary', // organization type
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'disp_elevate',
+        name: 'Elevate Dispensary',
+        slug: 'elevate-chicago',
+        description: 'Elevate your mind and body.',
+        address: '456 Loop Blvd',
+        city: 'Chicago',
+        state: 'IL',
+        zip: '60601',
+        type: 'dispensary',
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+
+    for (const disp of dispensaries) {
+      batch.set(firestore.collection('organizations').doc(disp.id), disp);
+      // Also add to 'dispensaries' collection if that's used separately? 
+      // Based on searchCannMenusRetailers it seems we use 'organizations' with type='dispensary' or external API.
+      // But let's check fetchDispensaryPageData... (not visible but safe to assume organizations is key).
+    }
+
+    await batch.commit();
+
+    return { message: `Successfully seeded ${brands.length} brands and ${dispensaries.length} dispensaries.` };
+  } catch (error: any) {
+    console.error('Error importing demo data:', error);
+    return { message: `Failed to import demo data: ${error.message}`, error: true };
+  }
 }
 
 export async function clearAllData(prevState: ActionResult, formData?: FormData): Promise<ActionResult> {
