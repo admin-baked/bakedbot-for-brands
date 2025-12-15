@@ -525,3 +525,88 @@ export interface FootTrafficSettings {
     updatedAt: Date;
     updatedBy: string;
 }
+
+// =============================================================================
+// BRAND SEO PAGES
+// =============================================================================
+
+/**
+ * CTA types for brand pages
+ */
+export type BrandCTAType = 'order_online' | 'in_store_pickup' | 'view_products' | 'learn_more';
+
+/**
+ * Brand-specific SEO page for local foot traffic
+ * Used by Super Admins to create brand visibility pages at ZIP-code level
+ */
+export interface BrandSEOPage {
+    id: string; // Format: {brandSlug}_{zipCode}
+    brandId: string; // CannMenus brand ID
+    brandName: string;
+    brandSlug: string;
+    logoUrl?: string;
+
+    // Geographic targeting
+    zipCodes: string[];
+    city: string;
+    state: string;
+    zoneName?: string; // Marketing-friendly name (e.g., "LA Metro")
+    radiusMiles?: number;
+    priority: number; // 1-10
+
+    // CTA configuration
+    ctaType: BrandCTAType;
+    ctaUrl: string;
+
+    // Content
+    featuredProductIds?: string[];
+    contentBlock?: string; // Rich text HTML
+    seoTags?: {
+        metaTitle?: string;
+        metaDescription?: string;
+        keywords?: string[];
+    };
+
+    // Status
+    published: boolean;
+    claimedBy?: string; // User ID who claimed the page
+    claimedAt?: Date;
+
+    // Metadata
+    createdAt: Date;
+    updatedAt: Date;
+    createdBy: string;
+
+    // Analytics
+    metrics: {
+        pageViews: number;
+        ctaClicks: number;
+        claimAttempts: number;
+    };
+}
+
+/**
+ * Input type for creating a new brand page
+ */
+export interface CreateBrandPageInput {
+    brandId: string;
+    brandName: string;
+    brandSlug: string;
+    logoUrl?: string;
+    zipCodes: string[];
+    city: string;
+    state: string;
+    zoneName?: string;
+    radiusMiles?: number;
+    priority?: number;
+    ctaType: BrandCTAType;
+    ctaUrl: string;
+    featuredProductIds?: string[];
+    contentBlock?: string;
+    seoTags?: {
+        metaTitle?: string;
+        metaDescription?: string;
+        keywords?: string[];
+    };
+    published?: boolean;
+}
