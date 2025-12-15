@@ -11,7 +11,9 @@ import { cn } from '@/lib/utils';
 import { formatNumber } from '@/lib/utils';
 
 export function FloatingCartPill() {
-    const { getItemCount, getCartTotal, setCartSheetOpen } = useStore(); // Removed invalid props items/setIsOpen
+    const { getItemCount, getCartTotal, setCartSheetOpen } = useStore();
+    const [mounted, setMounted] = useState(false);
+    const pathname = usePathname();
     const hydrated = useHydrated(); // Kept original hydrated check
     const itemCount = getItemCount();
     const { total } = getCartTotal();

@@ -61,9 +61,9 @@ export default function OnboardingPage() {
   // Handle URL params for pre-filling (e.g. coming from Claim Page)
   const searchParams = useSearchParams();
   useEffect(() => {
-    const roleParam = searchParams.get('role');
-    const brandIdParam = searchParams.get('brandId');
-    const brandNameParam = searchParams.get('brandName');
+    const roleParam = searchParams?.get('role');
+    const brandIdParam = searchParams?.get('brandId');
+    const brandNameParam = searchParams?.get('brandName');
 
     if (roleParam === 'brand' && brandIdParam && brandNameParam) {
       setRole('brand');
