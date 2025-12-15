@@ -105,7 +105,7 @@ export function RetailerCard({ retailer, isPartner, isSponsored, zipCode }: Reta
                 {!isPartner && (
                     <div className="mt-3 pt-3 border-t flex justify-center">
                         <a
-                            href={`/for-brands?retailerId=${retailer.id}&name=${encodeURIComponent(retailer.name)}`}
+                            href={`/claim?id=${retailer.id}&name=${encodeURIComponent(retailer.name)}`}
                             className="text-[10px] text-muted-foreground/60 hover:text-indigo-600 hover:underline flex items-center gap-1"
                             onClick={() => {
                                 trackEvent({

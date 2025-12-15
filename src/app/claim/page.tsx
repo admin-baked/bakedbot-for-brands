@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CheckCircle, Building2, User, Mail, Phone, Loader2 } from 'lucide-react';
 import { submitClaimRequest, ClaimResult } from '@/server/actions/claims';
 
-export default function ClaimPage() {
+function ClaimForm() {
+    const searchParams = useSearchParams();
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<ClaimResult | null>(null);
     const [formData, setFormData] = useState({
@@ -20,6 +22,13 @@ export default function ClaimPage() {
         contactPhone: '',
         role: ''
     });
+
+    useEffect(() => {
+        const name = searchParams?.get('name');
+        if (name) {
+            setFormData(prev => ({ ...prev, businessName: name }));
+        }
+    }, [searchParams]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -176,5 +185,13 @@ export default function ClaimPage() {
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+export default function ClaimPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+            <ClaimForm />
+        </Suspense>
     );
 }

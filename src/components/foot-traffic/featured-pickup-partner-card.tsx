@@ -43,7 +43,7 @@ export function FeaturedPickupPartnerCard({
         // Default/Fallback logic
         const targetUrl = retailer?.website
             ? `${retailer.website}?${utmParams.toString()}`
-            : 'https://californiacannabis.wc/menu'; // Hardcoded fallback for now
+            : 'https://californiacannabiswc.com/menu'; // Hardcoded fallback for now
 
         window.open(targetUrl, '_blank');
     };
