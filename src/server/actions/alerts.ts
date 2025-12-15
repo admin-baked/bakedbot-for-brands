@@ -8,7 +8,7 @@ export interface DropAlertResult {
     message: string;
 }
 
-export async function subscribeToDropAlert(email: string, zipCode: string): Promise<DropAlertResult> {
+export async function subscribeToDropAlert(email: string, zipCode: string, metadata?: { ageVerified: boolean }): Promise<DropAlertResult> {
     // Basic validation
     if (!email || !email.includes('@')) {
         return { success: false, message: 'Please enter a valid email address.' };
@@ -32,7 +32,8 @@ export async function subscribeToDropAlert(email: string, zipCode: string): Prom
             type: 'drop_alert',
             createdAt: new Date(),
             status: 'active',
-            source: 'seo_page'
+            source: 'seo_page',
+            metadata: metadata || {}
         });
 
         return { success: true, message: "You're on the list! We'll notify you when fresh drops land." };

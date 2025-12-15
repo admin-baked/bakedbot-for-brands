@@ -1,0 +1,150 @@
+﻿Debugging discovery for 90002...
+FIREBASE_SERVICE_ACCOUNT_KEY not found, using Application Default Credentials
+node.exe : Error: 
+Could not load the 
+default credentials. 
+Browse to https://clo
+ud.google.com/docs/au
+thentication/getting-
+started for more 
+information.
+At line:1 char:1
++ & "C:\Program Files
+\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (Error:    
+ Could no...re in    
+formation.:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+    at GoogleAuth.get
+ApplicationDefaultAsy
+nc (C:\Users\marte\Ba
+ked for Brands\bakedb
+ot-for-brands\node_mo
+dules\google-auth-lib
+rary\build\src\auth\g
+oogleauth.js:287:15)
+    at async GoogleAu
+th._GoogleAuth_determ
+ineClient (C:\Users\m
+arte\Baked for Brands
+\bakedbot-for-brands\
+node_modules\google-a
+uth-library\build\src
+\auth\googleauth.js:8
+34:32)
+    at async 
+GoogleAuth.getClient 
+(C:\Users\marte\Baked
+ for Brands\bakedbot-
+for-brands\node_modul
+es\google-auth-librar
+y\build\src\auth\goog
+leauth.js:698:20)
+    at async GrpcClie
+nt._getCredentials (C
+:\Users\marte\Baked 
+for Brands\bakedbot-f
+or-brands\node_module
+s\google-gax\src\grpc
+.ts:209:20)
+    at async GrpcClie
+nt.createStub (C:\Use
+rs\marte\Baked for Br
+ands\bakedbot-for-bra
+nds\node_modules\goog
+le-gax\src\grpc.ts:42
+6:19)
+Caused by: Error
+    at 
+C:\Users\marte\Baked 
+for Brands\bakedbot-f
+or-brands\node_module
+s\@google-cloud\fires
+tore\build\src\index.
+js:1040:27
+    at 
+C:\Users\marte\Baked 
+for Brands\bakedbot-f
+or-brands\node_module
+s\@google-cloud\fires
+tore\build\src\teleme
+try\enabled-trace-uti
+l.js:110:30
+    at NoopContextMan
+ager.with (C:\Users\m
+arte\Baked for Brands
+\bakedbot-for-brands\
+node_modules\@opentel
+emetry\api\src\contex
+t\NoopContextManager.
+ts:31:15)
+    at 
+ContextAPI.with (C:\U
+sers\marte\Baked for 
+Brands\bakedbot-for-b
+rands\node_modules\@o
+pentelemetry\api\src\
+api\context.ts:77:42)
+    at NoopTracer.sta
+rtActiveSpan (C:\User
+s\marte\Baked for Bra
+nds\bakedbot-for-bran
+ds\node_modules\@open
+telemetry\api\src\tra
+ce\NoopTracer.ts:98:2
+7)
+    at ProxyTracer.st
+artActiveSpan (C:\Use
+rs\marte\Baked for Br
+ands\bakedbot-for-bra
+nds\node_modules\@ope
+ntelemetry\api\src\tr
+ace\ProxyTracer.ts:51
+:20)
+    at EnabledTraceUt
+il.startActiveSpan (C
+:\Users\marte\Baked 
+for Brands\bakedbot-f
+or-brands\node_module
+s\@google-cloud\fires
+tore\build\src\teleme
+try\enabled-trace-uti
+l.js:102:28)
+    at 
+Firestore.getAll (C:\
+Users\marte\Baked 
+for Brands\bakedbot-f
+or-brands\node_module
+s\@google-cloud\fires
+tore\build\src\index.
+js:1031:32)
+    at 
+C:\Users\marte\Baked 
+for Brands\bakedbot-f
+or-brands\node_module
+s\@google-cloud\fires
+tore\build\src\refere
+nce\document-referenc
+e.js:182:36
+    at 
+C:\Users\marte\Baked 
+for Brands\bakedbot-f
+or-brands\node_module
+s\@google-cloud\fires
+tore\build\src\teleme
+try\enabled-trace-uti
+l.js:110:30

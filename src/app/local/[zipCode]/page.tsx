@@ -436,21 +436,20 @@ export default async function LocalZipPage({ params }: PageProps) {
                             <SmokeyCtaCard zipCode={zipCode} city={coords.city} state={coords.state} />
 
                             {/* P1.2 Featured Partner (Conditional) */}
-                            {seededConfig?.featuredDispensaryId && (
-                                <FeaturedPickupPartnerCard
-                                    partnerId={seededConfig.featuredDispensaryId}
-                                    zipCode={zipCode}
-                                    city={coords.city}
-                                    state={coords.state}
-                                    retailer={retailers.find(r => r.id === seededConfig?.featuredDispensaryId)}
-                                />
-                            )}
+                            {/* P1.2 Featured Partner (Always Show - Fallback to California Cannabis) */}
+                            <FeaturedPickupPartnerCard
+                                partnerId={seededConfig?.featuredDispensaryId || 'fallback'}
+                                zipCode={zipCode}
+                                city={coords.city}
+                                state={coords.state}
+                                retailer={retailers.find(r => r.id === seededConfig?.featuredDispensaryId)}
+                            />
                             {/* P3.1 Dynamic About Section */}
                             <AboutZipSection
                                 zipCode={zipCode}
                                 city={coords.city}
                                 state={coords.state}
-                                productCount={snapshotData?.products.length || 0}
+                                productCount={products.length}
                                 retailerCount={retailers.length}
                                 lowestPrice={products.length > 0 ? Math.min(...products.map(p => p.price)) : 0}
                                 topCategories={topCategories.map(c => ({ name: c, count: categoryGroups[c].length }))}
@@ -494,24 +493,86 @@ export default async function LocalZipPage({ params }: PageProps) {
                     </div>
                 </div>
 
-                {/* Bottom SEO Content */}
+                {/* Bottom SEO Content (Data-Driven) */}
                 <section className="border-t bg-muted/30">
                     <div className="container py-12">
-                        <h2 className="text-2xl font-semibold mb-4">
-                            About Cannabis in {zipCode}
+                        <h2 className="text-2xl font-semibold mb-6">
+                            Cannabis in {coords.city}: Local Guide for {zipCode}
                         </h2>
-                        <div className="prose prose-sm max-w-none text-muted-foreground">
-                            <p>
-                                Looking for cannabis products near ZIP code {zipCode}? BakedBot helps you discover
-                                the best dispensaries, compare prices, and find top-rated products in your area.
-                                With {retailers.length} dispensaries nearby, you have plenty of options for flower,
-                                edibles, concentrates, and more.
-                            </p>
-                            <p>
-                                Our AI-powered platform analyzes real-time inventory and pricing data to help you
-                                find exactly what you're looking for. Whether you're a medical patient or recreational
-                                user, we make it easy to explore cannabis options in your neighborhood.
-                            </p>
+                        <div className="grid gap-8 md:grid-cols-2">
+                            <div className="prose prose-sm max-w-none text-muted-foreground">
+                                <h3 className="text-foreground font-medium mb-2">Local Dispensary Scene</h3>
+                                <p>
+                                    As of {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })},
+                                    <strong>{coords.city}</strong> residents in <strong>{zipCode}</strong> have access to
+                                    <strong> {retailers.length} licensed dispensaries</strong> and delivery services.
+                                    {retailers.length > 0 && (
+                                        <>
+                                            {' '}Top-rated local options include
+                                            {retailers.slice(0, 3).map((r, i) => (
+                                                <span key={r.id}>
+                                                    {i === 0 ? ' ' : i === retailers.slice(0, 3).length - 1 ? ', and ' : ', '}
+                                                    <Link href={`/dispensary/${r.id}`} className="text-primary hover:underline">
+                                                        {r.name}
+                                                    </Link>
+                                                </span>
+                                            ))}.
+                                        </>
+                                    )}
+                                </p>
+                                <p className="mt-4">
+                                    <Link href={`/local/${zipCode}/dispensaries`} className="text-primary font-medium hover:underline">
+                                        View all {retailers.length} dispensaries in {zipCode} &rarr;
+                                    </Link>
+                                </p>
+                            </div>
+
+                            <div className="prose prose-sm max-w-none text-muted-foreground">
+                                <h3 className="text-foreground font-medium mb-2">Product Availability & Pricing</h3>
+                                <p>
+                                    BakedBot has verified <strong>{products.length}+ products</strong> in stock right now.
+                                    {topCategories.length > 0 && (
+                                        <>
+                                            {' '}The most popular searches in this area are
+                                            {topCategories.map((c, i) => (
+                                                <span key={c}>
+                                                    {i === 0 ? ' ' : i === topCategories.length - 1 ? ', and ' : ', '}
+                                                    <strong>{c}</strong>
+                                                </span>
+                                            ))}.
+                                        </>
+                                    )}
+                                </p>
+                                <p>
+                                    Prices in {zipCode} currently range from
+                                    <strong> ${products.length > 0 ? Math.min(...products.map(p => p.price)).toFixed(2) : '0.00'}</strong> to
+                                    <strong> ${products.length > 0 ? Math.max(...products.map(p => p.price)).toFixed(2) : '0.00'}</strong>,
+                                    with an average item price of
+                                    <strong> ${products.length > 0 ? (products.reduce((sum, p) => sum + p.price, 0) / products.length).toFixed(2) : '0.00'}</strong>.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Internal Linking */}
+                        <div className="mt-8 pt-6 border-t">
+                            <h4 className="text-sm font-semibold mb-3">Popular Categories in {coords.city}</h4>
+                            <div className="flex flex-wrap gap-2 text-sm">
+                                {categories.slice(0, 8).map(cat => (
+                                    <Link
+                                        key={cat}
+                                        href={`/local/${zipCode}/${cat.toLowerCase()}`}
+                                        className="text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                        {cat} in {zipCode} •
+                                    </Link>
+                                ))}
+                                <Link
+                                    href={`/local`}
+                                    className="text-muted-foreground hover:text-primary transition-colors"
+                                >
+                                    All Locations
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </section>

@@ -1,0 +1,9 @@
+﻿Debugging discovery for 90002 (Bypassing Firebase)...
+1. Searching for retailers...
+Found 3 retailers.
+ - Los Angeles Farmers (ID: 1194) [California] Dist: 5.37 mi
+ - Los Angeles Cannabis Club (ID: 9750) [California] Dist: 5.95 mi
+ - Los Angeles Variety Cannabis (ID: 2756) [California] Dist: 10.28 mi
+
+2. Fetching products for retailer: Los Angeles Farmers (ID: 1194)...
+   Using State param: "California"

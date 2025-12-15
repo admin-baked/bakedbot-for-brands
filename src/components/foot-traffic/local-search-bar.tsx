@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { trackEvent } from '@/lib/analytics';
 
 interface LocalSearchBarProps {
     zipCode: string;
@@ -20,6 +21,14 @@ export function LocalSearchBar({ zipCode, placeholder = "Search products, strain
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (query.trim()) {
+            trackEvent({
+                name: 'search_used',
+                properties: {
+                    query: query.trim(),
+                    zip: zipCode,
+                    source: 'local_page'
+                }
+            });
             router.push(`/local/${zipCode}/search?q=${encodeURIComponent(query.trim())}`);
         }
     };
