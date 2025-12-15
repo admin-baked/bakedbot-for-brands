@@ -435,6 +435,9 @@ export default function HomePage() {
               <Button size="lg" asChild href="/free-audit">
                 Run a Free Menu + SEO Audit <span className="ml-2">→</span>
               </Button>
+              <Button size="lg" variant="outline" asChild href="/onboarding/passport">
+                Try Preference Passport
+              </Button>
               <Button size="lg" variant="outline" asChild href="/shop/demo">
                 See Live Demo
               </Button>
