@@ -774,8 +774,10 @@ import type { BrandSEOPage, CreateBrandPageInput } from '@/types/foot-traffic';
 export async function searchBrandsAction(query: string): Promise<{ id: string; name: string; }[]> {
   if (!query || query.length < 2) return [];
 
-  const base = process.env.CANNMENUS_API_BASE || process.env.CANNMENUS_API_URL;
-  const apiKey = process.env.CANNMENUS_API_KEY;
+
+  const { CANNMENUS_CONFIG } = await import('@/lib/config');
+  const base = CANNMENUS_CONFIG.API_BASE;
+  const apiKey = CANNMENUS_CONFIG.API_KEY;
 
   // Mock data for development
   const MOCK_BRANDS = [

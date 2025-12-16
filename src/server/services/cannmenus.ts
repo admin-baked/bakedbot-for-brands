@@ -6,9 +6,10 @@ import { logger, reportError, monitorApiCall, perfMonitor } from '@/lib/monitori
 import { FieldValue } from 'firebase-admin/firestore';
 import { getPlanLimits } from '@/lib/plan-limits';
 import { UsageService } from '@/server/services/usage';
+import { CANNMENUS_CONFIG } from '@/lib/config';
 
-const CANNMENUS_BASE_URL = process.env.CANNMENUS_API_BASE || 'https://api.cannmenus.com';
-const CANNMENUS_API_KEY = process.env.CANNMENUS_API_KEY;
+const CANNMENUS_BASE_URL = CANNMENUS_CONFIG.API_BASE;
+const CANNMENUS_API_KEY = CANNMENUS_CONFIG.API_KEY;
 
 // Rate limiter to prevent overwhelming CannMenus API
 const rateLimiter = new RateLimiter(5, 200); // Max 5 concurrent, 200ms between requests

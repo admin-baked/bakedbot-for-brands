@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, AlertCircle, TrendingUp, Zap, Clock } from 'lucide-react';
+import { X, TrendingUp, Zap, AlertCircle, Clock } from 'lucide-react';
 
 interface ClaimConversionBannerProps {
     entityType: 'dispensary' | 'brand';
@@ -30,7 +30,7 @@ export default function ClaimConversionBanner({
     triggerType = 'default',
     metrics,
     showFoundersOffer = false,
-    foundersRemaining = 50
+    foundersRemaining = 75
 }: ClaimConversionBannerProps) {
     const [dismissed, setDismissed] = useState(false);
 
@@ -41,36 +41,47 @@ export default function ClaimConversionBanner({
         : `/claim/brand/${entitySlug}`;
 
     const getMessage = () => {
+        // Variant A: Demand/traffic banner triggers
+        // "You’re getting noticed. 75 Founders slots left"
+        if (triggerType === 'high_traffic' || triggerType === 'default') {
+            return {
+                icon: <TrendingUp className="h-5 w-5 text-green-500" />,
+                headline: 'You’re getting noticed.',
+                subtext: 'This page is receiving organic traffic.',
+                badge: `${foundersRemaining} Founders slots left`,
+                cta: 'Claim to capture this demand →',
+                secondaryCta: `Get Founders Pricing ($79/mo)`
+            };
+        }
+
         switch (triggerType) {
-            case 'high_traffic':
-                return {
-                    icon: <TrendingUp className="h-5 w-5 text-green-500" />,
-                    headline: `${entityName} is getting noticed!`,
-                    subtext: metrics?.weeklyClicks
-                        ? `${metrics.weeklyClicks}+ people viewed this page this week.`
-                        : 'This page is receiving organic traffic.',
-                    cta: 'Claim to capture this demand →'
-                };
             case 'multi_zip':
                 return {
                     icon: <Zap className="h-5 w-5 text-amber-500" />,
                     headline: `${entityName} appears in ${metrics?.zipCount || 'multiple'} areas`,
                     subtext: 'Customers are searching for you across multiple ZIP codes.',
-                    cta: 'Claim to control your presence →'
+                    badge: `${foundersRemaining} Founders slots left`,
+                    cta: 'Claim to control your presence →',
+                    secondaryCta: 'Get Founders Pricing ($79/mo)'
                 };
             case 'wide_distribution':
                 return {
                     icon: <TrendingUp className="h-5 w-5 text-purple-500" />,
                     headline: `${entityName} has wide distribution`,
                     subtext: `Found at ${metrics?.retailerCount || 'many'} retailers. Own your brand page.`,
-                    cta: 'Claim your brand page →'
+                    badge: `${foundersRemaining} Founders slots left`,
+                    cta: 'Claim your brand page →',
+                    secondaryCta: 'Get Founders Pricing ($79/mo)'
                 };
             default:
+                // Fallback (redundant due to first if, but kept for type safety)
                 return {
                     icon: <AlertCircle className="h-5 w-5 text-blue-500" />,
-                    headline: `Is this your ${entityType}?`,
-                    subtext: 'Claim this page to control your listing, fix any errors, and add your own CTAs.',
-                    cta: 'Claim this page →'
+                    headline: 'You’re getting noticed.',
+                    subtext: 'This page is receiving organic traffic.',
+                    badge: `${foundersRemaining} Founders slots left`,
+                    cta: 'Claim to capture this demand →',
+                    secondaryCta: `Get Founders Pricing ($79/mo)`
                 };
         }
     };
@@ -97,10 +108,10 @@ export default function ClaimConversionBanner({
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-lg">{message.headline}</h3>
-                            {showFoundersOffer && foundersRemaining > 0 && (
-                                <Badge variant="secondary" className="gap-1 text-xs">
+                            {showFoundersOffer && (
+                                <Badge variant="secondary" className="gap-1 text-xs bg-green-100 text-green-800 hover:bg-green-200 border-green-200">
                                     <Clock className="h-3 w-3" />
-                                    {foundersRemaining} Founders slots left
+                                    {message.badge}
                                 </Badge>
                             )}
                         </div>
@@ -114,10 +125,10 @@ export default function ClaimConversionBanner({
                                     {message.cta}
                                 </Button>
                             </Link>
-                            {showFoundersOffer && foundersRemaining > 0 && (
+                            {showFoundersOffer && (
                                 <Link href={`${claimUrl}?plan=founders`}>
-                                    <Button size="sm" variant="outline" className="gap-1">
-                                        Get Founders Pricing ($79/mo)
+                                    <Button size="sm" variant="outline" className="gap-1 bg-white">
+                                        {message.secondaryCta}
                                     </Button>
                                 </Link>
                             )}
