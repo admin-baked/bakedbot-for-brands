@@ -81,7 +81,8 @@ function MetricCard({ title, value, subtitle, trend, trendUp, icon: Icon }: {
     );
 }
 
-import { getPlatformAnalytics, getSeoKpis, getMrrLadder, type PlatformAnalyticsData, type SeoKpis } from '../actions';
+import { getPlatformAnalytics, getSeoKpis, type PlatformAnalyticsData, type SeoKpis } from '../actions';
+import { calculateMrrLadder } from '@/lib/seo-kpis';
 import SeoKpisWidget from './seo-kpis-widget';
 
 export default function PlatformAnalyticsTab() {
@@ -214,7 +215,7 @@ export default function PlatformAnalyticsTab() {
                             <CardContent>
                                 <SeoKpisWidget
                                     data={seoKpis}
-                                    mrrLadder={getMrrLadder(data?.revenue?.mrr || 0)}
+                                    mrrLadder={calculateMrrLadder(data?.revenue?.mrr || 0)}
                                     currentMrr={data?.revenue?.mrr || 0}
                                     onRefresh={handleRefresh}
                                     isLoading={refreshing}
