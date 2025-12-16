@@ -234,6 +234,13 @@ export async function POST() {
         }
         for (const page of dispensaryPages) {
             batch.set(configRef.collection('dispensary_pages').doc(page.id), page.data);
+            // ALSO write to retailers collection so /dispensaries/[slug] pages work
+            batch.set(firestore.collection('retailers').doc(page.id), {
+                ...page.data,
+                id: page.id,
+                type: 'dispensary',
+                zip: page.data.zipCode, // Match expected field names
+            });
         }
         for (const page of brandPages) {
             batch.set(configRef.collection('brand_pages').doc(page.id), page.data);
