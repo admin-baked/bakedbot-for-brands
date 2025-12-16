@@ -17,6 +17,8 @@ import type { Retailer } from '@/types/domain';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { logger } from '@/lib/logger';
+import { RetailerMap } from '@/components/maps/retailer-map';
+
 interface DispensaryLocatorProps {
   locations?: Retailer[];
   isLoading?: boolean;
@@ -185,7 +187,23 @@ export default function DispensaryLocator({ locations = [], isLoading = false, c
           </Button>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8 space-y-8">
+          {/* Map View */}
+          {displayLocations.length > 0 && !isLoading && (
+            <div className="w-full h-[400px] hidden md:block rounded-lg overflow-hidden border shadow-sm">
+              <RetailerMap
+                retailers={displayLocations.map(l => ({
+                  id: l.id,
+                  name: l.name,
+                  address: l.address,
+                  lat: l.lat || l.lon, // Handle mismatched types if needed, but checked Retailer has lat/lon
+                  lng: l.lon || l.lat
+                }))}
+                height="100%"
+              />
+            </div>
+          )}
+
           <div className="flex gap-6 pb-4 -mx-4 px-4 overflow-x-auto">
             {isLoading ? (
               [...Array(3)].map((_, i) => (
