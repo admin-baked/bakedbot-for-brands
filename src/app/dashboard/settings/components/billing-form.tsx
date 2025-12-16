@@ -3,12 +3,13 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { PLANS, PlanId, computeMonthlyAmount } from "@/lib/plans";
+import { PLANS, PlanId, computeMonthlyAmount, COVERAGE_PACKS, CoveragePackId } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 
 import { logger } from '@/lib/logger';
@@ -31,17 +32,18 @@ export function BillingForm(props: BillingFormProps) {
   const { organizationId, locationCount } = props;
   const { toast } = useToast();
 
-  const [planId, setPlanId] = useState<PlanId>("free");
+  const [planId, setPlanId] = useState<PlanId>("claim_pro");
+  const [selectedPacks, setSelectedPacks] = useState<CoveragePackId[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const amount = useMemo(() => {
     try {
       if (planId === "enterprise") return 0;
-      return computeMonthlyAmount(planId, locationCount);
+      return computeMonthlyAmount(planId, locationCount, selectedPacks);
     } catch {
       return 0;
     }
-  }, [planId, locationCount]);
+  }, [planId, locationCount, selectedPacks]);
 
   // Basic card form; in production you might use Accept Hosted instead
   const [cardNumber, setCardNumber] = useState("");
@@ -157,6 +159,7 @@ export function BillingForm(props: BillingFormProps) {
               organizationId,
               planId,
               locationCount,
+              coveragePackIds: selectedPacks,
               opaqueData,
               customer: {
                 fullName: props.customerName || "",
@@ -237,6 +240,35 @@ export function BillingForm(props: BillingFormProps) {
           </RadioGroup>
         </div>
 
+
+        {planId !== "free" && planId !== "enterprise" && (
+          <div className="space-y-3">
+            <Label className="text-sm">Optional Add-ons</Label>
+            <div className="grid gap-3 md:grid-cols-2">
+              {Object.values(COVERAGE_PACKS).map(pack => (
+                <div key={pack.id} className="flex items-start space-x-3 rounded-lg border p-3">
+                  <Checkbox
+                    id={pack.id}
+                    checked={selectedPacks.includes(pack.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) setSelectedPacks([...selectedPacks, pack.id]);
+                      else setSelectedPacks(selectedPacks.filter(id => id !== pack.id));
+                    }}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label htmlFor={pack.id} className="font-medium cursor-pointer">
+                      {pack.name} (+${pack.amount}/mo)
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {pack.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {planId !== "free" && planId !== "enterprise" && (
           <div className="space-y-4">
             <Label className="text-sm">Payment details</Label>
@@ -293,6 +325,6 @@ export function BillingForm(props: BillingFormProps) {
           </Button>
         </div>
       </form>
-    </Card>
+    </Card >
   );
 }

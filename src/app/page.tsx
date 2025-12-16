@@ -2,6 +2,8 @@
 
 import React, { useMemo, useState } from "react";
 
+import { LiveStats } from "@/components/landing/live-stats";
+
 /**
  * NOTE
  * This file is intentionally framework-agnostic (no next/link, no @/ alias imports)
@@ -430,6 +432,8 @@ export default function HomePage() {
               BakedBot AI combines an SEO-first headless menu + Smokey AI budtender, with optional marketing, analytics,
               competitive intel, and compliance guardrails. Start simple. Add power when you’re ready.
             </p>
+
+            <LiveStats />
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
               <Button size="lg" asChild href="/free-audit">

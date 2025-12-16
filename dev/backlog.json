@@ -460,7 +460,7 @@
         {
             "id": "feat_expanded_page_generation",
             "title": "Expanded Page Generation (Brands & Dispensaries)",
-            "status": "in_progress",
+            "status": "passing",
             "description": "Expand scan and page generation tools to cover Brands in addition to Dispensaries and ZIPs. Run scans to populate the database.",
             "acceptance_tests": [
                 "test_brand_discovery",
@@ -469,6 +469,37 @@
             "owner": "antigravity",
             "dependencies": [
                 "feat_national_rollout"
+            ],
+            "area": "backend",
+            "completed_at": "2025-12-16T13:45:00Z"
+        },
+        {
+            "id": "feat_coverage_packs",
+            "title": "Coverage Packs & Subscription Tiers update",
+            "status": "pending",
+            "description": "Implement Coverage Packs logic (Claim Pro includes X ZIPs, upsell for +100/+500). Update `plans.ts` with new $99 Claim Pro and $79 Founders Claim pricing.",
+            "acceptance_tests": [
+                "test_coverage_pack_upsell",
+                "test_zip_limit_enforcement"
+            ],
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_national_rollout"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "feat_track_2_hemp",
+            "title": "Track 2: Hemp/THCA & Deebo Gating",
+            "status": "pending",
+            "description": "Implement Track 2 rollout for non-legal markets. Use Deebo to gate content based on State Rules + Product Category. Create allowlist/denylist logic.",
+            "acceptance_tests": [
+                "test_deebo_gating_logic",
+                "test_hemp_commerce_routing"
+            ],
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_algorithms_phase_4"
             ],
             "area": "backend"
         }
