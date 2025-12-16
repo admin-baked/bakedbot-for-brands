@@ -11,6 +11,7 @@ import { fetchDispensaryPageData } from '@/lib/dispensary-data';
 import { Metadata } from 'next';
 import { ProductGrid } from '@/components/product-grid';
 import { PageViewTracker } from '@/components/analytics/PageViewTracker';
+import { ChatbotPageContext } from '@/components/chatbot-page-context';
 
 // Common cannabis categories for crawlable content
 const CATEGORIES = [
@@ -70,6 +71,12 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                 pageSlug={dispensarySlug}
             />
 
+            {/* Set chatbot context for this dispensary */}
+            <ChatbotPageContext
+                dispensaryId={dispensary.id}
+                entityName={dispensary.name}
+                entityType="dispensary"
+            />
             {/* Header with Action Buttons */}
             <div className="bg-white border-b py-6">
                 <div className="container mx-auto px-4">
