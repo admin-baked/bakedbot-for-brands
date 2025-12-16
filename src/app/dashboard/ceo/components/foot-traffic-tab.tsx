@@ -71,7 +71,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 // import { db } from '@/firebase/client'; // Removed client db usage
 // import { collection, getDocs, query, orderBy } from 'firebase/firestore'; // Removed
-import { getSeoPagesAction, seedSeoPageAction, deleteSeoPageAction, getFootTrafficMetrics, getBrandPagesAction, deleteBrandPageAction, toggleBrandPagePublishAction } from '../actions';
+import { getSeoPagesAction, seedSeoPageAction, deleteSeoPageAction, getFootTrafficMetrics, getBrandPagesAction, deleteBrandPageAction, toggleBrandPagePublishAction, bulkPublishBrandPagesAction } from '../actions';
 
 // Brand Page Components
 import { BrandPageCreatorDialog } from './brand-page-creator-dialog';
@@ -1079,9 +1079,31 @@ export default function FootTrafficTab() {
 
                         {/* Brand Pages Table */}
                         <Card>
-                            <CardHeader>
-                                <CardTitle>Brand Page Directory</CardTitle>
-                                <CardDescription>Manage brand-specific local landing pages</CardDescription>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle>Brand Page Directory</CardTitle>
+                                    <CardDescription>Manage brand-specific local landing pages</CardDescription>
+                                </div>
+                                {brandPages.filter(p => !p.published).length > 0 && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={async () => {
+                                            const draftCount = brandPages.filter(p => !p.published).length;
+                                            if (!confirm(`Publish all ${draftCount} draft brand pages?`)) return;
+                                            const result = await bulkPublishBrandPagesAction(true);
+                                            toast({
+                                                title: result.error ? 'Error' : 'Published!',
+                                                description: result.message,
+                                                variant: result.error ? 'destructive' : 'default'
+                                            });
+                                            if (!result.error) fetchBrandPages();
+                                        }}
+                                    >
+                                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                                        Publish All Drafts ({brandPages.filter(p => !p.published).length})
+                                    </Button>
+                                )}
                             </CardHeader>
                             <CardContent>
                                 <Table>
