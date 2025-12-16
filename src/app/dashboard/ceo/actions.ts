@@ -342,6 +342,30 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
   }
 }
 
+import { fetchSeoKpis, calculateMrrLadder, type SeoKpis } from '@/lib/seo-kpis';
+
+export type { SeoKpis };
+
+export async function getSeoKpis(): Promise<SeoKpis> {
+  try {
+    return await fetchSeoKpis();
+  } catch (error) {
+    console.error('Error fetching SEO KPIs:', error);
+    // Return empty metrics
+    return {
+      indexedPages: { zip: 0, dispensary: 0, brand: 0, city: 0, state: 0, total: 0 },
+      claimMetrics: { totalUnclaimed: 0, totalClaimed: 0, claimRate: 0, pendingClaims: 0 },
+      pageHealth: { freshPages: 0, stalePages: 0, healthScore: 100 },
+      searchConsole: { impressions: null, clicks: null, ctr: null, avgPosition: null, top3Keywords: null, top10Keywords: null, dataAvailable: false },
+      lastUpdated: new Date()
+    };
+  }
+}
+
+export function getMrrLadder(currentMrr: number) {
+  return calculateMrrLadder(currentMrr);
+}
+
 import type { EzalInsight, Competitor } from '@/types/ezal-scraper';
 
 export async function getEzalInsights(tenantId: string, limitVal: number = 20): Promise<EzalInsight[]> {

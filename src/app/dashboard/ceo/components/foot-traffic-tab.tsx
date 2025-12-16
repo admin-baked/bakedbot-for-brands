@@ -1140,7 +1140,7 @@ export default function FootTrafficTab() {
                                                             <span className="font-medium">{page.brandName}</span>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="font-mono">{page.zipCodes[0]}</TableCell>
+                                                    <TableCell className="font-mono">{page.zipCodes?.[0] || '-'}</TableCell>
                                                     <TableCell>{page.city}</TableCell>
                                                     <TableCell><Badge variant="outline">{page.state}</Badge></TableCell>
                                                     <TableCell>
@@ -1170,7 +1170,7 @@ export default function FootTrafficTab() {
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
                                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                                <DropdownMenuItem onClick={() => window.open(`/brands/${page.brandSlug}/near/${page.zipCodes[0]}`, '_blank')}>
+                                                                <DropdownMenuItem onClick={() => page.zipCodes?.[0] && window.open(`/brands/${page.brandSlug}/near/${page.zipCodes[0]}`, '_blank')}>
                                                                     <Eye className="mr-2 h-4 w-4" /> View Page
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
