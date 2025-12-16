@@ -68,12 +68,14 @@ export type Retailer = {
     zip: string;
     phone?: string;
     email?: string;
+    website?: string;
     lat?: number;
     lon?: number;
     distance?: number;
     tabletDeviceToken?: string | null;
     acceptsOrders?: boolean;
     status?: 'active' | 'inactive';
+    updatedAt?: Date | string;
 };
 
 export type Location = Retailer & { zipCode?: string };
