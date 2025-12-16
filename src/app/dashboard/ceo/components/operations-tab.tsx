@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Play, AlertCircle, CheckCircle } from 'lucide-react';
-import { runDispensaryScan, runBrandScan } from '@/server/actions/page-generation';
+import { runDispensaryScan, runBrandScan, runStateScan, runCityScan } from '@/server/actions/page-generation';
 import { deleteAllPages } from '@/server/actions/delete-pages';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -63,7 +63,7 @@ export default function OperationsTab() {
 
     // Initial load
     useEffect(() => {
-        loadHistory();
+        void loadHistory();
     }, []);
 
     const handleDeleteAll = async () => {
@@ -98,8 +98,12 @@ export default function OperationsTab() {
 
             if (jobType === 'dispensaries') {
                 res = await runDispensaryScan(limit, dryRun);
-            } else {
+            } else if (jobType === 'brands') {
                 res = await runBrandScan(limit, dryRun);
+            } else if (jobType === 'states') {
+                res = await runStateScan(dryRun);
+            } else {
+                res = await runCityScan(limit, dryRun);
             }
 
             setResult(res);
@@ -147,6 +151,8 @@ export default function OperationsTab() {
                                 <SelectContent>
                                     <SelectItem value="dispensaries">Dispensaries & ZIPs</SelectItem>
                                     <SelectItem value="brands">Brands</SelectItem>
+                                    <SelectItem value="states">Target States</SelectItem>
+                                    <SelectItem value="cities">Cities (Mining)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

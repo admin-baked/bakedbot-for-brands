@@ -196,4 +196,94 @@ export class PageGeneratorService {
 
         return { success: true, itemsFound: brandCount, pagesCreated: createdCount, errors };
     }
+
+
+    /**
+     * Generate City pages from existing dispensary data
+     */
+    async scanAndGenerateCities(options: GenerateOptions = {}): Promise<ScanResult> {
+        const { firestore } = await createServerClient();
+        const limit = options.limit || 1000;
+
+        // Fetch dispensary pages to aggregate cities
+        const snapshot = await firestore.collection('foot_traffic')
+            .doc('config')
+            .collection('dispensary_pages')
+            .limit(limit)
+            .get();
+
+        const citiesMap = new Map<string, { city: string, state: string, count: number }>();
+
+        snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.city && data.state) {
+                const key = `${data.city.toLowerCase()}-${data.state.toLowerCase()}`;
+                if (!citiesMap.has(key)) {
+                    citiesMap.set(key, { city: data.city, state: data.state, count: 0 });
+                }
+                citiesMap.get(key)!.count++;
+            }
+        });
+
+        let createdCount = 0;
+        const errors: string[] = [];
+
+        if (!options.dryRun && citiesMap.size > 0) {
+            const batch = firestore.batch();
+            let batchOps = 0;
+
+            Array.from(citiesMap.entries()).forEach(([key, info]) => {
+                const slug = `city_${this.slugify(`${info.city}-${info.state}`)}`;
+                const ref = firestore.collection('foot_traffic').doc('config')
+                    .collection('city_pages').doc(slug);
+
+                batch.set(ref, {
+                    id: slug,
+                    name: info.city,
+                    state: info.state,
+                    slug,
+                    dispensaryCount: info.count,
+                    updatedAt: FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                createdCount++;
+                batchOps++;
+            });
+            await batch.commit();
+        } else {
+            createdCount = citiesMap.size;
+        }
+
+        return { success: true, itemsFound: snapshot.size, pagesCreated: createdCount, errors };
+    }
+
+    /**
+     * Generate State Pages from Config
+     */
+    async scanAndGenerateStates(options: GenerateOptions = {}): Promise<ScanResult> {
+        const { firestore } = await createServerClient();
+        let createdCount = 0;
+
+        if (!options.dryRun) {
+            const batch = firestore.batch();
+            for (const state of TARGET_STATES) {
+                const slug = `state_${this.slugify(state)}`;
+                const ref = firestore.collection('foot_traffic').doc('config')
+                    .collection('state_pages').doc(slug);
+
+                batch.set(ref, {
+                    id: slug,
+                    name: state,
+                    slug,
+                    updatedAt: FieldValue.serverTimestamp()
+                }, { merge: true });
+                createdCount++;
+            }
+            await batch.commit();
+        } else {
+            createdCount = TARGET_STATES.length;
+        }
+
+        return { success: true, itemsFound: TARGET_STATES.length, pagesCreated: createdCount, errors: [] };
+    }
 }

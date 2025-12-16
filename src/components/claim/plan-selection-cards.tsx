@@ -4,7 +4,7 @@ import { PRICING_PLANS } from '@/lib/config/pricing';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Flame, Shield } from 'lucide-react';
 
-type PlanId = 'claim_pro' | 'founders_claim';
+import { PlanId } from '@/lib/plans';
 
 interface PlanSelectionCardsProps {
     selectedPlan: PlanId;
