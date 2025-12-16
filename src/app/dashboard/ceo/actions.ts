@@ -362,7 +362,7 @@ export async function getSeoKpis(): Promise<SeoKpis> {
   }
 }
 
-export function getMrrLadder(currentMrr: number) {
+export async function getMrrLadder(currentMrr: number) {
   return calculateMrrLadder(currentMrr);
 }
 
