@@ -839,22 +839,20 @@ export async function createBrandPageAction(input: CreateBrandPageInput): Promis
     for (const zipCode of input.zipCodes) {
       const pageId = `${brandSlug}_${zipCode}`;
 
-      const brandPage: BrandSEOPage = {
+      // Build brand page object, using null for optional fields (Firestore doesn't accept undefined)
+      const brandPage: Record<string, any> = {
         id: pageId,
         brandId: input.brandId,
         brandName: input.brandName,
         brandSlug,
-        logoUrl: input.logoUrl,
         zipCodes: [zipCode], // Each page has one primary ZIP
         city: input.city,
         state: input.state,
-        zoneName: input.zoneName,
         radiusMiles: input.radiusMiles || 15,
         priority: input.priority || 5,
         ctaType: input.ctaType,
         ctaUrl: input.ctaUrl,
         featuredProductIds: input.featuredProductIds || [],
-        contentBlock: input.contentBlock,
         seoTags: input.seoTags || {
           metaTitle: `Buy ${input.brandName} near ${input.city}, ${input.state} (${zipCode})`,
           metaDescription: `Find ${input.brandName} products at dispensaries near ${zipCode}. Check availability, prices, and order online.`,
@@ -870,6 +868,11 @@ export async function createBrandPageAction(input: CreateBrandPageInput): Promis
           claimAttempts: 0
         }
       };
+
+      // Only add optional fields if they have values (avoid undefined in Firestore)
+      if (input.logoUrl) brandPage.logoUrl = input.logoUrl;
+      if (input.zoneName) brandPage.zoneName = input.zoneName;
+      if (input.contentBlock) brandPage.contentBlock = input.contentBlock;
 
       const ref = firestore.collection('foot_traffic').doc('config').collection('brand_pages').doc(pageId);
       batch.set(ref, brandPage);
