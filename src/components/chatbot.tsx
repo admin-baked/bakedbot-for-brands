@@ -17,9 +17,8 @@ import OnboardingFlow from './chatbot/onboarding-flow';
 import ChatMessages from './chatbot/chat-messages';
 import ChatProductCarousel from './chatbot/chat-product-carousel';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { demoProducts } from '@/lib/demo/demo-data'; // For mock response
 import { useAuth } from '@/hooks/use-auth';
-
+import { useChatbotContext } from '@/contexts/chatbot-context';
 
 import { logger } from '@/lib/logger';
 type Message = {
@@ -221,6 +220,14 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
+  // Get page context from ChatbotContext (set by individual pages)
+  const pageContext = useChatbotContext();
+
+  // Merge props with page context - props take priority, then page context
+  const effectiveDispensaryId = dispensaryId || pageContext.dispensaryId;
+  const effectiveBrandId = brandId || pageContext.brandId;
+  const effectiveEntityName = entityName || pageContext.entityName;
+
   // HIDE ON DASHBOARD
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
   if (pathname.startsWith('/dashboard')) return null;
@@ -318,7 +325,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
         query,
         userId,
         sessionId,
-        brandId: dispensaryId || brandId || undefined,
+        brandId: effectiveDispensaryId || effectiveBrandId || undefined,
         state: 'Illinois',
         isOnboarding: true,
       };
@@ -376,7 +383,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
       setIsBotTyping(false);
     }
 
-  }, [brandId, dispensaryId, sessionId, userId]);
+  }, [effectiveBrandId, effectiveDispensaryId, sessionId, userId]);
 
   const handleSendMessage = useCallback(async (e: FormEvent) => {
     e.preventDefault();
@@ -400,8 +407,8 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
         query: currentQuery,
         userId,
         sessionId,
-        brandId: dispensaryId || brandId || undefined, // Use dispensary/brand context, no fallback to demo
-        entityName: entityName, // Pass entity name for personalization
+        brandId: effectiveDispensaryId || effectiveBrandId || undefined, // Use page context, props, or undefined
+        entityName: effectiveEntityName, // Pass entity name for personalization
         state: 'Illinois',
       };
 
