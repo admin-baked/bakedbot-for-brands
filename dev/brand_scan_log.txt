@@ -1,0 +1,26 @@
+[13:36:13] Loaded 20 dispensaries from 19 cities.
+[13:36:13] Scanning city: California City|California (1 dispensaries)
+[13:36:14]   Found 0 products -> Extracted brands from dispensary 3399
+[13:36:14] Scanning city: Denver|Colorado (1 dispensaries)
+[13:36:15]   Found 0 products -> Extracted brands from dispensary 10818
+[13:36:15] Scanning city: Appleton|Wisconsin (1 dispensaries)
+[13:36:15]   Found 0 products -> Extracted brands from dispensary 18738
+[13:36:15] Scanning city: Tulsa|Oklahoma (1 dispensaries)
+[13:36:15]   Found 0 products -> Extracted brands from dispensary 19049
+[13:36:15] Scanning city: Albuquerque|New Mexico (2 dispensaries)
+[13:36:16]   Found 0 products -> Extracted brands from dispensary 15115
+[13:36:16]   Found 0 products -> Extracted brands from dispensary 18870
+[13:36:16] Scanning city: Sedgwick|Colorado (1 dispensaries)
+[13:36:16]   Found 0 products -> Extracted brands from dispensary 2793
+[13:36:16] Scanning city: North Dighton|Massachusetts (1 dispensaries)
+[13:36:17]   Found 0 products -> Extracted brands from dispensary 8092
+[13:36:17] Scanning city: Belfast|Maine (1 dispensaries)
+[13:36:17]   Found 0 products -> Extracted brands from dispensary 988
+[13:36:17] Scanning city: Simcoe|Ontario (1 dispensaries)
+[13:36:17]   Found 0 products -> Extracted brands from dispensary 12096
+[13:36:17] Scanning city: Bozeman|Montana (1 dispensaries)
+[13:36:19]   Found 0 products -> Extracted brands from dispensary 3187
+[13:36:19] Scan Complete.
+[13:36:19] Total API Calls: 11
+[13:36:19] Total Brands Discovered: 0
+[13:36:19] Saved to C:\Users\marte\Baked for Brands\bakedbot-for-brands\dev\discovered_brands.json

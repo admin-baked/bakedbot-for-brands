@@ -436,6 +436,41 @@
             "dependencies": [],
             "area": "frontend",
             "created_at": "2025-12-14T16:10:09-06:00"
+        },
+        {
+            "id": "feat_national_rollout",
+            "title": "National Rollout (Page Gen + Claims + Analytics)",
+            "status": "passing",
+            "description": "Implement the monetization engine: Bulk Page Generator, 3-Step Claim Wizard with Plan Selection (Pro/Founders), Authorize.Net ARB Integration, and Page Analytics Dashboard.",
+            "acceptance_tests": [
+                "test_page_generator_dry_run",
+                "test_claim_subscription_flow",
+                "test_analytics_tracking",
+                "test_accept_js_integration"
+            ],
+            "completed_at": "2025-12-16T13:30:00Z",
+            "owner": "antigravity",
+            "dependencies": [],
+            "area": "full_stack",
+            "test_results": {
+                "server_actions": "passed (national-rollout.test.ts)",
+                "ui_components": "passed (national-rollout-components.test.tsx)"
+            }
+        },
+        {
+            "id": "feat_expanded_page_generation",
+            "title": "Expanded Page Generation (Brands & Dispensaries)",
+            "status": "in_progress",
+            "description": "Expand scan and page generation tools to cover Brands in addition to Dispensaries and ZIPs. Run scans to populate the database.",
+            "acceptance_tests": [
+                "test_brand_discovery",
+                "test_brand_page_generation"
+            ],
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_national_rollout"
+            ],
+            "area": "backend"
         }
     ]
 }

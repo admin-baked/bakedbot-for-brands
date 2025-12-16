@@ -159,10 +159,10 @@ export function BillingForm(props: BillingFormProps) {
               locationCount,
               opaqueData,
               customer: {
-                fullName: props.customerName,
-                email: props.customerEmail,
-                company: props.customerCompany,
-                zip: props.customerZip,
+                fullName: props.customerName || "",
+                email: props.customerEmail || "",
+                company: props.customerCompany || "",
+                zip: props.customerZip || "",
               },
             }),
           });

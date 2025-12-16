@@ -20,7 +20,8 @@ import {
     Utensils,
     Tag,
     Activity,
-    Users
+    Users,
+    Factory
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -59,6 +60,14 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/ceo?tab=insights">
                                     <Activity />
                                     <span>Intelligence</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("operations")}>
+                                <Link href="/dashboard/ceo?tab=operations">
+                                    <Factory />
+                                    <span>Page Generator</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
