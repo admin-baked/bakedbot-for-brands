@@ -5,6 +5,7 @@ import { BrandHeader } from '@/components/brand/brand-header';
 import { WhereToBuy } from '@/components/brand/where-to-buy';
 import { StickyOperatorBox } from '@/components/brand/sticky-operator-box';
 import { BrandOpportunityModule } from '@/components/brand/brand-opportunity-module';
+import { RetailerMap } from '@/components/maps/retailer-map';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -56,6 +57,23 @@ export default async function LocalBrandPage({ params }: { params: Promise<{ bra
                                 zipCode={zip}
                             />
                         </section>
+
+                        {/* Map Section */}
+                        {retailers.length > 0 && (
+                            <section>
+                                <h2 className="text-xl font-semibold mb-4">Dispensaries on Map</h2>
+                                <RetailerMap
+                                    retailers={retailers.map(r => ({
+                                        id: r.id,
+                                        name: r.name,
+                                        address: r.address || 'Address unavailable',
+                                        lat: r.lat,
+                                        lng: r.lon
+                                    }))}
+                                    height="350px"
+                                />
+                            </section>
+                        )}
 
                         {/* Fallback CTA if few retailers found */}
                         {retailers.length === 0 && (
