@@ -8,11 +8,10 @@ import { BrandOpportunityModule } from '@/components/brand/brand-opportunity-mod
 import { DropAlertButton } from '@/components/brand/drop-alert-button';
 import { RetailerMap } from '@/components/maps/retailer-map';
 import { Button } from '@/components/ui/button';
+import { PageViewTracker } from '@/components/analytics/PageViewTracker';
+import { ChatbotPageContext } from '@/components/chatbot-page-context';
 import Link from 'next/link';
-
-
-// Helper removed as retailers are already fully typed
-
+import { AlertCircle } from 'lucide-react';
 
 export default async function LocalBrandPage({ params }: { params: Promise<{ brandSlug: string; zip: string }> }) {
     const { brandSlug, zip } = await params;
@@ -22,8 +21,24 @@ export default async function LocalBrandPage({ params }: { params: Promise<{ bra
         notFound();
     }
 
+    // Freshness date
+    const freshnessDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
     return (
         <main className="min-h-screen bg-background pb-20">
+            <PageViewTracker
+                pageType="brand"
+                pageId={`${brand.id}_${zip}`}
+                pageSlug={`${brandSlug}/near/${zip}`}
+            />
+
+            {/* Set chatbot context for this brand */}
+            <ChatbotPageContext
+                brandId={brand.id}
+                entityName={brand.name}
+                entityType="brand"
+            />
+
             <BrandHeader
                 brandName={brand.name}
                 logoUrl={brand.logoUrl}
@@ -50,6 +65,12 @@ export default async function LocalBrandPage({ params }: { params: Promise<{ bra
                                 retailers={retailers}
                                 brandName={brand.name}
                             />
+
+                            {/* Freshness Stamp */}
+                            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground border-t pt-4">
+                                <span>Data refreshed: {freshnessDate}</span>
+                                <span>Source: CannMenus</span>
+                            </div>
                         </section>
 
                         {/* Map Section */}
@@ -88,8 +109,20 @@ export default async function LocalBrandPage({ params }: { params: Promise<{ bra
                                         Dispensaries in {zip} (All Brands)
                                     </Link>
                                 </Button>
-                                {/* Future: Neighboring ZIPs */}
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link href={`/brands/${brandSlug}`}>
+                                        View All {brand.name} Products
+                                    </Link>
+                                </Button>
                             </div>
+                        </div>
+
+                        {/* Report an Issue Link */}
+                        <div className="text-center py-4 border-t">
+                            <Link href={`/brands/claim?name=${encodeURIComponent(brand.name)}&type=correction`} className="text-sm text-muted-foreground hover:text-primary inline-flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                Is this info wrong? Report an issue
+                            </Link>
                         </div>
                     </div>
 
@@ -106,9 +139,6 @@ export default async function LocalBrandPage({ params }: { params: Promise<{ bra
                             missingCount={missingCount}
                             nearbyZip={zip}
                         />
-
-                        {/* Featured Slot Logic (Placeholder) */}
-                        {/* if (features.hasFeaturedPartner) { <FeaturedPartnerCard ... /> } */}
                     </div>
                 </div>
             </div>
