@@ -182,6 +182,58 @@ export async function fetchLocalBrandPageData(brandParam: string, zipCode: strin
         }
     }
 
+    // 2. Fallback: Check brand_pages collection for dynamically created pages
+    // This supports brands created via the Brand Page Creator UI
+    if (!brand) {
+        // Try to find a brand page matching this slug and ZIP
+        const brandPageId = `${brandParam}_${zipCode}`;
+        const brandPageDoc = await firestore
+            .collection('foot_traffic')
+            .doc('config')
+            .collection('brand_pages')
+            .doc(brandPageId)
+            .get();
+
+        if (brandPageDoc.exists) {
+            const pageData = brandPageDoc.data();
+            // Only show published pages (or all pages for preview)
+            if (pageData) {
+                // Create a synthetic Brand object from the BrandSEOPage data
+                brand = {
+                    id: pageData.brandSlug || brandParam,
+                    name: pageData.brandName || brandParam,
+                    slug: pageData.brandSlug || brandParam,
+                    logoUrl: pageData.logoUrl || undefined,
+                    verificationStatus: 'unverified', // Default for dynamic pages
+                    dispensaryCount: 0, // Will be populated dynamically
+                };
+            }
+        } else {
+            // Try to find any brand page with this slug (across all ZIPs)
+            const brandPagesQuery = await firestore
+                .collection('foot_traffic')
+                .doc('config')
+                .collection('brand_pages')
+                .where('brandSlug', '==', brandParam)
+                .limit(1)
+                .get();
+
+            if (!brandPagesQuery.empty) {
+                const pageData = brandPagesQuery.docs[0].data();
+                if (pageData) {
+                    brand = {
+                        id: pageData.brandSlug || brandParam,
+                        name: pageData.brandName || brandParam,
+                        slug: pageData.brandSlug || brandParam,
+                        logoUrl: pageData.logoUrl || undefined,
+                        verificationStatus: 'unverified',
+                        dispensaryCount: 0,
+                    };
+                }
+            }
+        }
+    }
+
     if (!brand) return { brand: null, retailers: [], missingCount: 0 };
 
     // 2. Fetch Retailers near ZIP carrying this brand
