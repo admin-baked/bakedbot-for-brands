@@ -14,48 +14,50 @@ export async function submitBrandClaim(prevState: SubmitClaimState, formData: Fo
     try {
         const { firestore } = await createServerClient();
 
-        const brandName = formData.get('brandName') as string;
-        const brandId = formData.get('brandId') as string || 'pending-resolution'; // We might not have an ID yet if it's a new brand
+        // Support both brandName and entityName inputs
+        const entityName = (formData.get('entityName') as string) || (formData.get('brandName') as string);
+        const entityId = (formData.get('entityId') as string) || (formData.get('brandId') as string) || 'pending-resolution';
+        const entityType = (formData.get('entityType') as string) || 'brand';
+
         const website = formData.get('website') as string;
         const contactName = formData.get('contactName') as string;
         const businessEmail = formData.get('businessEmail') as string;
         const role = formData.get('role') as string;
         const phone = formData.get('phone') as string;
 
-        if (!brandName || !businessEmail || !contactName) {
+        if (!entityName || !businessEmail || !contactName) {
             return { error: 'Missing required fields' };
         }
 
         const claimId = uuidv4();
         const now = new Date();
 
-        const newClaim: BrandClaim = {
+        const newClaim = {
             id: claimId,
-            brandId: brandId,
+            entityId,
+            brandId: entityType === 'brand' ? entityId : undefined, // Legacy support
+            dispensaryId: entityType === 'dispensary' ? entityId : undefined,
+            entityType,
+            entityName,
             userId: 'guest', // TODO: Link to auth user if logged in
             businessEmail,
             role,
             website,
             status: 'pending',
             submittedAt: now,
-            // Additional fields captured from form not in strict BrandClaim type but useful
-            // We might want to extend BrandClaim or just store them freely in Firestore
-        };
-
-        // We'll store the extra contact info in the document as well, even if not in the strict shared type yet
-        const claimData = {
-            ...newClaim,
             contactName,
-            phone,
-            brandName, // Store name explicitly as ID might be fuzzy
+            phone
         };
 
-        await firestore.collection('brandClaims').doc(claimId).set(claimData);
+        // Determine collection based on type, or keep centralized
+        // Centralizing in 'claims' or keeping 'brandClaims' for now?
+        // Let's use a unified 'entity_claims' collection or backward compatible 'brandClaims' with type field
+        await firestore.collection('brandClaims').doc(claimId).set(newClaim);
 
         return { success: true, claimId };
 
     } catch (error) {
-        console.error('Error submitting brand claim:', error);
+        console.error('Error submitting claim:', error);
         return { error: 'Failed to submit claim. Please try again.' };
     }
 }

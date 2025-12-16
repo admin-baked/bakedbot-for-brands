@@ -17,9 +17,13 @@ function BrandClaimForm() {
     const searchParams = useSearchParams();
     const [state, formAction] = useFormState(submitBrandClaim, initialState);
 
-    // Controlled state for pre-filling, though FormData handles submission if names are present
+    const type = searchParams?.get('type') || 'brand'; // 'brand' or 'dispensary'
+    const isDispensary = type === 'dispensary';
+    const entityLabel = isDispensary ? 'Dispensary' : 'Brand';
+
+    // Controlled state for pre-filling
     const [formData, setFormData] = useState({
-        brandName: '',
+        entityName: '',
         website: '',
         contactName: '',
         businessEmail: '',
@@ -30,7 +34,7 @@ function BrandClaimForm() {
     useEffect(() => {
         const name = searchParams?.get('name');
         if (name) {
-            setFormData(prev => ({ ...prev, brandName: name }));
+            setFormData(prev => ({ ...prev, entityName: name }));
         }
     }, [searchParams]);
 
@@ -48,8 +52,8 @@ function BrandClaimForm() {
                         </div>
                         <CardTitle className="text-2xl">Claim Request Received!</CardTitle>
                         <CardDescription>
-                            We've received your request to manage <strong>{formData.brandName}</strong>.
-                            Our team will verify your brand ownership and email you at {formData.businessEmail}.
+                            We've received your request to manage <strong>{formData.entityName}</strong>.
+                            Our team will verify your {entityLabel.toLowerCase()} ownership and email you at {formData.businessEmail}.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex justify-center">
@@ -65,21 +69,23 @@ function BrandClaimForm() {
     return (
         <div className="container max-w-2xl py-12">
             <div className="mb-8 text-center">
-                <h1 className="text-4xl font-bold tracking-tight">Claim Your Brand Page</h1>
+                <h1 className="text-4xl font-bold tracking-tight">Claim Your {entityLabel} Page</h1>
                 <p className="mt-2 text-muted-foreground">
-                    Get verified, update your products, and measure your foot traffic impact.
+                    Get verified, update your {isDispensary ? 'menu' : 'products'}, and measure your foot traffic impact.
                 </p>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Brand Verification</CardTitle>
+                    <CardTitle>{entityLabel} Verification</CardTitle>
                     <CardDescription>
-                        Provide your details to prove ownership of this brand.
+                        Provide your details to prove ownership of this {entityLabel.toLowerCase()}.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form action={formAction} className="space-y-6">
+                        <input type="hidden" name="entityType" value={type} />
+
                         {state.error && (
                             <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md border border-red-200">
                                 {state.error}
@@ -88,16 +94,16 @@ function BrandClaimForm() {
 
                         <div className="space-y-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="brandName">Brand Name</Label>
+                                <Label htmlFor="entityName">{entityLabel} Name</Label>
                                 <div className="relative">
                                     <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
-                                        id="brandName"
-                                        name="brandName"
+                                        id="entityName"
+                                        name="entityName"
                                         className="pl-9"
-                                        placeholder="e.g. Jeeter"
+                                        placeholder={isDispensary ? "e.g. Green Cross Dispensary" : "e.g. Jeeter"}
                                         required
-                                        value={formData.brandName}
+                                        value={formData.entityName}
                                         onChange={handleChange}
                                     />
                                 </div>
@@ -143,7 +149,7 @@ function BrandClaimForm() {
                                     <Input
                                         id="role"
                                         name="role"
-                                        placeholder="e.g. Founder, Marketing Director"
+                                        placeholder={isDispensary ? "e.g. Store Manager, Owner" : "e.g. Founder, Marketing Director"}
                                         required
                                         value={formData.role}
                                         onChange={handleChange}
@@ -159,14 +165,14 @@ function BrandClaimForm() {
                                         name="businessEmail"
                                         type="email"
                                         className="pl-9"
-                                        placeholder="jane@brand.com"
+                                        placeholder={`jane@${isDispensary ? 'dispensary' : 'brand'}.com`}
                                         required
                                         value={formData.businessEmail}
                                         onChange={handleChange}
                                     />
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    Please use an email address from the brand&apos;s domain.
+                                    Please use an email address from the {entityLabel.toLowerCase()}'s domain.
                                 </p>
                             </div>
 
@@ -194,12 +200,12 @@ function BrandClaimForm() {
                     <div className="flex flex-col items-center gap-2 text-center">
                         <h4 className="font-semibold text-sm">Want instant access?</h4>
                         <p className="text-xs text-muted-foreground max-w-sm">
-                            Create a brand account to manage your page immediately.
-                            If your email domain matches the brand website, you'll be verified automatically.
+                            Create a {entityLabel.toLowerCase()} account to manage your page immediately.
+                            If your email domain matches the website, you'll be verified automatically.
                         </p>
                         <Button variant="outline" className="w-full sm:w-auto" asChild>
-                            <a href={`/onboarding?role=brand&brandName=${encodeURIComponent(formData.brandName)}&brandId=${searchParams?.get('id') || ''}`}>
-                                Create Brand Account
+                            <a href={`/onboarding?role=${type}&${type}Name=${encodeURIComponent(formData.entityName)}&${type}Id=${searchParams?.get('id') || ''}`}>
+                                Create {entityLabel} Account
                             </a>
                         </Button>
                     </div>
