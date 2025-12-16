@@ -14,7 +14,7 @@ const API_ENDPOINT = IS_PRODUCTION
     ? 'https://api2.authorize.net/xml/v1/request.api'
     : 'https://apitest.authorize.net/xml/v1/request.api';
 
-type PlanId = 'claim-pro' | 'founders-claim';
+import { PlanId } from '@/lib/plans';
 
 interface ClaimSubscriptionInput {
     // Business Info
@@ -55,7 +55,7 @@ export async function getFoundersClaimCount(): Promise<number> {
             .collection('foot_traffic')
             .doc('data')
             .collection('claims')
-            .where('planId', '==', 'founders-claim')
+            .where('planId', '==', 'founders_claim')
             .where('status', 'in', ['pending', 'active', 'verified'])
             .count()
             .get();
@@ -83,7 +83,7 @@ export async function createClaimWithSubscription(
         }
 
         // 2. Check Founders Claim availability
-        if (input.planId === 'founders-claim') {
+        if (input.planId === 'founders_claim') {
             const currentCount = await getFoundersClaimCount();
             const limit = 250;
             if (currentCount >= limit) {
@@ -215,7 +215,7 @@ export async function createClaimWithSubscription(
                     transactionKey: TRANSACTION_KEY
                 },
                 subscription: {
-                    name: `${input.planId === 'founders-claim' ? 'Founders Claim' : 'Claim Pro'} - ${input.businessName}`,
+                    name: `${input.planId === 'founders_claim' ? 'Founders Claim' : 'Claim Pro'} - ${input.businessName}`,
                     paymentSchedule: {
                         interval: { length: 1, unit: 'months' },
                         startDate: startDateStr,

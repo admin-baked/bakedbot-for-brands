@@ -24,7 +24,7 @@ export async function deletePage(pageId: string) {
 
         logger.info(`Deleted page ${pageId}`);
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         logger.error('Error deleting page', error);
         return { success: false, error: 'Failed to delete page' };
     }
@@ -41,37 +41,16 @@ export async function deleteAllPages() {
         logger.warn('Starting batch deletion of ALL pages...');
 
         // Helper to delete collection in batches
-        async function deleteCollection(collectionPath: string) {
+        const deleteCollection = async (collectionPath: string) => {
             const collectionRef = firestore.collection(collectionPath);
             const query = collectionRef.orderBy('__name__').limit(500);
 
             return new Promise((resolve, reject) => {
                 deleteQueryBatch(firestore, query, resolve).catch(reject);
             });
-        }
+        };
 
-        async function deleteQueryBatch(db: any, query: any, resolve: any) {
-            const snapshot = await query.get();
 
-            const batchSize = snapshot.size;
-            if (batchSize === 0) {
-                // When there are no documents left, we are done
-                resolve();
-                return;
-            }
-
-            const batch = db.batch();
-            snapshot.docs.forEach((doc: any) => {
-                batch.delete(doc.ref);
-            });
-            await batch.commit();
-
-            // Recurse on the next process tick, to avoid
-            // exploding the stack.
-            process.nextTick(() => {
-                deleteQueryBatch(db, query, resolve);
-            });
-        }
 
         // Delete 'seo_pages' and 'generated_pages_metadata'
         await deleteCollection('seo_pages');
@@ -80,8 +59,31 @@ export async function deleteAllPages() {
         logger.info('All pages deleted successfully.');
         return { success: true };
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error('Error deleting all pages', error);
         return { success: false, error: 'Failed to delete all pages' };
     }
+}
+
+async function deleteQueryBatch(db: any, query: any, resolve: any) {
+    const snapshot = await query.get();
+
+    const batchSize = snapshot.size;
+    if (batchSize === 0) {
+        // When there are no documents left, we are done
+        resolve();
+        return;
+    }
+
+    const batch = db.batch();
+    snapshot.docs.forEach((doc: any) => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
+
+    // Recurse on the next process tick, to avoid
+    // exploding the stack.
+    process.nextTick(() => {
+        deleteQueryBatch(db, query, resolve);
+    });
 }

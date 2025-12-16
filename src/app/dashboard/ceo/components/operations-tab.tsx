@@ -25,6 +25,17 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { getJobHistory, JobRecord } from '@/server/actions/job-history';
+import { RefreshCcw, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { formatDistanceToNow } from 'date-fns';
 
 export default function OperationsTab() {
     const { toast } = useToast();
@@ -35,6 +46,25 @@ export default function OperationsTab() {
 
     const [result, setResult] = useState<any>(null);
     const [deleting, setDeleting] = useState(false);
+    const [history, setHistory] = useState<JobRecord[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+
+    const loadHistory = async () => {
+        setHistoryLoading(true);
+        try {
+            const data = await getJobHistory();
+            setHistory(data);
+        } catch (e: any) {
+            console.error(e);
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    // Initial load
+    useEffect(() => {
+        loadHistory();
+    }, []);
 
     const handleDeleteAll = async () => {
         setDeleting(true);
@@ -216,12 +246,54 @@ export default function OperationsTab() {
             </div>
 
             <Card>
-                <CardHeader>
-                    <CardTitle>Batch History</CardTitle>
-                    <CardDescription>Recent page generation jobs.</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Batch History</CardTitle>
+                        <CardDescription>Recent page generation jobs.</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={loadHistory} disabled={historyLoading}>
+                        <RefreshCcw className={`h-4 w-4 ${historyLoading ? 'animate-spin' : ''}`} />
+                    </Button>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-sm text-muted-foreground">Job history tracking coming soon.</div>
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead>Items</TableHead>
+                                    <TableHead>Pages</TableHead>
+                                    <TableHead>Time</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {history.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                                            No jobs found.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    history.map((job) => (
+                                        <TableRow key={job.id}>
+                                            <TableCell>
+                                                {job.status === 'running' && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
+                                                {job.status === 'completed' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                                                {job.status === 'failed' && <XCircle className="h-4 w-4 text-red-500" />}
+                                            </TableCell>
+                                            <TableCell className="capitalize">{job.type}</TableCell>
+                                            <TableCell>{job.result?.itemsFound ?? '-'}</TableCell>
+                                            <TableCell>{job.result?.pagesCreated ?? '-'}</TableCell>
+                                            <TableCell className="text-muted-foreground text-xs">
+                                                {job.startedAt ? formatDistanceToNow(job.startedAt, { addSuffix: true }) : '-'}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
 
