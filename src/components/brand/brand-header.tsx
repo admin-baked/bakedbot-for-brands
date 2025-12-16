@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Menu, Search, User, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +20,17 @@ interface BrandHeaderProps {
 
 export function BrandHeader({ brandName, logoUrl, verified }: BrandHeaderProps) {
     const { user } = useUser();
+    const router = useRouter();
+    const [zipCode, setZipCode] = useState('');
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        const cleanZip = zipCode.trim();
+        if (cleanZip && /^\d{5}$/.test(cleanZip)) {
+            const brandSlug = brandName.toLowerCase().replace(/\s+/g, '-');
+            router.push(`/brands/${brandSlug}/near/${cleanZip}`);
+        }
+    };
 
     return (
         <header className="sticky top-0 z-50 w-full bg-background border-b shadow-sm">
@@ -71,18 +84,22 @@ export function BrandHeader({ brandName, logoUrl, verified }: BrandHeaderProps) 
                 </div>
 
                 {/* Center: Search (Find near you) */}
-                <div className="hidden md:flex flex-1 max-w-lg mx-8 relative">
+                <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-lg mx-8 relative">
                     <div className="relative w-full">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
+                            type="text"
                             placeholder={`Find ${brandName} near you...`}
+                            value={zipCode}
+                            onChange={(e) => setZipCode(e.target.value)}
                             className="w-full pl-10 bg-secondary/50 border-none rounded-full focus-visible:ring-1"
+                            maxLength={5}
                         />
-                        <Button size="sm" className="absolute right-1 top-1 h-8 px-4 rounded-full">
+                        <Button type="submit" size="sm" className="absolute right-1 top-1 h-8 px-4 rounded-full">
                             Search
                         </Button>
                     </div>
-                </div>
+                </form>
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-2">
