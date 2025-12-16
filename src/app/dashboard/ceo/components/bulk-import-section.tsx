@@ -9,6 +9,7 @@ import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Table,
     TableBody,
@@ -35,19 +36,26 @@ import {
     AlertTriangle,
     Loader2,
     FileUp,
+    Building2,
+    Sparkles,
 } from 'lucide-react';
-import { validateBrandPagesCSV, importBrandPagesAction } from '../actions';
-import type { CSVPreview, CSVRowError, BulkImportResult } from '@/types/foot-traffic';
+import {
+    validateBrandPagesCSV,
+    importBrandPagesAction,
+    validateDispensaryPagesCSV,
+    importDispensaryPagesAction
+} from '../actions';
+import type { CSVPreview, BulkImportResult } from '@/types/foot-traffic';
 
 interface BulkImportSectionProps {
     onImportComplete?: () => void;
 }
 
-const VALID_STATES = ['CA', 'CO', 'IL', 'MI', 'NY', 'OH', 'NV', 'OR', 'WA'];
-const VALID_CTA_TYPES = ['Order Online', 'View Products', 'Pickup In-Store', 'Learn More'];
+type ImportType = 'brand' | 'dispensary';
 
 export function BulkImportSection({ onImportComplete }: BulkImportSectionProps) {
     const { toast } = useToast();
+    const [importType, setImportType] = useState<ImportType>('brand');
     const [isDragging, setIsDragging] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
@@ -64,7 +72,7 @@ export function BulkImportSection({ onImportComplete }: BulkImportSectionProps) 
         if (file) {
             await processFile(file);
         }
-    }, []);
+    }, [importType]);
 
     // Handle file selection
     const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,7 +82,7 @@ export function BulkImportSection({ onImportComplete }: BulkImportSectionProps) 
         }
         // Reset input
         e.target.value = '';
-    }, []);
+    }, [importType]);
 
     // Process uploaded CSV file
     const processFile = async (file: File) => {
@@ -91,7 +99,12 @@ export function BulkImportSection({ onImportComplete }: BulkImportSectionProps) 
         setIsProcessing(true);
         try {
             const csvText = await file.text();
-            const result = await validateBrandPagesCSV(csvText);
+
+            // Use the appropriate validator based on import type
+            const result = importType === 'brand'
+                ? await validateBrandPagesCSV(csvText)
+                : await validateDispensaryPagesCSV(csvText);
+
             setPreview(result);
 
             if (result.validRows === 0) {
@@ -116,12 +129,17 @@ export function BulkImportSection({ onImportComplete }: BulkImportSectionProps) 
                 return !preview.errors.some(e => e.row === index);
             });
 
-            const result = await importBrandPagesAction(validRows as any);
+            // Use the appropriate importer based on import type
+            const result = importType === 'brand'
+                ? await importBrandPagesAction(validRows as any)
+                : await importDispensaryPagesAction(validRows as any);
+
             setImportResult(result);
             setShowResultDialog(true);
 
             if (!result.errors.length) {
-                toast({ title: 'Import Successful!', description: `Created ${result.createdPages.length} brand pages.` });
+                const pageType = importType === 'brand' ? 'brand' : 'dispensary';
+                toast({ title: 'Import Successful!', description: `Created ${result.createdPages.length} ${pageType} pages.` });
                 setPreview(null);
                 onImportComplete?.();
             }
@@ -134,7 +152,7 @@ export function BulkImportSection({ onImportComplete }: BulkImportSectionProps) 
     };
 
     // Download CSV template
-    const downloadTemplate = (type: 'brand' | 'dispensary') => {
+    const downloadTemplate = (type: ImportType) => {
         let csvContent: string;
 
         if (type === 'brand') {
@@ -156,6 +174,12 @@ Green Oasis,IL,Chicago,60629,FALSE,draft`;
         URL.revokeObjectURL(url);
     };
 
+    // Reset preview when switching types
+    const handleTypeChange = (type: string) => {
+        setImportType(type as ImportType);
+        setPreview(null);
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -169,17 +193,39 @@ Green Oasis,IL,Chicago,60629,FALSE,draft`;
                         Import brand or dispensary pages from CSV files
                     </p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => downloadTemplate('brand')}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Brand CSV Template
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => downloadTemplate('dispensary')}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Dispensary CSV Template
-                    </Button>
-                </div>
             </div>
+
+            {/* Type Selector Tabs */}
+            <Tabs value={importType} onValueChange={handleTypeChange}>
+                <TabsList className="grid w-full grid-cols-2 max-w-md">
+                    <TabsTrigger value="brand" className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        Brand Pages
+                    </TabsTrigger>
+                    <TabsTrigger value="dispensary" className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Dispensary Pages
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="brand" className="pt-4">
+                    <div className="flex justify-end mb-4">
+                        <Button variant="outline" size="sm" onClick={() => downloadTemplate('brand')}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download Brand CSV Template
+                        </Button>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="dispensary" className="pt-4">
+                    <div className="flex justify-end mb-4">
+                        <Button variant="outline" size="sm" onClick={() => downloadTemplate('dispensary')}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download Dispensary CSV Template
+                        </Button>
+                    </div>
+                </TabsContent>
+            </Tabs>
 
             {/* Upload Zone */}
             {!preview && (
@@ -193,12 +239,14 @@ Green Oasis,IL,Chicago,60629,FALSE,draft`;
                         {isProcessing ? (
                             <>
                                 <Loader2 className="h-12 w-12 text-muted-foreground animate-spin mb-4" />
-                                <p className="text-muted-foreground">Processing CSV...</p>
+                                <p className="text-muted-foreground">Processing {importType} CSV...</p>
                             </>
                         ) : (
                             <>
                                 <FileUp className="h-12 w-12 text-muted-foreground mb-4" />
-                                <p className="text-lg font-medium mb-2">Drop your CSV file here</p>
+                                <p className="text-lg font-medium mb-2">
+                                    Drop your {importType === 'brand' ? 'Brand' : 'Dispensary'} CSV file here
+                                </p>
                                 <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
                                 <label>
                                     <input
@@ -226,7 +274,14 @@ Green Oasis,IL,Chicago,60629,FALSE,draft`;
                     <CardHeader>
                         <div className="flex items-center justify-between">
                             <div>
-                                <CardTitle>Import Preview</CardTitle>
+                                <CardTitle className="flex items-center gap-2">
+                                    {importType === 'brand' ? (
+                                        <Sparkles className="h-5 w-5 text-primary" />
+                                    ) : (
+                                        <Building2 className="h-5 w-5 text-primary" />
+                                    )}
+                                    {importType === 'brand' ? 'Brand' : 'Dispensary'} Import Preview
+                                </CardTitle>
                                 <CardDescription>Review your data before importing</CardDescription>
                             </div>
                             <div className="flex items-center gap-4">
@@ -320,7 +375,7 @@ Green Oasis,IL,Chicago,60629,FALSE,draft`;
                                 disabled={preview.validRows === 0 || isImporting}
                             >
                                 {isImporting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                                Import {preview.validRows} Valid Rows
+                                Import {preview.validRows} Valid {importType === 'brand' ? 'Brand' : 'Dispensary'} Pages
                             </Button>
                         </div>
                     </CardContent>
@@ -343,7 +398,9 @@ Green Oasis,IL,Chicago,60629,FALSE,draft`;
                             {importResult && (
                                 <div className="space-y-2 mt-4">
                                     <p><strong>Total rows:</strong> {importResult.totalRows}</p>
-                                    <p className="text-green-600"><strong>Pages created:</strong> {importResult.createdPages.length}</p>
+                                    <p className="text-green-600">
+                                        <strong>{importType === 'brand' ? 'Brand' : 'Dispensary'} pages created:</strong> {importResult.createdPages.length}
+                                    </p>
                                     {importResult.skippedRows.length > 0 && (
                                         <p className="text-yellow-600"><strong>Rows skipped:</strong> {importResult.skippedRows.length}</p>
                                     )}

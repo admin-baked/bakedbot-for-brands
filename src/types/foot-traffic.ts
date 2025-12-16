@@ -676,3 +676,41 @@ export interface CSVPreview {
     invalidRows: number;
     errors: CSVRowError[];
 }
+
+/**
+ * Dispensary SEO Page - A local landing page for a specific dispensary at a ZIP code
+ */
+export interface DispensarySEOPage {
+    id: string; // Format: {dispensarySlug}_{zipCode}
+    dispensaryId?: string; // CannMenus retailer ID if available
+    dispensaryName: string;
+    dispensarySlug: string;
+    logoUrl?: string;
+
+    // Geographic targeting
+    zipCode: string;
+    city: string;
+    state: string;
+
+    // Content & Features
+    featured: boolean;
+    seoTags?: {
+        metaTitle?: string;
+        metaDescription?: string;
+        keywords?: string[];
+    };
+
+    // Status
+    published: boolean;
+
+    // Metadata
+    createdAt: Date;
+    updatedAt: Date;
+    createdBy: string;
+
+    // Analytics
+    metrics: {
+        pageViews: number;
+        ctaClicks: number;
+    };
+}
