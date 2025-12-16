@@ -8,31 +8,31 @@ import { MapPin, Clock, ExternalLink, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { createServerClient } from '@/firebase/server-client';
 import { Retailer } from '@/types/domain';
+import { fetchDispensaryPageData } from '@/lib/dispensary-data';
+import { Metadata } from 'next';
+import { ProductGrid } from '@/components/product-grid';
+import { PageViewTracker } from '@/components/analytics/PageViewTracker';
 
-// Inline data fetcher for now, eventually move to lib/dispensary-data.ts
-async function fetchDispensaryData(slug: string) {
-    const { firestore } = await createServerClient();
+export async function generateMetadata({ params }: { params: Promise<{ dispensarySlug: string }> }): Promise<Metadata> {
+    const { dispensarySlug } = await params;
+    const { retailer } = await fetchDispensaryPageData(dispensarySlug);
 
-    // Try to find by slug first
-    let query = firestore.collection('retailers').where('slug', '==', slug).limit(1);
-    let snapshot = await query.get();
+    if (!retailer) return { title: 'Dispensary Not Found | BakedBot' };
 
-    // Fallback: search by id if slug not found (handling id-based slugs for now if used)
-    if (snapshot.empty) {
-        const doc = await firestore.collection('retailers').doc(slug).get();
-        if (doc.exists) {
-            return { id: doc.id, ...doc.data() } as Retailer;
+    return {
+        title: `${retailer.name} - Dispensary in ${retailer.city}, ${retailer.state} | BakedBot`,
+        description: `Visit ${retailer.name} at ${retailer.address} in ${retailer.city}. View menu, hours, and deals. Verified dispensary on BakedBot.`,
+        openGraph: {
+            title: `${retailer.name} | BakedBot`,
+            description: `Order from ${retailer.name} in ${retailer.city}. View live menu and hours.`,
+            // images: retailer.logoUrl ? [retailer.logoUrl] : [],
         }
-    } else {
-        return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Retailer;
-    }
-
-    return null;
+    };
 }
 
 export default async function DispensaryPage({ params }: { params: Promise<{ dispensarySlug: string }> }) {
     const { dispensarySlug } = await params;
-    const dispensary = await fetchDispensaryData(dispensarySlug);
+    const { retailer: dispensary, products } = await fetchDispensaryPageData(dispensarySlug);
 
     if (!dispensary) {
         notFound();
@@ -40,6 +40,11 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
 
     return (
         <main className="min-h-screen bg-background pb-20">
+            <PageViewTracker
+                pageType="dispensary"
+                pageId={dispensary.id}
+                pageSlug={dispensarySlug}
+            />
             {/* Simple Header */}
             <div className="bg-white border-b py-6">
                 <div className="container mx-auto px-4">
@@ -117,12 +122,33 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                             </section>
                         )}
 
-                        {/* Brands Carried (Placeholder) */}
+                        {/* Menu Preview */}
                         <section>
-                            <h2 className="text-xl font-bold mb-4">Brands Carried</h2>
-                            <p className="text-muted-foreground text-sm">
-                                This dispensary has not listed their brands yet.
-                            </p>
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold">Menu Preview</h2>
+                                {products.length > 0 && (
+                                    <span className="text-sm text-muted-foreground">{products.length} products available</span>
+                                )}
+                            </div>
+
+                            {products.length > 0 ? (
+                                <ProductGrid products={products.slice(0, 8)} isLoading={false} brandSlug={''} variant="brand" />
+                            ) : (
+                                <div className="text-center py-12 bg-muted/20 rounded-lg">
+                                    <p className="text-muted-foreground mb-4">
+                                        This dispensary has not listed their full menu yet.
+                                    </p>
+                                    <Button variant="outline">Request Menu Update</Button>
+                                </div>
+                            )}
+
+                            {products.length > 8 && (
+                                <div className="mt-8 text-center">
+                                    <Button size="lg" className="w-full sm:w-auto">
+                                        View Full Menu ({products.length})
+                                    </Button>
+                                </div>
+                            )}
                         </section>
 
                     </div>
@@ -146,6 +172,32 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                     </div>
                 </div>
             </div>
+            {/* Schema */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        '@context': 'https://schema.org',
+                        '@type': 'LocalBusiness', // Dispensary if supported/specific
+                        name: dispensary.name,
+                        address: {
+                            '@type': 'PostalAddress',
+                            streetAddress: dispensary.address,
+                            addressLocality: dispensary.city,
+                            addressRegion: dispensary.state,
+                            postalCode: dispensary.zip,
+                            addressCountry: 'US'
+                        },
+                        geo: (dispensary.lat && dispensary.lon) ? {
+                            '@type': 'GeoCoordinates',
+                            latitude: dispensary.lat,
+                            longitude: dispensary.lon
+                        } : undefined,
+                        telephone: dispensary.phone,
+                        url: `https://bakedbot.ai/dispensaries/${dispensarySlug}`
+                    })
+                }}
+            />
         </main>
     );
 }

@@ -11,6 +11,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Star, Clock, Phone, ExternalLink, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DtcBanner } from '@/components/foot-traffic/dtc-banner';
@@ -130,20 +131,59 @@ function generateStructuredData(
         }),
     }));
 
+    const faqData = generateFaqData(retailers[0]?.city || zipCode, retailers[0]?.state || 'US', zipCode, retailers.length);
+    const faqSchema = {
+        '@type': 'FAQPage',
+        mainEntity: faqData.map(faq => ({
+            '@type': 'Question',
+            name: faq.question,
+            acceptedAnswer: {
+                '@type': 'Answer',
+                text: faq.answer
+            }
+        }))
+    };
+
     return {
         '@context': 'https://schema.org',
-        '@type': 'CollectionPage',
-        name: `Cannabis Dispensaries in ${zipCode}`,
-        description: `Find local dispensaries and products in ${zipCode}.`,
-        mainEntity: {
-            '@type': 'ItemList',
-            itemListElement: localBusinessList.map((business, index) => ({
-                '@type': 'ListItem',
-                position: index + 1,
-                item: business,
-            })),
-        },
+        '@graph': [
+            {
+                '@type': 'CollectionPage',
+                name: `Cannabis Dispensaries in ${zipCode}`,
+                description: `Find local dispensaries and products in ${zipCode}.`,
+                mainEntity: {
+                    '@type': 'ItemList',
+                    itemListElement: localBusinessList.map((business, index) => ({
+                        '@type': 'ListItem',
+                        position: index + 1,
+                        item: business,
+                    })),
+                },
+            },
+            faqSchema
+        ]
     };
+}
+
+function generateFaqData(city: string, state: string, zipCode: string, count: number) {
+    return [
+        {
+            question: `Is cannabis legal in ${city}, ${state}?`,
+            answer: `Yes, cannabis is legal for adults in ${state}. You can visit licensed dispensaries in and around ${city} to purchase compliant products.`
+        },
+        {
+            question: `How many dispensaries are near ${zipCode}?`,
+            answer: `BakedBot tracks ${count} licensed dispensaries servicing the ${zipCode} area. Check our map for real-time inventory.`
+        },
+        {
+            question: `Can I buy cannabis online in ${city}?`,
+            answer: `Many dispensaries in ${city} offer online ordering for store pickup or delivery. Look for the "Order Online" badge on our retailer cards.`
+        },
+        {
+            question: `What do I need to buy cannabis in ${state}?`,
+            answer: `You typically need a valid government-issued ID proving you are 21+ (or 18+ with a medical card). Cash is often required, though some dispensaries accept debit cards.`
+        }
+    ];
 }
 
 export default async function LocalZipPage({ params }: PageProps) {
@@ -311,10 +351,13 @@ export default async function LocalZipPage({ params }: PageProps) {
                         <div className="flex items-start justify-between">
                             <div>
                                 <h1 className="text-4xl font-bold tracking-tight">
-                                    Cannabis Near {zipCode}
+                                    Dispensaries in {coords.city}, {coords.state} {zipCode}
                                 </h1>
                                 <p className="mt-2 text-lg text-muted-foreground">
-                                    Discover dispensaries, products, and deals in your neighborhood
+                                    Discover dispensaries, products, and deals in your neighborhood.
+                                    <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                                        Last Updated: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </span>
                                 </p>
                                 <div className="mt-6">
                                     <LocalSearchBar zipCode={zipCode} className="text-base" />
@@ -427,6 +470,27 @@ export default async function LocalZipPage({ params }: PageProps) {
                                         </Link>
                                     ))}
                                 </div>
+                            </section>
+
+                            {/* FAQ Section */}
+                            <section>
+                                <h2 className="mb-4 text-2xl font-semibold">Frequently Asked Questions</h2>
+                                <Card>
+                                    <CardContent className="pt-6">
+                                        <Accordion type="single" collapsible className="w-full">
+                                            {generateFaqData(coords.city, coords.state, zipCode, retailers.length).map((faq, index) => (
+                                                <AccordionItem key={index} value={`item-${index}`}>
+                                                    <AccordionTrigger className="text-left font-medium">
+                                                        {faq.question}
+                                                    </AccordionTrigger>
+                                                    <AccordionContent className="text-muted-foreground">
+                                                        {faq.answer}
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            ))}
+                                        </Accordion>
+                                    </CardContent>
+                                </Card>
                             </section>
                         </div>
 

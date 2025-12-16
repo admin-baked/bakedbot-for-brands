@@ -16,6 +16,8 @@ export type Brand = {
     dispensaryCount?: number;
     slug?: string;
     claimStatus?: 'claimed' | 'unclaimed';
+    description?: string;
+    website?: string;
 };
 
 export type ReviewSummaryEmbedding = {
