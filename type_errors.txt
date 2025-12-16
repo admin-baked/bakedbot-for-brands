@@ -1,0 +1,5 @@
+﻿src/lib/brand-data.ts(252,9): error TS2322: Type '{ id: string; name: string; address: string; city: string; state: string; zip: string; phone: string | null | undefined; lat: number | null | undefined; lon: number | null | undefined; status: "active"; }[]' is not assignable to type 'Retailer[]'.
+  Type '{ id: string; name: string; address: string; city: string; state: string; zip: string; phone: string | null | undefined; lat: number | null | undefined; lon: number | null | undefined; status: "active"; }' is not assignable to type 'Retailer'.
+    Types of property 'phone' are incompatible.
+      Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+        Type 'null' is not assignable to type 'string | undefined'.
