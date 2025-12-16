@@ -75,6 +75,7 @@ import { getSeoPagesAction, seedSeoPageAction, deleteSeoPageAction, getFootTraff
 
 // Brand Page Components
 import { BrandPageCreatorDialog } from './brand-page-creator-dialog';
+import { BulkImportSection } from './bulk-import-section';
 
 // ... existing imports
 import type { GeoZone, DropAlertConfig, LocalOffer, LocalSEOPage, FootTrafficMetrics, BrandSEOPage } from '@/types/foot-traffic';
@@ -1178,6 +1179,13 @@ export default function FootTrafficTab() {
                             </CardContent>
                         </Card>
                     </div>
+
+                    {/* Bulk Import Section */}
+                    <Card className="mt-8">
+                        <CardContent className="pt-6">
+                            <BulkImportSection onImportComplete={fetchBrandPages} />
+                        </CardContent>
+                    </Card>
 
                     {/* Brand Page Creator Dialog */}
                     <BrandPageCreatorDialog

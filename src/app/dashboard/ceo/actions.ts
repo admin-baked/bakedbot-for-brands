@@ -2,7 +2,7 @@
 
 import { requireUser } from '@/server/auth/auth';
 import { searchCannMenusRetailers as searchShared, CannMenusResult } from '@/server/actions/cannmenus';
-import type { FootTrafficMetrics } from '@/types/foot-traffic';
+import type { FootTrafficMetrics, BrandCTAType, CSVPreview, CSVRowError, BulkImportResult } from '@/types/foot-traffic';
 
 export type { CannMenusResult };
 
@@ -741,7 +741,7 @@ export async function getFootTrafficMetrics(): Promise<FootTrafficMetrics> {
 // BRAND SEO PAGE ACTIONS
 // =============================================================================
 
-import type { BrandSEOPage, CreateBrandPageInput, BrandCTAType } from '@/types/foot-traffic';
+import type { BrandSEOPage, CreateBrandPageInput } from '@/types/foot-traffic';
 
 /**
  * Search for brands via CannMenus API
@@ -981,4 +981,285 @@ export async function toggleBrandPagePublishAction(id: string, published: boolea
     console.error('[toggleBrandPagePublishAction] Error:', error);
     return { message: `Failed to update publish status: ${error.message}`, error: true };
   }
+}
+
+// =============================================================================
+// BULK IMPORT ACTIONS
+// =============================================================================
+
+const VALID_STATES = ['CA', 'CO', 'IL', 'MI', 'NY', 'OH', 'NV', 'OR', 'WA'];
+const VALID_CTA_TYPES = ['Order Online', 'View Products', 'Pickup In-Store', 'Learn More'];
+const CTA_TYPE_MAP: Record<string, BrandCTAType> = {
+  'order online': 'order_online',
+  'view products': 'view_products',
+  'pickup in-store': 'in_store_pickup',
+  'learn more': 'learn_more',
+};
+
+/**
+ * Parse CSV text into rows
+ */
+function parseCSV(csvText: string): { headers: string[]; rows: Record<string, string>[] } {
+  const lines = csvText.trim().split('\n').map(line => line.trim()).filter(Boolean);
+  if (lines.length < 2) {
+    return { headers: [], rows: [] };
+  }
+
+  // Parse header row
+  const headers = parseCSVLine(lines[0]);
+
+  // Parse data rows
+  const rows: Record<string, string>[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    const row: Record<string, string> = {};
+    headers.forEach((h, idx) => {
+      row[h] = values[idx] || '';
+    });
+    rows.push(row);
+  }
+
+  return { headers, rows };
+}
+
+/**
+ * Parse a single CSV line handling quoted values
+ */
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+
+  return result;
+}
+
+/**
+ * Parse ZIP codes from string (comma-separated or ranges)
+ */
+function parseZipCodesFromString(input: string): string[] {
+  const result: string[] = [];
+  const parts = input.split(',').map(s => s.trim()).filter(Boolean);
+
+  for (const part of parts) {
+    if (part.includes('-')) {
+      const [start, end] = part.split('-').map(s => parseInt(s.trim()));
+      if (!isNaN(start) && !isNaN(end) && start <= end && end - start <= 100) {
+        for (let i = start; i <= end; i++) {
+          result.push(String(i).padStart(5, '0'));
+        }
+      }
+    } else if (/^\d{5}$/.test(part)) {
+      result.push(part);
+    }
+  }
+
+  return Array.from(new Set(result));
+}
+
+/**
+ * Validate brand pages CSV and return preview
+ */
+export async function validateBrandPagesCSV(csvText: string): Promise<CSVPreview> {
+  await requireUser(['owner']);
+
+  const { headers, rows } = parseCSV(csvText);
+  const errors: CSVRowError[] = [];
+
+  // Check required columns
+  const requiredColumns = ['brand_name', 'state', 'city', 'zip_codes', 'cta_type', 'cta_url', 'status'];
+  const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+
+  if (missingColumns.length > 0) {
+    return {
+      headers: [],
+      rows: [],
+      totalRows: 0,
+      validRows: 0,
+      invalidRows: 0,
+      errors: [{ row: -1, field: 'headers', message: `Missing required columns: ${missingColumns.join(', ')}` }]
+    };
+  }
+
+  // Validate each row
+  rows.forEach((row, index) => {
+    // Brand name
+    if (!row.brand_name?.trim()) {
+      errors.push({ row: index, field: 'brand_name', message: 'Brand name is required' });
+    }
+
+    // State
+    if (!row.state?.trim()) {
+      errors.push({ row: index, field: 'state', message: 'State is required' });
+    } else if (!VALID_STATES.includes(row.state.toUpperCase())) {
+      errors.push({ row: index, field: 'state', message: `Invalid state. Valid: ${VALID_STATES.join(', ')}` });
+    }
+
+    // City
+    if (!row.city?.trim()) {
+      errors.push({ row: index, field: 'city', message: 'City is required' });
+    }
+
+    // ZIP codes
+    if (!row.zip_codes?.trim()) {
+      errors.push({ row: index, field: 'zip_codes', message: 'ZIP codes are required' });
+    } else {
+      const zips = parseZipCodesFromString(row.zip_codes);
+      if (zips.length === 0) {
+        errors.push({ row: index, field: 'zip_codes', message: 'No valid ZIP codes found' });
+      }
+    }
+
+    // CTA type
+    if (!row.cta_type?.trim()) {
+      errors.push({ row: index, field: 'cta_type', message: 'CTA type is required' });
+    } else if (!VALID_CTA_TYPES.map(t => t.toLowerCase()).includes(row.cta_type.toLowerCase().trim())) {
+      errors.push({ row: index, field: 'cta_type', message: `Invalid CTA type. Valid: ${VALID_CTA_TYPES.join(', ')}` });
+    }
+
+    // CTA URL
+    if (!row.cta_url?.trim()) {
+      errors.push({ row: index, field: 'cta_url', message: 'CTA URL is required' });
+    } else {
+      try {
+        new URL(row.cta_url);
+      } catch {
+        errors.push({ row: index, field: 'cta_url', message: 'Invalid URL format' });
+      }
+    }
+
+    // Status
+    if (!row.status?.trim()) {
+      errors.push({ row: index, field: 'status', message: 'Status is required' });
+    } else if (!['draft', 'published'].includes(row.status.toLowerCase().trim())) {
+      errors.push({ row: index, field: 'status', message: 'Status must be "draft" or "published"' });
+    }
+  });
+
+  // Count valid/invalid rows
+  const rowsWithErrors = new Set(errors.map(e => e.row));
+  const invalidRows = rowsWithErrors.size;
+  const validRows = rows.length - invalidRows;
+
+  return {
+    headers,
+    rows,
+    totalRows: rows.length,
+    validRows,
+    invalidRows,
+    errors
+  };
+}
+
+/**
+ * Import validated brand page rows
+ */
+export async function importBrandPagesAction(rows: Record<string, string>[]): Promise<BulkImportResult> {
+  await requireUser(['owner']);
+
+  const firestore = getAdminFirestore();
+  const createdPages: string[] = [];
+  const errors: CSVRowError[] = [];
+  const skippedRows: number[] = [];
+  const batch = firestore.batch();
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+
+    try {
+      const brandName = row.brand_name?.trim();
+      const brandSlug = brandName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const zipCodes = parseZipCodesFromString(row.zip_codes || '');
+      const ctaType = CTA_TYPE_MAP[row.cta_type?.toLowerCase().trim()] || 'order_online';
+      const published = row.status?.toLowerCase().trim() === 'published';
+
+      // Create a page for each ZIP code
+      for (const zipCode of zipCodes) {
+        const pageId = `${brandSlug}_${zipCode}`;
+
+        const brandPage: Record<string, any> = {
+          id: pageId,
+          brandId: brandSlug, // Using slug as ID since we don't have CannMenus ID
+          brandName,
+          brandSlug,
+          zipCodes: [zipCode],
+          city: row.city?.trim() || '',
+          state: row.state?.toUpperCase().trim() || '',
+          radiusMiles: parseInt(row.radius as string) || 15,
+          priority: parseInt(row.priority as string) || 5,
+          ctaType,
+          ctaUrl: row.cta_url?.trim() || '',
+          featuredProductIds: [],
+          seoTags: {
+            metaTitle: `Buy ${brandName} near ${row.city}, ${row.state} (${zipCode})`,
+            metaDescription: `Find ${brandName} products at dispensaries near ${zipCode}. Check availability, prices, and order online.`,
+            keywords: [brandName.toLowerCase(), 'cannabis', row.city?.toLowerCase() || '', zipCode]
+          },
+          published,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          createdBy: 'bulk-import',
+          metrics: {
+            pageViews: 0,
+            ctaClicks: 0,
+            claimAttempts: 0
+          }
+        };
+
+        // Add optional fields
+        if (row.zone_name?.trim()) {
+          brandPage.zoneName = row.zone_name.trim();
+        }
+        if (row.featured_products?.trim()) {
+          // Store product names for now; could look up IDs later
+          brandPage.featuredProductNames = row.featured_products.split(';').map(p => p.trim());
+        }
+
+        const ref = firestore.collection('foot_traffic').doc('config').collection('brand_pages').doc(pageId);
+        batch.set(ref, brandPage);
+        createdPages.push(pageId);
+      }
+    } catch (error: any) {
+      console.error(`[importBrandPagesAction] Row ${i} error:`, error);
+      errors.push({ row: i, field: 'general', message: error.message });
+      skippedRows.push(i);
+    }
+  }
+
+  // Commit batch
+  try {
+    await batch.commit();
+  } catch (error: any) {
+    console.error('[importBrandPagesAction] Batch commit error:', error);
+    return {
+      totalRows: rows.length,
+      validRows: 0,
+      invalidRows: rows.length,
+      errors: [{ row: -1, field: 'database', message: `Database error: ${error.message}` }],
+      createdPages: [],
+      skippedRows: Array.from({ length: rows.length }, (_, i) => i)
+    };
+  }
+
+  return {
+    totalRows: rows.length,
+    validRows: rows.length - skippedRows.length,
+    invalidRows: skippedRows.length,
+    errors,
+    createdPages,
+    skippedRows
+  };
 }
