@@ -983,6 +983,73 @@ export async function toggleBrandPagePublishAction(id: string, published: boolea
   }
 }
 
+/**
+ * Bulk publish/unpublish all brand pages
+ */
+export async function bulkPublishBrandPagesAction(published: boolean): Promise<ActionResult & { count?: number }> {
+  await requireUser(['owner']);
+
+  try {
+    const firestore = getAdminFirestore();
+    const collection = firestore.collection('foot_traffic').doc('config').collection('brand_pages');
+
+    // Get all pages with opposite status
+    const query = await collection.where('published', '==', !published).get();
+
+    if (query.empty) {
+      return { message: `No ${published ? 'draft' : 'published'} pages to update.` };
+    }
+
+    const batch = firestore.batch();
+    query.docs.forEach(doc => {
+      batch.update(doc.ref, { published, updatedAt: new Date() });
+    });
+
+    await batch.commit();
+
+    return {
+      message: `Successfully ${published ? 'published' : 'unpublished'} ${query.size} brand pages.`,
+      count: query.size
+    };
+  } catch (error: any) {
+    console.error('[bulkPublishBrandPagesAction] Error:', error);
+    return { message: `Failed to bulk update: ${error.message}`, error: true };
+  }
+}
+
+/**
+ * Bulk publish/unpublish all dispensary pages
+ */
+export async function bulkPublishDispensaryPagesAction(published: boolean): Promise<ActionResult & { count?: number }> {
+  await requireUser(['owner']);
+
+  try {
+    const firestore = getAdminFirestore();
+    const collection = firestore.collection('foot_traffic').doc('config').collection('dispensary_pages');
+
+    const query = await collection.where('published', '==', !published).get();
+
+    if (query.empty) {
+      return { message: `No ${published ? 'draft' : 'published'} pages to update.` };
+    }
+
+    const batch = firestore.batch();
+    query.docs.forEach(doc => {
+      batch.update(doc.ref, { published, updatedAt: new Date() });
+    });
+
+    await batch.commit();
+
+    return {
+      message: `Successfully ${published ? 'published' : 'unpublished'} ${query.size} dispensary pages.`,
+      count: query.size
+    };
+  } catch (error: any) {
+    console.error('[bulkPublishDispensaryPagesAction] Error:', error);
+    return { message: `Failed to bulk update: ${error.message}`, error: true };
+  }
+}
+
 // =============================================================================
 // BULK IMPORT ACTIONS
 // =============================================================================
