@@ -50,11 +50,27 @@ export async function deleteAllPages() {
             });
         };
 
+        // Helper to delete subcollection under foot_traffic/config
+        const deleteFootTrafficSubcollection = async (subcollection: string) => {
+            const collectionRef = firestore.collection('foot_traffic').doc('config').collection(subcollection);
+            const query = collectionRef.orderBy('__name__').limit(500);
 
+            return new Promise((resolve, reject) => {
+                deleteQueryBatch(firestore, query, resolve).catch(reject);
+            });
+        };
 
-        // Delete 'seo_pages' and 'generated_pages_metadata'
+        // Delete legacy 'seo_pages' and 'generated_pages_metadata'
         await deleteCollection('seo_pages');
         await deleteCollection('generated_pages_metadata');
+
+        // Delete foot_traffic page collections
+        logger.warn('Deleting foot_traffic page collections...');
+        await deleteFootTrafficSubcollection('zip_pages');
+        await deleteFootTrafficSubcollection('dispensary_pages');
+        await deleteFootTrafficSubcollection('brand_pages');
+        await deleteFootTrafficSubcollection('city_pages');
+        await deleteFootTrafficSubcollection('state_pages');
 
         logger.info('All pages deleted successfully.');
         return { success: true };
