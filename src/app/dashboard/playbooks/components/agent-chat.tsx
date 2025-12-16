@@ -313,10 +313,20 @@ function StepsList({ steps }: { steps: ToolCallStep[] }) {
 
 // ============ Main Component ============
 
+// Page context for brand/dispensary pages
+export interface PageContext {
+    type: 'brand' | 'dispensary' | 'local';
+    slug: string;
+    name?: string;
+    isOwner?: boolean; // True if logged in as page owner
+}
+
 export interface AgentChatProps {
     initialTitle?: string;
     onBack?: () => void;
     onSubmit?: (message: string) => Promise<void>;
+    // Context-aware props for brand/dispensary pages
+    pageContext?: PageContext;
     // Keep standard props for compatibility if needed, but unused here
     mode?: any;
     placeholder?: string;
@@ -329,7 +339,8 @@ export interface AgentChatProps {
 export function AgentChat({
     initialTitle = 'New Automation',
     onBack,
-    onSubmit
+    onSubmit,
+    pageContext
 }: AgentChatProps) {
     // Global Store State
     const { currentMessages, addMessage, updateMessage, setCurrentRole } = useAgentChatStore();
@@ -512,8 +523,40 @@ export function AgentChat({
                 </div>
             </div>
             {!hasMessages && (
-                <div className="text-center mt-2">
-                    <p className="text-[10px] text-muted-foreground">AI can make mistakes. Verify critical automations.</p>
+                <div className="mt-3 space-y-2">
+                    {/* Context-aware Quick Actions */}
+                    {pageContext && (
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {pageContext.isOwner ? (
+                                // Owner Quick Actions
+                                <>
+                                    <Button variant="outline" size="sm" onClick={() => setInput('Help me claim and verify this page')}>
+                                        ✓ Claim This Page
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => setInput('How do I edit my page info?')}>
+                                        ✏️ Edit Info
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => setInput('Show me my page analytics')}>
+                                        📊 View Analytics
+                                    </Button>
+                                </>
+                            ) : (
+                                // Customer Quick Actions
+                                <>
+                                    <Button variant="outline" size="sm" onClick={() => setInput(`Set up a drop alert for ${pageContext.name || 'this brand'}`)}>
+                                        🔔 Set Drop Alert
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => setInput(`I want to follow ${pageContext.name || 'this brand'}`)}>
+                                        ❤️ Follow Brand
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => setInput('Find dispensaries near me that carry this brand')}>
+                                        📍 Find Nearby
+                                    </Button>
+                                </>
+                            )}
+                        </div>
+                    )}
+                    <p className="text-center text-[10px] text-muted-foreground">AI can make mistakes. Verify critical automations.</p>
                 </div>
             )}
             {isProcessing && hasMessages && (

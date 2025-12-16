@@ -1,0 +1,10 @@
+[05:57:01] Target States: California, Illinois, Michigan, New York, New Jersey
+[05:57:01] Limit: 100
+[05:57:01] Processing 100 records...
+[06:01:03] Scan Complete.
+[06:01:03] Total API Calls: 100
+[06:01:03] Smart Skips (City-based): 0
+[06:01:03] Total Dispensaries Found: 20
+[06:01:03] Verified Cities: 4
+[06:01:04] Saved updated CSV to C:\Users\marte\Baked for Brands\bakedbot-for-brands\dev\target_locations_updated.csv
+[06:01:04] Saved dispensaries to C:\Users\marte\Baked for Brands\bakedbot-for-brands\dev\discovered_dispensaries.json
