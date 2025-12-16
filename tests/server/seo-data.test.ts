@@ -2,13 +2,15 @@
 import { fetchBrandPageData } from '@/lib/brand-data';
 import { fetchDispensaryPageData } from '@/lib/dispensary-data';
 import { fetchCityPageData } from '@/lib/city-data';
+import { fetchStatePageData } from '@/lib/state-data';
 
 // Mock Firestore
 const mockGet = jest.fn();
 const mockLimit = jest.fn(() => ({ get: mockGet }));
-const mockWhere = jest.fn(() => ({ limit: mockLimit, where: mockWhere, get: mockGet }));
+const mockOrderBy = jest.fn(() => ({ limit: mockLimit, get: mockGet })); // Add orderBy
+const mockWhere = jest.fn(() => ({ limit: mockLimit, where: mockWhere, get: mockGet, orderBy: mockOrderBy }));
 const mockDoc: any = jest.fn(() => ({ get: mockGet, collection: mockCollection })); // doc() returns get() AND collection()
-const mockCollection: any = jest.fn(() => ({ doc: mockDoc, where: mockWhere, limit: mockLimit, get: mockGet })); // Recursive
+const mockCollection: any = jest.fn(() => ({ doc: mockDoc, where: mockWhere, limit: mockLimit, get: mockGet, orderBy: mockOrderBy })); // Recursive
 const mockFirestore = {
     collection: mockCollection,
 };
@@ -147,6 +149,40 @@ describe('SEO Data Fetching', () => {
             const { dispensaries } = await fetchCityPageData('test-city');
             expect(dispensaries).toHaveLength(1);
             expect(dispensaries[0].name).toBe('Page Dispensary');
+        });
+    });
+
+    describe('fetchStatePageData', () => {
+        it('should fetch state data and top cities', async () => {
+            // Mock State Page Config found
+            mockGet.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({ name: 'California', slug: 'state_california' })
+            });
+
+            // Mock Cities in State found
+            mockGet.mockResolvedValueOnce({
+                docs: [{
+                    data: () => ({ name: 'Los Angeles', slug: 'city_la', dispensaryCount: 50 })
+                }, {
+                    data: () => ({ name: 'San Francisco', slug: 'city_sf', dispensaryCount: 30 })
+                }]
+            });
+
+            const stateData = await fetchStatePageData('state_california');
+
+            expect(stateData).not.toBeNull();
+            expect(stateData?.name).toBe('California');
+            expect(stateData?.topCities).toHaveLength(2);
+            expect(stateData?.topCities[0].name).toBe('Los Angeles');
+        });
+
+        it('should return null if state config not found', async () => {
+            // Mock State Page Config NOT found
+            mockGet.mockResolvedValueOnce({ exists: false });
+
+            const stateData = await fetchStatePageData('state_unknown');
+            expect(stateData).toBeNull();
         });
     });
 });
