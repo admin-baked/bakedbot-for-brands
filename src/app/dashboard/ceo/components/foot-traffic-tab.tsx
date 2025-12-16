@@ -1145,7 +1145,7 @@ export default function FootTrafficTab() {
                                                     <TableCell><Badge variant="outline">{page.state}</Badge></TableCell>
                                                     <TableCell>
                                                         <Badge variant="secondary" className="capitalize">
-                                                            {page.ctaType.replace(/_/g, ' ')}
+                                                            {page.ctaType?.replace(/_/g, ' ') || 'default'}
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell>
