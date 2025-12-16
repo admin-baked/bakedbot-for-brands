@@ -10,7 +10,7 @@ import { CheckCircle, Building2, User, Mail, Phone, Loader2, ArrowLeft, ArrowRig
 import { PlanSelectionCards } from '@/components/claim/plan-selection-cards';
 import { useAcceptJs, formatCardNumber, formatExpiryDate, parseExpirationDate } from '@/hooks/useAcceptJs';
 
-type PlanId = 'claim-pro' | 'founders-claim';
+import { PlanId } from '@/lib/plans';
 
 interface ClaimFormData {
     // Step 1: Business Info
@@ -52,7 +52,7 @@ function ClaimWizard() {
         contactEmail: '',
         contactPhone: '',
         role: '',
-        planId: 'claim-pro'
+        planId: 'claim_pro'
     });
 
     const [paymentData, setPaymentData] = useState<PaymentFormData>({
@@ -191,7 +191,7 @@ function ClaimWizard() {
                         <CardTitle className="text-2xl">Claim Submitted!</CardTitle>
                         <CardDescription>
                             We've received your claim request for <strong>{formData.businessName}</strong>.
-                            {formData.planId === 'founders-claim' && (
+                            {formData.planId === 'founders_claim' && (
                                 <span className="block mt-2 text-orange-600 font-medium">
                                     🔥 Your Founders Claim rate is locked in!
                                 </span>
@@ -226,8 +226,8 @@ function ClaimWizard() {
                 {[1, 2, 3].map((s) => (
                     <div key={s} className="flex items-center gap-2">
                         <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors ${step >= s
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted text-muted-foreground'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground'
                             }`}>
                             {s}
                         </div>
@@ -383,7 +383,7 @@ function ClaimWizard() {
                         <CardHeader>
                             <CardTitle>Complete Your Subscription</CardTitle>
                             <CardDescription>
-                                Enter your payment details to activate your {formData.planId === 'founders-claim' ? 'Founders Claim' : 'Claim Pro'} subscription.
+                                Enter your payment details to activate your {formData.planId === 'founders_claim' ? 'Founders Claim' : 'Claim Pro'} subscription.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
@@ -393,12 +393,12 @@ function ClaimWizard() {
                                     <div>
                                         <p className="font-medium">{formData.businessName}</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {formData.planId === 'founders-claim' ? 'Founders Claim' : 'Claim Pro'} Subscription
+                                            {formData.planId === 'founders_claim' ? 'Founders Claim' : 'Claim Pro'} Subscription
                                         </p>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-2xl font-bold">
-                                            ${formData.planId === 'founders-claim' ? '79' : '99'}
+                                            ${formData.planId === 'founders_claim' ? '79' : '99'}
                                         </p>
                                         <p className="text-sm text-muted-foreground">/month</p>
                                     </div>
@@ -486,7 +486,7 @@ function ClaimWizard() {
                                     ) : (
                                         <>
                                             <Lock className="mr-2 h-4 w-4" />
-                                            Pay ${formData.planId === 'founders-claim' ? '79' : '99'}/mo
+                                            Pay ${formData.planId === 'founders_claim' ? '79' : '99'}/mo
                                         </>
                                     )}
                                 </Button>

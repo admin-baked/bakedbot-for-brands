@@ -10,6 +10,14 @@ export const CANNMENUS_LIMITS: Record<PlanId, CannMenusLimit> = {
         maxRetailers: 1,
         maxProducts: 10
     },
+    claim_pro: {
+        maxRetailers: 1,
+        maxProducts: 10000
+    },
+    founders_claim: {
+        maxRetailers: 1,
+        maxProducts: 10000
+    },
     growth_5: {
         maxRetailers: 5,
         maxProducts: 10000 // Effectively unlimited
