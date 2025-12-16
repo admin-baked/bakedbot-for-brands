@@ -1,15 +1,18 @@
-
 export const PRICING_PLANS = [
     {
         id: "free",
-        name: "Unclaimed",
+        name: "Free Listing",
         price: 0,
         priceDisplay: "$0",
         period: "/ mo",
-        setup: "SEO Discovery",
-        desc: "Your page exists publicly for discovery. Claim it to take control.",
-        features: ["Public listing", "Basic SEO", "System-sourced data"],
-        pill: "Claim This Page",
+        setup: "Best for: getting discovered",
+        desc: "Best for: getting discovered",
+        features: [
+            "Public brand/dispensary listing pages (SEO indexed)",
+            "Basic info display (hours, location, links if available)",
+            "“Request update” + “Report issue” flows"
+        ],
+        pill: "Create Free Listing",
         highlight: false,
         tier: "unclaimed"
     },
@@ -19,38 +22,39 @@ export const PRICING_PLANS = [
         price: 99,
         priceDisplay: "$99",
         period: "/ mo",
-        setup: "1 brand or dispensary",
-        desc: "Take control of your page with verified status and analytics.",
+        setup: "Best for: operators who want control + measurable demand",
+        desc: "Best for: operators who want control + measurable demand",
         features: [
-            "Verified Badge ✓",
-            "Edit business info",
-            "CTA control (Order/Deals/Website)",
-            "Basic analytics (views, clicks, ZIPs)",
-            "Lead capture + CRM export",
-            "Compliance guardrails"
+            "Verified badge",
+            "Edit page info + logo + links",
+            "Set CTA (Order / Pickup / Find-in-store / Deals / Website)",
+            "Basic analytics (views, clicks, top ZIPs)",
+            "Lead capture (email/SMS form)",
+            "Data correction + audit trail"
         ],
-        pill: "Claim Now",
+        pill: "Claim Pro",
         highlight: true,
         tier: "claim"
     },
     {
         id: "founders_claim",
-        name: "Founders Claim",
+        name: "Claim Pro (Founders)",
         price: 79,
         priceDisplay: "$79",
+        priceAnnual: 799,
         period: "/ mo (locked)",
-        setup: "Limited to first 250",
-        desc: "Lock in the lowest rate forever. Same features as Claim Pro.",
+        setup: "Limited availability",
+        desc: "Same as Claim Pro, but locked-in pricing for life.",
         features: [
             "All Claim Pro features",
-            "Locked-in pricing for life",
+            "Locked-in pricing ($79/mo)",
             "Early adopter badge"
         ],
-        pill: "🔥 Limited Offer",
+        pill: "Get Founders Pricing",
         highlight: false,
         tier: "claim",
         scarcity: true,
-        scarcityLimit: 250
+        scarcityLimit: 75
     },
     {
         id: "growth",
@@ -58,16 +62,14 @@ export const PRICING_PLANS = [
         price: 350,
         priceDisplay: "$350",
         period: "/ mo",
-        setup: "Up to 5 locations",
-        desc: "For growing brands that need marketing automation and deeper insights.",
+        setup: "Best for: growing brands (≈5 locations / multi-zone coverage)",
+        desc: "Best for: growing brands (≈5 locations / multi-zone coverage)",
         features: [
-            "All Claim Pro features",
-            "AI Budtender",
-            "Marketing Playbooks",
-            "Competitor Watch",
-            "25 ZIP coverage included"
+            "Multi-market page coverage (more ZIPs/zones)",
+            "Craig automations starter (claim-to-lead nurture)",
+            "Pops reporting starter (traffic → clicks → claims)"
         ],
-        pill: "Most Popular",
+        pill: "Start Growth",
         highlight: false,
         tier: "subscription"
     },
@@ -77,15 +79,14 @@ export const PRICING_PLANS = [
         price: 700,
         priceDisplay: "$700",
         period: "/ mo",
-        setup: "Up to 10 locations",
-        desc: "For established brands scaling their direct-to-customer channel.",
+        setup: "Best for: established brands (≈10 locations / aggressive expansion)",
+        desc: "Best for: established brands (≈10 locations / aggressive expansion)",
         features: [
-            "All Growth features",
-            "Advanced Analytics",
-            "Price Optimization",
-            "100 ZIP coverage included"
+            "Expanded coverage + higher limits",
+            "Priority support + faster refresh cadence",
+            "Advanced reporting + optimization loop (what to build next / where to expand)"
         ],
-        pill: "Best Value",
+        pill: "Start Scale",
         highlight: false,
         tier: "subscription"
     },
@@ -95,18 +96,17 @@ export const PRICING_PLANS = [
         price: null,
         priceDisplay: "Custom",
         period: "",
-        setup: "Unlimited locations",
-        desc: "For MSOs and large brands needing custom integrations and support.",
+        setup: "Best for: MSOs / national brands / custom integrations",
+        desc: "Best for: MSOs / national brands / custom integrations",
         features: [
-            "All Scale features",
-            "Custom Agent Packs",
-            "Priority Support",
-            "Unlimited ZIP coverage"
+            "Custom coverage + SLAs",
+            "Integrations + bespoke workflows",
+            "Dedicated support"
         ],
-        pill: "Contact Us",
+        pill: "Talk to Sales",
         highlight: false,
         tier: "subscription"
-    },
+    }
 ];
 
 // Coverage Pack Add-ons
