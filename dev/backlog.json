@@ -580,6 +580,34 @@
                 "feat_location_filters"
             ],
             "area": "backend"
+        },
+        {
+            "id": "feat_claimed_page_checkout",
+            "title": "Claimed Page Checkout & Dispensary Order Fulfillment",
+            "status": "pending",
+            "priority": "high",
+            "description": "Enable checkout flow for claimed brand/dispensary pages. Once a page is claimed, customers can checkout manually OR use Smokey (AI Agent Budtender) for personalized recommendations and quick checkout. Dispensaries receive orders for fulfillment. Cart pill will be re-enabled when this is complete.",
+            "acceptance_tests": [
+                "test_claimed_page_enables_checkout",
+                "test_manual_checkout_flow",
+                "test_smokey_checkout_flow",
+                "test_dispensary_receives_order",
+                "test_order_notifications"
+            ],
+            "phases": [
+                "Phase 1: Claimed Page Detection (show checkout only on verified pages)",
+                "Phase 2: Manual Checkout Flow (cart → address → payment → confirmation)",
+                "Phase 3: Smokey Quick Checkout (AI recommendations + express checkout)",
+                "Phase 4: Dispensary Order Dashboard (receive, accept, fulfill orders)",
+                "Phase 5: Order Notifications (SMS/email for customers + dispensaries)"
+            ],
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_national_rollout",
+                "feat_algorithms_backbone_v1"
+            ],
+            "area": "full_stack",
+            "created_at": "2025-12-16T15:59:00Z"
         }
     ]
 }
