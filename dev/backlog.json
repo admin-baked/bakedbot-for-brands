@@ -502,6 +502,28 @@
                 "feat_algorithms_phase_4"
             ],
             "area": "backend"
+        },
+        {
+            "id": "feat_organic_growth_seo",
+            "title": "Reverse-Engineer Weedmaps/Leafly & Upgrade Pages (Organic Growth)",
+            "status": "in_progress",
+            "description": "Execute the organic growth agent plan. 1) Competitive Intel (SERP analysis), 2) Page Upgrades (ZIP/Brand/Dispensary templates), 3) Scale Coverage (City Hubs, Backlinks).",
+            "acceptance_tests": [
+                "check_serp_watchlist_created",
+                "check_competitor_matrix_created",
+                "check_zip_template_upgraded"
+            ],
+            "phases": [
+                "Phase 1: Competitive Intel (Ezal) ⏳",
+                "Phase 2: Page Upgrades (Smokey/Pops) ⏳",
+                "Phase 3: Scale Coverage ⏳"
+            ],
+            "owner": "growth_orchestrator",
+            "dependencies": [
+                "feat_national_rollout",
+                "feat_expanded_page_generation"
+            ],
+            "area": "growth"
         }
     ]
 }

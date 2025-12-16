@@ -7,11 +7,31 @@ import { Button } from '@/components/ui/button';
 import { StickyOperatorBox } from '@/components/brand/sticky-operator-box';
 import { PageViewTracker } from '@/components/analytics/PageViewTracker';
 import Link from 'next/link';
-import { MapPin } from 'lucide-react';
+import { Metadata } from 'next';
+import { BrandAbout } from '@/components/brand/brand-about';
+import { WhereToBuy } from '@/components/brand/where-to-buy';
+import { Badge } from '@/components/ui/badge';
+
+export async function generateMetadata({ params }: { params: Promise<{ brandSlug: string }> }): Promise<Metadata> {
+    const { brandSlug } = await params;
+    const { brand } = await fetchBrandPageData(brandSlug);
+
+    if (!brand) return { title: 'Brand Not Found' };
+
+    return {
+        title: `${brand.name} Cannabis Products | BakedBot`,
+        description: brand.description?.slice(0, 160) || `Discover premium cannabis products from ${brand.name}. Find availability near you and verify authenticity on BakedBot.`,
+        openGraph: {
+            title: `${brand.name} | BakedBot`,
+            description: `Verify authenticity and find ${brand.name} products near you.`,
+            images: brand.logoUrl ? [brand.logoUrl] : [],
+        }
+    };
+}
 
 export default async function GlobalBrandPage({ params }: { params: Promise<{ brandSlug: string }> }) {
     const { brandSlug } = await params;
-    const { brand, products } = await fetchBrandPageData(brandSlug);
+    const { brand, products, retailers } = await fetchBrandPageData(brandSlug);
 
     if (!brand) {
         notFound();
@@ -35,24 +55,24 @@ export default async function GlobalBrandPage({ params }: { params: Promise<{ br
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     <div className="lg:col-span-8 space-y-8">
                         {/* Hero Section */}
-                        <section className="relative bg-gradient-to-b from-secondary/30 to-background rounded-2xl p-8 text-center">
+                        <section className="relative bg-gradient-to-b from-secondary/30 to-background rounded-2xl p-8 text-center mb-8">
                             <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
                                 {brand.name}
                             </h1>
-                            <p className="text-lg text-muted-foreground mb-8 text-balance">
+                            <p className="text-lg text-muted-foreground mb-4 text-balance">
                                 Discover products from {brand.name}. Find availability near you.
                             </p>
 
-                            <div className="max-w-md mx-auto bg-card border rounded-full p-2 flex items-center shadow-sm">
-                                <MapPin className="ml-3 w-5 h-5 text-muted-foreground" />
-                                <input
-                                    type="text"
-                                    placeholder="Enter your ZIP code..."
-                                    className="flex-1 bg-transparent border-none focus:ring-0 px-3 text-sm outline-none"
-                                />
-                                <Button className="rounded-full">Find Nearby</Button>
-                            </div>
+                            <Badge variant="outline" className="bg-background/50">
+                                Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                            </Badge>
                         </section>
+
+                        {/* About Section */}
+                        <BrandAbout brand={brand} />
+
+                        {/* Where to Buy */}
+                        <WhereToBuy retailers={retailers || []} brandName={brand.name} />
 
                         {/* Product Showcase */}
                         <section>
@@ -86,6 +106,21 @@ export default async function GlobalBrandPage({ params }: { params: Promise<{ br
                     </div>
                 </div>
             </div>
+            {/* Schema */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        '@context': 'https://schema.org',
+                        '@type': 'Brand',
+                        name: brand.name,
+                        description: brand.description,
+                        logo: brand.logoUrl,
+                        url: `https://bakedbot.ai/brands/${brandSlug}`,
+                        sameAs: brand.website ? [brand.website] : []
+                    })
+                }}
+            />
         </main>
     );
 }

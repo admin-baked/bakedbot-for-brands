@@ -10,15 +10,9 @@ import { RetailerMap } from '@/components/maps/retailer-map';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-// Helper to sanitize Retailer to RetailerLite
-function toRetailerLite(r: any) {
-    return {
-        id: r.id,
-        name: r.name,
-        address: r.address,
-        isOpen: true // Placeholder
-    };
-}
+
+// Helper removed as retailers are already fully typed
+
 
 export default async function LocalBrandPage({ params }: { params: Promise<{ brandSlug: string; zip: string }> }) {
     const { brandSlug, zip } = await params;
@@ -53,9 +47,8 @@ export default async function LocalBrandPage({ params }: { params: Promise<{ bra
                         <section>
                             <h2 className="text-xl font-semibold mb-4">Where to buy {brand.name}</h2>
                             <WhereToBuy
-                                retailers={retailers.map(toRetailerLite)}
+                                retailers={retailers}
                                 brandName={brand.name}
-                                zipCode={zip}
                             />
                         </section>
 
