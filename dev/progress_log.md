@@ -167,3 +167,46 @@ unAgentChat in ctions.ts to return standardized AgentResult with rich metadata.
 - **Started Expanded Page Generation**:
   - Goal: Scan for Brands and Dispensaries to populate `foot_traffic` pages.
   - Added `feat_expanded_page_generation` to backlog.
+
+## 2025-12-16T14:15Z – feat_brand_page_enhancements – antigravity
+- **Completed Brand Page Enhancements**:
+  - **Global Brand Page** (`/brands/[slug]`):
+    - Added `ChatbotPageContext` for AI Budtender context awareness.
+    - Replaced `StickyOperatorBox` with unified claim module.
+    - Added founders pricing callout ($79/mo normally $99).
+    - Added "What you unlock" benefits section.
+    - Added freshness stamp with CannMenus attribution.
+    - Added Explore section (city + ZIP links).
+    - Added "Report an Issue" link for data corrections.
+  - **Local Brand Page** (`/brands/[slug]/near/[zip]`):
+    - Added `ChatbotPageContext` and `PageViewTracker`.
+    - Added freshness stamp.
+    - Added "Report an Issue" link.
+  - **Commit**: `74c879ef`
+
+## 2025-12-16T14:20Z – feat_location_filters – antigravity
+- **Completed Location Filters for Page Generator**:
+  - Added Market Type filter: Cannabis (green) / Hemp Only (blue) / All States.
+  - Added State dropdown with 50 states + legal status badges.
+  - Added City filter (optional free text).
+  - Added ZIP Codes textarea (comma-separated or newlines).
+  - Added `ScanFilters` interface to `page-generation.ts`.
+  - Updated all scan functions to accept filters.
+  - **Commit**: `2f99b8a6`
+
+## 2025-12-16T14:40Z – feat_manual_page_creator – antigravity
+- **Completed Manual Page Creator**:
+  - Added "Manual Page Creator" section to Page Generator UI.
+  - Entity Type toggle: Brand / Dispensary.
+  - Input fields: Name, Slug, Description, Logo URL, Website.
+  - Location targeting: Cities (one per line), ZIP Codes, Global Page toggle.
+  - Created `manual-page-creation.ts` server action.
+  - Writes to `brands`/`retailers` and `foot_traffic/config/*_pages`.
+  - **Commit**: `fdeb741c`
+
+## 2025-12-16T14:48Z – test_session_features – antigravity
+- **Added Unit Tests (35 passing)**:
+  - `manual-page-creation.test.ts` (11 tests): Input validation, slug generation, page count.
+  - `cart-label.test.ts` (11 tests): Context-aware cart labels.
+  - `chatbot-context.test.ts` (13 tests): Context priority, market type, location filters.
+  - **Commit**: `756d1607`
