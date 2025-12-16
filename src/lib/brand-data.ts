@@ -168,139 +168,144 @@ export async function fetchCollectionData(brandParam: string, collectionSlug: st
 }
 
 export async function fetchLocalBrandPageData(brandParam: string, zipCode: string) {
-    const { firestore } = await createServerClient();
+    try {
+        const { firestore } = await createServerClient();
 
-    // 1. Fetch Brand Logic (Reuse)
-    let brand: Brand | null = null;
-    const brandDoc = await firestore.collection('brands').doc(brandParam).get();
-    if (brandDoc.exists) {
-        brand = { id: brandDoc.id, ...brandDoc.data() } as Brand;
-    } else {
-        const slugQuery = await firestore.collection('brands').where('slug', '==', brandParam).limit(1).get();
-        if (!slugQuery.empty) {
-            brand = { id: slugQuery.docs[0].id, ...slugQuery.docs[0].data() } as Brand;
-        }
-    }
-
-    // 2. Fallback: Check brand_pages collection for dynamically created pages
-    // This supports brands created via the Brand Page Creator UI
-    if (!brand) {
-        // Try to find a brand page matching this slug and ZIP
-        const brandPageId = `${brandParam}_${zipCode}`;
-        const brandPageDoc = await firestore
-            .collection('foot_traffic')
-            .doc('config')
-            .collection('brand_pages')
-            .doc(brandPageId)
-            .get();
-
-        if (brandPageDoc.exists) {
-            const pageData = brandPageDoc.data();
-            // Only show published pages (or all pages for preview)
-            if (pageData) {
-                // Create a synthetic Brand object from the BrandSEOPage data
-                brand = {
-                    id: pageData.brandSlug || brandParam,
-                    name: pageData.brandName || brandParam,
-                    slug: pageData.brandSlug || brandParam,
-                    logoUrl: pageData.logoUrl || undefined,
-                    verificationStatus: 'unverified', // Default for dynamic pages
-                    dispensaryCount: 0, // Will be populated dynamically
-                };
-            }
+        // 1. Fetch Brand Logic (Reuse)
+        let brand: Brand | null = null;
+        const brandDoc = await firestore.collection('brands').doc(brandParam).get();
+        if (brandDoc.exists) {
+            brand = { id: brandDoc.id, ...brandDoc.data() } as Brand;
         } else {
-            // Try to find any brand page with this slug (across all ZIPs)
-            const brandPagesQuery = await firestore
+            const slugQuery = await firestore.collection('brands').where('slug', '==', brandParam).limit(1).get();
+            if (!slugQuery.empty) {
+                brand = { id: slugQuery.docs[0].id, ...slugQuery.docs[0].data() } as Brand;
+            }
+        }
+
+        // 2. Fallback: Check brand_pages collection for dynamically created pages
+        // This supports brands created via the Brand Page Creator UI
+        if (!brand) {
+            // Try to find a brand page matching this slug and ZIP
+            const brandPageId = `${brandParam}_${zipCode}`;
+            const brandPageDoc = await firestore
                 .collection('foot_traffic')
                 .doc('config')
                 .collection('brand_pages')
-                .where('brandSlug', '==', brandParam)
-                .limit(1)
+                .doc(brandPageId)
                 .get();
 
-            if (!brandPagesQuery.empty) {
-                const pageData = brandPagesQuery.docs[0].data();
+            if (brandPageDoc.exists) {
+                const pageData = brandPageDoc.data();
+                // Only show published pages (or all pages for preview)
                 if (pageData) {
+                    // Create a synthetic Brand object from the BrandSEOPage data
                     brand = {
                         id: pageData.brandSlug || brandParam,
                         name: pageData.brandName || brandParam,
                         slug: pageData.brandSlug || brandParam,
                         logoUrl: pageData.logoUrl || undefined,
-                        verificationStatus: 'unverified',
-                        dispensaryCount: 0,
+                        verificationStatus: 'unverified', // Default for dynamic pages
+                        dispensaryCount: 0, // Will be populated dynamically
                     };
+                }
+            } else {
+                // Try to find any brand page with this slug (across all ZIPs)
+                const brandPagesQuery = await firestore
+                    .collection('foot_traffic')
+                    .doc('config')
+                    .collection('brand_pages')
+                    .where('brandSlug', '==', brandParam)
+                    .limit(1)
+                    .get();
+
+                if (!brandPagesQuery.empty) {
+                    const pageData = brandPagesQuery.docs[0].data();
+                    if (pageData) {
+                        brand = {
+                            id: pageData.brandSlug || brandParam,
+                            name: pageData.brandName || brandParam,
+                            slug: pageData.brandSlug || brandParam,
+                            logoUrl: pageData.logoUrl || undefined,
+                            verificationStatus: 'unverified',
+                            dispensaryCount: 0,
+                        };
+                    }
                 }
             }
         }
-    }
 
-    if (!brand) return { brand: null, retailers: [], missingCount: 0 };
+        if (!brand) return { brand: null, retailers: [], missingCount: 0 };
 
-    // 3. Fetch Retailers near ZIP
-    // Use the geo-discovery service which is more reliable for finding dispensaries
-    let retailers: Retailer[] = [];
-    let missingCount = 0;
+        // 3. Fetch Retailers near ZIP
+        // Use the geo-discovery service which is more reliable for finding dispensaries
+        let retailers: Retailer[] = [];
+        let missingCount = 0;
 
-    try {
-        // Import the geo-discovery function
-        const { getRetailersByZipCode } = await import('@/server/services/geo-discovery');
-
-        // Fetch retailers near the ZIP code
-        const retailerSummaries = await getRetailersByZipCode(zipCode, 10);
-
-        // Convert RetailerSummary to Retailer type
-        retailers = retailerSummaries.map(r => ({
-            id: r.id,
-            name: r.name,
-            address: r.address || 'Address unavailable',
-            city: r.city || 'Unknown City',
-            state: r.state || 'Unknown State',
-            zip: r.postalCode || zipCode,
-            phone: r.phone ?? undefined,
-            lat: r.lat ?? undefined,
-            lon: r.lng ?? undefined,
-            status: 'active' as const
-        }));
-
-        // Set a realistic "missing" count for the Opportunity Module
-        // This represents dispensaries in the area NOT carrying the brand
-        missingCount = Math.max(0, 10 - retailers.length);
-
-    } catch (e) {
-        console.error("Error fetching retailers for local brand page:", e);
-
-        // Fallback: Try the product search method
         try {
-            const service = new CannMenusService();
-            const productResults = await service.searchProducts({
-                search: brand.name,
-                near: zipCode,
-                limit: 50
-            });
+            // Import the geo-discovery function
+            const { getRetailersByZipCode } = await import('@/server/services/geo-discovery');
 
-            const uniqueRetailers: Record<string, Retailer> = {};
-            for (const p of productResults.products as any[]) {
-                const retailerName = p.retailer || p.retailer_name || p.dispensary_name;
-                const retailerId = p.retailer_id || p.dispensary_id;
+            // Fetch retailers near the ZIP code
+            const retailerSummaries = await getRetailersByZipCode(zipCode, 10);
 
-                if (retailerName && !uniqueRetailers[retailerName]) {
-                    uniqueRetailers[retailerName] = {
-                        id: retailerId ? String(retailerId) : `temp-${retailerName}`,
-                        name: retailerName,
-                        address: p.address || p.retailer_address || 'Nearby',
-                        city: p.city || 'Unknown City',
-                        state: p.state || 'Unknown State',
-                        zip: p.zip || zipCode || '',
-                        status: 'active'
-                    };
+            // Convert RetailerSummary to Retailer type
+            retailers = retailerSummaries.map(r => ({
+                id: r.id,
+                name: r.name,
+                address: r.address || 'Address unavailable',
+                city: r.city || 'Unknown City',
+                state: r.state || 'Unknown State',
+                zip: r.postalCode || zipCode,
+                phone: r.phone ?? undefined,
+                lat: r.lat ?? undefined,
+                lon: r.lng ?? undefined,
+                status: 'active' as const
+            }));
+
+            // Set a realistic "missing" count for the Opportunity Module
+            // This represents dispensaries in the area NOT carrying the brand
+            missingCount = Math.max(0, 10 - retailers.length);
+
+        } catch (e) {
+            console.error("Error fetching retailers for local brand page:", e);
+
+            // Fallback: Try the product search method
+            try {
+                const service = new CannMenusService();
+                const productResults = await service.searchProducts({
+                    search: brand.name,
+                    near: zipCode,
+                    limit: 50
+                });
+
+                const uniqueRetailers: Record<string, Retailer> = {};
+                for (const p of productResults.products as any[]) {
+                    const retailerName = p.retailer || p.retailer_name || p.dispensary_name;
+                    const retailerId = p.retailer_id || p.dispensary_id;
+
+                    if (retailerName && !uniqueRetailers[retailerName]) {
+                        uniqueRetailers[retailerName] = {
+                            id: retailerId ? String(retailerId) : `temp-${retailerName}`,
+                            name: retailerName,
+                            address: p.address || p.retailer_address || 'Nearby',
+                            city: p.city || 'Unknown City',
+                            state: p.state || 'Unknown State',
+                            zip: p.zip || zipCode || '',
+                            status: 'active'
+                        };
+                    }
                 }
+                retailers = Object.values(uniqueRetailers);
+                missingCount = Math.floor(Math.random() * 5);
+            } catch (fallbackError) {
+                console.error("Fallback retailer fetch also failed:", fallbackError);
             }
-            retailers = Object.values(uniqueRetailers);
-            missingCount = Math.floor(Math.random() * 5);
-        } catch (fallbackError) {
-            console.error("Fallback retailer fetch also failed:", fallbackError);
         }
-    }
 
-    return { brand, retailers, missingCount };
+        return { brand, retailers, missingCount };
+    } catch (topLevelError) {
+        console.error('[fetchLocalBrandPageData] Top-level error:', topLevelError);
+        return { brand: null, retailers: [], missingCount: 0 };
+    }
 }
