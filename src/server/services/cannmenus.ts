@@ -282,6 +282,49 @@ export class CannMenusService {
     }
 
     /**
+     * Search retailers by location
+     */
+    public async findRetailers(params: { lat: number; lng: number; limit?: number; sort?: string }): Promise<any[]> {
+        if (!CANNMENUS_API_KEY) {
+            throw new Error('CANNMENUS_API_KEY is not configured');
+        }
+
+        return await withRetry(async () => {
+            return await monitorApiCall('/v1/retailers', async () => {
+                const queryParams = new URLSearchParams({
+                    lat: String(params.lat),
+                    lng: String(params.lng),
+                    limit: String(params.limit || 50),
+                    sort: params.sort || 'distance'
+                });
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+                try {
+                    const response = await fetch(`${CANNMENUS_BASE_URL}/v1/retailers?${queryParams}`, {
+                        headers: {
+                            'X-Token': CANNMENUS_API_KEY,
+                            'Accept': 'application/json',
+                            'User-Agent': 'BakedBot/1.0',
+                        },
+                        signal: controller.signal
+                    });
+
+                    if (!response.ok) {
+                        throw new ApiError(`CannMenus API error: ${response.statusText}`, response.status);
+                    }
+
+                    const data = await response.json();
+                    return data.data || [];
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+            });
+        }, { maxRetries: 2, initialDelayMs: 1000 }, 'CannMenus.findRetailers');
+    }
+
+    /**
      * Search products directly from CannMenus API
      */
     async searchProducts(params: SearchParams): Promise<{ products: CannMenusProduct[], meta?: Record<string, unknown> }> {

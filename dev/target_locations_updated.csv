@@ -1895,86 +1895,86 @@ zip_code,city,state,market_type,has_dispensary,likely_brand_coverage,status,disp
 90019,Los Angeles,California,adult-use,True,True,verified,20
 90020,Los Angeles,California,adult-use,True,True,verified,20
 90021,Los Angeles,California,adult-use,True,True,verified,20
-90022,Los Angeles,California,adult-use,True,True,verified,20
-90023,Los Angeles,California,adult-use,True,True,verified,20
-90024,Los Angeles,California,adult-use,True,True,verified,20
-90025,Los Angeles,California,adult-use,True,True,verified,20
-90026,Los Angeles,California,adult-use,True,True,verified,20
-90027,Los Angeles,California,adult-use,True,True,verified,20
-90028,Los Angeles,California,adult-use,True,True,verified,20
-90029,Los Angeles,California,adult-use,True,True,verified,20
-90031,Los Angeles,California,adult-use,True,True,verified,20
-90032,Los Angeles,California,adult-use,True,True,verified,20
-90033,Los Angeles,California,adult-use,True,True,verified,20
-90034,Los Angeles,California,adult-use,True,True,verified,20
-90035,Los Angeles,California,adult-use,True,True,verified,20
-90036,Los Angeles,California,adult-use,True,True,verified,20
-90037,Los Angeles,California,adult-use,True,True,verified,20
-90038,Los Angeles,California,adult-use,True,True,verified,20
-90039,Los Angeles,California,adult-use,True,True,verified,20
-90040,Los Angeles,California,adult-use,True,True,verified,20
-90041,Los Angeles,California,adult-use,True,True,verified,20
-90042,Los Angeles,California,adult-use,True,True,verified,20
-90043,Los Angeles,California,adult-use,True,True,verified,20
-90044,Los Angeles,California,adult-use,True,True,verified,20
-90045,Los Angeles,California,adult-use,True,True,verified,20
-90046,Los Angeles,California,adult-use,True,True,verified,20
-90047,Los Angeles,California,adult-use,True,True,verified,20
-90048,Los Angeles,California,adult-use,True,True,verified,20
-90049,Los Angeles,California,adult-use,True,True,verified,20
-90056,Los Angeles,California,adult-use,True,True,verified,20
-90057,Los Angeles,California,adult-use,True,True,verified,20
-90058,Los Angeles,California,adult-use,True,True,verified,20
-90059,Los Angeles,California,adult-use,True,True,verified,20
-90061,Los Angeles,California,adult-use,True,True,verified,20
-90062,Los Angeles,California,adult-use,True,True,verified,20
-90063,Los Angeles,California,adult-use,True,True,verified,20
-90064,Los Angeles,California,adult-use,True,True,verified,20
-90065,Los Angeles,California,adult-use,True,True,verified,20
-90066,Los Angeles,California,adult-use,True,True,verified,20
-90067,Los Angeles,California,adult-use,True,True,verified,20
-90068,Los Angeles,California,adult-use,True,True,verified,20
-90069,West Hollywood,California,adult-use,True,True,verified,20
-90071,Los Angeles,California,adult-use,True,True,verified,20
-90073,Los Angeles,California,adult-use,True,True,verified,20
-90077,Los Angeles,California,adult-use,True,True,verified,20
-90079,Los Angeles,California,adult-use,True,True,verified,20
-90089,Los Angeles,California,adult-use,True,True,verified,20
-90090,Dodgertown,California,adult-use,False,True,error: Geocode failed,0
-90094,Playa Vista,California,adult-use,True,True,verified,20
-90095,Los Angeles,California,adult-use,True,True,verified,20
-90201,Bell Gardens,California,adult-use,True,True,verified,20
-90210,Beverly Hills,California,adult-use,True,True,verified,20
-90211,Beverly Hills,California,adult-use,True,True,verified,20
-90212,Beverly Hills,California,adult-use,True,True,verified,20
-90220,Compton,California,adult-use,True,True,verified,20
-90221,Compton,California,adult-use,True,True,verified,20
-90222,Compton,California,adult-use,True,True,verified,20
-90230,Culver City,California,adult-use,True,True,verified,20
-90232,Culver City,California,adult-use,True,True,verified,20
-90240,Downey,California,adult-use,True,True,verified,20
-90241,Downey,California,adult-use,True,True,verified,20
-90242,Downey,California,adult-use,True,True,verified,20
-90245,El Segundo,California,adult-use,True,True,verified,20
-90247,Gardena,California,adult-use,True,True,verified,20
-90248,Gardena,California,adult-use,True,True,verified,20
-90249,Gardena,California,adult-use,True,True,verified,20
-90250,Hawthorne,California,adult-use,True,True,verified,20
-90254,Hermosa Beach,California,adult-use,True,True,verified,20
-90255,Huntington Park,California,adult-use,True,True,verified,20
-90260,Lawndale,California,adult-use,True,True,verified,20
-90262,Lynwood,California,adult-use,True,True,verified,20
-90263,Malibu,California,adult-use,True,True,verified,20
-90265,Malibu,California,adult-use,True,True,verified,20
-90266,Manhattan Beach,California,adult-use,True,True,verified,20
-90270,Maywood,California,adult-use,True,True,verified,20
-90272,Pacific Palisades,California,adult-use,True,True,verified,20
-90274,Palos Verdes Peninsula,California,adult-use,True,True,verified,20
-90275,Rancho Palos Verdes,California,adult-use,True,True,verified,20
-90277,Redondo Beach,California,adult-use,True,True,verified,20
-90278,Redondo Beach,California,adult-use,True,True,verified,20
-90280,South Gate,California,adult-use,True,True,verified,20
-90290,Topanga,California,adult-use,True,True,verified,20
+90022,Los Angeles,California,adult-use,False,True,pending,0
+90023,Los Angeles,California,adult-use,False,True,pending,0
+90024,Los Angeles,California,adult-use,False,True,pending,0
+90025,Los Angeles,California,adult-use,False,True,pending,0
+90026,Los Angeles,California,adult-use,False,True,pending,0
+90027,Los Angeles,California,adult-use,False,True,pending,0
+90028,Los Angeles,California,adult-use,False,True,pending,0
+90029,Los Angeles,California,adult-use,False,True,pending,0
+90031,Los Angeles,California,adult-use,False,True,pending,0
+90032,Los Angeles,California,adult-use,False,True,pending,0
+90033,Los Angeles,California,adult-use,False,True,pending,0
+90034,Los Angeles,California,adult-use,False,True,pending,0
+90035,Los Angeles,California,adult-use,False,True,pending,0
+90036,Los Angeles,California,adult-use,False,True,pending,0
+90037,Los Angeles,California,adult-use,False,True,pending,0
+90038,Los Angeles,California,adult-use,False,True,pending,0
+90039,Los Angeles,California,adult-use,False,True,pending,0
+90040,Los Angeles,California,adult-use,False,True,pending,0
+90041,Los Angeles,California,adult-use,False,True,pending,0
+90042,Los Angeles,California,adult-use,False,True,pending,0
+90043,Los Angeles,California,adult-use,False,True,pending,0
+90044,Los Angeles,California,adult-use,False,True,pending,0
+90045,Los Angeles,California,adult-use,False,True,pending,0
+90046,Los Angeles,California,adult-use,False,True,pending,0
+90047,Los Angeles,California,adult-use,False,True,pending,0
+90048,Los Angeles,California,adult-use,False,True,pending,0
+90049,Los Angeles,California,adult-use,False,True,pending,0
+90056,Los Angeles,California,adult-use,False,True,pending,0
+90057,Los Angeles,California,adult-use,False,True,pending,0
+90058,Los Angeles,California,adult-use,False,True,pending,0
+90059,Los Angeles,California,adult-use,False,True,pending,0
+90061,Los Angeles,California,adult-use,False,True,pending,0
+90062,Los Angeles,California,adult-use,False,True,pending,0
+90063,Los Angeles,California,adult-use,False,True,pending,0
+90064,Los Angeles,California,adult-use,False,True,pending,0
+90065,Los Angeles,California,adult-use,False,True,pending,0
+90066,Los Angeles,California,adult-use,False,True,pending,0
+90067,Los Angeles,California,adult-use,False,True,pending,0
+90068,Los Angeles,California,adult-use,False,True,pending,0
+90069,West Hollywood,California,adult-use,False,True,pending,0
+90071,Los Angeles,California,adult-use,False,True,pending,0
+90073,Los Angeles,California,adult-use,False,True,pending,0
+90077,Los Angeles,California,adult-use,False,True,pending,0
+90079,Los Angeles,California,adult-use,False,True,pending,0
+90089,Los Angeles,California,adult-use,False,True,pending,0
+90090,Dodgertown,California,adult-use,False,True,pending,0
+90094,Playa Vista,California,adult-use,False,True,pending,0
+90095,Los Angeles,California,adult-use,False,True,pending,0
+90201,Bell Gardens,California,adult-use,False,True,pending,0
+90210,Beverly Hills,California,adult-use,False,True,pending,0
+90211,Beverly Hills,California,adult-use,False,True,pending,0
+90212,Beverly Hills,California,adult-use,False,True,pending,0
+90220,Compton,California,adult-use,False,True,pending,0
+90221,Compton,California,adult-use,False,True,pending,0
+90222,Compton,California,adult-use,False,True,pending,0
+90230,Culver City,California,adult-use,False,True,pending,0
+90232,Culver City,California,adult-use,False,True,pending,0
+90240,Downey,California,adult-use,False,True,pending,0
+90241,Downey,California,adult-use,False,True,pending,0
+90242,Downey,California,adult-use,False,True,pending,0
+90245,El Segundo,California,adult-use,False,True,pending,0
+90247,Gardena,California,adult-use,False,True,pending,0
+90248,Gardena,California,adult-use,False,True,pending,0
+90249,Gardena,California,adult-use,False,True,pending,0
+90250,Hawthorne,California,adult-use,False,True,pending,0
+90254,Hermosa Beach,California,adult-use,False,True,pending,0
+90255,Huntington Park,California,adult-use,False,True,pending,0
+90260,Lawndale,California,adult-use,False,True,pending,0
+90262,Lynwood,California,adult-use,False,True,pending,0
+90263,Malibu,California,adult-use,False,True,pending,0
+90265,Malibu,California,adult-use,False,True,pending,0
+90266,Manhattan Beach,California,adult-use,False,True,pending,0
+90270,Maywood,California,adult-use,False,True,pending,0
+90272,Pacific Palisades,California,adult-use,False,True,pending,0
+90274,Palos Verdes Peninsula,California,adult-use,False,True,pending,0
+90275,Rancho Palos Verdes,California,adult-use,False,True,pending,0
+90277,Redondo Beach,California,adult-use,False,True,pending,0
+90278,Redondo Beach,California,adult-use,False,True,pending,0
+90280,South Gate,California,adult-use,False,True,pending,0
+90290,Topanga,California,adult-use,False,True,pending,0
 90291,Venice,California,adult-use,False,True,pending,0
 90292,Marina Del Rey,California,adult-use,False,True,pending,0
 90293,Playa Del Rey,California,adult-use,False,True,pending,0

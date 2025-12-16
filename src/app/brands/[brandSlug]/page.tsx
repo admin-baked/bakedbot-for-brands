@@ -5,6 +5,7 @@ import { BrandHeader } from '@/components/brand/brand-header';
 import { ProductGrid } from '@/components/product-grid';
 import { Button } from '@/components/ui/button';
 import { StickyOperatorBox } from '@/components/brand/sticky-operator-box';
+import { PageViewTracker } from '@/components/analytics/PageViewTracker';
 import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 
@@ -18,6 +19,11 @@ export default async function GlobalBrandPage({ params }: { params: Promise<{ br
 
     return (
         <main className="min-h-screen bg-background pb-20">
+            <PageViewTracker
+                pageType="brand"
+                pageId={brand.id}
+                pageSlug={brandSlug}
+            />
             <BrandHeader
                 brandName={brand.name}
                 logoUrl={brand.logoUrl}

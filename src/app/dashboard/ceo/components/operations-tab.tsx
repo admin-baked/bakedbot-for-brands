@@ -1,0 +1,191 @@
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Loader2, Play, AlertCircle, CheckCircle } from 'lucide-react';
+import { runDispensaryScan, runBrandScan } from '@/server/actions/page-generation';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+export default function OperationsTab() {
+    const { toast } = useToast();
+    const [loading, setLoading] = useState(false);
+    const [batchSize, setBatchSize] = useState('50');
+    const [dryRun, setDryRun] = useState(true);
+    const [jobType, setJobType] = useState('dispensaries'); // dispensaries | brands
+
+    const [result, setResult] = useState<any>(null);
+
+    const handleRunJob = async () => {
+        setLoading(true);
+        setResult(null);
+        try {
+            const limit = parseInt(batchSize, 10);
+            let res;
+
+            if (jobType === 'dispensaries') {
+                res = await runDispensaryScan(limit, dryRun);
+            } else {
+                res = await runBrandScan(limit, dryRun);
+            }
+
+            setResult(res);
+
+            if (res.success) {
+                toast({
+                    title: "Job Completed",
+                    description: `Processed ${res.itemsFound} items. Created ${res.pagesCreated} pages.`,
+                });
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "Job Failed",
+                    description: res.errors.join(', '),
+                });
+            }
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message,
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Batch Page Generator</CardTitle>
+                        <CardDescription>
+                            Create verified SEO pages for Dispensaries and Brands in batches.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Job Type</Label>
+                            <Select value={jobType} onValueChange={setJobType}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="dispensaries">Dispensaries & ZIPs</SelectItem>
+                                    <SelectItem value="brands">Brands</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Batch Size</Label>
+                            <Select value={batchSize} onValueChange={setBatchSize}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="50">50 Items</SelectItem>
+                                    <SelectItem value="100">100 Items</SelectItem>
+                                    <SelectItem value="500">500 Items</SelectItem>
+                                    <SelectItem value="1000">1000 Items</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <Label className="text-base">Dry Run Mode</Label>
+                                <div className="text-sm text-muted-foreground">
+                                    Simulate the scan without creating pages in Firestore.
+                                </div>
+                            </div>
+                            <Switch checked={dryRun} onCheckedChange={setDryRun} />
+                        </div>
+
+                        <Button
+                            className="w-full"
+                            onClick={handleRunJob}
+                            disabled={loading}
+                        >
+                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {!loading && <Play className="mr-2 h-4 w-4" />}
+                            Start Batch Job
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Job Status</CardTitle>
+                        <CardDescription>
+                            Output logs and results.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {!result && !loading && (
+                            <div className="text-center text-sm text-muted-foreground py-10">
+                                Ready to start.
+                            </div>
+                        )}
+
+                        {loading && (
+                            <div className="flex flex-col items-center justify-center py-10 space-y-4">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <p className="text-sm text-muted-foreground">Processing batch... do not close this tab.</p>
+                            </div>
+                        )}
+
+                        {result && (
+                            <div className="space-y-4">
+                                <div className={`flex items-center gap-2 p-3 rounded-lg ${result.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                                    {result.success ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+                                    <span className="font-medium">{result.success ? 'Success' : 'Failed'}</span>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="rounded-lg border p-3">
+                                        <div className="text-sm font-medium text-muted-foreground">Items Found</div>
+                                        <div className="text-2xl font-bold">{result.itemsFound}</div>
+                                    </div>
+                                    <div className="rounded-lg border p-3">
+                                        <div className="text-sm font-medium text-muted-foreground">Pages Created</div>
+                                        <div className="text-2xl font-bold">{result.pagesCreated}</div>
+                                    </div>
+                                </div>
+
+                                {result.errors && result.errors.length > 0 && (
+                                    <Alert variant="destructive">
+                                        <AlertTitle>Errors Occurred</AlertTitle>
+                                        <AlertDescription className="max-h-[200px] overflow-y-auto">
+                                            <ul className="list-disc pl-4 space-y-1">
+                                                {result.errors.map((err: string, i: number) => (
+                                                    <li key={i} className="text-xs">{err}</li>
+                                                ))}
+                                            </ul>
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Batch History</CardTitle>
+                    <CardDescription>Recent page generation jobs.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-sm text-muted-foreground">Job history tracking coming soon.</div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
