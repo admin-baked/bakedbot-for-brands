@@ -266,37 +266,42 @@ export async function getRetailersByZipCode(
     zipCode: string,
     limit: number = 10
 ): Promise<RetailerSummary[]> {
-    // Geocode the ZIP code
-    const coords = await getZipCodeCoordinates(zipCode); // Use getZipCodeCoordinates to benefit from caching
+    try {
+        // Geocode the ZIP code
+        const coords = await getZipCodeCoordinates(zipCode); // Use getZipCodeCoordinates to benefit from caching
 
-    if (!coords) {
-        console.error(`[GeoDiscovery] Failed to geocode ZIP: ${zipCode}`);
+        if (!coords) {
+            console.error(`[GeoDiscovery] Failed to geocode ZIP: ${zipCode}`);
+            return [];
+        }
+
+        // Search for nearby retailers
+        // Pass city and state for fallback
+        const retailers = await searchNearbyRetailers(
+            coords.lat,
+            coords.lng,
+            limit,
+            coords.state,
+            coords.city
+        );
+
+        return retailers.map(r => ({
+            id: r.id,
+            name: r.name,
+            address: r.address,
+            city: r.city,
+            state: r.state,
+            postalCode: r.postalCode,
+            distance: r.distance,
+            phone: r.phone,
+            website: r.menuUrl,
+            lat: r.latitude,
+            lng: r.longitude,
+        }));
+    } catch (error) {
+        console.error(`[GeoDiscovery] Error in getRetailersByZipCode for ${zipCode}:`, error);
         return [];
     }
-
-    // Search for nearby retailers
-    // Pass city and state for fallback
-    const retailers = await searchNearbyRetailers(
-        coords.lat,
-        coords.lng,
-        limit,
-        coords.state,
-        coords.city
-    );
-
-    return retailers.map(r => ({
-        id: r.id,
-        name: r.name,
-        address: r.address,
-        city: r.city,
-        state: r.state,
-        postalCode: r.postalCode,
-        distance: r.distance,
-        phone: r.phone,
-        website: r.menuUrl,
-        lat: r.latitude,
-        lng: r.longitude,
-    }));
 }
 
 /**
