@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { StickyOperatorBox } from '@/components/brand/sticky-operator-box';
+import { RetailerMap } from '@/components/maps/retailer-map';
 import { MapPin, Clock, ExternalLink, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { createServerClient } from '@/firebase/server-client';
@@ -97,6 +98,24 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                                 </CardContent>
                             </Card>
                         </div>
+
+                        {/* Location Map */}
+                        {dispensary.lat && dispensary.lon && (
+                            <section>
+                                <h2 className="text-xl font-bold mb-4">Location</h2>
+                                <RetailerMap
+                                    retailers={[{
+                                        id: dispensary.id,
+                                        name: dispensary.name,
+                                        address: `${dispensary.address}, ${dispensary.city}, ${dispensary.state}`,
+                                        lat: dispensary.lat,
+                                        lng: dispensary.lon
+                                    }]}
+                                    zoom={15}
+                                    height="300px"
+                                />
+                            </section>
+                        )}
 
                         {/* Brands Carried (Placeholder) */}
                         <section>
