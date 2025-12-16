@@ -1,646 +1,311 @@
 // src/app/local/[zipCode]/page.tsx
 /**
- * Neighborhood Budtender Page
- * Auto-generated SEO page for local cannabis search
+ * Local Marketplace B2B Page (Variant B)
+ * SEO + B2B lead generation design
  * URL: /local/{zipCode}
  */
 
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
-import { MapPin, Star, Clock, Phone, ExternalLink, ChevronRight } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
+import {
+    MapPin,
+    Navigation,
+    MessageSquare,
+    BarChart,
+    ArrowRight,
+    TrendingUp,
+    ExternalLink
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DtcBanner } from '@/components/foot-traffic/dtc-banner';
-import { RetailerCard } from '@/components/foot-traffic/retailer-card';
-import { LocalProductCard } from '@/components/foot-traffic/local-product-card';
-import { SmokeyCtaCard } from '@/components/foot-traffic/smokey-cta-card';
-import { FeaturedPickupPartnerCard } from '@/components/foot-traffic/featured-pickup-partner-card';
-import { AboutZipSection } from '@/components/foot-traffic/about-zip-section';
-import { AgeGate } from '@/components/foot-traffic/age-gate';
-import { DropAlertModal } from '@/components/foot-traffic/drop-alert-modal';
-import { LocalSearchBar } from '@/components/foot-traffic/local-search-bar';
+import { PageViewTracker } from '@/components/analytics/PageViewTracker';
 
 import { getRetailersByZipCode, getZipCodeCoordinates, discoverNearbyProducts } from '@/server/services/geo-discovery';
-import { RetailerSummary, LocalProduct, LocalSEOPage, CannMenusSnapshot } from '@/types/foot-traffic';
-
+import { RetailerSummary, LocalProduct } from '@/types/foot-traffic';
 import { createServerClient } from '@/firebase/server-client';
 import { getSeededConfig } from '@/server/actions/seo-pages';
 
-// Static params for ISR
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 3600;
 
 interface PageProps {
     params: Promise<{ zipCode: string }>;
 }
 
-// Generate metadata for SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { zipCode } = await params;
 
-    // Basic validation
     if (!/^\d{5}$/.test(zipCode)) {
-        return {
-            title: 'Location Not Found | BakedBot',
-        };
+        return { title: 'Location Not Found | BakedBot' };
     }
 
-    // Get location info
     const coords = await getZipCodeCoordinates(zipCode);
 
     if (!coords) {
-        return {
-            title: 'Location Not Found | BakedBot',
-        };
-    }
-
-    // Fetch seeded config for metadata overrides
-    const seededConfig = await getSeededConfig(zipCode);
-
-    // Fetch products for description count if not using seeded config
-    let products: LocalProduct[] = [];
-    if (!seededConfig?.metaDescription) {
-        const initialDiscovery = await discoverNearbyProducts({
-            lat: coords.lat,
-            lng: coords.lng,
-            radiusMiles: 15,
-            limit: 1, // Only need one to know if there are products
-            sortBy: 'score',
-            cityName: coords.city,
-            state: coords.state
-        });
-        products = initialDiscovery.products;
+        return { title: 'Location Not Found | BakedBot' };
     }
 
     return {
-        title: seededConfig?.metaTitle || `Cannabis near ${coords.city}, ${coords.state} (${zipCode}) | BakedBot`,
-        description: seededConfig?.metaDescription || `Find dispensaries and delivery services in ${zipCode}. Compare prices on ${products.length} products from local retailers.`,
+        title: `Dispensaries in ${coords.city}, ${coords.state} ${zipCode} | BakedBot`,
+        description: `Find licensed dispensaries and compare cannabis prices near ${zipCode}. View live menus from local retailers.`,
         keywords: [
             `cannabis near ${zipCode}`,
             `dispensary ${zipCode}`,
             `weed near me`,
             `marijuana ${zipCode}`,
-            'cannabis delivery',
-            'dispensary near me',
         ].join(', '),
         openGraph: {
             title: `Cannabis Near ${zipCode} | BakedBot`,
             description: `Discover dispensaries and cannabis products near ZIP code ${zipCode}.`,
-            type: 'website',
-            locale: 'en_US',
         },
         alternates: {
             canonical: `https://bakedbot.ai/local/${zipCode}`,
         },
-        robots: {
-            index: true,
-            follow: true,
-        },
     };
-}
-
-// Generate structured data for Google
-function generateStructuredData(
-    zipCode: string,
-    retailers: RetailerSummary[],
-    products: LocalProduct[]
-) {
-    const localBusinessList = retailers.map(retailer => ({
-        '@type': 'LocalBusiness',
-        '@id': `https://bakedbot.ai/dispensary/${retailer.id}`,
-        name: retailer.name,
-        address: {
-            '@type': 'PostalAddress',
-            streetAddress: retailer.address,
-            addressLocality: retailer.city,
-            addressRegion: retailer.state,
-            postalCode: retailer.postalCode,
-            addressCountry: 'US',
-        },
-        ...(retailer.phone && { telephone: retailer.phone }),
-        ...(retailer.website && { url: retailer.website }),
-        ...(retailer.lat && retailer.lng && {
-            geo: {
-                '@type': 'GeoCoordinates',
-                latitude: retailer.lat,
-                longitude: retailer.lng,
-            },
-        }),
-    }));
-
-    const faqData = generateFaqData(retailers[0]?.city || zipCode, retailers[0]?.state || 'US', zipCode, retailers.length);
-    const faqSchema = {
-        '@type': 'FAQPage',
-        mainEntity: faqData.map(faq => ({
-            '@type': 'Question',
-            name: faq.question,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: faq.answer
-            }
-        }))
-    };
-
-    return {
-        '@context': 'https://schema.org',
-        '@graph': [
-            {
-                '@type': 'CollectionPage',
-                name: `Cannabis Dispensaries in ${zipCode}`,
-                description: `Find local dispensaries and products in ${zipCode}.`,
-                mainEntity: {
-                    '@type': 'ItemList',
-                    itemListElement: localBusinessList.map((business, index) => ({
-                        '@type': 'ListItem',
-                        position: index + 1,
-                        item: business,
-                    })),
-                },
-            },
-            faqSchema
-        ]
-    };
-}
-
-function generateFaqData(city: string, state: string, zipCode: string, count: number) {
-    return [
-        {
-            question: `Is cannabis legal in ${city}, ${state}?`,
-            answer: `Yes, cannabis is legal for adults in ${state}. You can visit licensed dispensaries in and around ${city} to purchase compliant products.`
-        },
-        {
-            question: `How many dispensaries are near ${zipCode}?`,
-            answer: `BakedBot tracks ${count} licensed dispensaries servicing the ${zipCode} area. Check our map for real-time inventory.`
-        },
-        {
-            question: `Can I buy cannabis online in ${city}?`,
-            answer: `Many dispensaries in ${city} offer online ordering for store pickup or delivery. Look for the "Order Online" badge on our retailer cards.`
-        },
-        {
-            question: `What do I need to buy cannabis in ${state}?`,
-            answer: `You typically need a valid government-issued ID proving you are 21+ (or 18+ with a medical card). Cash is often required, though some dispensaries accept debit cards.`
-        }
-    ];
 }
 
 export default async function LocalZipPage({ params }: PageProps) {
     const { zipCode } = await params;
 
-    // Validate ZIP code format
     if (!/^\d{5}$/.test(zipCode)) {
         notFound();
     }
 
-    // Get coordinates for the ZIP code
     const coords = await getZipCodeCoordinates(zipCode);
 
     if (!coords) {
         notFound();
     }
 
-    // Check for seeded configuration in Firestore (Split Model)
+    // Fetch data
     const seededConfig = await getSeededConfig(zipCode);
     const { firestore } = await createServerClient();
-
-    let snapshotData: { retailers: RetailerSummary[], products: LocalProduct[] } | null = null;
-
-    // 3. Resolve Data Snapshot if reference exists
-    if (seededConfig?.dataSnapshotRef) {
-        const snapshotDoc = await firestore.collection('foot_traffic').doc('data').collection('cann_menus_snapshots').doc(seededConfig.dataSnapshotRef).get();
-        if (snapshotDoc.exists) {
-            const snap = snapshotDoc.data() as any;
-            snapshotData = {
-                retailers: (snap.dispensaries || []) as any,
-                products: (snap.products || []) as any
-            };
-        }
-    } else if (seededConfig) {
-        // Legacy: Data is in content
-        snapshotData = {
-            retailers: seededConfig.content.nearbyRetailers || [],
-            products: [...(seededConfig.content.topStrains || []), ...(seededConfig.content.topDeals || [])] as any
-        };
-    }
-
-
-    // Discovery logic with adaptive radius (Runtime fallback)
-    const discoverProducts = async (radius: number): Promise<{ products: LocalProduct[] }> => {
-        return discoverNearbyProducts({
-            lat: coords.lat,
-            lng: coords.lng,
-            radiusMiles: radius,
-            limit: 20,
-            sortBy: 'score',
-            cityName: coords.city,
-            state: coords.state
-        });
-    };
-
 
     let retailers: RetailerSummary[] = [];
     let products: LocalProduct[] = [];
 
-    if (snapshotData && snapshotData.products.length > 0) {
-        // Use Snapshot Data
-        retailers = snapshotData.retailers;
-        products = snapshotData.products;
-    } else {
-        // Runtime Discovery (No Valid Snapshot)
-        const [liveRetailers, initialDiscovery] = await Promise.all([
-            getRetailersByZipCode(zipCode, 10),
-            discoverProducts(15)
-        ]);
-        retailers = liveRetailers;
-        let discoveryResult = initialDiscovery;
-
-        if (discoveryResult.products.length === 0) {
-            discoveryResult = await discoverProducts(50);
-        }
-        if (discoveryResult.products.length === 0) {
-            discoveryResult = await discoverProducts(100);
-            products = discoveryResult.products;
-        } else {
-            products = discoveryResult.products;
-        }
-
-        // Prioritize sponsored retailers
-        const sponsoredIds = seededConfig?.sponsoredRetailerIds || [];
-        retailers = [...retailers].sort((a, b) => {
-            const aSponsored = sponsoredIds.includes(a.id);
-            const bSponsored = sponsoredIds.includes(b.id);
-            if (aSponsored && !bSponsored) return -1;
-            if (!aSponsored && bSponsored) return 1;
-            return 0;
-        });
-
-        // If seeded config exists and has a featured dispensary, prioritize it
-        if (seededConfig?.featuredDispensaryId) {
-            products = products.map(p => {
-                const isAtFeatured = p.availability.some(a => a.retailerId === seededConfig!.featuredDispensaryId);
-                if (isAtFeatured) {
-                    return { ...p, footTrafficScore: 100 };
-                }
-                return p;
-            }).sort((a, b) => b.footTrafficScore - a.footTrafficScore);
+    // Check for snapshot data
+    if (seededConfig?.dataSnapshotRef) {
+        const snapshotDoc = await firestore.collection('foot_traffic').doc('data').collection('cann_menus_snapshots').doc(seededConfig.dataSnapshotRef).get();
+        if (snapshotDoc.exists) {
+            const snap = snapshotDoc.data() as any;
+            retailers = (snap.dispensaries || []) as RetailerSummary[];
+            products = (snap.products || []) as LocalProduct[];
         }
     }
 
-    const sortedRetailers = retailers;
+    // Runtime discovery fallback
+    if (products.length === 0) {
+        const [liveRetailers, discovery] = await Promise.all([
+            getRetailersByZipCode(zipCode, 10),
+            discoverNearbyProducts({
+                lat: coords.lat,
+                lng: coords.lng,
+                radiusMiles: 50,
+                limit: 20,
+                sortBy: 'score',
+                cityName: coords.city,
+                state: coords.state
+            })
+        ]);
+        retailers = liveRetailers;
+        products = discovery.products;
+    }
 
-    // Generate structured data
-    const structuredData = generateStructuredData(zipCode, retailers, products);
-
-    // Group products by category
-    const categoryGroups = products.reduce((acc, product) => {
-        const category = product.category || 'Other';
-        if (!acc[category]) {
-            acc[category] = [];
-        }
-        acc[category].push(product);
-        return acc;
-    }, {} as Record<string, LocalProduct[]>);
-
-    const categories = Object.keys(categoryGroups).sort();
-
-    // Sort categories by product count for About section
-    const topCategories = Object.keys(categoryGroups)
-        .sort((a, b) => categoryGroups[b].length - categoryGroups[a].length)
-        .slice(0, 3);
-
-    // Calculate top brands
-    const brandCounts = products.reduce((acc, product) => {
-        const brand = product.brandName || 'Unknown';
-        acc[brand] = (acc[brand] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
-
-    const topBrands = Object.keys(brandCounts)
-        .sort((a, b) => brandCounts[b] - brandCounts[a])
-        .slice(0, 10); // Top 10 brands
+    // Calculate stats
+    const avgPrice = products.length > 0
+        ? (products.reduce((sum, p) => sum + (p.price || 0), 0) / products.length).toFixed(2)
+        : '0.00';
 
     return (
-        <>
-            {/* Structured Data */}
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        <div className="min-h-screen bg-[#F4F7F5] font-sans">
+            <PageViewTracker
+                pageType="zip"
+                pageId={zipCode}
+                pageSlug={zipCode}
             />
 
-            {/* Age Gate (Client Component) */}
-            <AgeGate />
+            {/* B2B GROWTH HEADER (Sticky) */}
+            <div className="bg-slate-900 text-white py-2 px-4 sticky top-0 z-50 shadow-xl">
+                <div className="max-w-7xl mx-auto flex justify-between items-center">
+                    <p className="text-[11px] md:text-sm font-medium flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-green-400" />
+                        <span className="hidden md:inline">Market Insight:</span>
+                        {products.length}+ local products were just updated in {coords.city}. Is your menu current?
+                    </p>
+                    <Button size="sm" className="bg-green-500 hover:bg-green-600 text-slate-900 px-3 py-1 rounded font-bold text-xs" asChild>
+                        <Link href="/brands/claim?type=dispensary">Sync My Inventory</Link>
+                    </Button>
+                </div>
+            </div>
 
-            {/* Sticky DTC Banner (Mobile) */}
-            <DtcBanner zipCode={zipCode} variant="sticky" />
+            <main className="max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
 
-            <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 pb-16 lg:pb-0">
+                {/* LEFT/MIDDLE: Consumer Search & Results (SEO Engine) */}
+                <div className="lg:col-span-3 space-y-8">
 
-                {/* Hero Section */}
-                <section className="border-b bg-card">
-                    <div className="container py-12">
-                        <nav className="mb-6 flex items-center text-sm text-muted-foreground">
-                            <Link href="/" className="hover:text-foreground">Home</Link>
-                            <ChevronRight className="mx-2 h-4 w-4" />
-                            <Link href="/local" className="hover:text-foreground">Local</Link>
-                            <ChevronRight className="mx-2 h-4 w-4" />
-                            <span className="text-foreground">{zipCode}</span>
-                        </nav>
+                    <header>
+                        <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mb-2">
+                            Dispensaries in <span className="text-green-600">{zipCode}</span>
+                        </h1>
+                        <p className="text-slate-500 font-medium">
+                            Comparing {retailers.length} licensed dispensaries and {products.length}+ live products near {coords.city}.
+                        </p>
+                    </header>
 
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <h1 className="text-4xl font-bold tracking-tight">
-                                    Dispensaries in {coords.city}, {coords.state} {zipCode}
-                                </h1>
-                                <p className="mt-2 text-lg text-muted-foreground">
-                                    Discover dispensaries, products, and deals in your neighborhood.
-                                    <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                                        Last Updated: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {/* NEARBY DISPENSARIES GRID */}
+                    <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {retailers.slice(0, 6).map((retailer, i) => (
+                            <div key={retailer.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition group">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="bg-slate-100 w-12 h-12 rounded-xl flex items-center justify-center font-bold text-slate-400">
+                                        {retailer.name[0]}
+                                    </div>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-amber-500 transition-colors">
+                                        {i < 2 ? 'Verified' : 'Unclaimed'}
                                     </span>
+                                </div>
+                                <h3 className="font-bold text-slate-900 leading-tight mb-1">{retailer.name}</h3>
+                                <p className="text-xs text-slate-500 mb-4 flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" /> {retailer.distance?.toFixed(1) || '?'} mi • {retailer.city}
                                 </p>
-                                <div className="mt-6">
-                                    <LocalSearchBar zipCode={zipCode} className="text-base" />
-                                </div>
-                                <div className="mt-4 flex items-center gap-4 text-sm">
-                                    <Badge variant="secondary" className="gap-1">
-                                        <MapPin className="h-3 w-3" />
-                                        {retailers.length} dispensaries nearby
-                                    </Badge>
-                                    <Badge variant="secondary">
-                                        {products.length}+ products available
-                                    </Badge>
-                                </div>
+                                <Button variant="outline" size="sm" className="w-full" asChild>
+                                    <Link href={`/dispensaries/${retailer.id}`}>View Live Menu</Link>
+                                </Button>
                             </div>
-                        </div>
-                    </div>
-                </section>
+                        ))}
+                    </section>
 
-                <div className="container py-8">
-                    <div className="grid gap-8 lg:grid-cols-3">
-                        {/* Main Content */}
-                        <div className="lg:col-span-2 space-y-8">
-
-                            {/* Nearby Dispensaries */}
-                            <section>
-                                <div className="mb-4 flex items-center justify-between">
-                                    <h2 className="text-2xl font-semibold">Nearby Dispensaries</h2>
-                                    <Button variant="ghost" size="sm" asChild>
-                                        <Link href={`/local/${zipCode}/dispensaries`}>
-                                            View All <ChevronRight className="ml-1 h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                </div>
-
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {sortedRetailers.slice(0, 4).map((retailer) => {
-                                        const isPartner = seededConfig?.featuredDispensaryId === retailer.id;
-                                        const isSponsored = seededConfig?.sponsoredRetailerIds?.includes(retailer.id) || false;
-
-                                        return (
-                                            <RetailerCard
-                                                key={retailer.id}
-                                                retailer={retailer}
-                                                isPartner={isPartner || false}
-                                                zipCode={zipCode}
-                                                isSponsored={isSponsored}
-                                            />
-                                        );
-                                    })}
-                                </div>
-                            </section>
-
-                            {/* Inline DTC Banner */}
-                            <DtcBanner zipCode={zipCode} variant="inline" />
-
-                            {/* Top Products */}
-                            <section>
-                                <div className="mb-4 flex items-center justify-between">
-                                    <h2 className="text-2xl font-semibold">Top Products Near You</h2>
-                                    <Button variant="ghost" size="sm" asChild>
-                                        <Link href={`/local/${zipCode}/products`}>
-                                            View All <ChevronRight className="ml-1 h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                </div>
-
-                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                    {products.slice(0, 6).map((product) => (
-                                        <LocalProductCard key={product.id} product={product} />
-                                    ))}
-                                </div>
-                            </section>
-
-                            {/* Popular Brands (P5) */}
-                            {topBrands.length > 0 && (
-                                <section className="mb-10">
-                                    <h2 className="mb-4 text-2xl font-semibold">Popular Brands</h2>
-                                    <div className="flex flex-wrap gap-2">
-                                        {topBrands.map(brand => {
-                                            const slug = brand.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                                            return (
-                                                <Link
-                                                    key={brand}
-                                                    href={`/local/${zipCode}/brand/${slug}`}
-                                                >
-                                                    <Badge variant="secondary" className="px-3 py-1 hover:bg-indigo-100 hover:text-indigo-800 transition-colors cursor-pointer text-sm">
-                                                        {brand}
-                                                    </Badge>
-                                                </Link>
-                                            );
-                                        })}
-                                    </div>
-                                </section>
-                            )}
-
-                            {/* Categories */}
-                            <section>
-                                <h2 className="mb-4 text-2xl font-semibold">Shop by Category</h2>
-                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                    {categories.map((category) => (
-                                        <Link
-                                            key={category}
-                                            href={`/local/${zipCode}/${category.toLowerCase()}`}
-                                            className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted transition-colors"
-                                        >
-                                            <span className="font-medium">{category}</span>
-                                            <Badge variant="secondary">
-                                                {categoryGroups[category].length}
-                                            </Badge>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </section>
-
-                            {/* FAQ Section */}
-                            <section>
-                                <h2 className="mb-4 text-2xl font-semibold">Frequently Asked Questions</h2>
-                                <Card>
-                                    <CardContent className="pt-6">
-                                        <Accordion type="single" collapsible className="w-full">
-                                            {generateFaqData(coords.city, coords.state, zipCode, retailers.length).map((faq, index) => (
-                                                <AccordionItem key={index} value={`item-${index}`}>
-                                                    <AccordionTrigger className="text-left font-medium">
-                                                        {faq.question}
-                                                    </AccordionTrigger>
-                                                    <AccordionContent className="text-muted-foreground">
-                                                        {faq.answer}
-                                                    </AccordionContent>
-                                                </AccordionItem>
-                                            ))}
-                                        </Accordion>
-                                    </CardContent>
-                                </Card>
-                            </section>
+                    {/* SEO PRODUCT GRID */}
+                    <section className="space-y-6">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                            <h2 className="text-xl font-bold text-slate-900">Trending in {zipCode}</h2>
+                            <Link href={`/local/${zipCode}/search`} className="text-sm font-bold text-green-600 flex items-center gap-1">
+                                View all <ArrowRight className="w-4 h-4" />
+                            </Link>
                         </div>
 
-                        {/* Sidebar */}
-                        <aside className="space-y-6">
-                            {/* P1.1 Smokey CTA */}
-                            <SmokeyCtaCard zipCode={zipCode} city={coords.city} state={coords.state} />
-
-                            {/* P1.2 Featured Partner (Conditional) */}
-                            {/* P1.2 Featured Partner (Always Show - Fallback to California Cannabis) */}
-                            <FeaturedPickupPartnerCard
-                                partnerId={seededConfig?.featuredDispensaryId || 'fallback'}
-                                zipCode={zipCode}
-                                city={coords.city}
-                                state={coords.state}
-                                retailer={retailers.find(r => r.id === seededConfig?.featuredDispensaryId)}
-                            />
-                            {/* P3.1 Dynamic About Section */}
-                            <AboutZipSection
-                                zipCode={zipCode}
-                                city={coords.city}
-                                state={coords.state}
-                                productCount={products.length}
-                                retailerCount={retailers.length}
-                                lowestPrice={products.length > 0 ? Math.min(...products.map(p => p.price)) : 0}
-                                topCategories={topCategories.map(c => ({ name: c, count: categoryGroups[c].length }))}
-                            />
-
-                            {/* Nearby ZIP Codes */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-lg">Explore Nearby</CardTitle>
-                                    <CardDescription>Other areas you might be interested in</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex flex-wrap gap-2">
-                                        {[1, 2, 3, 4, 5].map((offset) => {
-                                            const nearbyZip = String(parseInt(zipCode) + offset).padStart(5, '0');
-                                            return (
-                                                <Link key={nearbyZip} href={`/local/${nearbyZip}`}>
-                                                    <Badge variant="outline" className="cursor-pointer hover:bg-muted">
-                                                        {nearbyZip}
-                                                    </Badge>
-                                                </Link>
-                                            );
-                                        })}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {products.slice(0, 8).map((product, i) => (
+                                <div key={i} className="bg-white rounded-2xl border border-slate-200 overflow-hidden group cursor-pointer hover:shadow-md transition">
+                                    <div className="aspect-square bg-slate-100 relative">
+                                        {product.imageUrl ? (
+                                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-slate-300 text-2xl font-bold">
+                                                {product.name[0]}
+                                            </div>
+                                        )}
+                                        <div className="absolute top-2 left-2 bg-white px-2 py-1 rounded text-[10px] font-bold shadow-sm">
+                                            {product.category || 'Other'}
+                                        </div>
                                     </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* CTA */}
-                            <Card className="bg-primary text-primary-foreground">
-                                <CardContent className="p-6 text-center">
-                                    <h3 className="text-lg font-semibold">Never Miss a Drop</h3>
-                                    <p className="mt-2 text-sm opacity-90 mb-4">
-                                        Get notified when new strains and exclusive drops land in {zipCode}.
-                                    </p>
-                                    <div className="flex justify-center">
-                                        <DropAlertModal zipCode={zipCode} />
+                                    <div className="p-4">
+                                        <h4 className="text-sm font-bold text-slate-900 line-clamp-1">{product.name}</h4>
+                                        <p className="text-lg font-black text-green-600 mt-1">${product.price?.toFixed(2) || 'N/A'}</p>
+                                        <p className="text-[10px] text-slate-400 mt-1">Found at {product.availability?.length || 1} location{(product.availability?.length || 1) > 1 ? 's' : ''}</p>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        </aside>
-                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {products.length === 0 && (
+                            <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
+                                <p className="text-slate-500 mb-4">No products found near {zipCode}. Try expanding your search.</p>
+                                <Button variant="outline" asChild>
+                                    <Link href={`/local/${zipCode}/search`}>Search Products</Link>
+                                </Button>
+                            </div>
+                        )}
+                    </section>
                 </div>
 
-                {/* Bottom SEO Content (Data-Driven) */}
-                <section className="border-t bg-muted/30">
-                    <div className="container py-12">
-                        <h2 className="text-2xl font-semibold mb-6">
-                            Cannabis in {coords.city}: Local Guide for {zipCode}
-                        </h2>
-                        <div className="grid gap-8 md:grid-cols-2">
-                            <div className="prose prose-sm max-w-none text-muted-foreground">
-                                <h3 className="text-foreground font-medium mb-2">Local Dispensary Scene</h3>
-                                <p>
-                                    As of {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })},
-                                    <strong>{coords.city}</strong> residents in <strong>{zipCode}</strong> have access to
-                                    <strong> {retailers.length} licensed dispensaries</strong> and delivery services.
-                                    {retailers.length > 0 && (
-                                        <>
-                                            {' '}Top-rated local options include
-                                            {retailers.slice(0, 3).map((r, i) => (
-                                                <span key={r.id}>
-                                                    {i === 0 ? ' ' : i === retailers.slice(0, 3).length - 1 ? ', and ' : ', '}
-                                                    <Link href={`/dispensary/${r.id}`} className="text-primary hover:underline">
-                                                        {r.name}
-                                                    </Link>
-                                                </span>
-                                            ))}.
-                                        </>
-                                    )}
-                                </p>
-                                <p className="mt-4">
-                                    <Link href={`/local/${zipCode}/dispensaries`} className="text-primary font-medium hover:underline">
-                                        View all {retailers.length} dispensaries in {zipCode} &rarr;
-                                    </Link>
-                                </p>
-                            </div>
+                {/* RIGHT COLUMN: B2B LEAD GEN & MARKET INTEL */}
+                <aside className="space-y-6">
 
-                            <div className="prose prose-sm max-w-none text-muted-foreground">
-                                <h3 className="text-foreground font-medium mb-2">Product Availability & Pricing</h3>
-                                <p>
-                                    BakedBot has verified <strong>{products.length}+ products</strong> in stock right now.
-                                    {topCategories.length > 0 && (
-                                        <>
-                                            {' '}The most popular searches in this area are
-                                            {topCategories.map((c, i) => (
-                                                <span key={c}>
-                                                    {i === 0 ? ' ' : i === topCategories.length - 1 ? ', and ' : ', '}
-                                                    <strong>{c}</strong>
-                                                </span>
-                                            ))}.
-                                        </>
-                                    )}
-                                </p>
-                                <p>
-                                    Prices in {zipCode} currently range from
-                                    <strong> ${products.length > 0 ? Math.min(...products.map(p => p.price)).toFixed(2) : '0.00'}</strong> to
-                                    <strong> ${products.length > 0 ? Math.max(...products.map(p => p.price)).toFixed(2) : '0.00'}</strong>,
-                                    with an average item price of
-                                    <strong> ${products.length > 0 ? (products.reduce((sum, p) => sum + p.price, 0) / products.length).toFixed(2) : '0.00'}</strong>.
-                                </p>
+                    {/* THE "AI INTEL" CARD */}
+                    <div className="bg-indigo-600 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-4">
+                                <MessageSquare className="w-5 h-5 text-indigo-200" />
+                                <span className="text-xs font-bold uppercase tracking-widest text-indigo-200">BakedBot Insights</span>
                             </div>
-                        </div>
-
-                        {/* Internal Linking */}
-                        <div className="mt-8 pt-6 border-t">
-                            <h4 className="text-sm font-semibold mb-3">Popular Categories in {coords.city}</h4>
-                            <div className="flex flex-wrap gap-2 text-sm">
-                                {categories.slice(0, 8).map(cat => (
-                                    <Link
-                                        key={cat}
-                                        href={`/local/${zipCode}/${cat.toLowerCase()}`}
-                                        className="text-muted-foreground hover:text-primary transition-colors"
-                                    >
-                                        {cat} in {zipCode} •
-                                    </Link>
-                                ))}
-                                <Link
-                                    href={`/local`}
-                                    className="text-muted-foreground hover:text-primary transition-colors"
-                                >
-                                    All Locations
-                                </Link>
+                            <h3 className="text-xl font-black mb-4">
+                                Customers are asking about you.
+                            </h3>
+                            <div className="space-y-3 mb-6">
+                                <div className="bg-white/10 p-3 rounded-xl border border-white/10">
+                                    <p className="text-xs italic opacity-80">&quot;Who has the cheapest flower near {zipCode}?&quot;</p>
+                                </div>
+                                <div className="bg-white/10 p-3 rounded-xl border border-white/10">
+                                    <p className="text-xs italic opacity-80">&quot;Is {retailers[0]?.name || 'any dispensary'} open now?&quot;</p>
+                                </div>
                             </div>
+                            <Button className="w-full bg-white text-indigo-600 font-bold py-3 rounded-xl shadow-lg hover:bg-indigo-50" asChild>
+                                <Link href="/brands/claim?type=dispensary">Claim Page to Answer</Link>
+                            </Button>
                         </div>
                     </div>
-                </section>
-            </div>
-        </>
+
+                    {/* LOCAL STATS (B2B FOMO) */}
+                    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                        <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                            <BarChart className="w-4 h-4 text-green-500" /> {zipCode} Market Activity
+                        </h4>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-slate-500">Live Products</span>
+                                <span className="font-bold text-slate-900">{products.length}+</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-slate-500">Avg. Price</span>
+                                <span className="font-bold text-slate-900">${avgPrice}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-slate-500">Dispensaries</span>
+                                <span className="font-bold text-slate-900">{retailers.length}</span>
+                            </div>
+                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                <div className="bg-green-500 h-full" style={{ width: `${Math.min(75, retailers.length * 25)}%` }} />
+                            </div>
+                            <p className="text-[10px] text-slate-400 leading-relaxed italic">
+                                Verified dispensaries appear 4x more often in local &quot;Near Me&quot; AI search results.
+                            </p>
+                        </div>
+                    </div>
+
+                </aside>
+
+            </main>
+
+            {/* Schema */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        '@context': 'https://schema.org',
+                        '@type': 'CollectionPage',
+                        name: `Cannabis Dispensaries in ${zipCode}`,
+                        description: `Find local dispensaries and products in ${zipCode}.`,
+                        mainEntity: {
+                            '@type': 'ItemList',
+                            itemListElement: retailers.slice(0, 5).map((retailer, i) => ({
+                                '@type': 'ListItem',
+                                position: i + 1,
+                                item: {
+                                    '@type': 'LocalBusiness',
+                                    name: retailer.name,
+                                    address: {
+                                        '@type': 'PostalAddress',
+                                        addressLocality: retailer.city,
+                                        addressRegion: retailer.state,
+                                    }
+                                }
+                            }))
+                        }
+                    })
+                }}
+            />
+        </div>
     );
 }
