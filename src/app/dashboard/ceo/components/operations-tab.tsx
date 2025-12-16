@@ -9,8 +9,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Play, AlertCircle, CheckCircle } from 'lucide-react';
 import { runDispensaryScan, runBrandScan } from '@/server/actions/page-generation';
+import { deleteAllPages } from '@/server/actions/delete-pages';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Trash2 } from 'lucide-react';
+
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function OperationsTab() {
     const { toast } = useToast();
@@ -20,6 +34,30 @@ export default function OperationsTab() {
     const [jobType, setJobType] = useState('dispensaries'); // dispensaries | brands
 
     const [result, setResult] = useState<any>(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const handleDeleteAll = async () => {
+        setDeleting(true);
+        try {
+            const res = await deleteAllPages();
+            if (res.success) {
+                toast({
+                    title: "Pages Deleted",
+                    description: "All generated pages and metadata have been removed.",
+                });
+            } else {
+                throw new Error(res.error);
+            }
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Deletion Failed",
+                description: error.message,
+            });
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     const handleRunJob = async () => {
         setLoading(true);
@@ -186,6 +224,52 @@ export default function OperationsTab() {
                     <div className="text-sm text-muted-foreground">Job history tracking coming soon.</div>
                 </CardContent>
             </Card>
-        </div>
+
+
+            <Card className="border-red-200">
+                <CardHeader>
+                    <CardTitle className="text-red-600 flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5" />
+                        Danger Zone
+                    </CardTitle>
+                    <CardDescription>
+                        Desctructive actions for data management.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                            <div className="font-medium">Delete All Generated Pages</div>
+                            <div className="text-sm text-muted-foreground">
+                                Permanently remove all SEO pages and metadata. This cannot be undone.
+                            </div>
+                        </div>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" disabled={deleting || loading}>
+                                    {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                    Delete All Pages
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action will permanently delete all generated pages from the database.
+                                        This action cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteAll} className="bg-red-600 hover:bg-red-700">
+                                        Yes, Delete Everything
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                </CardContent>
+            </Card>
+        </div >
     );
 }
