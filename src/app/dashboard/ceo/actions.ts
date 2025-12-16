@@ -1263,3 +1263,159 @@ export async function importBrandPagesAction(rows: Record<string, string>[]): Pr
     skippedRows
   };
 }
+
+/**
+ * Validate dispensary pages CSV and return preview
+ */
+export async function validateDispensaryPagesCSV(csvText: string): Promise<CSVPreview> {
+  await requireUser(['owner']);
+
+  const { headers, rows } = parseCSV(csvText);
+  const errors: CSVRowError[] = [];
+
+  // Check required columns
+  const requiredColumns = ['dispensary_name', 'state', 'city', 'zip_code', 'status'];
+  const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+
+  if (missingColumns.length > 0) {
+    return {
+      headers: [],
+      rows: [],
+      totalRows: 0,
+      validRows: 0,
+      invalidRows: 0,
+      errors: [{ row: -1, field: 'headers', message: `Missing required columns: ${missingColumns.join(', ')}` }]
+    };
+  }
+
+  // Validate each row
+  rows.forEach((row, index) => {
+    // Dispensary name
+    if (!row.dispensary_name?.trim()) {
+      errors.push({ row: index, field: 'dispensary_name', message: 'Dispensary name is required' });
+    }
+
+    // State
+    if (!row.state?.trim()) {
+      errors.push({ row: index, field: 'state', message: 'State is required' });
+    } else if (!VALID_STATES.includes(row.state.toUpperCase())) {
+      errors.push({ row: index, field: 'state', message: `Invalid state. Valid: ${VALID_STATES.join(', ')}` });
+    }
+
+    // City
+    if (!row.city?.trim()) {
+      errors.push({ row: index, field: 'city', message: 'City is required' });
+    }
+
+    // ZIP code
+    if (!row.zip_code?.trim()) {
+      errors.push({ row: index, field: 'zip_code', message: 'ZIP code is required' });
+    } else if (!/^\d{5}$/.test(row.zip_code.trim())) {
+      errors.push({ row: index, field: 'zip_code', message: 'ZIP code must be 5 digits' });
+    }
+
+    // Status
+    if (!row.status?.trim()) {
+      errors.push({ row: index, field: 'status', message: 'Status is required' });
+    } else if (!['draft', 'published'].includes(row.status.toLowerCase().trim())) {
+      errors.push({ row: index, field: 'status', message: 'Status must be "draft" or "published"' });
+    }
+  });
+
+  // Count valid/invalid rows
+  const rowsWithErrors = new Set(errors.map(e => e.row));
+  const invalidRows = rowsWithErrors.size;
+  const validRows = rows.length - invalidRows;
+
+  return {
+    headers,
+    rows,
+    totalRows: rows.length,
+    validRows,
+    invalidRows,
+    errors
+  };
+}
+
+/**
+ * Import validated dispensary page rows
+ */
+export async function importDispensaryPagesAction(rows: Record<string, string>[]): Promise<BulkImportResult> {
+  await requireUser(['owner']);
+
+  const firestore = getAdminFirestore();
+  const createdPages: string[] = [];
+  const errors: CSVRowError[] = [];
+  const skippedRows: number[] = [];
+  const batch = firestore.batch();
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+
+    try {
+      const dispensaryName = row.dispensary_name?.trim();
+      const dispensarySlug = dispensaryName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const zipCode = row.zip_code?.trim();
+      const published = row.status?.toLowerCase().trim() === 'published';
+      const featured = row.featured?.toString().toLowerCase() === 'true';
+
+      const pageId = `${dispensarySlug}_${zipCode}`;
+
+      const dispensaryPage: Record<string, any> = {
+        id: pageId,
+        dispensaryName,
+        dispensarySlug,
+        zipCode,
+        city: row.city?.trim() || '',
+        state: row.state?.toUpperCase().trim() || '',
+        featured,
+        seoTags: {
+          metaTitle: `${dispensaryName} - Cannabis Dispensary near ${zipCode}`,
+          metaDescription: `Visit ${dispensaryName} in ${row.city}, ${row.state}. Check our menu, deals, and order online.`,
+          keywords: [dispensaryName.toLowerCase(), 'dispensary', 'cannabis', row.city?.toLowerCase() || '', zipCode]
+        },
+        published,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'bulk-import',
+        metrics: {
+          pageViews: 0,
+          ctaClicks: 0
+        }
+      };
+
+      const ref = firestore.collection('foot_traffic').doc('config').collection('dispensary_pages').doc(pageId);
+      batch.set(ref, dispensaryPage);
+      createdPages.push(pageId);
+
+    } catch (error: any) {
+      console.error(`[importDispensaryPagesAction] Row ${i} error:`, error);
+      errors.push({ row: i, field: 'general', message: error.message });
+      skippedRows.push(i);
+    }
+  }
+
+  // Commit batch
+  try {
+    await batch.commit();
+  } catch (error: any) {
+    console.error('[importDispensaryPagesAction] Batch commit error:', error);
+    return {
+      totalRows: rows.length,
+      validRows: 0,
+      invalidRows: rows.length,
+      errors: [{ row: -1, field: 'database', message: `Database error: ${error.message}` }],
+      createdPages: [],
+      skippedRows: Array.from({ length: rows.length }, (_, i) => i)
+    };
+  }
+
+  return {
+    totalRows: rows.length,
+    validRows: rows.length - skippedRows.length,
+    invalidRows: skippedRows.length,
+    errors,
+    createdPages,
+    skippedRows
+  };
+}
