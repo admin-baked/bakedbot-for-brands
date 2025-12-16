@@ -7,7 +7,6 @@ import { Providers } from './providers';
 import { AppLayout } from '@/components/AppLayout';
 import Chatbot from '@/components/chatbot';
 import { demoProducts } from '@/lib/demo/demo-data';
-import { DEMO_BRAND_ID } from '@/lib/config';
 import { SimulationBanner } from '@/components/debug/simulation-banner';
 const inter = Inter({
   subsets: ['latin'],
@@ -62,8 +61,8 @@ export default async function RootLayout({
           <AppLayout>
             {children}
           </AppLayout>
-          {/* Conditionally render chatbot with products or empty for live mode */}
-          <Chatbot products={products} brandId={DEMO_BRAND_ID} />
+          {/* Global chatbot - context-aware, no default brandId */}
+          <Chatbot products={products} />
           <SimulationBanner />
         </Providers>
       </body>
