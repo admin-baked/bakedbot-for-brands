@@ -524,6 +524,62 @@
                 "feat_expanded_page_generation"
             ],
             "area": "growth"
+        },
+        {
+            "id": "feat_brand_page_enhancements",
+            "title": "Brand Page SEO & Conversion Enhancements",
+            "status": "passing",
+            "description": "Upgrade brand pages with ChatbotPageContext, unified claim module, founders pricing, freshness stamps, internal links, and Report an Issue link.",
+            "acceptance_tests": [
+                "test_chatbot_context_brand",
+                "test_claim_module_renders",
+                "test_freshness_stamp"
+            ],
+            "completed_at": "2025-12-16T14:15:00Z",
+            "owner": "antigravity",
+            "dependencies": [],
+            "area": "frontend"
+        },
+        {
+            "id": "feat_location_filters",
+            "title": "Page Generator Location Filters",
+            "status": "passing",
+            "description": "Add location filters to Page Generator: Market Type (Cannabis/Hemp), State selection with legal status badges, City filter, ZIP codes input.",
+            "acceptance_tests": [
+                "test_market_type_filter",
+                "test_state_dropdown",
+                "test_filters_passed_to_scan"
+            ],
+            "completed_at": "2025-12-16T14:20:00Z",
+            "test_results": {
+                "chatbot_context": "passed (13 tests)",
+                "cart_label": "passed (11 tests)"
+            },
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_national_rollout"
+            ],
+            "area": "frontend"
+        },
+        {
+            "id": "feat_manual_page_creator",
+            "title": "Manual Page Creator for Non-CannMenus Entities",
+            "status": "passing",
+            "description": "Add ability to manually create pages for brands and dispensaries not in CannMenus. Support multi-location targeting (cities, ZIP codes, global page).",
+            "acceptance_tests": [
+                "test_manual_brand_creation",
+                "test_manual_dispensary_creation",
+                "test_multi_location_pages"
+            ],
+            "completed_at": "2025-12-16T14:40:00Z",
+            "test_results": {
+                "manual_page_creation": "passed (11 tests)"
+            },
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_location_filters"
+            ],
+            "area": "backend"
         }
     ]
 }
