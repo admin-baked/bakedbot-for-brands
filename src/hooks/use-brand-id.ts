@@ -46,8 +46,11 @@ export function useBrandId() {
                             // Possibly set a demo ID or null
                         }
                     }
-                } catch (error) {
-                    console.error('Error fetching brand ID:', error);
+                } catch (error: any) {
+                    // Suppress permission errors (common for non-brand users)
+                    if (error?.code !== 'permission-denied') {
+                        console.warn('Error fetching brand ID:', error);
+                    }
                 }
             }
 
