@@ -610,3 +610,69 @@ export interface CreateBrandPageInput {
     };
     published?: boolean;
 }
+
+// =============================================================================
+// BULK IMPORT TYPES
+// =============================================================================
+
+/**
+ * CSV row format for brand page bulk import
+ */
+export interface BrandPageCSVRow {
+    brand_name: string;
+    zone_name?: string;
+    state: string;
+    city: string;
+    zip_codes: string;
+    radius?: string | number;
+    priority?: string | number;
+    cta_type: string;
+    cta_url: string;
+    featured_products?: string;
+    status: 'draft' | 'published';
+}
+
+/**
+ * CSV row format for dispensary page bulk import
+ */
+export interface DispensaryPageCSVRow {
+    dispensary_name: string;
+    state: string;
+    city: string;
+    zip_code: string;
+    featured?: string | boolean;
+    status: 'draft' | 'published';
+}
+
+/**
+ * Validation error for a specific CSV row
+ */
+export interface CSVRowError {
+    row: number;
+    field: string;
+    message: string;
+}
+
+/**
+ * Result of a bulk import operation
+ */
+export interface BulkImportResult {
+    totalRows: number;
+    validRows: number;
+    invalidRows: number;
+    errors: CSVRowError[];
+    createdPages: string[];
+    skippedRows: number[];
+}
+
+/**
+ * Preview of parsed CSV before import
+ */
+export interface CSVPreview {
+    headers: string[];
+    rows: Record<string, string>[];
+    totalRows: number;
+    validRows: number;
+    invalidRows: number;
+    errors: CSVRowError[];
+}
