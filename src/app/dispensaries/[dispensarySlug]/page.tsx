@@ -12,6 +12,8 @@ import { fetchDispensaryPageData } from '@/lib/dispensary-data';
 import { Metadata } from 'next';
 import { ProductGrid } from '@/components/product-grid';
 import { PageViewTracker } from '@/components/analytics/PageViewTracker';
+import ClaimConversionBanner from '@/components/claim/claim-conversion-banner';
+
 
 export async function generateMetadata({ params }: { params: Promise<{ dispensarySlug: string }> }): Promise<Metadata> {
     const { dispensarySlug } = await params;
@@ -155,20 +157,22 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
 
                     {/* Right Rail / Sticky Operator */}
                     <div className="lg:col-span-4 space-y-6">
+                        {/* Dynamic Claim Conversion Banner for unclaimed dispensaries */}
+                        <ClaimConversionBanner
+                            entityType="dispensary"
+                            entityName={dispensary.name}
+                            entitySlug={dispensarySlug}
+                            triggerType="high_traffic"
+                            metrics={{ city: dispensary.city }}
+                            showFoundersOffer={true}
+                            foundersRemaining={75}
+                        />
+
                         <StickyOperatorBox
                             entityName={dispensary.name}
                             entityType="dispensary"
                             verificationStatus={'unverified'}  // Default for now
                         />
-
-                        <Card className="bg-blue-50/50 border-blue-100">
-                            <CardContent className="p-4">
-                                <h3 className="font-semibold text-blue-900 mb-2">Fix your visibility</h3>
-                                <p className="text-sm text-blue-800 mb-4">
-                                    Claim this page to add your menu, update hours, and appear in search results for brands you carry.
-                                </p>
-                            </CardContent>
-                        </Card>
                     </div>
                 </div>
             </div>
