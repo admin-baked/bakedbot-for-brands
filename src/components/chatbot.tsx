@@ -203,6 +203,8 @@ const ChatWindow = ({
 type ChatbotProps = {
   products?: Product[];
   brandId?: string;
+  dispensaryId?: string; // CannMenus dispensary ID for context
+  entityName?: string; // Name of current brand/dispensary for personalization
   initialOpen?: boolean;
   positionStrategy?: 'fixed' | 'absolute' | 'relative';
   className?: string; // For the trigger button container
@@ -210,7 +212,7 @@ type ChatbotProps = {
   isSuperAdmin?: boolean; // New prop for Super Admin mode
 };
 
-export default function Chatbot({ products = [], brandId = "", initialOpen = false, positionStrategy = 'fixed', className, windowClassName, isSuperAdmin = false }: ChatbotProps) {
+export default function Chatbot({ products = [], brandId = "", dispensaryId, entityName, initialOpen = false, positionStrategy = 'fixed', className, windowClassName, isSuperAdmin = false }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
@@ -309,23 +311,72 @@ export default function Chatbot({ products = [], brandId = "", initialOpen = fal
     const userMessage: Message = { id: Date.now(), text: "I've answered the questions!", sender: 'user' };
     setMessages([userMessage]);
 
-    // MOCK AI RESPONSE
-    setTimeout(() => {
+    // Call real API with onboarding preferences
+    try {
+      const query = `I'm looking for a ${answers.mood} experience, I'm ${answers.experience} with cannabis, and I'll be ${answers.social}.`;
+      const payload: any = {
+        query,
+        userId,
+        sessionId,
+        brandId: dispensaryId || brandId || undefined,
+        state: 'Illinois',
+        isOnboarding: true,
+      };
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (data.sessionId) {
+        setSessionId(data.sessionId);
+      }
+
+      if (data.ok && data.products && data.products.length > 0) {
+        const productSuggestions = data.products.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          price: p.price,
+          imageUrl: p.imageUrl,
+          description: p.description,
+          thcPercent: p.thcPercent,
+          cbdPercent: p.cbdPercent,
+          url: p.url,
+          reasoning: p.reasoning || `Great for a ${answers.mood} experience.`,
+        }));
+
+        const botMessage: Message = {
+          id: Date.now() + 1,
+          text: data.message || `Based on your preferences for a ${answers.mood} vibe, here are some products I think you'll love!`,
+          sender: 'bot',
+          productSuggestions,
+        };
+        setMessages(prev => [...prev, botMessage]);
+      } else {
+        const botMessage: Message = {
+          id: Date.now() + 1,
+          text: data.message || `I'd love to help you find something for a ${answers.mood} experience! What type of product are you interested in - flower, vapes, or edibles?`,
+          sender: 'bot',
+        };
+        setMessages(prev => [...prev, botMessage]);
+      }
+    } catch (error) {
+      logger.error('Onboarding API error:', error instanceof Error ? error : new Error(String(error)));
       const botMessage: Message = {
         id: Date.now() + 1,
-        text: `Based on your preferences for a ${answers.mood} vibe, here are a few products I think you'll love. I've picked a variety for you to explore.`,
+        text: `I'm having trouble connecting right now, but I'd love to help you find something for a ${answers.mood} experience! What type of product are you interested in?`,
         sender: 'bot',
-        productSuggestions: [
-          { ...demoProducts[0], reasoning: "A classic choice for deep relaxation that matches the 'chill' mood you're after." },
-          { ...demoProducts[2], reasoning: "This vape is perfect for a social setting, offering a happy and euphoric high." },
-          { ...demoProducts[3], reasoning: "A tasty edible for a consistent and enjoyable experience, great for beginners." },
-        ]
       };
       setMessages(prev => [...prev, botMessage]);
+    } finally {
       setIsBotTyping(false);
-    }, 2000);
+    }
 
-  }, []);
+  }, [brandId, dispensaryId, sessionId, userId]);
 
   const handleSendMessage = useCallback(async (e: FormEvent) => {
     e.preventDefault();
@@ -344,12 +395,13 @@ export default function Chatbot({ products = [], brandId = "", initialOpen = fal
     setIsBotTyping(true);
 
     try {
-      // Call the chat API endpoint
+      // Call the chat API endpoint with context-aware brandId
       const payload: any = {
         query: currentQuery,
         userId,
         sessionId,
-        brandId: brandId || '10982',
+        brandId: dispensaryId || brandId || undefined, // Use dispensary/brand context, no fallback to demo
+        entityName: entityName, // Pass entity name for personalization
         state: 'Illinois',
       };
 
