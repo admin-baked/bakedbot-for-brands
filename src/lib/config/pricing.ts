@@ -14,7 +14,7 @@ export const PRICING_PLANS = [
         tier: "unclaimed"
     },
     {
-        id: "claim-pro",
+        id: "claim_pro",
         name: "Claim Pro",
         price: 99,
         priceDisplay: "$99",
@@ -34,7 +34,7 @@ export const PRICING_PLANS = [
         tier: "claim"
     },
     {
-        id: "founders-claim",
+        id: "founders_claim",
         name: "Founders Claim",
         price: 79,
         priceDisplay: "$79",
@@ -112,7 +112,7 @@ export const PRICING_PLANS = [
 // Coverage Pack Add-ons
 export const COVERAGE_PACKS = [
     {
-        id: "coverage-100",
+        id: "pack_100",
         name: "+100 ZIPs",
         price: 49,
         priceDisplay: "+$49",
@@ -120,7 +120,7 @@ export const COVERAGE_PACKS = [
         zips: 100
     },
     {
-        id: "coverage-500",
+        id: "pack_500",
         name: "+500 ZIPs",
         price: 149,
         priceDisplay: "+$149",

@@ -4,7 +4,7 @@ import { PRICING_PLANS } from '@/lib/config/pricing';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Flame, Shield } from 'lucide-react';
 
-type PlanId = 'claim-pro' | 'founders-claim';
+type PlanId = 'claim_pro' | 'founders_claim';
 
 interface PlanSelectionCardsProps {
     selectedPlan: PlanId;
@@ -17,8 +17,8 @@ export function PlanSelectionCards({
     onSelectPlan,
     foundersRemaining = 247
 }: PlanSelectionCardsProps) {
-    const claimProPlan = PRICING_PLANS.find(p => p.id === 'claim-pro');
-    const foundersPlan = PRICING_PLANS.find(p => p.id === 'founders-claim');
+    const claimProPlan = PRICING_PLANS.find(p => p.id === 'claim_pro');
+    const foundersPlan = PRICING_PLANS.find(p => p.id === 'founders_claim');
 
     if (!claimProPlan || !foundersPlan) {
         return <div className="text-red-500">Plans not configured</div>;
@@ -28,15 +28,15 @@ export function PlanSelectionCards({
         <div className="grid gap-4 md:grid-cols-2">
             {/* Claim Pro Card */}
             <div
-                onClick={() => onSelectPlan('claim-pro')}
+                onClick={() => onSelectPlan('claim_pro')}
                 className={cn(
                     "relative cursor-pointer rounded-xl border-2 p-6 transition-all duration-200 hover:shadow-lg",
-                    selectedPlan === 'claim-pro'
+                    selectedPlan === 'claim_pro'
                         ? "border-primary bg-primary/5 shadow-md"
                         : "border-border hover:border-primary/50"
                 )}
             >
-                {selectedPlan === 'claim-pro' && (
+                {selectedPlan === 'claim_pro' && (
                     <div className="absolute right-4 top-4">
                         <CheckCircle className="h-6 w-6 text-primary" />
                     </div>
@@ -68,15 +68,15 @@ export function PlanSelectionCards({
 
             {/* Founders Claim Card */}
             <div
-                onClick={() => onSelectPlan('founders-claim')}
+                onClick={() => onSelectPlan('founders_claim')}
                 className={cn(
                     "relative cursor-pointer rounded-xl border-2 p-6 transition-all duration-200 hover:shadow-lg",
-                    selectedPlan === 'founders-claim'
+                    selectedPlan === 'founders_claim'
                         ? "border-orange-500 bg-orange-500/5 shadow-md"
                         : "border-border hover:border-orange-500/50"
                 )}
             >
-                {selectedPlan === 'founders-claim' && (
+                {selectedPlan === 'founders_claim' && (
                     <div className="absolute right-4 top-4">
                         <CheckCircle className="h-6 w-6 text-orange-500" />
                     </div>
