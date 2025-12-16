@@ -10,6 +10,36 @@ import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/lib/utils';
 
+/**
+ * Get context-aware cart label based on the current page
+ */
+function getCartLabel(pathname: string | null): string {
+    if (!pathname) return 'Cart';
+
+    // On dispensary pages, show "Pickup Cart" or "Order Cart"
+    if (pathname.startsWith('/dispensaries/')) {
+        return 'Pickup Cart';
+    }
+
+    // On brand pages, show "Brand Cart"
+    if (pathname.startsWith('/brands/')) {
+        return 'Brand Cart';
+    }
+
+    // On local/ZIP pages, show "Order Cart"
+    if (pathname.startsWith('/local/')) {
+        return 'Order Cart';
+    }
+
+    // On shop/demo pages, keep "Hemp Cart"
+    if (pathname.startsWith('/shop/')) {
+        return 'Hemp Cart';
+    }
+
+    // Default
+    return 'Cart';
+}
+
 export function FloatingCartPill() {
     const { getItemCount, getCartTotal, setCartSheetOpen } = useStore();
     const [mounted, setMounted] = useState(false);
@@ -17,6 +47,9 @@ export function FloatingCartPill() {
     const hydrated = useHydrated(); // Kept original hydrated check
     const itemCount = getItemCount();
     const { total } = getCartTotal();
+
+    // Context-aware cart label
+    const cartLabel = getCartLabel(pathname);
 
     useEffect(() => {
         setMounted(true);
@@ -41,7 +74,7 @@ export function FloatingCartPill() {
                 onClick={() => setCartSheetOpen(true)}
             >
                 <ShoppingBag className="mr-3" />
-                <span>Hemp Cart</span>
+                <span>{cartLabel}</span>
                 <span className="ml-3 font-bold bg-background/20 text-primary-foreground h-6 w-6 rounded-full flex items-center justify-center text-xs">
                     {formatNumber(itemCount)}
                 </span>
