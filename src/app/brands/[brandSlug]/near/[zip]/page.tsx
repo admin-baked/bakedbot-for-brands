@@ -5,6 +5,7 @@ import { BrandHeader } from '@/components/brand/brand-header';
 import { WhereToBuy } from '@/components/brand/where-to-buy';
 import { StickyOperatorBox } from '@/components/brand/sticky-operator-box';
 import { BrandOpportunityModule } from '@/components/brand/brand-opportunity-module';
+import { DropAlertButton } from '@/components/brand/drop-alert-button';
 import { RetailerMap } from '@/components/maps/retailer-map';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -82,7 +83,7 @@ export default async function LocalBrandPage({ params }: { params: Promise<{ bra
                                 <p className="text-sm text-muted-foreground mb-4">
                                     Get notified when it drops in your area.
                                 </p>
-                                <Button variant="outline">Set Drop Alert</Button>
+                                <DropAlertButton brandName={brand.name} zipCode={zip} />
                             </div>
                         )}
 
