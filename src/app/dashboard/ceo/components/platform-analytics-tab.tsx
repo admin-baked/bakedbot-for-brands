@@ -81,12 +81,14 @@ function MetricCard({ title, value, subtitle, trend, trendUp, icon: Icon }: {
     );
 }
 
-import { getPlatformAnalytics, type PlatformAnalyticsData } from '../actions';
+import { getPlatformAnalytics, getSeoKpis, getMrrLadder, type PlatformAnalyticsData, type SeoKpis } from '../actions';
+import SeoKpisWidget from './seo-kpis-widget';
 
 export default function PlatformAnalyticsTab() {
     const [refreshing, setRefreshing] = useState(false);
     const { isMock, isLoading: isMockLoading } = useMockData();
     const [data, setData] = useState<PlatformAnalyticsData | null>(null);
+    const [seoKpis, setSeoKpis] = useState<SeoKpis | null>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchMetrics = async () => {
@@ -99,14 +101,26 @@ export default function PlatformAnalyticsTab() {
                 recentSignups: MOCK_DATA.recentSignups,
                 agentUsage: MOCK_DATA.agentUsage
             });
+            // Set mock SEO KPIs
+            setSeoKpis({
+                indexedPages: { zip: 150, dispensary: 45, brand: 22, city: 12, state: 8, total: 237 },
+                claimMetrics: { totalUnclaimed: 55, totalClaimed: 12, claimRate: 18, pendingClaims: 3 },
+                pageHealth: { freshPages: 180, stalePages: 15, healthScore: 87 },
+                searchConsole: { impressions: null, clicks: null, ctr: null, avgPosition: null, top3Keywords: null, top10Keywords: null, dataAvailable: false },
+                lastUpdated: new Date()
+            });
             setLoading(false);
             setRefreshing(false);
             return;
         }
 
         try {
-            const remoteData = await getPlatformAnalytics();
+            const [remoteData, remoteSeoKpis] = await Promise.all([
+                getPlatformAnalytics(),
+                getSeoKpis()
+            ]);
             setData(remoteData);
+            setSeoKpis(remoteSeoKpis);
         } catch (error) {
             console.error('Failed to fetch metrics', error);
         } finally {
@@ -184,6 +198,61 @@ export default function PlatformAnalyticsTab() {
                     icon={BarChart3}
                 />
             </div>
+
+            {/* SEO KPIs Section */}
+            {seoKpis && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <TrendingUp className="h-5 w-5 text-primary" />
+                                    Organic Growth KPIs
+                                </CardTitle>
+                                <CardDescription>SEO and claim conversion metrics from Pops</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <SeoKpisWidget
+                                    data={seoKpis}
+                                    mrrLadder={getMrrLadder(data?.revenue?.mrr || 0)}
+                                    currentMrr={data?.revenue?.mrr || 0}
+                                    onRefresh={handleRefresh}
+                                    isLoading={refreshing}
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div>
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm">Quick Stats</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Total Pages</span>
+                                    <span className="font-bold text-xl">{seoKpis.indexedPages.total}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Claim Rate</span>
+                                    <Badge variant={seoKpis.claimMetrics.claimRate > 20 ? 'default' : 'secondary'}>
+                                        {seoKpis.claimMetrics.claimRate}%
+                                    </Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Page Health</span>
+                                    <Badge variant={seoKpis.pageHealth.healthScore >= 80 ? 'default' : seoKpis.pageHealth.healthScore >= 50 ? 'secondary' : 'destructive'}>
+                                        {seoKpis.pageHealth.healthScore}%
+                                    </Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Unclaimed Opps</span>
+                                    <span className="font-bold">{seoKpis.claimMetrics.totalUnclaimed}</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            )}
 
             {/* Feature Adoption & Agent Usage */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
