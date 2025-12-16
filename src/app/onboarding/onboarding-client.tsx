@@ -65,11 +65,26 @@ export default function OnboardingPage() {
     const brandIdParam = searchParams?.get('brandId');
     const brandNameParam = searchParams?.get('brandName');
 
+    // Dispensary params
+    const dispensaryIdParam = searchParams?.get('dispensaryId');
+    const dispensaryNameParam = searchParams?.get('dispensaryName');
+
     if (roleParam === 'brand' && brandIdParam && brandNameParam) {
       setRole('brand');
       setSelectedCannMenusEntity({ id: brandIdParam, name: brandNameParam });
       setStep('review'); // Jump to review if we have specific data
       toast({ title: 'Welcome!', description: `Completing setup for ${brandNameParam}.` });
+    } else if (roleParam === 'dispensary' && dispensaryNameParam) {
+      // Handle dispensary pre-fill (ID is optional/might be "pending")
+      setRole('dispensary');
+      if (dispensaryIdParam) {
+        setSelectedCannMenusEntity({ id: dispensaryIdParam, name: dispensaryNameParam });
+      } else {
+        // If no ID, it might be manual custom name
+        setManualDispensaryName(dispensaryNameParam);
+      }
+      setStep('review');
+      toast({ title: 'Welcome!', description: `Completing setup for ${dispensaryNameParam}.` });
     } else if (roleParam) {
       // Just setting role
       if (roleParam === 'brand' || roleParam === 'dispensary' || roleParam === 'customer') {
