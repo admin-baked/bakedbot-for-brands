@@ -1,30 +1,27 @@
 
 import { notFound } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { RetailerMap } from '@/components/maps/retailer-map';
-import { MapPin, Clock, ExternalLink, Globe, Phone, Navigation, AlertCircle, CheckCircle2, TrendingUp, Flame, Leaf, Droplets, Cookie, Cigarette, Store } from 'lucide-react';
-import Link from 'next/link';
-import { Retailer } from '@/types/domain';
-import { fetchDispensaryPageData } from '@/lib/dispensary-data';
 import { Metadata } from 'next';
-import { ProductGrid } from '@/components/product-grid';
+import Link from 'next/link';
+import {
+    MapPin,
+    ShieldCheck,
+    Lock,
+    TrendingUp,
+    ExternalLink,
+    ChevronRight,
+    Star,
+    AlertCircle
+} from 'lucide-react';
+import { fetchDispensaryPageData } from '@/lib/dispensary-data';
 import { PageViewTracker } from '@/components/analytics/PageViewTracker';
 import { ChatbotPageContext } from '@/components/chatbot-page-context';
+import { Button } from '@/components/ui/button';
 
-// Common cannabis categories for crawlable content
-const CATEGORIES = [
-    { name: 'Flower', icon: Leaf, color: 'bg-green-100 text-green-700' },
-    { name: 'Pre-Rolls', icon: Cigarette, color: 'bg-amber-100 text-amber-700' },
-    { name: 'Vapes', icon: Droplets, color: 'bg-blue-100 text-blue-700' },
-    { name: 'Edibles', icon: Cookie, color: 'bg-purple-100 text-purple-700' },
-    { name: 'Concentrates', icon: Flame, color: 'bg-orange-100 text-orange-700' },
-    { name: 'Topicals', icon: Store, color: 'bg-pink-100 text-pink-700' },
-];
+// Common categories for SEO
+const CATEGORIES = ['Flower', 'Vapes', 'Edibles', 'Concentrates', 'Pre-Rolls', 'Topicals'];
 
 // Popular brands (would come from city scan in production)
-const POPULAR_BRANDS = ['Cookies', 'STIIIZY', 'Cresco', 'Verano', 'Select'];
+const POPULAR_BRANDS = ['Cookies', 'STIIIZY', 'Wyld', 'Jeeter', 'Cresco'];
 
 export async function generateMetadata({ params }: { params: Promise<{ dispensarySlug: string }> }): Promise<Metadata> {
     const { dispensarySlug } = await params;
@@ -50,342 +47,224 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
         notFound();
     }
 
-    // Generate Google Maps directions URL
-    const directionsUrl = dispensary.lat && dispensary.lon
-        ? `https://www.google.com/maps/dir/?api=1&destination=${dispensary.lat},${dispensary.lon}`
-        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${dispensary.address}, ${dispensary.city}, ${dispensary.state} ${dispensary.zip}`)}`;
-
-    // Format phone for tel: link
-    const phoneLink = dispensary.phone ? `tel:${dispensary.phone.replace(/\D/g, '')}` : null;
-
-    // Freshness date (use updatedAt or current date as fallback)
+    // Freshness date
     const freshnessDate = dispensary.updatedAt
         ? new Date(dispensary.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
+    // Mock traffic data (would come from analytics in production)
+    const trafficViews = Math.floor(Math.random() * 400) + 200;
+
     return (
-        <main className="min-h-screen bg-background pb-20">
+        <div className="min-h-screen bg-[#F8FAFC]">
             <PageViewTracker
                 pageType="dispensary"
                 pageId={dispensary.id}
                 pageSlug={dispensarySlug}
             />
 
-            {/* Set chatbot context for this dispensary */}
             <ChatbotPageContext
                 dispensaryId={dispensary.id}
                 entityName={dispensary.name}
                 entityType="dispensary"
             />
-            {/* Header with Action Buttons */}
-            <div className="bg-white border-b py-6">
-                <div className="container mx-auto px-4">
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight">{dispensary.name}</h1>
-                            <div className="flex items-center text-muted-foreground mt-2">
-                                <MapPin className="w-4 h-4 mr-1" />
-                                {dispensary.address}, {dispensary.city}, {dispensary.state} {dispensary.zip}
-                            </div>
-                        </div>
 
-                        {/* Action Buttons: Directions + Call + Website */}
-                        <div className="flex flex-wrap gap-2">
-                            <Button variant="outline" asChild className="gap-2">
-                                <a href={directionsUrl} target="_blank" rel="noopener noreferrer">
-                                    <Navigation className="w-4 h-4" />
-                                    Directions
-                                </a>
-                            </Button>
-                            {phoneLink && (
-                                <Button variant="outline" asChild className="gap-2">
-                                    <a href={phoneLink}>
-                                        <Phone className="w-4 h-4" />
-                                        Call
-                                    </a>
-                                </Button>
-                            )}
-                            {dispensary.website && (
-                                <Button variant="default" asChild className="gap-2">
-                                    <a href={dispensary.website} target="_blank" rel="noopener noreferrer">
-                                        <ExternalLink className="w-4 h-4" />
-                                        Order Online
-                                    </a>
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="container mx-auto px-4 mt-8">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Main Content */}
-                    <div className="lg:col-span-8 space-y-8">
-
-                        {/* Info Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Card>
-                                <CardContent className="p-6 space-y-4">
-                                    <div className="flex items-center gap-2 font-semibold">
-                                        <Clock className="w-5 h-5 text-muted-foreground" />
-                                        Hours
-                                    </div>
-                                    <div className="text-sm space-y-1">
-                                        <div className="flex justify-between">
-                                            <span>Today:</span>
-                                            <span>9:00 AM - 9:00 PM</span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardContent className="p-6 space-y-4">
-                                    <div className="flex items-center gap-2 font-semibold">
-                                        <Globe className="w-5 h-5 text-muted-foreground" />
-                                        Online Ordering
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Button variant="outline" className="w-full justify-between" asChild>
-                                            <a href={dispensary.website || '#'} target="_blank" rel="noopener noreferrer">
-                                                Visit Website <ExternalLink className="w-4 h-4" />
-                                            </a>
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {/* Location Map */}
-                        {dispensary.lat && dispensary.lon && (
-                            <section>
-                                <h2 className="text-xl font-bold mb-4">Location</h2>
-                                <RetailerMap
-                                    retailers={[{
-                                        id: dispensary.id,
-                                        name: dispensary.name,
-                                        address: `${dispensary.address}, ${dispensary.city}, ${dispensary.state}`,
-                                        lat: dispensary.lat,
-                                        lng: dispensary.lon
-                                    }]}
-                                    zoom={15}
-                                    height="300px"
-                                />
-                            </section>
-                        )}
-
-                        {/* Categories Available (Crawlable SEO Content) */}
-                        <section>
-                            <h2 className="text-xl font-bold mb-4">Categories Available</h2>
-                            <div className="flex flex-wrap gap-2">
-                                {CATEGORIES.map((cat) => (
-                                    <Badge key={cat.name} variant="secondary" className={`${cat.color} px-3 py-2 text-sm gap-2`}>
-                                        <cat.icon className="w-4 h-4" />
-                                        {cat.name}
-                                    </Badge>
-                                ))}
-                            </div>
-                            <p className="text-sm text-muted-foreground mt-4">
-                                {dispensary.name} in {dispensary.city}, {dispensary.state} typically carries flower, pre-rolls, vapes, edibles, concentrates, and topicals.
-                                Contact the dispensary directly for current inventory availability.
-                            </p>
-                        </section>
-
-                        {/* Top Brands at this Location (Crawlable SEO Content) */}
-                        <section>
-                            <h2 className="text-xl font-bold mb-4">Popular Brands Near {dispensary.city}</h2>
-                            <div className="flex flex-wrap gap-2">
-                                {POPULAR_BRANDS.map((brand) => (
-                                    <Link key={brand} href={`/brands/${brand.toLowerCase().replace(/\s+/g, '-')}`}>
-                                        <Badge variant="outline" className="px-3 py-2 text-sm hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer">
-                                            {brand}
-                                        </Badge>
-                                    </Link>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* Menu Preview */}
-                        <section>
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold">Menu Preview</h2>
-                                {products.length > 0 && (
-                                    <span className="text-sm text-muted-foreground">{products.length} products available</span>
-                                )}
-                            </div>
-
-                            {products.length > 0 ? (
-                                <ProductGrid products={products.slice(0, 8)} isLoading={false} brandSlug={''} variant="brand" />
-                            ) : (
-                                <div className="bg-muted/20 rounded-lg p-8">
-                                    <div className="text-center mb-6">
-                                        <p className="text-muted-foreground mb-4">
-                                            Full menu data is being updated. Check back soon or visit the dispensary's website.
-                                        </p>
-                                        <Button variant="outline" asChild>
-                                            <a href={dispensary.website || '#'} target="_blank" rel="noopener noreferrer">
-                                                <ExternalLink className="w-4 h-4 mr-2" />
-                                                View Menu on Website
-                                            </a>
-                                        </Button>
-                                    </div>
-
-                                    {/* Crawlable fallback content */}
-                                    <div className="border-t pt-6">
-                                        <p className="text-sm text-muted-foreground text-center">
-                                            Looking for cannabis products in {dispensary.city}? {dispensary.name} offers a variety of {CATEGORIES.map(c => c.name.toLowerCase()).join(', ')} from top brands like {POPULAR_BRANDS.slice(0, 3).join(', ')}.
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {products.length > 8 && (
-                                <div className="mt-8 text-center">
-                                    <Button size="lg" className="w-full sm:w-auto">
-                                        View Full Menu ({products.length})
-                                    </Button>
-                                </div>
-                            )}
-
-                            {/* Freshness Stamp + Data Source */}
-                            <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground border-t pt-4">
-                                <span>Menu data refreshed: {freshnessDate}</span>
-                                <span>Data source: CannMenus</span>
-                            </div>
-                        </section>
-
-                        {/* Internal Links: Nearby ZIPs + City Hub */}
-                        <section className="border-t pt-8">
-                            <h2 className="text-lg font-semibold mb-4">Explore Nearby</h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Link href={`/cities/${dispensary.city?.toLowerCase()}-${dispensary.state?.toLowerCase()}`} className="block">
-                                    <Card className="hover:border-primary transition-colors">
-                                        <CardContent className="p-4 flex items-center gap-3">
-                                            <Store className="w-5 h-5 text-primary" />
-                                            <div>
-                                                <p className="font-medium">{dispensary.city} Cannabis Guide</p>
-                                                <p className="text-xs text-muted-foreground">All dispensaries in {dispensary.city}</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </Link>
-                                <Link href={`/local/${dispensary.zip}`} className="block">
-                                    <Card className="hover:border-primary transition-colors">
-                                        <CardContent className="p-4 flex items-center gap-3">
-                                            <MapPin className="w-5 h-5 text-primary" />
-                                            <div>
-                                                <p className="font-medium">Dispensaries in {dispensary.zip}</p>
-                                                <p className="text-xs text-muted-foreground">Browse by ZIP code</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </Link>
-                            </div>
-                        </section>
-
-                        {/* Report an Issue Link */}
-                        <div className="text-center py-4 border-t">
-                            <Link href={`/brands/claim?name=${encodeURIComponent(dispensary.name)}&type=correction`} className="text-sm text-muted-foreground hover:text-primary inline-flex items-center gap-1">
-                                <AlertCircle className="w-3 h-3" />
-                                Is this info wrong? Report an issue
-                            </Link>
-                        </div>
-
-                    </div>
-
-                    {/* Right Rail - Unified Claim Module */}
-                    <div className="lg:col-span-4 space-y-6">
-                        {/* Unified Claim Conversion Module */}
-                        <Card className="sticky top-20 border-l-4 border-l-green-500 shadow-lg">
-                            <CardContent className="p-6 space-y-4">
-                                {/* Header */}
-                                <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <TrendingUp className="w-5 h-5 text-green-600" />
-                                        <span className="font-semibold">This page is getting noticed</span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">
-                                        <strong className="text-foreground">308 views</strong> in the last 30 days from customers searching for cannabis in {dispensary.city}.
-                                    </p>
-                                </div>
-
-                                {/* Founders Offer */}
-                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Flame className="w-4 h-4 text-amber-600" />
-                                        <span className="text-sm font-semibold text-amber-800">Founders Pricing Available</span>
-                                    </div>
-                                    <p className="text-xs text-amber-700 mb-2">
-                                        Lock in <strong>$79/mo</strong> (normally $99/mo) – only <strong>75 spots left</strong>.
-                                    </p>
-                                </div>
-
-                                {/* What You Unlock */}
-                                <div className="space-y-2">
-                                    <p className="text-sm font-medium">Claim to unlock:</p>
-                                    <ul className="text-sm space-y-1 text-muted-foreground">
-                                        <li className="flex items-center gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                            Update hours, address, links
-                                        </li>
-                                        <li className="flex items-center gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                            See visitor analytics
-                                        </li>
-                                        <li className="flex items-center gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                            Get Verified badge
-                                        </li>
-                                        <li className="flex items-center gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                            Priority in local rankings
-                                        </li>
-                                    </ul>
-                                </div>
-
-                                {/* CTA Button */}
-                                <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white" size="lg">
-                                    <Link href={`/brands/claim?name=${encodeURIComponent(dispensary.name)}&type=dispensary`}>
-                                        Claim This Page
-                                    </Link>
-                                </Button>
-
-                                <p className="text-xs text-center text-muted-foreground">
-                                    Are you the owner or manager of {dispensary.name}?
-                                </p>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            </div>
-
-            {/* Schema */}
+            {/* Schema.org Markup */}
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
                     __html: JSON.stringify({
                         '@context': 'https://schema.org',
-                        '@type': 'LocalBusiness',
-                        name: dispensary.name,
-                        address: {
+                        '@type': 'MedicalBusiness',
+                        'name': dispensary.name,
+                        'address': {
                             '@type': 'PostalAddress',
-                            streetAddress: dispensary.address,
-                            addressLocality: dispensary.city,
-                            addressRegion: dispensary.state,
-                            postalCode: dispensary.zip,
-                            addressCountry: 'US'
+                            'streetAddress': dispensary.address,
+                            'addressLocality': dispensary.city,
+                            'addressRegion': dispensary.state,
+                            'postalCode': dispensary.zip
                         },
-                        geo: (dispensary.lat && dispensary.lon) ? {
-                            '@type': 'GeoCoordinates',
-                            latitude: dispensary.lat,
-                            longitude: dispensary.lon
-                        } : undefined,
-                        telephone: dispensary.phone,
-                        url: `https://bakedbot.ai/dispensaries/${dispensarySlug}`
+                        ...(dispensary.lat && dispensary.lon ? {
+                            'geo': { '@type': 'GeoCoordinates', 'latitude': dispensary.lat, 'longitude': dispensary.lon }
+                        } : {}),
+                        'url': `https://bakedbot.ai/dispensaries/${dispensarySlug}`
                     })
                 }}
             />
-        </main>
+
+            {/* SEO-FRIENDLY BREADCRUMBS */}
+            <nav className="max-w-6xl mx-auto px-6 py-3 text-xs text-slate-400">
+                <Link href={`/states/${dispensary.state?.toLowerCase()}`} className="hover:text-slate-600">{dispensary.state}</Link>
+                {' / '}
+                <Link href={`/cities/${dispensary.city?.toLowerCase()}-${dispensary.state?.toLowerCase()}`} className="hover:text-slate-600">{dispensary.city}</Link>
+                {' / '}
+                <span className="text-slate-600 font-medium">{dispensary.name}</span>
+            </nav>
+
+            <main className="max-w-6xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                {/* MAIN COLUMN */}
+                <div className="lg:col-span-2 space-y-8">
+
+                    {/* HEADER: High Authority / Unclaimed Status */}
+                    <section className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                        <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">{dispensary.name}</h1>
+                                    <div className="group relative">
+                                        <ShieldCheck className="text-amber-400 w-6 h-6 cursor-help" />
+                                        <span className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] p-2 rounded w-32 mb-2 shadow-xl z-10">
+                                            Business unverified. Claim to secure this badge.
+                                        </span>
+                                    </div>
+                                </div>
+                                <p className="text-lg text-slate-500 font-medium flex items-center gap-1">
+                                    <MapPin className="w-4 h-4" /> {dispensary.city}, {dispensary.state} • <span className="text-green-600">Open Now</span>
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-1 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                                <Star className="fill-amber-400 text-amber-400 w-4 h-4" />
+                                <span className="font-bold text-slate-700">4.8</span>
+                                <span className="text-slate-400 text-sm">({trafficViews} searches)</span>
+                            </div>
+                        </div>
+
+                        {/* SEO-KEYWORD TAGS */}
+                        <div className="flex flex-wrap gap-2 mt-6">
+                            {CATEGORIES.slice(0, 4).map(cat => (
+                                <span key={cat} className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 px-3 py-1 rounded-md">
+                                    {cat} Near Me
+                                </span>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* THE SEO ENGINE: API-HYDRATED CONTENT */}
+                    <section className="space-y-6">
+                        <div className="flex items-end justify-between border-b border-slate-200 pb-2">
+                            <h2 className="text-xl font-bold text-slate-800">Shop Popular Brands in {dispensary.city}</h2>
+                            <span className="text-xs text-slate-400 font-medium">Last synced: {freshnessDate}</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            {POPULAR_BRANDS.map(brand => (
+                                <Link key={brand} href={`/brands/${brand.toLowerCase()}`}>
+                                    <div className="bg-white p-4 rounded-xl border border-slate-200 text-center hover:border-green-300 transition-colors group cursor-pointer">
+                                        <div className="w-12 h-12 bg-slate-50 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-slate-300 group-hover:text-green-500">
+                                            {brand[0]}
+                                        </div>
+                                        <p className="text-sm font-bold text-slate-700">{brand}</p>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* THE B2B HOOK: "THE LOCKED MENU" */}
+                    <section className="relative overflow-hidden rounded-3xl border-2 border-slate-200 bg-white shadow-xl">
+                        <div className="p-8">
+                            <h2 className="text-2xl font-bold mb-2">Live Inventory Preview</h2>
+                            <p className="text-slate-500 mb-6">Real-time menu for {dispensary.name}</p>
+
+                            {/* Blurred API Data */}
+                            <div className="space-y-4 filter blur-[6px] opacity-40 select-none pointer-events-none">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="flex justify-between items-center p-4 border border-slate-100 rounded-xl">
+                                        <div className="flex gap-4 items-center">
+                                            <div className="w-14 h-14 bg-slate-200 rounded-lg" />
+                                            <div>
+                                                <div className="h-4 w-32 bg-slate-300 rounded mb-2" />
+                                                <div className="h-3 w-20 bg-slate-200 rounded" />
+                                            </div>
+                                        </div>
+                                        <div className="h-8 w-20 bg-slate-100 rounded-full" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* The "Value Gap" Overlay */}
+                        <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] flex items-center justify-center p-8">
+                            <div className="max-w-sm w-full bg-white shadow-2xl rounded-2xl p-8 text-center border border-slate-100">
+                                <div className="w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                                    <Lock className="w-8 h-8" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">Unlock Your SEO Potential</h3>
+                                <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                                    Your menu data is ready to sync. Verification allows Google to index your real-time inventory, helping you rank for specific strain and product searches.
+                                </p>
+                                <Button asChild className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-black transition-all">
+                                    <Link href={`/brands/claim?name=${encodeURIComponent(dispensary.name)}&type=dispensary`} className="flex items-center justify-center gap-2 group">
+                                        Claim & Sync My Menu <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    </Link>
+                                </Button>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Report an Issue Link */}
+                    <div className="text-center py-4">
+                        <Link href={`/brands/claim?name=${encodeURIComponent(dispensary.name)}&type=correction`} className="text-sm text-slate-400 hover:text-slate-600 inline-flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            Is this info wrong? Report an issue
+                        </Link>
+                    </div>
+
+                </div>
+
+                {/* SIDEBAR: DATA DRIVEN PERSUASION */}
+                <aside className="space-y-6">
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-2 text-green-600 font-bold text-sm mb-4">
+                            <TrendingUp className="w-4 h-4" />
+                            <span>LIVE TRAFFIC INSIGHTS</span>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div>
+                                <div className="text-4xl font-black text-slate-900">{trafficViews}</div>
+                                <p className="text-sm text-slate-500 font-medium">Local shoppers viewed this listing</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Top Search Queries</p>
+                                {[
+                                    { q: `dispensary ${dispensary.city?.toLowerCase()}`, v: 'High' },
+                                    { q: `${dispensary.name?.toLowerCase().split(' ')[0]} cannabis`, v: 'Med' },
+                                    { q: `weed near ${dispensary.zip}`, v: 'High' }
+                                ].map(item => (
+                                    <div key={item.q} className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-600 italic truncate mr-2">&quot;{item.q}&quot;</span>
+                                        <span className="text-[10px] font-bold bg-green-50 text-green-700 px-2 py-0.5 rounded uppercase shrink-0">{item.v}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-100">
+                                <Button variant="outline" className="w-full py-3 px-4 bg-indigo-50 text-indigo-700 rounded-xl font-bold text-sm hover:bg-indigo-100 border-indigo-100" asChild>
+                                    <Link href={`/brands/claim?name=${encodeURIComponent(dispensary.name)}&type=dispensary`} className="flex items-center justify-center gap-2">
+                                        View Full Analytics <ExternalLink className="w-3 h-3" />
+                                    </Link>
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-xl shadow-indigo-100">
+                        <h3 className="text-lg font-bold mb-2">Own this shop?</h3>
+                        <p className="text-indigo-100 text-sm mb-6 leading-relaxed">
+                            Verify your business to remove ads, update store photos, and respond to your {dispensary.city} customers.
+                        </p>
+                        <Button className="w-full bg-white text-indigo-600 font-black py-4 rounded-xl shadow-lg hover:bg-indigo-50 transition-all uppercase tracking-tight text-sm" asChild>
+                            <Link href={`/brands/claim?name=${encodeURIComponent(dispensary.name)}&type=dispensary`}>
+                                Claim This Page Free
+                            </Link>
+                        </Button>
+                    </div>
+                </aside>
+
+            </main>
+        </div>
     );
 }
