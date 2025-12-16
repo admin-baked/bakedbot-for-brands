@@ -1,13 +1,14 @@
 
 import { fetchBrandPageData } from '@/lib/brand-data';
 import { fetchDispensaryPageData } from '@/lib/dispensary-data';
+import { fetchCityPageData } from '@/lib/city-data';
 
 // Mock Firestore
 const mockGet = jest.fn();
 const mockLimit = jest.fn(() => ({ get: mockGet }));
-const mockWhere = jest.fn(() => ({ limit: mockLimit, where: mockWhere })); // Recursive for multiple wheres
-const mockDoc = jest.fn(() => ({ get: mockGet }));
-const mockCollection = jest.fn(() => ({ doc: mockDoc, where: mockWhere }));
+const mockWhere = jest.fn(() => ({ limit: mockLimit, where: mockWhere, get: mockGet }));
+const mockDoc: any = jest.fn(() => ({ get: mockGet, collection: mockCollection })); // doc() returns get() AND collection()
+const mockCollection: any = jest.fn(() => ({ doc: mockDoc, where: mockWhere, limit: mockLimit, get: mockGet })); // Recursive
 const mockFirestore = {
     collection: mockCollection,
 };
@@ -94,6 +95,58 @@ describe('SEO Data Fetching', () => {
 
             const { retailer } = await fetchDispensaryPageData('non-existent');
             expect(retailer).toBeNull();
+        });
+    });
+
+    describe('fetchCityPageData', () => {
+        it('should fetch city data and dispensaries', async () => {
+            // Mock City Page Config found
+            mockGet.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({ name: 'Test City', state: 'CA', slug: 'test-city' })
+            });
+
+            // Mock Retailers in City found
+            mockGet.mockResolvedValueOnce({
+                empty: false,
+                docs: [{
+                    id: 'dispensary-1',
+                    data: () => ({ name: 'Dispensary 1', city: 'Test City', state: 'CA' })
+                }, {
+                    id: 'dispensary-2',
+                    data: () => ({ name: 'Dispensary 2', city: 'Test City', state: 'CA' })
+                }]
+            });
+
+            const { city, dispensaries } = await fetchCityPageData('test-city');
+
+            expect(city).not.toBeNull();
+            expect(city?.name).toBe('Test City');
+            expect(dispensaries).toHaveLength(2);
+        });
+
+        it('should fallback to dispensary_pages collection if main retailer scan empty', async () => {
+            // Mock City Page Config found
+            mockGet.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({ name: 'Test City', state: 'CO' })
+            });
+
+            // Mock Retailers Main Query Empty
+            mockGet.mockResolvedValueOnce({ empty: true });
+
+            // Mock Dispensary Pages Query Found
+            mockGet.mockResolvedValueOnce({
+                empty: false,
+                docs: [{
+                    id: 'page-1',
+                    data: () => ({ retailerId: 'r1', name: 'Page Dispensary', city: 'Test City', state: 'CO' })
+                }]
+            });
+
+            const { dispensaries } = await fetchCityPageData('test-city');
+            expect(dispensaries).toHaveLength(1);
+            expect(dispensaries[0].name).toBe('Page Dispensary');
         });
     });
 });
