@@ -82,7 +82,7 @@ function MetricCard({ title, value, subtitle, trend, trendUp, icon: Icon }: {
 }
 
 import { getPlatformAnalytics, getSeoKpis, type PlatformAnalyticsData, type SeoKpis } from '../actions';
-import { calculateMrrLadder } from '@/lib/seo-kpis';
+import { calculateMrrLadder } from '@/lib/mrr-ladder';
 import SeoKpisWidget from './seo-kpis-widget';
 
 export default function PlatformAnalyticsTab() {

@@ -342,7 +342,8 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
   }
 }
 
-import { fetchSeoKpis, calculateMrrLadder, type SeoKpis } from '@/lib/seo-kpis';
+import { fetchSeoKpis, type SeoKpis } from '@/lib/seo-kpis';
+import { calculateMrrLadder } from '@/lib/mrr-ladder';
 
 export type { SeoKpis };
 
