@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Play, AlertCircle, CheckCircle, Leaf, Droplets } from 'lucide-react';
+import { Loader2, Play, AlertCircle, CheckCircle, Leaf, Droplets, Plus, Store, MapPin } from 'lucide-react';
 import { runDispensaryScan, runBrandScan, runStateScan, runCityScan } from '@/server/actions/page-generation';
 import { deleteAllPages } from '@/server/actions/delete-pages';
 import { useToast } from '@/hooks/use-toast';
@@ -121,6 +121,19 @@ export default function OperationsTab() {
     const [history, setHistory] = useState<JobRecord[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
 
+    // Manual page creation state
+    const [manualEntityType, setManualEntityType] = useState<'brand' | 'dispensary'>('brand');
+    const [manualName, setManualName] = useState('');
+    const [manualSlug, setManualSlug] = useState('');
+    const [manualDescription, setManualDescription] = useState('');
+    const [manualLogoUrl, setManualLogoUrl] = useState('');
+    const [manualWebsite, setManualWebsite] = useState('');
+    const [manualCities, setManualCities] = useState('');
+    const [manualZipCodes, setManualZipCodes] = useState('');
+    const [manualCreateGlobal, setManualCreateGlobal] = useState(true);
+    const [manualCreating, setManualCreating] = useState(false);
+    const [manualResult, setManualResult] = useState<{ success: boolean; message: string } | null>(null);
+
     // Filter states based on market type
     const filteredStates = US_STATES.filter(s =>
         marketFilter === 'all' || s.marketType === marketFilter
@@ -214,6 +227,58 @@ export default function OperationsTab() {
             });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleManualCreate = async () => {
+        setManualCreating(true);
+        setManualResult(null);
+
+        try {
+            const slug = manualSlug || manualName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+            const cities = manualCities.trim().split('\n').filter(Boolean);
+            const zips = manualZipCodes.replace(/\n/g, ',').split(',').map(z => z.trim()).filter(Boolean);
+
+            // Call server action to create pages
+            const { createManualPages } = await import('@/server/actions/manual-page-creation');
+            const result = await createManualPages({
+                entityType: manualEntityType,
+                name: manualName.trim(),
+                slug,
+                description: manualDescription.trim() || undefined,
+                logoUrl: manualLogoUrl.trim() || undefined,
+                website: manualWebsite.trim() || undefined,
+                cities,
+                zipCodes: zips,
+                createGlobalPage: manualCreateGlobal,
+            });
+
+            if (result.success) {
+                setManualResult({ success: true, message: `Created ${result.pagesCreated} pages successfully!` });
+                toast({
+                    title: "Pages Created",
+                    description: `Created ${result.pagesCreated} pages for ${manualName}`,
+                });
+                // Reset form
+                setManualName('');
+                setManualSlug('');
+                setManualDescription('');
+                setManualLogoUrl('');
+                setManualWebsite('');
+                setManualCities('');
+                setManualZipCodes('');
+            } else {
+                setManualResult({ success: false, message: result.error || 'Failed to create pages' });
+            }
+        } catch (error: any) {
+            setManualResult({ success: false, message: error.message });
+            toast({
+                variant: "destructive",
+                title: "Creation Failed",
+                description: error.message,
+            });
+        } finally {
+            setManualCreating(false);
         }
     };
 
@@ -487,6 +552,169 @@ export default function OperationsTab() {
                 </CardContent>
             </Card>
 
+            {/* Manual Page Creator */}
+            <Card className="border-primary/30">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Plus className="h-5 w-5 text-primary" />
+                        Manual Page Creator
+                    </CardTitle>
+                    <CardDescription>
+                        Create pages for brands or dispensaries not in CannMenus. Generate across multiple cities and ZIP codes.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                        {/* Left: Entity Details */}
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Entity Type</Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Button
+                                        variant={manualEntityType === 'brand' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setManualEntityType('brand')}
+                                        className={manualEntityType === 'brand' ? 'bg-green-600 hover:bg-green-700' : ''}
+                                    >
+                                        <Leaf className="w-4 h-4 mr-2" />
+                                        Brand
+                                    </Button>
+                                    <Button
+                                        variant={manualEntityType === 'dispensary' ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setManualEntityType('dispensary')}
+                                        className={manualEntityType === 'dispensary' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                                    >
+                                        <Store className="w-4 h-4 mr-2" />
+                                        Dispensary
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>{manualEntityType === 'brand' ? 'Brand Name' : 'Dispensary Name'} *</Label>
+                                <Input
+                                    placeholder={manualEntityType === 'brand' ? 'e.g., Cookies, STIIIZY' : 'e.g., Green Thumb Dispensary'}
+                                    value={manualName}
+                                    onChange={(e) => setManualName(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Slug (URL path)</Label>
+                                <Input
+                                    placeholder="auto-generated from name"
+                                    value={manualSlug || manualName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}
+                                    onChange={(e) => setManualSlug(e.target.value)}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Will be: /{manualEntityType === 'brand' ? 'brands' : 'dispensaries'}/{manualSlug || manualName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'slug'}
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Description (Optional)</Label>
+                                <Textarea
+                                    placeholder="Brief description of the brand or dispensary..."
+                                    value={manualDescription}
+                                    onChange={(e) => setManualDescription(e.target.value)}
+                                    rows={2}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Logo URL (Optional)</Label>
+                                <Input
+                                    placeholder="https://example.com/logo.png"
+                                    value={manualLogoUrl}
+                                    onChange={(e) => setManualLogoUrl(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Website (Optional)</Label>
+                                <Input
+                                    placeholder="https://example.com"
+                                    value={manualWebsite}
+                                    onChange={(e) => setManualWebsite(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Right: Location Targeting */}
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label className="flex items-center gap-2">
+                                    <MapPin className="w-4 h-4" />
+                                    Location Targeting
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Generate pages for multiple locations. Leave blank for global page only.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Cities (one per line)</Label>
+                                <Textarea
+                                    placeholder="Detroit, MI&#10;Chicago, IL&#10;Los Angeles, CA"
+                                    value={manualCities}
+                                    onChange={(e) => setManualCities(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>ZIP Codes (comma-separated or one per line)</Label>
+                                <Textarea
+                                    placeholder="48201, 60605, 90210&#10;or one per line"
+                                    value={manualZipCodes}
+                                    onChange={(e) => setManualZipCodes(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between rounded-lg border p-3">
+                                <div className="space-y-0.5">
+                                    <Label className="text-sm">Create Global Page</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        /{manualEntityType === 'brand' ? 'brands' : 'dispensaries'}/{manualSlug || 'slug'}
+                                    </p>
+                                </div>
+                                <Switch checked={manualCreateGlobal} onCheckedChange={setManualCreateGlobal} />
+                            </div>
+
+                            <div className="bg-muted/30 rounded-lg p-3 text-sm">
+                                <div className="font-medium mb-1">Pages to create:</div>
+                                <ul className="text-xs text-muted-foreground space-y-1">
+                                    {manualCreateGlobal && <li>• 1 global page</li>}
+                                    {manualCities.trim() && <li>• {manualCities.trim().split('\n').filter(Boolean).length} city pages</li>}
+                                    {manualZipCodes.trim() && <li>• {manualZipCodes.replace(/\n/g, ',').split(',').map(z => z.trim()).filter(Boolean).length} ZIP pages</li>}
+                                    {!manualCreateGlobal && !manualCities.trim() && !manualZipCodes.trim() && (
+                                        <li className="text-amber-600">No pages selected - enable at least one option</li>
+                                    )}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Button
+                        className="w-full"
+                        onClick={handleManualCreate}
+                        disabled={manualCreating || !manualName.trim() || (!manualCreateGlobal && !manualCities.trim() && !manualZipCodes.trim())}
+                    >
+                        {manualCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {!manualCreating && <Plus className="mr-2 h-4 w-4" />}
+                        Create Pages
+                    </Button>
+
+                    {manualResult && (
+                        <div className={`flex items-center gap-2 p-3 rounded-lg ${manualResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                            {manualResult.success ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+                            <span>{manualResult.message}</span>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             <Card className="border-red-200">
                 <CardHeader>
