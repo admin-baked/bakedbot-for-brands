@@ -50,15 +50,18 @@ export async function POST() {
             {
                 id: 'house-of-dank-detroit',
                 data: {
-                    name: 'House of Dank',
-                    slug: 'house-of-dank-detroit',
+                    dispensaryName: 'House of Dank',
+                    dispensarySlug: 'house-of-dank-detroit',
+                    name: 'House of Dank', // Also set name for backward compatibility
                     city: 'Detroit',
                     state: 'MI',
                     zipCode: '48201',
                     address: '2048 E 8 Mile Rd',
                     lat: 42.4492,
                     lng: -83.0871,
-                    weeklyClicks: 120, // High traffic - should trigger claim opportunity
+                    featured: true,
+                    published: true,
+                    metrics: { pageViews: 120, ctaClicks: 15 },
                     createdAt: now,
                     updatedAt: now
                 }
@@ -66,15 +69,18 @@ export async function POST() {
             {
                 id: 'greenhouse-detroit',
                 data: {
+                    dispensaryName: 'Greenhouse of Walled Lake',
+                    dispensarySlug: 'greenhouse-detroit',
                     name: 'Greenhouse of Walled Lake',
-                    slug: 'greenhouse-detroit',
                     city: 'Detroit',
                     state: 'MI',
                     zipCode: '48201',
                     address: '103 E Walled Lake Dr',
                     lat: 42.5376,
                     lng: -83.4811,
-                    weeklyClicks: 45,
+                    featured: false,
+                    published: true,
+                    metrics: { pageViews: 45, ctaClicks: 5 },
                     createdAt: now,
                     updatedAt: now
                 }
@@ -83,15 +89,18 @@ export async function POST() {
             {
                 id: 'sunnyside-chicago',
                 data: {
+                    dispensaryName: 'Sunnyside Cannabis',
+                    dispensarySlug: 'sunnyside-chicago',
                     name: 'Sunnyside Cannabis',
-                    slug: 'sunnyside-chicago',
                     city: 'Chicago',
                     state: 'IL',
                     zipCode: '60605',
                     address: '436 N Clark St',
                     lat: 41.8907,
                     lng: -87.6312,
-                    weeklyClicks: 200, // Very high traffic
+                    featured: true,
+                    published: true,
+                    metrics: { pageViews: 200, ctaClicks: 25 },
                     createdAt: now,
                     updatedAt: now
                 }
@@ -99,15 +108,18 @@ export async function POST() {
             {
                 id: 'dispensary-33-chicago',
                 data: {
+                    dispensaryName: 'Dispensary 33',
+                    dispensarySlug: 'dispensary-33-chicago',
                     name: 'Dispensary 33',
-                    slug: 'dispensary-33-chicago',
                     city: 'Chicago',
                     state: 'IL',
                     zipCode: '60605',
                     address: '5001 N Clark St',
                     lat: 41.9732,
                     lng: -87.6684,
-                    weeklyClicks: 85,
+                    featured: false,
+                    published: true,
+                    metrics: { pageViews: 85, ctaClicks: 10 },
                     createdAt: now,
                     updatedAt: now
                 }
@@ -120,11 +132,17 @@ export async function POST() {
             {
                 id: 'cookies',
                 data: {
-                    name: 'Cookies',
-                    slug: 'cookies',
+                    brandName: 'Cookies',
+                    brandSlug: 'cookies',
                     cities: ['Detroit, MI', 'Chicago, IL', 'Los Angeles, CA', 'Denver, CO'],
-                    retailerCount: 150,
-                    weeklyClicks: 500, // Very popular
+                    city: 'Detroit',
+                    state: 'MI',
+                    zipCodes: ['48201', '48202'],
+                    ctaType: 'order_online',
+                    ctaUrl: 'https://cookies.co',
+                    published: true,
+                    priority: 10,
+                    metrics: { pageViews: 500, ctaClicks: 45, claimAttempts: 2 },
                     createdAt: now,
                     updatedAt: now
                 }
@@ -132,11 +150,17 @@ export async function POST() {
             {
                 id: 'stiiizy',
                 data: {
-                    name: 'STIIIZY',
-                    slug: 'stiiizy',
+                    brandName: 'STIIIZY',
+                    brandSlug: 'stiiizy',
                     cities: ['Detroit, MI', 'Chicago, IL', 'San Francisco, CA'],
-                    retailerCount: 80,
-                    weeklyClicks: 350,
+                    city: 'Chicago',
+                    state: 'IL',
+                    zipCodes: ['60605', '60606'],
+                    ctaType: 'view_products',
+                    ctaUrl: 'https://stiiizy.com',
+                    published: true,
+                    priority: 9,
+                    metrics: { pageViews: 350, ctaClicks: 30, claimAttempts: 1 },
                     createdAt: now,
                     updatedAt: now
                 }
@@ -145,11 +169,17 @@ export async function POST() {
             {
                 id: 'pleasantrees',
                 data: {
-                    name: 'Pleasantrees',
-                    slug: 'pleasantrees',
+                    brandName: 'Pleasantrees',
+                    brandSlug: 'pleasantrees',
                     cities: ['Detroit, MI', 'Ann Arbor, MI'],
-                    retailerCount: 25,
-                    weeklyClicks: 75,
+                    city: 'Detroit',
+                    state: 'MI',
+                    zipCodes: ['48201'],
+                    ctaType: 'in_store_pickup',
+                    ctaUrl: 'https://pleasantrees.com',
+                    published: false,
+                    priority: 5,
+                    metrics: { pageViews: 75, ctaClicks: 10, claimAttempts: 0 },
                     createdAt: now,
                     updatedAt: now
                 }
@@ -157,11 +187,17 @@ export async function POST() {
             {
                 id: 'cresco-labs',
                 data: {
-                    name: 'Cresco Labs',
-                    slug: 'cresco-labs',
+                    brandName: 'Cresco Labs',
+                    brandSlug: 'cresco-labs',
                     cities: ['Chicago, IL', 'Springfield, IL'],
-                    retailerCount: 40,
-                    weeklyClicks: 120,
+                    city: 'Chicago',
+                    state: 'IL',
+                    zipCodes: ['60605'],
+                    ctaType: 'learn_more',
+                    ctaUrl: 'https://crescolabs.com',
+                    published: true,
+                    priority: 7,
+                    metrics: { pageViews: 120, ctaClicks: 15, claimAttempts: 0 },
                     createdAt: now,
                     updatedAt: now
                 }
