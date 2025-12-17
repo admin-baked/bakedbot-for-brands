@@ -26,6 +26,7 @@ interface GenerateOptions {
     limit?: number;
     dryRun?: boolean;
     locations?: string[]; // ZIP codes
+    brandId?: string; // Owner/Org ID for attribution
 }
 
 export class PageGeneratorService {
@@ -85,6 +86,8 @@ export class PageGeneratorService {
                         state: retailers[0].state,
                         hasDispensaries: true,
                         dispensaryCount: retailers.length,
+
+                        brandId: options.brandId || null, // Attribute to user/org
                         updatedAt: FieldValue.serverTimestamp()
                     }, { merge: true });
                     batchOps++;
@@ -106,6 +109,8 @@ export class PageGeneratorService {
                             state: r.state,
                             claimStatus: 'unclaimed',
                             createdAt: FieldValue.serverTimestamp(), // Only set on create? merge handles it
+
+                            brandId: options.brandId || null,
                             source: 'page_generator_service'
                         }, { merge: true });
                         batchOps++;
