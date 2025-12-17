@@ -5,6 +5,8 @@ import { getAdminFirestore } from '@/firebase/admin';
 
 import { logger } from '@/lib/monitoring';
 import { FieldValue } from 'firebase-admin/firestore';
+import { createJobProgress, updateJobProgress } from '@/server/actions/job-progress';
+
 
 const TARGET_STATES = ['California', 'Illinois', 'Michigan', 'New York', 'New Jersey', 'Colorado', 'Oregon', 'Washington', 'Massachusetts', 'Arizona'];
 
@@ -37,6 +39,7 @@ interface ScanResult {
     itemsFound: number;
     pagesCreated: number;
     errors: string[];
+    jobId?: string; // For progress tracking
 }
 
 interface GenerateOptions {
@@ -46,6 +49,7 @@ interface GenerateOptions {
     brandId?: string; // Owner/Org ID for attribution
     city?: string;
     state?: string;
+    jobId?: string; // For progress tracking
 }
 
 /**
@@ -169,9 +173,21 @@ export class PageGeneratorService {
         let foundCount = 0;
         let createdCount = 0;
         let skippedDuplicates = 0;
+        let processedZips = 0;
         const errors: string[] = [];
+        const totalZipsToProcess = Math.min(zips.length, pageLimit);
 
-        logger.info(`Starting Dispensary Scan for up to ${zips.length} ZIPs, page limit: ${pageLimit}`, { dryRun: options.dryRun });
+        // Initialize job progress tracking if jobId provided
+        const jobId = options.jobId || `job_${Date.now()}`;
+        if (!options.dryRun) {
+            try {
+                await createJobProgress(jobId, 'dispensaries', totalZipsToProcess);
+            } catch (e) {
+                logger.warn('Failed to create job progress document', e);
+            }
+        }
+
+        logger.info(`Starting Dispensary Scan for up to ${zips.length} ZIPs, page limit: ${pageLimit}`, { dryRun: options.dryRun, jobId });
 
         for (const zip of zips) {
             // Stop if we've reached the page limit
@@ -181,6 +197,9 @@ export class PageGeneratorService {
             }
 
             try {
+                // Increment processed count
+                processedZips++;
+
                 // 1. Geocode
                 // Respect Nominatim Usage Policy (Max 1 req/sec)
                 await new Promise(resolve => setTimeout(resolve, 1200));
@@ -317,13 +336,39 @@ export class PageGeneratorService {
                     await batch.commit();
                 }
 
+                // Update job progress after each ZIP (don't await to avoid slowing down)
+                if (!options.dryRun) {
+                    updateJobProgress(jobId, {
+                        processedItems: processedZips,
+                        createdPages: createdCount,
+                        skippedDuplicates,
+                        errors: errors.slice(-10) // Keep last 10 errors
+                    }).catch(() => { }); // Ignore errors
+                }
+
             } catch (e: any) {
                 errors.push(`Error scanning ${zip}: ${e.message}`);
                 logger.error(`Error scanning ${zip}`, e);
             }
         }
 
-        return { success: true, itemsFound: foundCount, pagesCreated: createdCount, errors };
+        // Mark job as completed
+        if (!options.dryRun) {
+            try {
+                await updateJobProgress(jobId, {
+                    status: 'completed',
+                    processedItems: processedZips,
+                    createdPages: createdCount,
+                    skippedDuplicates,
+                    errors,
+                    completedAt: new Date()
+                });
+            } catch (e) {
+                logger.warn('Failed to update job completion status', e);
+            }
+        }
+
+        return { success: true, itemsFound: foundCount, pagesCreated: createdCount, errors, jobId };
     }
 
     /**

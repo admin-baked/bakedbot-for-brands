@@ -29,6 +29,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { getJobHistory, JobRecord } from '@/server/actions/job-history';
+import { getActiveJob, JobProgress } from '@/server/actions/job-progress';
 import { RefreshCcw, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import {
     Table,
@@ -138,6 +139,9 @@ export default function OperationsTab() {
     // Coverage State
     const [coverage, setCoverage] = useState<CoverageStatus | null>(null);
 
+    // Job Progress State
+    const [activeJobProgress, setActiveJobProgress] = useState<JobProgress | null>(null);
+
 
     // Filter states based on market type
     const filteredStates = US_STATES.filter(s =>
@@ -155,6 +159,35 @@ export default function OperationsTab() {
             setHistoryLoading(false);
         }
     };
+
+    // Poll for job progress while loading
+    useEffect(() => {
+        if (!loading) {
+            setActiveJobProgress(null);
+            return;
+        }
+
+        const pollProgress = async () => {
+            try {
+                const progress = await getActiveJob();
+                if (progress) {
+                    setActiveJobProgress(progress);
+                    if (progress.status === 'completed' || progress.status === 'failed') {
+                        setLoading(false);
+                        void loadHistory();
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to poll job progress', e);
+            }
+        };
+
+        // Poll every 2 seconds
+        const interval = setInterval(pollProgress, 2000);
+        pollProgress(); // Initial poll
+
+        return () => clearInterval(interval);
+    }, [loading]);
 
 
     // Initial load
@@ -502,9 +535,67 @@ export default function OperationsTab() {
                         )}
 
                         {loading && (
-                            <div className="flex flex-col items-center justify-center py-10 space-y-4">
-                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                <p className="text-sm text-muted-foreground">Processing batch... do not close this tab.</p>
+                            <div className="space-y-4 py-6">
+                                {activeJobProgress ? (
+                                    <>
+                                        {/* Progress Bar */}
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="font-medium">Processing...</span>
+                                                <span className="text-muted-foreground">
+                                                    {Math.round((activeJobProgress.processedItems / activeJobProgress.totalItems) * 100)}%
+                                                </span>
+                                            </div>
+                                            <div className="h-3 w-full bg-secondary rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-primary transition-all duration-300"
+                                                    style={{ width: `${(activeJobProgress.processedItems / activeJobProgress.totalItems) * 100}%` }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Stats */}
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div className="rounded-lg border p-3 text-center">
+                                                <div className="text-xs text-muted-foreground">Pages Created</div>
+                                                <div className="text-xl font-bold text-primary">{activeJobProgress.createdPages}</div>
+                                            </div>
+                                            <div className="rounded-lg border p-3 text-center">
+                                                <div className="text-xs text-muted-foreground">Processed</div>
+                                                <div className="text-xl font-bold">
+                                                    {activeJobProgress.processedItems} / {activeJobProgress.totalItems}
+                                                </div>
+                                            </div>
+                                            <div className="rounded-lg border p-3 text-center">
+                                                <div className="text-xs text-muted-foreground">Est. Remaining</div>
+                                                <div className="text-xl font-bold">
+                                                    {(() => {
+                                                        const remaining = activeJobProgress.totalItems - activeJobProgress.processedItems;
+                                                        const seconds = remaining * activeJobProgress.estimatedSecondsPerItem;
+                                                        if (seconds < 60) return `${Math.ceil(seconds)}s`;
+                                                        if (seconds < 3600) return `${Math.ceil(seconds / 60)}m`;
+                                                        return `${Math.floor(seconds / 3600)}h ${Math.ceil((seconds % 3600) / 60)}m`;
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {activeJobProgress.skippedDuplicates > 0 && (
+                                            <p className="text-xs text-muted-foreground text-center">
+                                                {activeJobProgress.skippedDuplicates} duplicate pages skipped
+                                            </p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-4 space-y-4">
+                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                        <p className="text-sm text-muted-foreground">Starting job...</p>
+                                    </div>
+                                )}
+
+                                <p className="text-xs text-center text-muted-foreground">
+                                    Do not close this tab while processing.
+                                </p>
                             </div>
                         )}
 
