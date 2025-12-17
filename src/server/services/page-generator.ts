@@ -111,7 +111,7 @@ export class PageGeneratorService {
      */
     async scanAndGenerateDispensaries(options: GenerateOptions = {}): Promise<ScanResult> {
         const firestore = getAdminFirestore();
-        const limit = options.limit || 10;
+        const pageLimit = options.limit || 10; // This now limits TOTAL PAGES created
         let zips = options.locations && options.locations.length > 0 ? options.locations : [];
 
         // 0. Resolve City if provided and no specific ZIPs
@@ -128,17 +128,20 @@ export class PageGeneratorService {
             zips = SEED_ZIPS;
         }
 
-        // Shuffle/Slice ZIPs if limited? 
-        // For MVP, just take first N up to limit
-        const targets = zips.slice(0, limit);
-
         let foundCount = 0;
         let createdCount = 0;
+        let skippedDuplicates = 0;
         const errors: string[] = [];
 
-        logger.info(`Starting Dispensary Scan for ${targets.length} ZIPs`, { targets, dryRun: options.dryRun });
+        logger.info(`Starting Dispensary Scan for up to ${zips.length} ZIPs, page limit: ${pageLimit}`, { dryRun: options.dryRun });
 
-        for (const zip of targets) {
+        for (const zip of zips) {
+            // Stop if we've reached the page limit
+            if (createdCount >= pageLimit) {
+                logger.info(`Reached page limit of ${pageLimit}, stopping scan`);
+                break;
+            }
+
             try {
                 // 1. Geocode
                 // Respect Nominatim Usage Policy (Max 1 req/sec)
@@ -176,7 +179,16 @@ export class PageGeneratorService {
                 const geoCity = address?.city || address?.town || address?.village || address?.county || 'Unknown';
                 const geoState = address?.state || 'Unknown';
 
-                // 2. Search CannMenus for dispensary data (optional enrichment)
+                // 2. Check for duplicate ZIP page before processing
+                const zipPageRef = firestore.collection('foot_traffic').doc('config').collection('zip_pages').doc(`zip_${zip}`);
+                const existingZipPage = await zipPageRef.get();
+                if (existingZipPage.exists) {
+                    skippedDuplicates++;
+                    logger.info(`Skipping duplicate ZIP page for ${zip}`);
+                    continue;
+                }
+
+                // 3. Search CannMenus for dispensary data (optional enrichment)
                 let retailers: any[] = [];
                 try {
                     retailers = await this.cannMenus.findRetailers({ lat, lng: lon, limit: 50 });
@@ -186,13 +198,11 @@ export class PageGeneratorService {
                     logger.warn(`CannMenus search failed for ${zip}, creating page without retailer data`, { error: cannMenusError.message });
                 }
 
-                // 3. Always create page (with or without CannMenus data)
-                if (!options.dryRun) {
+                // 4. Create pages (with or without CannMenus data)
+                if (!options.dryRun && createdCount < pageLimit) {
                     const batch = firestore.batch();
-                    let batchOps = 0;
 
-                    // Create ZIP Page (always)
-                    const zipPageRef = firestore.collection('foot_traffic').doc('config').collection('zip_pages').doc(`zip_${zip}`);
+                    // Create ZIP Page
                     const hasDispensaries = retailers.length > 0;
                     batch.set(zipPageRef, {
                         id: `zip_${zip}`,
@@ -202,10 +212,9 @@ export class PageGeneratorService {
                         hasDispensaries,
                         dispensaryCount: retailers.length,
 
-                        brandId: options.brandId || null, // Attribute to user/org
+                        brandId: options.brandId || null,
                         updatedAt: FieldValue.serverTimestamp(),
 
-                        // Hydrate with required LocalSEOPage fields
                         content: {
                             title: `Dispensaries in ${geoCity}, ${geoState} | Cannabis Local`,
                             metaDescription: `Find local dispensaries and delivery in ${geoCity}, ${geoState}.`,
@@ -231,19 +240,27 @@ export class PageGeneratorService {
                         },
                         published: false,
                         lastRefreshed: FieldValue.serverTimestamp(),
-                        nextRefresh: FieldValue.serverTimestamp(), // TODO: +7 days
+                        nextRefresh: FieldValue.serverTimestamp(),
                         refreshFrequency: 'weekly'
                     }, { merge: true });
-                    batchOps++;
-                    createdCount++; // Counting the ZIP page
+                    createdCount++;
 
-                    // Create Dispensary Pages (only if we have CannMenus data)
+                    // Create Dispensary Pages (only if we have CannMenus data and haven't hit limit)
                     for (const r of retailers) {
+                        if (createdCount >= pageLimit) break; // Respect page limit
+
                         const name = r.name || `Dispensary #${r.id || r.retailer_id}`;
                         const slug = this.slugify(name);
                         const id = r.id || r.retailer_id;
 
+                        // Check for duplicate dispensary page
                         const dispRef = firestore.collection('foot_traffic').doc('config').collection('dispensary_pages').doc(`dispensary_${id}`);
+                        const existingDispPage = await dispRef.get();
+                        if (existingDispPage.exists) {
+                            skippedDuplicates++;
+                            continue;
+                        }
+
                         batch.set(dispRef, {
                             id: `dispensary_${id}`,
                             retailerId: id,
@@ -253,17 +270,14 @@ export class PageGeneratorService {
                             state: r.state || geoState,
                             claimStatus: 'unclaimed',
                             createdAt: FieldValue.serverTimestamp(),
-
                             brandId: options.brandId || null,
                             source: 'page_generator_service'
                         }, { merge: true });
-                        batchOps++;
                         createdCount++;
                     }
 
                     await batch.commit();
                 }
-
 
             } catch (e: any) {
                 errors.push(`Error scanning ${zip}: ${e.message}`);
