@@ -223,6 +223,7 @@ export default function FootTrafficTab() {
     const [seoPages, setSeoPages] = useState<LocalSEOPage[]>([]);
     const [isGeneratePageOpen, setIsGeneratePageOpen] = useState(false);
     const [seedData, setSeedData] = useState({ zipCode: '', featuredDispensaryName: '' });
+    const [isSeeding, setIsSeeding] = useState(false);
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
