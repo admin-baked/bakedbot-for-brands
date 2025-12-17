@@ -31,6 +31,23 @@ interface GenerateOptions {
     state?: string;
 }
 
+/**
+ * US State Name to Abbreviation Map
+ */
+const STATE_ABBR_MAP: Record<string, string> = {
+    'alabama': 'al', 'alaska': 'ak', 'arizona': 'az', 'arkansas': 'ar', 'california': 'ca',
+    'colorado': 'co', 'connecticut': 'ct', 'delaware': 'de', 'florida': 'fl', 'georgia': 'ga',
+    'hawaii': 'hi', 'idaho': 'id', 'illinois': 'il', 'indiana': 'in', 'iowa': 'ia',
+    'kansas': 'ks', 'kentucky': 'ky', 'louisiana': 'la', 'maine': 'me', 'maryland': 'md',
+    'massachusetts': 'ma', 'michigan': 'mi', 'minnesota': 'mn', 'mississippi': 'ms', 'missouri': 'mo',
+    'montana': 'mt', 'nebraska': 'ne', 'nevada': 'nv', 'new hampshire': 'nh', 'new jersey': 'nj',
+    'new mexico': 'nm', 'new york': 'ny', 'north carolina': 'nc', 'north dakota': 'nd', 'ohio': 'oh',
+    'oklahoma': 'ok', 'oregon': 'or', 'pennsylvania': 'pa', 'rhode island': 'ri', 'south carolina': 'sc',
+    'south dakota': 'sd', 'tennessee': 'tn', 'texas': 'tx', 'utah': 'ut', 'vermont': 'vt',
+    'virginia': 'va', 'washington': 'wa', 'west virginia': 'wv', 'wisconsin': 'wi', 'wyoming': 'wy',
+    'district of columbia': 'dc'
+};
+
 export class PageGeneratorService {
     private cannMenus = new CannMenusService();
 
@@ -43,26 +60,46 @@ export class PageGeneratorService {
      */
     async resolveCityToZips(city: string, state: string): Promise<string[]> {
         try {
-            // Zippopotam uses full state names or abbr? It seems to use abbr (mi, ca).
-            // Input state might be "Michigan" or "MI".
-            // Simple map or just try both.
-            // Let's assume input state is full name from scanner, or abbr.
-            // Zippopotam requires 2-letter ISO code.
+            if (!state || !city) return [];
 
-            // Heuristic: if len > 2, it's likely a full name. Map to abbr?
-            // For MVP, if undefined, we can't search.
-            if (!state) return [];
+            // Normalize state input
+            const stateLower = state.trim().toLowerCase();
 
-            const stateCode = state.substring(0, 2).toLowerCase(); // basic approach
-            const cleanCity = city.trim().toLowerCase();
+            // Check for invalid states (like "All States")
+            if (stateLower.includes('all') || stateLower.length < 2) {
+                console.warn(`[resolveCityToZips] Invalid state "${state}" - cannot resolve city to ZIPs`);
+                return [];
+            }
+
+            // Determine state code
+            let stateCode: string;
+
+            // If already 2 chars, assume it's an abbreviation
+            if (stateLower.length === 2) {
+                stateCode = stateLower;
+            } else {
+                // Look up in map
+                stateCode = STATE_ABBR_MAP[stateLower];
+                if (!stateCode) {
+                    console.warn(`[resolveCityToZips] Unknown state "${state}" - cannot resolve city to ZIPs`);
+                    return [];
+                }
+            }
+
+            const cleanCity = city.trim().toLowerCase().replace(/\s+/g, '%20');
 
             const res = await fetch(`https://api.zippopotam.us/us/${stateCode}/${cleanCity}`);
-            if (!res.ok) return [];
+            if (!res.ok) {
+                console.warn(`[resolveCityToZips] Zippopotam API returned ${res.status} for ${city}, ${stateCode}`);
+                return [];
+            }
 
             const data = await res.json();
             if (!data.places || !Array.isArray(data.places)) return [];
 
-            return data.places.map((p: any) => p['post code']);
+            const zips = data.places.map((p: any) => p['post code']);
+            console.log(`[resolveCityToZips] Resolved ${city}, ${stateCode} to ${zips.length} ZIPs`);
+            return zips;
         } catch (error) {
             console.error(`Error resolving city ${city}, ${state}:`, error);
             return [];
