@@ -176,23 +176,30 @@ export class PageGeneratorService {
                 const geoCity = address?.city || address?.town || address?.village || address?.county || 'Unknown';
                 const geoState = address?.state || 'Unknown';
 
-                // 2. Search CannMenus
+                // 2. Search CannMenus for dispensary data (optional enrichment)
+                let retailers: any[] = [];
+                try {
+                    retailers = await this.cannMenus.findRetailers({ lat, lng: lon, limit: 50 });
+                    foundCount += retailers.length;
+                } catch (cannMenusError: any) {
+                    // Log but don't fail - we can still create the page without CannMenus data
+                    logger.warn(`CannMenus search failed for ${zip}, creating page without retailer data`, { error: cannMenusError.message });
+                }
 
-                const retailers = await this.cannMenus.findRetailers({ lat, lng: lon, limit: 50 });
-                foundCount += retailers.length;
-
-                if (retailers.length > 0 && !options.dryRun) {
+                // 3. Always create page (with or without CannMenus data)
+                if (!options.dryRun) {
                     const batch = firestore.batch();
                     let batchOps = 0;
 
-                    // Create ZIP Page
+                    // Create ZIP Page (always)
                     const zipPageRef = firestore.collection('foot_traffic').doc('config').collection('zip_pages').doc(`zip_${zip}`);
+                    const hasDispensaries = retailers.length > 0;
                     batch.set(zipPageRef, {
                         id: `zip_${zip}`,
                         zipCode: zip,
                         city: geoCity,
                         state: geoState,
-                        hasDispensaries: true,
+                        hasDispensaries,
                         dispensaryCount: retailers.length,
 
                         brandId: options.brandId || null, // Attribute to user/org
@@ -203,7 +210,9 @@ export class PageGeneratorService {
                             title: `Dispensaries in ${geoCity}, ${geoState} | Cannabis Local`,
                             metaDescription: `Find local dispensaries and delivery in ${geoCity}, ${geoState}.`,
                             h1: `Cannabis in ${geoCity}`,
-                            introText: `Discover ${retailers.length} dispensaries near you.`,
+                            introText: hasDispensaries
+                                ? `Discover ${retailers.length} dispensaries near you.`
+                                : `Cannabis information for ${geoCity}, ${geoState}. Dispensary listings coming soon.`,
                             topStrains: [],
                             topDeals: [],
                             nearbyRetailers: [],
@@ -228,7 +237,7 @@ export class PageGeneratorService {
                     batchOps++;
                     createdCount++; // Counting the ZIP page
 
-                    // Create Dispensary Pages
+                    // Create Dispensary Pages (only if we have CannMenus data)
                     for (const r of retailers) {
                         const name = r.name || `Dispensary #${r.id || r.retailer_id}`;
                         const slug = this.slugify(name);
@@ -240,10 +249,10 @@ export class PageGeneratorService {
                             retailerId: id,
                             name,
                             slug,
-                            city: r.city,
-                            state: r.state,
+                            city: r.city || geoCity,
+                            state: r.state || geoState,
                             claimStatus: 'unclaimed',
-                            createdAt: FieldValue.serverTimestamp(), // Only set on create? merge handles it
+                            createdAt: FieldValue.serverTimestamp(),
 
                             brandId: options.brandId || null,
                             source: 'page_generator_service'
@@ -254,6 +263,7 @@ export class PageGeneratorService {
 
                     await batch.commit();
                 }
+
 
             } catch (e: any) {
                 errors.push(`Error scanning ${zip}: ${e.message}`);
