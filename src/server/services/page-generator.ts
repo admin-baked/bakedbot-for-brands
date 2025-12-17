@@ -149,13 +149,12 @@ export class PageGeneratorService {
             if (stateCode && STATE_ZIP_RANGES[stateCode]) {
                 const ranges = STATE_ZIP_RANGES[stateCode];
                 for (const [start, end] of ranges) {
-                    // Generate ZIPs within range (stepping by 1 to cover most populated areas)
-                    // To avoid generating ALL ZIPs (thousands), we'll sample every 10th ZIP
-                    for (let z = start; z <= end; z += 10) {
+                    // Generate ALL ZIPs in range for complete state coverage
+                    for (let z = start; z <= end; z += 1) {
                         zips.push(z.toString().padStart(5, '0'));
                     }
                 }
-                // Shuffle to get variety
+                // Shuffle to distribute load across different areas
                 zips.sort(() => Math.random() - 0.5);
                 logger.info(`Generated ${zips.length} ZIPs for state ${stateCode} from ranges`);
             }
