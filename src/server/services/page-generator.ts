@@ -144,7 +144,7 @@ export class PageGeneratorService {
                 // Respect Nominatim Usage Policy (Max 1 req/sec)
                 await new Promise(resolve => setTimeout(resolve, 1200));
 
-                const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${zip}&country=US&format=json&limit=1`, {
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${zip}&country=US&format=json&limit=1&addressdetails=1`, {
                     headers: {
                         'User-Agent': 'BakedBot-Scanner/1.0 (martez@bakedbot.ai)',
                         'Referer': 'https://bakedbot.ai'
@@ -170,9 +170,14 @@ export class PageGeneratorService {
                     continue;
                 }
 
-                const { lat, lon } = geoData[0];
+                const { lat, lon, address, display_name } = geoData[0];
+
+                // Extract city and state from geocoding response
+                const geoCity = address?.city || address?.town || address?.village || address?.county || 'Unknown';
+                const geoState = address?.state || 'Unknown';
 
                 // 2. Search CannMenus
+
                 const retailers = await this.cannMenus.findRetailers({ lat, lng: lon, limit: 50 });
                 foundCount += retailers.length;
 
@@ -185,8 +190,8 @@ export class PageGeneratorService {
                     batch.set(zipPageRef, {
                         id: `zip_${zip}`,
                         zipCode: zip,
-                        city: retailers[0].city,
-                        state: retailers[0].state,
+                        city: geoCity,
+                        state: geoState,
                         hasDispensaries: true,
                         dispensaryCount: retailers.length,
 
@@ -195,9 +200,9 @@ export class PageGeneratorService {
 
                         // Hydrate with required LocalSEOPage fields
                         content: {
-                            title: `Dispensaries in ${retailers[0].city}, ${retailers[0].state} | Cannabis Local`,
-                            metaDescription: `Find local dispensaries and delivery in ${retailers[0].city}, ${retailers[0].state}.`,
-                            h1: `Cannabis in ${retailers[0].city}`,
+                            title: `Dispensaries in ${geoCity}, ${geoState} | Cannabis Local`,
+                            metaDescription: `Find local dispensaries and delivery in ${geoCity}, ${geoState}.`,
+                            h1: `Cannabis in ${geoCity}`,
                             introText: `Discover ${retailers.length} dispensaries near you.`,
                             topStrains: [],
                             topDeals: [],
