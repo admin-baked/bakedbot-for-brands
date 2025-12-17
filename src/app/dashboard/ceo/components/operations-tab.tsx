@@ -8,10 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Play, AlertCircle, CheckCircle, Leaf, Droplets, Plus, Store, MapPin } from 'lucide-react';
-import { runDispensaryScan, runBrandScan, runStateScan, runCityScan, getCoverageStatusAction, CoverageStatus } from '@/server/actions/page-generation';
-// Wait, getCoverageStatusAction is in actions.ts, not page-generation.ts?
-// Checking step 443: It was added to `src/app/dashboard/ceo/actions.ts`.
-// I need to import from THERE.
 import { getCoverageStatusAction, CoverageStatus } from '@/app/dashboard/ceo/actions';
 import { runDispensaryScan, runBrandScan, runStateScan, runCityScan } from '@/server/actions/page-generation';
 import { deleteAllPages } from '@/server/actions/delete-pages';
@@ -482,7 +478,7 @@ export default function OperationsTab() {
                         <Button
                             className="w-full"
                             onClick={handleRunJob}
-                            disabled={loading || (coverage && !coverage.canGenerateMore && !dryRun)}
+                            disabled={loading || (!!coverage && !coverage.canGenerateMore && !dryRun)}
                         >
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {!loading && <Play className="mr-2 h-4 w-4" />}

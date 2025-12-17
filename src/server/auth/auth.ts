@@ -8,7 +8,7 @@ import { DecodedIdToken } from 'firebase-admin/auth';
 import { devPersonas } from '@/lib/dev-personas';
 
 // Define the roles used in the application for type safety.
-export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
+export type Role = 'brand' | 'dispensary' | 'customer' | 'owner' | 'admin';
 
 /**
  * A server-side utility to require an authenticated user and optionally enforce roles.
