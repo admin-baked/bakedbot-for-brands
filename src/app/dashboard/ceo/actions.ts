@@ -838,15 +838,16 @@ export async function getFootTrafficMetrics(): Promise<FootTrafficMetrics> {
       }
     };
 
-    // Aggregate page views from both collections
-    metrics.seo.totalPageViews = totalPages * 154; // Mock avg (replace with real analytics)
+    // Note: Page views would come from real analytics (e.g., Google Analytics, Vercel Analytics)
+    // For now, we leave them at 0 until analytics integration is implemented
+    // metrics.seo.totalPageViews = 0; (already set above)
 
-    // Mock top ZIPs from actual ZIP pages
+    // Top ZIPs - would come from analytics, for now just list first 5 pages without fake views
     if (!zipSnapshot.empty) {
       const pages = zipSnapshot.docs.map(doc => doc.data() as any);
       metrics.seo.topZipCodes = pages.slice(0, 5).map(p => ({
         zipCode: p.zipCode || p.id?.replace('zip_', '') || 'Unknown',
-        views: Math.floor(Math.random() * 500) + 100
+        views: 0 // Real views would come from analytics
       }));
     }
 
