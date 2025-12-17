@@ -5,7 +5,8 @@ import { getAdminFirestore } from '@/firebase/admin';
 
 import { logger } from '@/lib/monitoring';
 import { FieldValue } from 'firebase-admin/firestore';
-import { createJobProgress, updateJobProgress } from '@/server/actions/job-progress';
+import { createJobProgress, updateJobProgress, isJobCancelled } from '@/server/actions/job-progress';
+
 
 
 const TARGET_STATES = ['California', 'Illinois', 'Michigan', 'New York', 'New Jersey', 'Colorado', 'Oregon', 'Washington', 'Massachusetts', 'Arizona'];
@@ -194,6 +195,20 @@ export class PageGeneratorService {
             if (createdCount >= pageLimit) {
                 logger.info(`Reached page limit of ${pageLimit}, stopping scan`);
                 break;
+            }
+
+            // Check for job cancellation
+            if (!options.dryRun && options.jobId) {
+                const cancelled = await isJobCancelled(options.jobId);
+                if (cancelled) {
+                    logger.info(`Job ${options.jobId} was cancelled, stopping scan`);
+                    await updateJobProgress(options.jobId, {
+                        status: 'cancelled',
+                        processedItems: processedZips,
+                        createdPages: createdCount,
+                    });
+                    return { success: false, itemsFound: foundCount, pagesCreated: createdCount, errors: ['Job cancelled by user'], jobId: options.jobId };
+                }
             }
 
             try {

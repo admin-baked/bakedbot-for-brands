@@ -4,7 +4,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 
 export interface JobProgress {
     id: string;
-    status: 'running' | 'completed' | 'failed';
+    status: 'running' | 'completed' | 'failed' | 'cancelled';
     type: string;
     totalItems: number;
     processedItems: number;
@@ -54,6 +54,28 @@ export async function updateJobProgress(
         updatedAt: new Date(),
     });
 }
+
+/**
+ * Cancel a running job
+ */
+export async function cancelJob(jobId: string): Promise<void> {
+    const firestore = getAdminFirestore();
+    await firestore.collection('foot_traffic').doc('jobs').collection('progress').doc(jobId).update({
+        status: 'cancelled',
+        updatedAt: new Date(),
+    });
+}
+
+/**
+ * Check if a job has been cancelled
+ */
+export async function isJobCancelled(jobId: string): Promise<boolean> {
+    const firestore = getAdminFirestore();
+    const doc = await firestore.collection('foot_traffic').doc('jobs').collection('progress').doc(jobId).get();
+    if (!doc.exists) return false;
+    return doc.data()?.status === 'cancelled';
+}
+
 
 /**
  * Get current job progress
