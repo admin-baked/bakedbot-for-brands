@@ -27,6 +27,7 @@ const UsageTab = dynamic(() => import("./components/usage-tab"), { loading: TabL
 const EzalTab = dynamic(() => import("./components/ezal-tab"), { loading: TabLoader });
 const SuperAdminInsightsTab = dynamic(() => import("./components/super-admin-insights-tab").then(mod => mod.SuperAdminInsightsTab), { loading: TabLoader });
 const OperationsTab = dynamic(() => import("./components/operations-tab"), { loading: TabLoader });
+const CompetitorIntelTab = dynamic(() => import("./components/competitor-intel-tab"), { loading: TabLoader });
 import { useSuperAdmin } from '@/hooks/use-super-admin';
 import { Loader2, Shield, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -87,6 +88,7 @@ export default function CeoDashboardPage() {
             case 'coupons': return <CouponManagerTab />;
             case 'cannmenus': return <CannMenusTestTab />;
             case 'operations': return <OperationsTab />;
+            case 'competitor-intel': return <CompetitorIntelTab />;
             default: return <SuperAdminPlaybooksTab />;
         }
     };

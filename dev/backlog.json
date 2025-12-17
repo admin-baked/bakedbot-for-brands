@@ -608,6 +608,57 @@
             ],
             "area": "full_stack",
             "created_at": "2025-12-16T15:59:00Z"
+        },
+        {
+            "id": "feat_crm_lite",
+            "title": "CRM Lite (Brand/Dispensary Tracking)",
+            "status": "in_progress",
+            "priority": "high",
+            "description": "Lightweight CRM to track brands and dispensaries discovered via page generation. Track claim status, dedup per state, auto-detect national brands (3+ states). Add as sidebar item in Admin Console.",
+            "acceptance_tests": [
+                "test_crm_brand_upsert",
+                "test_crm_dispensary_upsert",
+                "test_national_brand_detection",
+                "test_claim_status_display"
+            ],
+            "phases": [
+                "Phase 1: CRM Service (upsertBrand, upsertDispensary) ✅",
+                "Phase 2: Integration with Page Generator",
+                "Phase 3: CRM Tab UI (list, filter, search)",
+                "Phase 4: Claim Status Management"
+            ],
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_national_rollout"
+            ],
+            "area": "full_stack",
+            "created_at": "2025-12-17T15:18:00Z"
+        },
+        {
+            "id": "feat_apify_leafly_integration",
+            "title": "Apify Leafly Scraper Integration (Ezal Competitive Intel)",
+            "status": "in_progress",
+            "priority": "high",
+            "description": "Integrate Apify's Leafly scraper to create competitive menu data firehose. Ingest dispensary/product/offer data into Firestore. Feed Ezal for pricing bands, promo tracking, and assortment gap analysis.",
+            "acceptance_tests": [
+                "test_leafly_single_store_scan",
+                "test_leafly_state_scan",
+                "test_dataset_ingestion",
+                "test_ezal_pricing_bands",
+                "test_ezal_promo_tracking"
+            ],
+            "phases": [
+                "Phase 1: Leafly Connector Service",
+                "Phase 2: Firestore Ingestion Layout",
+                "Phase 3: Admin UI (Competitor Watchlist)",
+                "Phase 4: Ezal Tools Integration"
+            ],
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_organic_growth_seo"
+            ],
+            "area": "backend",
+            "created_at": "2025-12-17T16:00:00Z"
         }
     ]
 }
