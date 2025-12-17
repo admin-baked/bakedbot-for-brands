@@ -797,8 +797,17 @@ export async function getFootTrafficMetrics(): Promise<FootTrafficMetrics> {
 
   try {
     const firestore = getAdminFirestore();
-    const seoPagesRef = firestore.collection('foot_traffic').doc('config').collection('seo_pages');
-    const snapshot = await seoPagesRef.get();
+
+    // Query both zip_pages and dispensary_pages collections
+    const zipPagesRef = firestore.collection('foot_traffic').doc('config').collection('zip_pages');
+    const dispPagesRef = firestore.collection('foot_traffic').doc('config').collection('dispensary_pages');
+
+    const [zipSnapshot, dispSnapshot] = await Promise.all([
+      zipPagesRef.get(),
+      dispPagesRef.get()
+    ]);
+
+    const totalPages = zipSnapshot.size + dispSnapshot.size;
 
     // Initialize metrics
     const metrics: FootTrafficMetrics = {
@@ -806,13 +815,8 @@ export async function getFootTrafficMetrics(): Promise<FootTrafficMetrics> {
       startDate: new Date(new Date().setDate(1)), // Start of month
       endDate: new Date(),
       seo: {
-        totalPages: snapshot.size,
+        totalPages,
         totalPageViews: 0,
-        // avgTimeOnPage: 0, // Not in type definition based on user feedback? Actually type def has it on LocalSEOPage but maybe not aggregated?
-        // Let's re-read the type file carefully. 
-        // Type file shows:
-        // seo: { totalPages: number; totalPageViews: number; topZipCodes: ... }
-        // It does NOT have avgTimeOnPage or bounceRate in the aggregated 'seo' object.
         topZipCodes: []
       },
       alerts: {
@@ -834,20 +838,14 @@ export async function getFootTrafficMetrics(): Promise<FootTrafficMetrics> {
       }
     };
 
-    // Aggregate data from pages (this is a simplified aggregation, real world would likely use a dedicated stats document)
-    // For now, we'll scan the pages to build the aggregate
-    // In a real high-scale app, we'd increment these counters on write
+    // Aggregate page views from both collections
+    metrics.seo.totalPageViews = totalPages * 154; // Mock avg (replace with real analytics)
 
-    // Note: Since we don't have real 'view' tracking yet, we'll mock some data based on existence
-    // to show the UI working. In production this would query a 'analytics' collection.
-
-    metrics.seo.totalPageViews = snapshot.size * 154; // Mock avg
-
-    // Mock top ZIPs from actual pages
-    if (!snapshot.empty) {
-      const pages = snapshot.docs.map(doc => doc.data() as any);
+    // Mock top ZIPs from actual ZIP pages
+    if (!zipSnapshot.empty) {
+      const pages = zipSnapshot.docs.map(doc => doc.data() as any);
       metrics.seo.topZipCodes = pages.slice(0, 5).map(p => ({
-        zipCode: p.zipCode,
+        zipCode: p.zipCode || p.id?.replace('zip_', '') || 'Unknown',
         views: Math.floor(Math.random() * 500) + 100
       }));
     }
