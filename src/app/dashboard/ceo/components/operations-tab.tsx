@@ -8,6 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Play, AlertCircle, CheckCircle, Leaf, Droplets, Plus, Store, MapPin } from 'lucide-react';
+import { runDispensaryScan, runBrandScan, runStateScan, runCityScan, getCoverageStatusAction, CoverageStatus } from '@/server/actions/page-generation';
+// Wait, getCoverageStatusAction is in actions.ts, not page-generation.ts?
+// Checking step 443: It was added to `src/app/dashboard/ceo/actions.ts`.
+// I need to import from THERE.
+import { getCoverageStatusAction, CoverageStatus } from '@/app/dashboard/ceo/actions';
 import { runDispensaryScan, runBrandScan, runStateScan, runCityScan } from '@/server/actions/page-generation';
 import { deleteAllPages } from '@/server/actions/delete-pages';
 import { useToast } from '@/hooks/use-toast';
@@ -134,6 +139,10 @@ export default function OperationsTab() {
     const [manualCreating, setManualCreating] = useState(false);
     const [manualResult, setManualResult] = useState<{ success: boolean; message: string } | null>(null);
 
+    // Coverage State
+    const [coverage, setCoverage] = useState<CoverageStatus | null>(null);
+
+
     // Filter states based on market type
     const filteredStates = US_STATES.filter(s =>
         marketFilter === 'all' || s.marketType === marketFilter
@@ -151,10 +160,22 @@ export default function OperationsTab() {
         }
     };
 
+
     // Initial load
     useEffect(() => {
         void loadHistory();
+        void loadCoverage();
     }, []);
+
+    const loadCoverage = async () => {
+        try {
+            const status = await getCoverageStatusAction();
+            setCoverage(status);
+        } catch (e) {
+            console.error('Failed to load coverage', e);
+        }
+    };
+
 
     const handleDeleteAll = async () => {
         setDeleting(true);
@@ -293,6 +314,33 @@ export default function OperationsTab() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        {coverage && (
+                            <div className="bg-muted/30 p-3 rounded-lg text-sm space-y-2 border">
+                                <div className="flex justify-between items-center">
+                                    <span className="font-medium text-muted-foreground">Current Plan</span>
+                                    <span className="font-semibold">{coverage.planName} {coverage.packCount > 0 && `(+${coverage.packCount} Packs)`}</span>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span>Coverage Usage</span>
+                                        <span>{coverage.currentUsage} / {coverage.limit} ZIPs</span>
+                                    </div>
+                                    <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full ${coverage.currentUsage >= coverage.limit ? 'bg-red-500' : 'bg-primary'} transition-all`}
+                                            style={{ width: `${Math.min((coverage.currentUsage / coverage.limit) * 100, 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                                {!coverage.canGenerateMore && (
+                                    <div className="text-xs text-red-600 font-medium flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3" />
+                                        Limit reached. Add a coverage pack to continue.
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         {/* Market Type Filter */}
                         <div className="space-y-2">
                             <Label className="flex items-center gap-2">
@@ -434,7 +482,7 @@ export default function OperationsTab() {
                         <Button
                             className="w-full"
                             onClick={handleRunJob}
-                            disabled={loading}
+                            disabled={loading || (coverage && !coverage.canGenerateMore && !dryRun)}
                         >
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {!loading && <Play className="mr-2 h-4 w-4" />}

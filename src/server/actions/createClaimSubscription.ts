@@ -14,7 +14,7 @@ const API_ENDPOINT = IS_PRODUCTION
     ? 'https://api2.authorize.net/xml/v1/request.api'
     : 'https://apitest.authorize.net/xml/v1/request.api';
 
-import { PlanId } from '@/lib/plans';
+import { PlanId, computeMonthlyAmount, CoveragePackId, COVERAGE_PACKS } from '@/lib/plans';
 
 interface ClaimSubscriptionInput {
     // Business Info
@@ -26,6 +26,7 @@ interface ClaimSubscriptionInput {
     role: string;
     // Plan Selection
     planId: PlanId;
+    coveragePackIds?: CoveragePackId[];
     // Payment (from Accept.js)
     opaqueData?: {
         dataDescriptor: string;
@@ -94,7 +95,7 @@ export async function createClaimWithSubscription(
             }
         }
 
-        const price = plan.price || 0;
+        const price = computeMonthlyAmount(input.planId, 1, input.coveragePackIds);
 
         // 3. Create the claim record first (pending status)
         const claimRef = await firestore
@@ -109,6 +110,7 @@ export async function createClaimWithSubscription(
                 contactPhone: input.contactPhone,
                 role: input.role,
                 planId: input.planId,
+                packIds: input.coveragePackIds || [],
                 planPrice: price,
                 status: 'pending_payment',
                 createdAt: FieldValue.serverTimestamp(),
