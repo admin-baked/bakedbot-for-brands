@@ -14,6 +14,23 @@ const SEED_ZIPS = [
     '10001', '11201', '12201', '07030', '08002', // NY/NJ
     '60601', '62701', '48201', '49503', '80202'  // IL/MI/CO
 ];
+/**
+ * Major ZIP code ranges by state for state-wide page generation
+ * Format: { stateCode: [[startZip, endZip], ...] }
+ * These are approximate ranges covering major population areas
+ */
+const STATE_ZIP_RANGES: Record<string, [number, number][]> = {
+    'mi': [[48001, 48999], [49001, 49999]], // Michigan: Detroit area (48xxx) + Grand Rapids/West (49xxx)
+    'ca': [[90001, 90899], [91001, 91999], [92001, 92899], [93001, 93999], [94001, 94699], [95001, 95999]], // California
+    'il': [[60001, 62999]], // Illinois: Chicago area + downstate
+    'ny': [[10001, 14999]], // New York
+    'nj': [[7001, 8999]], // New Jersey (07xxx - 08xxx)
+    'co': [[80001, 81699]], // Colorado
+    'or': [[97001, 97999]], // Oregon
+    'wa': [[98001, 99499]], // Washington
+    'ma': [[1001, 2799]], // Massachusetts (01xxx - 02xxx)
+    'az': [[85001, 86599]], // Arizona
+};
 
 interface ScanResult {
     success: boolean;
@@ -114,6 +131,7 @@ export class PageGeneratorService {
         const pageLimit = options.limit || 10; // This now limits TOTAL PAGES created
         let zips = options.locations && options.locations.length > 0 ? options.locations : [];
 
+
         // 0. Resolve City if provided and no specific ZIPs
         if (zips.length === 0 && options.city && options.state) {
             const cityZips = await this.resolveCityToZips(options.city, options.state);
@@ -123,10 +141,31 @@ export class PageGeneratorService {
             }
         }
 
-        // Fallback to seed
+        // 1. If state provided but no city, generate state-wide ZIPs from ranges
+        if (zips.length === 0 && options.state && !options.city) {
+            const stateLower = options.state.trim().toLowerCase();
+            const stateCode = stateLower.length === 2 ? stateLower : STATE_ABBR_MAP[stateLower];
+
+            if (stateCode && STATE_ZIP_RANGES[stateCode]) {
+                const ranges = STATE_ZIP_RANGES[stateCode];
+                for (const [start, end] of ranges) {
+                    // Generate ZIPs within range (stepping by 1 to cover most populated areas)
+                    // To avoid generating ALL ZIPs (thousands), we'll sample every 10th ZIP
+                    for (let z = start; z <= end; z += 10) {
+                        zips.push(z.toString().padStart(5, '0'));
+                    }
+                }
+                // Shuffle to get variety
+                zips.sort(() => Math.random() - 0.5);
+                logger.info(`Generated ${zips.length} ZIPs for state ${stateCode} from ranges`);
+            }
+        }
+
+        // 2. Fallback to seed if still no ZIPs
         if (zips.length === 0) {
             zips = SEED_ZIPS;
         }
+
 
         let foundCount = 0;
         let createdCount = 0;
