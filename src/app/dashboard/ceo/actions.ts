@@ -457,12 +457,18 @@ export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
       .collection('zip_pages')
       .get();
 
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      lastRefreshed: doc.data().updatedAt?.toDate() || new Date(),
-      nextRefresh: new Date(Date.now() + 86400000), // Mock next refresh (24h)
-    })) as LocalSEOPage[];
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Convert Timestamps to Dates to avoid serialization errors
+        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        lastRefreshed: data.lastRefreshed?.toDate?.() || new Date(),
+        nextRefresh: data.nextRefresh?.toDate?.() || new Date(Date.now() + 86400000), // Mock next refresh (24h)
+      };
+    }) as LocalSEOPage[];
   } catch (error) {
     console.error('Error fetching SEO pages via admin:', error);
     return [];
