@@ -53,7 +53,9 @@ export async function runDispensaryScan(limit: number, dryRun: boolean, filters?
 
         // Enforce coverage limits only for real runs (not dry runs, or maybe both?)
         // Let's enforce for both to show "upgrade needed" early.
-        await service.checkCoverageLimit(user.uid);
+        if (user.role !== 'owner') {
+            await service.checkCoverageLimit(user.uid);
+        }
 
         // Pass user.uid as brandId for attribution
         const result = await service.scanAndGenerateDispensaries({ limit, dryRun, ...filters, brandId: user.uid });
@@ -76,7 +78,9 @@ export async function runBrandScan(limit: number, dryRun: boolean, filters?: Sca
         const service = new PageGeneratorService();
 
         // Enforce for brands too?
-        await service.checkCoverageLimit(user.uid);
+        if (user.role !== 'owner') {
+            await service.checkCoverageLimit(user.uid);
+        }
 
         const result = await service.scanAndGenerateBrands({ limit, dryRun, ...filters, brandId: user.uid });
 

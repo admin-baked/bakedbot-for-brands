@@ -1543,6 +1543,17 @@ export async function getCoverageStatusAction(): Promise<CoverageStatus> {
   // For now, using user.uid as orgId to match 'owner' pattern
   const orgId = user.uid;
 
+  // Bypass for Super Admin
+  if (user.role === 'owner') {
+    return {
+      planName: 'Super Admin (Unlimited)',
+      limit: 999999,
+      currentUsage: 0,
+      packCount: 0,
+      canGenerateMore: true
+    };
+  }
+
   try {
     const firestore = getAdminFirestore();
 
