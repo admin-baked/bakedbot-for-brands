@@ -8,6 +8,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import { Card, CardContent } from '@/components/ui/card';
+import { GOOGLE_MAPS_CONFIG } from '@/lib/config';
 import { Loader2, MapPin } from 'lucide-react';
 
 export interface MapRetailer {
@@ -58,7 +59,7 @@ export function RetailerMap({
 }: RetailerMapProps) {
     const [selectedRetailer, setSelectedRetailer] = useState<MapRetailer | null>(null);
 
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+    const apiKey = GOOGLE_MAPS_CONFIG.API_KEY;
 
     const { isLoaded, loadError } = useJsApiLoader({
         googleMapsApiKey: apiKey,

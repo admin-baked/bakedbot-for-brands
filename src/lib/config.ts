@@ -12,3 +12,8 @@ export const CANNMENUS_CONFIG = {
     API_KEY: process.env.CANNMENUS_API_KEY || 'e13ed642a92c177163ecff93c997d4ae',
     API_BASE: process.env.CANNMENUS_API_BASE || process.env.NEXT_PUBLIC_CANNMENUS_API_BASE || 'https://api.cannmenus.com',
 };
+
+export const GOOGLE_MAPS_CONFIG = {
+    API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyASUULiUcdtqVnPrTqZTsxoNiXdFPJ5e7E',
+    MAP_ID: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || '8e0a97af9386fef', // Light Mode
+};

@@ -1,7 +1,7 @@
 
 import { CannMenusService } from '@/server/services/cannmenus';
 import { PLANS, PlanId, COVERAGE_PACKS, CoveragePackId } from '@/lib/plans';
-import { createServerClient } from '@/firebase/server-client';
+import { getAdminFirestore } from '@/firebase/admin';
 
 import { logger } from '@/lib/monitoring';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -40,7 +40,7 @@ export class PageGeneratorService {
      * Scan locations (ZIPs) to find Dispensaries -> Create Dispensary Pages + ZIP Pages
      */
     async scanAndGenerateDispensaries(options: GenerateOptions = {}): Promise<ScanResult> {
-        const { firestore } = await createServerClient();
+        const firestore = getAdminFirestore();
         const limit = options.limit || 10;
         const zips = options.locations && options.locations.length > 0 ? options.locations : SEED_ZIPS;
 
@@ -133,7 +133,7 @@ export class PageGeneratorService {
      * Scan discovered dispensaries to find Brands -> Create Brand Pages
      */
     async scanAndGenerateBrands(options: GenerateOptions = {}): Promise<ScanResult> {
-        const { firestore } = await createServerClient();
+        const firestore = getAdminFirestore();
         const limit = options.limit || 10;
 
         // 1. Fetch some dispensaries to scan directly from Firestore (Dispensary Pages)
@@ -211,7 +211,7 @@ export class PageGeneratorService {
      * Generate City pages from existing dispensary data
      */
     async scanAndGenerateCities(options: GenerateOptions = {}): Promise<ScanResult> {
-        const { firestore } = await createServerClient();
+        const firestore = getAdminFirestore();
         const limit = options.limit || 1000;
 
         // Fetch dispensary pages to aggregate cities
@@ -270,7 +270,7 @@ export class PageGeneratorService {
      * Generate State Pages from Config
      */
     async scanAndGenerateStates(options: GenerateOptions = {}): Promise<ScanResult> {
-        const { firestore } = await createServerClient();
+        const firestore = getAdminFirestore();
         let createdCount = 0;
 
         if (!options.dryRun) {
@@ -298,7 +298,7 @@ export class PageGeneratorService {
 
     async checkCoverageLimit(orgId: string): Promise<boolean> {
         try {
-            const { firestore } = await createServerClient();
+            const firestore = getAdminFirestore();
 
             // 1. Get Subscription Config
             let limit = 0;
