@@ -55,7 +55,8 @@ export async function runDispensaryScan(limit: number, dryRun: boolean, filters?
         // Let's enforce for both to show "upgrade needed" early.
         await service.checkCoverageLimit(user.uid);
 
-        const result = await service.scanAndGenerateDispensaries({ limit, dryRun, ...filters });
+        // Pass user.uid as brandId for attribution
+        const result = await service.scanAndGenerateDispensaries({ limit, dryRun, ...filters, brandId: user.uid });
 
         await logJobComplete(jobId, result);
         return result;
@@ -77,7 +78,7 @@ export async function runBrandScan(limit: number, dryRun: boolean, filters?: Sca
         // Enforce for brands too?
         await service.checkCoverageLimit(user.uid);
 
-        const result = await service.scanAndGenerateBrands({ limit, dryRun, ...filters });
+        const result = await service.scanAndGenerateBrands({ limit, dryRun, ...filters, brandId: user.uid });
 
         await logJobComplete(jobId, result);
         return result;
