@@ -6,7 +6,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/monitoring';
 import { FieldValue } from 'firebase-admin/firestore';
 import { createJobProgress, updateJobProgress, isJobCancelled } from '@/server/actions/job-progress';
-
+import { upsertDispensary } from '@/server/services/crm-service';
 
 
 const TARGET_STATES = ['California', 'Illinois', 'Michigan', 'New York', 'New Jersey', 'Colorado', 'Oregon', 'Washington', 'Massachusetts', 'Arizona'];
