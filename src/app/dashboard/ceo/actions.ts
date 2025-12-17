@@ -451,19 +451,30 @@ import type { ProductSummary, DealSummary } from '@/types/foot-traffic';
 export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
   try {
     const firestore = getAdminFirestore();
-    const snapshot = await firestore
+
+    // Fetch ZIP pages
+    const zipSnapshot = await firestore
       .collection('foot_traffic')
       .doc('config')
       .collection('zip_pages')
       .get();
 
-    return snapshot.docs.map(doc => {
+    // Fetch Dispensary pages
+    const dispSnapshot = await firestore
+      .collection('foot_traffic')
+      .doc('config')
+      .collection('dispensary_pages')
+      .get();
+
+    // Map ZIP pages
+    const zipPages = zipSnapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: doc.id,
         zipCode: data.zipCode || doc.id.replace('zip_', ''),
         city: data.city || '',
         state: data.state || '',
+        pageType: 'zip' as const,
 
         featuredDispensaryId: data.featuredDispensaryId || null,
         featuredDispensaryName: data.featuredDispensaryName || null,
@@ -494,7 +505,6 @@ export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
 
         published: data.published ?? false,
 
-        // Safe Date Conversion
         updatedAt: data.updatedAt?.toDate?.() || new Date(),
         createdAt: data.createdAt?.toDate?.() || new Date(),
         lastRefreshed: data.lastRefreshed?.toDate?.() || new Date(),
@@ -502,7 +512,64 @@ export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
 
         refreshFrequency: data.refreshFrequency || 'daily'
       };
-    }) as LocalSEOPage[];
+    });
+
+    // Map Dispensary pages
+    const dispPages = dispSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        zipCode: data.zipCode || '', // May not have ZIP
+        city: data.city || '',
+        state: data.state || '',
+        pageType: 'dispensary' as const,
+
+        // Dispensary-specific fields
+        dispensaryName: data.name || '',
+        dispensarySlug: data.slug || '',
+        retailerId: data.retailerId || null,
+        claimStatus: data.claimStatus || 'unclaimed',
+
+        featuredDispensaryId: data.retailerId || null,
+        featuredDispensaryName: data.name || null,
+        sponsoredRetailerIds: [],
+
+        metaTitle: data.metaTitle || data.name || '',
+        metaDescription: data.metaDescription || '',
+
+        content: data.content || {
+          title: data.name || '',
+          metaDescription: '',
+          h1: data.name || '',
+          introText: '',
+          topStrains: [],
+          topDeals: [],
+          nearbyRetailers: [],
+          categoryBreakdown: []
+        },
+
+        structuredData: data.structuredData || { localBusiness: {}, products: [], breadcrumb: {} },
+
+        metrics: data.metrics || {
+          pageViews: 0,
+          uniqueVisitors: 0,
+          bounceRate: 0,
+          avgTimeOnPage: 0
+        },
+
+        published: data.published ?? false,
+
+        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        lastRefreshed: data.lastRefreshed?.toDate?.() || new Date(),
+        nextRefresh: data.nextRefresh?.toDate?.() || new Date(Date.now() + 86400000),
+
+        refreshFrequency: data.refreshFrequency || 'daily'
+      };
+    });
+
+    // Combine both page types
+    return [...zipPages, ...dispPages] as LocalSEOPage[];
   } catch (error) {
     console.error('Error fetching SEO pages via admin:', error);
     return [];

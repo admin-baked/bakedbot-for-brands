@@ -401,12 +401,22 @@ export interface LocalSEOPage {
     city: string;
     state: string;
 
+    // Page type: 'zip' for ZIP-based pages, 'dispensary' for dispensary pages
+    pageType?: 'zip' | 'dispensary';
+
+    // Dispensary-specific fields (only for dispensary pages)
+    dispensaryName?: string;
+    dispensarySlug?: string;
+    retailerId?: string | null;
+    claimStatus?: string;
+
     // Featured Dispensary
     featuredDispensaryId?: string | null;
     featuredDispensaryName?: string | null;
     sponsoredRetailerIds?: string[];
     metaTitle?: string;
     metaDescription?: string;
+
 
     // Data Source Reference
     dataSnapshotRef?: string;
