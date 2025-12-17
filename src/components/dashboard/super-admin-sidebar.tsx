@@ -112,6 +112,14 @@ export function SuperAdminSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("competitor-intel")}>
+                                <Link href="/dashboard/ceo?tab=competitor-intel">
+                                    <Search />
+                                    <span>Competitor Intel</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
