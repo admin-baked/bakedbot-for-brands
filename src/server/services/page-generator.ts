@@ -27,6 +27,8 @@ interface GenerateOptions {
     dryRun?: boolean;
     locations?: string[]; // ZIP codes
     brandId?: string; // Owner/Org ID for attribution
+    city?: string;
+    state?: string;
 }
 
 export class PageGeneratorService {
