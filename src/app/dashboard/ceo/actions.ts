@@ -461,12 +461,46 @@ export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
       const data = doc.data();
       return {
         id: doc.id,
-        ...data,
-        // Convert Timestamps to Dates to avoid serialization errors
+        zipCode: data.zipCode || doc.id.replace('zip_', ''),
+        city: data.city || '',
+        state: data.state || '',
+
+        featuredDispensaryId: data.featuredDispensaryId || null,
+        featuredDispensaryName: data.featuredDispensaryName || null,
+        sponsoredRetailerIds: data.sponsoredRetailerIds || [],
+
+        metaTitle: data.metaTitle || '',
+        metaDescription: data.metaDescription || '',
+
+        content: data.content || {
+          title: '',
+          metaDescription: '',
+          h1: '',
+          introText: '',
+          topStrains: [],
+          topDeals: [],
+          nearbyRetailers: [],
+          categoryBreakdown: []
+        },
+
+        structuredData: data.structuredData || { localBusiness: {}, products: [], breadcrumb: {} },
+
+        metrics: data.metrics || {
+          pageViews: 0,
+          uniqueVisitors: 0,
+          bounceRate: 0,
+          avgTimeOnPage: 0
+        },
+
+        published: data.published ?? false,
+
+        // Safe Date Conversion
         updatedAt: data.updatedAt?.toDate?.() || new Date(),
         createdAt: data.createdAt?.toDate?.() || new Date(),
         lastRefreshed: data.lastRefreshed?.toDate?.() || new Date(),
-        nextRefresh: data.nextRefresh?.toDate?.() || new Date(Date.now() + 86400000), // Mock next refresh (24h)
+        nextRefresh: data.nextRefresh?.toDate?.() || new Date(Date.now() + 86400000),
+
+        refreshFrequency: data.refreshFrequency || 'daily'
       };
     }) as LocalSEOPage[];
   } catch (error) {
