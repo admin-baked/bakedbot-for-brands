@@ -37,12 +37,57 @@ export class PageGeneratorService {
     }
 
     /**
+     * Resolve City/State to ZIPs using Zippopotam
+     */
+    async resolveCityToZips(city: string, state: string): Promise<string[]> {
+        try {
+            // Zippopotam uses full state names or abbr? It seems to use abbr (mi, ca).
+            // Input state might be "Michigan" or "MI".
+            // Simple map or just try both.
+            // Let's assume input state is full name from scanner, or abbr.
+            // Zippopotam requires 2-letter ISO code.
+
+            // Heuristic: if len > 2, it's likely a full name. Map to abbr?
+            // For MVP, if undefined, we can't search.
+            if (!state) return [];
+
+            const stateCode = state.substring(0, 2).toLowerCase(); // basic approach
+            const cleanCity = city.trim().toLowerCase();
+
+            const res = await fetch(`https://api.zippopotam.us/us/${stateCode}/${cleanCity}`);
+            if (!res.ok) return [];
+
+            const data = await res.json();
+            if (!data.places || !Array.isArray(data.places)) return [];
+
+            return data.places.map((p: any) => p['post code']);
+        } catch (error) {
+            console.error(`Error resolving city ${city}, ${state}:`, error);
+            return [];
+        }
+    }
+
+    /**
      * Scan locations (ZIPs) to find Dispensaries -> Create Dispensary Pages + ZIP Pages
      */
     async scanAndGenerateDispensaries(options: GenerateOptions = {}): Promise<ScanResult> {
         const firestore = getAdminFirestore();
         const limit = options.limit || 10;
-        const zips = options.locations && options.locations.length > 0 ? options.locations : SEED_ZIPS;
+        let zips = options.locations && options.locations.length > 0 ? options.locations : [];
+
+        // 0. Resolve City if provided and no specific ZIPs
+        if (zips.length === 0 && options.city && options.state) {
+            const cityZips = await this.resolveCityToZips(options.city, options.state);
+            if (cityZips.length > 0) {
+                zips = cityZips;
+                logger.info(`Resolved ${options.city}, ${options.state} to ${zips.length} ZIPs`);
+            }
+        }
+
+        // Fallback to seed
+        if (zips.length === 0) {
+            zips = SEED_ZIPS;
+        }
 
         // Shuffle/Slice ZIPs if limited? 
         // For MVP, just take first N up to limit
