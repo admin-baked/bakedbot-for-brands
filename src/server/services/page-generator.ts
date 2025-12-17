@@ -57,10 +57,29 @@ export class PageGeneratorService {
         for (const zip of targets) {
             try {
                 // 1. Geocode
+                // Respect Nominatim Usage Policy (Max 1 req/sec)
+                await new Promise(resolve => setTimeout(resolve, 1200));
+
                 const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${zip}&country=US&format=json&limit=1`, {
-                    headers: { 'User-Agent': 'BakedBot-Scanner/1.0' }
+                    headers: {
+                        'User-Agent': 'BakedBot-Scanner/1.0 (martez@bakedbot.ai)',
+                        'Referer': 'https://bakedbot.ai'
+                    }
                 });
-                const geoData = await geoRes.json();
+
+                if (!geoRes.ok) {
+                    errors.push(`Geocode HTTP ${geoRes.status} for ${zip}`);
+                    continue;
+                }
+
+                const text = await geoRes.text();
+                let geoData;
+                try {
+                    geoData = JSON.parse(text);
+                } catch (e) {
+                    errors.push(`Geocode invalid JSON for ${zip}: ${text.substring(0, 50)}...`);
+                    continue;
+                }
 
                 if (!geoData || geoData.length === 0) {
                     errors.push(`Geocode failed for ${zip}`);
@@ -88,7 +107,34 @@ export class PageGeneratorService {
                         dispensaryCount: retailers.length,
 
                         brandId: options.brandId || null, // Attribute to user/org
-                        updatedAt: FieldValue.serverTimestamp()
+                        updatedAt: FieldValue.serverTimestamp(),
+
+                        // Hydrate with required LocalSEOPage fields
+                        content: {
+                            title: `Dispensaries in ${retailers[0].city}, ${retailers[0].state} | Cannabis Local`,
+                            metaDescription: `Find local dispensaries and delivery in ${retailers[0].city}, ${retailers[0].state}.`,
+                            h1: `Cannabis in ${retailers[0].city}`,
+                            introText: `Discover ${retailers.length} dispensaries near you.`,
+                            topStrains: [],
+                            topDeals: [],
+                            nearbyRetailers: [],
+                            categoryBreakdown: []
+                        },
+                        structuredData: {
+                            localBusiness: {},
+                            products: [],
+                            breadcrumb: {}
+                        },
+                        metrics: {
+                            pageViews: 0,
+                            uniqueVisitors: 0,
+                            bounceRate: 0,
+                            avgTimeOnPage: 0
+                        },
+                        published: false,
+                        lastRefreshed: FieldValue.serverTimestamp(),
+                        nextRefresh: FieldValue.serverTimestamp(), // TODO: +7 days
+                        refreshFrequency: 'weekly'
                     }, { merge: true });
                     batchOps++;
                     createdCount++; // Counting the ZIP page
