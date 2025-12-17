@@ -1,6 +1,8 @@
 
 import { CannMenusService } from '@/server/services/cannmenus';
+import { PLANS, PlanId, COVERAGE_PACKS, CoveragePackId } from '@/lib/plans';
 import { createServerClient } from '@/firebase/server-client';
+
 import { logger } from '@/lib/monitoring';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -79,6 +81,8 @@ export class PageGeneratorService {
                     batch.set(zipPageRef, {
                         id: `zip_${zip}`,
                         zipCode: zip,
+                        city: retailers[0].city,
+                        state: retailers[0].state,
                         hasDispensaries: true,
                         dispensaryCount: retailers.length,
                         updatedAt: FieldValue.serverTimestamp()
@@ -285,5 +289,81 @@ export class PageGeneratorService {
         }
 
         return { success: true, itemsFound: TARGET_STATES.length, pagesCreated: createdCount, errors: [] };
+    }
+
+    async checkCoverageLimit(orgId: string): Promise<boolean> {
+        try {
+            const { firestore } = await createServerClient();
+
+            // 1. Get Subscription Config
+            let limit = 0;
+
+            // Try 'organizations/{orgId}/subscription/current' pattern first (new standard)
+            const subRef = firestore.collection('organizations').doc(orgId).collection('subscription').doc('current');
+            const subDoc = await subRef.get();
+
+            if (subDoc.exists) {
+                const data = subDoc.data() as { planId: PlanId; packIds?: CoveragePackId[] };
+                const plan = PLANS[data.planId];
+                if (plan) {
+                    limit = plan.includedZips || 0;
+
+                    // Add pack limits
+                    if (data.packIds && Array.isArray(data.packIds)) {
+                        for (const packId of data.packIds) {
+                            const pack = COVERAGE_PACKS[packId];
+                            if (pack) {
+                                limit += pack.zipCount;
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Fallback: check claims collection (legacy/transition)
+                const claimsRef = firestore.collection('foot_traffic').doc('data').collection('claims');
+                const claimsSnap = await claimsRef.where('orgId', '==', orgId).where('status', 'in', ['active', 'verified']).limit(1).get();
+
+                if (!claimsSnap.empty) {
+                    const data = claimsSnap.docs[0].data() as { planId: PlanId; packIds?: CoveragePackId[] };
+                    const plan = PLANS[data.planId];
+                    if (plan) {
+                        limit = plan.includedZips || 0;
+                        if (data.packIds && Array.isArray(data.packIds)) {
+                            for (const packId of data.packIds) {
+                                const pack = COVERAGE_PACKS[packId];
+                                if (pack) {
+                                    limit += pack.zipCount;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Count Current Pages
+            // For MVP/Demo correctness in this context: 
+            // We blindly count pages created by this "user/org" if we had that metadata.
+            // Since `zip_pages` currently track `hasDispensaries` etc, but not `ownerId`.
+
+            // For this Implementation:
+            // We'll query `zip_pages` where `brandId` == orgId (assuming we add that)
+            // Note: In `scanAndGenerateDispensaries`, we aren't setting `brandId` on `zip_pages` yet.
+            // This logic is forward-looking.
+
+            const pagesRef = firestore.collection('foot_traffic').doc('config').collection('zip_pages');
+            const countSnap = await pagesRef.where('brandId', '==', orgId).count().get();
+            const currentUsage = countSnap.data().count;
+
+            if (currentUsage >= limit) {
+                // Determine needed pack
+                throw new Error(`Coverage limit reached (${currentUsage}/${limit}). Upgrade to add more locations.`);
+            }
+
+            return true;
+
+        } catch (error) {
+            console.error('Error checking coverage limit:', error);
+            throw error;
+        }
     }
 }

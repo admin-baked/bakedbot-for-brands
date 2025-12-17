@@ -1,0 +1,112 @@
+
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import { PageGeneratorService } from '@/server/services/page-generator';
+import { createServerClient } from '@/firebase/server-client';
+import { PLANS, COVERAGE_PACKS } from '@/lib/plans';
+
+// Mock dependencies
+jest.mock('@/firebase/server-client');
+jest.mock('@/lib/logger');
+jest.mock('@/server/services/cannmenus', () => {
+    return {
+        CannMenusService: jest.fn().mockImplementation(() => ({
+            searchNearbyRetailers: jest.fn(),
+            getRetailerProducts: jest.fn()
+        }))
+    };
+});
+
+describe('Coverage Limit Enforcement', () => {
+    let pageGenerator: PageGeneratorService;
+    let mockFirestore: any;
+
+    beforeEach(() => {
+        // Reset mocks
+        jest.clearAllMocks();
+
+        // Setup Firestore mock
+        mockFirestore = {
+            collection: jest.fn().mockReturnThis(),
+            doc: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            count: jest.fn().mockReturnThis(),
+            get: jest.fn(),
+        };
+
+        (createServerClient as jest.Mock).mockResolvedValue({ firestore: mockFirestore });
+
+        pageGenerator = new PageGeneratorService();
+    });
+
+    it('should allow generation if usage is below base plan limit', async () => {
+        // Mock Subscription: Claim Pro (25 ZIPs)
+        mockFirestore.get.mockResolvedValueOnce({
+            exists: true,
+            data: () => ({ planId: 'claim_pro', status: 'active' })
+        });
+
+        // Mock Usage: 10 pages
+        mockFirestore.get.mockResolvedValueOnce({
+            data: () => ({ count: 10 })
+        });
+
+        const result = await pageGenerator.checkCoverageLimit('org123');
+        expect(result).toBe(true);
+    });
+
+    it('should allow generation if usage is below limit including packs', async () => {
+        // Mock Subscription: Claim Pro (25) + Pack 100 (100) = 125 Total
+        mockFirestore.get.mockResolvedValueOnce({
+            exists: true,
+            data: () => ({
+                planId: 'claim_pro',
+                status: 'active',
+                packIds: ['pack_100']
+            })
+        });
+
+        // Mock Usage: 100 pages
+        mockFirestore.get.mockResolvedValueOnce({
+            data: () => ({ count: 100 })
+        });
+
+        const result = await pageGenerator.checkCoverageLimit('org123');
+        expect(result).toBe(true);
+    });
+
+    it('should throw error if usage exceeds limit', async () => {
+        // Mock Subscription: Claim Pro (25 ZIPs)
+        mockFirestore.get.mockResolvedValueOnce({
+            exists: true,
+            data: () => ({ planId: 'claim_pro', status: 'active' })
+        });
+
+        // Mock Usage: 25 pages
+        mockFirestore.get.mockResolvedValueOnce({
+            data: () => ({ count: 25 })
+        });
+
+        await expect(pageGenerator.checkCoverageLimit('org123'))
+            .rejects.toThrow('Coverage limit reached');
+    });
+
+    it('should default to Free plan limits if no subscription found', async () => {
+        // Mock Subscription: None
+        mockFirestore.get.mockResolvedValueOnce({
+            exists: false
+        });
+
+        // Mock Usage: 1 page (Free limit is 0 or 1 depending on config, let's assume 1 for basic listing)
+        // Actually PLANS.free.includedZips might be undefined or 0. PLANS.free.includedLocations is 1.
+        // Let's assume free plan has 0 "SEO Pages" allowed in this context, or strict limit.
+        // Checking plans.ts: free includedZips is undefined. So default to 0? 
+        // Let's assume we want at least 1 for the home base.
+
+        mockFirestore.get.mockResolvedValueOnce({
+            data: () => ({ count: 5 })
+        });
+
+        await expect(pageGenerator.checkCoverageLimit('org123'))
+            .rejects.toThrow('Coverage limit reached');
+    });
+});

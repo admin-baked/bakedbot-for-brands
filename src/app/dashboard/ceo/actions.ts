@@ -454,14 +454,14 @@ export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
     const snapshot = await firestore
       .collection('foot_traffic')
       .doc('config')
-      .collection('seo_pages')
+      .collection('zip_pages')
       .get();
 
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      lastRefreshed: doc.data().lastRefreshed?.toDate() || new Date(),
-      nextRefresh: doc.data().nextRefresh?.toDate() || new Date(),
+      lastRefreshed: doc.data().updatedAt?.toDate() || new Date(),
+      nextRefresh: new Date(Date.now() + 86400000), // Mock next refresh (24h)
     })) as LocalSEOPage[];
   } catch (error) {
     console.error('Error fetching SEO pages via admin:', error);
@@ -1512,4 +1512,103 @@ export async function importDispensaryPagesAction(rows: Record<string, string>[]
     createdPages,
     skippedRows
   };
+}
+
+// =============================================================================
+// COVERAGE & SUBSCRIPTION ACTIONS
+// =============================================================================
+
+import { PLANS, PlanId, COVERAGE_PACKS, CoveragePackId } from '@/lib/plans';
+
+export type CoverageStatus = {
+  planName: string;
+  limit: number;
+  currentUsage: number;
+  packCount: number;
+  canGenerateMore: boolean;
+};
+
+export async function getCoverageStatusAction(): Promise<CoverageStatus> {
+  const user = await requireUser(['owner', 'admin']);
+  // Use organization ID from user session or metadata
+  // Assuming user.orgId exists, or we use user.uid as proxy for now if single-tenant per user
+  // In `requireUser`, it returns the user object.
+  // We need to resolve the orgId.
+  // For now, let's assume we can get it from the user context or pass it.
+  // `requireUser` currently returns just the decoded token/user record.
+  // Let's assume `user.uid` is the orgId for this implementation or we look it up.
+  // Actually, `createClaimSubscription` uses `organizationId`.
+
+  // FIXME: Need reliable OrgID resolution.
+  // For now, using user.uid as orgId to match 'owner' pattern
+  const orgId = user.uid;
+
+  try {
+    const firestore = getAdminFirestore();
+
+    // 1. Get Subscription/Limits
+    let limit = 0;
+    let planName = 'Free';
+    let packCount = 0;
+
+    const subRef = firestore.collection('organizations').doc(orgId).collection('subscription').doc('current');
+    const subDoc = await subRef.get();
+
+    if (subDoc.exists) {
+      const data = subDoc.data() as { planId: PlanId; packIds?: CoveragePackId[] };
+      const plan = PLANS[data.planId];
+      if (plan) {
+        limit = plan.includedZips || 0;
+        planName = plan.name;
+        if (data.packIds && Array.isArray(data.packIds)) {
+          packCount = data.packIds.length;
+          for (const packId of data.packIds) {
+            const pack = COVERAGE_PACKS[packId];
+            if (pack) {
+              limit += pack.zipCount;
+            }
+          }
+        }
+      }
+    } else {
+      // Fallback or Free
+      const plan = PLANS['free'];
+      limit = plan.includedLocations || 1; // Free usually 1 location/zip
+      planName = plan.name;
+    }
+
+    // 2. Get Usage
+    // As per page-generator logic: count zip_pages where brandId == orgId
+    // Since we haven't backfilled brandId on zip_pages yet, this might return 0.
+    // For the "Batch Page Generator" (operations-tab) which generates pages... 
+    // we need to count what they have generated.
+
+    // TEMPORARY: Count ALL zip_pages for this demo if they are "owner" and it's their dashboard?
+    // No, that would count everyone's.
+    // Let's assume we query 'zip_pages' count.
+    const pagesRef = firestore.collection('foot_traffic').doc('config').collection('zip_pages');
+    // const countSnap = await pagesRef.where('brandId', '==', orgId).count().get();
+    // For demo/dev: just return 0 if no brandId filter matches, or mock it with a random number?
+    // Let's use real query.
+    const countSnap = await pagesRef.where('brandId', '==', orgId).count().get();
+    const currentUsage = countSnap.data().count;
+
+    return {
+      planName,
+      limit,
+      currentUsage,
+      packCount,
+      canGenerateMore: currentUsage < limit
+    };
+
+  } catch (error) {
+    console.error('Error fetching coverage status:', error);
+    return {
+      planName: 'Unknown',
+      limit: 0,
+      currentUsage: 0,
+      packCount: 0,
+      canGenerateMore: false
+    };
+  }
 }

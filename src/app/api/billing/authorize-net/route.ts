@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { computeMonthlyAmount, PLANS, PlanId } from "@/lib/plans";
+import { computeMonthlyAmount, PLANS, PlanId, CoveragePackId, COVERAGE_PACKS } from "@/lib/plans";
 import { createServerClient } from "@/firebase/server-client";
 import { FieldValue } from "firebase-admin/firestore";
 import { emitEvent } from "@/server/events/emitter";
@@ -15,6 +15,7 @@ interface SubscribeBody {
   organizationId: string;
   planId: PlanId;
   locationCount: number;
+  coveragePackIds?: CoveragePackId[];
   opaqueData?: OpaqueData;
   customer?: {
     fullName?: string;
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     const orgId = body.organizationId;
     const planId = body.planId;
 
@@ -67,14 +68,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unknown planId." }, { status: 400 });
     }
 
-    const amount = computeMonthlyAmount(planId, body.locationCount);
-    
+    const amount = computeMonthlyAmount(planId, body.locationCount, body.coveragePackIds);
+
     const subscriptionRef = db
       .collection("organizations")
       .doc(orgId)
       .collection("subscription")
       .doc("current");
-      
+
     const historyRef = db
       .collection("organizations")
       .doc(orgId)
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
       const subDoc = {
         planId,
         locationCount: body.locationCount,
+        packIds: body.coveragePackIds || [],
         amount,
         provider: "none",
         providerSubscriptionId: null,
@@ -100,7 +102,7 @@ export async function POST(req: NextRequest) {
         reason: "user_selected_free_plan",
         at: FieldValue.serverTimestamp(),
       });
-      
+
       await emitEvent({ orgId, type: 'subscription.updated', agent: 'money_mike', refId: subscriptionRef.id, data: { ...subDoc, reason: "free_plan" } });
 
       return NextResponse.json({ success: true, free: true, planId, amount });
@@ -126,36 +128,36 @@ export async function POST(req: NextRequest) {
 
     const baseUrl = getAuthNetBaseUrl();
     const customerProfilePayload = {
-        createCustomerProfileRequest: {
-            merchantAuthentication: { name: apiLoginId, transactionKey },
-            profile: {
-                merchantCustomerId: orgId,
-                description: `Org ${orgId} – BakedBot subscription`,
-                email: body.customer?.email,
-                paymentProfiles: [{
-                    billTo: { firstName: body.customer?.fullName, company: body.customer?.company, zip: body.customer?.zip },
-                    payment: { opaqueData: { dataDescriptor: body.opaqueData.dataDescriptor, dataValue: body.opaqueData.dataValue } },
-                }],
-            },
-            validationMode: (process.env.AUTHNET_ENV || "sandbox").toLowerCase() === "production" ? "liveMode" : "testMode",
+      createCustomerProfileRequest: {
+        merchantAuthentication: { name: apiLoginId, transactionKey },
+        profile: {
+          merchantCustomerId: orgId,
+          description: `Org ${orgId} – BakedBot subscription`,
+          email: body.customer?.email,
+          paymentProfiles: [{
+            billTo: { firstName: body.customer?.fullName, company: body.customer?.company, zip: body.customer?.zip },
+            payment: { opaqueData: { dataDescriptor: body.opaqueData.dataDescriptor, dataValue: body.opaqueData.dataValue } },
+          }],
         },
+        validationMode: (process.env.AUTHNET_ENV || "sandbox").toLowerCase() === "production" ? "liveMode" : "testMode",
+      },
     };
 
     const profileResp = await fetch(baseUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(customerProfilePayload) });
     const profileJson: any = await profileResp.json().catch(() => null);
 
     if (profileJson?.messages?.resultCode !== "Ok") {
-        logger.error("Authorize.Net profile creation failed", profileJson);
-        await emitEvent({ orgId, type: 'subscription.failed', agent: 'money_mike', data: { stage: "profile_creation", planId, amount, response: profileJson }});
-        return NextResponse.json({ error: "Failed to create customer profile with Authorize.Net" }, { status: 502 });
+      logger.error("Authorize.Net profile creation failed", profileJson);
+      await emitEvent({ orgId, type: 'subscription.failed', agent: 'money_mike', data: { stage: "profile_creation", planId, amount, response: profileJson } });
+      return NextResponse.json({ error: "Failed to create customer profile with Authorize.Net" }, { status: 502 });
     }
 
     const customerProfileId = profileJson.customerProfileId;
     const customerPaymentProfileId = profileJson.customerPaymentProfileIdList?.[0] ?? profileJson.customerPaymentProfileIdList?.customerPaymentProfileId;
 
     if (!customerProfileId || !customerPaymentProfileId) {
-        logger.error("Missing profile IDs from Authorize.Net", profileJson);
-        return NextResponse.json({ error: "Payment profile missing from Authorize.Net response" }, { status: 502 });
+      logger.error("Missing profile IDs from Authorize.Net", profileJson);
+      return NextResponse.json({ error: "Payment profile missing from Authorize.Net response" }, { status: 502 });
     }
 
     const today = new Date();
@@ -182,13 +184,13 @@ export async function POST(req: NextRequest) {
 
     if (subJson?.messages?.resultCode !== "Ok") {
       logger.error("Authorize.Net subscription creation failed", subJson);
-      await emitEvent({ orgId, type: 'subscription.failed', agent: 'money_mike', data: { stage: "subscription_creation", planId, amount, response: subJson }});
+      await emitEvent({ orgId, type: 'subscription.failed', agent: 'money_mike', data: { stage: "subscription_creation", planId, amount, response: subJson } });
       return NextResponse.json({ error: "Failed to create subscription with Authorize.Net" }, { status: 502 });
     }
 
     const providerSubscriptionId = subJson.subscriptionId;
     const subDoc = {
-      planId, locationCount: body.locationCount, amount, provider: "authorizenet",
+      planId, locationCount: body.locationCount, packIds: body.coveragePackIds || [], amount, provider: "authorizenet",
       providerSubscriptionId, customerProfileId, customerPaymentProfileId, status: "active",
       createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
     };
@@ -196,14 +198,14 @@ export async function POST(req: NextRequest) {
     await subscriptionRef.set(subDoc, { merge: true });
     await historyRef.set({ ...subDoc, event: "plan_changed", reason: "user_subscribed", at: FieldValue.serverTimestamp() });
 
-    await emitEvent({ orgId, type: 'subscription.paymentAuthorized', agent: 'money_mike', refId: subscriptionRef.id, data: { planId, amount, providerSubscriptionId }});
+    await emitEvent({ orgId, type: 'subscription.paymentAuthorized', agent: 'money_mike', refId: subscriptionRef.id, data: { planId, amount, providerSubscriptionId } });
     await emitEvent({ orgId, type: 'subscription.updated', agent: 'money_mike', refId: subscriptionRef.id, data: subDoc });
 
     return NextResponse.json({ success: true, free: false, planId, amount, providerSubscriptionId, customerProfileId, customerPaymentProfileId });
   } catch (err: any) {
     logger.error("authorize-net:subscription_error", err);
     if (body?.organizationId) {
-      await emitEvent({ orgId: body.organizationId, type: 'subscription.failed', agent: 'money_mike', data: { error: err?.message || String(err), planId: body.planId }});
+      await emitEvent({ orgId: body.organizationId, type: 'subscription.failed', agent: 'money_mike', data: { error: err?.message || String(err), planId: body.planId } });
     }
     return NextResponse.json({ error: err?.message || "Unexpected error creating subscription" }, { status: 500 });
   }

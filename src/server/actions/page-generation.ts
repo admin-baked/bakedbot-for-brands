@@ -3,6 +3,7 @@
 import { PageGeneratorService } from '@/server/services/page-generator';
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
+import { requireUser } from '@/server/auth/auth';
 
 // Location filter interface for batch page generation
 export interface ScanFilters {
@@ -45,9 +46,15 @@ async function logJobComplete(jobId: string, result: any) {
 export async function runDispensaryScan(limit: number, dryRun: boolean, filters?: ScanFilters) {
     let jobId;
     try {
+        const user = await requireUser(['owner', 'admin']);
         jobId = await logJobStart('dispensaries', { limit, dryRun, filters });
 
         const service = new PageGeneratorService();
+
+        // Enforce coverage limits only for real runs (not dry runs, or maybe both?)
+        // Let's enforce for both to show "upgrade needed" early.
+        await service.checkCoverageLimit(user.uid);
+
         const result = await service.scanAndGenerateDispensaries({ limit, dryRun, ...filters });
 
         await logJobComplete(jobId, result);
@@ -62,9 +69,14 @@ export async function runDispensaryScan(limit: number, dryRun: boolean, filters?
 export async function runBrandScan(limit: number, dryRun: boolean, filters?: ScanFilters) {
     let jobId;
     try {
+        const user = await requireUser(['owner', 'admin']);
         jobId = await logJobStart('brands', { limit, dryRun, filters });
 
         const service = new PageGeneratorService();
+
+        // Enforce for brands too?
+        await service.checkCoverageLimit(user.uid);
+
         const result = await service.scanAndGenerateBrands({ limit, dryRun, ...filters });
 
         await logJobComplete(jobId, result);
@@ -96,9 +108,17 @@ export async function runStateScan(dryRun: boolean, filters?: ScanFilters) {
 export async function runCityScan(limit: number, dryRun: boolean, filters?: ScanFilters) {
     let jobId;
     try {
+        const user = await requireUser(['owner', 'admin']);
         jobId = await logJobStart('cities', { limit, dryRun, filters });
 
         const service = new PageGeneratorService();
+
+        // Cities might not count towards coverage limits? 
+        // "Claim Pro includes 25 ZIPs". Usually means "My Brand in 25 ZIPs".
+        // Cities are aggregations.
+        // But for safety let's enforce or at least require user.
+        // Assuming City generation is exempt from *ZIP* limits but restricted to admins.
+
         const result = await service.scanAndGenerateCities({ limit, dryRun, ...filters });
 
         await logJobComplete(jobId, result);
