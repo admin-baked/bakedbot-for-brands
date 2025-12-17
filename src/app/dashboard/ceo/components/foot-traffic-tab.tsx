@@ -223,7 +223,10 @@ export default function FootTrafficTab() {
     const [seoPages, setSeoPages] = useState<LocalSEOPage[]>([]);
     const [isGeneratePageOpen, setIsGeneratePageOpen] = useState(false);
     const [seedData, setSeedData] = useState({ zipCode: '', featuredDispensaryName: '' });
-    const [isSeeding, setIsSeeding] = useState(false);
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
 
     // Brand Page State
     const [brandPages, setBrandPages] = useState<BrandSEOPage[]>([]);
@@ -963,67 +966,94 @@ export default function FootTrafficTab() {
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        seoPages.map(page => (
-                                            <TableRow key={page.zipCode}>
-                                                <TableCell className="font-mono font-medium">{page.zipCode}</TableCell>
-                                                <TableCell>{page.city || 'Unknown'}</TableCell>
-                                                <TableCell><Badge variant="outline">{page.state || 'N/A'}</Badge></TableCell>
-                                                <TableCell>
-                                                    {page.featuredDispensaryName ? (
-                                                        <Badge variant="default" className="bg-purple-100 text-purple-700 hover:bg-purple-200 border-0">
-                                                            {page.featuredDispensaryName}
+                                        seoPages
+                                            .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                                            .map(page => (
+                                                <TableRow key={page.zipCode}>
+                                                    <TableCell className="font-mono font-medium">{page.zipCode}</TableCell>
+                                                    <TableCell>{page.city || 'Unknown'}</TableCell>
+                                                    <TableCell><Badge variant="outline">{page.state || 'N/A'}</Badge></TableCell>
+                                                    <TableCell>
+                                                        {page.featuredDispensaryName ? (
+                                                            <Badge variant="default" className="bg-purple-100 text-purple-700 hover:bg-purple-200 border-0">
+                                                                {page.featuredDispensaryName}
+                                                            </Badge>
+                                                        ) : (
+                                                            <span className="text-muted-foreground text-sm">-</span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
+                                                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                            Published
                                                         </Badge>
-                                                    ) : (
-                                                        <span className="text-muted-foreground text-sm">-</span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
-                                                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                                                        Published
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                <span className="sr-only">Open menu</span>
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                            <DropdownMenuItem onClick={() => window.open(`/local/${page.zipCode}`, '_blank')}>
-                                                                <Eye className="nr-2 h-4 w-4" /> View Page
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => toast({ title: "Refreshed", description: "Snapshot updated." })}>
-                                                                <RefreshCw className="mr-2 h-4 w-4" /> Refresh Snapshot
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem onClick={() => toast({ title: "Partner Featured", description: "Partner added to page." })}>
-                                                                <Plus className="mr-2 h-4 w-4" /> Feature Partner
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => toast({ title: "Unpublished", description: "Page has been hidden." })}>
-                                                                <XCircle className="mr-2 h-4 w-4" /> Unpublish
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => toast({ title: "Analytics", description: "Opening analytics view..." })}>
-                                                                <TrendingUp className="mr-2 h-4 w-4" /> View Analytics
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem
-                                                                className="text-destructive focus:text-destructive"
-                                                                onClick={() => handleDeletePage(page.zipCode)}
-                                                            >
-                                                                <Trash2 className="mr-2 h-4 w-4" /> Delete Page
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                    <span className="sr-only">Open menu</span>
+                                                                    <MoreHorizontal className="h-4 w-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                                <DropdownMenuItem onClick={() => window.open(`/local/${page.zipCode}`, '_blank')}>
+                                                                    <Eye className="mr-2 h-4 w-4" /> View Page
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => toast({ title: "Refreshed", description: "Snapshot updated." })}>
+                                                                    <RefreshCw className="mr-2 h-4 w-4" /> Refresh Snapshot
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem onClick={() => toast({ title: "Partner Featured", description: "Partner added to page." })}>
+                                                                    <Plus className="mr-2 h-4 w-4" /> Feature Partner
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => toast({ title: "Unpublished", description: "Page has been hidden." })}>
+                                                                    <XCircle className="mr-2 h-4 w-4" /> Unpublish
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => toast({ title: "Analytics", description: "Opening analytics view..." })}>
+                                                                    <TrendingUp className="mr-2 h-4 w-4" /> View Analytics
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem
+                                                                    className="text-destructive focus:text-destructive"
+                                                                    onClick={() => handleDeletePage(page.zipCode)}
+                                                                >
+                                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete Page
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
                                     )}
                                 </TableBody>
                             </Table>
+
+                            {/* Pagination Controls */}
+                            {seoPages.length > ITEMS_PER_PAGE && (
+                                <div className="flex items-center justify-end space-x-2 py-4">
+                                    <div className="text-sm text-muted-foreground">
+                                        Page {currentPage} of {Math.ceil(seoPages.length / ITEMS_PER_PAGE)}
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                    >
+                                        Previous
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(seoPages.length / ITEMS_PER_PAGE)))}
+                                        disabled={currentPage >= Math.ceil(seoPages.length / ITEMS_PER_PAGE)}
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -1126,75 +1156,77 @@ export default function FootTrafficTab() {
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
-                                            brandPages.map(page => (
-                                                <TableRow key={page.id}>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            {page.logoUrl ? (
-                                                                <img src={page.logoUrl} alt={page.brandName} className="h-6 w-6 rounded" />
-                                                            ) : (
-                                                                <div className="h-6 w-6 rounded bg-primary/10 flex items-center justify-center">
-                                                                    <Sparkles className="h-3 w-3 text-primary" />
-                                                                </div>
-                                                            )}
-                                                            <span className="font-medium">{page.brandName}</span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="font-mono">{page.zipCodes?.[0] || '-'}</TableCell>
-                                                    <TableCell>{page.city}</TableCell>
-                                                    <TableCell><Badge variant="outline">{page.state}</Badge></TableCell>
-                                                    <TableCell>
-                                                        <Badge variant="secondary" className="capitalize">
-                                                            {page.ctaType?.replace(/_/g, ' ') || 'default'}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {page.published ? (
-                                                            <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
-                                                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                                                Published
-                                                            </Badge>
-                                                        ) : (
-                                                            <Badge variant="secondary">
-                                                                Draft
-                                                            </Badge>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                    <span className="sr-only">Open menu</span>
-                                                                    <MoreHorizontal className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                                <DropdownMenuItem onClick={() => page.zipCodes?.[0] && window.open(`/brands/${page.brandSlug}/near/${page.zipCodes[0]}`, '_blank')}>
-                                                                    <Eye className="mr-2 h-4 w-4" /> View Page
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                {page.published ? (
-                                                                    <DropdownMenuItem onClick={() => handleToggleBrandPagePublish(page.id, false)}>
-                                                                        <XCircle className="mr-2 h-4 w-4" /> Unpublish
-                                                                    </DropdownMenuItem>
+                                            brandPages
+                                                .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                                                .map(page => (
+                                                    <TableRow key={page.id}>
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-2">
+                                                                {page.logoUrl ? (
+                                                                    <img src={page.logoUrl} alt={page.brandName} className="h-6 w-6 rounded" />
                                                                 ) : (
-                                                                    <DropdownMenuItem onClick={() => handleToggleBrandPagePublish(page.id, true)}>
-                                                                        <CheckCircle2 className="mr-2 h-4 w-4" /> Publish
-                                                                    </DropdownMenuItem>
+                                                                    <div className="h-6 w-6 rounded bg-primary/10 flex items-center justify-center">
+                                                                        <Sparkles className="h-3 w-3 text-primary" />
+                                                                    </div>
                                                                 )}
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem
-                                                                    className="text-destructive focus:text-destructive"
-                                                                    onClick={() => handleDeleteBrandPage(page.id)}
-                                                                >
-                                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
+                                                                <span className="font-medium">{page.brandName}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="font-mono">{page.zipCodes?.[0] || '-'}</TableCell>
+                                                        <TableCell>{page.city}</TableCell>
+                                                        <TableCell><Badge variant="outline">{page.state}</Badge></TableCell>
+                                                        <TableCell>
+                                                            <Badge variant="secondary" className="capitalize">
+                                                                {page.ctaType?.replace(/_/g, ' ') || 'default'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {page.published ? (
+                                                                <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
+                                                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                                    Published
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge variant="secondary">
+                                                                    Draft
+                                                                </Badge>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                        <span className="sr-only">Open menu</span>
+                                                                        <MoreHorizontal className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                                    <DropdownMenuItem onClick={() => page.zipCodes?.[0] && window.open(`/brands/${page.brandSlug}/near/${page.zipCodes[0]}`, '_blank')}>
+                                                                        <Eye className="mr-2 h-4 w-4" /> View Page
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                    {page.published ? (
+                                                                        <DropdownMenuItem onClick={() => handleToggleBrandPagePublish(page.id, false)}>
+                                                                            <XCircle className="mr-2 h-4 w-4" /> Unpublish
+                                                                        </DropdownMenuItem>
+                                                                    ) : (
+                                                                        <DropdownMenuItem onClick={() => handleToggleBrandPagePublish(page.id, true)}>
+                                                                            <CheckCircle2 className="mr-2 h-4 w-4" /> Publish
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuItem
+                                                                        className="text-destructive focus:text-destructive"
+                                                                        onClick={() => handleDeleteBrandPage(page.id)}
+                                                                    >
+                                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
                                         )}
                                     </TableBody>
                                 </Table>
