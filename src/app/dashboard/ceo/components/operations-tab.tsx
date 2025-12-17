@@ -29,8 +29,8 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { getJobHistory, JobRecord } from '@/server/actions/job-history';
-import { getActiveJob, JobProgress } from '@/server/actions/job-progress';
-import { RefreshCcw, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { getActiveJob, cancelJob, JobProgress } from '@/server/actions/job-progress';
+import { RefreshCcw, Clock, CheckCircle2, XCircle, StopCircle } from 'lucide-react';
 import {
     Table,
     TableBody,
@@ -202,6 +202,27 @@ export default function OperationsTab() {
             setCoverage(status);
         } catch (e) {
             console.error('Failed to load coverage', e);
+        }
+    };
+
+    const handleCancelJob = async () => {
+        if (!activeJobProgress?.id) return;
+
+        try {
+            await cancelJob(activeJobProgress.id);
+            setLoading(false);
+            setActiveJobProgress(null);
+            toast({
+                title: "Job Cancelled",
+                description: "The batch job has been cancelled.",
+            });
+            void loadHistory();
+        } catch (e: any) {
+            toast({
+                variant: "destructive",
+                title: "Cancel Failed",
+                description: e.message,
+            });
         }
     };
 
@@ -593,9 +614,20 @@ export default function OperationsTab() {
                                     </div>
                                 )}
 
-                                <p className="text-xs text-center text-muted-foreground">
-                                    Do not close this tab while processing.
-                                </p>
+                                <div className="flex flex-col items-center gap-2 pt-2">
+                                    <p className="text-xs text-center text-muted-foreground">
+                                        Do not close this tab while processing.
+                                    </p>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={handleCancelJob}
+                                        disabled={!activeJobProgress?.id}
+                                    >
+                                        <StopCircle className="h-4 w-4 mr-2" />
+                                        Cancel Job
+                                    </Button>
+                                </div>
                             </div>
                         )}
 
