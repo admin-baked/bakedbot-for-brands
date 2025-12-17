@@ -57,8 +57,14 @@ export async function runDispensaryScan(limit: number, dryRun: boolean, filters?
             await service.checkCoverageLimit(user.uid);
         }
 
-        // Pass user.uid as brandId for attribution
-        const result = await service.scanAndGenerateDispensaries({ limit, dryRun, ...filters, brandId: user.uid });
+        // Pass user.uid as brandId for attribution, and jobId for progress tracking
+        const result = await service.scanAndGenerateDispensaries({
+            limit,
+            dryRun,
+            ...filters,
+            brandId: user.uid,
+            jobId // Pass jobId for progress tracking
+        });
 
         await logJobComplete(jobId, result);
         return result;
