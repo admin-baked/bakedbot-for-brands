@@ -111,6 +111,18 @@ interface ZipSEOPage {
     };
 }
 
+interface CitySEOPage {
+    id: string; // city_slug
+    slug: string;
+    name: string;
+    state: string;
+    zipCodes: string[];
+    dispensaryCount: number;
+    description?: string; // AI generated intro
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 interface DiscoveredBrand {
     name: string;
     slug: string;
@@ -227,8 +239,10 @@ async function main() {
     }
 
     // Filter to verified ZIPs only
+    // Filter to verified ZIPs only (and State if specified)
     const verifiedZips = zipRecords.filter(z =>
-        z.has_dispensary === 'True' || z.status?.includes('verified')
+        (z.has_dispensary === 'True' || z.status?.includes('verified')) &&
+        (TARGET_STATE ? z.state?.toLowerCase() === TARGET_STATE.toLowerCase() : true)
     );
     console.log(`   ${verifiedZips.length} verified ZIPs with dispensaries`);
 
@@ -341,8 +355,35 @@ async function main() {
 
         zipPages.push(page);
     }
-
     console.log(`   Generated ${zipPages.length} ZIP pages`);
+
+    // Create City Pages (Aggregation)
+    const cityMap = new Map<string, ZipSEOPage[]>();
+    zipPages.forEach(z => {
+        const key = `${slugify(z.city)}`;
+        if (!cityMap.has(key)) cityMap.set(key, []);
+        cityMap.get(key)?.push(z);
+    });
+
+    const cityPages: CitySEOPage[] = [];
+    cityMap.forEach((zips, slug) => {
+        const first = zips[0];
+        const cityPagesDispensaries = new Set<string>();
+        zips.forEach(z => z.nearbyDispensaryIds.forEach(id => cityPagesDispensaries.add(id)));
+
+        const page: CitySEOPage = {
+            id: `city_${slug}`,
+            slug,
+            name: first.city,
+            state: first.state,
+            zipCodes: zips.map(z => z.zipCode),
+            dispensaryCount: cityPagesDispensaries.size,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        cityPages.push(page);
+    });
+    console.log(`   Generated ${cityPages.length} City pages`);
 
     // Create Brand Pages
     const brandPages: BrandSEOPage[] = [];
@@ -419,6 +460,22 @@ async function main() {
                     .doc('config')
                     .collection('brand_pages')
                     .doc(page.slug);
+                batch.set(ref, page, { merge: true });
+                batchCount++;
+
+                if (batchCount >= MAX_BATCH_SIZE) {
+                    await batch.commit();
+                    console.log(`   Committed batch of ${batchCount} documents`);
+                    batchCount = 0;
+                }
+            }
+
+            // Write City Pages
+            for (const page of cityPages) {
+                const ref = db.collection('foot_traffic')
+                    .doc('config')
+                    .collection('city_pages')
+                    .doc(page.id);
                 batch.set(ref, page, { merge: true });
                 batchCount++;
 

@@ -1,42 +1,236 @@
 {
-  "generatedAt": "2025-12-16T15:40:49.092Z",
+  "generatedAt": "2025-12-18T12:48:07.874Z",
   "dryRun": true,
   "dispensaryPagesCount": 1,
-  "zipPagesCount": 1,
+  "zipPagesCount": 1383,
   "dispensaryPages": [
     {
-      "id": "dispensary_3399",
-      "retailerId": 3399,
-      "name": "Dispensary #3399",
-      "slug": "dispensary-3399",
-      "city": "California City",
-      "state": "California",
+      "id": "dispensary_12345",
+      "retailerId": 12345,
+      "name": "Sunnyside Cannabis Dispensary - River North",
+      "slug": "sunnyside-cannabis-dispensary-river-north",
+      "city": "Chicago",
+      "state": "Illinois",
       "zipCodes": [
-        "93505"
+        "60601",
+        "60602",
+        "60603",
+        "60604",
+        "60605",
+        "60606",
+        "60607",
+        "60608",
+        "60609",
+        "60610",
+        "60611",
+        "60612",
+        "60613",
+        "60614",
+        "60615",
+        "60616",
+        "60617",
+        "60618",
+        "60619",
+        "60620",
+        "60621",
+        "60622",
+        "60623",
+        "60624",
+        "60625",
+        "60626",
+        "60628",
+        "60629",
+        "60630",
+        "60631",
+        "60632",
+        "60633",
+        "60634",
+        "60636",
+        "60637",
+        "60638",
+        "60639",
+        "60640",
+        "60641",
+        "60642",
+        "60643",
+        "60644",
+        "60645",
+        "60646",
+        "60647",
+        "60649",
+        "60651",
+        "60652",
+        "60653",
+        "60654",
+        "60655",
+        "60656",
+        "60657",
+        "60659",
+        "60660",
+        "60661"
       ],
       "claimStatus": "unclaimed",
       "verificationStatus": "unverified",
-      "createdAt": "2025-12-16T15:40:49.084Z",
-      "updatedAt": "2025-12-16T15:40:49.084Z",
+      "createdAt": "2025-12-18T12:48:07.865Z",
+      "updatedAt": "2025-12-18T12:48:07.865Z",
       "analytics": {
         "views": 0,
         "clicks": 0,
         "lastViewedAt": null
       },
-      "source": "cannmenus_scan"
+      "source": "cannmenus_scan",
+      "enrichment": {
+        "qrCode": "data:image/png;base64,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",
+        "googlePlaces": false
+      }
     }
   ],
   "zipPages": [
     {
-      "id": "zip_90001",
-      "zipCode": "90001",
-      "city": "Los Angeles",
-      "state": "California",
+      "id": "zip_60002",
+      "zipCode": "60002",
+      "city": "Antioch",
+      "state": "Illinois",
       "hasDispensaries": false,
       "dispensaryCount": 20,
       "nearbyDispensaryIds": [],
-      "createdAt": "2025-12-16T15:40:49.091Z",
-      "updatedAt": "2025-12-16T15:40:49.091Z",
+      "createdAt": "2025-12-18T12:48:07.870Z",
+      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0
+      }
+    },
+    {
+      "id": "zip_60004",
+      "zipCode": "60004",
+      "city": "Arlington Heights",
+      "state": "Illinois",
+      "hasDispensaries": false,
+      "dispensaryCount": 20,
+      "nearbyDispensaryIds": [],
+      "createdAt": "2025-12-18T12:48:07.870Z",
+      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0
+      }
+    },
+    {
+      "id": "zip_60005",
+      "zipCode": "60005",
+      "city": "Arlington Heights",
+      "state": "Illinois",
+      "hasDispensaries": false,
+      "dispensaryCount": 20,
+      "nearbyDispensaryIds": [],
+      "createdAt": "2025-12-18T12:48:07.870Z",
+      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0
+      }
+    },
+    {
+      "id": "zip_60007",
+      "zipCode": "60007",
+      "city": "Elk Grove Village",
+      "state": "Illinois",
+      "hasDispensaries": false,
+      "dispensaryCount": 20,
+      "nearbyDispensaryIds": [],
+      "createdAt": "2025-12-18T12:48:07.870Z",
+      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0
+      }
+    },
+    {
+      "id": "zip_60008",
+      "zipCode": "60008",
+      "city": "Rolling Meadows",
+      "state": "Illinois",
+      "hasDispensaries": false,
+      "dispensaryCount": 20,
+      "nearbyDispensaryIds": [],
+      "createdAt": "2025-12-18T12:48:07.870Z",
+      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0
+      }
+    },
+    {
+      "id": "zip_60010",
+      "zipCode": "60010",
+      "city": "Barrington",
+      "state": "Illinois",
+      "hasDispensaries": false,
+      "dispensaryCount": 20,
+      "nearbyDispensaryIds": [],
+      "createdAt": "2025-12-18T12:48:07.870Z",
+      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0
+      }
+    },
+    {
+      "id": "zip_60012",
+      "zipCode": "60012",
+      "city": "Crystal Lake",
+      "state": "Illinois",
+      "hasDispensaries": false,
+      "dispensaryCount": 20,
+      "nearbyDispensaryIds": [],
+      "createdAt": "2025-12-18T12:48:07.870Z",
+      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0
+      }
+    },
+    {
+      "id": "zip_60013",
+      "zipCode": "60013",
+      "city": "Cary",
+      "state": "Illinois",
+      "hasDispensaries": false,
+      "dispensaryCount": 20,
+      "nearbyDispensaryIds": [],
+      "createdAt": "2025-12-18T12:48:07.870Z",
+      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0
+      }
+    },
+    {
+      "id": "zip_60014",
+      "zipCode": "60014",
+      "city": "Crystal Lake",
+      "state": "Illinois",
+      "hasDispensaries": false,
+      "dispensaryCount": 20,
+      "nearbyDispensaryIds": [],
+      "createdAt": "2025-12-18T12:48:07.870Z",
+      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0
+      }
+    },
+    {
+      "id": "zip_60015",
+      "zipCode": "60015",
+      "city": "Deerfield",
+      "state": "Illinois",
+      "hasDispensaries": false,
+      "dispensaryCount": 20,
+      "nearbyDispensaryIds": [],
+      "createdAt": "2025-12-18T12:48:07.870Z",
+      "updatedAt": "2025-12-18T12:48:07.870Z",
       "analytics": {
         "views": 0,
         "clicks": 0

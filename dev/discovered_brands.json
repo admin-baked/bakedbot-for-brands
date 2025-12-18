@@ -1,1 +1,12 @@
-[]
+[
+    {
+        "name": "Cresco",
+        "slug": "cresco",
+        "foundInCities": [
+            "Chicago"
+        ],
+        "sampleRetailerIds": [
+            12345
+        ]
+    }
+]
