@@ -101,7 +101,7 @@ export default async function CityPage({ params }: { params: Promise<{ citySlug:
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                     {city.zipCodes.map((zip) => (
                                         <Button key={zip} variant="outline" asChild className="w-full">
-                                            <Link href={`/shop/${zip}-dispensary`}>
+                                            <Link href={`/zip/${zip}-dispensary`}>
                                                 {zip} Dispensaries
                                             </Link>
                                         </Button>
