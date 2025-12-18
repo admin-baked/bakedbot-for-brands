@@ -16,14 +16,21 @@ import {
     Sparkles,
     Terminal,
     Activity,
+    MessageSquarePlus,
+    History,
+    Trash2,
 } from 'lucide-react';
 import { SUPER_ADMIN_SMOKEY } from '@/config/super-admin-smokey-config';
 import { triggerAgentRun } from '../agents/actions';
 import { triggerPatternAnalysis, triggerComplianceScan, generateDailyReport } from '@/app/dashboard/ceo/actions/intuition-actions';
+import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 
 export function SuperAdminRightSidebar() {
     const router = useRouter();
     const { toast } = useToast();
+
+    // Chat store
+    const { sessions, activeSessionId, clearCurrentSession, setActiveSession } = useAgentChatStore();
 
     // Agent runner state
     const [runningAgent, setRunningAgent] = useState<string | null>(null);
@@ -91,6 +98,67 @@ export function SuperAdminRightSidebar() {
 
     return (
         <div className="space-y-3">
+            {/* Chat Controls */}
+            <Card>
+                <CardHeader className="py-2 px-3">
+                    <CardTitle className="text-xs flex items-center gap-1.5">
+                        <MessageSquarePlus className="h-3.5 w-3.5 text-blue-500" />
+                        Chat Controls
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 p-2 pt-0">
+                    <Button
+                        variant="default"
+                        size="sm"
+                        className="w-full justify-start text-[10px] h-7 bg-blue-600 hover:bg-blue-700"
+                        onClick={() => {
+                            clearCurrentSession();
+                            toast({ title: 'New Chat', description: 'Started a new chat session' });
+                        }}
+                    >
+                        <MessageSquarePlus className="h-3 w-3 mr-1.5" />
+                        New Chat
+                    </Button>
+
+                    {/* Chat History */}
+                    {sessions.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                            <div className="text-[10px] text-muted-foreground px-1 flex items-center justify-between">
+                                <span className="flex items-center gap-1">
+                                    <History className="h-3 w-3" />
+                                    Recent Chats ({sessions.length})
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 px-1 text-[9px]"
+                                    onClick={() => {
+                                        // Clear all chat history
+                                        localStorage.removeItem('agent-chat-storage');
+                                        window.location.reload();
+                                    }}
+                                >
+                                    <Trash2 className="h-2.5 w-2.5" />
+                                </Button>
+                            </div>
+                            <div className="max-h-32 overflow-y-auto space-y-1">
+                                {sessions.slice(0, 5).map((session) => (
+                                    <Button
+                                        key={session.id}
+                                        variant={activeSessionId === session.id ? 'secondary' : 'ghost'}
+                                        size="sm"
+                                        className="w-full justify-start text-[9px] h-6 truncate"
+                                        onClick={() => setActiveSession(session.id)}
+                                    >
+                                        {session.title || 'Untitled Chat'}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
             {/* Capabilities */}
             <Card>
                 <CardHeader className="py-2 px-3">
