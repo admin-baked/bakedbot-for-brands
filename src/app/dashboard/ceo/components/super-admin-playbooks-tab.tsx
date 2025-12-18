@@ -163,7 +163,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { SuperAdminRightSidebar } from './super-admin-right-sidebar';
 
-import { TaskletChat } from './tasklet-chat';
+import { PuffChat } from './puff-chat';
 import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useEffect } from 'react';
 
@@ -301,7 +301,7 @@ export default function SuperAdminPlaybooksTab() {
                         </h3>
                     </div>
                     <div className="h-[400px]">
-                        <TaskletChat
+                        <PuffChat
                             key={chatKey}
                             initialTitle={activeSessionId ? "Chat Session" : "New Chat"}
                             onBack={() => createSession()}

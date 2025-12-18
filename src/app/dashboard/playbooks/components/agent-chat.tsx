@@ -73,7 +73,7 @@ export interface ToolPermission {
     tools: string[];
 }
 
-export interface TaskletTrigger {
+export interface PuffTrigger {
     id: string;
     type: 'schedule' | 'webhook' | 'event';
     label: string;
@@ -81,7 +81,7 @@ export interface TaskletTrigger {
 }
 
 
-export interface TaskletMessage {
+export interface PuffMessage {
     id: string;
     role: 'user' | 'assistant';
     content: string;
@@ -95,11 +95,11 @@ export interface TaskletMessage {
     };
 }
 
-export interface TaskletState {
+export interface PuffState {
     title: string;
     isConnected: boolean;
     permissions: ToolPermission[];
-    triggers: TaskletTrigger[];
+    triggers: PuffTrigger[];
     // Messages are now in global store
 }
 
@@ -145,7 +145,7 @@ function ModelSelector({ value, onChange }: { value: ThinkingLevel, onChange: (v
 
 function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (v: AgentPersona) => void }) {
     const options: Record<AgentPersona, { label: string, desc: string, icon: any }> = {
-        tasklet: { label: 'Tasklet', desc: 'General Assistant', icon: Sparkles },
+        puff: { label: 'Puff', desc: 'General Assistant', icon: Sparkles },
         wholesale_analyst: { label: 'Wholesale', desc: 'LeafLink & Inventory', icon: Briefcase },
         menu_watchdog: { label: 'Watchdog', desc: 'Menu Monitoring', icon: ShoppingCart },
         sales_scout: { label: 'Scout', desc: 'Lead Generation', icon: Search },
@@ -163,7 +163,7 @@ function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (
             <DropdownMenuContent align="start" className="w-[280px]">
                 <DropdownMenuLabel>Agent Persona</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {(Object.entries(options) as [AgentPersona, typeof options['tasklet']][]).map(([key, opt]) => (
+                {(Object.entries(options) as [AgentPersona, typeof options['puff']][]).map(([key, opt]) => (
                     <DropdownMenuItem key={key} onClick={() => onChange(key)} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
                         <div className="flex items-center gap-2 w-full">
                             <opt.icon className="h-4 w-4 text-primary" />
@@ -259,7 +259,7 @@ function PermissionCard({ permission, onGrant }: { permission: ToolPermission; o
     );
 }
 
-function TriggerIndicator({ triggers, expanded, onToggle }: { triggers: TaskletTrigger[]; expanded: boolean; onToggle: () => void }) {
+function TriggerIndicator({ triggers, expanded, onToggle }: { triggers: PuffTrigger[]; expanded: boolean; onToggle: () => void }) {
     if (triggers.length === 0) return null;
 
     return (
@@ -351,7 +351,7 @@ export function AgentChat({
         if (role) setCurrentRole(role);
     }, [role, setCurrentRole]);
 
-    const [state, setState] = useState<TaskletState>({
+    const [state, setState] = useState<PuffState>({
         title: initialTitle,
         isConnected: true,
         permissions: [],
@@ -363,10 +363,10 @@ export function AgentChat({
     const [showTriggers, setShowTriggers] = useState(false);
     const [showPermissions, setShowPermissions] = useState(true);
     const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
-    const [persona, setPersona] = useState<AgentPersona>('tasklet');
+    const [persona, setPersona] = useState<AgentPersona>('puff');
 
-    // Map store messages to TaskletMessage structure
-    const displayMessages: TaskletMessage[] = currentMessages.map(m => ({
+    // Map store messages to PuffMessage structure
+    const displayMessages: PuffMessage[] = currentMessages.map(m => ({
         id: m.id,
         role: m.type === 'agent' ? 'assistant' : 'user',
         content: m.content,
@@ -417,7 +417,7 @@ export function AgentChat({
             const needsSchedule = responseText.includes('daily') || responseText.includes('schedule') || userInput.toLowerCase().includes('daily');
 
             const newPermissions: ToolPermission[] = [];
-            const newTriggers: TaskletTrigger[] = [];
+            const newTriggers: PuffTrigger[] = [];
 
             if (needsGmail) {
                 newPermissions.push({

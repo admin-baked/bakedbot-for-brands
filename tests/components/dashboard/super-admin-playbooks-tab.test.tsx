@@ -13,8 +13,8 @@ jest.mock('@/hooks/use-toast', () => ({
 }));
 
 // Mock child components with FULL PATHS as they are usually resolved
-jest.mock('@/app/dashboard/ceo/components/tasklet-chat', () => ({
-    TaskletChat: () => <div data-testid="tasklet-chat">Mock Tasklet Chat</div>
+jest.mock('@/app/dashboard/ceo/components/puff-chat', () => ({
+    PuffChat: () => <div data-testid="puff-chat">Mock Puff Chat</div>
 }));
 
 jest.mock('@/app/dashboard/ceo/components/super-admin-right-sidebar', () => ({
@@ -56,6 +56,6 @@ describe('SuperAdminPlaybooksTab', () => {
 
         expect(screen.getByText('Active Playbooks')).toBeInTheDocument();
         expect(screen.getByText('Ask Baked HQ')).toBeInTheDocument();
-        expect(screen.getByTestId('tasklet-chat')).toBeInTheDocument();
+        expect(screen.getByTestId('puff-chat')).toBeInTheDocument();
     });
 });

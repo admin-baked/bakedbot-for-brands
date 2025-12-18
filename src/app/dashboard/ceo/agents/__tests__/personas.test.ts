@@ -3,7 +3,7 @@ import { PERSONAS } from '../personas';
 
 describe('Agent Personas Configuration', () => {
     it('should have all required personas', () => {
-        const requiredPersonas = ['tasklet', 'wholesale_analyst', 'menu_watchdog', 'sales_scout'];
+        const requiredPersonas = ['puff', 'wholesale_analyst', 'menu_watchdog', 'sales_scout'];
 
         requiredPersonas.forEach(id => {
             expect(PERSONAS).toHaveProperty(id);
@@ -22,8 +22,8 @@ describe('Agent Personas Configuration', () => {
         });
     });
 
-    it('tasklet should have access to all tools', () => {
-        expect(PERSONAS.tasklet.tools).toContain('all');
+    it('puff should have access to all tools', () => {
+        expect(PERSONAS.puff.tools).toContain('all');
     });
 
     it('specialized personas should have specific tools', () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { TaskletChat } from '@/app/dashboard/ceo/components/tasklet-chat';
+import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
 import { Sparkles } from 'lucide-react';
 
 export function BrandChatWidget() {
@@ -21,7 +21,7 @@ export function BrandChatWidget() {
                 </h3>
             </div>
             <div className="flex-1 overflow-hidden">
-                <TaskletChat
+                <PuffChat
                     initialTitle="Revenue Ops Assistant"
                     promptSuggestions={BRAND_PROMPTS}
                 />
