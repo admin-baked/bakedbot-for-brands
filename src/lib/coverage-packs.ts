@@ -1,12 +1,8 @@
-
-import { createServerClient } from '@/firebase/server-client';
-
 /**
- * Coverage Packs - National Brand Monetization
+ * Coverage Packs - Model B: Claim-Based Access
  * 
- * When brands are found across many cities/ZIPs, offer:
- * - Claim Pro + Coverage Packs (ZIP caps by tier)
- * - Distribution Footprint Dashboard (Pops analytics)
+ * Invite-only claim model where partners claim ZIP pages for exclusive access.
+ * Pricing reflects foot traffic value, not just features.
  */
 
 export interface CoveragePackTier {
@@ -14,7 +10,15 @@ export interface CoveragePackTier {
     name: string;
     zipLimit: number;
     pricePerMonth: number;
+    // Usage limits
+    pageviewsPerMonth: number;
+    smokeySessionsPerMonth: number;
+    menuSyncsPerDay: number;
+    deeboChecksPerMonth: number;
+    // Features
     features: string[];
+    // Claim-based access
+    exclusiveFeatures: string[];
 }
 
 export const COVERAGE_PACK_TIERS: CoveragePackTier[] = [
@@ -23,11 +27,21 @@ export const COVERAGE_PACK_TIERS: CoveragePackTier[] = [
         name: 'Starter Pack',
         zipLimit: 25,
         pricePerMonth: 99,
+        pageviewsPerMonth: 1000,
+        smokeySessionsPerMonth: 500,
+        menuSyncsPerDay: 2,
+        deeboChecksPerMonth: 10000,
         features: [
-            'Control listings in 25 ZIPs',
-            'Basic analytics dashboard',
-            'Claim badge on all pages',
+            'Claim up to 25 ZIP pages',
+            'Verified badge on claimed pages',
+            'Basic Smokey Chat integration',
+            '2 menu syncs per day',
             'Priority data refresh'
+        ],
+        exclusiveFeatures: [
+            'Featured placement on claimed ZIPs',
+            'Local email/SMS opt-in tools',
+            'Basic analytics via Pops'
         ]
     },
     {
@@ -35,38 +49,68 @@ export const COVERAGE_PACK_TIERS: CoveragePackTier[] = [
         name: 'Growth Pack',
         zipLimit: 100,
         pricePerMonth: 249,
+        pageviewsPerMonth: 10000,
+        smokeySessionsPerMonth: 1500,
+        menuSyncsPerDay: 6,
+        deeboChecksPerMonth: 25000,
         features: [
-            'Control listings in 100 ZIPs',
-            'Distribution footprint map',
+            'Claim up to 100 ZIP pages',
+            'All Starter features',
+            '1,500 Smokey sessions/month',
+            '6 menu syncs per day',
+            'Distribution footprint map'
+        ],
+        exclusiveFeatures: [
+            'Premium product placement',
             'Competitor presence alerts',
             'Monthly market report',
-            'All Starter features'
+            'Submit editorial for city pages'
+        ]
+    },
+    {
+        id: 'scale',
+        name: 'Scale Pack',
+        zipLimit: 300,
+        pricePerMonth: 699,
+        pageviewsPerMonth: 50000,
+        smokeySessionsPerMonth: 7500,
+        menuSyncsPerDay: 24, // Hourly
+        deeboChecksPerMonth: 100000,
+        features: [
+            'Claim up to 300 ZIP pages',
+            'All Growth features',
+            '7,500 Smokey sessions/month',
+            'Hourly menu syncs',
+            'Dedicated onboarding support'
+        ],
+        exclusiveFeatures: [
+            'Guest editorial invites for city pages',
+            'Full analytics dashboard',
+            'Cross-market visibility reports',
+            'Priority SEO optimization'
         ]
     },
     {
         id: 'enterprise',
-        name: 'Enterprise Pack',
-        zipLimit: 500,
-        pricePerMonth: 599,
-        features: [
-            'Control listings in 500 ZIPs',
-            'Full national coverage map',
-            'Real-time distribution changes',
-            'Custom API access',
-            'Dedicated account manager',
-            'All Growth features'
-        ]
-    },
-    {
-        id: 'unlimited',
-        name: 'Unlimited',
+        name: 'Enterprise',
         zipLimit: -1, // Unlimited
-        pricePerMonth: 999,
+        pricePerMonth: 0, // Custom pricing
+        pageviewsPerMonth: -1, // Unlimited
+        smokeySessionsPerMonth: -1,
+        menuSyncsPerDay: -1,
+        deeboChecksPerMonth: -1,
         features: [
-            'Unlimited ZIP coverage',
+            'Unlimited ZIP claims',
+            'All Scale features',
+            'Custom API integrations',
             'White-label options',
-            'Custom integrations',
-            'All Enterprise features'
+            'Dedicated account manager'
+        ],
+        exclusiveFeatures: [
+            'National coverage visibility',
+            'Custom reporting dashboard',
+            'Priority support queue',
+            'Co-marketing opportunities'
         ]
     }
 ];

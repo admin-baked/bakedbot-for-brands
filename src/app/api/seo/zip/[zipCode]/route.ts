@@ -15,7 +15,7 @@ export async function GET(
             return NextResponse.json({ error: 'Missing zip code' }, { status: 400 });
         }
 
-        const { db } = await createServerClient();
+        const { firestore: db } = await createServerClient();
 
         // Fetch from seo_pages/zip-{zipCode}
         const docRef = db.collection('seo_pages').doc(`zip-${zipCode}`);
