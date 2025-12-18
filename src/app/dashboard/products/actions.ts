@@ -58,6 +58,33 @@ export async function importProducts(products: any[]) {
 
 
   const { firestore } = await createServerClient();
+
+  // Enforce Product Limits for Trial Accounts
+  if (user.role === 'brand') {
+    const orgDoc = await firestore.collection('organizations').doc(brandId).get();
+    const billing = orgDoc.data()?.billing;
+    const isTrial = billing?.subscriptionStatus === 'trial';
+
+    if (isTrial) {
+      const currentProducts = await firestore.collection('products')
+        .where('brandId', '==', brandId)
+        .get();
+
+      const existingCount = currentProducts.size;
+      const MAX_FREE = 3;
+
+      if (existingCount >= MAX_FREE) {
+        throw new Error('Limit reached: Trial accounts are limited to 3 products. Upgrade to a paid plan for unlimited imports.');
+      }
+
+      // If they are trying to import more than allowed, slice the array
+      const remainingSlots = MAX_FREE - existingCount;
+      if (products.length > remainingSlots) {
+        products = products.slice(0, remainingSlots);
+      }
+    }
+  }
+
   const batch = firestore.batch();
   const productsCollection = firestore.collection('products');
 
@@ -139,6 +166,23 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
     return { message: 'Validation failed', error: true, fieldErrors: errors };
   }
 
+  // Enforce Product Limits for Trial Accounts (New products only)
+  if (user.role === 'brand' && !id) {
+    const orgDoc = await firestore.collection('organizations').doc(brandId).get();
+    const billing = orgDoc.data()?.billing;
+    const isTrial = billing?.subscriptionStatus === 'trial';
+
+    if (isTrial) {
+      const currentProducts = await firestore.collection('products')
+        .where('brandId', '==', brandId)
+        .get();
+
+      if (currentProducts.size >= 3) {
+        return { message: 'Limit reached: Trial accounts are limited to 3 products. Upgrade to a paid plan to add more.', error: true };
+      }
+    }
+  }
+
   const productData = {
     name,
     description,
@@ -161,4 +205,26 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
     logger.error('Error saving product:', error instanceof Error ? error : new Error(String(error)));
     return { message: 'Failed to save product', error: true };
   }
+}
+
+export async function getBrandStatus() {
+  const user = await requireUser(['brand', 'owner']);
+  const { firestore } = await createServerClient();
+  const brandId = user.brandId;
+
+  if (!brandId) return null;
+
+  const orgDoc = await firestore.collection('organizations').doc(brandId).get();
+  const billing = orgDoc.data()?.billing;
+  const isTrial = billing?.subscriptionStatus === 'trial';
+
+  const currentProducts = await firestore.collection('products')
+    .where('brandId', '==', brandId)
+    .get();
+
+  return {
+    isTrial,
+    count: currentProducts.size,
+    max: 3
+  };
 }

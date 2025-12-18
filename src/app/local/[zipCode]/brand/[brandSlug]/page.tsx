@@ -17,10 +17,10 @@ import { DtcBanner } from '@/components/foot-traffic/dtc-banner';
 import { getSeededConfig } from '@/server/actions/seo-pages';
 
 interface BrandPageProps {
-    params: {
+    params: Promise<{
         zipCode: string;
         brandSlug: string;
-    };
+    }>;
 }
 
 // Helper to format brand name from slug (e.g., "stiiizy" -> "Stiiizy", "raw-garden" -> "Raw Garden")
@@ -32,7 +32,7 @@ function formatBrandName(slug: string) {
 }
 
 export async function generateMetadata({ params }: BrandPageProps): Promise<Metadata> {
-    const { zipCode, brandSlug } = params;
+    const { zipCode, brandSlug } = await params;
     const brandName = formatBrandName(decodeURIComponent(brandSlug));
     return {
         title: `Buy ${brandName} near ${zipCode} | BakedBot`,
@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: BrandPageProps): Promise<Meta
 }
 
 export default async function BrandPage({ params }: BrandPageProps) {
-    const { zipCode, brandSlug } = params;
+    const { zipCode, brandSlug } = await params;
     const brandName = formatBrandName(decodeURIComponent(brandSlug));
 
     // 1. Get Coordinates

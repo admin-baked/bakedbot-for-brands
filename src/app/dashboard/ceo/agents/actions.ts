@@ -353,10 +353,13 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
             lowerMessage.includes('research');
 
         // Specialized Dispensary Search
-        const isDispensarySearch = lowerMessage.includes('dispensary') || lowerMessage.includes('retailer') || lowerMessage.includes('shop');
+        const isDispensarySearch = lowerMessage.includes('dispensary') ||
+            lowerMessage.includes('retailer') ||
+            lowerMessage.includes('shop') ||
+            lowerMessage.includes('cannmenus');
         const isBuyerMatchRequest = lowerMessage.includes('buyer') || lowerMessage.includes('customer');
 
-        if (isDispensarySearch && isSearchRequest) {
+        if (isDispensarySearch && (isSearchRequest || lowerMessage.includes('research'))) {
             executedTools.push({
                 id: `cannmenus-${Date.now()}`,
                 name: 'CannMenus Discovery',
@@ -366,6 +369,12 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
 
             try {
                 const cannmenus = new CannMenusService();
+
+                // Try to get actual brand context from user profile
+                const { requireUser } = await import('@/server/auth/auth');
+                const user = await requireUser();
+                const brandName = (user as any)?.brandName || '40 Tons'; // Fallback to a real brand they've been searching for
+                const brandId = (user as any)?.brandId || 'demo-brand';
 
                 // If it's a buyer match request, add that context
                 let buyerContext = '';
@@ -377,8 +386,6 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
                         result: 'Analyzing buyer profiles...'
                     });
 
-                    // Mock/Get intuition data (using brandId from context if available)
-                    const brandId = 'demo-brand';
                     const intuition = getIntuitionSummary(brandId);
                     buyerContext = `Our buyers prefer: ${intuition.topEffects.join(', ')}. They look for ${intuition.topFormats.join(', ')}.`;
 
@@ -387,21 +394,21 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
                 }
 
                 // Try to find the city/state or use brand defaults
-                const cityMatch = userMessage.match(/in ([\w\s]+),? (\w{2})/i);
-                const results = await cannmenus.findRetailersCarryingBrand('Pure Greens', 20); // Using a demo brand name
+                const results = await cannmenus.findRetailersCarryingBrand(brandName, 20);
 
                 executedTools[executedTools.length - 1].status = 'success';
-                executedTools[executedTools.length - 1].result = `Discovered ${results.length} locations`;
+                executedTools[executedTools.length - 1].result = `Discovered ${results.length} locations for ${brandName}`;
 
                 const synthesis = await ai.generate({
                     prompt: `You are a Retail Strategic Advisor for cannabis brands.
+                    Your Brand: ${brandName}
                     User Request: "${userMessage}"
                     Buyer Context: "${buyerContext}"
-                    Found Data: ${JSON.stringify(results)}
+                    Found Data: ${JSON.stringify(results.slice(0, 5))} ... and ${Math.max(0, results.length - 5)} others.
                     
-                    Task: Map these dispensaries to our target buyers. 
-                    - Highlight the top 3-5 that match best.
-                    - Provide a summary of all 20 if available.
+                    Task: Map these dispensaries to our target buyers for ${brandName}. 
+                    - Highlight the top locations that match best.
+                    - Provide a summary of our footprint.
                     - Use a professional tone.
                     - Format as a clear report with names, cities, and "Match Score".`
                 });
@@ -413,8 +420,14 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
             } catch (e: any) {
                 console.error('[runAgentChat] Dispensary search failed:', e);
                 executedTools[executedTools.length - 1].status = 'error';
-                executedTools[executedTools.length - 1].result = e.message;
-                // Fall through to general search if specialized fails
+                executedTools[executedTools.length - 1].result = e.message || 'Search failed';
+                // If it failed due to auth or something high-level, don't fall through to generic search
+                if (e.message.includes('auth') || e.message.includes('unauthorized')) {
+                    return {
+                        content: `⚠️ **Search Interrupted**: ${e.message}`,
+                        toolCalls: executedTools
+                    };
+                }
             }
         }
 

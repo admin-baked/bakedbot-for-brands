@@ -9,19 +9,20 @@ import { ArrowLeft, Settings, Activity, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 interface PageProps {
-    params: {
+    params: Promise<{
         agentId: string;
-    };
+    }>;
 }
 
 export default async function AgentDetailsPage({ params }: PageProps) {
+    const { agentId } = await params;
+
     try {
         await requireUser(['brand', 'owner']);
     } catch (error) {
         redirect('/dashboard');
     }
 
-    const { agentId } = params;
     const agent = agents.find(a => a.id === agentId);
 
     if (!agent) {

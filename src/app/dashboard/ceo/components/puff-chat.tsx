@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -286,7 +287,28 @@ export function PuffChat({
     const [showTriggers, setShowTriggers] = useState(false);
     const [showPermissions, setShowPermissions] = useState(true);
     const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
+    const searchParams = useSearchParams();
     const [persona, setPersona] = useState<AgentPersona>('puff');
+
+    // Effect to read persona from query parameters
+    useEffect(() => {
+        const agentParam = searchParams.get('agent') || searchParams.get('persona');
+        if (agentParam) {
+            // Map common agent IDs to their corresponding personas if names differ
+            const mapping: Record<string, AgentPersona> = {
+                'smokey': 'puff', // Smokey is the general budtender/assistant
+                'ezal': 'menu_watchdog',
+                'craig': 'sales_scout',
+                'pops': 'wholesale_analyst',
+                'money-mike': 'wholesale_analyst', // Fallback for now
+            };
+
+            const targetPersona = (mapping[agentParam] || agentParam) as AgentPersona;
+            if (['puff', 'wholesale_analyst', 'menu_watchdog', 'sales_scout'].includes(targetPersona)) {
+                setPersona(targetPersona);
+            }
+        }
+    }, [searchParams]);
 
     // Effect to scroll to bottom on new messages
     // ... (omitted for brevity, scroll logic is usually handled by ScrollArea or separate ref)

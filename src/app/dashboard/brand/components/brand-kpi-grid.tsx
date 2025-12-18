@@ -21,31 +21,31 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export function BrandKPIs() {
+export function BrandKPIs({ data }: { data?: any }) {
     // STUB: Real data would come from context or query
     const stats = {
         coverage: {
-            value: 42,
-            trend: '+2',
-            label: 'Stores Carrying',
-            lastUpdated: '2m ago',
+            value: data?.coverage?.value || 42,
+            trend: data?.coverage?.trend || '+2',
+            label: data?.coverage?.label || 'Stores Carrying',
+            lastUpdated: data?.coverage?.lastUpdated || '2m ago',
             source: 'Live Scrape',
             definition: 'Total unique dispensaries with at least one active SKU in stock.'
         },
         velocity: {
-            value: '18',
-            unit: 'units/wk',
-            trend: '+5%',
-            label: 'Avg per Store',
-            lastUpdated: '1h ago',
+            value: data?.velocity?.value || '18',
+            unit: data?.velocity?.unit || 'units/wk',
+            trend: data?.velocity?.trend || '+5%',
+            label: data?.velocity?.label || 'Avg per Store',
+            lastUpdated: data?.velocity?.lastUpdated || '1h ago',
             source: 'POS Integration',
             definition: 'Average weekly units sold per store across all active accounts.'
         },
         priceIndex: {
-            value: '+6%',
-            status: 'good',
-            label: 'vs. Market Avg',
-            lastUpdated: '5m ago',
+            value: data?.priceIndex?.value || '+6%',
+            status: data?.priceIndex?.status || 'good',
+            label: data?.priceIndex?.label || 'vs. Market Avg',
+            lastUpdated: data?.priceIndex?.lastUpdated || '5m ago',
             source: 'Ezal Competitor Intel',
             definition: 'Your average price compared to direct competitors in the same market.'
         },
@@ -58,10 +58,10 @@ export function BrandKPIs() {
             definition: 'The percentage of target retail doors where your brand is present versus your top competitor.'
         },
         compliance: {
-            approved: 8,
-            blocked: 1,
-            label: 'Active Campaigns',
-            lastUpdated: 'Real-time',
+            approved: data?.compliance?.approved || 8,
+            blocked: data?.compliance?.blocked || 1,
+            label: data?.compliance?.label || 'Active Campaigns',
+            lastUpdated: data?.compliance?.lastUpdated || 'Real-time',
             source: 'Deebo Compliance Engine',
             definition: 'Number of creative assets approved vs blocked by state compliance filters.'
         }
@@ -164,8 +164,14 @@ export function BrandKPIs() {
                     <CardContent>
                         <div className="flex items-center justify-between">
                             <div className="text-2xl font-bold">{stats.priceIndex.value}</div>
-                            <Badge variant="outline" className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-700">
-                                Healthy
+                            <Badge
+                                variant="outline"
+                                className={`text-[10px] ${stats.priceIndex.status === 'good'
+                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                        : 'border-amber-200 bg-amber-50 text-amber-700'
+                                    }`}
+                            >
+                                {stats.priceIndex.status === 'good' ? 'Healthy' : 'Price Gap'}
                             </Badge>
                         </div>
                         <div className="flex items-center justify-between mt-1">

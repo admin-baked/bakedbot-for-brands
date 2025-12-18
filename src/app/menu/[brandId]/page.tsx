@@ -2,10 +2,10 @@
 import { MenuPage } from '@/components/menu-page';
 
 type MenuPageProps = {
-  params: { brandId: string };
+  params: Promise<{ brandId: string }>;
 };
 
-export default function BrandMenuPage({ params }: MenuPageProps) {
-  const brandId = params.brandId ?? 'default';
-  return <MenuPage brandId={brandId} />;
+export default async function BrandMenuPage({ params }: MenuPageProps) {
+  const { brandId } = await params;
+  return <MenuPage brandId={brandId || 'default'} />;
 }

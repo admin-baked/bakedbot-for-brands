@@ -66,6 +66,9 @@ const MOCK_PLAYBOOKS: Playbook[] = [
 
 export default function PlaybooksPage() {
   const { role, user } = useUserRole();
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Disabled'>('All');
 
   // Redirect Dispensary users to their specific console (which includes playbooks)
   if (role === 'dispensary') {
@@ -76,10 +79,6 @@ export default function PlaybooksPage() {
   if (role === 'brand') {
     return <BrandPlaybooksView />;
   }
-
-  const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Disabled'>('All');
 
   const filteredPlaybooks = MOCK_PLAYBOOKS.filter(playbook => {
     const matchesSearch = playbook.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
