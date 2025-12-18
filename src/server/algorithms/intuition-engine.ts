@@ -238,6 +238,8 @@ export function getIntuitionSummary(brandId: string): {
     global_blend: number;
     interactions: number;
     top_insight: string | null;
+    topEffects: string[];
+    topFormats: string[];
 } {
     const intuition = getBrandIntuition(brandId);
     const insights = getBrandInsights(brandId);
@@ -256,6 +258,8 @@ export function getIntuitionSummary(brandId: string): {
         global_blend: intuition.global_influence * 100,
         interactions: intuition.total_interactions,
         top_insight: insights[0]?.title || null,
+        topEffects: ['Relaxed', 'Happy', 'Euphoric'], // Bootstrap defaults
+        topFormats: ['Flower', 'Vape', 'Gummy'], // Bootstrap defaults
     };
 }
 
