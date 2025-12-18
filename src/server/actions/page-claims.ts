@@ -168,14 +168,14 @@ export async function adminGenerateInvite(
 }
 
 /**
- * Billing webhook: Activate claim after payment
+ * Authorize.net webhook: Activate claim after payment
  */
 export async function handleBillingActivation(
     claimId: string,
-    stripeSubscriptionId: string
+    authorizeNetSubscriptionId: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        return await activateClaim(claimId, stripeSubscriptionId);
+        return await activateClaim(claimId, authorizeNetSubscriptionId);
     } catch (error) {
         console.error('Error activating claim:', error);
         return { success: false, error: 'Failed to activate claim' };
