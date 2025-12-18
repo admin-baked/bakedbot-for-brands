@@ -30,6 +30,7 @@ export default function DispensaryLocator({ locations = [], isLoading = false, c
     selectedRetailerId,
     setSelectedRetailerId,
     setSelectedRetailer,
+    favoriteRetailerId,
     favoriteRetailerIds,
     toggleFavoriteRetailer,
     _hasHydrated

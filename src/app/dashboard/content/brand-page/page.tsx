@@ -36,7 +36,7 @@ export default function BrandPageManager() {
 
             try {
                 const { getFirestore, doc, getDoc } = await import('firebase/firestore');
-                const { app } = await import('@/firebase/config');
+                const { app } = await import('@/firebase/client');
                 const db = getFirestore(app);
 
                 // 1. Get user doc to find brandId

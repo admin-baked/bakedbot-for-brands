@@ -26,7 +26,7 @@ import { blackleafService } from '@/lib/notifications/blackleaf-service';
 import { z } from 'zod';
 import { PERSONAS, AgentPersona } from './personas';
 import { CannMenusService } from '@/server/services/cannmenus';
-import { getCustomerMemoryProfile } from '@/server/intuition/customer-memory';
+import { getCustomerMemory } from '@/server/intuition/customer-memory';
 
 const AGENT_MAP = {
     craig: craigAgent,
