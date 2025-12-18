@@ -1,11 +1,242 @@
 [
-    {
-        "id": 12345,
-        "name": "Sunnyside Cannabis Dispensary - River North",
-        "city": "Chicago",
-        "state": "Illinois",
-        "address": "436 N Clark St",
-        "zip": "60654",
-        "leaflyId": "sunnyside-river-north"
-    }
+  {
+    "id": "ChIJFVO31QgoDogRjB9xV6Onehk",
+    "name": "Mission Dispensary South Chicago",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "8554 S Commercial Ave, Chicago, IL 60617",
+    "location": {
+      "lat": 41.7394304,
+      "lng": -87.5517993
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Mission%20Dispensary%20South%20Chicago&query_place_id=ChIJFVO31QgoDogRjB9xV6Onehk"
+  },
+  {
+    "id": "ChIJOa2_HJotDogRhwmUd-6NpY0",
+    "name": "Guaranteed Dispensary Chicago",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "620 N Fairbanks Ct, Chicago, IL 60611",
+    "location": {
+      "lat": 41.8931014,
+      "lng": -87.6205751
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Guaranteed%20Dispensary%20Chicago&query_place_id=ChIJOa2_HJotDogRhwmUd-6NpY0"
+  },
+  {
+    "id": "ChIJZZtqLRzTD4gR2oAVDbzQKXY",
+    "name": "Verilife Dispensary",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "60 W Superior St, Chicago, IL 60654",
+    "location": {
+      "lat": 41.8959417,
+      "lng": -87.6304765
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Verilife%20Dispensary&query_place_id=ChIJZZtqLRzTD4gR2oAVDbzQKXY"
+  },
+  {
+    "id": "ChIJwVhp0loxDogRYQVUYjLVA1k",
+    "name": "Ascend Cannabis Dispensary - Midway",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "5650 S Archer Ave, Chicago, IL 60638",
+    "location": {
+      "lat": 41.797604,
+      "lng": -87.7521969
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Ascend%20Cannabis%20Dispensary%20-%20Midway&query_place_id=ChIJwVhp0loxDogRYQVUYjLVA1k"
+  },
+  {
+    "id": "ChIJSV10al4tDogRvprGr5kWUoI",
+    "name": "Cookies Chicago Dispensary",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "215 N Clinton St, Chicago, IL 60661",
+    "location": {
+      "lat": 41.8861478,
+      "lng": -87.641131
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Cookies%20Chicago%20Dispensary&query_place_id=ChIJSV10al4tDogRvprGr5kWUoI"
+  },
+  {
+    "id": "ChIJ05pFC_ExDogRyw219FqWoXY",
+    "name": "Maribis Cannabis Weed Dispensary Chicago Archer",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "4570 S Archer Ave, Chicago, IL 60632",
+    "location": {
+      "lat": 41.8102475,
+      "lng": -87.7110475
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Maribis%20Cannabis%20Weed%20Dispensary%20Chicago%20Archer&query_place_id=ChIJ05pFC_ExDogRyw219FqWoXY"
+  },
+  {
+    "id": "ChIJ5egWCYYtDogReoN_BDkdC3k",
+    "name": "Market 96 Neighborhood Dispensary",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "529 S Wells St, Chicago, IL 60607",
+    "location": {
+      "lat": 41.8752454,
+      "lng": -87.6333596
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Market%2096%20Neighborhood%20Dispensary&query_place_id=ChIJ5egWCYYtDogReoN_BDkdC3k"
+  },
+  {
+    "id": "ChIJ_WvbQnsnDogRFBVOoD4ClxI",
+    "name": "Smoke Shop 103",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "300 E 103rd St, Chicago, IL 60628",
+    "location": {
+      "lat": 41.70751,
+      "lng": -87.6159781
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Smoke%20Shop%20103&query_place_id=ChIJ_WvbQnsnDogRFBVOoD4ClxI"
+  },
+  {
+    "id": "ChIJJ8S0kiEhDogRzTzJBBUw2sA",
+    "name": "Hegewisch Nutrition",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "13320 S Baltimore Ave, Chicago, IL 60633",
+    "location": {
+      "lat": 41.6530008,
+      "lng": -87.5473197
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Hegewisch%20Nutrition&query_place_id=ChIJJ8S0kiEhDogRzTzJBBUw2sA"
+  },
+  {
+    "id": "ChIJy3caCgAnDogR5-f8NekmnjE",
+    "name": "Hyde park apts",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "51 S Harper Ave, Chicago, IL 60628",
+    "location": {
+      "lat": 41.7185242,
+      "lng": -87.5860854
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Hyde%20park%20apts&query_place_id=ChIJy3caCgAnDogR5-f8NekmnjE"
+  },
+  {
+    "id": "ChIJeSYFOIgrDogRrxdG-Rz3cZk",
+    "name": "Green House Dispensary Recreational Delivery Store",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "3441 S Calumet Ave, Chicago, IL 60616",
+    "location": {
+      "lat": 41.831421,
+      "lng": -87.617638
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Green%20House%20Dispensary%20Recreational%20Delivery%20Store&query_place_id=ChIJeSYFOIgrDogRrxdG-Rz3cZk"
+  },
+  {
+    "id": "ChIJvym-ELQlDogR-LF_gNmmbcM",
+    "name": "Wakanna For Life",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "411 E 35th St, Chicago, IL 60616",
+    "location": {
+      "lat": 41.8309707,
+      "lng": -87.616443
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Wakanna%20For%20Life&query_place_id=ChIJvym-ELQlDogR-LF_gNmmbcM"
+  },
+  {
+    "id": "ChIJ70XZUPItDogRghsbxB-VAI4",
+    "name": "KUSH SMOKE AND TOBACCO | FLOWER | THC | VAPE - ARCHER",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "2635 W 39th Pl, Chicago, IL 60632",
+    "location": {
+      "lat": 41.8217944,
+      "lng": -87.6911563
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=KUSH%20SMOKE%20AND%20TOBACCO%20%7C%20FLOWER%20%7C%20THC%20%7C%20VAPE%20-%20ARCHER&query_place_id=ChIJ70XZUPItDogRghsbxB-VAI4"
+  },
+  {
+    "id": "ChIJ_bj_LAQvDogREkA0dgoodW4",
+    "name": "Riggity Wrecked Smoke Shop and Novelty",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "2901 W 59th St, Chicago, IL 60629",
+    "location": {
+      "lat": 41.7862738,
+      "lng": -87.6961567
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Riggity%20Wrecked%20Smoke%20Shop%20and%20Novelty&query_place_id=ChIJ_bj_LAQvDogREkA0dgoodW4"
+  },
+  {
+    "id": "ChIJw9GEVmstDogRKj7vUyTlQqw",
+    "name": "Windy City Herbal Pain Solutions",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "2627 W Pershing Rd, Chicago, IL 60632",
+    "location": {
+      "lat": 41.8226496,
+      "lng": -87.6908204
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Windy%20City%20Herbal%20Pain%20Solutions&query_place_id=ChIJw9GEVmstDogRKj7vUyTlQqw"
+  },
+  {
+    "id": "ChIJ__Qe7QExDogRz1ksell-yHA",
+    "name": "Kedzie smoke shop and tobacco",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "6229 S Kedzie Ave, Chicago, IL 60629",
+    "location": {
+      "lat": 41.7799051,
+      "lng": -87.7028859
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Kedzie%20smoke%20shop%20and%20tobacco&query_place_id=ChIJ__Qe7QExDogRz1ksell-yHA"
+  },
+  {
+    "id": "ChIJvyrmHmAvDogRyq_abzOve8w",
+    "name": "Bronzeville Smoke Shop",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "227 E 47th St, Chicago, IL 60615",
+    "location": {
+      "lat": 41.8091439,
+      "lng": -87.6200341
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Bronzeville%20Smoke%20Shop&query_place_id=ChIJvyrmHmAvDogRyq_abzOve8w"
+  },
+  {
+    "id": "ChIJb9tvPNsxDogR43uaGALZ5rk",
+    "name": "Smoke 4 Less",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "5856 S Kedzie Ave, Chicago, IL 60629",
+    "location": {
+      "lat": 41.7864832,
+      "lng": -87.7035139
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Smoke%204%20Less&query_place_id=ChIJb9tvPNsxDogR43uaGALZ5rk"
+  },
+  {
+    "id": "ChIJm75r0YwtDogRVKHie1fC-PU",
+    "name": "Sweetpull | Flower | Tobacco | Glass",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "3809 S Kedzie Ave, Chicago, IL 60632",
+    "location": {
+      "lat": 41.8241107,
+      "lng": -87.7043197
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Sweetpull%20%7C%20Flower%20%7C%20Tobacco%20%7C%20Glass&query_place_id=ChIJm75r0YwtDogRVKHie1fC-PU"
+  },
+  {
+    "id": "ChIJ6_amUS4vDogRn6UwG66ijjQ",
+    "name": "Smokey's",
+    "city": "Chicago",
+    "state": "Illinois",
+    "address": "122 E 75th St, Chicago, IL 60619",
+    "location": {
+      "lat": 41.7584247,
+      "lng": -87.6206733
+    },
+    "url": "https://www.google.com/maps/search/?api=1&query=Smokey's&query_place_id=ChIJ6_amUS4vDogRn6UwG66ijjQ"
+  }
 ]

@@ -17,12 +17,9 @@ import {
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 
-<<<<<<< Updated upstream
 import { useEffect, useState } from 'react';
 import { getBrandDashboardData } from '../actions';
-=======
 import { ManagedPagesList } from '@/components/dashboard/managed-pages-list';
->>>>>>> Stashed changes
 
 export function BrandOverviewView({ brandId }: { brandId: string }) {
     const market = "All Markets";
