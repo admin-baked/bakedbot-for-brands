@@ -61,11 +61,12 @@ export async function POST(request: NextRequest) {
             sameSite: 'lax'
         });
 
-        // Set the cookie - always secure for production
+        // Set the cookie - secure only in production (HTTPS required)
+        const isProduction = process.env.NODE_ENV === 'production';
         (await cookies()).set('__session', sessionCookie, {
             maxAge: expiresIn / 1000, // seconds
             httpOnly: true,
-            secure: true, // Always true for Firebase Hosting/Cloud Run
+            secure: isProduction, // false for localhost, true for production
             path: '/',
             sameSite: 'lax',
         });
