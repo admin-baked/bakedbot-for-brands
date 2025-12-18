@@ -26,6 +26,7 @@ export const PRICING_PLANS = [
         desc: "Best for: operators who want control + measurable demand",
         features: [
             "Verified badge",
+            "Claim a Page",
             "Edit page info + logo + links",
             "Set CTA (Order / Pickup / Find-in-store / Deals / Website)",
             "Basic analytics (views, clicks, top ZIPs)",
@@ -67,7 +68,8 @@ export const PRICING_PLANS = [
         features: [
             "Multi-market page coverage (more ZIPs/zones)",
             "Craig automations starter (claim-to-lead nurture)",
-            "Pops reporting starter (traffic → clicks → claims)"
+            "Pops reporting starter (traffic → clicks → claims)",
+            "Coverage Packs available"
         ],
         pill: "Start Growth",
         highlight: false,
@@ -84,7 +86,8 @@ export const PRICING_PLANS = [
         features: [
             "Expanded coverage + higher limits",
             "Priority support + faster refresh cadence",
-            "Advanced reporting + optimization loop (what to build next / where to expand)"
+            "Advanced reporting + optimization loop (what to build next / where to expand)",
+            "Coverage Packs available"
         ],
         pill: "Start Scale",
         highlight: false,

@@ -4,8 +4,30 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { getAvailablePaymentMethods, PaymentMethod, ProductType } from '@/lib/payments/config';
+import { PRICING_PLANS } from '@/lib/config/pricing';
 
 describe('Payment Configuration', () => {
+    describe('Pricing Plans', () => {
+        it('should have Claim Pro plan with Claim a Page feature', () => {
+            const claimPro = PRICING_PLANS.find(p => p.id === 'claim_pro');
+            expect(claimPro).toBeDefined();
+            expect(claimPro?.price).toBe(99);
+            expect(claimPro?.features).toContain('Claim a Page');
+        });
+
+        it('should have Growth plan with Coverage Packs available', () => {
+            const growth = PRICING_PLANS.find(p => p.id === 'growth');
+            expect(growth).toBeDefined();
+            expect(growth?.features).toContain('Coverage Packs available');
+        });
+
+        it('should have Scale plan with Coverage Packs available', () => {
+            const scale = PRICING_PLANS.find(p => p.id === 'scale');
+            expect(scale).toBeDefined();
+            expect(scale?.features).toContain('Coverage Packs available');
+        });
+    });
+
     describe('getAvailablePaymentMethods', () => {
         it('should always include PAY_AT_PICKUP', () => {
             const options = getAvailablePaymentMethods(false, {

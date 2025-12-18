@@ -31,7 +31,7 @@ loadEnv();
 
 const APIFY_TOKEN = process.env.APIFY_API_TOKEN;
 const APIFY_ACTOR_ID = '5BLF5SzgsgQjg1AES';
-const MAX_STORES = 20; // Updated for user request: "Find 20 new dispensaries"
+const MAX_STORES = 5; // Updated for sample scan as per user request
 const STATE = 'Illinois';
 
 if (!APIFY_TOKEN) {
@@ -199,4 +199,10 @@ async function main() {
     console.log(`Saved ${brandsArray.length} brands.`);
 }
 
-main().catch(console.error);
+
+// allow CLI execution or import
+if (require.main === module) {
+    main().catch(console.error);
+}
+
+export { main, apiCall };

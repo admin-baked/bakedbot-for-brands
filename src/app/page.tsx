@@ -427,6 +427,7 @@ export default function HomePage() {
             <Badge className="mb-4">Autonomous Cannabis Commerce OS</Badge>
             <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">
               Get found on Google. Convert shoppers. Stay compliant.
+              <span className="block text-2xl md:text-3xl mt-2 text-muted-foreground font-normal">(For Brands & Dispensaries)</span>
             </h1>
             <p className="mt-4 text-base md:text-lg text-muted-foreground">
               BakedBot AI combines an SEO-first headless menu + Smokey AI budtender, with optional marketing, analytics,
