@@ -744,6 +744,38 @@
             "area": "backend",
             "created_at": "2025-12-17T18:20:00Z",
             "apify_actor": "apify~website-content-crawler"
+        },
+        {
+            "id": "feat_customer_marketplace_v1",
+            "title": "Customer Marketplace + Google Places + Smokey Actions + Reviews",
+            "status": "in_progress",
+            "description": "Major customer-role upgrade turning BakedBot into a consumer intent router. Includes /shop marketplace, Google Places enrichment, Smokey actionable commands, and first-party reviews system.",
+            "acceptance_tests": [
+                "test_shop_page_renders",
+                "test_places_enrichment",
+                "test_smokey_find_action",
+                "test_smokey_alert_create",
+                "test_smokey_cart_prepare",
+                "test_review_create_flow",
+                "test_review_moderation",
+                "test_google_attribution_display"
+            ],
+            "phases": [
+                "Phase A: Places Enrichment Layer",
+                "Phase B: Smokey Actions API",
+                "Phase C: /shop Marketplace",
+                "Phase D: First-Party Reviews",
+                "Phase E: Alerts + Jobs",
+                "Phase F: Rollout + QA"
+            ],
+            "spec_version": "v1.0",
+            "owner": "product_ceo",
+            "dependencies": [
+                "feat_gmaps_scraper_integration",
+                "feat_claimed_page_checkout"
+            ],
+            "area": "full_stack",
+            "created_at": "2025-12-18T04:15:00Z"
         }
     ]
 }

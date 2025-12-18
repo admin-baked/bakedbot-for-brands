@@ -247,3 +247,14 @@ unAgentChat in ctions.ts to return standardized AgentResult with rich metadata.
   - Created `tests/server/ezal-lite.test.ts` - 15 unit tests
 - **Cost Target**: ~$0.05-0.12 per snapshot using Website Content Crawler
 
+## 2025-12-18T04:15Z – feat_customer_marketplace_v1 – antigravity
+- **Started Major Epic: Customer Marketplace + Google Places + Smokey Actions + Reviews**
+- Added to `dev/backlog.json` with 6 phases:
+  - Phase A: Places Enrichment Layer (placeId storage, snapshots with TTL, attribution)
+  - Phase B: Smokey Actions API (`/api/smokey/find`, `/alert/create`, `/cart/prepare`)
+  - Phase C: /shop Marketplace (search, filters, checkout routing)
+  - Phase D: First-Party Reviews (create, moderate, aggregate)
+  - Phase E: Alerts + Jobs (in-stock, price drop, open-now-within)
+  - Phase F: Rollout + QA (soft launch IL, then full)
+- Spec version: v1.0
+- Dependencies: `feat_gmaps_scraper_integration`, `feat_claimed_page_checkout`
