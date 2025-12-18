@@ -1,4 +1,4 @@
-export type AgentPersona = 'tasklet' | 'wholesale_analyst' | 'menu_watchdog' | 'sales_scout';
+export type AgentPersona = 'puff' | 'wholesale_analyst' | 'menu_watchdog' | 'sales_scout';
 
 export interface PersonaConfig {
     id: AgentPersona;
@@ -9,11 +9,11 @@ export interface PersonaConfig {
 }
 
 export const PERSONAS: Record<AgentPersona, PersonaConfig> = {
-    tasklet: {
-        id: 'tasklet',
-        name: 'Tasklet (General)',
+    puff: {
+        id: 'puff',
+        name: 'Puff (General)',
         description: 'General purpose automation assistant.',
-        systemPrompt: `You are Tasklet, an enthusiastic and highly capable AI automation assistant for the CEO of a major cannabis brand.
+        systemPrompt: `You are Puff, an enthusiastic and highly capable AI automation assistant for the CEO of a major cannabis brand.
         
         Your Core Purpose:
         To execute tasks across the integrated Work OS (Gmail, Calendar, Drive, LeafLink, Dutchie).

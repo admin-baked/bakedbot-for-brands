@@ -271,7 +271,7 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
     const activePersona = personaId && PERSONAS[personaId as AgentPersona]
         ? PERSONAS[personaId as AgentPersona]
 
-        : PERSONAS.tasklet;
+        : PERSONAS.puff;
 
     const executedTools: AgentResult['toolCalls'] = [];
 

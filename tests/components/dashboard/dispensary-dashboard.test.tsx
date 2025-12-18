@@ -52,11 +52,11 @@ jest.mock('lucide-react', () => ({
     Bot: () => <div data-testid="icon-bot" />,
 }));
 
-// Mock TaskletChat because it's complex and we're testing the wrapper
-jest.mock('@/app/dashboard/ceo/components/tasklet-chat', () => ({
-    TaskletChat: ({ promptSuggestions }: { promptSuggestions: string[] }) => (
-        <div data-testid="tasklet-chat-mock">
-            Mock Tasklet Chat
+// Mock PuffChat because it's complex and we're testing the wrapper
+jest.mock('@/app/dashboard/ceo/components/puff-chat', () => ({
+    PuffChat: ({ promptSuggestions }: { promptSuggestions: string[] }) => (
+        <div data-testid="puff-chat-mock">
+            Mock Puff Chat
             {promptSuggestions.map(s => <div key={s} data-testid="prompt-chip">{s}</div>)}
         </div>
     )
@@ -85,9 +85,9 @@ describe('DispensaryDashboardClient', () => {
 
         // Chat Widget
         expect(screen.getByText('Ask Smokey (Dispensary)')).toBeInTheDocument();
-        expect(screen.getByTestId('tasklet-chat-mock')).toBeInTheDocument();
+        expect(screen.getByTestId('puff-chat-mock')).toBeInTheDocument();
 
-        // Check for prompt chips passed to TaskletChat
+        // Check for prompt chips passed to PuffChat
         expect(screen.getByText('What’s hurting conversion today?')).toBeInTheDocument();
 
         // Right Sidebar

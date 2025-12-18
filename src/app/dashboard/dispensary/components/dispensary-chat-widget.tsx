@@ -1,6 +1,6 @@
 'use client';
 
-import { TaskletChat } from '@/app/dashboard/ceo/components/tasklet-chat';
+import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
 import { Card } from '@/components/ui/card';
 import { Sparkles } from 'lucide-react';
 
@@ -22,7 +22,7 @@ export function DispensaryChatWidget() {
                 </h3>
             </div>
             <div className="flex-1 overflow-hidden">
-                <TaskletChat
+                <PuffChat
                     initialTitle="Ops Assistant"
                     promptSuggestions={DISPENSARY_PROMPTS}
                 />

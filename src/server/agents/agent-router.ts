@@ -11,7 +11,7 @@ import { logger } from '@/lib/logger';
 
 // --- Agent Definitions ---
 
-export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mrs_parker' | 'general' | 'tasklet';
+export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mrs_parker' | 'general' | 'puff';
 
 export interface AgentCapability {
     id: AgentId;
