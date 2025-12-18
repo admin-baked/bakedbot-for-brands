@@ -507,16 +507,18 @@
             "id": "feat_organic_growth_seo",
             "title": "Reverse-Engineer Weedmaps/Leafly & Upgrade Pages (Organic Growth)",
             "status": "in_progress",
-            "description": "Execute the organic growth agent plan. 1) Competitive Intel (SERP analysis), 2) Page Upgrades (ZIP/Brand/Dispensary templates), 3) Scale Coverage (City Hubs, Backlinks).",
+            "description": "Execute the organic growth agent plan. 1) Competitive Intel (SERP analysis), 2) Page Upgrades (ZIP/Brand/Dispensary templates), 3) Scale Coverage (1,000 Zip Pages, City Hubs, Backlinks).",
             "acceptance_tests": [
                 "check_serp_watchlist_created",
                 "check_competitor_matrix_created",
-                "check_zip_template_upgraded"
+                "check_zip_template_upgraded",
+                "check_city_hub_template_created",
+                "check_internal_linking_structure"
             ],
             "phases": [
                 "Phase 1: Competitive Intel (Ezal) ⏳",
                 "Phase 2: Page Upgrades (Smokey/Pops) ⏳",
-                "Phase 3: Scale Coverage ⏳"
+                "Phase 3: Scale Coverage (Wave 1: Illinois Soft Launch) 🔄"
             ],
             "owner": "growth_orchestrator",
             "dependencies": [

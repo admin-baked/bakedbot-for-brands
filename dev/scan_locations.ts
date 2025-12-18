@@ -127,171 +127,178 @@ async function searchRetailers(zip: string, state: string) {
 }
 
 async function main() {
-    const csvPath = path.resolve(process.cwd(), 'dev/target_locations.csv');
-    const updatedCsvPath = path.resolve(process.cwd(), 'dev/target_locations_updated.csv');
-    const dispensariesPath = path.resolve(process.cwd(), 'dev/discovered_dispensaries.json');
+    try {
+        const csvPath = path.resolve(process.cwd(), 'dev/target_locations.csv');
+        const updatedCsvPath = path.resolve(process.cwd(), 'dev/target_locations_updated.csv');
+        const dispensariesPath = path.resolve(process.cwd(), 'dev/discovered_dispensaries.json');
 
-    // Load Data
-    const rawData = fs.readFileSync(csvPath, 'utf-8');
-    const lines = rawData.split(/\r?\n/).filter(line => line.trim().length > 0);
-    const headers = lines[0].split(',').map(h => h.trim());
+        // Load Data
+        const rawData = fs.readFileSync(csvPath, 'utf-8');
+        const lines = rawData.split(/\r?\n/).filter(line => line.trim().length > 0);
+        const headers = lines[0].split(',').map(h => h.trim());
 
-    // Load Existing Dispensaries
-        ?JSON.parse(fs.readFileSync(dispensariesPath, 'utf-8'))
-        : [];
+        // Load Existing Dispensaries
+        const existingDispensaries = fs.existsSync(dispensariesPath)
+            ? JSON.parse(fs.readFileSync(dispensariesPath, 'utf-8'))
+            : [];
 
-    // FILTER: Sanitize existing data to remove non-target states (e.g. from bad API results)
-    const validExisting = existingDispensaries.filter((d: any) =>
-        TARGET_STATES.map(s => s.toLowerCase()).includes(d.state?.toLowerCase())
-    );
-    if (validExisting.length < existingDispensaries.length) {
-        log(`Sanitized ${existingDispensaries.length - validExisting.length} non-target dispensaries from existing data.`);
-    }
-
-    const uniqueDispensaries = new Map<string, any>();
-    validExisting.forEach((d: any) => uniqueDispensaries.set(String(d.id), d));
-    log(`Loaded ${uniqueDispensaries.size} existing dispensaries.`);
-
-    const records: ZipRecord[] = [];
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i];
-        const cols = line.split(',');
-        const record: any = {};
-        headers.forEach((h, idx) => {
-            if (h) record[h] = cols[idx]?.trim();
-        });
-        record.has_dispensary = record.has_dispensary || 'False';
-        record.dispensary_count = parseInt(record.dispensary_count) || 0;
-        record.status = record.status || 'pending';
-        record.scanned = false;
-        records.push(record as ZipRecord);
-    }
-
-    // Filter to target states
-    let activeRecords = records.filter(r => TARGET_STATES.includes(r.state));
-    if (LIMIT !== Infinity) {
-        activeRecords = activeRecords.slice(0, LIMIT);
-    }
-
-    log(`Processing ${activeRecords.length} records...`);
-
-    // --- STATE ---
-    // Use City|State as the discovery key since zip codes are not in the API response
-    const verifiedCities = new Set<string>();
-
-    let apiCalls = 0;
-    let skipped = 0;
-
-    for (let i = 0; i < activeRecords.length; i++) {
-        const record = activeRecords[i];
-        const cityKey = `${record.city.toLowerCase()}|${record.state.toLowerCase()}`;
-
-        // Progress Log every 50
-        if (i % 50 === 0) {
-            process.stdout.write(`\r[${i}/${activeRecords.length}] API Calls: ${apiCalls} | Skipped: ${skipped} | Found: ${uniqueDispensaries.size} Dispensaries`);
+        // FILTER: Sanitize existing data to remove non-target states (e.g. from bad API results)
+        const validExisting = existingDispensaries.filter((d: any) =>
+            TARGET_STATES.map(s => s.toLowerCase()).includes(d.state?.toLowerCase())
+        );
+        if (validExisting.length < existingDispensaries.length) {
+            log(`Sanitized ${existingDispensaries.length - validExisting.length} non-target dispensaries from existing data.`);
         }
 
-        // SMART DISCOVERY CHECK (City-based)
-        if (verifiedCities.has(cityKey)) {
-            record.has_dispensary = 'True';
-            record.likely_brand_coverage = 'True';
-            record.status = 'verified (city-inferred)';
+        const uniqueDispensaries = new Map<string, any>();
+        validExisting.forEach((d: any) => uniqueDispensaries.set(String(d.id), d));
+        log(`Loaded ${uniqueDispensaries.size} existing dispensaries.`);
+
+        const records: ZipRecord[] = [];
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            const cols = line.split(',');
+            const record: any = {};
+            headers.forEach((h, idx) => {
+                if (h) record[h] = cols[idx]?.trim();
+            });
+            record.has_dispensary = record.has_dispensary || 'False';
+            record.dispensary_count = parseInt(record.dispensary_count) || 0;
+            record.status = record.status || 'pending';
             record.scanned = false;
-            skipped++;
-            continue;
+            records.push(record as ZipRecord);
         }
 
-        // Rate Limit - 1 second pause every 10 calls
-        if (apiCalls > 0 && apiCalls % 10 === 0) {
-            await new Promise(r => setTimeout(r, 1000));
+        // Filter to target states
+        let activeRecords = records.filter(r => TARGET_STATES.includes(r.state));
+        if (LIMIT !== Infinity) {
+            activeRecords = activeRecords.slice(0, LIMIT);
         }
 
-        const { error, data } = await searchRetailers(record.zip_code, record.state);
-        apiCalls++;
-        record.scanned = true;
+        log(`Processing ${activeRecords.length} records...`);
 
-        if (error) {
-            record.status = 'error: ' + error;
-        } else {
-            const count = data.length;
-            record.dispensary_count = count;
+        // --- STATE ---
+        // Use City|State as the discovery key since zip codes are not in the API response
+        const verifiedCities = new Set<string>();
 
-            if (count > 0) {
+        let apiCalls = 0;
+        let skipped = 0;
+
+        for (let i = 0; i < activeRecords.length; i++) {
+            const record = activeRecords[i];
+            const cityKey = `${record.city.toLowerCase()}|${record.state.toLowerCase()}`;
+
+            // Progress Log every 50
+            if (i % 50 === 0) {
+                process.stdout.write(`\r[${i}/${activeRecords.length}] API Calls: ${apiCalls} | Skipped: ${skipped} | Found: ${uniqueDispensaries.size} Dispensaries`);
+            }
+
+            // SMART DISCOVERY CHECK (City-based)
+            if (verifiedCities.has(cityKey)) {
                 record.has_dispensary = 'True';
-                record.status = 'verified';
                 record.likely_brand_coverage = 'True';
+                record.status = 'verified (city-inferred)';
+                record.scanned = false;
+                skipped++;
+                continue;
+            }
 
-                // HARVEST NEIGHBORS - Mark all discovered cities as verified
-                data.forEach((r: any) => {
-                    const id = r.id || r.retailer_id;
-                    const rCity = r.city?.toLowerCase();
-                    const rState = r.state?.toLowerCase(); // API state
+            // Rate Limit - 1 second pause every 10 calls
+            if (apiCalls > 0 && apiCalls % 10 === 0) {
+                await new Promise(r => setTimeout(r, 1000));
+            }
 
-                    // STRICT FILTER: Only accept retailers in TARGET_STATES
-                    const isTargetState = TARGET_STATES.map(s => s.toLowerCase()).includes(rState);
-                    if (!isTargetState) return;
+            const { error, data } = await searchRetailers(record.zip_code, record.state);
+            apiCalls++;
+            record.scanned = true;
 
-                    const name = r.dispensary_name || r.name || 'Unknown';
-                    // Add Retailer
-                    if (id && !uniqueDispensaries.has(String(id))) {
-                        uniqueDispensaries.set(String(id), {
-                            id: id,
-                            name: name,
-                            city: r.city,
-                            state: r.state,
-                            address: r.physical_address || r.address
-                        });
-                    }
-
-                    // Mark City as Verified (only if in target states)
-                    if (rCity && rState && TARGET_STATES.map(s => s.toLowerCase()).includes(rState)) {
-                        verifiedCities.add(`${rCity}|${rState}`);
-                    }
-                });
+            if (error) {
+                record.status = 'error: ' + error;
             } else {
-                record.status = 'empty';
-                record.has_dispensary = 'False';
+                const count = data.length;
+                record.dispensary_count = count;
+
+                if (count > 0) {
+                    record.has_dispensary = 'True';
+                    record.status = 'verified';
+                    record.likely_brand_coverage = 'True';
+
+                    // HARVEST NEIGHBORS - Mark all discovered cities as verified
+                    data.forEach((r: any) => {
+                        const id = r.id || r.retailer_id;
+                        const rCity = r.city?.toLowerCase();
+                        const rState = r.state?.toLowerCase(); // API state
+
+                        // STRICT FILTER: Only accept retailers in TARGET_STATES
+                        const isTargetState = TARGET_STATES.map(s => s.toLowerCase()).includes(rState);
+                        if (!isTargetState) return;
+
+                        const name = r.dispensary_name || r.name || 'Unknown';
+                        // Add Retailer
+                        if (id && !uniqueDispensaries.has(String(id))) {
+                            uniqueDispensaries.set(String(id), {
+                                id: id,
+                                name: name,
+                                city: r.city,
+                                state: r.state,
+                                address: r.physical_address || r.address
+                            });
+                        }
+
+                        // Mark City as Verified (only if in target states)
+                        if (rCity && rState && TARGET_STATES.map(s => s.toLowerCase()).includes(rState)) {
+                            verifiedCities.add(`${rCity}|${rState}`);
+                        }
+                    });
+                } else {
+                    record.status = 'empty';
+                    record.has_dispensary = 'False';
+                }
             }
         }
-    }
 
-    process.stdout.write('\n');
-    log('Scan Complete.');
-    log(`Total API Calls: ${apiCalls}`);
-    log(`Smart Skips (City-based): ${skipped}`);
-    log(`Total Dispensaries Found: ${uniqueDispensaries.size}`);
-    log(`Verified Cities: ${verifiedCities.size}`);
+        process.stdout.write('\n');
+        log('Scan Complete.');
+        log(`Total API Calls: ${apiCalls}`);
+        log(`Smart Skips (City-based): ${skipped}`);
+        log(`Total Dispensaries Found: ${uniqueDispensaries.size}`);
+        log(`Verified Cities: ${verifiedCities.size}`);
 
-    // --- WRITE OUTPUT ---
+        // --- WRITE OUTPUT ---
 
-    // Back-fill verified status for ALL records (even those not in activeRecords if LIMIT was used)
-    for (const r of records) {
-        const cityKey = `${r.city.toLowerCase()}|${r.state.toLowerCase()}`;
-        if (verifiedCities.has(cityKey) && r.has_dispensary !== 'True') {
-            r.has_dispensary = 'True';
-            r.status = 'verified (city-inferred)';
-            r.likely_brand_coverage = 'True';
+        // Back-fill verified status for ALL records (even those not in activeRecords if LIMIT was used)
+        for (const r of records) {
+            const cityKey = `${r.city.toLowerCase()}|${r.state.toLowerCase()}`;
+            if (verifiedCities.has(cityKey) && r.has_dispensary !== 'True') {
+                r.has_dispensary = 'True';
+                r.status = 'verified (city-inferred)';
+                r.likely_brand_coverage = 'True';
+            }
         }
+
+        // Write CSV
+        // Ensure we don't duplicate columns if they were already in headers
+        const baseHeaders = headers.filter(h => h !== 'dispensary_count' && h !== 'status_detail');
+        const finalHeaders = [...baseHeaders, 'dispensary_count', 'status_detail'];
+
+        const finalLines = [
+            finalHeaders.join(','),
+            ...records.map(r => {
+                const row = baseHeaders.map(h => (r as any)[h] || '');
+                return [...row, r.dispensary_count || 0, r.status || ''].join(',');
+            })
+        ];
+        fs.writeFileSync(updatedCsvPath, finalLines.join('\n'));
+        log(`Saved updated CSV to ${updatedCsvPath}`);
+
+        // Write JSON
+        fs.writeFileSync(dispensariesPath, JSON.stringify(Array.from(uniqueDispensaries.values()), null, 2));
+        log(`Saved dispensaries to ${dispensariesPath}`);
+    } catch (error) {
+        console.error("FATAL ERROR IN SCAN_LOCATIONS:", error);
+        log("FATAL ERROR: " + error);
+        process.exit(1);
     }
-
-    // Write CSV
-    // Ensure we don't duplicate columns if they were already in headers
-    const baseHeaders = headers.filter(h => h !== 'dispensary_count' && h !== 'status_detail');
-    const finalHeaders = [...baseHeaders, 'dispensary_count', 'status_detail'];
-
-    const finalLines = [
-        finalHeaders.join(','),
-        ...records.map(r => {
-            const row = baseHeaders.map(h => (r as any)[h] || '');
-            return [...row, r.dispensary_count || 0, r.status || ''].join(',');
-        })
-    ];
-    fs.writeFileSync(updatedCsvPath, finalLines.join('\n'));
-    log(`Saved updated CSV to ${updatedCsvPath}`);
-
-    // Write JSON
-    fs.writeFileSync(dispensariesPath, JSON.stringify(Array.from(uniqueDispensaries.values()), null, 2));
-    log(`Saved dispensaries to ${dispensariesPath}`);
 }
 
 main().catch(e => {

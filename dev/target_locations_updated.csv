@@ -6547,7 +6547,7 @@ zip_code,city,state,market_type,has_dispensary,likely_brand_coverage,status,disp
 60438,Lansing,Illinois,adult-use,True,True,verified,20,verified
 60439,Lemont,Illinois,adult-use,True,True,verified,20,verified
 60440,Bolingbrook,Illinois,adult-use,True,True,verified,20,verified
-60441,Lockport,Illinois,adult-use,True,True,verified,20,verified
+60441,Lockport,Illinois,adult-use,True,True,error: fetch failed,0,error: fetch failed
 60442,Manhattan,Illinois,adult-use,True,True,verified,20,verified
 60443,Matteson,Illinois,adult-use,True,True,verified,20,verified
 60444,Mazon,Illinois,adult-use,True,True,verified,20,verified
