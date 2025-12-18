@@ -8,6 +8,8 @@ export interface CityPageData {
     slug: string;
     dispensaryCount: number;
     description?: string;
+    zipCodes?: string[];
+    editorialIntro?: string; // HTML or Markdown content
 }
 
 export async function fetchCityPageData(citySlug: string) {
