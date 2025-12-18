@@ -75,6 +75,7 @@ export async function createCustomerMemory(
         favoriteEffects: [],
         avoidEffects: [],
         preferredFormats: [],
+        favoriteDispensaryIds: [],
         potencyTolerance: 'medium',
         lastProducts: [],
         interactionCount: 0,

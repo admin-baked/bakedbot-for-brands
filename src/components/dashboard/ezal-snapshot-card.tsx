@@ -217,7 +217,14 @@ export function EzalSnapshotCard({
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                                 <Clock className="h-4 w-4" />
-                                Scraped {new Date(snapshot.scrapedAt).toLocaleDateString()}
+                                Scraped {(() => {
+                                    try {
+                                        const date = new Date(snapshot.scrapedAt);
+                                        return isNaN(date.getTime()) ? 'Recently' : date.toLocaleDateString();
+                                    } catch (e) {
+                                        return 'Recently';
+                                    }
+                                })()}
                             </div>
                             <Badge variant={snapshot.freshness === 'fresh' ? 'default' : 'secondary'}>
                                 {snapshot.freshness}

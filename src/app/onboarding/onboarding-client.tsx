@@ -30,7 +30,7 @@ type BrandResult = {
   market: string | null;
 };
 
-type Step = 'role' | 'brand-search' | 'manual' | 'integrations' | 'features' | 'review';
+type Step = 'role' | 'brand-search' | 'manual' | 'integrations' | 'competitors' | 'features' | 'review';
 
 export default function OnboardingPage() {
   const { toast } = useToast();
@@ -57,6 +57,8 @@ export default function OnboardingPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+  const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([]);
+  const [nearbyCompetitors, setNearbyCompetitors] = useState<BrandResult[]>([]);
 
   // Handle URL params for pre-filling (e.g. coming from Claim Page)
   const searchParams = useSearchParams();
@@ -182,6 +184,13 @@ export default function OnboardingPage() {
   function handleEntitySelect(entity: { id: string, name: string }) {
     setSelectedCannMenusEntity(entity);
     if (role === 'dispensary') {
+      // Pre-fetch competitors if we can (mocked for now, or use zip)
+      setNearbyCompetitors([
+        { id: 'disp_001', name: 'Green Valley Collective', market: 'Nearby' },
+        { id: 'disp_002', name: 'The Higher Path', market: 'Nearby' },
+        { id: 'disp_003', name: 'Sweet Flower', market: 'Nearby' },
+        { id: 'disp_004', name: 'MedMen', market: 'Nearby' }
+      ]);
       setStep('integrations');
     } else {
       setStep('review');
@@ -404,6 +413,42 @@ export default function OnboardingPage() {
 
       <div className="flex gap-2 justify-between pt-4">
         <Button variant="ghost" onClick={() => setStep('brand-search')}>Back</Button>
+        <Button onClick={() => setStep('competitors')}>Continue</Button>
+      </div>
+    </section>
+  );
+
+  const renderCompetitorsStep = () => (
+    <section className="space-y-4">
+      <div className="space-y-2">
+        <h2 className="font-semibold text-xl">Select your competitors</h2>
+        <p className="text-sm text-muted-foreground">Select up to 5 nearby dispensaries you&apos;d like to track.</p>
+      </div>
+
+      <div className="grid gap-3">
+        {nearbyCompetitors.map((comp) => (
+          <div
+            key={comp.id}
+            className={`p-4 border rounded-xl cursor-pointer transition-all flex items-center justify-between ${selectedCompetitors.includes(comp.id) ? 'bg-primary/5 border-primary shadow-sm' : 'hover:bg-muted/50'}`}
+            onClick={() => {
+              if (selectedCompetitors.includes(comp.id)) {
+                setSelectedCompetitors(prev => prev.filter(id => id !== comp.id));
+              } else if (selectedCompetitors.length < 5) {
+                setSelectedCompetitors(prev => [...prev, comp.id]);
+              }
+            }}
+          >
+            <div>
+              <h3 className="font-semibold">{comp.name}</h3>
+              <p className="text-xs text-muted-foreground">{comp.market}</p>
+            </div>
+            {selectedCompetitors.includes(comp.id) && <CheckCircle className="h-5 w-5 text-primary" />}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2 justify-between pt-4">
+        <Button variant="ghost" onClick={() => setStep('integrations')}>Back</Button>
         <Button onClick={() => setStep('features')}>Continue</Button>
       </div>
     </section>
@@ -494,6 +539,7 @@ export default function OnboardingPage() {
           <input type="hidden" name="posProvider" value={posConfig.provider} />
           <input type="hidden" name="posApiKey" value={posConfig.apiKey} />
           <input type="hidden" name="posDispensaryId" value={posConfig.id} />
+          <input type="hidden" name="competitors" value={selectedCompetitors.join(',')} />
 
           {/* Intercepted Submit Button */}
           <Button
@@ -531,6 +577,7 @@ export default function OnboardingPage() {
         {step === 'brand-search' && renderSearchStep()}
         {step === 'manual' && renderManualStep()}
         {step === 'integrations' && renderIntegrationsStep()}
+        {step === 'competitors' && renderCompetitorsStep()}
         {step === 'features' && renderFeaturesStep()}
         {step === 'review' && renderReviewStep()}
 

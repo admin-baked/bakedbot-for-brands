@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -186,6 +187,7 @@ export default function DispensariesPage() {
                             <TableRow>
                                 <TableHead>Name</TableHead>
                                 <TableHead>Location</TableHead>
+                                <TableHead>Source</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -199,6 +201,11 @@ export default function DispensariesPage() {
                                             <MapPin className="h-3 w-3 text-muted-foreground" />
                                             {dispensary.city}, {dispensary.state}
                                         </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant={dispensary.source === 'automated' ? 'secondary' : 'default'} className="capitalize">
+                                            {dispensary.source || 'Manual'}
+                                        </Badge>
                                     </TableCell>
                                     <TableCell>
                                         <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800">

@@ -67,6 +67,13 @@ export function useDashboardConfig() {
         roles: ['brand', 'owner'],
       },
       {
+        label: 'Competitive Intel',
+        href: '/dashboard/competitive-intel',
+        icon: 'Zap',
+        description: 'Track competitor pricing, menus, and local market share.',
+        roles: ['brand', 'dispensary', 'owner'],
+      },
+      {
         label: 'Distribution',
         href: '/dashboard/distribution',
         icon: 'Map',
@@ -255,6 +262,13 @@ export function useDashboardConfig() {
         href: '/dashboard/routines', // This will need a page, or map to playbooks?
         icon: 'Zap',
         description: 'Automated shopping shortcuts.',
+        roles: ['customer'],
+      },
+      {
+        label: 'Favorites',
+        href: '/dashboard/favorites',
+        icon: 'Heart',
+        description: 'Your saved dispensaries and products.',
         roles: ['customer'],
       },
     ];
