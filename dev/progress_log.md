@@ -1,41 +1,59 @@
 
 # Progress Log
 
-## Phase F: 1,000 SEO-Optimized Page Rollout (Wave 1: Illinois)
+## Phase G: Model B Claim-Based Access (Current)
 
-**Status**: In Progress
+**Status**: In Progress  
 **Start Date**: 2025-12-18
 
 ### Objectives
-- Validate "Shop by Zip" and "City Hub" architecture.
-- Soft launch Illinois market (~200 dispensaries, ~1000 ZIP pages).
-- Verify compliance and data enrichment pipelines.
+- Implement invite-only claim model for ZIP/City pages
+- Top 25 ZIPs initial rollout
+- Authorize.net billing integration
+- Smokey Pay (CanPay) for dispensary transactions
 
 ### Completed Steps
-- [x] **Build Fixes**: Resolved critical type errors in `actions.ts` and `page.tsx`.
-- [x] **Location Discovery**: pivoted from CannMenus to Leafly/Apify for richer data.
-    - Verified Illinois data availability.
-    - Implemented `scan_leafly_complete.ts` (with manual seed fallback for dev speed).
-- [x] **Implementation Plan**: Updated strategy to align with 1,000-page rollout spec.
-- [x] **Page Generator Update**:
-    - Added `CitySEOPage` aggregation.
-    - Added State filtering for Zip pages.
-    - Fixed dynamic import issues.
+- [x] **Core Claim System**:
+    - Created `claim-exclusivity.ts` (one-owner-per-ZIP rule, invite codes)
+    - Created `page-claims.ts` server actions (claim workflow)
+    - Updated `coverage-packs.ts` with Model B pricing tiers
+- [x] **Pricing Tiers**: Starter $99/25 ZIPs, Growth $249/100 ZIPs, Scale $699/300 ZIPs
+- [x] **Page Templates**:
+    - Zip pages: Lightweight SEO intro + top-rated snippet + Smokey
+    - City pages: Full editorial with editorialIntro + interactive map
+- [x] **Unit Tests**: claim-exclusivity.test.ts, page-claims.test.ts
+- [x] **Build Fixes**: Fixed `db` -> `firestore: db` in zip API route
+- [x] **Rollout Config**: Created `dev/rollout_config.md`
 
 ### Current Tasks
-- [ ] **Verification**:
-    - Run `generate-pages.ts` dry-run to confirm City/Zip hierarchy.
-    - Validate generated JSON log.
-- [ ] **Execution**:
-    - Run generation against Firestore.
-- [ ] **Frontend**:
-    - Need to start Phase F frontend work (Zip/City page templates).
+- [ ] **Authorize.net Integration**: Create billing adapter
+- [ ] **Smokey Pay Integration**: Connect CanPay for menu payments
+- [ ] **Top 25 ZIP Selection**: Finalize Chicago core ZIPs
+- [ ] **Claim UI**: Build claim flow pages
 
-### Blockers / Risks
-- **Apify Quota/Permissions**: Direct actor run faced permission issues, stalled on large batch. Using manual seed for structure verification. Need to resolve for production data.
+### Billing Configuration
+- **Subscriptions**: Authorize.net (recurring billing)
+- **Menu Payments**: Smokey Pay (CanPay)
+
+---
+
+## Phase F: 1,000 SEO-Optimized Page Rollout (Completed)
+
+**Status**: Complete  
+**Dates**: 2025-12-18
+
+### Completed Steps
+- [x] Generated 200 dispensary pages for Illinois
+- [x] Generated 1,383 ZIP pages for Illinois
+- [x] Created `/zip/[slug]` route and API endpoint
+- [x] Added Deebo SEO Review fields to all page types
+- [x] Updated CEO dashboard with Deebo Review section
+- [x] Fixed brand login redirect (session cookie check in withAuth)
+
+---
 
 ## Previous Phases
 
 ### Phase E: Marketplace Core (Completed)
-- Delivered Brand Dashboard, Dispensary Locator, and Claim Flows.
-- Resolved build and deployment issues.
+- Delivered Brand Dashboard, Dispensary Locator, and Claim Flows
+- Resolved build and deployment issues

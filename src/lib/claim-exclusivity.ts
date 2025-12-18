@@ -28,9 +28,9 @@ export interface PageClaim {
     claimedAt: Date;
     expiresAt: Date | null;
 
-    // Billing
+    // Billing (Authorize.net)
     tierId: string;
-    stripeSubscriptionId?: string;
+    authorizeNetSubscriptionId?: string;
 
     // Invite tracking
     invitedBy?: string; // User ID of inviter
@@ -270,7 +270,7 @@ export async function approveClaim(
  */
 export async function activateClaim(
     claimId: string,
-    stripeSubscriptionId: string
+    authorizeNetSubscriptionId: string
 ): Promise<{ success: boolean; error?: string }> {
     const { firestore } = await createServerClient();
 
@@ -283,7 +283,7 @@ export async function activateClaim(
 
     await claimRef.update({
         status: 'active',
-        stripeSubscriptionId,
+        authorizeNetSubscriptionId,
         activatedAt: new Date()
     });
 
