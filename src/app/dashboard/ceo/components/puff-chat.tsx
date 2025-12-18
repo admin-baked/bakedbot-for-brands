@@ -292,7 +292,7 @@ export function PuffChat({
 
     // Effect to read persona from query parameters
     useEffect(() => {
-        const agentParam = searchParams.get('agent') || searchParams.get('persona');
+        const agentParam = searchParams?.get('agent') || searchParams?.get('persona');
         if (agentParam) {
             // Map common agent IDs to their corresponding personas if names differ
             const mapping: Record<string, AgentPersona> = {
