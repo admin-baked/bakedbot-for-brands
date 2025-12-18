@@ -67,17 +67,6 @@ const MOCK_PLAYBOOKS: Playbook[] = [
 export default function PlaybooksPage() {
   const { role, user } = useUserRole();
 
-  // Redirect Dispensary users to their specific console (which includes playbooks)
-  if (role === 'dispensary') {
-    const brandId = (user as any)?.brandId || user?.uid || 'unknown-dispensary';
-    return <DispensaryDashboardClient brandId={brandId} />;
-  }
-
-  if (role === 'brand') {
-    const brandId = (user as any)?.brandId || user?.uid || 'unknown-brand';
-    return <BrandDashboardClient brandId={brandId} />;
-  }
-
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Disabled'>('All');

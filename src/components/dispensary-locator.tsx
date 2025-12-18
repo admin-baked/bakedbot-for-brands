@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, MapPin, Navigation, Star, Search } from 'lucide-react';
+import { Loader2, MapPin, Navigation, Heart, Search } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
 import { haversineDistance } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -30,8 +30,8 @@ export default function DispensaryLocator({ locations = [], isLoading = false, c
     selectedRetailerId,
     setSelectedRetailerId,
     setSelectedRetailer,
-    favoriteRetailerId,
-    setFavoriteRetailerId,
+    favoriteRetailerIds,
+    toggleFavoriteRetailer,
     _hasHydrated
   } = useStore();
   const firebase = useOptionalFirebase();
@@ -112,11 +112,20 @@ export default function DispensaryLocator({ locations = [], isLoading = false, c
       toast({ variant: 'destructive', title: 'Database connection not available.' });
       return;
     }
+
+    const isFavorite = favoriteRetailerIds.includes(id);
+    const updatedFavorites = isFavorite
+      ? favoriteRetailerIds.filter(fId => fId !== id)
+      : [...favoriteRetailerIds, id];
+
     const userDocRef = doc(firestore, 'users', user.uid);
     try {
-      await updateDoc(userDocRef, { favoriteRetailerId: id });
-      setFavoriteRetailerId(id);
-      toast({ title: 'Favorite location saved!' });
+      await updateDoc(userDocRef, { favoriteRetailerIds: updatedFavorites });
+      toggleFavoriteRetailer(id);
+      toast({
+        title: isFavorite ? 'Removed from favorites' : 'Added to favorites!',
+        description: isFavorite ? 'Dispensary removed.' : 'You can find it in your Favorites tab.'
+      });
     } catch (error) {
       logger.error('Failed to set favorite location', error instanceof Error ? error : new Error(String(error)));
       toast({ variant: 'destructive', title: 'Could not save favorite location.' });
@@ -218,7 +227,7 @@ export default function DispensaryLocator({ locations = [], isLoading = false, c
               ))
             ) : displayLocations.map(loc => {
               const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.name}, ${loc.address}, ${loc.city}, ${loc.state} ${loc.zip}`)}`;
-              const isFavorite = _hasHydrated && favoriteRetailerId === loc.id;
+              const isFavorite = _hasHydrated && favoriteRetailerIds.includes(loc.id);
               const isSelected = _hasHydrated && selectedRetailerId === loc.id;
               return (
                 <Card
@@ -242,7 +251,7 @@ export default function DispensaryLocator({ locations = [], isLoading = false, c
                         className="h-8 w-8 shrink-0"
                         onClick={(e) => handleSetFavorite(e, loc.id)}
                       >
-                        <Star className={cn("h-5 w-5 text-muted-foreground", isFavorite && "fill-yellow-400 text-yellow-400")} />
+                        <Heart className={cn("h-5 w-5 text-muted-foreground transition-all", isFavorite && "fill-primary text-primary scale-110")} />
                       </Button>
                     </CardTitle>
                   </CardHeader>

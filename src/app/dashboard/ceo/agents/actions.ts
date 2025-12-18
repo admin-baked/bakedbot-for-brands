@@ -25,6 +25,8 @@ import { revalidatePath } from 'next/cache';
 import { blackleafService } from '@/lib/notifications/blackleaf-service';
 import { z } from 'zod';
 import { PERSONAS, AgentPersona } from './personas';
+import { CannMenusService } from '@/server/services/cannmenus';
+import { getCustomerMemoryProfile } from '@/server/intuition/customer-memory';
 
 const AGENT_MAP = {
     craig: craigAgent,
@@ -349,6 +351,72 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
             lowerMessage.includes('look up') ||
             lowerMessage.includes('google') ||
             lowerMessage.includes('research');
+
+        // Specialized Dispensary Search
+        const isDispensarySearch = lowerMessage.includes('dispensary') || lowerMessage.includes('retailer') || lowerMessage.includes('shop');
+        const isBuyerMatchRequest = lowerMessage.includes('buyer') || lowerMessage.includes('customer');
+
+        if (isDispensarySearch && isSearchRequest) {
+            executedTools.push({
+                id: `cannmenus-${Date.now()}`,
+                name: 'CannMenus Discovery',
+                status: 'running',
+                result: 'Accessing retailer database...'
+            });
+
+            try {
+                const cannmenus = new CannMenusService();
+
+                // If it's a buyer match request, add that context
+                let buyerContext = '';
+                if (isBuyerMatchRequest) {
+                    executedTools.push({
+                        id: `buyers-${Date.now()}`,
+                        name: 'Buyer Insights',
+                        status: 'running',
+                        result: 'Analyzing buyer profiles...'
+                    });
+
+                    // Mock/Get intuition data (using brandId from context if available)
+                    const brandId = 'demo-brand';
+                    const intuition = getIntuitionSummary(brandId);
+                    buyerContext = `Our buyers prefer: ${intuition.topEffects.join(', ')}. They look for ${intuition.topFormats.join(', ')}.`;
+
+                    executedTools[executedTools.length - 1].status = 'success';
+                    executedTools[executedTools.length - 1].result = 'Profiles analyzed';
+                }
+
+                // Try to find the city/state or use brand defaults
+                const cityMatch = userMessage.match(/in ([\w\s]+),? (\w{2})/i);
+                const results = await cannmenus.findRetailersCarryingBrand('Pure Greens', 20); // Using a demo brand name
+
+                executedTools[executedTools.length - 1].status = 'success';
+                executedTools[executedTools.length - 1].result = `Discovered ${results.length} locations`;
+
+                const synthesis = await ai.generate({
+                    prompt: `You are a Retail Strategic Advisor for cannabis brands.
+                    User Request: "${userMessage}"
+                    Buyer Context: "${buyerContext}"
+                    Found Data: ${JSON.stringify(results)}
+                    
+                    Task: Map these dispensaries to our target buyers. 
+                    - Highlight the top 3-5 that match best.
+                    - Provide a summary of all 20 if available.
+                    - Use a professional tone.
+                    - Format as a clear report with names, cities, and "Match Score".`
+                });
+
+                return {
+                    content: synthesis.text,
+                    toolCalls: executedTools
+                };
+            } catch (e: any) {
+                console.error('[runAgentChat] Dispensary search failed:', e);
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = e.message;
+                // Fall through to general search if specialized fails
+            }
+        }
 
         if (isSearchRequest) {
             executedTools.push({

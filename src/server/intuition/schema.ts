@@ -58,6 +58,7 @@ export interface CustomerMemoryProfile {
     preferredFormats: string[];
     potencyTolerance: PotencyTolerance;
     lastProducts: string[];
+    favoriteDispensaryIds: string[];
     interactionCount: number;
     embeddingId?: string;
     clusters: string[];

@@ -15,12 +15,51 @@ export async function getBrandDispensaries() {
 
     const { firestore } = await createServerClient();
 
-    // In a real app, we would have a 'relationships' collection or 'dispensaries' subcollection under brand.
-    // For now, let's assume we store them in a subcollection 'partners' under the brand doc.
-    const partnersRef = firestore.collection('organizations').doc(brandId).collection('partners');
-    const snapshot = await partnersRef.get();
+    // 1. Fetch Brand Profile for the name
+    const brandDoc = await firestore.collection('brands').doc(brandId).get();
+    const brandData = brandDoc.data();
+    const brandName = brandData?.name || brandData?.brandName;
 
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // 2. Fetch manual partners
+    const partnersRef = firestore.collection('organizations').doc(brandId).collection('partners');
+    const manualSnapshot = await partnersRef.get();
+    const manualPartners = manualSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        source: 'manual'
+    }));
+
+    // 3. Fetch automated partners from CannMenus if we have a name
+    let automatedPartners: any[] = [];
+    if (brandName) {
+        try {
+            const { CannMenusService } = await import('@/server/services/cannmenus');
+            const cms = new CannMenusService();
+            const retailers = await cms.findRetailersCarryingBrand(brandName, 20);
+            automatedPartners = retailers.map(r => ({
+                id: r.id,
+                name: r.name,
+                address: r.street_address,
+                city: r.city,
+                state: r.state,
+                zip: r.postal_code,
+                source: 'automated',
+                status: 'active'
+            }));
+        } catch (err) {
+            logger.error('Failed to fetch automated dispensaries', { brandName, error: err });
+        }
+    }
+
+    // 4. Merge (deduplicate by ID)
+    const allPartners = [...manualPartners];
+    automatedPartners.forEach(auto => {
+        if (!allPartners.find(p => p.id === auto.id)) {
+            allPartners.push(auto);
+        }
+    });
+
+    return allPartners;
 }
 
 export async function searchDispensaries(query: string, state: string) {

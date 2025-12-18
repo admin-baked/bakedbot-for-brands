@@ -14,6 +14,7 @@ interface StoreState {
   selectedRetailerId: string | null;
   selectedRetailer: Retailer | null;
   favoriteRetailerId: string | null;
+  favoriteRetailerIds: string[];
   theme: Theme;
   menuStyle: MenuStyle;
   isDemo: boolean;
@@ -33,6 +34,7 @@ interface StoreActions {
   setSelectedRetailerId: (id: string | null) => void;
   setSelectedRetailer: (retailer: Retailer | null) => void;
   setFavoriteRetailerId: (id: string | null) => void;
+  toggleFavoriteRetailer: (id: string) => void;
   setTheme: (theme: Theme) => void;
   setMenuStyle: (style: MenuStyle) => void;
   setIsDemo: (isDemo: boolean) => void;
@@ -48,6 +50,7 @@ export const useStore = create<StoreState & StoreActions>()(
       selectedRetailerId: null,
       selectedRetailer: null,
       favoriteRetailerId: null,
+      favoriteRetailerIds: [],
       theme: 'green',
       menuStyle: 'alt',
       isDemo: true,
@@ -99,6 +102,11 @@ export const useStore = create<StoreState & StoreActions>()(
       setSelectedRetailerId: (id) => set({ selectedRetailerId: id }),
       setSelectedRetailer: (retailer) => set({ selectedRetailer: retailer, selectedRetailerId: retailer?.id ?? null }),
       setFavoriteRetailerId: (id) => set({ favoriteRetailerId: id }),
+      toggleFavoriteRetailer: (id) => set((state) => ({
+        favoriteRetailerIds: (state.favoriteRetailerIds || []).includes(id)
+          ? state.favoriteRetailerIds.filter(fId => fId !== id)
+          : [...(state.favoriteRetailerIds || []), id]
+      })),
       setTheme: (theme) => set({ theme }),
       setMenuStyle: (style) => set({ menuStyle: style }),
       setIsDemo: (isDemo) => set({ isDemo }),

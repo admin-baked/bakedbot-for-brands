@@ -27,7 +27,8 @@ const OnboardingSchema = z.object({
   posProvider: z.enum(['dutchie', 'jane', 'none']).optional(),
   posApiKey: z.string().optional(),
   posDispensaryId: z.string().optional(), // For Jane or Dutchie ID
-  features: z.string().optional() // JSON string
+  features: z.string().optional(), // JSON string
+  competitors: z.string().optional() // JSON or comma-separated
 });
 
 export async function completeOnboarding(prevState: any, formData: FormData) {
@@ -67,7 +68,8 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       role, locationId, brandId, brandName,
       manualBrandName, manualProductName, manualDispensaryName,
       chatbotPersonality, chatbotTone, chatbotSellingPoints,
-      posProvider, posApiKey, posDispensaryId
+      posProvider, posApiKey, posDispensaryId,
+      competitors
     } = validatedFields.data;
 
     // Proceed with Firestore logic...
@@ -163,6 +165,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         name: manualDispensaryName || 'Main Location',
         posConfig: userProfileData.posConfig || { provider: 'none', status: 'inactive' },
         cannMenusId: locationId, // Save the mapping
+        competitorIds: competitors ? competitors.split(',') : [], // Save competitors
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
       }, { merge: true });
