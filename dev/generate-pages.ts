@@ -17,9 +17,7 @@ import fs from 'fs';
 import path from 'path';
 import QRCode from 'qrcode';
 
-// Dynamic imports handling inside main or helper
-// import { enrichDispensaryWithPlaces } from '@/server/services/places-connector';
-// import { fetchUrl } from '@/server/services/ezal/scraper-fetcher';
+import { DispensarySEOPage, ZipSEOPage, CitySEOPage, BrandSEOPage } from '../src/types/seo-pages';
 
 console.log('--- PAGE GENERATOR ---');
 
@@ -69,81 +67,19 @@ interface ZipRecord {
     dispensary_count?: string;
 }
 
-interface DispensarySEOPage {
-    id: string;
-    retailerId: number;
-    name: string;
-    slug: string;
-    city: string;
-    state: string;
-    zipCodes: string[];
-    claimStatus: 'unclaimed' | 'pending' | 'claimed';
-    verificationStatus: 'unverified' | 'verified' | 'featured';
-    createdAt: Date;
-    updatedAt: Date;
-    analytics: {
-        views: number;
-        clicks: number;
-        lastViewedAt: Date | null;
-    };
-    source: 'cannmenus_scan';
-    enrichment?: {
-        googlePlaces?: boolean;
-        leafly?: boolean;
-        websiteScrape?: boolean;
-        qrCode?: string; // Data URL
-    };
-}
-
-interface ZipSEOPage {
-    id: string;
-    zipCode: string;
-    city: string;
-    state: string;
-    hasDispensaries: boolean;
-    dispensaryCount: number;
-    nearbyDispensaryIds: string[];
-    createdAt: Date;
-    updatedAt: Date;
-    analytics: {
-        views: number;
-        clicks: number;
-    };
-}
-
-interface CitySEOPage {
-    id: string; // city_slug
-    slug: string;
-    name: string;
-    state: string;
-    zipCodes: string[];
-    dispensaryCount: number;
-    description?: string; // AI generated intro
-    createdAt: Date;
-    updatedAt: Date;
-}
-
 interface DiscoveredBrand {
     name: string;
     slug: string;
     foundInCities: string[];
     sampleRetailerIds: number[];
 }
-
-interface BrandSEOPage {
-    slug: string;
-    name: string;
-    cities: string[];
-    retailerCount: number; // Approximate from sample/inference
-    claimStatus: 'unclaimed' | 'pending' | 'claimed';
-    verificationStatus: 'unverified' | 'verified' | 'featured';
-    createdAt: Date;
-    updatedAt: Date;
-    analytics: {
-        views: number;
-        clicks: number;
-    };
-    source: 'cannmenus_scan';
+createdAt: Date;
+updatedAt: Date;
+analytics: {
+    views: number;
+    clicks: number;
+};
+source: 'cannmenus_scan';
 }
 
 // --- ARGS ---
@@ -381,6 +317,15 @@ async function main() {
             createdAt: new Date(),
             updatedAt: new Date()
         };
+
+        // Internal Linking: Populate nearby Zips for each Zip in this city
+        zips.forEach(z => {
+            z.nearbyZipCodes = zips
+                .filter(sibling => sibling.zipCode !== z.zipCode)
+                .map(sibling => sibling.zipCode)
+                .slice(0, 10);
+        });
+
         cityPages.push(page);
     });
     console.log(`   Generated ${cityPages.length} City pages`);
