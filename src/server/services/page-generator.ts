@@ -6,7 +6,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/monitoring';
 import { FieldValue } from 'firebase-admin/firestore';
 import { createJobProgress, updateJobProgress, isJobCancelled } from '@/server/actions/job-progress';
-import { upsertDispensary } from '@/server/services/crm-service';
+import { upsertDispensary, upsertBrand } from '@/server/services/crm-service';
 
 
 const TARGET_STATES = ['California', 'Illinois', 'Michigan', 'New York', 'New Jersey', 'Colorado', 'Oregon', 'Washington', 'Massachusetts', 'Arizona'];
@@ -324,6 +324,8 @@ export class PageGeneratorService {
                         const name = r.name || `Dispensary #${r.id || r.retailer_id}`;
                         const slug = this.slugify(name);
                         const id = r.id || r.retailer_id;
+                        const dispCity = r.city || geoCity;
+                        const dispState = r.state || geoState;
 
                         // Check for duplicate dispensary page
                         const dispRef = firestore.collection('foot_traffic').doc('config').collection('dispensary_pages').doc(`dispensary_${id}`);
@@ -338,14 +340,17 @@ export class PageGeneratorService {
                             retailerId: id,
                             name,
                             slug,
-                            city: r.city || geoCity,
-                            state: r.state || geoState,
+                            city: dispCity,
+                            state: dispState,
                             claimStatus: 'unclaimed',
                             createdAt: FieldValue.serverTimestamp(),
                             brandId: options.brandId || null,
                             source: 'page_generator_service'
                         }, { merge: true });
                         createdCount++;
+
+                        // Track in CRM Lite (fire and forget)
+                        upsertDispensary(name, dispState, dispCity, { retailerId: id }).catch(() => { });
                     }
 
                     await batch.commit();
@@ -450,6 +455,9 @@ export class PageGeneratorService {
                             source: 'page_generator_service'
                         }, { merge: true });
                         createdCount++;
+
+                        // Track in CRM Lite (fire and forget)
+                        upsertBrand(name, disp?.state || 'Unknown').catch(() => { });
                     }
 
                     await batch.commit();

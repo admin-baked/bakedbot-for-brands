@@ -659,6 +659,91 @@
             ],
             "area": "backend",
             "created_at": "2025-12-17T16:00:00Z"
+        },
+        {
+            "id": "feat_qr_code_generator",
+            "title": "QR Code Generator Tool (All Roles)",
+            "status": "backlog",
+            "priority": "medium",
+            "description": "Integrate Apify QR Code Generator Actor (sSuyCJwnWG9SzjFtf) to generate customizable QR codes for brands, dispensaries, and marketing campaigns. Supports bulk generation, custom colors, logo overlays, and multiple formats (PNG/SVG). Available for all roles.",
+            "acceptance_tests": [
+                "test_qr_single_generation",
+                "test_qr_bulk_generation",
+                "test_qr_with_logo",
+                "test_qr_available_all_roles"
+            ],
+            "phases": [
+                "Phase 1: QR Connector Service",
+                "Phase 2: QR UI Component (all dashboards)",
+                "Phase 3: Agent Tool Integration",
+                "Phase 4: Batch Export for Print"
+            ],
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_apify_leafly_integration"
+            ],
+            "area": "full_stack",
+            "created_at": "2025-12-17T16:45:00Z",
+            "apify_actor_id": "sSuyCJwnWG9SzjFtf"
+        },
+        {
+            "id": "feat_gmaps_scraper_integration",
+            "title": "Google Maps Scraper Integration (Dispensary Discovery)",
+            "status": "in_progress",
+            "priority": "high",
+            "description": "Integrate Apify Google Maps Scraper to discover dispensaries beyond Leafly/CannMenus. Get ratings, reviews, hours, photos, and contact info. Use for enrichment and competitor intel.",
+            "acceptance_tests": [
+                "test_gmaps_dispensary_search",
+                "test_gmaps_data_ingestion",
+                "test_gmaps_ui_integration"
+            ],
+            "phases": [
+                "Phase 1: Types + Connector Service ✅",
+                "Phase 2: Firestore Ingestion ✅",
+                "Phase 3: Admin UI Integration ✅",
+                "Phase 4: Dispensary Enrichment Pipeline"
+            ],
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_apify_leafly_integration"
+            ],
+            "area": "backend",
+            "created_at": "2025-12-17T17:10:00Z",
+            "apify_task_id": "Kb9uh4qmh4s76kDan"
+        },
+        {
+            "id": "feat_ezal_lite_snapshots",
+            "title": "Ezal Lite - Cheap Competitive Snapshots (~$0.10/snapshot)",
+            "status": "planning",
+            "priority": "high",
+            "description": "Use Apify Website Content Crawler for cheap (~$0.05-0.12) competitive snapshots. Monthly cached summaries with regex-based extraction (no LLM). Free lead magnet tier. Cache for 30 days, refresh via scheduler.",
+            "acceptance_tests": [
+                "test_lite_snapshot_trigger",
+                "test_regex_price_extraction",
+                "test_30day_cache_rule",
+                "test_cost_under_15_cents"
+            ],
+            "phases": [
+                "Phase 1: Types + Lite Connector",
+                "Phase 2: Regex Extraction Engine",
+                "Phase 3: 30-day Cache + Scheduler",
+                "Phase 4: UI Integration",
+                "Phase 5: Cost Telemetry"
+            ],
+            "cost_model": {
+                "lite_free_tier": "$0.05-0.12 per snapshot",
+                "deep_paid_tier": "$1-2+ per snapshot",
+                "cache_duration_days": 30,
+                "proxy_strategy": "ladder (none → datacenter → residential)"
+            },
+            "owner": "antigravity",
+            "dependencies": [
+                "feat_apify_leafly_integration",
+                "feat_gmaps_scraper_integration"
+            ],
+            "area": "backend",
+            "created_at": "2025-12-17T18:20:00Z",
+            "apify_actor": "apify~website-content-crawler"
         }
     ]
 }

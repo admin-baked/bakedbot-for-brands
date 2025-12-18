@@ -11,7 +11,7 @@ import { useMemo } from 'react';
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import type { Product } from '@/types/domain';
 
-export function ProductCard({ product, brandSlug, variant = 'standard' }: { product: Product, brandSlug?: string, variant?: 'standard' | 'large' }) {
+export function ProductCard({ product, brandSlug, variant = 'standard', isClaimedPage = false }: { product: Product, brandSlug?: string, variant?: 'standard' | 'large', isClaimedPage?: boolean }) {
   const { selectedRetailerId, cartItems, updateQuantity, removeFromCart } = useStore();
   // const { toast } = useToast(); // No longer needed directly here
 
@@ -114,7 +114,7 @@ export function ProductCard({ product, brandSlug, variant = 'standard' }: { prod
           <span className={`${variant === 'large' ? 'text-2xl' : 'text-xl'} font-bold`}>
             {priceDisplay}
           </span>
-          <AddToCartButton product={product} size="sm" />
+          {isClaimedPage && <AddToCartButton product={product} size="sm" />}
         </div>
       </div>
     </div>

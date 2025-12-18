@@ -75,6 +75,7 @@ export type Retailer = {
     tabletDeviceToken?: string | null;
     acceptsOrders?: boolean;
     status?: 'active' | 'inactive';
+    claimStatus?: 'claimed' | 'unclaimed';
     updatedAt?: Date | string;
 };
 

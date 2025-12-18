@@ -2,6 +2,7 @@ import { AgentImplementation } from './harness';
 import { EzalMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { calculateGapScore } from '../algorithms/ezal-algo';
+import { getCompetitiveIntelForAgent, getLocalCompetition } from '../services/leafly-connector';
 
 // --- Tool Definitions ---
 
@@ -10,6 +11,8 @@ export interface EzalTools {
   scrapeMenu(url: string): Promise<{ products: any[] }>;
   // Compare my prices vs competitor prices
   comparePricing(myProducts: any[], competitorProducts: any[]): Promise<{ price_index: number }>;
+  // NEW: Get competitive intel from Leafly data
+  getCompetitiveIntel(state: string, city?: string): Promise<string>;
 }
 
 // --- Ezal Agent Implementation ---

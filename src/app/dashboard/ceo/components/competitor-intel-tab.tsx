@@ -41,7 +41,14 @@ import {
     getPricingBands,
     getActivePromos,
 } from '@/server/services/leafly-connector';
+import {
+    triggerDispensarySearch,
+    getGMapsStats,
+    getRecentGMapsRuns,
+} from '@/server/services/gmaps-connector';
 import type { CompetitorWatchlistEntry, LeaflyOffer } from '@/types/leafly';
+import type { GMapsIngestionRun } from '@/types/gmaps';
+import { MapPin } from 'lucide-react';
 
 const US_STATES = [
     'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
@@ -94,10 +101,55 @@ export default function CompetitorIntelTab() {
     const [promos, setPromos] = useState<LeaflyOffer[]>([]);
     const [loadingIntel, setLoadingIntel] = useState(false);
 
-    // Load watchlist
+    // Google Maps state
+    const [gmapsLocation, setGmapsLocation] = useState('Detroit, MI');
+    const [gmapsMaxResults, setGmapsMaxResults] = useState('50');
+    const [gmapsLoading, setGmapsLoading] = useState(false);
+    const [gmapsStats, setGmapsStats] = useState<{ totalPlaces: number; recentRuns: number } | null>(null);
+    const [gmapsRuns, setGmapsRuns] = useState<GMapsIngestionRun[]>([]);
+
+    // Load watchlist and GMaps stats
     useEffect(() => {
         loadWatchlist();
+        loadGMapsData();
     }, []);
+
+    const loadGMapsData = async () => {
+        try {
+            const [stats, runs] = await Promise.all([
+                getGMapsStats(),
+                getRecentGMapsRuns(5),
+            ]);
+            setGmapsStats(stats);
+            setGmapsRuns(runs);
+        } catch (e) {
+            console.error('Failed to load GMaps data', e);
+        }
+    };
+
+    const handleGMapsSearch = async () => {
+        if (!gmapsLocation.trim()) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Location is required' });
+            return;
+        }
+        setGmapsLoading(true);
+        try {
+            const run = await triggerDispensarySearch(
+                gmapsLocation,
+                ['dispensary', 'cannabis', 'marijuana store'],
+                parseInt(gmapsMaxResults) || 50
+            );
+            toast({
+                title: 'Google Maps Search Started',
+                description: `Searching for dispensaries in ${gmapsLocation}. Run ID: ${run.id}`
+            });
+            await loadGMapsData();
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        } finally {
+            setGmapsLoading(false);
+        }
+    };
 
     const loadWatchlist = async () => {
         setLoading(true);
@@ -516,6 +568,87 @@ export default function CompetitorIntelTab() {
                     </CardContent>
                 </Card>
             )}
+            {/* Google Maps Discovery */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5" />
+                        Google Maps Discovery
+                    </CardTitle>
+                    <CardDescription>
+                        Find dispensaries via Google Maps - discover locations not in Leafly
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex gap-4 items-end">
+                        <div className="flex-1 space-y-2">
+                            <Label>Location</Label>
+                            <Input
+                                placeholder="Detroit, MI"
+                                value={gmapsLocation}
+                                onChange={(e) => setGmapsLocation(e.target.value)}
+                            />
+                        </div>
+                        <div className="w-32 space-y-2">
+                            <Label>Max Results</Label>
+                            <Input
+                                type="number"
+                                value={gmapsMaxResults}
+                                onChange={(e) => setGmapsMaxResults(e.target.value)}
+                            />
+                        </div>
+                        <Button onClick={handleGMapsSearch} disabled={gmapsLoading}>
+                            {gmapsLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                            Search Google Maps
+                        </Button>
+                    </div>
+
+                    {/* Stats */}
+                    {gmapsStats && (
+                        <div className="flex gap-4">
+                            <div className="text-sm">
+                                <span className="text-muted-foreground">Total Places: </span>
+                                <strong>{gmapsStats.totalPlaces}</strong>
+                            </div>
+                            <div className="text-sm">
+                                <span className="text-muted-foreground">Recent Runs: </span>
+                                <strong>{gmapsStats.recentRuns}</strong>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Recent Runs */}
+                    {gmapsRuns.length > 0 && (
+                        <div className="space-y-2">
+                            <Label>Recent Google Maps Runs</Label>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Location</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Places Found</TableHead>
+                                        <TableHead>Started</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {gmapsRuns.map((run) => (
+                                        <TableRow key={run.id}>
+                                            <TableCell>{run.location || 'Custom Geo'}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={run.status === 'completed' ? 'default' : 'secondary'}>
+                                                    {run.status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>{run.placesFound}</TableCell>
+                                            <TableCell>{run.startedAt.toLocaleString()}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }

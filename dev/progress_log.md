@@ -210,3 +210,40 @@ unAgentChat in ctions.ts to return standardized AgentResult with rich metadata.
   - `cart-label.test.ts` (11 tests): Context-aware cart labels.
   - `chatbot-context.test.ts` (13 tests): Context priority, market type, location filters.
   - **Commit**: `756d1607`
+
+## 2025-12-17T17:15Z – feat_gmaps_scraper_integration – antigravity
+- **Completed Google Maps Scraper Integration**:
+  - Created `src/types/gmaps.ts` with comprehensive types for GMaps Scraper output.
+  - Created `src/server/services/gmaps-connector.ts` with search, ingestion, and query functions.
+  - Integrated Google Maps Discovery UI section into Competitor Intel tab.
+  - Task ID: `Kb9uh4qmh4s76kDan` (bakedbot-ai~google-maps-scraper-task)
+- **Also Completed This Session**:
+  - CRM Lite Tab: `src/app/dashboard/ceo/components/crm-tab.tsx`
+  - CRM auto-upsert in Page Generator
+  - Local Competition Card: `src/components/dashboard/local-competition-card.tsx`
+  - Updated Apify API key
+
+## 2025-12-17T18:20Z – feat_unit_tests_and_ezal_lite – antigravity
+- **Created Unit Tests for Apify Integrations**:
+  - `tests/server/crm-service.test.ts` (9 tests) - Brand/dispensary upsert, national detection
+  - `tests/server/leafly-connector.test.ts` (9 tests) - Watchlist, Apify integration, pricing intel
+  - `tests/server/gmaps-connector.test.ts` (12 tests) - Search, ingestion, queries
+- **Added Ezal Lite to Roadmap**:
+  - Unique ID: `feat_ezal_lite_snapshots`
+  - Cost target: ~$0.05-0.12/snapshot using Website Content Crawler
+  - 30-day cache rule for free tier
+  - Regex-based extraction (no LLM spend)
+  - Proxy ladder strategy (none → datacenter → residential)
+
+## 2025-12-17T18:30Z – feat_ezal_lite_implementation – antigravity
+- **Implemented Ezal Lite Competitive Snapshots**:
+  - Created `src/types/ezal-snapshot.ts` - Types, extraction patterns, cost config
+  - Created `src/server/services/ezal-lite-connector.ts` - Full implementation:
+    - `runLiteSnapshot()` - Main entry with proxy ladder
+    - `extractSnapshotFromText()` - Regex price/promo extraction
+    - `isSnapshotFresh()` / `getCachedSnapshot()` - 30-day caching
+    - `addEzalCompetitor()` / `getEzalCompetitors()` - Competitor management
+    - `getEzalLiteStats()` - Cost telemetry
+  - Created `tests/server/ezal-lite.test.ts` - 15 unit tests
+- **Cost Target**: ~$0.05-0.12 per snapshot using Website Content Crawler
+

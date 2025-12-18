@@ -30,9 +30,11 @@ interface ProductGridProps {
   isLoading: boolean;
   brandSlug?: string;
   variant?: 'standard' | 'brand';
+  /** Enable add-to-cart for claimed pages only */
+  isClaimedPage?: boolean;
 }
 
-export function ProductGrid({ products, isLoading, brandSlug, variant = 'standard' }: ProductGridProps) {
+export function ProductGrid({ products, isLoading, brandSlug, variant = 'standard', isClaimedPage = false }: ProductGridProps) {
   const { isDemo } = useDemoMode();
 
   if (isLoading) {
@@ -78,6 +80,7 @@ export function ProductGrid({ products, isLoading, brandSlug, variant = 'standar
           product={product}
           brandSlug={brandSlug}
           variant={variant === 'brand' ? 'large' : 'standard'}
+          isClaimedPage={isClaimedPage}
         />
       ))}
     </div>
