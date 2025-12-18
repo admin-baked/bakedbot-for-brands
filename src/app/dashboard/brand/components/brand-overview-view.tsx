@@ -17,8 +17,20 @@ import {
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 
+import { useEffect, useState } from 'react';
+import { getBrandDashboardData } from '../actions';
+
 export function BrandOverviewView({ brandId }: { brandId: string }) {
     const market = "All Markets";
+    const [liveData, setLiveData] = useState<any>(null);
+
+    useEffect(() => {
+        async function loadData() {
+            const data = await getBrandDashboardData(brandId);
+            if (data) setLiveData(data);
+        }
+        loadData();
+    }, [brandId]);
 
     return (
         <div className="space-y-6">
@@ -71,7 +83,7 @@ export function BrandOverviewView({ brandId }: { brandId: string }) {
             </div>
 
             {/* KPIs */}
-            <BrandKPIs />
+            <BrandKPIs data={liveData} />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Main Cockpit area */}

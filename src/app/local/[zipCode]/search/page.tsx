@@ -9,17 +9,18 @@ import { DtcBanner } from '@/components/foot-traffic/dtc-banner';
 import { LocalSearchBar } from '@/components/foot-traffic/local-search-bar';
 
 interface SearchPageProps {
-    params: {
+    params: Promise<{
         zipCode: string;
-    };
-    searchParams: {
+    }>;
+    searchParams: Promise<{
         q?: string;
-    };
+    }>;
 }
 
 export async function generateMetadata({ params, searchParams }: SearchPageProps) {
-    const { zipCode } = params;
-    const query = searchParams.q || '';
+    const { zipCode } = await params;
+    const { q } = await searchParams;
+    const query = q || '';
     return {
         title: `Search results for "${query}" near ${zipCode} | BakedBot`,
         description: `Find ${query} products in stock at dispensaries near ${zipCode}.`,
@@ -31,8 +32,9 @@ export async function generateMetadata({ params, searchParams }: SearchPageProps
 }
 
 export default async function SearchPage({ params, searchParams }: SearchPageProps) {
-    const { zipCode } = params;
-    const query = searchParams.q || '';
+    const { zipCode } = await params;
+    const { q } = await searchParams;
+    const query = q || '';
 
     // 1. Get Coordinates
     const coords = await getZipCodeCoordinates(zipCode);

@@ -85,9 +85,13 @@ export default async function ZipPage({ params }: { params: Promise<{ slug: stri
                                     key={product.id}
                                     product={{
                                         ...product,
+                                        productId: product.id,
+                                        productName: product.name,
+                                        dispId: (product as any).dispensaryId || 'unknown',
+                                        dispensaryName: 'Local Dispensary',
                                         score: 0.99, // Implicit high relevance for local
                                         reasons: ['Local favorite']
-                                    }}
+                                    } as any}
                                 // Use a simple click handler or link wrapper in the card
                                 />
                             ))}

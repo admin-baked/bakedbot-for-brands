@@ -24,6 +24,7 @@ const MOCK_RETAILERS: CannMenusResult[] = [
     { name: 'Jeeter', id: 'cm_jeeter', type: 'brand' },
     { name: 'Pure Beauty', id: 'cm_pure_beauty', type: 'brand' },
     { name: 'Caminos', id: 'cm_caminos', type: 'brand' },
+    { name: '40 Tons', id: 'cm_40_tons', type: 'brand' },
 ];
 
 export async function searchCannMenusRetailers(query: string): Promise<CannMenusResult[]> {
@@ -37,13 +38,12 @@ export async function searchCannMenusRetailers(query: string): Promise<CannMenus
         );
     }
 
-    const base = process.env.CANNMENUS_API_BASE || process.env.CANNMENUS_API_URL;
-    const apiKey = process.env.CANNMENUS_API_KEY;
+    const { API_BASE: base, API_KEY: apiKey } = (await import('@/lib/config')).CANNMENUS_CONFIG;
 
-    // Fallback to mock if no API key (for dev/demo without keys)
-    if (!base || !apiKey) {
-        console.warn('CannMenus API keys missing, using mock data for onboarding search.');
-        const lowerQuery = query.toLowerCase();
+    // Fallback to mock if query is specifically for a mock brand or if no API key
+    const lowerQuery = query.toLowerCase();
+    if (!apiKey || lowerQuery.includes('40 tons') || lowerQuery.includes('kiva') || lowerQuery.includes('wyld')) {
+        console.info('[CannMenus] Using mock/augmented results for query:', query);
         return MOCK_RETAILERS.filter(r =>
             r.name.toLowerCase().includes(lowerQuery) ||
             r.id.toLowerCase().includes(lowerQuery)
@@ -106,13 +106,14 @@ export async function searchCannMenusRetailers(query: string): Promise<CannMenus
 export async function syncCannMenusProducts(
     cannMenusId: string,
     role: 'brand' | 'dispensary',
-    brandId: string // The internal Firestore Brand ID
+    brandId: string, // The internal Firestore Brand ID
+    limit?: number
 ): Promise<number> {
     const { firestore } = await createServerClient();
     const productRepo = makeProductRepo(firestore);
 
     // Define limits
-    const LIMIT = role === 'brand' ? 5 : 25;
+    const LIMIT = limit || (role === 'brand' ? 5 : 25);
 
     // Simulate fetching products from CannMenus API
     // In reality, this would call `cannmenus-api.ts`

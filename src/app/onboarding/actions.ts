@@ -201,7 +201,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     if (finalRole === 'brand' && finalBrandId) {
       const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
       if (finalBrandId.startsWith('cm_')) {
-        syncCount = await syncCannMenusProducts(finalBrandId, 'brand', orgId);
+        syncCount = await syncCannMenusProducts(finalBrandId, 'brand', orgId, 3);
       }
     } else if (finalRole === 'dispensary' && locationId) {
       const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');

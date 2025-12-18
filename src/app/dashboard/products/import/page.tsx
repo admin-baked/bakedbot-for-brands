@@ -8,9 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { searchCannMenusProducts, importProducts } from '../actions';
-import { Loader2, Search, Import } from 'lucide-react';
+import { searchCannMenusProducts, importProducts, getBrandStatus } from '../actions';
+import { Loader2, Search, Import, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 export default function ImportProductsPage() {
     const [brandName, setBrandName] = useState('');
@@ -18,8 +21,13 @@ export default function ImportProductsPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [products, setProducts] = useState<any[]>([]);
     const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+    const [status, setStatus] = useState<{ isTrial: boolean; count: number; max: number } | null>(null);
     const { toast } = useToast();
     const router = useRouter();
+
+    useEffect(() => {
+        getBrandStatus().then(setStatus);
+    }, []);
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -47,6 +55,18 @@ export default function ImportProductsPage() {
         if (newSelected.has(id)) {
             newSelected.delete(id);
         } else {
+            // Check trial limit
+            if (status?.isTrial) {
+                const remaining = status.max - status.count;
+                if (newSelected.size >= remaining) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Limit reached',
+                        description: `Trial accounts can only have ${status.max} products total. You have ${status.count} and selected ${newSelected.size}.`
+                    });
+                    return;
+                }
+            }
             newSelected.add(id);
         }
         setSelectedProducts(newSelected);
@@ -56,7 +76,19 @@ export default function ImportProductsPage() {
         if (selectedProducts.size === products.length) {
             setSelectedProducts(new Set());
         } else {
-            setSelectedProducts(new Set(products.map(p => p.id)));
+            if (status?.isTrial) {
+                const remaining = Math.max(0, status.max - status.count);
+                const toSelect = products.slice(0, remaining).map(p => p.id);
+                setSelectedProducts(new Set(toSelect));
+                if (products.length > remaining) {
+                    toast({
+                        title: 'Selection capped',
+                        description: `Only ${remaining} slots available in your trial catalog.`
+                    });
+                }
+            } else {
+                setSelectedProducts(new Set(products.map(p => p.id)));
+            }
         }
     };
 
@@ -80,7 +112,25 @@ export default function ImportProductsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold tracking-tight">Import Products</h1>
+                {status?.isTrial && (
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                        Trial Limit: {status.count} / {status.max} Products
+                    </Badge>
+                )}
             </div>
+
+            {status?.isTrial && (
+                <Alert variant="default" className="bg-primary/5 border-primary/20">
+                    <AlertTriangle className="h-4 w-4 text-primary" />
+                    <AlertTitle className="font-bold">Trial Account Limits</AlertTitle>
+                    <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <span>Trial accounts are limited to 3 products total. Upgrade to a paid plan for unlimited CannMenus imports.</span>
+                        <Button size="sm" variant="default" className="shrink-0" asChild>
+                            <a href="/#pricing">View Plans</a>
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            )}
 
             <Card>
                 <CardHeader>
