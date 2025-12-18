@@ -1,10 +1,811 @@
-[13:28:58] Target States: California, Illinois, Michigan, New York, New Jersey
-[13:28:58] Limit: 20
-[13:28:58] Processing 20 records...
-[13:31:40] Scan Complete.
-[13:31:40] Total API Calls: 20
-[13:31:40] Smart Skips (City-based): 0
-[13:31:40] Total Dispensaries Found: 20
-[13:31:40] Verified Cities: 4
-[13:31:40] Saved updated CSV to C:\Users\marte\Baked for Brands\bakedbot-for-brands\dev\target_locations_updated.csv
-[13:31:40] Saved dispensaries to C:\Users\marte\Baked for Brands\bakedbot-for-brands\dev\discovered_dispensaries.json
+[08:20:05] Target States: Illinois
+[08:20:05] Limit: 200
+[08:20:05] Loaded 20 existing dispensaries.
+[08:20:05] Processing 200 records...
+[08:20:05] Scanning ZIP: 60002 -> Geocoding...
+[08:20:07] Geocoded 60002: 42.4670616, -88.1034098
+[08:20:07] API URL: https://api.cannmenus.com/v1/retailers?lat=42.4670616&lng=-88.1034098&limit=50&sort=distance&states=Illinois
+[08:20:08] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:08] Scanning ZIP: 60004 -> Geocoding...
+[08:20:09] Geocoded 60004: 42.1094956, -87.9762054
+[08:20:09] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1094956&lng=-87.9762054&limit=50&sort=distance&states=Illinois
+[08:20:09] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:09] Scanning ZIP: 60005 -> Geocoding...
+[08:20:10] Geocoded 60005: 42.0637129, -87.9822530
+[08:20:10] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0637129&lng=-87.9822530&limit=50&sort=distance&states=Illinois
+[08:20:10] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:10] Scanning ZIP: 60007 -> Geocoding...
+[08:20:12] Geocoded 60007: 42.0004584, -88.0233153
+[08:20:12] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0004584&lng=-88.0233153&limit=50&sort=distance&states=Illinois
+[08:20:12] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:12] Scanning ZIP: 60008 -> Geocoding...
+[08:20:12] Geocoded 60008: 42.0754578, -88.0308558
+[08:20:12] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0754578&lng=-88.0308558&limit=50&sort=distance&states=Illinois
+[08:20:13] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:13] Scanning ZIP: 60010 -> Geocoding...
+[08:20:13] Geocoded 60010: 42.1655494, -88.1468348
+[08:20:13] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1655494&lng=-88.1468348&limit=50&sort=distance&states=Illinois
+[08:20:13] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:13] Scanning ZIP: 60012 -> Geocoding...
+[08:20:14] Geocoded 60012: 42.2654977, -88.3112225
+[08:20:14] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2654977&lng=-88.3112225&limit=50&sort=distance&states=Illinois
+[08:20:14] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:14] Scanning ZIP: 60013 -> Geocoding...
+[08:20:15] Geocoded 60013: 42.2165113, -88.2406989
+[08:20:15] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2165113&lng=-88.2406989&limit=50&sort=distance&states=Illinois
+[08:20:15] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:15] Scanning ZIP: 60014 -> Geocoding...
+[08:20:16] Geocoded 60014: 42.2293826, -88.3258062
+[08:20:16] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2293826&lng=-88.3258062&limit=50&sort=distance&states=Illinois
+[08:20:16] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:16] Scanning ZIP: 60015 -> Geocoding...
+[08:20:17] Geocoded 60015: 42.1670940, -87.8579040
+[08:20:17] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1670940&lng=-87.8579040&limit=50&sort=distance&states=Illinois
+[08:20:17] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:18] Scanning ZIP: 60016 -> Geocoding...
+[08:20:19] Geocoded 60016: 42.0409711, -87.9086607
+[08:20:19] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0409711&lng=-87.9086607&limit=50&sort=distance&states=Illinois
+[08:20:19] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:19] Scanning ZIP: 60018 -> Geocoding...
+[08:20:20] Geocoded 60018: 42.0079336, -87.8870904
+[08:20:20] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0079336&lng=-87.8870904&limit=50&sort=distance&states=Illinois
+[08:20:20] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:20] Scanning ZIP: 60020 -> Geocoding...
+[08:20:21] Geocoded 60020: 42.4066232, -88.1810294
+[08:20:21] API URL: https://api.cannmenus.com/v1/retailers?lat=42.4066232&lng=-88.1810294&limit=50&sort=distance&states=Illinois
+[08:20:21] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:21] Scanning ZIP: 60021 -> Geocoding...
+[08:20:22] Geocoded 60021: 42.1940272, -88.2052613
+[08:20:22] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1940272&lng=-88.2052613&limit=50&sort=distance&states=Illinois
+[08:20:22] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:22] Scanning ZIP: 60022 -> Geocoding...
+[08:20:23] Geocoded 60022: 42.1342015, -87.7614793
+[08:20:23] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1342015&lng=-87.7614793&limit=50&sort=distance&states=Illinois
+[08:20:23] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:23] Scanning ZIP: 60025 -> Geocoding...
+[08:20:24] Geocoded 60025: 42.0738180, -87.8201589
+[08:20:24] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0738180&lng=-87.8201589&limit=50&sort=distance&states=Illinois
+[08:20:25] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:25] Scanning ZIP: 60026 -> Geocoding...
+[08:20:26] Geocoded 60026: 42.0860128, -87.8294680
+[08:20:26] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0860128&lng=-87.8294680&limit=50&sort=distance&states=Illinois
+[08:20:27] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:27] Scanning ZIP: 60029 -> Geocoding...
+[08:20:28] Geocoded 60029: 42.0578255, -87.7915140
+[08:20:28] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0578255&lng=-87.7915140&limit=50&sort=distance&states=Illinois
+[08:20:29] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:29] Scanning ZIP: 60030 -> Geocoding...
+[08:20:29] Geocoded 60030: 42.3441139, -88.0339509
+[08:20:29] API URL: https://api.cannmenus.com/v1/retailers?lat=42.3441139&lng=-88.0339509&limit=50&sort=distance&states=Illinois
+[08:20:29] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:29] Scanning ZIP: 60031 -> Geocoding...
+[08:20:30] Geocoded 60031: 42.3723846, -87.9442795
+[08:20:30] API URL: https://api.cannmenus.com/v1/retailers?lat=42.3723846&lng=-87.9442795&limit=50&sort=distance&states=Illinois
+[08:20:30] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:31] Scanning ZIP: 60033 -> Geocoding...
+[08:20:31] Geocoded 60033: 42.4049838, -88.5849167
+[08:20:31] API URL: https://api.cannmenus.com/v1/retailers?lat=42.4049838&lng=-88.5849167&limit=50&sort=distance&states=Illinois
+[08:20:31] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:31] Scanning ZIP: 60034 -> Geocoding...
+[08:20:32] Geocoded 60034: 42.4593960, -88.4285835
+[08:20:32] API URL: https://api.cannmenus.com/v1/retailers?lat=42.4593960&lng=-88.4285835&limit=50&sort=distance&states=Illinois
+[08:20:32] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:32] Scanning ZIP: 60035 -> Geocoding...
+[08:20:33] Geocoded 60035: 42.1815229, -87.7993576
+[08:20:33] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1815229&lng=-87.7993576&limit=50&sort=distance&states=Illinois
+[08:20:34] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:34] Scanning ZIP: 60040 -> Geocoding...
+[08:20:34] Geocoded 60040: 42.2046673, -87.8136789
+[08:20:34] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2046673&lng=-87.8136789&limit=50&sort=distance&states=Illinois
+[08:20:35] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:35] Scanning ZIP: 60041 -> Geocoding...
+[08:20:37] Geocoded 60041: 42.3762730, -88.1465441
+[08:20:37] API URL: https://api.cannmenus.com/v1/retailers?lat=42.3762730&lng=-88.1465441&limit=50&sort=distance&states=Illinois
+[08:20:37] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:37] Scanning ZIP: 60042 -> Geocoding...
+[08:20:38] Geocoded 60042: 42.2779524, -88.2135667
+[08:20:38] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2779524&lng=-88.2135667&limit=50&sort=distance&states=Illinois
+[08:20:38] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:38] Scanning ZIP: 60043 -> Geocoding...
+[08:20:38] Geocoded 60043: 42.0968262, -87.7263075
+[08:20:38] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0968262&lng=-87.7263075&limit=50&sort=distance&states=Illinois
+[08:20:38] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:38] Scanning ZIP: 60044 -> Geocoding...
+[08:20:39] Geocoded 60044: 42.2828448, -87.8631062
+[08:20:39] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2828448&lng=-87.8631062&limit=50&sort=distance&states=Illinois
+[08:20:39] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:39] Scanning ZIP: 60045 -> Geocoding...
+[08:20:40] Geocoded 60045: 42.2313180, -87.8473951
+[08:20:40] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2313180&lng=-87.8473951&limit=50&sort=distance&states=Illinois
+[08:20:40] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:40] Scanning ZIP: 60046 -> Geocoding...
+[08:20:42] Geocoded 60046: 42.4234073, -88.0621567
+[08:20:42] API URL: https://api.cannmenus.com/v1/retailers?lat=42.4234073&lng=-88.0621567&limit=50&sort=distance&states=Illinois
+[08:20:42] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:43] Scanning ZIP: 60047 -> Geocoding...
+[08:20:43] Geocoded 60047: 42.2087874, -88.0585477
+[08:20:43] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2087874&lng=-88.0585477&limit=50&sort=distance&states=Illinois
+[08:20:44] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:44] Scanning ZIP: 60048 -> Geocoding...
+[08:20:44] Geocoded 60048: 42.2885922, -87.9529626
+[08:20:44] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2885922&lng=-87.9529626&limit=50&sort=distance&states=Illinois
+[08:20:45] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:45] Scanning ZIP: 60050 -> Geocoding...
+[08:20:45] Geocoded 60050: 42.3404546, -88.2845319
+[08:20:45] API URL: https://api.cannmenus.com/v1/retailers?lat=42.3404546&lng=-88.2845319&limit=50&sort=distance&states=Illinois
+[08:20:46] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:46] Scanning ZIP: 60051 -> Geocoding...
+[08:20:46] Geocoded 60051: 42.3432357, -88.2378708
+[08:20:46] API URL: https://api.cannmenus.com/v1/retailers?lat=42.3432357&lng=-88.2378708&limit=50&sort=distance&states=Illinois
+[08:20:47] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:47] Scanning ZIP: 60053 -> Geocoding...
+[08:20:48] Geocoded 60053: 42.0445802, -87.7875209
+[08:20:48] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0445802&lng=-87.7875209&limit=50&sort=distance&states=Illinois
+[08:20:48] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:48] Scanning ZIP: 60056 -> Geocoding...
+[08:20:49] Geocoded 60056: 42.0676148, -87.9338659
+[08:20:49] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0676148&lng=-87.9338659&limit=50&sort=distance&states=Illinois
+[08:20:50] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:50] Scanning ZIP: 60060 -> Geocoding...
+[08:20:53] Geocoded 60060: 42.2676615, -88.0240550
+[08:20:53] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2676615&lng=-88.0240550&limit=50&sort=distance&states=Illinois
+[08:20:53] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:53] Scanning ZIP: 60061 -> Geocoding...
+[08:20:54] Geocoded 60061: 42.2438332, -87.9655708
+[08:20:54] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2438332&lng=-87.9655708&limit=50&sort=distance&states=Illinois
+[08:20:54] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:54] Scanning ZIP: 60062 -> Geocoding...
+[08:20:55] Geocoded 60062: 42.1274988, -87.8417696
+[08:20:55] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1274988&lng=-87.8417696&limit=50&sort=distance&states=Illinois
+[08:20:55] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:55] Scanning ZIP: 60064 -> Geocoding...
+[08:20:56] Geocoded 60064: 42.3255335, -87.8640647
+[08:20:56] API URL: https://api.cannmenus.com/v1/retailers?lat=42.3255335&lng=-87.8640647&limit=50&sort=distance&states=Illinois
+[08:20:57] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:58] Scanning ZIP: 60067 -> Geocoding...
+[08:20:58] Geocoded 60067: 42.1056095, -88.0581036
+[08:20:58] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1056095&lng=-88.0581036&limit=50&sort=distance&states=Illinois
+[08:20:59] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:59] Scanning ZIP: 60068 -> Geocoding...
+[08:20:59] Geocoded 60068: 42.0091044, -87.8357689
+[08:20:59] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0091044&lng=-87.8357689&limit=50&sort=distance&states=Illinois
+[08:20:59] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:20:59] Scanning ZIP: 60069 -> Geocoding...
+[08:21:00] Geocoded 60069: 42.1938949, -87.9134467
+[08:21:00] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1938949&lng=-87.9134467&limit=50&sort=distance&states=Illinois
+[08:21:00] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:00] Scanning ZIP: 60070 -> Geocoding...
+[08:21:01] Geocoded 60070: 42.1022778, -87.9269426
+[08:21:01] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1022778&lng=-87.9269426&limit=50&sort=distance&states=Illinois
+[08:21:01] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:01] Scanning ZIP: 60071 -> Geocoding...
+[08:21:02] Geocoded 60071: 42.4680093, -88.3045457
+[08:21:02] API URL: https://api.cannmenus.com/v1/retailers?lat=42.4680093&lng=-88.3045457&limit=50&sort=distance&states=Illinois
+[08:21:02] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:02] Scanning ZIP: 60072 -> Geocoding...
+[08:21:03] Geocoded 60072: 42.3795164, -88.2830110
+[08:21:03] API URL: https://api.cannmenus.com/v1/retailers?lat=42.3795164&lng=-88.2830110&limit=50&sort=distance&states=Illinois
+[08:21:03] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:03] Scanning ZIP: 60073 -> Geocoding...
+[08:21:04] Geocoded 60073: 42.3562715, -88.1057479
+[08:21:04] API URL: https://api.cannmenus.com/v1/retailers?lat=42.3562715&lng=-88.1057479&limit=50&sort=distance&states=Illinois
+[08:21:05] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:05] Scanning ZIP: 60074 -> Geocoding...
+[08:21:06] Geocoded 60074: 42.1328292, -88.0235626
+[08:21:06] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1328292&lng=-88.0235626&limit=50&sort=distance&states=Illinois
+[08:21:06] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:06] Scanning ZIP: 60076 -> Geocoding...
+[08:21:07] Geocoded 60076: 42.0396260, -87.7294034
+[08:21:07] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0396260&lng=-87.7294034&limit=50&sort=distance&states=Illinois
+[08:21:08] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:08] Scanning ZIP: 60077 -> Geocoding...
+[08:21:08] Geocoded 60077: 42.0363196, -87.7557203
+[08:21:08] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0363196&lng=-87.7557203&limit=50&sort=distance&states=Illinois
+[08:21:09] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:10] Scanning ZIP: 60081 -> Geocoding...
+[08:21:10] Geocoded 60081: 42.4387472, -88.2194270
+[08:21:10] API URL: https://api.cannmenus.com/v1/retailers?lat=42.4387472&lng=-88.2194270&limit=50&sort=distance&states=Illinois
+[08:21:10] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:10] Scanning ZIP: 60083 -> Geocoding...
+[08:21:12] Geocoded 60083: 42.4331532, -87.9353509
+[08:21:12] API URL: https://api.cannmenus.com/v1/retailers?lat=42.4331532&lng=-87.9353509&limit=50&sort=distance&states=Illinois
+[08:21:12] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:12] Scanning ZIP: 60084 -> Geocoding...
+[08:21:12] Geocoded 60084: 42.2702026, -88.1340763
+[08:21:12] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2702026&lng=-88.1340763&limit=50&sort=distance&states=Illinois
+[08:21:13] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:13] Scanning ZIP: 60085 -> Geocoding...
+[08:21:13] Geocoded 60085: 42.3593594, -87.8633685
+[08:21:13] API URL: https://api.cannmenus.com/v1/retailers?lat=42.3593594&lng=-87.8633685&limit=50&sort=distance&states=Illinois
+[08:21:14] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:14] Scanning ZIP: 60087 -> Geocoding...
+[08:21:14] Geocoded 60087: 42.4040631, -87.8573462
+[08:21:14] API URL: https://api.cannmenus.com/v1/retailers?lat=42.4040631&lng=-87.8573462&limit=50&sort=distance&states=Illinois
+[08:21:15] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:15] Scanning ZIP: 60088 -> Geocoding...
+[08:21:16] Geocoded 60088: 42.3057033, -87.8603746
+[08:21:16] API URL: https://api.cannmenus.com/v1/retailers?lat=42.3057033&lng=-87.8603746&limit=50&sort=distance&states=Illinois
+[08:21:16] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:16] Scanning ZIP: 60089 -> Geocoding...
+[08:21:16] Geocoded 60089: 42.1668588, -87.9699680
+[08:21:16] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1668588&lng=-87.9699680&limit=50&sort=distance&states=Illinois
+[08:21:17] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:17] Scanning ZIP: 60090 -> Geocoding...
+[08:21:17] Geocoded 60090: 42.1361467, -87.9316182
+[08:21:17] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1361467&lng=-87.9316182&limit=50&sort=distance&states=Illinois
+[08:21:18] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:18] Scanning ZIP: 60091 -> Geocoding...
+[08:21:18] Geocoded 60091: 42.0758254, -87.7255423
+[08:21:18] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0758254&lng=-87.7255423&limit=50&sort=distance&states=Illinois
+[08:21:19] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:19] Scanning ZIP: 60093 -> Geocoding...
+[08:21:20] Geocoded 60093: 42.1053788, -87.7589787
+[08:21:20] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1053788&lng=-87.7589787&limit=50&sort=distance&states=Illinois
+[08:21:20] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:21] Scanning ZIP: 60096 -> Geocoding...
+[08:21:21] Geocoded 60096: 42.4811846, -87.8282181
+[08:21:21] API URL: https://api.cannmenus.com/v1/retailers?lat=42.4811846&lng=-87.8282181&limit=50&sort=distance&states=Illinois
+[08:21:21] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:21] Scanning ZIP: 60097 -> Geocoding...
+[08:21:22] Geocoded 60097: 42.3846009, -88.3572008
+[08:21:22] API URL: https://api.cannmenus.com/v1/retailers?lat=42.3846009&lng=-88.3572008&limit=50&sort=distance&states=Illinois
+[08:21:22] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:22] Scanning ZIP: 60098 -> Geocoding...
+[08:21:23] Geocoded 60098: 42.3196611, -88.4342901
+[08:21:23] API URL: https://api.cannmenus.com/v1/retailers?lat=42.3196611&lng=-88.4342901&limit=50&sort=distance&states=Illinois
+[08:21:23] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:23] Scanning ZIP: 60099 -> Geocoding...
+[08:21:24] Geocoded 60099: 42.4458556, -87.8497741
+[08:21:24] API URL: https://api.cannmenus.com/v1/retailers?lat=42.4458556&lng=-87.8497741&limit=50&sort=distance&states=Illinois
+[08:21:24] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:24] Scanning ZIP: 60101 -> Geocoding...
+[08:21:25] Geocoded 60101: 41.9335321, -88.0085630
+[08:21:25] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9335321&lng=-88.0085630&limit=50&sort=distance&states=Illinois
+[08:21:25] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:25] Scanning ZIP: 60102 -> Geocoding...
+[08:21:26] Geocoded 60102: 42.1620388, -88.3177776
+[08:21:26] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1620388&lng=-88.3177776&limit=50&sort=distance&states=Illinois
+[08:21:26] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:26] Scanning ZIP: 60103 -> Geocoding...
+[08:21:27] Geocoded 60103: 41.9801536, -88.1858475
+[08:21:27] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9801536&lng=-88.1858475&limit=50&sort=distance&states=Illinois
+[08:21:27] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:27] Scanning ZIP: 60104 -> Geocoding...
+[08:21:28] Geocoded 60104: 41.8827658, -87.8714224
+[08:21:28] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8827658&lng=-87.8714224&limit=50&sort=distance&states=Illinois
+[08:21:28] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:28] Scanning ZIP: 60106 -> Geocoding...
+[08:21:29] Geocoded 60106: 41.9524426, -87.9469219
+[08:21:29] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9524426&lng=-87.9469219&limit=50&sort=distance&states=Illinois
+[08:21:29] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:29] Scanning ZIP: 60107 -> Geocoding...
+[08:21:30] Geocoded 60107: 42.0210659, -88.1741365
+[08:21:30] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0210659&lng=-88.1741365&limit=50&sort=distance&states=Illinois
+[08:21:30] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:31] Scanning ZIP: 60108 -> Geocoding...
+[08:21:32] Geocoded 60108: 41.9444980, -88.0948521
+[08:21:32] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9444980&lng=-88.0948521&limit=50&sort=distance&states=Illinois
+[08:21:33] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:33] Scanning ZIP: 60109 -> Geocoding...
+[08:21:33] Geocoded 60109: 42.0543484, -88.5510441
+[08:21:33] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0543484&lng=-88.5510441&limit=50&sort=distance&states=Illinois
+[08:21:33] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:33] Scanning ZIP: 60110 -> Geocoding...
+[08:21:34] Geocoded 60110: 42.1225711, -88.2812242
+[08:21:34] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1225711&lng=-88.2812242&limit=50&sort=distance&states=Illinois
+[08:21:34] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:34] Scanning ZIP: 60111 -> Geocoding...
+[08:21:35] Geocoded 60111: 42.0101393, -88.7994768
+[08:21:35] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0101393&lng=-88.7994768&limit=50&sort=distance&states=Illinois
+[08:21:35] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:35] Scanning ZIP: 60112 -> Geocoding...
+[08:21:36] Geocoded 60112: 41.9242574, -88.6906997
+[08:21:36] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9242574&lng=-88.6906997&limit=50&sort=distance&states=Illinois
+[08:21:36] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:36] Scanning ZIP: 60113 -> Geocoding...
+[08:21:37] Geocoded 60113: 41.9307928, -88.9659908
+[08:21:37] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9307928&lng=-88.9659908&limit=50&sort=distance&states=Illinois
+[08:21:37] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:37] Scanning ZIP: 60115 -> Geocoding...
+[08:21:38] Geocoded 60115: 41.9318623, -88.7568839
+[08:21:38] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9318623&lng=-88.7568839&limit=50&sort=distance&states=Illinois
+[08:21:39] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:39] Scanning ZIP: 60118 -> Geocoding...
+[08:21:40] Geocoded 60118: 42.0994190, -88.2963295
+[08:21:40] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0994190&lng=-88.2963295&limit=50&sort=distance&states=Illinois
+[08:21:40] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:40] Scanning ZIP: 60119 -> Geocoding...
+[08:21:40] Geocoded 60119: 41.8750527, -88.4564959
+[08:21:40] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8750527&lng=-88.4564959&limit=50&sort=distance&states=Illinois
+[08:21:40] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:40] Scanning ZIP: 60120 -> Geocoding...
+[08:21:41] Geocoded 60120: 42.0378439, -88.2651293
+[08:21:41] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0378439&lng=-88.2651293&limit=50&sort=distance&states=Illinois
+[08:21:41] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:42] Scanning ZIP: 60123 -> Geocoding...
+[08:21:42] Geocoded 60123: 42.0338101, -88.3073301
+[08:21:42] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0338101&lng=-88.3073301&limit=50&sort=distance&states=Illinois
+[08:21:43] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:43] Scanning ZIP: 60124 -> Geocoding...
+[08:21:44] Geocoded 60124: 42.0242819, -88.3749285
+[08:21:44] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0242819&lng=-88.3749285&limit=50&sort=distance&states=Illinois
+[08:21:44] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:44] Scanning ZIP: 60126 -> Geocoding...
+[08:21:45] Geocoded 60126: 41.8941112, -87.9461940
+[08:21:45] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8941112&lng=-87.9461940&limit=50&sort=distance&states=Illinois
+[08:21:45] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:45] Scanning ZIP: 60129 -> Geocoding...
+[08:21:46] Geocoded 60129: 42.0245587, -89.0030521
+[08:21:46] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0245587&lng=-89.0030521&limit=50&sort=distance&states=Illinois
+[08:21:46] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:46] Scanning ZIP: 60130 -> Geocoding...
+[08:21:47] Geocoded 60130: 41.8735023, -87.8118429
+[08:21:47] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8735023&lng=-87.8118429&limit=50&sort=distance&states=Illinois
+[08:21:47] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:47] Scanning ZIP: 60131 -> Geocoding...
+[08:21:48] Geocoded 60131: 41.9295314, -87.8771497
+[08:21:48] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9295314&lng=-87.8771497&limit=50&sort=distance&states=Illinois
+[08:21:48] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:48] Scanning ZIP: 60133 -> Geocoding...
+[08:21:48] Geocoded 60133: 41.9860823, -88.1467358
+[08:21:48] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9860823&lng=-88.1467358&limit=50&sort=distance&states=Illinois
+[08:21:49] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:49] Scanning ZIP: 60134 -> Geocoding...
+[08:21:50] Geocoded 60134: 41.8824029, -88.3271600
+[08:21:50] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8824029&lng=-88.3271600&limit=50&sort=distance&states=Illinois
+[08:21:50] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:50] Scanning ZIP: 60135 -> Geocoding...
+[08:21:51] Geocoded 60135: 42.0959730, -88.6914954
+[08:21:51] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0959730&lng=-88.6914954&limit=50&sort=distance&states=Illinois
+[08:21:51] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:51] Scanning ZIP: 60136 -> Geocoding...
+[08:21:52] Geocoded 60136: 42.0839084, -88.3657957
+[08:21:52] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0839084&lng=-88.3657957&limit=50&sort=distance&states=Illinois
+[08:21:53] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:54] Scanning ZIP: 60137 -> Geocoding...
+[08:21:55] Geocoded 60137: 41.8678049, -88.0643382
+[08:21:55] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8678049&lng=-88.0643382&limit=50&sort=distance&states=Illinois
+[08:21:55] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:55] Scanning ZIP: 60139 -> Geocoding...
+[08:21:55] Geocoded 60139: 41.9220156, -88.0790275
+[08:21:55] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9220156&lng=-88.0790275&limit=50&sort=distance&states=Illinois
+[08:21:56] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:56] Scanning ZIP: 60140 -> Geocoding...
+[08:21:57] Geocoded 60140: 42.0938328, -88.4891263
+[08:21:57] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0938328&lng=-88.4891263&limit=50&sort=distance&states=Illinois
+[08:21:57] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:57] Scanning ZIP: 60141 -> Geocoding...
+[08:21:58] Geocoded 60141: 41.8593426, -87.8388630
+[08:21:58] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8593426&lng=-87.8388630&limit=50&sort=distance&states=Illinois
+[08:21:58] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:58] Scanning ZIP: 60142 -> Geocoding...
+[08:21:59] Geocoded 60142: 42.1693909, -88.4254548
+[08:21:59] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1693909&lng=-88.4254548&limit=50&sort=distance&states=Illinois
+[08:21:59] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:21:59] Scanning ZIP: 60143 -> Geocoding...
+[08:22:00] Geocoded 60143: 41.9727124, -88.0196329
+[08:22:00] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9727124&lng=-88.0196329&limit=50&sort=distance&states=Illinois
+[08:22:00] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:00] Scanning ZIP: 60144 -> Geocoding...
+[08:22:01] Geocoded 60144: 41.8354508, -88.5212591
+[08:22:01] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8354508&lng=-88.5212591&limit=50&sort=distance&states=Illinois
+[08:22:01] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:01] Scanning ZIP: 60145 -> Geocoding...
+[08:22:02] Geocoded 60145: 42.0981045, -88.7675719
+[08:22:02] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0981045&lng=-88.7675719&limit=50&sort=distance&states=Illinois
+[08:22:02] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:02] Scanning ZIP: 60146 -> Geocoding...
+[08:22:03] Geocoded 60146: 42.1008966, -88.8677325
+[08:22:03] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1008966&lng=-88.8677325&limit=50&sort=distance&states=Illinois
+[08:22:03] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:03] Scanning ZIP: 60148 -> Geocoding...
+[08:22:04] Geocoded 60148: 41.8626044, -88.0119027
+[08:22:04] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8626044&lng=-88.0119027&limit=50&sort=distance&states=Illinois
+[08:22:04] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:05] Scanning ZIP: 60150 -> Geocoding...
+[08:22:11] Geocoded 60150: 41.9162020, -88.8470957
+[08:22:11] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9162020&lng=-88.8470957&limit=50&sort=distance&states=Illinois
+[08:22:11] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:11] Scanning ZIP: 60151 -> Geocoding...
+[08:22:13] Geocoded 60151: 41.9138440, -88.5639244
+[08:22:13] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9138440&lng=-88.5639244&limit=50&sort=distance&states=Illinois
+[08:22:13] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:13] Scanning ZIP: 60152 -> Geocoding...
+[08:22:15] Geocoded 60152: 42.2512929, -88.6037187
+[08:22:15] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2512929&lng=-88.6037187&limit=50&sort=distance&states=Illinois
+[08:22:15] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:15] Scanning ZIP: 60153 -> Geocoding...
+[08:22:15] Geocoded 60153: 41.8785217, -87.8442489
+[08:22:15] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8785217&lng=-87.8442489&limit=50&sort=distance&states=Illinois
+[08:22:16] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:16] Scanning ZIP: 60154 -> Geocoding...
+[08:22:16] Geocoded 60154: 41.8515570, -87.8871978
+[08:22:16] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8515570&lng=-87.8871978&limit=50&sort=distance&states=Illinois
+[08:22:17] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:17] Scanning ZIP: 60155 -> Geocoding...
+[08:22:17] Geocoded 60155: 41.8593418, -87.8548424
+[08:22:17] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8593418&lng=-87.8548424&limit=50&sort=distance&states=Illinois
+[08:22:18] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:18] Scanning ZIP: 60156 -> Geocoding...
+[08:22:18] Geocoded 60156: 42.1851032, -88.3388501
+[08:22:18] API URL: https://api.cannmenus.com/v1/retailers?lat=42.1851032&lng=-88.3388501&limit=50&sort=distance&states=Illinois
+[08:22:19] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:19] Scanning ZIP: 60157 -> Geocoding...
+[08:22:19] Geocoded 60157: 41.9726494, -88.0578533
+[08:22:19] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9726494&lng=-88.0578533&limit=50&sort=distance&states=Illinois
+[08:22:20] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:20] Scanning ZIP: 60160 -> Geocoding...
+[08:22:20] Geocoded 60160: 41.9017299, -87.8567618
+[08:22:20] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9017299&lng=-87.8567618&limit=50&sort=distance&states=Illinois
+[08:22:21] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:21] Scanning ZIP: 60162 -> Geocoding...
+[08:22:21] Geocoded 60162: 41.8715340, -87.8971670
+[08:22:21] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8715340&lng=-87.8971670&limit=50&sort=distance&states=Illinois
+[08:22:22] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:23] Scanning ZIP: 60163 -> Geocoding...
+[08:22:23] Geocoded 60163: 41.8871937, -87.9102448
+[08:22:23] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8871937&lng=-87.9102448&limit=50&sort=distance&states=Illinois
+[08:22:23] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:23] Scanning ZIP: 60164 -> Geocoding...
+[08:22:24] Geocoded 60164: 41.9141734, -87.8978962
+[08:22:24] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9141734&lng=-87.8978962&limit=50&sort=distance&states=Illinois
+[08:22:24] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:24] Scanning ZIP: 60165 -> Geocoding...
+[08:22:25] Geocoded 60165: 41.9013618, -87.8781430
+[08:22:25] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9013618&lng=-87.8781430&limit=50&sort=distance&states=Illinois
+[08:22:25] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:25] Scanning ZIP: 60169 -> Geocoding...
+[08:22:26] Geocoded 60169: 42.0448843, -88.1025703
+[08:22:26] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0448843&lng=-88.1025703&limit=50&sort=distance&states=Illinois
+[08:22:26] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:26] Scanning ZIP: 60171 -> Geocoding...
+[08:22:27] Geocoded 60171: 41.9320783, -87.8352656
+[08:22:27] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9320783&lng=-87.8352656&limit=50&sort=distance&states=Illinois
+[08:22:27] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:27] Scanning ZIP: 60172 -> Geocoding...
+[08:22:28] Geocoded 60172: 41.9797721, -88.0856544
+[08:22:28] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9797721&lng=-88.0856544&limit=50&sort=distance&states=Illinois
+[08:22:28] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:28] Scanning ZIP: 60173 -> Geocoding...
+[08:22:29] Geocoded 60173: 42.0466114, -88.0467696
+[08:22:29] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0466114&lng=-88.0467696&limit=50&sort=distance&states=Illinois
+[08:22:29] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:29] Scanning ZIP: 60174 -> Geocoding...
+[08:22:30] Geocoded 60174: 41.9212649, -88.3062434
+[08:22:30] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9212649&lng=-88.3062434&limit=50&sort=distance&states=Illinois
+[08:22:30] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:30] Scanning ZIP: 60175 -> Geocoding...
+[08:22:31] Geocoded 60175: 41.9496437, -88.3835182
+[08:22:31] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9496437&lng=-88.3835182&limit=50&sort=distance&states=Illinois
+[08:22:31] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:31] Scanning ZIP: 60176 -> Geocoding...
+[08:22:32] Geocoded 60176: 41.9549608, -87.8682983
+[08:22:32] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9549608&lng=-87.8682983&limit=50&sort=distance&states=Illinois
+[08:22:32] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:33] Scanning ZIP: 60177 -> Geocoding...
+[08:22:33] Geocoded 60177: 41.9931112, -88.3098270
+[08:22:33] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9931112&lng=-88.3098270&limit=50&sort=distance&states=Illinois
+[08:22:34] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:34] Scanning ZIP: 60178 -> Geocoding...
+[08:22:34] Geocoded 60178: 41.9808706, -88.7049078
+[08:22:34] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9808706&lng=-88.7049078&limit=50&sort=distance&states=Illinois
+[08:22:35] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:35] Scanning ZIP: 60180 -> Geocoding...
+[08:22:35] Geocoded 60180: 42.2247593, -88.5368169
+[08:22:35] API URL: https://api.cannmenus.com/v1/retailers?lat=42.2247593&lng=-88.5368169&limit=50&sort=distance&states=Illinois
+[08:22:35] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:35] Scanning ZIP: 60181 -> Geocoding...
+[08:22:36] Geocoded 60181: 41.8766825, -87.9796646
+[08:22:36] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8766825&lng=-87.9796646&limit=50&sort=distance&states=Illinois
+[08:22:37] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:37] Scanning ZIP: 60184 -> Geocoding...
+[08:22:37] Geocoded 60184: 41.9459647, -88.2448835
+[08:22:37] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9459647&lng=-88.2448835&limit=50&sort=distance&states=Illinois
+[08:22:38] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:38] Scanning ZIP: 60185 -> Geocoding...
+[08:22:38] Geocoded 60185: 41.8974074, -88.2048003
+[08:22:38] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8974074&lng=-88.2048003&limit=50&sort=distance&states=Illinois
+[08:22:39] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:39] Scanning ZIP: 60187 -> Geocoding...
+[08:22:39] Geocoded 60187: 41.8627738, -88.1087849
+[08:22:39] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8627738&lng=-88.1087849&limit=50&sort=distance&states=Illinois
+[08:22:39] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:39] Scanning ZIP: 60188 -> Geocoding...
+[08:22:41] Geocoded 60188: 41.9181773, -88.1364202
+[08:22:41] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9181773&lng=-88.1364202&limit=50&sort=distance&states=Illinois
+[08:22:41] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:41] Scanning ZIP: 60189 -> Geocoding...
+[08:22:41] Geocoded 60189: 41.8436147, -88.1107445
+[08:22:41] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8436147&lng=-88.1107445&limit=50&sort=distance&states=Illinois
+[08:22:42] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:42] Scanning ZIP: 60190 -> Geocoding...
+[08:22:42] Geocoded 60190: 41.8757609, -88.1507206
+[08:22:42] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8757609&lng=-88.1507206&limit=50&sort=distance&states=Illinois
+[08:22:42] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:43] Scanning ZIP: 60191 -> Geocoding...
+[08:22:44] Geocoded 60191: 41.9693585, -87.9778687
+[08:22:44] API URL: https://api.cannmenus.com/v1/retailers?lat=41.9693585&lng=-87.9778687&limit=50&sort=distance&states=Illinois
+[08:22:44] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:44] Scanning ZIP: 60192 -> Geocoding...
+[08:22:45] Geocoded 60192: 42.0945225, -88.1284326
+[08:22:45] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0945225&lng=-88.1284326&limit=50&sort=distance&states=Illinois
+[08:22:45] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:45] Scanning ZIP: 60193 -> Geocoding...
+[08:22:46] Geocoded 60193: 42.0143352, -88.0938086
+[08:22:46] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0143352&lng=-88.0938086&limit=50&sort=distance&states=Illinois
+[08:22:46] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:46] Scanning ZIP: 60194 -> Geocoding...
+[08:22:47] Geocoded 60194: 42.0334903, -88.1128063
+[08:22:47] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0334903&lng=-88.1128063&limit=50&sort=distance&states=Illinois
+[08:22:47] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:47] Scanning ZIP: 60195 -> Geocoding...
+[08:22:48] Geocoded 60195: 42.0691835, -88.1027199
+[08:22:48] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0691835&lng=-88.1027199&limit=50&sort=distance&states=Illinois
+[08:22:48] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:48] Scanning ZIP: 60201 -> Geocoding...
+[08:22:49] Geocoded 60201: 42.0565223, -87.7006937
+[08:22:49] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0565223&lng=-87.7006937&limit=50&sort=distance&states=Illinois
+[08:22:49] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:49] Scanning ZIP: 60202 -> Geocoding...
+[08:22:50] Geocoded 60202: 42.0306403, -87.6887090
+[08:22:50] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0306403&lng=-87.6887090&limit=50&sort=distance&states=Illinois
+[08:22:50] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:50] Scanning ZIP: 60203 -> Geocoding...
+[08:22:51] Geocoded 60203: 42.0462064, -87.7158763
+[08:22:51] API URL: https://api.cannmenus.com/v1/retailers?lat=42.0462064&lng=-87.7158763&limit=50&sort=distance&states=Illinois
+[08:22:51] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:51] Scanning ZIP: 60301 -> Geocoding...
+[08:22:52] Geocoded 60301: 41.8889219, -87.8004207
+[08:22:52] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8889219&lng=-87.8004207&limit=50&sort=distance&states=Illinois
+[08:22:52] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:52] Scanning ZIP: 60302 -> Geocoding...
+[08:22:53] Geocoded 60302: 41.8962265, -87.7874372
+[08:22:53] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8962265&lng=-87.7874372&limit=50&sort=distance&states=Illinois
+[08:22:53] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:54] Scanning ZIP: 60304 -> Geocoding...
+[08:22:55] Geocoded 60304: 41.8715497, -87.7843346
+[08:22:55] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8715497&lng=-87.7843346&limit=50&sort=distance&states=Illinois
+[08:22:55] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:55] Scanning ZIP: 60305 -> Geocoding...
+[08:22:55] Geocoded 60305: 41.8978293, -87.8157625
+[08:22:55] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8978293&lng=-87.8157625&limit=50&sort=distance&states=Illinois
+[08:22:56] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:56] Scanning ZIP: 60401 -> Geocoding...
+[08:22:56] Geocoded 60401: 41.3519324, -87.6181525
+[08:22:56] API URL: https://api.cannmenus.com/v1/retailers?lat=41.3519324&lng=-87.6181525&limit=50&sort=distance&states=Illinois
+[08:22:57] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:57] Scanning ZIP: 60402 -> Geocoding...
+[08:22:57] Geocoded 60402: 41.8379914, -87.7877282
+[08:22:57] API URL: https://api.cannmenus.com/v1/retailers?lat=41.8379914&lng=-87.7877282&limit=50&sort=distance&states=Illinois
+[08:22:58] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:58] Scanning ZIP: 60403 -> Geocoding...
+[08:22:58] Geocoded 60403: 41.5644593, -88.1222184
+[08:22:58] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5644593&lng=-88.1222184&limit=50&sort=distance&states=Illinois
+[08:22:59] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:22:59] Scanning ZIP: 60404 -> Geocoding...
+[08:22:59] Geocoded 60404: 41.5128161, -88.2246872
+[08:22:59] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5128161&lng=-88.2246872&limit=50&sort=distance&states=Illinois
+[08:23:00] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:00] Scanning ZIP: 60406 -> Geocoding...
+[08:23:00] Geocoded 60406: 41.6628680, -87.6820985
+[08:23:00] API URL: https://api.cannmenus.com/v1/retailers?lat=41.6628680&lng=-87.6820985&limit=50&sort=distance&states=Illinois
+[08:23:00] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:00] Scanning ZIP: 60407 -> Geocoding...
+[08:23:01] Geocoded 60407: 41.2281246, -88.2644168
+[08:23:01] API URL: https://api.cannmenus.com/v1/retailers?lat=41.2281246&lng=-88.2644168&limit=50&sort=distance&states=Illinois
+[08:23:02] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:02] Scanning ZIP: 60408 -> Geocoding...
+[08:23:03] Geocoded 60408: 41.2659975, -88.2202678
+[08:23:03] API URL: https://api.cannmenus.com/v1/retailers?lat=41.2659975&lng=-88.2202678&limit=50&sort=distance&states=Illinois
+[08:23:03] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:03] Scanning ZIP: 60409 -> Geocoding...
+[08:23:03] Geocoded 60409: 41.6142697, -87.5670821
+[08:23:03] API URL: https://api.cannmenus.com/v1/retailers?lat=41.6142697&lng=-87.5670821&limit=50&sort=distance&states=Illinois
+[08:23:04] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:05] Scanning ZIP: 60410 -> Geocoding...
+[08:23:05] Geocoded 60410: 41.4476578, -88.2267269
+[08:23:05] API URL: https://api.cannmenus.com/v1/retailers?lat=41.4476578&lng=-88.2267269&limit=50&sort=distance&states=Illinois
+[08:23:05] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:05] Scanning ZIP: 60411 -> Geocoding...
+[08:23:06] Geocoded 60411: 41.5111658, -87.6100102
+[08:23:06] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5111658&lng=-87.6100102&limit=50&sort=distance&states=Illinois
+[08:23:06] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:06] Scanning ZIP: 60415 -> Geocoding...
+[08:23:07] Geocoded 60415: 41.7034072, -87.7765784
+[08:23:07] API URL: https://api.cannmenus.com/v1/retailers?lat=41.7034072&lng=-87.7765784&limit=50&sort=distance&states=Illinois
+[08:23:07] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:07] Scanning ZIP: 60416 -> Geocoding...
+[08:23:08] Geocoded 60416: 41.2871918, -88.2838751
+[08:23:08] API URL: https://api.cannmenus.com/v1/retailers?lat=41.2871918&lng=-88.2838751&limit=50&sort=distance&states=Illinois
+[08:23:08] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:08] Scanning ZIP: 60417 -> Geocoding...
+[08:23:09] Geocoded 60417: 41.4413746, -87.6070509
+[08:23:09] API URL: https://api.cannmenus.com/v1/retailers?lat=41.4413746&lng=-87.6070509&limit=50&sort=distance&states=Illinois
+[08:23:09] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:09] Scanning ZIP: 60419 -> Geocoding...
+[08:23:10] Geocoded 60419: 41.6290642, -87.5995820
+[08:23:10] API URL: https://api.cannmenus.com/v1/retailers?lat=41.6290642&lng=-87.5995820&limit=50&sort=distance&states=Illinois
+[08:23:10] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:10] Scanning ZIP: 60420 -> Geocoding...
+[08:23:11] Geocoded 60420: 41.0895113, -88.4444042
+[08:23:11] API URL: https://api.cannmenus.com/v1/retailers?lat=41.0895113&lng=-88.4444042&limit=50&sort=distance&states=Illinois
+[08:23:11] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:11] Scanning ZIP: 60421 -> Geocoding...
+[08:23:12] Geocoded 60421: 41.4065264, -88.0970749
+[08:23:12] API URL: https://api.cannmenus.com/v1/retailers?lat=41.4065264&lng=-88.0970749&limit=50&sort=distance&states=Illinois
+[08:23:12] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:12] Scanning ZIP: 60422 -> Geocoding...
+[08:23:13] Geocoded 60422: 41.5396857, -87.6838322
+[08:23:13] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5396857&lng=-87.6838322&limit=50&sort=distance&states=Illinois
+[08:23:13] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:13] Scanning ZIP: 60423 -> Geocoding...
+[08:23:14] Geocoded 60423: 41.4943921, -87.8554359
+[08:23:14] API URL: https://api.cannmenus.com/v1/retailers?lat=41.4943921&lng=-87.8554359&limit=50&sort=distance&states=Illinois
+[08:23:14] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:15] Scanning ZIP: 60424 -> Geocoding...
+[08:23:15] Geocoded 60424: 41.1728031, -88.3083633
+[08:23:15] API URL: https://api.cannmenus.com/v1/retailers?lat=41.1728031&lng=-88.3083633&limit=50&sort=distance&states=Illinois
+[08:23:15] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:15] Scanning ZIP: 60425 -> Geocoding...
+[08:23:16] Geocoded 60425: 41.5471899, -87.6152028
+[08:23:16] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5471899&lng=-87.6152028&limit=50&sort=distance&states=Illinois
+[08:23:16] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:16] Scanning ZIP: 60426 -> Geocoding...
+[08:23:17] Geocoded 60426: 41.6133150, -87.6511404
+[08:23:17] API URL: https://api.cannmenus.com/v1/retailers?lat=41.6133150&lng=-87.6511404&limit=50&sort=distance&states=Illinois
+[08:23:17] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:17] Scanning ZIP: 60428 -> Geocoding...
+[08:23:18] Geocoded 60428: 41.5988496, -87.6890163
+[08:23:18] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5988496&lng=-87.6890163&limit=50&sort=distance&states=Illinois
+[08:23:18] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:18] Scanning ZIP: 60429 -> Geocoding...
+[08:23:19] Geocoded 60429: 41.5717402, -87.6842982
+[08:23:19] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5717402&lng=-87.6842982&limit=50&sort=distance&states=Illinois
+[08:23:19] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:19] Scanning ZIP: 60430 -> Geocoding...
+[08:23:20] Geocoded 60430: 41.5582624, -87.6611189
+[08:23:20] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5582624&lng=-87.6611189&limit=50&sort=distance&states=Illinois
+[08:23:21] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:21] Scanning ZIP: 60431 -> Geocoding...
+[08:23:21] Geocoded 60431: 41.5464013, -88.2739622
+[08:23:21] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5464013&lng=-88.2739622&limit=50&sort=distance&states=Illinois
+[08:23:22] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:22] Scanning ZIP: 60432 -> Geocoding...
+[08:23:22] Geocoded 60432: 41.5316555, -88.0709741
+[08:23:22] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5316555&lng=-88.0709741&limit=50&sort=distance&states=Illinois
+[08:23:23] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:23] Scanning ZIP: 60433 -> Geocoding...
+[08:23:23] Geocoded 60433: 41.5071229, -88.0610251
+[08:23:23] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5071229&lng=-88.0610251&limit=50&sort=distance&states=Illinois
+[08:23:23] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:23] Scanning ZIP: 60435 -> Geocoding...
+[08:23:24] Geocoded 60435: 41.5444276, -88.1339332
+[08:23:24] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5444276&lng=-88.1339332&limit=50&sort=distance&states=Illinois
+[08:23:24] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:25] Scanning ZIP: 60436 -> Geocoding...
+[08:23:26] Geocoded 60436: 41.5077185, -88.1032662
+[08:23:26] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5077185&lng=-88.1032662&limit=50&sort=distance&states=Illinois
+[08:23:26] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:26] Scanning ZIP: 60437 -> Geocoding...
+[08:23:27] Geocoded 60437: 41.1951845, -88.5392461
+[08:23:27] API URL: https://api.cannmenus.com/v1/retailers?lat=41.1951845&lng=-88.5392461&limit=50&sort=distance&states=Illinois
+[08:23:27] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:27] Scanning ZIP: 60438 -> Geocoding...
+[08:23:28] Geocoded 60438: 41.5669716, -87.5455221
+[08:23:28] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5669716&lng=-87.5455221&limit=50&sort=distance&states=Illinois
+[08:23:28] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:28] Scanning ZIP: 60439 -> Geocoding...
+[08:23:29] Geocoded 60439: 41.6709496, -87.9876011
+[08:23:29] API URL: https://api.cannmenus.com/v1/retailers?lat=41.6709496&lng=-87.9876011&limit=50&sort=distance&states=Illinois
+[08:23:29] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:29] Scanning ZIP: 60440 -> Geocoding...
+[08:23:30] Geocoded 60440: 41.7048971, -88.0736460
+[08:23:30] API URL: https://api.cannmenus.com/v1/retailers?lat=41.7048971&lng=-88.0736460&limit=50&sort=distance&states=Illinois
+[08:23:30] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:30] Scanning ZIP: 60441 -> Geocoding...
+[08:23:31] Geocoded 60441: 41.6047269, -88.0166563
+[08:23:31] API URL: https://api.cannmenus.com/v1/retailers?lat=41.6047269&lng=-88.0166563&limit=50&sort=distance&states=Illinois
+[08:23:31] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:31] Scanning ZIP: 60442 -> Geocoding...
+[08:23:32] Geocoded 60442: 41.4184209, -87.9784891
+[08:23:32] API URL: https://api.cannmenus.com/v1/retailers?lat=41.4184209&lng=-87.9784891&limit=50&sort=distance&states=Illinois
+[08:23:32] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:32] Scanning ZIP: 60443 -> Geocoding...
+[08:23:33] Geocoded 60443: 41.5073509, -87.7320422
+[08:23:33] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5073509&lng=-87.7320422&limit=50&sort=distance&states=Illinois
+[08:23:33] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:33] Scanning ZIP: 60444 -> Geocoding...
+[08:23:34] Geocoded 60444: 41.2366141, -88.4086976
+[08:23:34] API URL: https://api.cannmenus.com/v1/retailers?lat=41.2366141&lng=-88.4086976&limit=50&sort=distance&states=Illinois
+[08:23:34] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:34] Scanning ZIP: 60445 -> Geocoding...
+[08:23:35] Geocoded 60445: 41.6363668, -87.7335793
+[08:23:35] API URL: https://api.cannmenus.com/v1/retailers?lat=41.6363668&lng=-87.7335793&limit=50&sort=distance&states=Illinois
+[08:23:35] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:36] Scanning ZIP: 60446 -> Geocoding...
+[08:23:37] Geocoded 60446: 41.6396703, -88.0983983
+[08:23:37] API URL: https://api.cannmenus.com/v1/retailers?lat=41.6396703&lng=-88.0983983&limit=50&sort=distance&states=Illinois
+[08:23:37] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:37] Scanning ZIP: 60447 -> Geocoding...
+[08:23:38] Geocoded 60447: 41.4494668, -88.2728938
+[08:23:38] API URL: https://api.cannmenus.com/v1/retailers?lat=41.4494668&lng=-88.2728938&limit=50&sort=distance&states=Illinois
+[08:23:38] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:38] Scanning ZIP: 60448 -> Geocoding...
+[08:23:38] Geocoded 60448: 41.5343123, -87.8864011
+[08:23:38] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5343123&lng=-87.8864011&limit=50&sort=distance&states=Illinois
+[08:23:39] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:39] Scanning ZIP: 60449 -> Geocoding...
+[08:23:39] Geocoded 60449: 41.4323311, -87.7724808
+[08:23:39] API URL: https://api.cannmenus.com/v1/retailers?lat=41.4323311&lng=-87.7724808&limit=50&sort=distance&states=Illinois
+[08:23:40] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:40] Scanning ZIP: 60450 -> Geocoding...
+[08:23:40] Geocoded 60450: 41.3760041, -88.4253797
+[08:23:40] API URL: https://api.cannmenus.com/v1/retailers?lat=41.3760041&lng=-88.4253797&limit=50&sort=distance&states=Illinois
+[08:23:40] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:40] Scanning ZIP: 60451 -> Geocoding...
+[08:23:41] Geocoded 60451: 41.5077392, -87.9496977
+[08:23:41] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5077392&lng=-87.9496977&limit=50&sort=distance&states=Illinois
+[08:23:41] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:41] Scanning ZIP: 60452 -> Geocoding...
+[08:23:42] Geocoded 60452: 41.6077754, -87.7553762
+[08:23:42] API URL: https://api.cannmenus.com/v1/retailers?lat=41.6077754&lng=-87.7553762&limit=50&sort=distance&states=Illinois
+[08:23:42] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:42] Scanning ZIP: 60453 -> Geocoding...
+[08:23:43] Geocoded 60453: 41.7138315, -87.7439778
+[08:23:43] API URL: https://api.cannmenus.com/v1/retailers?lat=41.7138315&lng=-87.7439778&limit=50&sort=distance&states=Illinois
+[08:23:43] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:43] Scanning ZIP: 60455 -> Geocoding...
+[08:23:44] Geocoded 60455: 41.7386184, -87.8039516
+[08:23:44] API URL: https://api.cannmenus.com/v1/retailers?lat=41.7386184&lng=-87.8039516&limit=50&sort=distance&states=Illinois
+[08:23:44] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:44] Scanning ZIP: 60456 -> Geocoding...
+[08:23:45] Geocoded 60456: 41.7320832, -87.7352762
+[08:23:45] API URL: https://api.cannmenus.com/v1/retailers?lat=41.7320832&lng=-87.7352762&limit=50&sort=distance&states=Illinois
+[08:23:45] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:46] Scanning ZIP: 60457 -> Geocoding...
+[08:23:47] Geocoded 60457: 41.7243434, -87.8283470
+[08:23:47] API URL: https://api.cannmenus.com/v1/retailers?lat=41.7243434&lng=-87.8283470&limit=50&sort=distance&states=Illinois
+[08:23:47] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:47] Scanning ZIP: 60458 -> Geocoding...
+[08:23:48] Geocoded 60458: 41.7459836, -87.8356047
+[08:23:48] API URL: https://api.cannmenus.com/v1/retailers?lat=41.7459836&lng=-87.8356047&limit=50&sort=distance&states=Illinois
+[08:23:48] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:48] Scanning ZIP: 60459 -> Geocoding...
+[08:23:49] Geocoded 60459: 41.7474512, -87.7672778
+[08:23:49] API URL: https://api.cannmenus.com/v1/retailers?lat=41.7474512&lng=-87.7672778&limit=50&sort=distance&states=Illinois
+[08:23:49] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:49] Scanning ZIP: 60460 -> Geocoding...
+[08:23:50] Geocoded 60460: 41.0002562, -88.5296763
+[08:23:50] API URL: https://api.cannmenus.com/v1/retailers?lat=41.0002562&lng=-88.5296763&limit=50&sort=distance&states=Illinois
+[08:23:50] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:50] Scanning ZIP: 60461 -> Geocoding...
+[08:23:51] Geocoded 60461: 41.5151908, -87.6911386
+[08:23:51] API URL: https://api.cannmenus.com/v1/retailers?lat=41.5151908&lng=-87.6911386&limit=50&sort=distance&states=Illinois
+[08:23:51] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:51] Scanning ZIP: 60462 -> Geocoding...
+[08:23:52] Geocoded 60462: 41.6217499, -87.8348727
+[08:23:52] API URL: https://api.cannmenus.com/v1/retailers?lat=41.6217499&lng=-87.8348727&limit=50&sort=distance&states=Illinois
+[08:23:52] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:52] Scanning ZIP: 60463 -> Geocoding...
+[08:23:53] Geocoded 60463: 41.6680438, -87.7877146
+[08:23:53] API URL: https://api.cannmenus.com/v1/retailers?lat=41.6680438&lng=-87.7877146&limit=50&sort=distance&states=Illinois
+[08:23:53] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:53] Scanning ZIP: 60464 -> Geocoding...
+[08:23:54] Geocoded 60464: 41.6629162, -87.8475723
+[08:23:54] API URL: https://api.cannmenus.com/v1/retailers?lat=41.6629162&lng=-87.8475723&limit=50&sort=distance&states=Illinois
+[08:23:54] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:54] Scanning ZIP: 60465 -> Geocoding...
+[08:23:55] Geocoded 60465: 41.7015239, -87.8244363
+[08:23:55] API URL: https://api.cannmenus.com/v1/retailers?lat=41.7015239&lng=-87.8244363&limit=50&sort=distance&states=Illinois
+[08:23:55] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:55] Scanning ZIP: 60466 -> Geocoding...
+[08:23:56] Geocoded 60466: 41.4753950, -87.6855448
+[08:23:56] API URL: https://api.cannmenus.com/v1/retailers?lat=41.4753950&lng=-87.6855448&limit=50&sort=distance&states=Illinois
+[08:23:56] Found 20 retailers in Illinois. First one: "GreenStone Retail" CALIFORNIA CITY SUPPLY, LLC in California City, California
+[08:23:56] Scan Complete.
+[08:23:56] Total API Calls: 200
+[08:23:56] Smart Skips (City-based): 0
+[08:23:56] Total Dispensaries Found: 20
+[08:23:56] Verified Cities: 0
+[08:23:56] Saved updated CSV to C:\Users\marte\Baked for Brands\bakedbot-for-brands\dev\target_locations_updated.csv
+[08:23:56] Saved dispensaries to C:\Users\marte\Baked for Brands\bakedbot-for-brands\dev\discovered_dispensaries.json

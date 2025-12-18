@@ -15,6 +15,11 @@
 
 import fs from 'fs';
 import path from 'path';
+import QRCode from 'qrcode';
+
+// Dynamic imports handling inside main or helper
+// import { enrichDispensaryWithPlaces } from '@/server/services/places-connector';
+// import { fetchUrl } from '@/server/services/ezal/scraper-fetcher';
 
 console.log('--- PAGE GENERATOR ---');
 
@@ -82,6 +87,12 @@ interface DispensarySEOPage {
         lastViewedAt: Date | null;
     };
     source: 'cannmenus_scan';
+    enrichment?: {
+        googlePlaces?: boolean;
+        leafly?: boolean;
+        websiteScrape?: boolean;
+        qrCode?: string; // Data URL
+    };
 }
 
 interface ZipSEOPage {
@@ -128,6 +139,10 @@ const args = process.argv.slice(2);
 const limitArgIndex = args.indexOf('--limit');
 const LIMIT = limitArgIndex !== -1 ? parseInt(args[limitArgIndex + 1], 10) : Infinity;
 const DRY_RUN = args.includes('--dry-run');
+
+// Parse --state flag
+const stateArgIndex = args.indexOf('--state');
+const TARGET_STATE = stateArgIndex !== -1 ? args[stateArgIndex + 1] : 'Illinois';
 
 console.log(`Limit: ${LIMIT === Infinity ? 'All' : LIMIT}`);
 console.log(`Dry Run: ${DRY_RUN}`);
@@ -222,15 +237,47 @@ async function main() {
     const dispensaryPages: DispensarySEOPage[] = [];
     const zipPages: ZipSEOPage[] = [];
 
+    // Filter to Target State
+    const stateDispensaries = dispensaries.filter(d =>
+        (d.state && d.state.toLowerCase() === TARGET_STATE.toLowerCase())
+    );
+    console.log(`   Filtered to ${stateDispensaries.length} dispensaries in ${TARGET_STATE}`);
+
     // Apply limit
-    const limitedDispensaries = LIMIT !== Infinity ? dispensaries.slice(0, LIMIT) : dispensaries;
+    const limitedDispensaries = LIMIT !== Infinity ? stateDispensaries.slice(0, LIMIT) : stateDispensaries;
     const limitedZips = LIMIT !== Infinity ? verifiedZips.slice(0, LIMIT) : verifiedZips;
     const limitedBrands = LIMIT !== Infinity ? brands.slice(0, LIMIT) : brands;
+
+    // Load Connectors dynamically
+    const { enrichDispensaryWithPlaces } = await import('@/server/services/places-connector');
+    // const { fetchUrl } = await import('@/server/services/ezal/scraper-fetcher'); // Optional for now
 
     // Create Dispensary Pages
     for (const d of limitedDispensaries) {
         const name = d.name || `Dispensary #${d.id}`;
         const slug = slugify(name);
+
+        // 1. Generate QR Code
+        const claimUrl = `https://bakedbot.ai/claim/dispensary/${slug}`; // Update with real URL structure
+        let qrCodeDataUrl = '';
+        try {
+            qrCodeDataUrl = await QRCode.toDataURL(claimUrl);
+        } catch (e) {
+            console.warn(`Failed to generate QR for ${name}`);
+        }
+
+        // 2. Enrich with Google Places (Only if not Dry Run to save quota/time, or limit to small batch)
+        let googleEnriched = false;
+        if (!DRY_RUN) {
+            try {
+                // Address construction
+                const addressFull = `${d.address || ''}, ${d.city}, ${d.state}`;
+                const result = await enrichDispensaryWithPlaces(String(d.id), name, addressFull);
+                googleEnriched = result.success;
+            } catch (e) {
+                // console.warn('Google enrichment failed', e);
+            }
+        }
 
         const page: DispensarySEOPage = {
             id: `dispensary_${d.id}`,
@@ -249,7 +296,11 @@ async function main() {
                 clicks: 0,
                 lastViewedAt: null
             },
-            source: 'cannmenus_scan'
+            source: 'cannmenus_scan',
+            enrichment: {
+                qrCode: qrCodeDataUrl,
+                googlePlaces: googleEnriched
+            }
         };
 
         // Find ZIPs in the same city

@@ -61,7 +61,7 @@ interface ZipRecord {
     scanned?: boolean;
 }
 
-const TARGET_STATES = ['California', 'Illinois', 'Michigan', 'New York', 'New Jersey'];
+const TARGET_STATES = ['Illinois'];
 
 // --- ARGS ---
 const args = process.argv.slice(2);
@@ -72,8 +72,9 @@ log(`Target States: ${TARGET_STATES.join(', ')}`);
 log(`Limit: ${LIMIT === Infinity ? 'Full Scan' : LIMIT}`);
 
 // --- API ---
-async function searchRetailers(zip: string) {
+async function searchRetailers(zip: string, state: string) {
     try {
+        log(`Scanning ZIP: ${zip} -> Geocoding...`);
         // 1. Geocode
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${zip}&country=US&format=json&limit=1`, {
             headers: { 'User-Agent': 'BakedBot-Scanner/1.0' }
@@ -81,21 +82,25 @@ async function searchRetailers(zip: string) {
         const geoData = await geoRes.json();
 
         if (!geoData || geoData.length === 0) {
+            log(`Geocoding failed for ${zip}`);
             return { error: 'Geocode failed', data: [] };
         }
 
         const lat = geoData[0].lat;
         const lon = geoData[0].lon;
+        log(`Geocoded ${zip}: ${lat}, ${lon}`);
 
         // 2. Search CannMenus
         const params = new URLSearchParams({
             lat: lat,
             lng: lon,
             limit: '50',
-            sort: 'distance'
+            sort: 'distance',
+            states: state // Filter by state at API level
         });
 
         const apiUrl = `${CANNMENUS_BASE_URL}/v1/retailers?${params}`;
+        log(`API URL: ${apiUrl}`);
 
         const res = await fetch(apiUrl, {
             headers: {
@@ -109,6 +114,11 @@ async function searchRetailers(zip: string) {
         }
 
         const data = await res.json();
+        if (data.data && data.data.length > 0) {
+            const first = data.data[0];
+            const name = first.dispensary_name || first.name || 'Unknown';
+            log(`Found ${data.data.length} retailers in ${state}. First one: ${name} in ${first.city}, ${first.state}`);
+        }
         return { error: null, data: data.data || [] };
 
     } catch (e: any) {
@@ -126,6 +136,22 @@ async function main() {
     const lines = rawData.split(/\r?\n/).filter(line => line.trim().length > 0);
     const headers = lines[0].split(',').map(h => h.trim());
 
+    // Load Existing Dispensaries
+        ?JSON.parse(fs.readFileSync(dispensariesPath, 'utf-8'))
+        : [];
+
+    // FILTER: Sanitize existing data to remove non-target states (e.g. from bad API results)
+    const validExisting = existingDispensaries.filter((d: any) =>
+        TARGET_STATES.map(s => s.toLowerCase()).includes(d.state?.toLowerCase())
+    );
+    if (validExisting.length < existingDispensaries.length) {
+        log(`Sanitized ${existingDispensaries.length - validExisting.length} non-target dispensaries from existing data.`);
+    }
+
+    const uniqueDispensaries = new Map<string, any>();
+    validExisting.forEach((d: any) => uniqueDispensaries.set(String(d.id), d));
+    log(`Loaded ${uniqueDispensaries.size} existing dispensaries.`);
+
     const records: ZipRecord[] = [];
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
@@ -134,9 +160,9 @@ async function main() {
         headers.forEach((h, idx) => {
             if (h) record[h] = cols[idx]?.trim();
         });
-        record.has_dispensary = 'False';
-        record.dispensary_count = 0;
-        record.status = 'pending';
+        record.has_dispensary = record.has_dispensary || 'False';
+        record.dispensary_count = parseInt(record.dispensary_count) || 0;
+        record.status = record.status || 'pending';
         record.scanned = false;
         records.push(record as ZipRecord);
     }
@@ -152,7 +178,6 @@ async function main() {
     // --- STATE ---
     // Use City|State as the discovery key since zip codes are not in the API response
     const verifiedCities = new Set<string>();
-    const uniqueDispensaries = new Map<string, any>();
 
     let apiCalls = 0;
     let skipped = 0;
@@ -181,7 +206,7 @@ async function main() {
             await new Promise(r => setTimeout(r, 1000));
         }
 
-        const { error, data } = await searchRetailers(record.zip_code);
+        const { error, data } = await searchRetailers(record.zip_code, record.state);
         apiCalls++;
         record.scanned = true;
 
@@ -200,16 +225,21 @@ async function main() {
                 data.forEach((r: any) => {
                     const id = r.id || r.retailer_id;
                     const rCity = r.city?.toLowerCase();
-                    const rState = r.state?.toLowerCase();
+                    const rState = r.state?.toLowerCase(); // API state
 
+                    // STRICT FILTER: Only accept retailers in TARGET_STATES
+                    const isTargetState = TARGET_STATES.map(s => s.toLowerCase()).includes(rState);
+                    if (!isTargetState) return;
+
+                    const name = r.dispensary_name || r.name || 'Unknown';
                     // Add Retailer
                     if (id && !uniqueDispensaries.has(String(id))) {
                         uniqueDispensaries.set(String(id), {
                             id: id,
-                            name: r.name,
+                            name: name,
                             city: r.city,
                             state: r.state,
-                            address: r.address
+                            address: r.physical_address || r.address
                         });
                     }
 
@@ -245,9 +275,16 @@ async function main() {
     }
 
     // Write CSV
+    // Ensure we don't duplicate columns if they were already in headers
+    const baseHeaders = headers.filter(h => h !== 'dispensary_count' && h !== 'status_detail');
+    const finalHeaders = [...baseHeaders, 'dispensary_count', 'status_detail'];
+
     const finalLines = [
-        headers.join(',') + ',dispensary_count,status_detail',
-        ...records.map(r => `${r.zip_code},${r.city},${r.state},${r.market_type},${r.has_dispensary},${r.likely_brand_coverage},${r.status},${r.dispensary_count || 0}`)
+        finalHeaders.join(','),
+        ...records.map(r => {
+            const row = baseHeaders.map(h => (r as any)[h] || '');
+            return [...row, r.dispensary_count || 0, r.status || ''].join(',');
+        })
     ];
     fs.writeFileSync(updatedCsvPath, finalLines.join('\n'));
     log(`Saved updated CSV to ${updatedCsvPath}`);
