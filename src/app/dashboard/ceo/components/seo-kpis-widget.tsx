@@ -51,12 +51,25 @@ interface MrrLadder {
     claimsNeeded: number;
 }
 
-interface SeoKpisWidgetProps {
+export interface SeoKpisWidgetProps {
     data?: SeoKpisData;
     mrrLadder?: MrrLadder;
     currentMrr?: number;
     onRefresh?: () => void;
     isLoading?: boolean;
+    // Deebo SEO Review Data
+    deeboReviews?: DeeboReviewSummary[];
+}
+
+// Deebo review summary for display
+export interface DeeboReviewSummary {
+    pageId: string;
+    pageType: 'dispensary' | 'zip' | 'city' | 'brand';
+    pageName: string;
+    screenshotUrl?: string;
+    seoScore?: number; // 1-10
+    complianceStatus?: 'passed' | 'failed' | 'pending';
+    reviewedAt?: Date;
 }
 
 // Quick stat card
@@ -84,7 +97,8 @@ export default function SeoKpisWidget({
     mrrLadder,
     currentMrr = 0,
     onRefresh,
-    isLoading = false
+    isLoading = false,
+    deeboReviews = []
 }: SeoKpisWidgetProps) {
     // Mock data for when no data is provided
     const mockData: SeoKpisData = {
@@ -263,6 +277,106 @@ export default function SeoKpisWidget({
                                 <ExternalLink className="h-4 w-4 mr-2" />
                                 Connect Search Console
                             </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Deebo SEO Review */}
+            <Card>
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                        <Target className="h-4 w-4 text-emerald-500" />
+                        Deebo SEO Review
+                        <Badge variant="outline" className="text-xs">AI Powered</Badge>
+                    </CardTitle>
+                    <CardDescription>
+                        AI-generated SEO scores for each page (1-10)
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {deeboReviews.length > 0 ? (
+                        <div className="space-y-3 max-h-80 overflow-y-auto">
+                            {deeboReviews.slice(0, 10).map((review) => (
+                                <div
+                                    key={review.pageId}
+                                    className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                                >
+                                    {/* Screenshot thumbnail */}
+                                    <div className="w-16 h-12 bg-muted rounded overflow-hidden flex-shrink-0">
+                                        {review.screenshotUrl ? (
+                                            <img
+                                                src={review.screenshotUrl}
+                                                alt={review.pageName}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                                <FileText className="h-4 w-4" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Page info */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{review.pageName}</p>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className="text-xs capitalize">
+                                                {review.pageType}
+                                            </Badge>
+                                            {review.complianceStatus === 'passed' && (
+                                                <CheckCircle className="h-3 w-3 text-green-500" />
+                                            )}
+                                            {review.complianceStatus === 'failed' && (
+                                                <AlertCircle className="h-3 w-3 text-red-500" />
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* SEO Score */}
+                                    <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm
+                                        ${(review.seoScore || 0) >= 8 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                            (review.seoScore || 0) >= 6 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                                'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}
+                                    `}>
+                                        {review.seoScore ?? '?'}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-6">
+                            <Target className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                            <p className="text-sm text-muted-foreground mb-3">
+                                No pages reviewed yet. Run Deebo to analyze SEO pages.
+                            </p>
+                            <Button variant="outline" size="sm" disabled>
+                                Run Deebo Review
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Summary Stats */}
+                    {deeboReviews.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t">
+                            <div className="text-center">
+                                <p className="text-lg font-bold text-green-600">
+                                    {deeboReviews.filter(r => (r.seoScore || 0) >= 8).length}
+                                </p>
+                                <p className="text-xs text-muted-foreground">Score 8+</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-lg font-bold text-amber-600">
+                                    {deeboReviews.filter(r => (r.seoScore || 0) >= 6 && (r.seoScore || 0) < 8).length}
+                                </p>
+                                <p className="text-xs text-muted-foreground">Score 6-7</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-lg font-bold text-red-600">
+                                    {deeboReviews.filter(r => (r.seoScore || 0) < 6).length}
+                                </p>
+                                <p className="text-xs text-muted-foreground">Score &lt;6</p>
+                            </div>
                         </div>
                     )}
                 </CardContent>
