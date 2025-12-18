@@ -16,6 +16,8 @@ import {
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 
+import { ManagedPagesList } from '@/components/dashboard/managed-pages-list';
+
 export default function DispensaryDashboardClient({ brandId }: { brandId: string }) {
 
     // Stub location
@@ -54,7 +56,7 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
 
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md text-xs font-medium">
                         <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                        Live Data
+                        <span className="text-[11px] font-black uppercase tracking-wider">Live Data ON</span>
                     </div>
                 </div>
             </div>
@@ -67,6 +69,9 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
                 <div className="lg:col-span-4 space-y-6">
                     {/* 3. Chat Block */}
                     <DispensaryChatWidget />
+
+                    {/* 4. Pages */}
+                    <ManagedPagesList userRole="dispensary" />
 
                     {/* 5. Playbook Library */}
                     <div className="space-y-4">
