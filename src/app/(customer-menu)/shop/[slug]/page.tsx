@@ -30,11 +30,11 @@ import { logger } from '@/lib/logger';
 export default function DispensaryShopPage() {
     const params = useParams();
 
-    if (!params || typeof params.dispensaryId !== 'string') {
-        // This will render the not-found.tsx file if the dispensaryId is missing.
+    if (!params || typeof params.slug !== 'string') {
+        // This will render the not-found.tsx file if the slug is missing.
         notFound();
     }
-    const dispensaryId = params.dispensaryId;
+    const dispensaryId = params.slug;
 
     const [products, setProducts] = useState<CannMenusProduct[]>([]);
     const [loading, setLoading] = useState(true);
