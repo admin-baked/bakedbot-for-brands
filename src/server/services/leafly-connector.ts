@@ -19,13 +19,22 @@ const APIFY_TASK_ID = 'bOaF6v0erob02Q8wI';  // Your saved task
 
 /**
  * Get Apify API token from environment
+ * Returns null if not configured (for graceful handling)
  */
-function getApifyToken(): string {
+function getApifyToken(): string | null {
     const token = process.env.APIFY_API_TOKEN;
     if (!token) {
-        throw new Error('APIFY_API_TOKEN environment variable not set');
+        logger.warn('APIFY_API_TOKEN not configured - competitive intel features disabled');
+        return null;
     }
     return token;
+}
+
+/**
+ * Check if Apify is configured
+ */
+export function isApifyConfigured(): boolean {
+    return !!process.env.APIFY_API_TOKEN;
 }
 
 /**
@@ -45,8 +54,12 @@ function createOfferKey(dispensarySlug: string, title: string): string {
  * Trigger a single dispensary scan
  */
 export async function triggerSingleStoreScan(leaflyUrl: string): Promise<LeaflyIngestionRun> {
-    const firestore = getAdminFirestore();
     const token = getApifyToken();
+    if (!token) {
+        throw new Error('Competitive scanning requires APIFY_API_TOKEN. Please configure this in your environment settings or contact support.');
+    }
+
+    const firestore = getAdminFirestore();
 
     const input: ApifyTaskInput = {
         mode: 'single_url',
@@ -96,8 +109,12 @@ export async function triggerSingleStoreScan(leaflyUrl: string): Promise<LeaflyI
  * Trigger a state-wide scan
  */
 export async function triggerStateScan(state: string, maxStores: number = 50): Promise<LeaflyIngestionRun> {
-    const firestore = getAdminFirestore();
     const token = getApifyToken();
+    if (!token) {
+        throw new Error('State scanning requires APIFY_API_TOKEN. Please configure this in your environment settings or contact support.');
+    }
+
+    const firestore = getAdminFirestore();
 
     const input: ApifyTaskInput = {
         mode: 'state',
@@ -490,4 +507,179 @@ export async function getActivePromos(state: string): Promise<LeaflyOffer[]> {
     }
 
     return offers.slice(0, 50);  // Limit results
+}
+
+// ============== Local Competition for Brands/Dispensaries ==============
+
+export interface LocalCompetitionData {
+    state: string;
+    city?: string;
+    competitors: {
+        name: string;
+        city: string;
+        rating?: number;
+        leaflyUrl: string;
+    }[];
+    pricingByCategory: {
+        category: string;
+        min: number;
+        max: number;
+        avg: number;
+        yourPosition?: 'below' | 'at' | 'above';  // Relative to avg
+    }[];
+    activeDeals: number;
+    topPromos: {
+        dispensaryName: string;
+        title: string;
+        discountPercent?: number;
+    }[];
+    dataFreshness: Date | null;
+}
+
+/**
+ * Get local competition summary for a brand or dispensary location
+ * Used in brand/dispensary dashboards for competitive intel
+ */
+export async function getLocalCompetition(state: string, city?: string): Promise<LocalCompetitionData> {
+    const firestore = getAdminFirestore();
+
+    // Normalize state
+    const normalizedState = state.toUpperCase().trim();
+
+    // Get dispensaries in the state
+    let dispensariesQuery = firestore
+        .collection('sources')
+        .doc('leafly')
+        .collection('dispensaries')
+        .where('state', '==', normalizedState);
+
+    const dispensariesSnap = await dispensariesQuery.limit(50).get();
+
+    // Filter by city if provided
+    let competitors = dispensariesSnap.docs.map(doc => {
+        const data = doc.data();
+        return {
+            name: data.name,
+            city: data.city,
+            rating: data.rating,
+            leaflyUrl: data.leaflyUrl,
+            lastScrapedAt: data.lastScrapedAt?.toDate?.(),
+        };
+    });
+
+    if (city) {
+        const normalizedCity = city.toLowerCase().trim();
+        competitors = competitors.filter(c =>
+            c.city?.toLowerCase().trim() === normalizedCity
+        );
+        // If no exact match, include nearby (same state)
+        if (competitors.length === 0) {
+            competitors = dispensariesSnap.docs.slice(0, 10).map(doc => {
+                const data = doc.data();
+                return {
+                    name: data.name,
+                    city: data.city,
+                    rating: data.rating,
+                    leaflyUrl: data.leaflyUrl,
+                    lastScrapedAt: data.lastScrapedAt?.toDate?.(),
+                };
+            });
+        }
+    }
+
+    // Get pricing by category (top 4 categories)
+    const categories = ['flower', 'vapes', 'edibles', 'concentrates'];
+    const pricingByCategory: LocalCompetitionData['pricingByCategory'] = [];
+
+    for (const category of categories) {
+        try {
+            const bands = await getPricingBands(normalizedState, category);
+            if (bands.count > 0) {
+                pricingByCategory.push({
+                    category,
+                    min: bands.min,
+                    max: bands.max,
+                    avg: Math.round(bands.avg * 100) / 100,
+                });
+            }
+        } catch (e) {
+            // Skip if error
+        }
+    }
+
+    // Get active promos
+    const promos = await getActivePromos(normalizedState);
+
+    // Find latest scrape date
+    const latestScrape = competitors.reduce((latest, c) => {
+        if (c.lastScrapedAt && (!latest || c.lastScrapedAt > latest)) {
+            return c.lastScrapedAt;
+        }
+        return latest;
+    }, null as Date | null);
+
+    return {
+        state: normalizedState,
+        city,
+        competitors: competitors.slice(0, 10).map(c => ({
+            name: c.name,
+            city: c.city,
+            rating: c.rating,
+            leaflyUrl: c.leaflyUrl,
+        })),
+        pricingByCategory,
+        activeDeals: promos.length,
+        topPromos: promos.slice(0, 5).map(p => ({
+            dispensaryName: p.dispensaryName,
+            title: p.title,
+            discountPercent: p.discountPercent,
+        })),
+        dataFreshness: latestScrape,
+    };
+}
+
+/**
+ * Get competitive intel summary for agent use (Smokey/Ezal)
+ * Returns a text summary suitable for LLM consumption
+ */
+export async function getCompetitiveIntelForAgent(state: string, city?: string): Promise<string> {
+    try {
+        const data = await getLocalCompetition(state, city);
+
+        let summary = `## Competitive Intelligence for ${city ? `${city}, ` : ''}${state}\n\n`;
+
+        if (data.competitors.length > 0) {
+            summary += `### Nearby Competitors (${data.competitors.length})\n`;
+            data.competitors.slice(0, 5).forEach(c => {
+                summary += `- ${c.name} (${c.city})${c.rating ? ` - ${c.rating}★` : ''}\n`;
+            });
+            summary += '\n';
+        }
+
+        if (data.pricingByCategory.length > 0) {
+            summary += `### Market Pricing Ranges\n`;
+            data.pricingByCategory.forEach(p => {
+                summary += `- **${p.category}**: $${p.min.toFixed(0)} - $${p.max.toFixed(0)} (avg $${p.avg.toFixed(0)})\n`;
+            });
+            summary += '\n';
+        }
+
+        if (data.topPromos.length > 0) {
+            summary += `### Active Promotions (${data.activeDeals} total)\n`;
+            data.topPromos.forEach(p => {
+                summary += `- ${p.dispensaryName}: ${p.title}${p.discountPercent ? ` (${p.discountPercent}% off)` : ''}\n`;
+            });
+            summary += '\n';
+        }
+
+        if (data.dataFreshness) {
+            summary += `\n*Data last updated: ${data.dataFreshness.toLocaleDateString()}*\n`;
+        } else {
+            summary += `\n*No local data available yet. Run a state scan to populate.*\n`;
+        }
+
+        return summary;
+    } catch (e: any) {
+        return `Unable to fetch competitive intel: ${e.message}`;
+    }
 }

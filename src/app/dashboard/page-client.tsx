@@ -2,16 +2,21 @@
 
 import * as React from "react";
 import { savePlaybookDraft } from "./playbooks/actions";
+import { LocalCompetitionCard } from "@/components/dashboard/local-competition-card";
 
 import { logger } from '@/lib/logger';
 type DashboardPageClientProps = {
   brandId: string;
   initialPlaybooks?: any[];
+  userState?: string;  // User's state from profile
+  userCity?: string;   // User's city from profile
 };
 
 export default function DashboardPageComponent({
   brandId,
   initialPlaybooks = [],
+  userState = 'Michigan',  // Default for demo
+  userCity,
 }: DashboardPageClientProps) {
   const [list, setList] = React.useState<any[]>(initialPlaybooks);
   const [isSaving, startSaving] = React.useTransition();
@@ -59,8 +64,8 @@ export default function DashboardPageComponent({
         </div>
       </div>
 
-      {/* Action Cards */}
-      <div className="grid gap-6 md:grid-cols-2">
+      {/* Action Cards + Competition */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-lg border bg-card p-6 shadow-sm">
           <h3 className="text-lg font-semibold mb-2">Tune your agents</h3>
           <p className="text-muted-foreground mb-4">
@@ -80,6 +85,9 @@ export default function DashboardPageComponent({
             Open Account Settings →
           </a>
         </div>
+
+        {/* Local Competition Card */}
+        <LocalCompetitionCard state={userState} city={userCity} />
       </div>
 
       <section className="space-y-2 mt-4">

@@ -18,6 +18,7 @@ import {
     BarChart3
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { EzalSnapshotCard } from '@/components/dashboard/ezal-snapshot-card';
 
 export function DispensaryRightRail() {
     const { toast } = useToast();
@@ -135,6 +136,9 @@ export function DispensaryRightRail() {
                     </Button>
                 </CardContent>
             </Card>
+
+            {/* E) Ezal Lite - Competitive Intel */}
+            <EzalSnapshotCard userState="Michigan" compact />
         </div>
     );
 }

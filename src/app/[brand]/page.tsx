@@ -46,7 +46,13 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
 
                 <section className="mb-16">
                     <h2 className="text-3xl font-bold mb-8">Our Products</h2>
-                    <ProductGrid products={products} isLoading={false} brandSlug={brandParam} variant="brand" />
+                    <ProductGrid
+                        products={products}
+                        isLoading={false}
+                        brandSlug={brandParam}
+                        variant="brand"
+                        isClaimedPage={brand.claimStatus === 'claimed'}
+                    />
                 </section>
 
                 <section className="mb-16">

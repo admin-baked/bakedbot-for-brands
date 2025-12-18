@@ -16,22 +16,29 @@ interface OrdersDashboardClientProps {
 }
 
 const OrderList = ({ orders, isLoading }: { orders: OrderDoc[] | null, isLoading: boolean }) => {
-    if (isLoading) {
-        return (
-            <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                ))}
-            </div>
-        )
-    }
-    return <OrdersDataTable columns={columns} data={orders || []} />;
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <Skeleton key={i} className="h-16 w-full" />
+        ))}
+      </div>
+    )
+  }
+  return <OrdersDataTable columns={columns} data={orders || []} />;
 }
 
 export default function OrdersDashboardClient({ locationId }: OrdersDashboardClientProps) {
   const { firestore } = useFirebase();
 
   // Define queries for each status tab
+  const pendingQuery = firestore ? query(
+    collection(firestore, 'orders'),
+    where('retailerId', '==', locationId),
+    where('status', '==', 'pending'),
+    orderBy('createdAt', 'desc')
+  ).withConverter(orderConverter) : null;
+
   const submittedQuery = firestore ? query(
     collection(firestore, 'orders'),
     where('retailerId', '==', locationId),
@@ -45,14 +52,21 @@ export default function OrdersDashboardClient({ locationId }: OrdersDashboardCli
     where('status', '==', 'confirmed'),
     orderBy('createdAt', 'desc')
   ).withConverter(orderConverter) : null;
-  
+
+  const preparingQuery = firestore ? query(
+    collection(firestore, 'orders'),
+    where('retailerId', '==', locationId),
+    where('status', '==', 'preparing'),
+    orderBy('createdAt', 'desc')
+  ).withConverter(orderConverter) : null;
+
   const readyQuery = firestore ? query(
     collection(firestore, 'orders'),
     where('retailerId', '==', locationId),
     where('status', '==', 'ready'),
     orderBy('createdAt', 'desc')
   ).withConverter(orderConverter) : null;
-  
+
   const completedQuery = firestore ? query(
     collection(firestore, 'orders'),
     where('retailerId', '==', locationId),
@@ -61,34 +75,40 @@ export default function OrdersDashboardClient({ locationId }: OrdersDashboardCli
   ).withConverter(orderConverter) : null;
 
 
+  const { data: pendingOrders, isLoading: loadingPending } = useCollection<OrderDoc>(pendingQuery);
   const { data: submittedOrders, isLoading: loadingSubmitted } = useCollection<OrderDoc>(submittedQuery);
   const { data: confirmedOrders, isLoading: loadingConfirmed } = useCollection<OrderDoc>(confirmedQuery);
+  const { data: preparingOrders, isLoading: loadingPreparing } = useCollection<OrderDoc>(preparingQuery);
   const { data: readyOrders, isLoading: loadingReady } = useCollection<OrderDoc>(readyQuery);
   const { data: completedOrders, isLoading: loadingCompleted } = useCollection<OrderDoc>(completedQuery);
 
 
   return (
     <div className="flex flex-col gap-6">
-        <Tabs defaultValue="submitted">
-            <TabsList>
-                <TabsTrigger value="submitted">New</TabsTrigger>
-                <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
-                <TabsTrigger value="ready">Ready for Pickup</TabsTrigger>
-                <TabsTrigger value="completed">History</TabsTrigger>
-            </TabsList>
-            <TabsContent value="submitted" className="mt-6">
-                <OrderList orders={submittedOrders} isLoading={loadingSubmitted} />
-            </TabsContent>
-            <TabsContent value="confirmed" className="mt-6">
-                 <OrderList orders={confirmedOrders} isLoading={loadingConfirmed} />
-            </TabsContent>
-             <TabsContent value="ready" className="mt-6">
-                 <OrderList orders={readyOrders} isLoading={loadingReady} />
-            </TabsContent>
-            <TabsContent value="completed" className="mt-6">
-                 <OrderList orders={completedOrders} isLoading={loadingCompleted} />
-            </TabsContent>
-        </Tabs>
+      <Tabs defaultValue="submitted">
+        <TabsList>
+          <TabsTrigger value="submitted">New</TabsTrigger>
+          <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
+          <TabsTrigger value="preparing">Preparing</TabsTrigger>
+          <TabsTrigger value="ready">Ready</TabsTrigger>
+          <TabsTrigger value="completed">History</TabsTrigger>
+        </TabsList>
+        <TabsContent value="submitted" className="mt-6">
+          <OrderList orders={submittedOrders} isLoading={loadingSubmitted} />
+        </TabsContent>
+        <TabsContent value="confirmed" className="mt-6">
+          <OrderList orders={confirmedOrders} isLoading={loadingConfirmed} />
+        </TabsContent>
+        <TabsContent value="preparing" className="mt-6">
+          <OrderList orders={preparingOrders} isLoading={loadingPreparing} />
+        </TabsContent>
+        <TabsContent value="ready" className="mt-6">
+          <OrderList orders={readyOrders} isLoading={loadingReady} />
+        </TabsContent>
+        <TabsContent value="completed" className="mt-6">
+          <OrderList orders={completedOrders} isLoading={loadingCompleted} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

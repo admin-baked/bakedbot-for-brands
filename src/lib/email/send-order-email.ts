@@ -19,8 +19,8 @@ type SendArgs = {
 };
 
 const generateHtml = (args: SendArgs): string => {
-    const { order, orderId, recipientType, retailer, updateInfo } = args;
-    const itemsHtml = order.items.map((item) => `
+  const { order, orderId, recipientType, retailer, updateInfo } = args;
+  const itemsHtml = order.items.map((item) => `
         <tr>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.qty}</td>
@@ -29,47 +29,50 @@ const generateHtml = (args: SendArgs): string => {
         </tr>
     `).join('');
 
-    let headerText = '';
-    let introText = '';
-    
-    if (updateInfo) {
-        // This is a status update email
-        const statusLabel = updateInfo.newStatus === 'ready' ? 'Ready for Pickup' : updateInfo.newStatus.charAt(0).toUpperCase() + updateInfo.newStatus.slice(1);
-        headerText = `Your Order is ${statusLabel}!`;
+  let headerText = '';
+  let introText = '';
 
-        switch(updateInfo.newStatus) {
-            case 'confirmed':
-                introText = `Great news, ${order.customer.name}! Your order has been confirmed by <strong>${retailer.name}</strong> and is now being prepared.`;
-                break;
-            case 'ready':
-                introText = `Your order is packed and ready for pickup at <strong>${retailer.name}</strong>. You can head over any time during business hours.`;
-                break;
-            case 'completed':
-                introText = `Thank you for your purchase, ${order.customer.name}! We hope you enjoy your products.`;
-                break;
-            case 'cancelled':
-                introText = `Your order has been cancelled. If you have any questions, please contact <strong>${retailer.name}</strong> directly.`;
-                break;
-            default:
-                 introText = `There's an update on your order. Its new status is: <strong>${updateInfo.newStatus}</strong>.`;
-        }
-    } else {
-        // This is the initial order confirmation
-        headerText = recipientType === 'customer' 
-            ? `Thank you for your order, ${order.customer.name}!` 
-            : `New Online Order for Pickup`;
+  if (updateInfo) {
+    // This is a status update email
+    const statusLabel = updateInfo.newStatus === 'ready' ? 'Ready for Pickup' : updateInfo.newStatus.charAt(0).toUpperCase() + updateInfo.newStatus.slice(1);
+    headerText = `Your Order is ${statusLabel}!`;
 
-        introText = recipientType === 'customer'
-            ? `We've received your order and are getting it ready for pickup at <strong>${retailer.name}</strong>. Please have your ID ready when you arrive.`
-            : `The following order has been placed by <strong>${order.customer.name} (${order.customer.email})</strong> for pickup.`;
+    switch (updateInfo.newStatus) {
+      case 'confirmed':
+        introText = `Great news, ${order.customer.name}! Your order has been confirmed by <strong>${retailer.name}</strong> and is now being prepared.`;
+        break;
+      case 'preparing':
+        introText = `Your order is now being prepared by <strong>${retailer.name}</strong>. We'll notify you when it's ready for pickup!`;
+        break;
+      case 'ready':
+        introText = `Your order is packed and ready for pickup at <strong>${retailer.name}</strong>. You can head over any time during business hours.`;
+        break;
+      case 'completed':
+        introText = `Thank you for your purchase, ${order.customer.name}! We hope you enjoy your products.`;
+        break;
+      case 'cancelled':
+        introText = `Your order has been cancelled. If you have any questions, please contact <strong>${retailer.name}</strong> directly.`;
+        break;
+      default:
+        introText = `There's an update on your order. Its new status is: <strong>${updateInfo.newStatus}</strong>.`;
     }
+  } else {
+    // This is the initial order confirmation
+    headerText = recipientType === 'customer'
+      ? `Thank you for your order, ${order.customer.name}!`
+      : `New Online Order for Pickup`;
 
-    const subtotal = order.totals.subtotal;
-    const taxes = order.totals.tax; 
-    const total = order.totals.total;
+    introText = recipientType === 'customer'
+      ? `We've received your order and are getting it ready for pickup at <strong>${retailer.name}</strong>. Please have your ID ready when you arrive.`
+      : `The following order has been placed by <strong>${order.customer.name} (${order.customer.email})</strong> for pickup.`;
+  }
+
+  const subtotal = order.totals.subtotal;
+  const taxes = order.totals.tax;
+  const total = order.totals.total;
 
 
-    return `
+  return `
       <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
         <h1 style="color: #333; text-align: center;">${headerText}</h1>
         <p style="text-align: center; color: #555;">Order ID: #${orderId.substring(0, 7)}</p>

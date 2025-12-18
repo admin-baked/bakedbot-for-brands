@@ -13,6 +13,7 @@ import {
     Briefcase
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { EzalSnapshotCard } from '@/components/dashboard/ezal-snapshot-card';
 
 export function BrandRightRail() {
     const { toast } = useToast();
@@ -130,6 +131,9 @@ export function BrandRightRail() {
                     </Button>
                 </CardContent>
             </Card>
+
+            {/* E) Ezal Lite - Competitive Intel */}
+            <EzalSnapshotCard userState="Michigan" compact />
         </div>
     );
 }

@@ -11,7 +11,7 @@ export type Order = {
 
 export type CartItem = Product & { quantity: number };
 
-export type OrderStatus = 'submitted' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+export type OrderStatus = 'pending' | 'submitted' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
 export type OrderDoc = {
     id: string;

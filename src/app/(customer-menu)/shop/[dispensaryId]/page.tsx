@@ -43,6 +43,7 @@ export default function DispensaryShopPage() {
     const [sortBy, setSortBy] = useState<string>('name');
     const [viewMode, setViewMode] = useState<'grid' | 'compact'>('grid');
     const [sessionId] = useState(() => getOrCreateSessionId());
+    const [isClaimedPage, setIsClaimedPage] = useState(false);
 
     const { addItem, items: cartItems, setDispensary } = useCartStore();
 
@@ -62,6 +63,12 @@ export default function DispensaryShopPage() {
         loadProducts();
         // Set the selected dispensary in cart
         setDispensary(dispensaryId, 'Dispensary Name'); // TODO: Get actual name
+
+        // Check if dispensary is claimed
+        fetch(`/api/claim-status?entityId=${dispensaryId}&entityType=dispensary`)
+            .then(res => res.json())
+            .then(data => setIsClaimedPage(data.checkoutEnabled === true))
+            .catch(() => setIsClaimedPage(false));
     }, [dispensaryId, setDispensary, loadProducts]);
 
     useEffect(() => {
@@ -285,14 +292,16 @@ export default function DispensaryShopPage() {
                                                     ${product.latest_price.toFixed(2)}
                                                 </div>
                                             </div>
-                                            <Button
-                                                onClick={() => handleAddToCart(product)}
-                                                size="sm"
-                                                variant={inCart ? "secondary" : "outline"}
-                                                className="w-full h-8 text-xs"
-                                            >
-                                                {inCart ? 'In Cart' : 'Add'}
-                                            </Button>
+                                            {isClaimedPage && (
+                                                <Button
+                                                    onClick={() => handleAddToCart(product)}
+                                                    size="sm"
+                                                    variant={inCart ? "secondary" : "outline"}
+                                                    className="w-full h-8 text-xs"
+                                                >
+                                                    {inCart ? 'In Cart' : 'Add'}
+                                                </Button>
+                                            )}
                                         </div>
                                     </Card>
                                 );
@@ -372,24 +381,26 @@ export default function DispensaryShopPage() {
                                             </div>
                                         </div>
 
-                                        <Button
-                                            onClick={() => handleAddToCart(product)}
-                                            className="w-full"
-                                            size="sm"
-                                            variant={inCart ? "secondary" : "default"}
-                                        >
-                                            {inCart ? (
-                                                <>
-                                                    <ShoppingCart className="h-4 w-4 mr-2" />
-                                                    In Cart ({getCartItemQuantity(product.cann_sku_id)})
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Plus className="h-4 w-4 mr-2" />
-                                                    Add to Cart
-                                                </>
-                                            )}
-                                        </Button>
+                                        {isClaimedPage && (
+                                            <Button
+                                                onClick={() => handleAddToCart(product)}
+                                                className="w-full"
+                                                size="sm"
+                                                variant={inCart ? "secondary" : "default"}
+                                            >
+                                                {inCart ? (
+                                                    <>
+                                                        <ShoppingCart className="h-4 w-4 mr-2" />
+                                                        In Cart ({getCartItemQuantity(product.cann_sku_id)})
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Plus className="h-4 w-4 mr-2" />
+                                                        Add to Cart
+                                                    </>
+                                                )}
+                                            </Button>
+                                        )}
                                     </CardContent>
                                 </Card>
                             );
