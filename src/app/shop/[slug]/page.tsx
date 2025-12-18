@@ -86,7 +86,7 @@ export default async function ZipPage({ params }: { params: Promise<{ slug: stri
                                     product={{
                                         ...product,
                                         score: 0.99, // Implicit high relevance for local
-                                        reason: 'Local favorite'
+                                        reasons: ['Local favorite']
                                     }}
                                 // Use a simple click handler or link wrapper in the card
                                 />

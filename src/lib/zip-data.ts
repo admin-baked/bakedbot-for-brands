@@ -1,6 +1,6 @@
 
-import { createServerClient } from '@/firebase/server-client';
-import { ZipSEOPage } from '@/types/seo-pages'; // Ensure this type exists or redefine
+import { createServerClient } from '../firebase/server-client';
+import { ZipSEOPage } from '@/types/seo-pages';
 import { Product } from '@/types/domain';
 
 export interface ZipPageData {
