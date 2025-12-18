@@ -37,7 +37,7 @@ interface SEOReviewCriteria {
 /**
  * Calculate SEO score from 1-10 based on criteria
  */
-function calculateSEOScore(criteria: SEOReviewCriteria): number {
+export function calculateSEOScore(criteria: SEOReviewCriteria): number {
     let score = 0;
 
     // Core SEO factors (max 6 points)
@@ -112,7 +112,7 @@ export async function batchReviewSEOPages(
     pageIds: string[],
     pageType: 'dispensary' | 'zip' | 'city' | 'brand'
 ): Promise<{ reviewed: number; avgScore: number }> {
-    const { db } = await createServerClient();
+    const { firestore: db } = await createServerClient();
     const results: SEOReviewResult[] = [];
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -169,7 +169,7 @@ export async function getPagesNeedingReview(
     pageType: 'dispensary' | 'zip' | 'city' | 'brand',
     limit: number = 50
 ): Promise<string[]> {
-    const { db } = await createServerClient();
+    const { firestore: db } = await createServerClient();
 
     const snapshot = await db
         .collection('seo_pages')
@@ -178,6 +178,6 @@ export async function getPagesNeedingReview(
         .get();
 
     return snapshot.docs
-        .filter(doc => doc.id.startsWith(`${pageType}_`))
-        .map(doc => doc.id);
+        .filter((doc: FirebaseFirestore.DocumentSnapshot) => doc.id.startsWith(`${pageType}_`))
+        .map((doc: FirebaseFirestore.DocumentSnapshot) => doc.id);
 }
