@@ -33,7 +33,7 @@ function getApifyToken(): string | null {
 /**
  * Check if Apify is configured
  */
-export function isApifyConfigured(): boolean {
+export async function isApifyConfigured(): Promise<boolean> {
     return !!process.env.APIFY_API_TOKEN;
 }
 

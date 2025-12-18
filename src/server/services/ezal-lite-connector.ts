@@ -88,12 +88,12 @@ function buildLiteInput(
 /**
  * Extract snapshot data from raw text using regex (no LLM)
  */
-export function extractSnapshotFromText(text: string): {
+export async function extractSnapshotFromText(text: string): Promise<{
     priceRange: EzalSnapshot['priceRange'];
     promoCount: number;
     promoSignals: string[];
     categorySignals: string[];
-} {
+}> {
     // Extract prices
     const priceMatches = text.match(EXTRACTION_PATTERNS.prices) || [];
     const prices = priceMatches
@@ -127,7 +127,7 @@ export function extractSnapshotFromText(text: string): {
 /**
  * Check if snapshot is still fresh (within cache duration)
  */
-export function isSnapshotFresh(snapshot: EzalSnapshot | null): boolean {
+export async function isSnapshotFresh(snapshot: EzalSnapshot | null): Promise<boolean> {
     if (!snapshot) return false;
 
     const now = new Date();
@@ -188,7 +188,7 @@ export async function runLiteSnapshot(
     // Check cache first (unless force refresh)
     if (!forceRefresh) {
         const cached = await getCachedSnapshot(competitorId);
-        if (cached && isSnapshotFresh(cached)) {
+        if (cached && await isSnapshotFresh(cached)) {
             logger.info('Returning cached Ezal snapshot', { competitorId });
             return cached;
         }
@@ -309,7 +309,7 @@ async function triggerAndWaitForSnapshot(
     }
 
     // Extract snapshot data
-    const extracted = extractSnapshotFromText(text);
+    const extracted = await extractSnapshotFromText(text);
     const contentHash = hashContent(text);
 
     // Calculate cost (estimate based on proxy type)
