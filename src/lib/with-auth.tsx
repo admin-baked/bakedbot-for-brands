@@ -32,11 +32,19 @@ export function withAuth<P extends object>(
         const { role, isLoading: isAuthLoading, user, defaultRoute, loginRoute } = useUserRole();
         const [superAdminChecked, setSuperAdminChecked] = useState(false);
         const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+        const [hasSessionCookie, setHasSessionCookie] = useState(false);
 
-        // Check for super admin session immediately on mount
+        // Check for super admin session and session cookie immediately on mount
         useEffect(() => {
             const session = getSuperAdminSession();
             setIsSuperAdmin(!!session);
+
+            // Check for __session cookie (server-side auth)
+            const sessionCookie = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('__session='));
+            setHasSessionCookie(!!sessionCookie);
+
             setSuperAdminChecked(true);
         }, []);
 
@@ -53,21 +61,28 @@ export function withAuth<P extends object>(
                 return; // Allow access, no redirect needed
             }
 
+            // If we have a session cookie, Firebase client might still be syncing
+            // Wait for auth to fully load before redirecting
+            if (hasSessionCookie && !user && isAuthLoading) {
+                return; // Still loading, don't redirect yet
+            }
+
             // Regular auth check for non-super admins
             // Allow access if user is present OR if a role is simulated (cookie)
-            if (requireAuth && !user && !role) {
+            // Also allow if session cookie exists and Firebase is still syncing
+            if (requireAuth && !user && !role && !hasSessionCookie) {
                 router.push(redirectTo || loginRoute);
                 return;
             }
 
-            // Role check for non-super admins
-            if (allowedRoles && allowedRoles.length > 0) {
+            // Role check for non-super admins (skip if Firebase is still syncing)
+            if (allowedRoles && allowedRoles.length > 0 && user) {
                 if (!role || !allowedRoles.includes(role)) {
                     router.push(redirectTo || defaultRoute);
                     return;
                 }
             }
-        }, [isLoading, user, role, router, defaultRoute, loginRoute, isSuperAdmin]);
+        }, [isLoading, user, role, router, defaultRoute, loginRoute, isSuperAdmin, hasSessionCookie, isAuthLoading]);
 
         // Show loading state while checking both auth and super admin
         if (isLoading) {

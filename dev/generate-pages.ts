@@ -73,14 +73,6 @@ interface DiscoveredBrand {
     foundInCities: string[];
     sampleRetailerIds: number[];
 }
-createdAt: Date;
-updatedAt: Date;
-analytics: {
-    views: number;
-    clicks: number;
-};
-source: 'cannmenus_scan';
-}
 
 // --- ARGS ---
 const args = process.argv.slice(2);
@@ -281,6 +273,8 @@ async function main() {
             hasDispensaries: cityDispensaries.length > 0,
             dispensaryCount: parseInt(z.dispensary_count || '0', 10) || cityDispensaries.length,
             nearbyDispensaryIds: cityDispensaries.map(d => `dispensary_${d.id}`),
+            status: 'published', // Illinois pages are published
+            indexable: true, // Allow Google indexing for IL
             createdAt: new Date(),
             updatedAt: new Date(),
             analytics: {
@@ -314,6 +308,8 @@ async function main() {
             state: first.state,
             zipCodes: zips.map(z => z.zipCode),
             dispensaryCount: cityPagesDispensaries.size,
+            status: 'published', // Illinois cities are published
+            indexable: true, // Allow Google indexing for IL
             createdAt: new Date(),
             updatedAt: new Date()
         };
