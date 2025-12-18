@@ -115,9 +115,16 @@ async function main() {
     }
     const dispensaries: DiscoveredDispensary[] = JSON.parse(fs.readFileSync(dispensariesPath, 'utf-8'));
 
+    // FILTER: Only Illinois
+    const targetDispensaries = dispensaries.filter(d =>
+        (d.state && d.state.toLowerCase() === 'illinois') ||
+        (d.state && d.state.toLowerCase() === 'il')
+    );
+    log(`Filtered to ${targetDispensaries.length} Illinois dispensaries (from ${dispensaries.length} total).`);
+
     // 2. Group by City
     const cityGroups = new Map<string, DiscoveredDispensary[]>();
-    dispensaries.forEach(d => {
+    targetDispensaries.forEach(d => {
         const key = `${d.city}|${d.state}`; // Case sensitive logic? Assume data is normalized or handle it
         if (!cityGroups.has(key)) {
             cityGroups.set(key, []);
@@ -125,7 +132,7 @@ async function main() {
         cityGroups.get(key)?.push(d);
     });
 
-    log(`Loaded ${dispensaries.length} dispensaries from ${cityGroups.size} cities.`);
+    log(`Loaded ${targetDispensaries.length} dispensaries from ${cityGroups.size} cities.`);
 
     // 3. Scan Brands (City Sampling)
     let processedCities = 0;
