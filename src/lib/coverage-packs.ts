@@ -5,6 +5,8 @@
  * Pricing reflects foot traffic value, not just features.
  */
 
+import { createServerClient } from '@/firebase/server-client';
+
 export interface CoveragePackTier {
     id: string;
     name: string;
