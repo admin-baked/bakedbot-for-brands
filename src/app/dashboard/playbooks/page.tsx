@@ -13,7 +13,7 @@ import { ActivityFeed } from './components/activity-feed';
 import { UsageMeter } from './components/usage-meter';
 import { AgentChat } from './components/agent-chat';
 import DispensaryDashboardClient from '../dispensary/dashboard-client';
-import BrandDashboardClient from '../brand/dashboard-client';
+import { BrandPlaybooksView } from '../brand/components/brand-playbooks-view';
 
 type Playbook = {
   id: string;
@@ -66,6 +66,16 @@ const MOCK_PLAYBOOKS: Playbook[] = [
 
 export default function PlaybooksPage() {
   const { role, user } = useUserRole();
+
+  // Redirect Dispensary users to their specific console (which includes playbooks)
+  if (role === 'dispensary') {
+    const brandId = (user as any)?.brandId || user?.uid || 'unknown-dispensary';
+    return <DispensaryDashboardClient brandId={brandId} />;
+  }
+
+  if (role === 'brand') {
+    return <BrandPlaybooksView />;
+  }
 
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');

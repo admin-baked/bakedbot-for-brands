@@ -2,10 +2,11 @@
 
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Code, Download } from 'lucide-react';
+import { Globe, Code, Download, Store } from 'lucide-react';
 import DomainSettingsTab from './components/domain-tab';
 import EmbedGeneratorTab from './components/embed-tab';
 import WordPressPluginTab from './components/wordpress-tab';
+import BrandSetupTab from './components/brand-setup-tab';
 
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
@@ -41,12 +42,12 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
           <p className="text-muted-foreground">
-            Manage your domain, website integrations, and download plugins.
+            Manage your brand identity, domain, and website integrations.
           </p>
         </div>
 
         {previewUrl && (
-          <Button asChild variant="outline" className="gap-2">
+          <Button asChild variant="outline" className="gap-2 border-2">
             <Link href={previewUrl} target="_blank">
               Preview Menu <ExternalLink className="h-4 w-4" />
             </Link>
@@ -54,8 +55,12 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <Tabs defaultValue="embeds" className="space-y-4">
-        <TabsList>
+      <Tabs defaultValue="brand" className="space-y-4">
+        <TabsList className="bg-muted/50 p-1 border">
+          <TabsTrigger value="brand">
+            <Store className="mr-2 h-4 w-4" />
+            Brand
+          </TabsTrigger>
           <TabsTrigger value="embeds">
             <Code className="mr-2 h-4 w-4" />
             Embeds
@@ -69,6 +74,10 @@ export default function SettingsPage() {
             WordPress Plugin
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="brand" className="space-y-4">
+          <BrandSetupTab />
+        </TabsContent>
 
         <TabsContent value="embeds" className="space-y-4">
           <EmbedGeneratorTab />
@@ -85,3 +94,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
