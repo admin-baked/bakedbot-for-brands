@@ -258,3 +258,32 @@ unAgentChat in ctions.ts to return standardized AgentResult with rich metadata.
   - Phase F: Rollout + QA (soft launch IL, then full)
 - Spec version: v1.0
 - Dependencies: `feat_gmaps_scraper_integration`, `feat_claimed_page_checkout`
+
+## 2025-12-18T05:00Z – feat_customer_marketplace_v1 – antigravity
+- **Completed Phase A: Places Enrichment Layer**
+  - `src/types/places.ts` - PlaceDoc, PlaceSnapshot, GooglePlaceReview types
+  - `src/server/services/places-connector.ts` - PlaceId resolution, snapshot caching
+  - `src/components/places/google-attribution.tsx` - TOS-compliant attribution
+  - `src/components/places/dispensary-trust-module.tsx` - Rating, hours, directions
+- **Completed Phase B: Smokey Actions API**
+  - `src/types/smokey-actions.ts` - Find, Alert, Cart types with ranking config
+  - `src/app/api/smokey/find/route.ts` - NLP query parsing, ranked product search
+  - `src/app/api/smokey/alert/create/route.ts` - Alert creation with rate limiting
+  - `src/app/api/smokey/cart/prepare/route.ts` - Draft cart and checkout routing
+- **Completed Phase C: /shop Marketplace**
+  - `src/app/shop/page.tsx` - SEO metadata
+  - `src/app/shop/shop-client.tsx` - Search, filters, Smokey AI widget
+  - `src/components/shop/filters.tsx` - Category, price, rating, distance filters
+  - `src/components/shop/product-card.tsx` - Product card with checkout routing
+- **Completed Phase D: First-Party Reviews**
+  - `src/types/reviews.ts` - Review types, moderation patterns, tags
+  - `src/app/api/reviews/route.ts` - POST/GET with auto-moderation
+  - `src/components/reviews/review-form.tsx` - Star rating, tags, text
+  - `src/components/reviews/review-list.tsx` - Aggregates, distribution, cards
+- **Completed Phase E: Alerts + Jobs**
+  - `src/server/services/alert-evaluator.ts` - In-stock, price drop, open now checks
+  - `src/app/api/cron/evaluate-alerts/route.ts` - Cron endpoint for Cloud Scheduler
+- **Unit Tests Added**
+  - `tests/server/places-connector.test.ts`
+  - `tests/server/smokey-actions.test.ts`
+

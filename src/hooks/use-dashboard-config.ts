@@ -60,6 +60,14 @@ export function useDashboardConfig() {
         roles: ['brand', 'owner'],
       },
       {
+        label: 'Intelligence',
+        href: '/dashboard/intelligence',
+        icon: 'Target',
+        description: 'Competitive intel, pricing gaps, and shelf share analysis.',
+        roles: ['brand', 'owner'],
+        badge: 'beta',
+      },
+      {
         label: 'Brand Page',
         href: '/dashboard/content/brand-page',
         icon: 'LayoutTemplate',
