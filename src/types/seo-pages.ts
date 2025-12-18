@@ -26,6 +26,14 @@ export interface DispensarySEOPage {
         websiteScrape?: boolean;
         qrCode?: string; // Data URL
     };
+    // Deebo SEO Review
+    deeboReview?: {
+        screenshotUrl?: string; // URL to screenshot in storage
+        seoScore?: number; // 1-10 ranking
+        complianceStatus?: 'passed' | 'failed' | 'pending';
+        reviewNotes?: string;
+        reviewedAt?: Date;
+    };
 }
 
 export interface ZipSEOPage {
@@ -37,11 +45,21 @@ export interface ZipSEOPage {
     dispensaryCount: number;
     nearbyDispensaryIds: string[];
     nearbyZipCodes?: string[];
+    status: 'published' | 'draft';
+    indexable: boolean; // If false, page should have noindex meta tag
     createdAt: Date;
     updatedAt: Date;
     analytics: {
         views: number;
         clicks: number;
+    };
+    // Deebo SEO Review
+    deeboReview?: {
+        screenshotUrl?: string;
+        seoScore?: number; // 1-10 ranking
+        complianceStatus?: 'passed' | 'failed' | 'pending';
+        reviewNotes?: string;
+        reviewedAt?: Date;
     };
 }
 
@@ -52,9 +70,19 @@ export interface CitySEOPage {
     state: string;
     zipCodes: string[];
     dispensaryCount: number;
+    status: 'published' | 'draft';
+    indexable: boolean; // If false, page should have noindex meta tag
     description?: string; // AI generated intro
     createdAt: Date;
     updatedAt: Date;
+    // Deebo SEO Review
+    deeboReview?: {
+        screenshotUrl?: string;
+        seoScore?: number; // 1-10 ranking
+        complianceStatus?: 'passed' | 'failed' | 'pending';
+        reviewNotes?: string;
+        reviewedAt?: Date;
+    };
 }
 
 export interface BrandSEOPage {

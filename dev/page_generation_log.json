@@ -1,78 +1,25 @@
 {
-  "generatedAt": "2025-12-18T12:48:07.874Z",
-  "dryRun": true,
-  "dispensaryPagesCount": 1,
+  "generatedAt": "2025-12-18T18:12:06.869Z",
+  "dryRun": false,
+  "dispensaryPagesCount": 200,
   "zipPagesCount": 1383,
   "dispensaryPages": [
     {
-      "id": "dispensary_12345",
-      "retailerId": 12345,
-      "name": "Sunnyside Cannabis Dispensary - River North",
-      "slug": "sunnyside-cannabis-dispensary-river-north",
-      "city": "Chicago",
+      "id": "dispensary_ChIJg5VPiicRd4gR_Iz0W8z6C-A",
+      "retailerId": "ChIJg5VPiicRd4gR_Iz0W8z6C-A",
+      "name": "Consume Cannabis - Carbondale",
+      "slug": "consume-cannabis-carbondale",
+      "city": "Carbondale",
       "state": "Illinois",
       "zipCodes": [
-        "60601",
-        "60602",
-        "60603",
-        "60604",
-        "60605",
-        "60606",
-        "60607",
-        "60608",
-        "60609",
-        "60610",
-        "60611",
-        "60612",
-        "60613",
-        "60614",
-        "60615",
-        "60616",
-        "60617",
-        "60618",
-        "60619",
-        "60620",
-        "60621",
-        "60622",
-        "60623",
-        "60624",
-        "60625",
-        "60626",
-        "60628",
-        "60629",
-        "60630",
-        "60631",
-        "60632",
-        "60633",
-        "60634",
-        "60636",
-        "60637",
-        "60638",
-        "60639",
-        "60640",
-        "60641",
-        "60642",
-        "60643",
-        "60644",
-        "60645",
-        "60646",
-        "60647",
-        "60649",
-        "60651",
-        "60652",
-        "60653",
-        "60654",
-        "60655",
-        "60656",
-        "60657",
-        "60659",
-        "60660",
-        "60661"
+        "62901",
+        "62902",
+        "62903"
       ],
       "claimStatus": "unclaimed",
       "verificationStatus": "unverified",
-      "createdAt": "2025-12-18T12:48:07.865Z",
-      "updatedAt": "2025-12-18T12:48:07.865Z",
+      "createdAt": "2025-12-18T18:11:28.724Z",
+      "updatedAt": "2025-12-18T18:11:28.724Z",
       "analytics": {
         "views": 0,
         "clicks": 0,
@@ -80,7 +27,235 @@
       },
       "source": "cannmenus_scan",
       "enrichment": {
-        "qrCode": "data:image/png;base64,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",
+        "qrCode": "data:image/png;base64,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",
+        "googlePlaces": false
+      }
+    },
+    {
+      "id": "dispensary_ChIJu8ZostLXdogRNrCFWtoCsVk",
+      "retailerId": "ChIJu8ZostLXdogRNrCFWtoCsVk",
+      "name": "Ash & Ivy Dispensary",
+      "slug": "ash-ivy-dispensary",
+      "city": "Benton",
+      "state": "Illinois",
+      "zipCodes": [
+        "62812"
+      ],
+      "claimStatus": "unclaimed",
+      "verificationStatus": "unverified",
+      "createdAt": "2025-12-18T18:11:28.849Z",
+      "updatedAt": "2025-12-18T18:11:28.849Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0,
+        "lastViewedAt": null
+      },
+      "source": "cannmenus_scan",
+      "enrichment": {
+        "qrCode": "data:image/png;base64,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",
+        "googlePlaces": false
+      }
+    },
+    {
+      "id": "dispensary_ChIJvacZ7WQRd4gR0a6G1rGM0SQ",
+      "retailerId": "ChIJvacZ7WQRd4gR0a6G1rGM0SQ",
+      "name": "Key Cannabis Dispensary Carbondale",
+      "slug": "key-cannabis-dispensary-carbondale",
+      "city": "Carbondale",
+      "state": "Illinois",
+      "zipCodes": [
+        "62901",
+        "62902",
+        "62903"
+      ],
+      "claimStatus": "unclaimed",
+      "verificationStatus": "unverified",
+      "createdAt": "2025-12-18T18:11:29.732Z",
+      "updatedAt": "2025-12-18T18:11:29.732Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0,
+        "lastViewedAt": null
+      },
+      "source": "cannmenus_scan",
+      "enrichment": {
+        "qrCode": "data:image/png;base64,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",
+        "googlePlaces": false
+      }
+    },
+    {
+      "id": "dispensary_ChIJp7Xjoj65dogRk2gvXBQwzIU",
+      "retailerId": "ChIJp7Xjoj65dogRk2gvXBQwzIU",
+      "name": "Thrive Dispensary Mount Vernon",
+      "slug": "thrive-dispensary-mount-vernon",
+      "city": "Mt Vernon",
+      "state": "Illinois",
+      "zipCodes": [],
+      "claimStatus": "unclaimed",
+      "verificationStatus": "unverified",
+      "createdAt": "2025-12-18T18:11:30.086Z",
+      "updatedAt": "2025-12-18T18:11:30.086Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0,
+        "lastViewedAt": null
+      },
+      "source": "cannmenus_scan",
+      "enrichment": {
+        "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAAAklEQVR4AewaftIAAAdgSURBVO3BQY4kRxLAQDLR//8yd45+CiBR1SMp1s3sD9a6xMNaF3lY6yIPa13kYa2LPKx1kYe1LvKw1kUe1rrIw1oXeVjrIg9rXeRhrYs8rHWRh7Uu8rDWRX74kMrfVPFNKicVn1CZKiaVqeINlaniDZWpYlL5myo+8bDWRR7WusjDWhf54csqvknlm1ROKiaVqWJSmSpOVKaKSeWk4g2Vb6r4JpVveljrIg9rXeRhrYv88MtU3qh4Q2WqmFTeUJkqJpWp4qRiUplU3lCZKk4qJpVvUnmj4jc9rHWRh7Uu8rDWRX64jMpJxaQyVUwqU8WkclJxUvGGyqRyUvH/5GGtizysdZGHtS7yw2UqJpWTipOKk4pPqEwVb1RMKicVk8pNHta6yMNaF3lY6yI//LKKv0nlEyonFW+oTBWTyonKVPGGym+q+Dd5WOsiD2td5GGti/zwZSr/pIpJ5URlqphUTlSmir9JZaqYVKaKSeUNlX+zh7Uu8rDWRR7WusgPH6r4L1GZKiaVE5Wp4qRiUpkqTio+UfGJiv+Sh7Uu8rDWRR7WusgPH1KZKiaVb6qYKiaVqeITFZ9QmSomlW9SOal4Q+WbKn7Tw1oXeVjrIg9rXeSHD1V8U8UbKm+ofELlpGKqOKl4Q2WqmFS+qWJSmSreUJkqvulhrYs8rHWRh7Uu8sOHVKaKk4oTlZOKqeITFScqU8WJyknFpDJVTCpTxSdU3lA5UTmpOFGZKj7xsNZFHta6yMNaF/nhQxWTylQxqbxRMal8ouKbVKaKSeWkYlI5UZkqpoo3VE4qvqliUvmmh7Uu8rDWRR7Wuoj9wS9SmSomlTcqJpWTihOVNyomlZOKE5WpYlL5pooTlZOKSeWbKj7xsNZFHta6yMNaF/nhl1VMKicVn6j4N1M5UZkqJpWp4hMqU8WJylTxb/Kw1kUe1rrIw1oXsT/4gMpJxYnKGxUnKlPFN6m8UfGGylTxCZWTihOVT1RMKicVn3hY6yIPa13kYa2L/PBlFScqU8WkMlW8UTGp/KaKSWVS+YTKVDGpTBVTxRsqn6j4Jz2sdZGHtS7ysNZFfvhQxaRyUjGpnKhMFScqJxWTylQxqUwVk8pUcaIyVUwqU8UbKlPFpDJV/CaVk4pveljrIg9rXeRhrYv88GUVn6j4popJZap4Q2WqmFROKiaVE5WTijcqJpWTikllqphU/kkPa13kYa2LPKx1EfuDD6icVEwqn6iYVL6p4kTlpGJSOamYVE4qJpWp4kTlpGJSmSomlaniROWk4hMPa13kYa2LPKx1EfuDD6h8omJSmSpOVE4qJpWp4kTlpOINlTcqJpWp4kTlb6p4Q2Wq+MTDWhd5WOsiD2tdxP7gi1SmijdUTipOVD5RcaIyVUwqb1ScqHxTxYnKScWkMlVMKlPFb3pY6yIPa13kYa2L2B/8IpWTiv8ylaliUnmj4kRlqphUpooTlaniEypTxd/0sNZFHta6yMNaF/nhQypTxRsqb1ScqEwVk8pJxYnKVPFGxaRyojJVTCpTxaRyUnGi8ptUpopPPKx1kYe1LvKw1kV++GUVk8pJxRsqU8WkMlVMKicqU8UbFZ+oOKn4hMpUMVVMKicVJyq/6WGtizysdZGHtS7ywz+sYlI5qfiEyhsVk8pUcaIyVZyo/E0Vk8pJxaRyovI3Pax1kYe1LvKw1kXsDz6g8psqJpVvqphUpopJ5Y2Kb1KZKiaVk4pJ5aRiUpkqJpWp4m96WOsiD2td5GGti/zwZRUnKlPFicobFZPKVHFScVJxovKGyknFVDGpTBUnKicVn6iYVN6o+MTDWhd5WOsiD2tdxP7gAypTxRsqU8UbKicVJypTxRsqU8UnVD5RMal8omJSmSreUJkqvulhrYs8rHWRh7UuYn/wAZWpYlJ5o2JSmSr+JpWpYlI5qfiEylQxqZxUnKh8U8WkMlVMKlPFJx7WusjDWhd5WOsi9gf/YSpTxaRyUjGpTBUnKicVk8o3VbyhclLxhspJxd/0sNZFHta6yMNaF/nhQyp/U8VUMamcVEwqU8WkclIxqZxUnKhMFW+onFRMKicqU8VJxaTyRsUnHta6yMNaF3lY6yI/fFnFN6mcqJxUnFRMKt+kMlW8ofJGxTdVvKEyVfxND2td5GGtizysdZEffpnKGxXfpDJVnFS8oTJVfFPFGyqfUPlExaTyRsUnHta6yMNaF3lY6yI/XKZiUvkmlaniRGWqmFROVE4qTireUDmpmFQmlaniROWbHta6yMNaF3lY6yI/rI+oTBVTxaQyVfwmlanipOKNiknlROU3Pax1kYe1LvKw1kV++GUVv6niEyonFScVJyonKm9UnFRMKpPKScUbKlPFScWk8k0Pa13kYa2LPKx1kR++TOVvUpkqPlExqbyhMlVMKicVk8qJyicqJpWTihOVf9LDWhd5WOsiD2tdxP5grUs8rHWRh7Uu8rDWRR7WusjDWhd5WOsiD2td5GGtizysdZGHtS7ysNZFHta6yMNaF3lY6yIPa13kf12b02Y8d5p4AAAAAElFTkSuQmCC",
+        "googlePlaces": false
+      }
+    },
+    {
+      "id": "dispensary_ChIJz7ya03cRd4gRmQqEuSKh0rc",
+      "retailerId": "ChIJz7ya03cRd4gRmQqEuSKh0rc",
+      "name": "Carbondale Dispensary",
+      "slug": "carbondale-dispensary",
+      "city": "Carbondale",
+      "state": "Illinois",
+      "zipCodes": [
+        "62901",
+        "62902",
+        "62903"
+      ],
+      "claimStatus": "unclaimed",
+      "verificationStatus": "unverified",
+      "createdAt": "2025-12-18T18:11:31.416Z",
+      "updatedAt": "2025-12-18T18:11:31.416Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0,
+        "lastViewedAt": null
+      },
+      "source": "cannmenus_scan",
+      "enrichment": {
+        "qrCode": "data:image/png;base64,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",
+        "googlePlaces": false
+      }
+    },
+    {
+      "id": "dispensary_ChIJf1LeC9LJdogR8BSfY98bDPM",
+      "retailerId": "ChIJf1LeC9LJdogR8BSfY98bDPM",
+      "name": "Blyss Dispensary",
+      "slug": "blyss-dispensary",
+      "city": "Mt Vernon",
+      "state": "Illinois",
+      "zipCodes": [],
+      "claimStatus": "unclaimed",
+      "verificationStatus": "unverified",
+      "createdAt": "2025-12-18T18:11:31.776Z",
+      "updatedAt": "2025-12-18T18:11:31.776Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0,
+        "lastViewedAt": null
+      },
+      "source": "cannmenus_scan",
+      "enrichment": {
+        "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKQAAACkCAYAAAAZtYVBAAAAAklEQVR4AewaftIAAAYzSURBVO3BQY4kRxLAQDLQ//8yd45+SiBR1aOQ1s3sD9a6xGGtixzWushhrYsc1rrIYa2LHNa6yGGtixzWushhrYsc1rrIYa2LHNa6yGGtixzWushhrYv88CGVv6niicpU8QmVqWJS+aaKJypTxROVv6niE4e1LnJY6yKHtS7yw5dVfJPKGxWTypOKJxWTypOKSWWqmFQmlaliqphUpoonFd+k8k2HtS5yWOsih7Uu8sMvU3mj4g2VT6hMFZPKVPFGxaQyVUwqk8pUMVV8QuWNit90WOsih7UucljrIj/8x1RMKk8qnlRMKlPFE5WpYlKZKiaVJypTxb/ZYa2LHNa6yGGti/zwH1fxRGWqmFSeqLyh8kTlicpU8V9yWOsih7UucljrIj/8soq/SWWq+ETFzVSmijcqbnJY6yKHtS5yWOsiP3yZyj+pYlKZKt5QmSomlaliUpkqJpWpYlKZKj6hcrPDWhc5rHWRw1oXsT/4F1OZKv4mlaliUnlSMalMFf9PDmtd5LDWRQ5rXcT+4AMqU8Wk8k0VT1SmikllqphUnlRMKk8qPqEyVUwqU8Wk8k0Vv+mw1kUOa13ksNZFfvhQxRsVk8pU8YbKVDGpPFF5UvEJlU9UTCpTxScqJpU3VKaKTxzWushhrYsc1rqI/cEHVJ5UTCqfqJhU3qh4ovJNFU9UpopPqDypmFSmiknlScU3Hda6yGGtixzWuoj9wQdU3qiYVJ5U/CaVJxWTylQxqfymim9S+aaKTxzWushhrYsc1rrIDx+qmFSmiicVT1TeqJhUnlQ8UZkqJpWp4onKk4pJ5YnKk4pJ5Y2Kv+mw1kUOa13ksNZFfviQyhsqTyqmijdUnlS8UTGpTBVPVL5JZaqYVCaVqeINlTcqPnFY6yKHtS5yWOsiP1xO5UnFVPGGypOKJypTxZOKSeWNik+ofFPFNx3WushhrYsc1rrIDx+qeKNiUplUpopJ5YnKVPGbKp5UPKmYVP6miknlScVvOqx1kcNaFzmsdRH7gw+oPKl4ovKJit+k8qRiUpkqPqHyiYpJ5Y2KJypTxScOa13ksNZFDmtd5Icvq5hUnlR8QuVJxROVqeJJxaQyVUwqTyomlTcqnqg8qZhUJpW/6bDWRQ5rXeSw1kV++DKVJxWTyicqnqhMFVPFk4pJZap4o2JSeVLxm1SmiknlScU3Hda6yGGtixzWuoj9wT9IZap4Q+VJxROVqeKJypOKT6hMFZPKGxWTyicqJpWp4hOHtS5yWOsih7Uu8sOXqbxR8UTlEypPKj5R8UTlScVUMan8kyomld90WOsih7UucljrIj98SOVJxaTyRGWqmFSeVHxC5Q2VJxWTyqTypGJSeUNlqnhDZaqYVL7psNZFDmtd5LDWRX74sopJ5Y2KSeUTKlPFJyreUJkqJpUnKlPFN6lMFVPFpDJVfNNhrYsc1rrIYa2L/PCXVUwqU8VU8URlUnmiMlVMFW+oTBVTxaQyVUwqU8Wk8qRiUpkqnqj8kw5rXeSw1kUOa13E/uADKlPFE5Wp4onKVPFEZap4ojJVTCpTxROVqeI3qfymikllqvimw1oXOax1kcNaF/nhQxVvVLxR8URlqphUnlR8QuWJyicq3qh4Q2WqmFSmikllqvjEYa2LHNa6yGGti/zwIZW/qWKq+CaVqWJSeaPiicoTlU+oTBWfUJkqvumw1kUOa13ksNZFfviyim9SeaIyVbyh8kbFpPJEZaqYKiaVb6p4Q+WfdFjrIoe1LnJY6yI//DKVNyo+ofJGxROVqeJJxRsqU8WkMlVMKpPKN1VMKr/psNZFDmtd5LDWRX74j6uYVJ6oPFGZKiaVb6qYVN6oeKIyVbyhMlV84rDWRQ5rXeSw1kV++D9T8UbFpDKpTBXfpDJVTCpTxaTypGJSeVLxmw5rXeSw1kUOa13kh19W8ZsqJpUnKt9U8YbKGxWTylTxpOKJylQxqfxNh7UucljrIoe1LvLDl6n8TSpPVKaKSWWqmFTeUHmj4onKE5VPVDypmFSmim86rHWRw1oXOax1EfuDtS5xWOsih7UucljrIoe1LnJY6yKHtS5yWOsih7UucljrIoe1LnJY6yKHtS5yWOsih7UucljrIv8DxJAKa9kNGyoAAAAASUVORK5CYII=",
+        "googlePlaces": false
+      }
+    },
+    {
+      "id": "dispensary_ChIJeRekdVwRd4gRey0mV8-fBO4",
+      "retailerId": "ChIJeRekdVwRd4gRey0mV8-fBO4",
+      "name": "Wellness Center Dispensary",
+      "slug": "wellness-center-dispensary",
+      "city": "Carbondale",
+      "state": "Illinois",
+      "zipCodes": [
+        "62901",
+        "62902",
+        "62903"
+      ],
+      "claimStatus": "unclaimed",
+      "verificationStatus": "unverified",
+      "createdAt": "2025-12-18T18:11:31.867Z",
+      "updatedAt": "2025-12-18T18:11:31.867Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0,
+        "lastViewedAt": null
+      },
+      "source": "cannmenus_scan",
+      "enrichment": {
+        "qrCode": "data:image/png;base64,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",
+        "googlePlaces": false
+      }
+    },
+    {
+      "id": "dispensary_ChIJ5c1Mfmq3dogR4MBCO2sX1c0",
+      "retailerId": "ChIJ5c1Mfmq3dogR4MBCO2sX1c0",
+      "name": "Wellness Center Dispensary",
+      "slug": "wellness-center-dispensary",
+      "city": "Mt Vernon",
+      "state": "Illinois",
+      "zipCodes": [],
+      "claimStatus": "unclaimed",
+      "verificationStatus": "unverified",
+      "createdAt": "2025-12-18T18:11:32.287Z",
+      "updatedAt": "2025-12-18T18:11:32.287Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0,
+        "lastViewedAt": null
+      },
+      "source": "cannmenus_scan",
+      "enrichment": {
+        "qrCode": "data:image/png;base64,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",
+        "googlePlaces": false
+      }
+    },
+    {
+      "id": "dispensary_ChIJD4cyxeo7d4gRKodDIWNLa3k",
+      "retailerId": "ChIJD4cyxeo7d4gRKodDIWNLa3k",
+      "name": "Consume Cannabis - Marion",
+      "slug": "consume-cannabis-marion",
+      "city": "Marion",
+      "state": "Illinois",
+      "zipCodes": [
+        "62959"
+      ],
+      "claimStatus": "unclaimed",
+      "verificationStatus": "unverified",
+      "createdAt": "2025-12-18T18:11:32.659Z",
+      "updatedAt": "2025-12-18T18:11:32.659Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0,
+        "lastViewedAt": null
+      },
+      "source": "cannmenus_scan",
+      "enrichment": {
+        "qrCode": "data:image/png;base64,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",
+        "googlePlaces": false
+      }
+    },
+    {
+      "id": "dispensary_ChIJ82v4B7QDdogRhk5kCqkvoTQ",
+      "retailerId": "ChIJ82v4B7QDdogRhk5kCqkvoTQ",
+      "name": "Mystic Greenz",
+      "slug": "mystic-greenz",
+      "city": "Belleville",
+      "state": "Illinois",
+      "zipCodes": [
+        "62220",
+        "62221",
+        "62223",
+        "62226"
+      ],
+      "claimStatus": "unclaimed",
+      "verificationStatus": "unverified",
+      "createdAt": "2025-12-18T18:11:32.755Z",
+      "updatedAt": "2025-12-18T18:11:32.755Z",
+      "analytics": {
+        "views": 0,
+        "clicks": 0,
+        "lastViewedAt": null
+      },
+      "source": "cannmenus_scan",
+      "enrichment": {
+        "qrCode": "data:image/png;base64,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",
         "googlePlaces": false
       }
     }
@@ -94,42 +269,59 @@
       "hasDispensaries": false,
       "dispensaryCount": 20,
       "nearbyDispensaryIds": [],
-      "createdAt": "2025-12-18T12:48:07.870Z",
-      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "status": "published",
+      "indexable": true,
+      "createdAt": "2025-12-18T18:12:02.434Z",
+      "updatedAt": "2025-12-18T18:12:02.434Z",
       "analytics": {
         "views": 0,
         "clicks": 0
-      }
+      },
+      "nearbyZipCodes": []
     },
     {
       "id": "zip_60004",
       "zipCode": "60004",
       "city": "Arlington Heights",
       "state": "Illinois",
-      "hasDispensaries": false,
+      "hasDispensaries": true,
       "dispensaryCount": 20,
-      "nearbyDispensaryIds": [],
-      "createdAt": "2025-12-18T12:48:07.870Z",
-      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "nearbyDispensaryIds": [
+        "dispensary_ChIJyb7GWr27D4gRl2uAFp2eViI"
+      ],
+      "status": "published",
+      "indexable": true,
+      "createdAt": "2025-12-18T18:12:02.435Z",
+      "updatedAt": "2025-12-18T18:12:02.435Z",
       "analytics": {
         "views": 0,
         "clicks": 0
-      }
+      },
+      "nearbyZipCodes": [
+        "60005"
+      ]
     },
     {
       "id": "zip_60005",
       "zipCode": "60005",
       "city": "Arlington Heights",
       "state": "Illinois",
-      "hasDispensaries": false,
+      "hasDispensaries": true,
       "dispensaryCount": 20,
-      "nearbyDispensaryIds": [],
-      "createdAt": "2025-12-18T12:48:07.870Z",
-      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "nearbyDispensaryIds": [
+        "dispensary_ChIJyb7GWr27D4gRl2uAFp2eViI"
+      ],
+      "status": "published",
+      "indexable": true,
+      "createdAt": "2025-12-18T18:12:02.435Z",
+      "updatedAt": "2025-12-18T18:12:02.435Z",
       "analytics": {
         "views": 0,
         "clicks": 0
-      }
+      },
+      "nearbyZipCodes": [
+        "60004"
+      ]
     },
     {
       "id": "zip_60007",
@@ -139,12 +331,15 @@
       "hasDispensaries": false,
       "dispensaryCount": 20,
       "nearbyDispensaryIds": [],
-      "createdAt": "2025-12-18T12:48:07.870Z",
-      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "status": "published",
+      "indexable": true,
+      "createdAt": "2025-12-18T18:12:02.435Z",
+      "updatedAt": "2025-12-18T18:12:02.435Z",
       "analytics": {
         "views": 0,
         "clicks": 0
-      }
+      },
+      "nearbyZipCodes": []
     },
     {
       "id": "zip_60008",
@@ -154,12 +349,15 @@
       "hasDispensaries": false,
       "dispensaryCount": 20,
       "nearbyDispensaryIds": [],
-      "createdAt": "2025-12-18T12:48:07.870Z",
-      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "status": "published",
+      "indexable": true,
+      "createdAt": "2025-12-18T18:12:02.435Z",
+      "updatedAt": "2025-12-18T18:12:02.435Z",
       "analytics": {
         "views": 0,
         "clicks": 0
-      }
+      },
+      "nearbyZipCodes": []
     },
     {
       "id": "zip_60010",
@@ -169,12 +367,15 @@
       "hasDispensaries": false,
       "dispensaryCount": 20,
       "nearbyDispensaryIds": [],
-      "createdAt": "2025-12-18T12:48:07.870Z",
-      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "status": "published",
+      "indexable": true,
+      "createdAt": "2025-12-18T18:12:02.435Z",
+      "updatedAt": "2025-12-18T18:12:02.435Z",
       "analytics": {
         "views": 0,
         "clicks": 0
-      }
+      },
+      "nearbyZipCodes": []
     },
     {
       "id": "zip_60012",
@@ -184,12 +385,17 @@
       "hasDispensaries": false,
       "dispensaryCount": 20,
       "nearbyDispensaryIds": [],
-      "createdAt": "2025-12-18T12:48:07.870Z",
-      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "status": "published",
+      "indexable": true,
+      "createdAt": "2025-12-18T18:12:02.435Z",
+      "updatedAt": "2025-12-18T18:12:02.435Z",
       "analytics": {
         "views": 0,
         "clicks": 0
-      }
+      },
+      "nearbyZipCodes": [
+        "60014"
+      ]
     },
     {
       "id": "zip_60013",
@@ -199,12 +405,15 @@
       "hasDispensaries": false,
       "dispensaryCount": 20,
       "nearbyDispensaryIds": [],
-      "createdAt": "2025-12-18T12:48:07.870Z",
-      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "status": "published",
+      "indexable": true,
+      "createdAt": "2025-12-18T18:12:02.435Z",
+      "updatedAt": "2025-12-18T18:12:02.435Z",
       "analytics": {
         "views": 0,
         "clicks": 0
-      }
+      },
+      "nearbyZipCodes": []
     },
     {
       "id": "zip_60014",
@@ -214,12 +423,17 @@
       "hasDispensaries": false,
       "dispensaryCount": 20,
       "nearbyDispensaryIds": [],
-      "createdAt": "2025-12-18T12:48:07.870Z",
-      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "status": "published",
+      "indexable": true,
+      "createdAt": "2025-12-18T18:12:02.435Z",
+      "updatedAt": "2025-12-18T18:12:02.435Z",
       "analytics": {
         "views": 0,
         "clicks": 0
-      }
+      },
+      "nearbyZipCodes": [
+        "60012"
+      ]
     },
     {
       "id": "zip_60015",
@@ -229,12 +443,15 @@
       "hasDispensaries": false,
       "dispensaryCount": 20,
       "nearbyDispensaryIds": [],
-      "createdAt": "2025-12-18T12:48:07.870Z",
-      "updatedAt": "2025-12-18T12:48:07.870Z",
+      "status": "published",
+      "indexable": true,
+      "createdAt": "2025-12-18T18:12:02.435Z",
+      "updatedAt": "2025-12-18T18:12:02.435Z",
       "analytics": {
         "views": 0,
         "clicks": 0
-      }
+      },
+      "nearbyZipCodes": []
     }
   ]
 }

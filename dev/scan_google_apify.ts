@@ -9,13 +9,14 @@ import path from 'path';
 async function main() {
     console.log('Starting Google Maps Discovery via Apify...');
 
-    // 1. Prepare Input (from User Request)
+    // 1. Prepare Input - Expanded for full Illinois coverage
     const input = {
         "searchStringsArray": [
-            "dispensary"
+            "dispensary",
+            "cannabis dispensary"
         ],
-        "locationQuery": "Chicago, IL",
-        "maxCrawledPlacesPerSearch": 20, // Sample size
+        "locationQuery": "Illinois, USA",
+        "maxCrawledPlacesPerSearch": 100, // Increased for full state coverage
         "language": "en",
         "searchMatching": "all",
         "skipClosedPlaces": false,
