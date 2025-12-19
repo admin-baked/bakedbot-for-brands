@@ -291,7 +291,8 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
     try {
         console.log('[runAgentChat] Importing dependencies...');
         // Import dependencies
-        const { routeToAgent, AGENT_CAPABILITIES } = await import('@/server/agents/agent-router');
+        const { routeToAgent } = await import('@/server/agents/agent-router');
+        const { AGENT_CAPABILITIES } = await import('@/server/agents/agent-definitions');
         const { getIntuitionSummary } = await import('@/server/algorithms/intuition-engine');
         const { requireUser } = await import('@/server/auth/auth');
 
