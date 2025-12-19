@@ -1,3 +1,5 @@
+import 'server-only';
+
 /**
  * Agent Router
  * 
@@ -14,7 +16,8 @@ import { logger } from '@/lib/logger';
 import { AGENT_CAPABILITIES, AgentCapability, AgentId } from '@/server/agents/agent-definitions';
 
 export type { AgentId, AgentCapability };
-export { AGENT_CAPABILITIES };
+// AGENT_CAPABILITIES should be imported directly from definitions to avoid circular/bundle issues
+
 
 // --- Intent Detection ---
 
