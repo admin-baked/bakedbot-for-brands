@@ -1211,6 +1211,7 @@ export default function FootTrafficTab() {
                                             State {sortConfig?.key === 'state' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                                         </TableHead>
                                         <TableHead>Featured</TableHead>
+                                        <TableHead>Data</TableHead>
                                         <TableHead className="cursor-pointer hover:text-primary" onClick={() => handleSort('published')}>
                                             Status {sortConfig?.key === 'published' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                                         </TableHead>
@@ -1252,6 +1253,17 @@ export default function FootTrafficTab() {
                                                             )}
                                                         </TableCell>
                                                         <TableCell>
+                                                            {page.productCount ? (
+                                                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                                                    {page.productCount} Products
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge variant="outline" className="text-muted-foreground">
+                                                                    No Data
+                                                                </Badge>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {page.published ? (
                                                                 <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
                                                                     <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -1284,8 +1296,21 @@ export default function FootTrafficTab() {
                                                                     <DropdownMenuItem onClick={() => toast({ title: "Partner Featured", description: "Partner added to page." })}>
                                                                         <Plus className="mr-2 h-4 w-4" /> Feature Partner
                                                                     </DropdownMenuItem>
-                                                                    <DropdownMenuItem onClick={() => toast({ title: "Unpublished", description: "Page has been hidden." })}>
-                                                                        <XCircle className="mr-2 h-4 w-4" /> Unpublish
+                                                                    <DropdownMenuItem onClick={async () => {
+                                                                        const newStatus = !page.published;
+                                                                        const result = await toggleSeoPagePublishAction(pageId, page.pageType || 'zip', newStatus);
+                                                                        if (result.error) {
+                                                                            toast({ title: 'Error', description: result.message, variant: 'destructive' });
+                                                                        } else {
+                                                                            toast({ title: newStatus ? 'Published' : 'Unpublished', description: result.message });
+                                                                            fetchSeoPages();
+                                                                        }
+                                                                    }}>
+                                                                        {page.published ? (
+                                                                            <><XCircle className="mr-2 h-4 w-4" /> Unpublish</>
+                                                                        ) : (
+                                                                            <><CheckCircle2 className="mr-2 h-4 w-4" /> Publish</>
+                                                                        )}
                                                                     </DropdownMenuItem>
                                                                     <DropdownMenuItem onClick={() => toast({ title: "Analytics", description: "Opening analytics view..." })}>
                                                                         <TrendingUp className="mr-2 h-4 w-4" /> View Analytics
