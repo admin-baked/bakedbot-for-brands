@@ -21,6 +21,11 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Create Runtime Config
+        run: echo "{\"SERPER_API_KEY\": \"$SERPER_API_KEY\"}" > env-config.json
+        env:
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+
       - name: Build
         run: npm run build
         env:
@@ -39,8 +44,8 @@ jobs:
           npm install -g firebase-tools
           echo $GCP_SA_KEY > "$HOME/gcp_key.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/gcp_key.json"
-          # Create env-config.json for runtime env vars (Next.js config will read this)
-          echo "{\"SERPER_API_KEY\": \"$SERPER_API_KEY\"}" > env-config.json
+          export GOOGLE_APPLICATION_CREDENTIALS="$HOME/gcp_key.json"
+          # env-config.json created before build, just deploy now
           firebase deploy --project studio-567050101-bc6e8 --force --only hosting,functions
           rm "$HOME/gcp_key.json"
           rm env-config.json
