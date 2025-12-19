@@ -13,6 +13,8 @@ export interface EzalTools {
   comparePricing(myProducts: any[], competitorProducts: any[]): Promise<{ price_index: number }>;
   // NEW: Get competitive intel from Leafly data
   getCompetitiveIntel(state: string, city?: string): Promise<string>;
+  // NEW: Search the web for general research
+  searchWeb(query: string): Promise<string>;
 }
 
 // --- Ezal Agent Implementation ---
@@ -41,8 +43,8 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
       return `scrape:${staleCompetitor.id}`;
     }
 
-    // 2. Check for open gaps that need detail filling (Not fully implemented in this phase)
-    return null;
+    // 2. Fallback to general competitive research if no specific stale items
+    return 'general_research';
   },
 
   async act(brandMemory, agentMemory, targetId, tools: EzalTools) {
@@ -102,6 +104,20 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
           action: 'scrape_competitor',
           result: resultMessage,
           metadata: { competitor_id: competitorId, items_scraped: menuData.products.length }
+        }
+      };
+    }
+
+    if (targetId === 'general_research') {
+      const researchQuery = `latest cannabis market trends for ${brandMemory.brand_profile.name || 'dispensaries'}`;
+      const researchResult = await tools.searchWeb(researchQuery);
+
+      return {
+        updatedMemory: agentMemory,
+        logEntry: {
+          action: 'general_research',
+          result: `Performed market research: ${researchResult.substring(0, 100)}...`,
+          metadata: { query: researchQuery }
         }
       };
     }
