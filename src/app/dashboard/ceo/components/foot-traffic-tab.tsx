@@ -82,7 +82,8 @@ import {
     bulkPublishBrandPagesAction,
     toggleSeoPagePublishAction,
     bulkSeoPageStatusAction,
-    setTop25PublishedAction
+    setTop25PublishedAction,
+    refreshSeoPageDataAction
 } from '../actions';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -438,6 +439,24 @@ export default function FootTrafficTab() {
     };
 
     // Handle toggle publish
+    // Handle Refresh Data
+    const handleRefreshPage = async (zipCode: string) => {
+        setIsLoading(true);
+        try {
+            const result = await refreshSeoPageDataAction(zipCode);
+            if (result.error) {
+                toast({ title: 'Refresh Failed', description: result.message, variant: 'destructive' });
+            } else {
+                toast({ title: 'Data Refreshed', description: result.message });
+                fetchSeoPages();
+            }
+        } catch (error) {
+            toast({ title: 'Error', description: 'Unexpected error refreshing data.', variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleToggleBrandPagePublish = async (id: string, published: boolean) => {
         try {
             const result = await toggleBrandPagePublishAction(id, published);
@@ -1289,7 +1308,7 @@ export default function FootTrafficTab() {
                                                                     <DropdownMenuItem onClick={() => window.open(`/local/${page.zipCode}`, '_blank')}>
                                                                         <Eye className="mr-2 h-4 w-4" /> View Page
                                                                     </DropdownMenuItem>
-                                                                    <DropdownMenuItem onClick={() => toast({ title: "Refreshed", description: "Snapshot updated." })}>
+                                                                    <DropdownMenuItem onClick={() => handleRefreshPage(page.zipCode)}>
                                                                         <RefreshCw className="mr-2 h-4 w-4" /> Refresh Snapshot
                                                                     </DropdownMenuItem>
                                                                     <DropdownMenuSeparator />

@@ -809,6 +809,168 @@ export async function toggleSeoPagePublishAction(
 }
 
 /**
+ * Refresh SEO Page Data (Manual Sync)
+ */
+export async function refreshSeoPageDataAction(zipCode: string): Promise<ActionResult> {
+  await requireUser(['owner']);
+
+  try {
+    const firestore = getAdminFirestore();
+
+    // 1. Get existing page to check existence and get current config
+    const pageRef = firestore.collection('foot_traffic').doc('config').collection('zip_pages').doc(zipCode);
+    const pageSnap = await pageRef.get();
+
+    if (!pageSnap.exists) {
+      return { message: `Page for ${zipCode} not found.`, error: true };
+    }
+
+    const currentConfig = pageSnap.data() as LocalSEOPage;
+
+    // 2. Get location info (re-verify or use cached)
+    const coords = await getZipCodeCoordinates(zipCode);
+    if (!coords) {
+      return { message: `Could not resolve coordinates for ${zipCode}`, error: true };
+    }
+
+    // 3. Discover fresh products
+    // We use a broader radius or adaptive logic if needed, but sticking to standard 15mi for consistency with seed
+    let discoveryResult = await discoverNearbyProducts({
+      lat: coords.lat,
+      lng: coords.lng,
+      cityName: coords.city,
+      state: coords.state,
+      radiusMiles: 15,
+      limit: 50,
+      sortBy: 'score',
+    });
+
+    // Expand if empty, similar to seed logic
+    if (discoveryResult.products.length === 0) {
+      discoveryResult = await discoverNearbyProducts({
+        lat: coords.lat,
+        lng: coords.lng,
+        cityName: coords.city,
+        state: coords.state,
+        radiusMiles: 50,
+        limit: 50,
+        sortBy: 'score',
+      });
+    }
+
+    if (discoveryResult.products.length === 0) {
+      // One last try at 100 miles
+      discoveryResult = await discoverNearbyProducts({
+        lat: coords.lat,
+        lng: coords.lng,
+        cityName: coords.city,
+        state: coords.state,
+        radiusMiles: 100,
+        limit: 50,
+        sortBy: 'score',
+      });
+    }
+
+    // 4. Re-calculate derived content
+    const retailers = await getRetailersByZipCode(zipCode, 20);
+
+    const topStrains = discoveryResult.products.slice(0, 10).map(p => ({
+      id: p.id,
+      name: p.name,
+      brandName: p.brandName,
+      category: p.category,
+      price: p.price,
+      imageUrl: p.imageUrl,
+      thcPercent: p.thcPercent,
+      retailerCount: p.retailerCount,
+    }));
+
+    const topDeals = discoveryResult.products
+      .filter(p => p.isOnSale)
+      .slice(0, 5)
+      .map(p => ({
+        productId: p.id,
+        productName: p.name,
+        brandName: p.brandName,
+        originalPrice: p.originalPrice || p.price,
+        salePrice: p.price,
+        discountPercent: p.originalPrice ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0,
+        retailerName: p.availability[0]?.retailerName || 'Local Dispensary',
+      }));
+
+    const categoryBreakdown = ['Flower', 'Edibles', 'Concentrates', 'Pre-Rolls', 'Vape Pens'].map(cat => ({
+      category: cat,
+      count: discoveryResult.products.filter(p => p.category === cat).length
+    }));
+
+
+    // 5. Create new config updates
+    const snapshotId = `${zipCode}_${Date.now()}`;
+    const updatedContent = {
+      ...currentConfig.content,
+      topStrains,
+      topDeals,
+      nearbyRetailers: retailers.slice(0, 10).map(r => ({
+        ...r,
+        distance: r.distance ?? null,
+        productCount: r.productCount ?? null,
+        phone: r.phone ?? null,
+        website: r.website ?? null,
+        hours: r.hours ?? null,
+        lat: r.lat ?? null,
+        lng: r.lng ?? null,
+      })),
+      categoryBreakdown
+    };
+
+    const batch = firestore.batch();
+
+    // A. New Snapshot
+    const snapshotRef = firestore.collection('foot_traffic').doc('data').collection('cann_menus_snapshots').doc(snapshotId);
+    batch.set(snapshotRef, {
+      id: snapshotId,
+      zipCode,
+      fetchedAt: new Date(),
+      dispensaries: updatedContent.nearbyRetailers,
+      products: discoveryResult.products,
+      aggregates: {
+        categoryBreakdown,
+        totalProducts: discoveryResult.totalProducts,
+        totalDispensaries: retailers.length
+      },
+      sourceVersion: 'v1-refresh'
+    });
+
+    // B. Page Config Update
+    batch.update(pageRef, {
+      content: updatedContent,
+      dataSnapshotRef: snapshotId,
+      productCount: discoveryResult.totalProducts,
+      lastRefreshed: new Date(),
+      updatedAt: new Date()
+    });
+
+    // C. Legacy Update (Safety)
+    const legacyRef = firestore.collection('foot_traffic').doc('config').collection('seo_pages').doc(zipCode);
+    batch.update(legacyRef, { // Using set with merge might be safer if legacy is missing, but update is fine if we assume symmetry
+      content: updatedContent,
+      dataSnapshotRef: snapshotId,
+      productCount: discoveryResult.totalProducts,
+      lastRefreshed: new Date(),
+      updatedAt: new Date()
+    });
+
+    await batch.commit();
+
+    return { message: `Page data refreshed successfully. Found ${discoveryResult.totalProducts} products.` };
+
+  } catch (error: any) {
+    console.error('[refreshSeoPageDataAction] Error:', error);
+    return { message: `Failed to refresh data: ${error.message}`, error: true };
+  }
+}
+
+/**
  * Bulk update SEO page status by page IDs
  */
 export async function bulkSeoPageStatusAction(
