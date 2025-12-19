@@ -30,15 +30,23 @@ export async function GET() {
             throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY is missing');
         }
 
-        // 2. Decode Base64
+        // 2. Decode Base64 or Parse JSON
         let jsonStr = '';
         try {
-            jsonStr = Buffer.from(serviceAccountKey, 'base64').toString('utf8');
-            results.base64Decode = 'success';
-            results.steps.push('Decoded base64');
-        } catch (e: any) {
-            results.base64Decode = 'failed';
-            throw new Error(`Base64 decode failed: ${e.message}`);
+            // First try treating it as raw JSON
+            JSON.parse(serviceAccountKey);
+            jsonStr = serviceAccountKey;
+            results.base64Decode = 'skipped_is_json';
+            results.steps.push('Identified raw JSON');
+        } catch (e) {
+            try {
+                jsonStr = Buffer.from(serviceAccountKey, 'base64').toString('utf8');
+                results.base64Decode = 'success';
+                results.steps.push('Decoded base64');
+            } catch (e: any) {
+                results.base64Decode = 'failed';
+                throw new Error(`Base64 decode failed: ${e.message}`);
+            }
         }
 
         // 3. Parse JSON
