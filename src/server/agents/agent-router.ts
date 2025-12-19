@@ -11,67 +11,10 @@ import { logger } from '@/lib/logger';
 
 // --- Agent Definitions ---
 
-export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mrs_parker' | 'general' | 'puff';
+import { AGENT_CAPABILITIES, AgentCapability, AgentId } from '@/server/agents/agent-definitions';
 
-export interface AgentCapability {
-    id: AgentId;
-    name: string;
-    specialty: string;
-    keywords: string[];
-    description: string;
-}
-
-export const AGENT_CAPABILITIES: AgentCapability[] = [
-    {
-        id: 'craig',
-        name: 'Craig',
-        specialty: 'Content & Campaigns',
-        keywords: ['sms', 'email', 'copy', 'campaign', 'message', 'content', 'write', 'draft', 'newsletter', 'promotional'],
-        description: 'Generates marketing copy, SMS campaigns, and email content with compliance checking.'
-    },
-    {
-        id: 'pops',
-        name: 'Pops',
-        specialty: 'Analytics & Strategy',
-        keywords: ['report', 'analytics', 'data', 'metrics', 'kpi', 'trend', 'analyze', 'insight', 'hypothesis', 'performance', 'revenue', 'sales'],
-        description: 'Analyzes business data, validates hypotheses, and provides strategic insights.'
-    },
-    {
-        id: 'ezal',
-        name: 'Ezal',
-        specialty: 'Research & Intelligence',
-        keywords: ['competitor', 'research', 'scrape', 'pricing', 'market', 'intelligence', 'spy', 'compare', 'aiq', 'dutchie'],
-        description: 'Researches competitors, scrapes pricing data, and provides market intelligence.'
-    },
-    {
-        id: 'smokey',
-        name: 'Smokey',
-        specialty: 'Products & Recommendations',
-        keywords: ['product', 'recommend', 'menu', 'strain', 'indica', 'sativa', 'effect', 'thc', 'cbd', 'inventory'],
-        description: 'Manages product recommendations, menu optimization, and experiment analysis.'
-    },
-    {
-        id: 'money_mike',
-        name: 'Money Mike',
-        specialty: 'Pricing & Revenue',
-        keywords: ['price', 'pricing', 'discount', 'margin', 'revenue', 'forecast', 'profit', 'deal', 'promotion'],
-        description: 'Optimizes pricing strategies, forecasts revenue impact, and validates margins.'
-    },
-    {
-        id: 'mrs_parker',
-        name: 'Mrs. Parker',
-        specialty: 'Customer Journeys',
-        keywords: ['customer', 'loyalty', 'churn', 'segment', 'journey', 'retention', 'engagement', 'welcome', 'at-risk', 'springbig', 'alpine iq', 'alpineiq'],
-        description: 'Manages customer segments, predicts churn, and orchestrates loyalty programs.'
-    },
-    {
-        id: 'general',
-        name: 'Assistant',
-        specialty: 'General research and task automation',
-        keywords: ['help', 'info', 'research', 'search', 'find'],
-        description: 'Handles greetings, general questions, and broad research tasks.'
-    },
-];
+export type { AgentId, AgentCapability };
+export { AGENT_CAPABILITIES };
 
 // --- Intent Detection ---
 
