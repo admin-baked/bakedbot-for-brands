@@ -62,6 +62,14 @@ export interface PuffMessage {
     timestamp: Date;
     isThinking?: boolean;
     workDuration?: number; // seconds
+    metadata?: {
+        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context';
+        data?: any;
+        brandId?: string;
+        brandName?: string;
+        agentName?: string;
+        role?: string;
+    };
 }
 
 export interface PuffState {
@@ -320,6 +328,7 @@ export function PuffChat({
         content: m.content,
         timestamp: new Date(m.timestamp),
         isThinking: m.thinking?.isThinking,
+        metadata: m.metadata,
         workDuration: 0 // Not persisted but OK
     }));
 

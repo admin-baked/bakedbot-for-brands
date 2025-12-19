@@ -13,8 +13,12 @@ export interface ChatMessage {
         plan: string[];
     };
     metadata?: {
-        type: 'compliance_report' | 'product_rec' | 'elasticity_analysis';
-        data: any;
+        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context';
+        data?: any;
+        brandId?: string;
+        brandName?: string;
+        agentName?: string;
+        role?: string;
     };
 }
 
