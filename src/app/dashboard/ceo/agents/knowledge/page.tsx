@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Search, Book, Trash2, Link as LinkIcon, FileText, Database } from 'lucide-react';
 
 import { createKnowledgeBaseAction, getKnowledgeBasesAction, addDocumentAction, getDocumentsAction, deleteDocumentAction } from '@/server/actions/knowledge-base';
-import { AGENT_CAPABILITIES } from '@/server/agents/agent-router';
+import { AGENT_CAPABILITIES } from '@/server/agents/agent-definitions';
 import { KnowledgeBase, KnowledgeDocument } from '@/types/knowledge-base';
 
 export default function AgentKnowledgePage() {
@@ -177,8 +177,8 @@ export default function AgentKnowledgePage() {
                                     key={agent.id}
                                     onClick={() => setSelectedAgent(agent.id)}
                                     className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${selectedAgent === agent.id
-                                            ? 'bg-primary/10 text-primary'
-                                            : 'hover:bg-slate-100 text-slate-600'
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'hover:bg-slate-100 text-slate-600'
                                         }`}
                                 >
                                     {agent.name}
