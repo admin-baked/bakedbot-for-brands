@@ -35,20 +35,38 @@ export default function BrandPageManager() {
             }
 
             try {
-                const { getFirestore, doc, getDoc } = await import('firebase/firestore');
-                const { app } = await import('@/firebase/client');
-                const db = getFirestore(app);
+                const { getDoc, doc } = await import('firebase/firestore');
+                const { db } = await import('@/firebase/client');
+
+                if (!db) {
+                    throw new Error('Firestore database not initialized.');
+                }
+
+                console.log('[BrandPage] Loading data for user:', user.uid);
 
                 // 1. Get user doc to find brandId
-                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                const userRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userRef);
+
+                if (!userDoc.exists()) {
+                    console.warn('[BrandPage] User document not found in Firestore');
+                    setLoading(false);
+                    return;
+                }
+
                 const userData = userDoc.data();
                 const bId = userData?.brandId;
 
+                console.log('[BrandPage] Brand ID from user doc:', bId);
+
                 if (bId) {
                     // 2. Get brand doc
-                    const brandDoc = await getDoc(doc(db, 'brands', bId));
+                    const brandRef = doc(db, 'brands', bId);
+                    const brandDoc = await getDoc(brandRef);
+
                     if (brandDoc.exists()) {
                         const bData = brandDoc.data();
+                        console.log('[BrandPage] Brand data found:', bData.name);
                         setBrand({ id: bId, ...bData });
                         setFormData({
                             description: bData.description || '',
@@ -57,15 +75,19 @@ export default function BrandPageManager() {
                             websiteUrl: bData.websiteUrl || ''
                         });
                     } else {
+                        console.warn('[BrandPage] Brand document not found:', bId);
+                        // Fallback to name from user doc if available
                         setBrand({ id: bId, name: userData?.brandName || 'Unknown Brand' });
                     }
+                } else {
+                    console.log('[BrandPage] No brandId associated with this user.');
                 }
-            } catch (error) {
-                console.error('Error loading brand:', error);
+            } catch (error: any) {
+                console.error('[BrandPage] Error loading brand:', error);
                 toast({
                     variant: 'destructive',
-                    title: 'Error',
-                    description: 'Failed to load brand data.'
+                    title: 'Error Loading Brand',
+                    description: error?.message || 'Failed to load brand data. Please try again.'
                 });
             } finally {
                 setLoading(false);

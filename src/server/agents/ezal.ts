@@ -47,7 +47,7 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
     return 'general_research';
   },
 
-  async act(brandMemory, agentMemory, targetId, tools: EzalTools) {
+  async act(brandMemory, agentMemory, targetId, tools: EzalTools, stimulus?: any) {
     let resultMessage = '';
 
     if (targetId.startsWith('scrape:')) {
@@ -109,9 +109,10 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
     }
 
     if (targetId === 'general_research') {
+      const brandName = brandMemory?.brand_profile?.name || 'dispensaries';
       const researchQuery = stimulus && typeof stimulus === 'string'
         ? stimulus
-        : `latest cannabis market trends for ${brandMemory.brand_profile.name || 'dispensaries'}`;
+        : `latest cannabis market trends for ${brandName}`;
 
       const researchResult = await tools.searchWeb(researchQuery);
 

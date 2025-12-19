@@ -139,8 +139,8 @@ const defaultMrsParkerTools = {
     }
 };
 
-export async function triggerAgentRun(agentName: string, stimulus?: string) {
-    const brandId = 'demo-brand-123';
+export async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOverride?: string) {
+    const brandId = brandIdOverride || 'demo-brand-123';
     const agentImpl = AGENT_MAP[agentName as keyof typeof AGENT_MAP];
     if (!agentImpl) {
         throw new Error(`Unknown agent: ${agentName}`);
@@ -345,7 +345,8 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
             });
 
             console.log(`[runAgentChat] Triggering specialized agent: ${agentInfo.id}`);
-            const agentRun = await triggerAgentRun(agentInfo.id, userMessage);
+            console.log(`[runAgentChat] Explicitly triggering agent ${agentInfo.id} for brand ${userBrandId}...`);
+            const agentRun = await triggerAgentRun(agentInfo.id, userMessage, userBrandId);
 
             if (agentRun.success && agentRun.log) {
                 executedTools[executedTools.length - 1].status = 'success';
