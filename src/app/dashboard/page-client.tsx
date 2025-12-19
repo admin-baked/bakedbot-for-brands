@@ -3,6 +3,9 @@
 import * as React from "react";
 import { savePlaybookDraft } from "./playbooks/actions";
 import { LocalCompetitionCard } from "@/components/dashboard/local-competition-card";
+import { IngestionTracker } from "@/components/dashboard/ingestion-tracker";
+import { useDataJobsListener } from "@/lib/firebase/data-jobs-listener";
+import { useFirebase } from "@/firebase/provider";
 
 import { logger } from '@/lib/logger';
 type DashboardPageClientProps = {
@@ -10,6 +13,7 @@ type DashboardPageClientProps = {
   initialPlaybooks?: any[];
   userState?: string;  // User's state from profile
   userCity?: string;   // User's city from profile
+  userId?: string;     // User ID for data jobs listener
 };
 
 export default function DashboardPageComponent({
@@ -17,10 +21,14 @@ export default function DashboardPageComponent({
   initialPlaybooks = [],
   userState = 'Michigan',  // Default for demo
   userCity,
+  userId,
 }: DashboardPageClientProps) {
   const [list, setList] = React.useState<any[]>(initialPlaybooks);
   const [isSaving, startSaving] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
+
+  // Listen for data job updates
+  useDataJobsListener(userId);
 
   async function handleCreateSampleDraft() {
     setError(null);
@@ -43,6 +51,9 @@ export default function DashboardPageComponent({
 
   return (
     <main className="p-6 space-y-6">
+      {/* Ingestion Tracker - Shows sync progress for newly onboarded entities */}
+      <IngestionTracker className="mb-2" />
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">
           Overview
