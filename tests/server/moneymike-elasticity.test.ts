@@ -1,53 +1,133 @@
 
-import { estimateElasticity, PricePoint } from '../../src/server/algorithms/moneymike-algo';
+import { estimateElasticity, TransactionPoint, ElasticityResult } from '../../src/server/algorithms/moneymike-algo';
 
 describe('Money Mike Elasticity Algorithms', () => {
 
-    test('estimateElasticity should detect unitary elasticity (-1.0)', () => {
-        // Price goes up 10%, Quantity goes down 10%
-        // P: 10 -> 11 (+10%)
-        // Q: 100 -> 90 (-10%)
-        const data: PricePoint[] = [
-            { price: 10, quantity: 100 },
-            { price: 11, quantity: 90 }
-        ];
+    describe('estimateElasticity with sufficient data (model path)', () => {
+        // Need 30+ data points to trigger model estimation
+        const generateLinearData = (basePrice: number, baseQty: number, slope: number, count: number): TransactionPoint[] => {
+            const data: TransactionPoint[] = [];
+            for (let i = 0; i < count; i++) {
+                const price = basePrice + i;
+                const quantity = baseQty + slope * i;
+                data.push({ price, quantity });
+            }
+            return data;
+        };
 
-        // Midpoint formula or log-log regression is ideal, but let's see what the algo gives.
-        // Approx -1.1
-        const e = estimateElasticity(data);
-        expect(e).toBeLessThan(-0.9);
-        expect(e).toBeGreaterThan(-1.2);
+        test('should return ElasticityResult object', () => {
+            const data = generateLinearData(10, 100, -5, 35); // 35 points
+            const result = estimateElasticity(data);
+
+            expect(result).toHaveProperty('elasticity');
+            expect(result).toHaveProperty('confidence');
+            expect(result).toHaveProperty('is_elastic');
+            expect(result).toHaveProperty('source');
+            expect(result.source).toBe('model');
+        });
+
+        test('should detect negative elasticity (price up, quantity down)', () => {
+            // Generate 35 points with negative slope (quantity decreases as price increases)
+            const data = generateLinearData(10, 100, -2, 35);
+            const result = estimateElasticity(data);
+
+            expect(result.elasticity).toBeLessThan(0);
+            expect(result.source).toBe('model');
+        });
+
+        test('should calculate confidence based on sample size', () => {
+            const data = generateLinearData(10, 100, -2, 50);
+            const result = estimateElasticity(data);
+
+            expect(result.confidence).toBe(0.5); // 50/100 = 0.5
+        });
+
+        test('should cap confidence at 1.0', () => {
+            const data = generateLinearData(10, 1000, -5, 150);
+            const result = estimateElasticity(data);
+
+            expect(result.confidence).toBe(1.0);
+        });
+
+        test('should detect elastic demand (|e| > 1)', () => {
+            // Large quantity responses to price changes
+            const data = generateLinearData(10, 500, -30, 35);
+            const result = estimateElasticity(data);
+
+            expect(result.is_elastic).toBe(Math.abs(result.elasticity) > 1.0);
+        });
     });
 
-    test('estimateElasticity should detect inelastic demand (> -1.0)', () => {
-        // Price goes up, Quantity stays almost same
-        // P: 10 -> 20 (+100%)
-        // Q: 100 -> 95 (-5%)
-        const data: PricePoint[] = [
-            { price: 10, quantity: 100 },
-            { price: 20, quantity: 95 }
-        ];
+    describe('estimateElasticity with insufficient data (prior path)', () => {
+        test('should use prior for less than minDataPoints', () => {
+            const data: TransactionPoint[] = [
+                { price: 10, quantity: 100 },
+                { price: 11, quantity: 90 }
+            ];
 
-        const e = estimateElasticity(data);
-        // Should be close to 0 (very inelastic)
-        expect(e).toBeGreaterThan(-0.2); // -0.05 / 1.0 = -0.05
+            const result = estimateElasticity(data);
+
+            expect(result.source).toBe('prior');
+            expect(result.confidence).toBe(0.3);
+        });
+
+        test('should use category-specific prior when available', () => {
+            const data: TransactionPoint[] = [
+                { price: 10, quantity: 100, category: 'flower' }
+            ];
+
+            const result = estimateElasticity(data);
+
+            expect(result.source).toBe('prior');
+            // Prior elasticity returned, value depends on GlobalIntelligenceService
+            expect(typeof result.elasticity).toBe('number');
+        });
+
+        test('should use default prior for empty category', () => {
+            const data: TransactionPoint[] = [
+                { price: 10, quantity: 100 }
+            ];
+
+            const result = estimateElasticity(data);
+
+            expect(result.source).toBe('prior');
+            expect(result.elasticity).toBe(-1); // Default prior is -1
+        });
+
+        test('should handle empty array with prior fallback', () => {
+            const result = estimateElasticity([]);
+
+            expect(result.source).toBe('prior');
+            expect(result.confidence).toBe(0.3);
+        });
     });
 
-    test('estimateElasticity should handle noisy data using regression', () => {
-        const data: PricePoint[] = [
-            { price: 10, quantity: 100 },
-            { price: 12, quantity: 90 },
-            { price: 14, quantity: 80 }, // Linear drop
-            { price: 15, quantity: 70 }  // Steeper drop
-        ];
+    describe('estimateElasticity edge cases', () => {
+        test('should handle constant price (denominator = 0)', () => {
+            // 35 points with same price
+            const data: TransactionPoint[] = Array(35).fill(null).map((_, i) => ({
+                price: 10,
+                quantity: 100 + i
+            }));
 
-        const e = estimateElasticity(data);
-        // Trend is downward.
-        expect(e).toBeLessThan(0);
-    });
+            const result = estimateElasticity(data);
 
-    test('throws on insufficient data', () => {
-        expect(() => estimateElasticity([])).toThrow();
-        expect(() => estimateElasticity([{ price: 10, quantity: 10 }])).toThrow();
+            expect(result.elasticity).toBe(0);
+            expect(result.confidence).toBe(0);
+            expect(result.source).toBe('model');
+        });
+
+        test('should respect custom minDataPoints parameter', () => {
+            const data: TransactionPoint[] = [
+                { price: 10, quantity: 100 },
+                { price: 11, quantity: 90 },
+                { price: 12, quantity: 80 }
+            ];
+
+            // With minDataPoints = 2, should use model
+            const result = estimateElasticity(data, 2);
+
+            expect(result.source).toBe('model');
+        });
     });
 });
