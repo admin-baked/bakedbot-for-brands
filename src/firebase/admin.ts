@@ -8,11 +8,17 @@ function getServiceAccount() {
         return null;
     }
     try {
-        const json = Buffer.from(serviceAccountKey, "base64").toString("utf8");
-        return JSON.parse(json);
-    } catch (decodeError) {
-        console.error("Failed to parse service account key from Base64.", decodeError);
-        return null;
+        // First try to parse as raw JSON
+        return JSON.parse(serviceAccountKey);
+    } catch (e) {
+        // If not valid JSON, try base64 decoding
+        try {
+            const json = Buffer.from(serviceAccountKey, "base64").toString("utf8");
+            return JSON.parse(json);
+        } catch (decodeError) {
+            console.error("Failed to parse service account key from Base64 or JSON.", decodeError);
+            return null;
+        }
     }
 }
 
