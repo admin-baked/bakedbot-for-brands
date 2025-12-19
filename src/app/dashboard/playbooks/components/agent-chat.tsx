@@ -90,8 +90,12 @@ export interface PuffMessage {
     workDuration?: number; // seconds
     steps?: ToolCallStep[];
     metadata?: {
-        type: 'compliance_report' | 'product_rec' | 'elasticity_analysis';
-        data: any;
+        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context';
+        data?: any;
+        brandId?: string;
+        brandName?: string;
+        agentName?: string;
+        role?: string;
     };
 }
 
@@ -373,6 +377,7 @@ export function AgentChat({
         timestamp: new Date(m.timestamp),
         isThinking: m.thinking?.isThinking,
         steps: m.thinking?.steps,
+        metadata: m.metadata,
         workDuration: 0 // Not persisted but OK
     }));
 
