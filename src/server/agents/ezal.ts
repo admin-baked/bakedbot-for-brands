@@ -109,14 +109,17 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
     }
 
     if (targetId === 'general_research') {
-      const researchQuery = `latest cannabis market trends for ${brandMemory.brand_profile.name || 'dispensaries'}`;
+      const researchQuery = stimulus && typeof stimulus === 'string'
+        ? stimulus
+        : `latest cannabis market trends for ${brandMemory.brand_profile.name || 'dispensaries'}`;
+
       const researchResult = await tools.searchWeb(researchQuery);
 
       return {
         updatedMemory: agentMemory,
         logEntry: {
           action: 'general_research',
-          result: `Performed market research: ${researchResult.substring(0, 100)}...`,
+          result: researchResult, // Return the full formatted result
           metadata: { query: researchQuery }
         }
       };

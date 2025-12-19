@@ -61,7 +61,7 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         id: 'mrs_parker',
         name: 'Mrs. Parker',
         specialty: 'Customer Journeys',
-        keywords: ['customer', 'loyalty', 'churn', 'segment', 'journey', 'retention', 'engagement', 'welcome', 'at-risk'],
+        keywords: ['customer', 'loyalty', 'churn', 'segment', 'journey', 'retention', 'engagement', 'welcome', 'at-risk', 'springbig', 'alpine iq', 'alpineiq'],
         description: 'Manages customer segments, predicts churn, and orchestrates loyalty programs.'
     },
     {

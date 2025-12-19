@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useFormState } from 'react-dom';
+import { useFormState, useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -219,7 +219,7 @@ function SubmitButton() {
     // We use a separate component to use useFormStatus hook if needed, 
     // but we can also just rely on the parent state if we weren't using useFormStatus.
     // However, with useFormState, pending state is best tracked via useFormStatus hook *inside* the form.
-    const { pending } = require('react-dom').useFormStatus();
+    const { pending } = useFormStatus();
 
     return (
         <Button type="submit" size="lg" className="w-full" disabled={pending}>

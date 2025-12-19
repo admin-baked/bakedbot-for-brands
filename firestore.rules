@@ -208,6 +208,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // --- Organizations Collection ---
+    match /organizations/{orgId} {
+      // Members of the organization or global owners can read
+      allow read: if isRole('owner') || 
+                  request.auth.token.orgId == orgId ||
+                  (resource.data.ownerId == request.auth.uid);
+
+      // Only server actions or owner can write
+      allow write: if isRole('owner');
+    }
+
     // --- AI Generations Collection ---
     match /aiGenerations/{generationId} {
       // Users can create AI generations.
