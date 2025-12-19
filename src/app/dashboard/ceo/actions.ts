@@ -504,6 +504,7 @@ export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
         },
 
         published: data.published ?? false,
+        productCount: data.productCount ?? 0,
 
         updatedAt: data.updatedAt?.toDate?.() || new Date(),
         createdAt: data.createdAt?.toDate?.() || new Date(),
@@ -558,6 +559,7 @@ export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
         },
 
         published: data.published ?? false,
+        productCount: data.productCount ?? 0,
 
         updatedAt: data.updatedAt?.toDate?.() || new Date(),
         createdAt: data.createdAt?.toDate?.() || new Date(),
@@ -714,6 +716,7 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
       nextRefresh: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       refreshFrequency: 'daily',
       published: true,
+      productCount: discoveryResult.totalProducts,
       metrics: {
         pageViews: 0,
         uniqueVisitors: 0,
@@ -743,7 +746,7 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
     });
 
     // B. Page Config (New Collection)
-    const pageRef = firestore.collection('foot_traffic').doc('config').collection('local_pages').doc(zipCode);
+    const pageRef = firestore.collection('foot_traffic').doc('config').collection('zip_pages').doc(zipCode);
     batch.set(pageRef, seoPageConfig);
 
     // C. Legacy Collection (Backwards Compatibility for now)
@@ -766,6 +769,8 @@ export async function deleteSeoPageAction(zipCode: string): Promise<ActionResult
 
   try {
     const firestore = getAdminFirestore();
+    // Delete from both current and legacy for safety
+    await firestore.collection('foot_traffic').doc('config').collection('zip_pages').doc(zipCode).delete();
     await firestore.collection('foot_traffic').doc('config').collection('seo_pages').doc(zipCode).delete();
     return { message: `Successfully deleted page for ${zipCode}` };
   } catch (error: any) {

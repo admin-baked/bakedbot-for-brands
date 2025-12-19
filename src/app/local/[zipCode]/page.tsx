@@ -15,9 +15,12 @@ import {
     BarChart,
     ArrowRight,
     TrendingUp,
-    ExternalLink
+    ExternalLink,
+    AlertTriangle,
+    EyeOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { PageViewTracker } from '@/components/analytics/PageViewTracker';
 
 import { getRetailersByZipCode, getZipCodeCoordinates, discoverNearbyProducts } from '@/server/services/geo-discovery';
@@ -123,6 +126,24 @@ export default async function LocalZipPage({ params }: PageProps) {
                 pageId={zipCode}
                 pageSlug={zipCode}
             />
+
+            {/* DRAFT BANNER */}
+            {(!seededConfig || seededConfig.published === false) && (
+                <div className="bg-amber-500 text-white py-3 px-4 shadow-inner relative z-[60]">
+                    <div className="max-w-7xl mx-auto flex items-center justify-between">
+                        <div className="flex items-center gap-3 font-black">
+                            <EyeOff className="w-5 h-5" />
+                            DRAFT PREVIEW MODE
+                        </div>
+                        <div className="flex items-center gap-4 text-xs font-bold">
+                            <span>This page is currently hidden from the public and search engines.</span>
+                            <Badge variant="outline" className="text-white border-white bg-white/10 hover:bg-white/20">
+                                Administrative View
+                            </Badge>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* B2B GROWTH HEADER (Sticky) */}
             <div className="bg-slate-900 text-white py-2 px-4 sticky top-0 z-50 shadow-xl">

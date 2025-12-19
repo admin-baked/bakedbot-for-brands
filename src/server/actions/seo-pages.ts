@@ -11,11 +11,11 @@ import { LocalSEOPage } from '@/types/foot-traffic';
 export async function getSeededConfig(zipCode: string): Promise<LocalSEOPage | null> {
     const { firestore } = await createServerClient();
 
-    // 1. Try Config (local_pages) -> The new schema
+    // 1. Try Config (zip_pages) -> The new schema
     const configDoc = await firestore
         .collection('foot_traffic')
         .doc('config')
-        .collection('local_pages')
+        .collection('zip_pages')
         .doc(zipCode)
         .get();
 

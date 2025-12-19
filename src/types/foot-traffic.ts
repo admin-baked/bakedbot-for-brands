@@ -455,6 +455,9 @@ export interface LocalSEOPage {
         bounceRate: number;
         avgTimeOnPage: number;
     };
+
+    // Data Indicators
+    productCount?: number;
 }
 
 
