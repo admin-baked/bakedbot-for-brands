@@ -20,6 +20,7 @@ import {
 import { useEffect, useState } from 'react';
 import { getBrandDashboardData } from '../actions';
 import { ManagedPagesList } from '@/components/dashboard/managed-pages-list';
+import { DataImportDropdown } from '@/components/dashboard/data-import-dropdown';
 
 export function BrandOverviewView({ brandId }: { brandId: string }) {
     const market = "All Markets";
@@ -59,6 +60,7 @@ export function BrandOverviewView({ brandId }: { brandId: string }) {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <DataImportDropdown />
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="sm" className="gap-2 font-bold border-2">
