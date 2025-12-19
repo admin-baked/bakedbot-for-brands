@@ -71,7 +71,20 @@ import {
 } from "@/components/ui/dropdown-menu"
 // import { db } from '@/firebase/client'; // Removed client db usage
 // import { collection, getDocs, query, orderBy } from 'firebase/firestore'; // Removed
-import { getSeoPagesAction, seedSeoPageAction, deleteSeoPageAction, getFootTrafficMetrics, getBrandPagesAction, deleteBrandPageAction, toggleBrandPagePublishAction, bulkPublishBrandPagesAction } from '../actions';
+import {
+    getSeoPagesAction,
+    seedSeoPageAction,
+    deleteSeoPageAction,
+    getFootTrafficMetrics,
+    getBrandPagesAction,
+    deleteBrandPageAction,
+    toggleBrandPagePublishAction,
+    bulkPublishBrandPagesAction,
+    toggleSeoPagePublishAction,
+    bulkSeoPageStatusAction,
+    setTop25PublishedAction
+} from '../actions';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Brand Page Components
 import { BrandPageCreatorDialog } from './brand-page-creator-dialog';
@@ -225,13 +238,116 @@ export default function FootTrafficTab() {
     const [seedData, setSeedData] = useState({ zipCode: '', featuredDispensaryName: '' });
     const [isSeeding, setIsSeeding] = useState(false);
 
-    // Pagination State
+    // Pagination State - configurable 10-100
     const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 10;
+    const [itemsPerPage, setItemsPerPage] = useState(25);
+
+    // Selection State for bulk actions
+    const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set());
+    const [isAllSelected, setIsAllSelected] = useState(false);
+
+    // Status Filter
+    const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
+
+    // Bulk action loading state
+    const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
     // Brand Page State
     const [brandPages, setBrandPages] = useState<BrandSEOPage[]>([]);
     const [isBrandPageDialogOpen, setIsBrandPageDialogOpen] = useState(false);
+
+    // Compute filtered pages
+    const filteredSeoPages = seoPages.filter(page => {
+        if (statusFilter === 'all') return true;
+        if (statusFilter === 'published') return page.published === true;
+        if (statusFilter === 'draft') return page.published !== true;
+        return true;
+    });
+
+    // Compute status counts
+    const publishedCount = seoPages.filter(p => p.published === true).length;
+    const draftCount = seoPages.filter(p => p.published !== true).length;
+
+    // Handle select all
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            const currentPageIds = filteredSeoPages
+                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                .map(p => p.id || p.zipCode);
+            setSelectedPages(new Set(currentPageIds));
+            setIsAllSelected(true);
+        } else {
+            setSelectedPages(new Set());
+            setIsAllSelected(false);
+        }
+    };
+
+    // Handle single select
+    const handleSelectPage = (pageId: string, checked: boolean) => {
+        const newSelected = new Set(selectedPages);
+        if (checked) {
+            newSelected.add(pageId);
+        } else {
+            newSelected.delete(pageId);
+        }
+        setSelectedPages(newSelected);
+        setIsAllSelected(false);
+    };
+
+    // Handle bulk publish/unpublish
+    const handleBulkUpdateStatus = async (publish: boolean) => {
+        if (selectedPages.size === 0) {
+            toast({ title: 'No Selection', description: 'Please select pages first.', variant: 'destructive' });
+            return;
+        }
+
+        setIsBulkUpdating(true);
+        try {
+            // Determine page type from first selected page
+            const firstPage = seoPages.find(p => selectedPages.has(p.id || p.zipCode));
+            const pageType = firstPage?.pageType === 'dispensary' ? 'dispensary' : 'zip';
+
+            const result = await bulkSeoPageStatusAction(
+                Array.from(selectedPages),
+                pageType,
+                publish
+            );
+
+            if (result.error) {
+                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+            } else {
+                toast({ title: 'Success', description: result.message });
+                setSelectedPages(new Set());
+                setIsAllSelected(false);
+                fetchSeoPages();
+            }
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to update pages.', variant: 'destructive' });
+        } finally {
+            setIsBulkUpdating(false);
+        }
+    };
+
+    // Handle Set Top 25 Published
+    const handleSetTop25Published = async () => {
+        setIsBulkUpdating(true);
+        try {
+            const result = await setTop25PublishedAction();
+            if (result.error) {
+                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+            } else {
+                toast({
+                    title: 'Success',
+                    description: `Published: ${result.published}, Draft: ${result.draft}`
+                });
+                fetchSeoPages();
+            }
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to update pages.', variant: 'destructive' });
+        } finally {
+            setIsBulkUpdating(false);
+        }
+    };
 
     // Fetch SEO Pages
     const fetchSeoPages = async () => {
@@ -912,13 +1028,35 @@ export default function FootTrafficTab() {
                     </div>
 
                     {/* SEO Pages Stats */}
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid gap-4 md:grid-cols-4">
                         <Card>
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium">Total Pages</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{seoPages.length}</div>
+                            </CardContent>
+                        </Card>
+                        <Card className="cursor-pointer hover:border-green-400 transition-colors" onClick={() => setStatusFilter('published')}>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                    Published
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-green-600">{publishedCount}</div>
+                            </CardContent>
+                        </Card>
+                        <Card className="cursor-pointer hover:border-yellow-400 transition-colors" onClick={() => setStatusFilter('draft')}>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                    <XCircle className="h-4 w-4 text-yellow-600" />
+                                    Draft
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-yellow-600">{draftCount}</div>
                             </CardContent>
                         </Card>
                         <Card>
@@ -929,28 +1067,93 @@ export default function FootTrafficTab() {
                                 <div className="text-2xl font-bold">{metrics?.seo.totalPageViews.toLocaleString() ?? 0}</div>
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Avg. Views/Page</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">
-                                    {(metrics && seoPages.length > 0) ? Math.round(metrics.seo.totalPageViews / seoPages.length) : 0}
-                                </div>
-                            </CardContent>
-                        </Card>
                     </div>
+
+                    {/* Bulk Actions Toolbar */}
+                    <Card className="p-4">
+                        <div className="flex flex-wrap items-center gap-4">
+                            {/* Filter Buttons */}
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">Filter:</span>
+                                <Button
+                                    variant={statusFilter === 'all' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setStatusFilter('all')}
+                                >
+                                    All ({seoPages.length})
+                                </Button>
+                                <Button
+                                    variant={statusFilter === 'published' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setStatusFilter('published')}
+                                >
+                                    Published ({publishedCount})
+                                </Button>
+                                <Button
+                                    variant={statusFilter === 'draft' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setStatusFilter('draft')}
+                                >
+                                    Draft ({draftCount})
+                                </Button>
+                            </div>
+
+                            {/* Bulk Actions */}
+                            {selectedPages.size > 0 && (
+                                <div className="flex items-center gap-2 border-l pl-4">
+                                    <span className="text-sm text-muted-foreground">{selectedPages.size} selected</span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleBulkUpdateStatus(true)}
+                                        disabled={isBulkUpdating}
+                                    >
+                                        {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
+                                        Publish Selected
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleBulkUpdateStatus(false)}
+                                        disabled={isBulkUpdating}
+                                    >
+                                        {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <XCircle className="h-4 w-4 mr-1" />}
+                                        Set to Draft
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Set Top 25 Button */}
+                            <div className="ml-auto flex items-center gap-2">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={handleSetTop25Published}
+                                    disabled={isBulkUpdating}
+                                >
+                                    {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Zap className="h-4 w-4 mr-1" />}
+                                    Set Top 25 Published
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
 
                     {/* SEO Pages Table */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Generated Pages</CardTitle>
+                            <CardTitle>Generated Pages ({filteredSeoPages.length})</CardTitle>
                             <CardDescription>Preview and manage auto-generated local pages</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        <TableHead className="w-12">
+                                            <Checkbox
+                                                checked={isAllSelected}
+                                                onCheckedChange={handleSelectAll}
+                                            />
+                                        </TableHead>
                                         <TableHead>ZIP Code</TableHead>
                                         <TableHead>City</TableHead>
                                         <TableHead>State</TableHead>
@@ -960,99 +1163,140 @@ export default function FootTrafficTab() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {seoPages.length === 0 ? (
+                                    {filteredSeoPages.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                                No pages generated yet. Click "Generate Page" to start.
+                                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                                {seoPages.length === 0
+                                                    ? 'No pages generated yet. Click "Generate Page" to start.'
+                                                    : 'No pages match the current filter.'}
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        seoPages
-                                            .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
-                                            .map(page => (
-                                                <TableRow key={page.zipCode}>
-                                                    <TableCell className="font-mono font-medium">{page.zipCode}</TableCell>
-                                                    <TableCell>{page.city || 'Unknown'}</TableCell>
-                                                    <TableCell><Badge variant="outline">{page.state || 'N/A'}</Badge></TableCell>
-                                                    <TableCell>
-                                                        {page.featuredDispensaryName ? (
-                                                            <Badge variant="default" className="bg-purple-100 text-purple-700 hover:bg-purple-200 border-0">
-                                                                {page.featuredDispensaryName}
-                                                            </Badge>
-                                                        ) : (
-                                                            <span className="text-muted-foreground text-sm">-</span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
-                                                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                                                            Published
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                    <span className="sr-only">Open menu</span>
-                                                                    <MoreHorizontal className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                                <DropdownMenuItem onClick={() => window.open(`/local/${page.zipCode}`, '_blank')}>
-                                                                    <Eye className="mr-2 h-4 w-4" /> View Page
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => toast({ title: "Refreshed", description: "Snapshot updated." })}>
-                                                                    <RefreshCw className="mr-2 h-4 w-4" /> Refresh Snapshot
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem onClick={() => toast({ title: "Partner Featured", description: "Partner added to page." })}>
-                                                                    <Plus className="mr-2 h-4 w-4" /> Feature Partner
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => toast({ title: "Unpublished", description: "Page has been hidden." })}>
-                                                                    <XCircle className="mr-2 h-4 w-4" /> Unpublish
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => toast({ title: "Analytics", description: "Opening analytics view..." })}>
-                                                                    <TrendingUp className="mr-2 h-4 w-4" /> View Analytics
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem
-                                                                    className="text-destructive focus:text-destructive"
-                                                                    onClick={() => handleDeletePage(page.zipCode)}
-                                                                >
-                                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete Page
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
+                                        filteredSeoPages
+                                            .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                            .map(page => {
+                                                const pageId = page.id || page.zipCode;
+                                                return (
+                                                    <TableRow key={pageId}>
+                                                        <TableCell>
+                                                            <Checkbox
+                                                                checked={selectedPages.has(pageId)}
+                                                                onCheckedChange={(checked) => handleSelectPage(pageId, !!checked)}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="font-mono font-medium">{page.zipCode}</TableCell>
+                                                        <TableCell>{page.city || 'Unknown'}</TableCell>
+                                                        <TableCell><Badge variant="outline">{page.state || 'N/A'}</Badge></TableCell>
+                                                        <TableCell>
+                                                            {page.featuredDispensaryName ? (
+                                                                <Badge variant="default" className="bg-purple-100 text-purple-700 hover:bg-purple-200 border-0">
+                                                                    {page.featuredDispensaryName}
+                                                                </Badge>
+                                                            ) : (
+                                                                <span className="text-muted-foreground text-sm">-</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {page.published ? (
+                                                                <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
+                                                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                                    Published
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-0">
+                                                                    <XCircle className="h-3 w-3 mr-1" />
+                                                                    Draft
+                                                                </Badge>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                        <span className="sr-only">Open menu</span>
+                                                                        <MoreHorizontal className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                                    <DropdownMenuItem onClick={() => window.open(`/local/${page.zipCode}`, '_blank')}>
+                                                                        <Eye className="mr-2 h-4 w-4" /> View Page
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem onClick={() => toast({ title: "Refreshed", description: "Snapshot updated." })}>
+                                                                        <RefreshCw className="mr-2 h-4 w-4" /> Refresh Snapshot
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuItem onClick={() => toast({ title: "Partner Featured", description: "Partner added to page." })}>
+                                                                        <Plus className="mr-2 h-4 w-4" /> Feature Partner
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem onClick={() => toast({ title: "Unpublished", description: "Page has been hidden." })}>
+                                                                        <XCircle className="mr-2 h-4 w-4" /> Unpublish
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem onClick={() => toast({ title: "Analytics", description: "Opening analytics view..." })}>
+                                                                        <TrendingUp className="mr-2 h-4 w-4" /> View Analytics
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuItem
+                                                                        className="text-destructive focus:text-destructive"
+                                                                        onClick={() => handleDeletePage(page.zipCode)}
+                                                                    >
+                                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete Page
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
                                     )}
                                 </TableBody>
                             </Table>
 
                             {/* Pagination Controls */}
-                            {seoPages.length > ITEMS_PER_PAGE && (
-                                <div className="flex items-center justify-end space-x-2 py-4">
-                                    <div className="text-sm text-muted-foreground">
-                                        Page {currentPage} of {Math.ceil(seoPages.length / ITEMS_PER_PAGE)}
+                            {filteredSeoPages.length > itemsPerPage && (
+                                <div className="flex items-center justify-between py-4">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-muted-foreground">Show</span>
+                                        <Select
+                                            value={itemsPerPage.toString()}
+                                            onValueChange={(value) => {
+                                                setItemsPerPage(parseInt(value));
+                                                setCurrentPage(1);
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-[80px] h-8">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="10">10</SelectItem>
+                                                <SelectItem value="25">25</SelectItem>
+                                                <SelectItem value="50">50</SelectItem>
+                                                <SelectItem value="100">100</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <span className="text-sm text-muted-foreground">per page</span>
                                     </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                        disabled={currentPage === 1}
-                                    >
-                                        Previous
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(seoPages.length / ITEMS_PER_PAGE)))}
-                                        disabled={currentPage >= Math.ceil(seoPages.length / ITEMS_PER_PAGE)}
-                                    >
-                                        Next
-                                    </Button>
+                                    <div className="flex items-center space-x-2">
+                                        <div className="text-sm text-muted-foreground">
+                                            Page {currentPage} of {Math.ceil(filteredSeoPages.length / itemsPerPage)}
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                            disabled={currentPage === 1}
+                                        >
+                                            Previous
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(filteredSeoPages.length / itemsPerPage)))}
+                                            disabled={currentPage >= Math.ceil(filteredSeoPages.length / itemsPerPage)}
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
                         </CardContent>
@@ -1158,7 +1402,7 @@ export default function FootTrafficTab() {
                                             </TableRow>
                                         ) : (
                                             brandPages
-                                                .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                                                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                                 .map(page => (
                                                     <TableRow key={page.id}>
                                                         <TableCell>
