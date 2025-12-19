@@ -965,8 +965,9 @@ export async function refreshSeoPageDataAction(zipCode: string): Promise<ActionR
     return { message: `Page data refreshed successfully. Found ${discoveryResult.totalProducts} products.` };
 
   } catch (error: any) {
-    console.error('[refreshSeoPageDataAction] Error:', error);
-    return { message: `Failed to refresh data: ${error.message}`, error: true };
+    console.error('[refreshSeoPageDataAction] Error refreshing data for', zipCode, ':', error);
+    // Return the actual error message for debugging
+    return { message: `Failed to refresh data: ${error.message || 'Unknown error'}`, error: true };
   }
 }
 
