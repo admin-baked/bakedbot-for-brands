@@ -11,17 +11,15 @@ import { withAuth } from '@/lib/with-auth';
 
 function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <Providers>
-      <SidebarProvider>
-        <DashboardSidebar />
-        <SidebarInset>
-          <div className="flex-1 p-4 md:p-6">
-            <DashboardHeader />
-            {children}
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    </Providers>
+    <SidebarProvider>
+      <DashboardSidebar />
+      <SidebarInset>
+        <div className="flex-1 p-4 md:p-6">
+          <DashboardHeader />
+          {children}
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 

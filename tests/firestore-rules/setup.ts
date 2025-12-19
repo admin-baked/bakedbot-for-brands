@@ -93,6 +93,15 @@ export function getOwnerFirestore(uid: string) {
 }
 
 /**
+ * Get Firestore instance with organization claim
+ */
+export function getOrgFirestore(uid: string, orgId: string) {
+  return testEnv.authenticatedContext(uid, {
+    orgId,
+  }).firestore();
+}
+
+/**
  * Helper to assert read succeeds
  */
 export { assertSucceeds };

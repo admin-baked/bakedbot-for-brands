@@ -307,6 +307,7 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
         const agentInfo = AGENT_CAPABILITIES.find(a => a.id === routing.primaryAgent) ||
             AGENT_CAPABILITIES.find(a => a.id === 'general');
 
+        console.log('[runAgentChat] Initializing context...');
         // Initialize context for specialized agents
         const metadata = {
             brandId: userBrandId,
@@ -315,6 +316,7 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
             role
         };
 
+        console.log('[runAgentChat] Getting intuition summary...');
         const intuition = getIntuitionSummary(userBrandId);
 
         // Add routing info
@@ -334,7 +336,7 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
         });
 
         // --- Specialized Agent Execution ---
-        if (agentInfo && routing.confidence > 0.6) {
+        if (agentInfo && routing.confidence > 0.6 && agentInfo.id !== 'general' && agentInfo.id !== 'puff') {
             executedTools.push({
                 id: `agent-${Date.now()}`,
                 name: agentInfo.name,
@@ -471,18 +473,23 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
 
             console.log('[runAgentChat] Generating search query with AI...');
             // Use AI to extract the optimal search query
-            const conversion = await ai.generate({
-                prompt: `You are an expert search engine operator.
-                Convert this user request into a single, highly effective Google search query.
-                User Request: "${userMessage}"
-                
-                Goal: Extract the core topic and remove conversational fluff.
-                If the user asks to "research X", search for "X analysis" or "X competitors".
-                
-                Output: Return ONLY the search query string. No quotes, no markdown.`,
-            });
-
-            const searchQuery = conversion.text.trim().replace(/^"|"$/g, '');
+            let searchQuery = userMessage;
+            try {
+                const conversion = await ai.generate({
+                    prompt: `You are an expert search engine operator.
+                    Convert this user request into a single, highly effective Google search query.
+                    User Request: "${userMessage}"
+                    
+                    Goal: Extract the core topic and remove conversational fluff.
+                    If the user asks to "research X", search for "X analysis" or "X competitors".
+                    
+                    Output: Return ONLY the search query string. No quotes, no markdown.`,
+                });
+                searchQuery = conversion.text.trim().replace(/^"|"$/g, '');
+            } catch (aiErr: any) {
+                console.warn('[runAgentChat] AI Query Conversion failed:', aiErr.message);
+                // Fallback: use message as query
+            }
 
             executedTools[executedTools.length - 1].result = `Searching for: ${searchQuery}`;
 
@@ -1314,6 +1321,7 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
         // Merge rich metadata into session metadata
         const finalMetadata = { ...metadata, ...richMetadata };
 
+        console.log('[runAgentChat] Attempting AI response generation...');
         // Use AI for general queries
         try {
             const response = await ai.generate({
@@ -1373,8 +1381,9 @@ Keep your response concise but complete.`,
     } catch (e: any) {
         console.error("Agent Chat Error:", e);
         console.error("Stack Trace:", e.stack);
+        const errorDetail = process.env.NODE_ENV === 'development' ? `\n\n*Error: ${e.message}*` : '';
         return {
-            content: "I encountered an error. Try: `Run welcome-sequence` or `Run platform-health`",
+            content: `I encountered an error.${errorDetail}\n\nTry: \`Run welcome-sequence\` or \`Run platform-health\``,
             toolCalls: executedTools.length > 0 ? executedTools : undefined
         };
     }

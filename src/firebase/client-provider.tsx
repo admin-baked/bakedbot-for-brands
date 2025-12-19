@@ -1,9 +1,9 @@
 
 'use client';
 
-import React, { useMemo, type ReactNode, useEffect } from 'react';
+import React, { useMemo, type ReactNode, useEffect, useState } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
-import { initializeFirebase } from '@/firebase';
+import { initializeFirebase, type FirebaseSdks } from '@/firebase';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
@@ -13,18 +13,15 @@ interface FirebaseClientProviderProps {
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
+  const [firebaseServices, setFirebaseServices] = useState<FirebaseSdks | null>(null);
+
   // Initialize Firebase on the client side, once per component mount.
-  // This is guarded to only run in the browser.
-  const firebaseServices = useMemo(() => {
-    if (typeof window !== 'undefined') {
-      // CRITICAL: Set App Check debug token BEFORE any Firebase initialization
-      // This must happen before auth state listeners are set up
-      if (process.env.NODE_ENV === 'development') {
-        (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-      }
-      return initializeFirebase();
+  useEffect(() => {
+    // CRITICAL: Set App Check debug token BEFORE any Firebase initialization
+    if (process.env.NODE_ENV === 'development') {
+      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
     }
-    return null;
+    setFirebaseServices(initializeFirebase());
   }, []);
 
   // Effect to initialize App Check on the client after the app is available.

@@ -15,7 +15,7 @@ export { useUser } from './auth/use-user';
 
 
 // Type for the returned object
-interface FirebaseSdks {
+export interface FirebaseSdks {
   firebaseApp: FirebaseApp;
   auth: Auth;
   firestore: Firestore;
