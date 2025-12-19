@@ -11,3 +11,5 @@ global.TextDecoder = TextDecoder;
 
 // Mock environment variables
 process.env.NODE_ENV = 'test';
+
+process.env.GEMINI_API_KEY = 'test-key';

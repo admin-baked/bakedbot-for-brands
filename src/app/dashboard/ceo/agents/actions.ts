@@ -307,6 +307,42 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
         const agentInfo = AGENT_CAPABILITIES.find(a => a.id === routing.primaryAgent) ||
             AGENT_CAPABILITIES.find(a => a.id === 'general');
 
+        // --- KNOWLEDGE BASE RETRIEVAL ---
+        console.log('[runAgentChat] Checking Knowledge Base...');
+        let knowledgeContext = '';
+        try {
+            const { getKnowledgeBasesAction, searchKnowledgeBaseAction } = await import('@/server/actions/knowledge-base');
+
+            // 1. Find relevant KBs (Agent-specific OR Brand-specific)
+            // Strategy: Check if there is an Agent KB (primary) or Brand KB (secondary)
+            const kbs = await getKnowledgeBasesAction(agentInfo?.id || 'general');
+            const brandKbs = role === 'brand' ? await getKnowledgeBasesAction(userBrandId) : [];
+
+            const allKbs = [...kbs, ...brandKbs];
+
+            if (allKbs.length > 0) {
+                // 2. Perform semantic search across found KBs
+                const searchPromises = allKbs.map(kb => searchKnowledgeBaseAction(kb.id, userMessage, 2));
+                const results = await Promise.all(searchPromises);
+
+                // Flatten and dedup
+                const docs = results.flat().filter(d => d && d.similarity > 0.65).sort((a, b) => b.similarity - a.similarity).slice(0, 3);
+
+                if (docs.length > 0) {
+                    knowledgeContext = `\n\n[KNOWLEDGE BASE CONTEXT]\nUse this information to answer if relevant:\n${docs.map(d => `- ${d.content} (Source: ${d.title})`).join('\n')}\n`;
+
+                    executedTools.push({
+                        id: `knowledge-${Date.now()}`,
+                        name: 'Knowledge Base',
+                        status: 'success',
+                        result: `Found ${docs.length} relevant documents.`
+                    });
+                }
+            }
+        } catch (kbError) {
+            console.warn('[runAgentChat] Knowledge Retrieval Failed:', kbError);
+        }
+
         console.log('[runAgentChat] Initializing context...');
         // Initialize context for specialized agents
         const metadata = {
@@ -346,7 +382,9 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
 
             console.log(`[runAgentChat] Triggering specialized agent: ${agentInfo.id}`);
             console.log(`[runAgentChat] Explicitly triggering agent ${agentInfo.id} for brand ${userBrandId}...`);
-            const agentRun = await triggerAgentRun(agentInfo.id, userMessage, userBrandId);
+            // Inject Knowledge Context into stimulus if present
+            const augmentedMessage = knowledgeContext ? `${userMessage}\n${knowledgeContext}` : userMessage;
+            const agentRun = await triggerAgentRun(agentInfo.id, augmentedMessage, userBrandId);
 
             if (agentRun.success && agentRun.log) {
                 executedTools[executedTools.length - 1].status = 'success';
@@ -475,6 +513,11 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
             console.log('[runAgentChat] Generating search query with AI...');
             // Use AI to extract the optimal search query
             let searchQuery = userMessage;
+            // Inject Knowledge Context if present for general search too
+            if (knowledgeContext) {
+                // For general AI synthesis, we append it to the prompt later
+            }
+
             try {
                 const conversion = await ai.generate({
                     prompt: `You are an expert search engine operator.
@@ -520,6 +563,8 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
                     I searched for: "${searchQuery}"
                     Found these results:
                     ${JSON.stringify(searchResults.results)}
+
+                    ${knowledgeContext ? `Also consider this internal knowledge:\n${knowledgeContext}` : ''}
                     
                     Task: Write a comprehensive, high-quality response based on these findings.
                     
