@@ -774,6 +774,147 @@ export async function deleteSeoPageAction(zipCode: string): Promise<ActionResult
   }
 }
 
+/**
+ * Toggle publish status for a single SEO page (ZIP or Dispensary)
+ */
+export async function toggleSeoPagePublishAction(
+  pageId: string,
+  pageType: 'zip' | 'dispensary',
+  published: boolean
+): Promise<ActionResult> {
+  await requireUser(['owner']);
+
+  try {
+    const firestore = getAdminFirestore();
+    const collection = pageType === 'zip' ? 'zip_pages' : 'dispensary_pages';
+    const ref = firestore.collection('foot_traffic').doc('config').collection(collection).doc(pageId);
+
+    await ref.update({
+      published,
+      status: published ? 'published' : 'draft',
+      indexable: published,
+      updatedAt: new Date()
+    });
+
+    return { message: `Page ${published ? 'published' : 'set to draft'} successfully.` };
+  } catch (error: any) {
+    console.error('[toggleSeoPagePublishAction] Error:', error);
+    return { message: `Failed to update status: ${error.message}`, error: true };
+  }
+}
+
+/**
+ * Bulk update SEO page status by page IDs
+ */
+export async function bulkSeoPageStatusAction(
+  pageIds: string[],
+  pageType: 'zip' | 'dispensary',
+  published: boolean
+): Promise<ActionResult & { count?: number }> {
+  await requireUser(['owner']);
+
+  try {
+    if (!pageIds.length) {
+      return { message: 'No pages selected.', error: true };
+    }
+
+    const firestore = getAdminFirestore();
+    const collection = pageType === 'zip' ? 'zip_pages' : 'dispensary_pages';
+    const batch = firestore.batch();
+
+    for (const pageId of pageIds) {
+      const ref = firestore.collection('foot_traffic').doc('config').collection(collection).doc(pageId);
+      batch.update(ref, {
+        published,
+        status: published ? 'published' : 'draft',
+        indexable: published,
+        updatedAt: new Date()
+      });
+    }
+
+    await batch.commit();
+
+    return {
+      message: `Successfully ${published ? 'published' : 'set to draft'} ${pageIds.length} pages.`,
+      count: pageIds.length
+    };
+  } catch (error: any) {
+    console.error('[bulkSeoPageStatusAction] Error:', error);
+    return { message: `Failed to bulk update: ${error.message}`, error: true };
+  }
+}
+
+/**
+ * Set top 25 ZIPs to published and rest to draft
+ */
+export async function setTop25PublishedAction(): Promise<ActionResult & { published?: number; draft?: number }> {
+  await requireUser(['owner']);
+
+  const TOP_25_ZIPS = [
+    '60601', '60602', '60603', '60604', '60605',
+    '60606', '60607', '60608', '60609', '60610',
+    '60611', '60612', '60613', '60614', '60615',
+    '60616', '60617', '60618', '60619', '60620',
+    '60621', '60622', '60623', '60624', '60625'
+  ];
+
+  try {
+    const firestore = getAdminFirestore();
+    const zipCollection = firestore.collection('foot_traffic').doc('config').collection('zip_pages');
+
+    const snapshot = await zipCollection.get();
+
+    let publishedCount = 0;
+    let draftCount = 0;
+
+    // Process in batches of 400 (Firestore limit is 500)
+    const batchSize = 400;
+    let batch = firestore.batch();
+    let batchCount = 0;
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      const zipCode = data.zipCode || doc.id;
+      const isTop25 = TOP_25_ZIPS.includes(zipCode);
+
+      batch.update(doc.ref, {
+        published: isTop25,
+        status: isTop25 ? 'published' : 'draft',
+        indexable: isTop25,
+        updatedAt: new Date()
+      });
+
+      if (isTop25) {
+        publishedCount++;
+      } else {
+        draftCount++;
+      }
+
+      batchCount++;
+
+      if (batchCount >= batchSize) {
+        await batch.commit();
+        batch = firestore.batch();
+        batchCount = 0;
+      }
+    }
+
+    // Commit remaining
+    if (batchCount > 0) {
+      await batch.commit();
+    }
+
+    return {
+      message: `Set ${publishedCount} pages to published and ${draftCount} pages to draft.`,
+      published: publishedCount,
+      draft: draftCount
+    };
+  } catch (error: any) {
+    console.error('[setTop25PublishedAction] Error:', error);
+    return { message: `Failed to update pages: ${error.message}`, error: true };
+  }
+}
+
 export async function getLivePreviewProducts(cannMenusId: string) {
   try {
     const { getProducts } = await import('@/lib/cannmenus-api');
