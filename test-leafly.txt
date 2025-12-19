@@ -1,0 +1,263 @@
+﻿
+> nextn@0.1.0 test
+> jest --testPathPattern=leafly-connector
+
+  console.log
+    {
+      "timestamp": "2025-12-19T02:39:20.220Z",
+      "level": "info",
+      "message": "Started Leafly scan for https://leafly.com/dispensary-info/test-store",
+      "data": {
+        "runId": "run_abc123"
+      }
+    }
+
+      at Logger.consoleMethod [as log] (src/lib/monitoring.ts:38:9)
+
+  console.log
+    {
+      "timestamp": "2025-12-19T02:39:20.257Z",
+      "level": "info",
+      "message": "Started Leafly state scan for michigan",
+      "data": {
+        "runId": "run_state_123",
+        "maxStores": 25
+      }
+    }
+
+      at Logger.consoleMethod [as log] (src/lib/monitoring.ts:38:9)
+
+node.exe : FAIL tests
+/server/leafly-connec
+tor.test.ts
+At line:1 char:1
++ & "C:\Program Files
+\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (FAIL te   
+ sts/serv...nnect    
+or.test.ts:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+  Leafly Connector 
+Service
+    Watchlist 
+Management
+      ΓêÜ should get 
+watchlist entries 
+(14 ms)
+      ΓêÜ should add 
+to watchlist (2 ms)
+      ΓêÜ should 
+remove from 
+watchlist (1 ms)
+    Apify Integration
+      ΓêÜ should 
+trigger single store 
+scan (37 ms)
+      ΓêÜ should 
+trigger state scan 
+(4 ms)
+      ΓêÜ should 
+handle Apify API 
+errors (16 ms)
+    Pricing 
+Intelligence
+      ├ù should get 
+pricing bands for 
+state and category 
+(1 ms)
+      ├ù should get 
+active promos
+    Local Competition
+      ├ù should get 
+local competition 
+for state and city
+      ΓêÜ should 
+generate 
+agent-friendly intel 
+summary
+
+  ΓùÅ Leafly 
+Connector Service 
+ΓÇ║ Pricing 
+Intelligence ΓÇ║ 
+should get pricing 
+bands for state and 
+category
+
+    TypeError: firest
+ore.collection(...).d
+oc(...).collection(..
+.).where is not a 
+function
+
+    [0m [90m 433 
+|[39m         [33m.
+[39mdoc([32m'leafly
+'[39m)
+     [90m 434 
+|[39m         [33m.
+[39mcollection([32m
+'dispensaries'[39m)
+    [31m[1m>[22m[
+39m[90m 435 |[39m  
+       [33m.[39mwhe
+re([32m'state'[39m
+[33m,[39m [32m'=='
+[39m[33m,[39m state
+[33m.[39mtoUpperCas
+e())
+     [90m     
+|[39m          
+[31m[1m^[22m[39m
+     [90m 436 
+|[39m         [33m.
+[39m[36mget[39m()
+[33m;[39m
+     [90m 437 |[39m
+     [90m 438 
+|[39m     
+[36mconst[39m 
+prices[33m:[39m 
+number[] [33m=[39m 
+[][33m;[39m[0m
+
+      at where (src/s
+erver/services/leafly
+-connector.ts:435:10)
+      at Object.getPr
+icingBands (tests/ser
+ver/leafly-connector.
+test.ts:185:33)
+
+  ΓùÅ Leafly 
+Connector Service 
+ΓÇ║ Pricing 
+Intelligence ΓÇ║ 
+should get active 
+promos
+
+    TypeError: firest
+ore.collection(...).d
+oc(...).collection(..
+.).where is not a 
+function
+
+    [0m [90m 483 
+|[39m         [33m.
+[39mdoc([32m'leafly
+'[39m)
+     [90m 484 
+|[39m         [33m.
+[39mcollection([32m
+'dispensaries'[39m)
+    [31m[1m>[22m[
+39m[90m 485 |[39m  
+       [33m.[39mwhe
+re([32m'state'[39m
+[33m,[39m [32m'=='
+[39m[33m,[39m state
+[33m.[39mtoUpperCas
+e())
+     [90m     
+|[39m          
+[31m[1m^[22m[39m
+     [90m 486 
+|[39m         [33m.
+[39m[36mget[39m()
+[33m;[39m
+     [90m 487 |[39m
+     [90m 488 
+|[39m     
+[36mconst[39m 
+offers[33m:[39m [3
+3mLeaflyOffer[39m[] 
+[33m=[39m 
+[][33m;[39m[0m
+
+      at where (src/s
+erver/services/leafly
+-connector.ts:485:10)
+      at Object.getAc
+tivePromos (tests/ser
+ver/leafly-connector.
+test.ts:205:34)
+
+  ΓùÅ Leafly 
+Connector Service 
+ΓÇ║ Local 
+Competition ΓÇ║ 
+should get local 
+competition for 
+state and city
+
+    TypeError: firest
+ore.collection(...).d
+oc(...).collection(..
+.).where is not a 
+function
+
+    [0m [90m 552 
+|[39m         [33m.
+[39mdoc([32m'leafly
+'[39m)
+     [90m 553 
+|[39m         [33m.
+[39mcollection([32m
+'dispensaries'[39m)
+    [31m[1m>[22m[
+39m[90m 554 |[39m  
+       [33m.[39mwhe
+re([32m'state'[39m
+[33m,[39m [32m'=='
+[39m[33m,[39m norma
+lizedState)[33m;[39
+m
+     [90m     
+|[39m          
+[31m[1m^[22m[39m
+     [90m 555 |[39m
+     [90m 556 
+|[39m     
+[36mconst[39m 
+dispensariesSnap 
+[33m=[39m 
+[36mawait[39m dispe
+nsariesQuery[33m.[3
+9mlimit([35m50[39m)
+[33m.[39m[36mget[
+39m()[33m;[39m
+     [90m 557 
+|[39m[0m
+
+      at where (src/s
+erver/services/leafly
+-connector.ts:554:10)
+      at Object.getLo
+calCompetition (tests
+/server/leafly-connec
+tor.test.ts:230:34)
+
+Test Suites: 1 
+failed, 1 total
+Tests:       3 
+failed, 7 passed, 10 
+total
+Snapshots:   0 total
+Time:        2.102 s
+Ran all test suites 
+matching 
+/leafly-connector/i.

@@ -1,0 +1,307 @@
+﻿
+> nextn@0.1.0 test
+> jest --testPathPattern=moneymike-elasticity|leafly-connector|national-rollout-components
+
+node.exe : PASS tests
+/server/moneymike-ela
+sticity.test.ts
+At line:1 char:1
++ & "C:\Program Files
+\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (PASS te   
+ sts/serv...stici    
+ty.test.ts:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+FAIL tests/server/lea
+fly-connector.test.ts
+  ΓùÅ Console
+
+    console.log
+      {
+        "timestamp": 
+"2025-12-19T02:38:52.
+440Z",
+        "level": 
+"info",
+        "message": 
+"Started Leafly scan 
+for https://leafly.co
+m/dispensary-info/tes
+t-store",
+        "data": {
+          "runId": 
+"run_abc123"
+        }
+      }
+
+      at 
+Logger.consoleMethod 
+[as log] (src/lib/mon
+itoring.ts:38:9)
+
+    console.log
+      {
+        "timestamp": 
+"2025-12-19T02:38:52.
+471Z",
+        "level": 
+"info",
+        "message": 
+"Started Leafly 
+state scan for 
+michigan",
+        "data": {
+          "runId": 
+"run_state_123",
+          
+"maxStores": 25
+        }
+      }
+
+      at 
+Logger.consoleMethod 
+[as log] (src/lib/mon
+itoring.ts:38:9)
+
+  ΓùÅ Leafly 
+Connector Service 
+ΓÇ║ Pricing 
+Intelligence ΓÇ║ 
+should get pricing 
+bands for state and 
+category
+
+    TypeError: firest
+ore.collection(...).d
+oc(...).collection(..
+.).where is not a 
+function
+
+    [0m [90m 433 
+|[39m         [33m.
+[39mdoc([32m'leafly
+'[39m)
+     [90m 434 
+|[39m         [33m.
+[39mcollection([32m
+'dispensaries'[39m)
+    [31m[1m>[22m[
+39m[90m 435 |[39m  
+       [33m.[39mwhe
+re([32m'state'[39m
+[33m,[39m [32m'=='
+[39m[33m,[39m state
+[33m.[39mtoUpperCas
+e())
+     [90m     
+|[39m          
+[31m[1m^[22m[39m
+     [90m 436 
+|[39m         [33m.
+[39m[36mget[39m()
+[33m;[39m
+     [90m 437 |[39m
+     [90m 438 
+|[39m     
+[36mconst[39m 
+prices[33m:[39m 
+number[] [33m=[39m 
+[][33m;[39m[0m
+
+      at where (src/s
+erver/services/leafly
+-connector.ts:435:10)
+      at Object.getPr
+icingBands (tests/ser
+ver/leafly-connector.
+test.ts:185:33)
+
+  ΓùÅ Leafly 
+Connector Service 
+ΓÇ║ Pricing 
+Intelligence ΓÇ║ 
+should get active 
+promos
+
+    TypeError: firest
+ore.collection(...).d
+oc(...).collection(..
+.).where is not a 
+function
+
+    [0m [90m 483 
+|[39m         [33m.
+[39mdoc([32m'leafly
+'[39m)
+     [90m 484 
+|[39m         [33m.
+[39mcollection([32m
+'dispensaries'[39m)
+    [31m[1m>[22m[
+39m[90m 485 |[39m  
+       [33m.[39mwhe
+re([32m'state'[39m
+[33m,[39m [32m'=='
+[39m[33m,[39m state
+[33m.[39mtoUpperCas
+e())
+     [90m     
+|[39m          
+[31m[1m^[22m[39m
+     [90m 486 
+|[39m         [33m.
+[39m[36mget[39m()
+[33m;[39m
+     [90m 487 |[39m
+     [90m 488 
+|[39m     
+[36mconst[39m 
+offers[33m:[39m [3
+3mLeaflyOffer[39m[] 
+[33m=[39m 
+[][33m;[39m[0m
+
+      at where (src/s
+erver/services/leafly
+-connector.ts:485:10)
+      at Object.getAc
+tivePromos (tests/ser
+ver/leafly-connector.
+test.ts:205:34)
+
+  ΓùÅ Leafly 
+Connector Service 
+ΓÇ║ Local 
+Competition ΓÇ║ 
+should get local 
+competition for 
+state and city
+
+    TypeError: firest
+ore.collection(...).d
+oc(...).collection(..
+.).where is not a 
+function
+
+    [0m [90m 552 
+|[39m         [33m.
+[39mdoc([32m'leafly
+'[39m)
+     [90m 553 
+|[39m         [33m.
+[39mcollection([32m
+'dispensaries'[39m)
+    [31m[1m>[22m[
+39m[90m 554 |[39m  
+       [33m.[39mwhe
+re([32m'state'[39m
+[33m,[39m [32m'=='
+[39m[33m,[39m norma
+lizedState)[33m;[39
+m
+     [90m     
+|[39m          
+[31m[1m^[22m[39m
+     [90m 555 |[39m
+     [90m 556 
+|[39m     
+[36mconst[39m 
+dispensariesSnap 
+[33m=[39m 
+[36mawait[39m dispe
+nsariesQuery[33m.[3
+9mlimit([35m50[39m)
+[33m.[39m[36mget[
+39m()[33m;[39m
+     [90m 557 
+|[39m[0m
+
+      at where (src/s
+erver/services/leafly
+-connector.ts:554:10)
+      at Object.getLo
+calCompetition (tests
+/server/leafly-connec
+tor.test.ts:230:34)
+
+FAIL tests/components
+/national-rollout-com
+ponents.test.tsx
+  ΓùÅ Analytics 
+Charts ΓÇ║ 
+DailyViewsChart ΓÇ║ 
+should render chart 
+bars when data exists
+
+    expect(received).
+toBeGreaterThan(expec
+ted)
+
+    Expected: > 0
+    Received:   0
+
+    [0m [90m 173 
+|[39m             
+[90m// Should have 
+bar elements[39m
+     [90m 174 
+|[39m             
+[36mconst[39m bars 
+[33m=[39m container
+[33m.[39mquerySelec
+torAll([32m'[class*=
+"bg-primary"]'[39m)
+[33m;[39m
+    [31m[1m>[22m[
+39m[90m 175 |[39m  
+           expect(bar
+s[33m.[39mlength)[
+33m.[39mtoBeGreaterT
+han([35m0[39m)[33m
+;[39m
+     [90m     
+|[39m               
+                  
+[31m[1m^[22m[39m
+     [90m 176 
+|[39m         
+})[33m;[39m
+     [90m 177 
+|[39m     
+})[33m;[39m
+     [90m 178 
+|[39m[0m
+
+      at Object.toBeG
+reaterThan (tests/com
+ponents/national-roll
+out-components.test.t
+sx:175:33)
+
+Test Suites: 2 
+failed, 1 passed, 3 
+total
+Tests:       4 
+failed, 31 passed, 
+35 total
+Snapshots:   0 total
+Time:        4.075 s
+Ran all test suites 
+matching /moneymike-e
+lasticity|leafly-conn
+ector|national-rollou
+t-components/i.

@@ -1,0 +1,144 @@
+﻿
+> nextn@0.1.0 test
+> jest --testPathPattern=national-rollout-components
+
+node.exe : FAIL tests
+/components/national-
+rollout-components.te
+st.tsx
+At line:1 char:1
++ & "C:\Program Files
+\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (FAIL te   
+ sts/comp...onent    
+s.test.tsx:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+  PlanSelectionCards 
+Component
+    ΓêÜ should 
+render both plan 
+options (53 ms)
+    ΓêÜ should 
+display correct 
+prices (13 ms)
+    ΓêÜ should show 
+founders remaining 
+count (16 ms)
+    ΓêÜ should call 
+onSelectPlan when 
+claim-pro is clicked 
+(15 ms)
+    ΓêÜ should call 
+onSelectPlan when 
+founders-claim is 
+clicked (8 ms)
+    ΓêÜ should 
+display features for 
+each plan (11 ms)
+  Analytics Charts
+    DailyViewsChart
+      ΓêÜ should 
+render empty state 
+when no data (166 ms)
+      ├ù should 
+render chart bars 
+when data exists (4 
+ms)
+    TopItemsList
+      ΓêÜ should 
+render empty state 
+message (2 ms)
+      ΓêÜ should 
+render items sorted 
+by count (22 ms)
+      ΓêÜ should 
+limit number of 
+items shown (4 ms)
+    MetricCard
+      ΓêÜ should 
+render title and 
+value (2 ms)
+      ΓêÜ should 
+render positive 
+change indicator (2 
+ms)
+      ΓêÜ should 
+render negative 
+change indicator (1 
+ms)
+
+  ΓùÅ Analytics 
+Charts ΓÇ║ 
+DailyViewsChart ΓÇ║ 
+should render chart 
+bars when data exists
+
+    expect(received).
+toBeGreaterThan(expec
+ted)
+
+    Expected: > 0
+    Received:   0
+
+    [0m [90m 173 
+|[39m             
+[90m// Should have 
+bar elements[39m
+     [90m 174 
+|[39m             
+[36mconst[39m bars 
+[33m=[39m container
+[33m.[39mquerySelec
+torAll([32m'[class*=
+"bg-primary"]'[39m)
+[33m;[39m
+    [31m[1m>[22m[
+39m[90m 175 |[39m  
+           expect(bar
+s[33m.[39mlength)[
+33m.[39mtoBeGreaterT
+han([35m0[39m)[33m
+;[39m
+     [90m     
+|[39m               
+                  
+[31m[1m^[22m[39m
+     [90m 176 
+|[39m         
+})[33m;[39m
+     [90m 177 
+|[39m     
+})[33m;[39m
+     [90m 178 
+|[39m[0m
+
+      at Object.toBeG
+reaterThan (tests/com
+ponents/national-roll
+out-components.test.t
+sx:175:33)
+
+Test Suites: 1 
+failed, 1 total
+Tests:       1 
+failed, 13 passed, 
+14 total
+Snapshots:   0 total
+Time:        2.879 s
+Ran all test suites 
+matching /national-ro
+llout-components/i.
