@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
+import { usePlanInfo } from '@/hooks/use-plan-info';
 import {
   Sidebar,
   SidebarContent,
@@ -14,11 +15,12 @@ import {
 import Logo from '@/components/logo';
 import { useUser } from '@/firebase/auth/use-user';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { signOut } from 'firebase/auth';
-import { LogOut } from 'lucide-react';
+import { LogOut, Crown, Zap, Sparkles } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import type { ElementType } from 'react';
 import { useUserRole } from '@/hooks/use-user-role';
@@ -35,6 +37,7 @@ export function DashboardSidebar() {
   const { auth } = useFirebase();
   const { toast } = useToast();
   const { loginRoute } = useUserRole();
+  const { planName, planId, isScale, isEnterprise, isGrowthOrHigher, isPaid } = usePlanInfo();
 
   // Hide nav links on CEO dashboard (Super Admin has access via tabs)
   const isCeoDashboard = pathname?.startsWith('/dashboard/ceo');
@@ -64,6 +67,42 @@ export function DashboardSidebar() {
     return email.substring(0, 2).toUpperCase();
   };
 
+  // Plan badge styling based on tier
+  const getPlanBadge = () => {
+    if (isEnterprise) {
+      return (
+        <Badge className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0 gap-1">
+          <Crown className="h-3 w-3" />
+          Enterprise
+        </Badge>
+      );
+    }
+    if (isScale) {
+      return (
+        <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 gap-1">
+          <Zap className="h-3 w-3" />
+          Scale
+        </Badge>
+      );
+    }
+    if (isGrowthOrHigher) {
+      return (
+        <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 gap-1">
+          <Sparkles className="h-3 w-3" />
+          Growth
+        </Badge>
+      );
+    }
+    if (isPaid) {
+      return (
+        <Badge variant="secondary" className="gap-1">
+          {planName}
+        </Badge>
+      );
+    }
+    return null;
+  };
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -86,7 +125,8 @@ export function DashboardSidebar() {
                 if (link.badge === 'locked' && role !== 'owner') {
                   return null;
                 }
-                const isLocked = isComingSoon && role !== 'owner';
+                // Unlock more features for paid tiers
+                const isLocked = isComingSoon && role !== 'owner' && !isGrowthOrHigher;
 
                 if (isLocked) {
                   return (
@@ -121,6 +161,12 @@ export function DashboardSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter>
+        {/* Plan Badge */}
+        {isPaid && (
+          <div className="px-2 mb-2 group-data-[collapsible=icon]:hidden">
+            {getPlanBadge()}
+          </div>
+        )}
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -147,8 +193,9 @@ export function DashboardSidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        <div className="text-xs text-muted-foreground mt-2 px-2">
-          Debug: Role={role || 'null'}, Links={navLinks.length}
+        <div className="text-xs text-muted-foreground mt-2 px-2 group-data-[collapsible=icon]:hidden">
+          {role && <span className="capitalize">{role}</span>}
+          {isPaid && <span className="ml-1">• {planName}</span>}
         </div>
       </SidebarFooter>
     </Sidebar >
