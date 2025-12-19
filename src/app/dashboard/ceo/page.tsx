@@ -37,6 +37,7 @@ import Link from 'next/link';
 import { ClientOnly } from '@/components/client-only';
 import { RoleSwitcher } from '@/components/debug/role-switcher';
 import { MockDataToggle } from '@/components/debug/mock-data-toggle';
+import { DataImportDropdown } from '@/components/dashboard/data-import-dropdown';
 
 export default function CeoDashboardPage() {
     const router = useRouter();
@@ -109,6 +110,7 @@ export default function CeoDashboardPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
+                    <DataImportDropdown />
                     <MockDataToggle />
                     <RoleSwitcher />
                     <Button variant="outline" size="sm" onClick={logout}>
