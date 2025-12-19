@@ -19,6 +19,7 @@ const customJestConfig = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^react-markdown$': '<rootDir>/tests/__mocks__/react-markdown.js',
     '^remark-gfm$': '<rootDir>/tests/__mocks__/remark-gfm.js',
+    '^server-only$': '<rootDir>/tests/__mocks__/server-only.js',
   },
   testEnvironment: 'jsdom',
   testMatch: [
