@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import GridLayout, { Layout } from 'react-grid-layout';
+import GridLayout from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,17 @@ import {
 } from '@/lib/dashboard/layout-persistence';
 import { AddWidgetMenu } from './add-widget-menu';
 import { getWidgetComponent } from './widgets';
+
+// Define our layout item type matching react-grid-layout expectations
+interface LayoutItem {
+    i: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    minW?: number;
+    minH?: number;
+}
 
 interface ModularDashboardProps {
     role: UserRole;
@@ -51,7 +62,7 @@ export function ModularDashboard({
     }, [role]);
 
     // Convert widgets to react-grid-layout format
-    const layout: Layout[] = widgets.map(w => {
+    const layout: LayoutItem[] = widgets.map(w => {
         const config = getWidgetByType(w.widgetType);
         return {
             i: w.id,
@@ -65,8 +76,17 @@ export function ModularDashboard({
     });
 
     // Handle layout change from drag/resize
-    const handleLayoutChange = useCallback((newLayout: Layout[]) => {
-        const updated = updateWidgetPositions(widgets, newLayout);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleLayoutChange = useCallback((newLayout: any) => {
+        // Convert layout items to our simple format
+        const simplified = (newLayout as LayoutItem[]).map(item => ({
+            i: item.i,
+            x: item.x,
+            y: item.y,
+            w: item.w,
+            h: item.h
+        }));
+        const updated = updateWidgetPositions(widgets, simplified);
         setWidgets(updated);
     }, [widgets]);
 
@@ -120,6 +140,39 @@ export function ModularDashboard({
     // Get existing widget types
     const existingWidgetTypes = widgets.map(w => w.widgetType);
 
+    // Cast GridLayout to bypass type issues with react-grid-layout v2 bundled types
+    const Grid = GridLayout as any;
+
+    // Render grid with type assertion for react-grid-layout v2
+    const renderGrid = () => {
+        return (
+            <Grid
+                className="layout"
+                layout={layout}
+                cols={cols}
+                rowHeight={rowHeight}
+                width={width}
+                onLayoutChange={handleLayoutChange}
+                draggableHandle=".drag-handle"
+                compactType="vertical"
+                preventCollision={false}
+                isResizable={true}
+                margin={[16, 16]}
+            >
+                {widgets.map(widget => {
+                    const Component = getWidgetComponent(widget.widgetType);
+                    if (!Component) return null;
+
+                    return (
+                        <div key={widget.id}>
+                            <Component onRemove={() => handleRemoveWidget(widget.id)} />
+                        </div>
+                    );
+                })}
+            </Grid>
+        );
+    };
+
     if (!isLoaded) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -164,30 +217,7 @@ export function ModularDashboard({
                     />
                 </div>
             ) : (
-                <GridLayout
-                    className="layout"
-                    layout={layout}
-                    cols={cols}
-                    rowHeight={rowHeight}
-                    width={width}
-                    onLayoutChange={handleLayoutChange}
-                    draggableHandle=".drag-handle"
-                    compactType="vertical"
-                    preventCollision={false}
-                    isResizable={true}
-                    margin={[16, 16]}
-                >
-                    {widgets.map(widget => {
-                        const Component = getWidgetComponent(widget.widgetType);
-                        if (!Component) return null;
-
-                        return (
-                            <div key={widget.id}>
-                                <Component onRemove={() => handleRemoveWidget(widget.id)} />
-                            </div>
-                        );
-                    })}
-                </GridLayout>
+                renderGrid()
             )}
         </div>
     );
