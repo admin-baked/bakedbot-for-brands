@@ -39,8 +39,8 @@ jobs:
           npm install -g firebase-tools
           echo $GCP_SA_KEY > "$HOME/gcp_key.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/gcp_key.json"
-          # Create .env file for runtime env vars (Next.js/Firebase needs this for functions)
-          echo "SERPER_API_KEY=$SERPER_API_KEY" > .env
+          # Create env-config.json for runtime env vars (Next.js config will read this)
+          echo "{\"SERPER_API_KEY\": \"$SERPER_API_KEY\"}" > env-config.json
           firebase deploy --project studio-567050101-bc6e8 --force --only hosting,functions
           rm "$HOME/gcp_key.json"
-          rm .env
+          rm env-config.json
