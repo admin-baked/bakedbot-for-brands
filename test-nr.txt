@@ -1,0 +1,160 @@
+﻿
+> nextn@0.1.0 test
+> jest --testPathPattern=national-rollout-components
+
+node.exe : FAIL tests
+/components/national-
+rollout-components.te
+st.tsx
+At line:1 char:1
++ & "C:\Program Files
+\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (FAIL te   
+ sts/comp...onent    
+s.test.tsx:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+  PlanSelectionCards 
+Component
+    ΓêÜ should 
+render both plan 
+options (85 ms)
+    ΓêÜ should 
+display correct 
+prices (10 ms)
+    ΓêÜ should show 
+founders remaining 
+count (8 ms)
+    ΓêÜ should call 
+onSelectPlan when 
+claim-pro is clicked 
+(17 ms)
+    ΓêÜ should call 
+onSelectPlan when 
+founders-claim is 
+clicked (10 ms)
+    ΓêÜ should 
+display features for 
+each plan (10 ms)
+  Analytics Charts
+    DailyViewsChart
+      ΓêÜ should 
+render empty state 
+when no data (159 ms)
+      ├ù should 
+render chart bars 
+when data exists (7 
+ms)
+    TopItemsList
+      ΓêÜ should 
+render empty state 
+message (4 ms)
+      ΓêÜ should 
+render items sorted 
+by count (20 ms)
+      ΓêÜ should 
+limit number of 
+items shown (5 ms)
+    MetricCard
+      ΓêÜ should 
+render title and 
+value (3 ms)
+      ΓêÜ should 
+render positive 
+change indicator (4 
+ms)
+      ΓêÜ should 
+render negative 
+change indicator (2 
+ms)
+
+  ΓùÅ Analytics 
+Charts ΓÇ║ 
+DailyViewsChart ΓÇ║ 
+should render chart 
+bars when data exists
+
+    expect(element).n
+ot.toBeInTheDocument(
+)
+
+    expected 
+document not to 
+contain element, 
+found <div 
+class="h-40 flex 
+items-center 
+justify-center 
+text-sm text-muted-fo
+reground">No data 
+for the selected 
+period</div> instead
+
+    [0m [90m 172 
+|[39m
+     [90m 173 
+|[39m             
+[90m// Should 
+render something 
+(not show empty 
+state)[39m
+    [31m[1m>[22m[
+39m[90m 174 |[39m  
+           expect(scr
+een[33m.[39mqueryBy
+Text([35m/No data 
+for the selected peri
+od/[39m))[33m.[39m
+not[33m.[39mtoBeInT
+heDocument()[33m;[3
+9m
+     [90m     
+|[39m               
+                     
+                     
+                     
+ [31m[1m^[22m[39m
+     [90m 175 
+|[39m             
+[90m// Container 
+should have 
+content[39m
+     [90m 176 
+|[39m             ex
+pect(container[33m.
+[39mtextContent)[33m
+.[39mtoBeTruthy()[3
+3m;[39m
+     [90m 177 
+|[39m         
+})[33m;[39m[0m
+
+      at Object.toBeI
+nTheDocument (tests/c
+omponents/national-ro
+llout-components.test
+.tsx:174:79)
+
+Test Suites: 1 
+failed, 1 total
+Tests:       1 
+failed, 13 passed, 
+14 total
+Snapshots:   0 total
+Time:        2.941 s
+Ran all test suites 
+matching /national-ro
+llout-components/i.
