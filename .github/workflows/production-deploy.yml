@@ -22,7 +22,8 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Create Runtime Config
-        run: echo "{\"SERPER_API_KEY\": \"$SERPER_API_KEY\"}" > env-config.json
+        run: |
+          echo "{\"SERPER_API_KEY\": \"$SERPER_API_KEY\"}" > env-config.json
         env:
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
 
@@ -44,8 +45,12 @@ jobs:
           npm install -g firebase-tools
           echo $GCP_SA_KEY > "$HOME/gcp_key.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/gcp_key.json"
-          export GOOGLE_APPLICATION_CREDENTIALS="$HOME/gcp_key.json"
           # env-config.json created before build, just deploy now
           firebase deploy --project studio-567050101-bc6e8 --force --only hosting,functions
+          # Set runtime env vars directly on the Cloud Run service
+          gcloud run services update ssrstudio567050101bc6e8 \
+            --region=us-central1 \
+            --update-env-vars="SERPER_API_KEY=$SERPER_API_KEY" \
+            --project=studio-567050101-bc6e8
           rm "$HOME/gcp_key.json"
           rm env-config.json
