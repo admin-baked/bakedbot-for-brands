@@ -64,6 +64,13 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         keywords: ['customer', 'loyalty', 'churn', 'segment', 'journey', 'retention', 'engagement', 'welcome', 'at-risk'],
         description: 'Manages customer segments, predicts churn, and orchestrates loyalty programs.'
     },
+    {
+        id: 'general',
+        name: 'Assistant',
+        specialty: 'General research and task automation',
+        keywords: ['help', 'info', 'research', 'search', 'find'],
+        description: 'Handles greetings, general questions, and broad research tasks.'
+    },
 ];
 
 // --- Intent Detection ---

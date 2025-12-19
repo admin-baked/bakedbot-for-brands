@@ -103,6 +103,13 @@ const defaultEzalTools = {
     },
     comparePricing: async (myProducts: any[], competitorProducts: any[]) => {
         return { price_index: 0.95 };
+    },
+    getCompetitiveIntel: async (state: string, city?: string) => {
+        return `Market Intel for ${city || 'statewide'}, ${state}: Price index is stable.`;
+    },
+    searchWeb: async (query: string) => {
+        const results = await searchWeb(query);
+        return formatSearchResults(results);
     }
 };
 
@@ -260,8 +267,12 @@ export interface AgentResult {
     content: string;
     toolCalls?: { id: string; name: string; status: 'success' | 'error' | 'running'; result: string }[];
     metadata?: {
-        type: 'compliance_report' | 'product_rec' | 'elasticity_analysis';
-        data: any;
+        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context';
+        data?: any;
+        brandId?: string;
+        brandName?: string;
+        agentName?: string;
+        role?: string;
     };
     logs?: string[];
 }
@@ -278,17 +289,33 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
     const executedTools: AgentResult['toolCalls'] = [];
 
     try {
+        console.log('[runAgentChat] Importing dependencies...');
         // Import dependencies
         const { routeToAgent, AGENT_CAPABILITIES } = await import('@/server/agents/agent-router');
         const { getIntuitionSummary } = await import('@/server/algorithms/intuition-engine');
+        const { requireUser } = await import('@/server/auth/auth');
 
+        console.log('[runAgentChat] Getting user context...');
+        const user = await requireUser().catch(() => null);
+        const role = (user?.role as string) || 'guest';
+        const userBrandId = (user?.brandId as string) || (role === 'brand' ? 'demo-brand-123' : 'general');
+        const userBrandName = role === 'brand' ? 'Your Brand' : 'BakedBot';
+
+        console.log('[runAgentChat] Routing message...');
         // Route to the appropriate agent
         const routing = await routeToAgent(userMessage);
-        const agentInfo = AGENT_CAPABILITIES.find(a => a.id === routing.primaryAgent);
+        const agentInfo = AGENT_CAPABILITIES.find(a => a.id === routing.primaryAgent) ||
+            AGENT_CAPABILITIES.find(a => a.id === 'general');
 
-        // Get Intuition context
-        const brandId = 'demo-brand';
-        const intuition = getIntuitionSummary(brandId);
+        // Initialize context for specialized agents
+        const metadata = {
+            brandId: userBrandId,
+            brandName: userBrandName,
+            agentName: agentInfo?.name || 'General',
+            role
+        };
+
+        const intuition = getIntuitionSummary(userBrandId);
 
         // Add routing info
         executedTools.push({
@@ -315,6 +342,7 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
                 result: 'Thinking...'
             });
 
+            console.log(`[runAgentChat] Triggering specialized agent: ${agentInfo.id}`);
             const agentRun = await triggerAgentRun(agentInfo.id, userMessage);
 
             if (agentRun.success && agentRun.log) {
@@ -415,7 +443,8 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
 
                 return {
                     content: synthesis.text,
-                    toolCalls: executedTools
+                    toolCalls: executedTools,
+                    metadata
                 };
             } catch (e: any) {
                 console.error('[runAgentChat] Dispensary search failed:', e);
@@ -432,6 +461,7 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
         }
 
         if (isSearchRequest) {
+            console.log('[runAgentChat] Entering Web Search block');
             executedTools.push({
                 id: `search-${Date.now()}`,
                 name: 'Web Search',
@@ -439,6 +469,7 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
                 result: 'Generating search query...'
             });
 
+            console.log('[runAgentChat] Generating search query with AI...');
             // Use AI to extract the optimal search query
             const conversion = await ai.generate({
                 prompt: `You are an expert search engine operator.
@@ -1260,28 +1291,28 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
 
         // --- Phase 5: Rich Metadata Injection ---
         // For MVP, we use keyword detection on the inputs to simulate backend intelligence
-        let metadata: AgentResult['metadata'] | undefined;
+        // Use the existing metadata object if possible
+        const richMetadata: any = {};
 
         if (lowerMessage.includes('compliance') || lowerMessage.includes('check')) {
-            metadata = {
-                type: 'compliance_report',
-                data: {
-                    status: 'fail',
-                    violations: ['Medical claim detected', 'Appeals to minors'],
-                    suggestions: ['Remove "cure"', 'Change imagery']
-                }
+            richMetadata.type = 'compliance_report';
+            richMetadata.data = {
+                status: 'fail',
+                violations: ['Medical claim detected', 'Appeals to minors'],
+                suggestions: ['Remove "cure"', 'Change imagery']
             };
         } else if (lowerMessage.includes('recommend') || lowerMessage.includes('product')) {
-            metadata = {
-                type: 'product_rec',
-                data: {
-                    products: [
-                        { name: 'Sleepy Time Gimme', score: 0.95, reason: 'Matches "sleep" intent' },
-                        { name: 'Chill Pill', score: 0.82, reason: 'High margin' }
-                    ]
-                }
+            richMetadata.type = 'product_rec';
+            richMetadata.data = {
+                products: [
+                    { name: 'Sleepy Time Gimme', score: 0.95, reason: 'Matches "sleep" intent' },
+                    { name: 'Chill Pill', score: 0.82, reason: 'High margin' }
+                ]
             };
         }
+
+        // Merge rich metadata into session metadata
+        const finalMetadata = { ...metadata, ...richMetadata };
 
         // Use AI for general queries
         try {
@@ -1323,7 +1354,7 @@ Keep your response concise but complete.`,
                 return {
                     content: response.text,
                     toolCalls: executedTools,
-                    metadata // Inject metadata into AI response
+                    metadata: finalMetadata // Inject metadata into AI response
                 };
             }
         } catch (aiError) {
@@ -1337,10 +1368,11 @@ Keep your response concise but complete.`,
         return {
             content: fallbackContent,
             toolCalls: executedTools,
-            metadata // Inject metadata into fallback response
+            metadata: finalMetadata // Inject metadata into fallback response
         };
     } catch (e: any) {
         console.error("Agent Chat Error:", e);
+        console.error("Stack Trace:", e.stack);
         return {
             content: "I encountered an error. Try: `Run welcome-sequence` or `Run platform-health`",
             toolCalls: executedTools.length > 0 ? executedTools : undefined

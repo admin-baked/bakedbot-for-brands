@@ -256,12 +256,59 @@ export default function FootTrafficTab() {
     const [brandPages, setBrandPages] = useState<BrandSEOPage[]>([]);
     const [isBrandPageDialogOpen, setIsBrandPageDialogOpen] = useState(false);
 
-    // Compute filtered pages
-    const filteredSeoPages = seoPages.filter(page => {
-        if (statusFilter === 'all') return true;
-        if (statusFilter === 'published') return page.published === true;
-        if (statusFilter === 'draft') return page.published !== true;
-        return true;
+    // Sorting State
+    const [sortConfig, setSortConfig] = useState<{ key: keyof LocalSEOPage | 'name'; direction: 'asc' | 'desc' } | null>(null);
+    const [brandSortConfig, setBrandSortConfig] = useState<{ key: keyof BrandSEOPage; direction: 'asc' | 'desc' } | null>(null);
+
+    // Sort Handler for SEO Pages
+    const handleSort = (key: keyof LocalSEOPage | 'name') => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    // Sort Handler for Brand Pages
+    const handleBrandSort = (key: keyof BrandSEOPage) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (brandSortConfig && brandSortConfig.key === key && brandSortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setBrandSortConfig({ key, direction });
+    };
+
+    // Compute filtered and sorted pages
+    const filteredSeoPages = seoPages
+        .filter(page => {
+            if (statusFilter === 'all') return true;
+            if (statusFilter === 'published') return page.published === true;
+            if (statusFilter === 'draft') return page.published !== true;
+            return true;
+        })
+        .sort((a, b) => {
+            if (!sortConfig) return 0;
+            const { key, direction } = sortConfig;
+
+            let aValue: any = a[key as keyof LocalSEOPage];
+            let bValue: any = b[key as keyof LocalSEOPage];
+
+            // Handle special cases or nested keys if needed (none currently for LocalSEOPage)
+            if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+    const sortedBrandPages = [...brandPages].sort((a, b) => {
+        if (!brandSortConfig) return 0;
+        const { key, direction } = brandSortConfig;
+
+        let aValue: any = a[key];
+        let bValue: any = b[key];
+
+        if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+        return 0;
     });
 
     // Compute status counts
@@ -1154,11 +1201,19 @@ export default function FootTrafficTab() {
                                                 onCheckedChange={handleSelectAll}
                                             />
                                         </TableHead>
-                                        <TableHead>ZIP Code</TableHead>
-                                        <TableHead>City</TableHead>
-                                        <TableHead>State</TableHead>
+                                        <TableHead className="cursor-pointer hover:text-primary" onClick={() => handleSort('zipCode')}>
+                                            ZIP Code {sortConfig?.key === 'zipCode' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                                        </TableHead>
+                                        <TableHead className="cursor-pointer hover:text-primary" onClick={() => handleSort('city')}>
+                                            City {sortConfig?.key === 'city' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                                        </TableHead>
+                                        <TableHead className="cursor-pointer hover:text-primary" onClick={() => handleSort('state')}>
+                                            State {sortConfig?.key === 'state' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                                        </TableHead>
                                         <TableHead>Featured</TableHead>
-                                        <TableHead>Status</TableHead>
+                                        <TableHead className="cursor-pointer hover:text-primary" onClick={() => handleSort('published')}>
+                                            Status {sortConfig?.key === 'published' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                                        </TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -1384,12 +1439,22 @@ export default function FootTrafficTab() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Brand</TableHead>
-                                            <TableHead>ZIP Code</TableHead>
-                                            <TableHead>City</TableHead>
-                                            <TableHead>State</TableHead>
+                                            <TableHead className="cursor-pointer hover:text-primary" onClick={() => handleBrandSort('brandName')}>
+                                                Brand {brandSortConfig?.key === 'brandName' && (brandSortConfig.direction === 'asc' ? '↑' : '↓')}
+                                            </TableHead>
+                                            <TableHead className="cursor-pointer hover:text-primary" onClick={() => handleBrandSort('zipCodes')}>
+                                                ZIP Code {brandSortConfig?.key === 'zipCodes' && (brandSortConfig.direction === 'asc' ? '↑' : '↓')}
+                                            </TableHead>
+                                            <TableHead className="cursor-pointer hover:text-primary" onClick={() => handleBrandSort('city')}>
+                                                City {brandSortConfig?.key === 'city' && (brandSortConfig.direction === 'asc' ? '↑' : '↓')}
+                                            </TableHead>
+                                            <TableHead className="cursor-pointer hover:text-primary" onClick={() => handleBrandSort('state')}>
+                                                State {brandSortConfig?.key === 'state' && (brandSortConfig.direction === 'asc' ? '↑' : '↓')}
+                                            </TableHead>
                                             <TableHead>CTA</TableHead>
-                                            <TableHead>Status</TableHead>
+                                            <TableHead className="cursor-pointer hover:text-primary" onClick={() => handleBrandSort('published')}>
+                                                Status {brandSortConfig?.key === 'published' && (brandSortConfig.direction === 'asc' ? '↑' : '↓')}
+                                            </TableHead>
                                             <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -1401,7 +1466,7 @@ export default function FootTrafficTab() {
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
-                                            brandPages
+                                            sortedBrandPages
                                                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                                 .map(page => (
                                                     <TableRow key={page.id}>
