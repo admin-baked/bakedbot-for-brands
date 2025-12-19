@@ -104,6 +104,23 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       });
       finalBrandId = newBrandId;
       finalBrandName = manualBrandName;
+
+      // Queue background data discovery job for manual entries
+      await firestore.collection('data_jobs').add({
+        type: 'brand_discovery',
+        entityId: newBrandId,
+        entityName: manualBrandName,
+        entityType: 'brand',
+        orgId: '', // Will be set after org creation
+        userId: uid,
+        status: 'pending',
+        message: `Discovering data for ${manualBrandName}...`,
+        progress: 0,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        attempts: 0
+      });
+      logger.info('Created data discovery job for manual brand entry:', { brandId: newBrandId, name: manualBrandName });
     }
 
     // Handle Dispensary POS Config
@@ -198,15 +215,93 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
 
     // --- SYNC PRODUCTS ---
     let syncCount = 0;
+    let productSyncJobId: string | null = null;
+
     if (finalRole === 'brand' && finalBrandId) {
-      const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
+      // Create product sync job for tracking
+      const syncJobRef = await firestore.collection('data_jobs').add({
+        type: 'product_sync',
+        entityId: finalBrandId,
+        entityName: finalBrandName || 'Brand',
+        entityType: 'brand',
+        orgId: orgId,
+        userId: uid,
+        status: 'syncing',
+        message: `Syncing products for ${finalBrandName || 'brand'}...`,
+        progress: 10,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        attempts: 1
+      });
+      productSyncJobId = syncJobRef.id;
+
       if (finalBrandId.startsWith('cm_')) {
-        syncCount = await syncCannMenusProducts(finalBrandId, 'brand', orgId, 3);
+        try {
+          const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
+          syncCount = await syncCannMenusProducts(finalBrandId, 'brand', orgId, 3);
+
+          // Update job as complete
+          await syncJobRef.update({
+            status: 'complete',
+            progress: 100,
+            message: `Synced ${syncCount} products successfully`,
+            updatedAt: FieldValue.serverTimestamp()
+          });
+        } catch (syncError) {
+          await syncJobRef.update({
+            status: 'error',
+            message: 'Product sync failed',
+            error: syncError instanceof Error ? syncError.message : 'Unknown error',
+            updatedAt: FieldValue.serverTimestamp()
+          });
+          logger.warn('Product sync failed:', { error: syncError instanceof Error ? syncError.message : String(syncError) });
+        }
+      } else {
+        // Non-CannMenus brand - mark as pending for manual discovery
+        await syncJobRef.update({
+          status: 'pending',
+          message: `Awaiting data discovery for ${finalBrandName}`,
+          progress: 0,
+          updatedAt: FieldValue.serverTimestamp()
+        });
       }
     } else if (finalRole === 'dispensary' && locationId) {
-      const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
+      // Create dispensary sync job
+      const syncJobRef = await firestore.collection('data_jobs').add({
+        type: 'product_sync',
+        entityId: locationId,
+        entityName: manualDispensaryName || 'Dispensary',
+        entityType: 'dispensary',
+        orgId: orgId,
+        userId: uid,
+        status: 'syncing',
+        message: `Setting up ${manualDispensaryName || 'dispensary'}...`,
+        progress: 10,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        attempts: 1
+      });
+
       if (locationId.startsWith('cm_')) {
-        syncCount = await syncCannMenusProducts(locationId, 'dispensary', 'retail-inventory');
+        try {
+          const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
+          syncCount = await syncCannMenusProducts(locationId, 'dispensary', 'retail-inventory');
+
+          await syncJobRef.update({
+            status: 'complete',
+            progress: 100,
+            message: `Synced ${syncCount} products successfully`,
+            updatedAt: FieldValue.serverTimestamp()
+          });
+        } catch (syncError) {
+          await syncJobRef.update({
+            status: 'error',
+            message: 'Dispensary sync failed',
+            error: syncError instanceof Error ? syncError.message : 'Unknown error',
+            updatedAt: FieldValue.serverTimestamp()
+          });
+          logger.warn('Dispensary sync failed:', { error: syncError instanceof Error ? syncError.message : String(syncError) });
+        }
       }
     }
 
