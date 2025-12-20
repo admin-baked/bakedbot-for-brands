@@ -43,13 +43,26 @@ function getServiceAccount() {
     // 1. Handle escaped newlines
     let privateKey = serviceAccount.private_key.replace(/\\n/g, '\n');
 
-    // 2. Extract ONLY the valid PEM block
-    const match = privateKey.match(/-----BEGIN PRIVATE KEY-----[\s\S]+?-----END PRIVATE KEY-----/);
+    // 2. Extract ONLY the valid PEM block using RegEx
+    // Updated regex to be more permissive with whitespace around the block and headers
+    const match = privateKey.match(/-----BEGIN ?[A-Z\s]*PRIVATE KEY-----[\s\S]+?-----END ?[A-Z\s]*PRIVATE KEY-----/i);
 
     if (match) {
       serviceAccount.private_key = match[0];
+      console.log(`[src/server/server-client.ts] Regex MATCHED. Key length: ${serviceAccount.private_key.length}`);
     } else {
+      console.error(`[src/server/server-client.ts] Regex FAILED to match private key format!`);
+      // Fallback: simple trim
       serviceAccount.private_key = privateKey.trim();
+    }
+
+    // DEBUG LOGGING (Restored for Diagnosis)
+    const key = serviceAccount.private_key;
+    console.log(`[src/server/server-client.ts] Key starts with: ${JSON.stringify(key.substring(0, 30))}`);
+    console.log(`[src/server/server-client.ts] Key ends with: ${JSON.stringify(key.substring(key.length - 30))}`);
+    if (key.length > 0) {
+      console.log(`[src/server/server-client.ts] First char code: ${key.charCodeAt(0)}`);
+      console.log(`[src/server/server-client.ts] Last char code: ${key.charCodeAt(key.length - 1)}`);
     }
   }
 

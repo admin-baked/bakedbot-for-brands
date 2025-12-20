@@ -28,13 +28,20 @@ function getServiceAccount() {
         let privateKey = serviceAccount.private_key.replace(/\\n/g, '\n');
 
         // 2. Extract ONLY the valid PEM block
-        const match = privateKey.match(/-----BEGIN PRIVATE KEY-----[\s\S]+?-----END PRIVATE KEY-----/);
+        const match = privateKey.match(/-----BEGIN ?[A-Z\s]*PRIVATE KEY-----[\s\S]+?-----END ?[A-Z\s]*PRIVATE KEY-----/i);
 
         if (match) {
             serviceAccount.private_key = match[0];
+            console.log(`[src/firebase/admin.ts] Regex MATCHED. Key length: ${serviceAccount.private_key.length}`);
         } else {
+            console.error(`[src/firebase/admin.ts] Regex FAILED to match private key format!`);
             serviceAccount.private_key = privateKey.trim();
         }
+
+        // DEBUG LOGGING
+        const key = serviceAccount.private_key;
+        console.log(`[src/firebase/admin.ts] Key starts with: ${JSON.stringify(key.substring(0, 30))}`);
+        console.log(`[src/firebase/admin.ts] Key ends with: ${JSON.stringify(key.substring(key.length - 30))}`);
     }
 
     return serviceAccount;
