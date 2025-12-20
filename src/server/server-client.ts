@@ -40,7 +40,15 @@ function getServiceAccount() {
 
   // Sanitize private_key to prevent "Unparsed DER bytes" errors
   if (serviceAccount && typeof serviceAccount.private_key === 'string') {
-    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n').trim();
+    const rawKey = serviceAccount.private_key;
+    serviceAccount.private_key = rawKey.replace(/\\n/g, '\n').trim();
+
+    // DEBUG LOGGING (Temporary)
+    console.log(`[src/server/server-client.ts] Parsed service account. Project ID: ${serviceAccount.project_id}`);
+    console.log(`[src/server/server-client.ts] Private Key Length (Raw): ${rawKey.length}`);
+    console.log(`[src/server/server-client.ts] Private Key Length (Sanitized): ${serviceAccount.private_key.length}`);
+    console.log(`[src/server/server-client.ts] Key starts with: ${JSON.stringify(serviceAccount.private_key.substring(0, 40))}`);
+    console.log(`[src/server/server-client.ts] Key ends with: ${JSON.stringify(serviceAccount.private_key.substring(serviceAccount.private_key.length - 40))}`);
   }
 
   return serviceAccount;
