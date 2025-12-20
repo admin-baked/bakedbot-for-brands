@@ -23,25 +23,35 @@ function getServiceAccount() {
     }
 
     // Sanitize private_key to prevent "Unparsed DER bytes" errors
+    // Sanitize private_key to prevent "Unparsed DER bytes" errors
     if (serviceAccount && typeof serviceAccount.private_key === 'string') {
-        // 1. Handle escaped newlines
-        let privateKey = serviceAccount.private_key.replace(/\\n/g, '\n');
+        const rawKey = serviceAccount.private_key;
 
-        // 2. Extract ONLY the valid PEM block
-        const match = privateKey.match(/-----BEGIN ?[A-Z\s]*PRIVATE KEY-----[\s\S]+?-----END ?[A-Z\s]*PRIVATE KEY-----/i);
+        // Pattern to capture Header (group 1), Body (group 2), Footer (group 3)
+        // Permissive: handles RSA PRIVATE KEY, PRIVATE KEY, various dashes
+        const pemPattern = /(-+BEGIN\s+.*PRIVATE\s+KEY-+)([\s\S]+?)(-+END\s+.*PRIVATE\s+KEY-+)/;
+        const match = rawKey.match(pemPattern);
 
         if (match) {
-            serviceAccount.private_key = match[0];
-            console.log(`[src/firebase/admin.ts] Regex MATCHED. Key length: ${serviceAccount.private_key.length}`);
-        } else {
-            console.error(`[src/firebase/admin.ts] Regex FAILED to match private key format!`);
-            serviceAccount.private_key = privateKey.trim();
-        }
+            const header = match[1];
+            const bodyRaw = match[2];
+            const footer = match[3];
 
-        // DEBUG LOGGING
-        const key = serviceAccount.private_key;
-        console.log(`[src/firebase/admin.ts] Key starts with: ${JSON.stringify(key.substring(0, 30))}`);
-        console.log(`[src/firebase/admin.ts] Key ends with: ${JSON.stringify(key.substring(key.length - 30))}`);
+            // Clean body: Remove ALL whitespace (newlines, spaces, tabs)
+            const bodyClean = bodyRaw.replace(/\s+/g, '');
+
+            // Reformat body: Chunk into 64-char lines (standard PEM)
+            const bodyFormatted = bodyClean.match(/.{1,64}/g)?.join('\n') || bodyClean;
+
+            // Reconstruct
+            serviceAccount.private_key = `${header}\n${bodyFormatted}\n${footer}\n`;
+
+            console.log(`[src/firebase/admin.ts] Key Normalized. Header: ${header}, BodySize: ${bodyClean.length}`);
+        } else {
+            console.error(`[src/firebase/admin.ts] Failed to parse PEM structure.`);
+            // Fallback: mostly standard handling
+            serviceAccount.private_key = rawKey.trim().replace(/\\n/g, '\n');
+        }
     }
 
     return serviceAccount;
