@@ -1,109 +1,166 @@
-THIS_SHOULD_FAIL_THE_BUILD
 # Settings to manage and configure a Firebase App Hosting backend.
 # https://firebase.google.com/docs/app-hosting/configure
 
-# Build configuration
+env:
+  # Firebase
+  - variable: FIREBASE_SERVICE_ACCOUNT_KEY
+    secret: FIREBASE_SERVICE_ACCOUNT_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  # Email
+  - variable: SENDGRID_API_KEY
+    secret: SENDGRID_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: SENDGRID_FROM_EMAIL
+    value: "orders@bakedbot.ai"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: SENDGRID_FROM_NAME
+    value: "BakedBot Orders"
+    availability:
+      - BUILD
+      - RUNTIME
+  # Security
+  - variable: RECAPTCHA_SECRET_KEY
+    secret: RECAPTCHA_SECRET_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+    secret: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  # CannMenus
+  - variable: CANNMENUS_API_BASE
+    value: "https://api.cannmenus.com"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: CANNMENUS_API_KEY
+    value: "e13ed642a92c177163ecff93c997d4ae"
+    availability:
+      - BUILD
+      - RUNTIME
+  # Authorize.Net
+  - variable: AUTHNET_API_LOGIN_ID
+    secret: AUTHNET_API_LOGIN_ID
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: AUTHNET_TRANSACTION_KEY
+    secret: AUTHNET_TRANSACTION_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: AUTHNET_ENV
+    value: "sandbox"
+  - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
+    secret: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
+    secret: AUTHNET_API_LOGIN_ID
+    availability:
+      - BUILD
+      - RUNTIME
+  # AI/Tools
+  - variable: CLAUDE_API_KEY
+    secret: CLAUDE_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: SERPER_API_KEY
+    secret: SERPER_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  # SMS
+  - variable: LEAFBUYER_API_KEY
+    secret: LEAFBUYER_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: LEAFBUYER_API_SECRET
+    secret: LEAFBUYER_API_SECRET
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: LEAFBUYER_API_URL
+    secret: LEAFBUYER_API_URL
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: BLACKLEAF_API_KEY
+    secret: BLACKLEAF_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: BLACKLEAF_BASE_URL
+    value: "https://api.blackleaf.io"
+  # CanPay
+  - variable: CANPAY_MODE
+    value: "sandbox"
+  - variable: CANPAY_ENVIRONMENT
+    value: "sandbox"
+  - variable: CANPAY_APP_KEY
+    secret: CANPAY_APP_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: CANPAY_API_SECRET
+    secret: CANPAY_API_SECRET
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: CANPAY_INTEGRATOR_ID
+    secret: CANPAY_INTEGRATOR_ID
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: CANPAY_INTERNAL_VERSION
+    value: "1.4.0"
+  # Stripe
+  - variable: STRIPE_SECRET_KEY
+    secret: STRIPE_SECRET_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: STRIPE_WEBHOOK_SECRET
+    secret: STRIPE_WEBHOOK_SECRET
+    availability:
+      - BUILD
+      - RUNTIME
+  # Monitoring
+  - variable: SENTRY_DSN
+    secret: SENTRY_DSN
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_SENTRY_DSN
+    secret: SENTRY_DSN
+    availability:
+      - BUILD
+      - RUNTIME
+  # Dev/Security
+  - variable: NEXT_PUBLIC_DEV_AUTH_BYPASS
+    value: "false"
+  # Treasury
+  - variable: TREASURY_ENABLE_REAL_TRADING
+    value: "false"
+  - variable: TREASURY_USE_FIRESTORE
+    value: "true"
+
 build:
   installCommand: npm install --legacy-peer-deps
   buildCommand: next build
-
-runConfig:
-  env:
-    # Firebase
-    - variable: FIREBASE_SERVICE_ACCOUNT_KEY
-      secret: FIREBASE_SERVICE_ACCOUNT_KEY
-      availability:
-        - BUILD
-        - RUNTIME
-    # Email
-    - variable: SENDGRID_API_KEY
-      secret: SENDGRID_API_KEY
-    - variable: SENDGRID_FROM_EMAIL
-      value: "orders@bakedbot.ai"
-    - variable: SENDGRID_FROM_NAME
-      value: "BakedBot Orders"
-    # Security
-    - variable: RECAPTCHA_SECRET_KEY
-      secret: RECAPTCHA_SECRET_KEY
-    - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-      secret: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-    # CannMenus
-    - variable: CANNMENUS_API_BASE
-      value: "https://api.cannmenus.com"
-    - variable: CANNMENUS_API_KEY
-      value: "e13ed642a92c177163ecff93c997d4ae"
-    # Authorize.Net
-    - variable: AUTHNET_API_LOGIN_ID
-      secret: AUTHNET_API_LOGIN_ID
-    - variable: AUTHNET_TRANSACTION_KEY
-      secret: AUTHNET_TRANSACTION_KEY
-    - variable: AUTHNET_ENV
-      value: "sandbox"
-    - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
-      secret: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
-    - variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
-      secret: AUTHNET_API_LOGIN_ID
-    # AI/Tools
-    - variable: CLAUDE_API_KEY
-      secret: CLAUDE_API_KEY
-    - variable: GEMINI_API_KEY
-      secret: GEMINI_API_KEY
-    - variable: SERPER_API_KEY
-      secret: SERPER_API_KEY
-      availability:
-        - BUILD
-        - RUNTIME
-    # SMS
-    - variable: LEAFBUYER_API_KEY
-      secret: LEAFBUYER_API_KEY
-    - variable: LEAFBUYER_API_SECRET
-      secret: LEAFBUYER_API_SECRET
-    - variable: LEAFBUYER_API_URL
-      secret: LEAFBUYER_API_URL
-    - variable: BLACKLEAF_API_KEY
-      secret: BLACKLEAF_API_KEY
-    - variable: BLACKLEAF_BASE_URL
-      value: "https://api.blackleaf.io"
-    # CannPay (Primary Payment Partner)
-    - variable: CANPAY_MODE
-      value: "sandbox"
-    - variable: CANPAY_ENVIRONMENT
-      value: "sandbox"
-    - variable: CANPAY_APP_KEY
-      secret: CANPAY_APP_KEY
-    - variable: CANPAY_API_SECRET
-      secret: CANPAY_API_SECRET
-    - variable: CANPAY_INTEGRATOR_ID
-      secret: CANPAY_INTEGRATOR_ID
-    - variable: CANPAY_INTERNAL_VERSION
-      value: "1.4.0"
-    # Stripe (Optional Payment Partner)
-    - variable: STRIPE_SECRET_KEY
-      secret: STRIPE_SECRET_KEY
-      availability:
-        - BUILD
-        - RUNTIME
-    - variable: STRIPE_WEBHOOK_SECRET
-      secret: STRIPE_WEBHOOK_SECRET
-      availability:
-        - BUILD
-        - RUNTIME
-    # Monitoring
-    - variable: SENTRY_DSN
-      secret: SENTRY_DSN
-      availability:
-        - BUILD
-        - RUNTIME
-    - variable: NEXT_PUBLIC_SENTRY_DSN
-      secret: SENTRY_DSN
-      availability:
-        - BUILD
-        - RUNTIME
-    # Dev/Security
-    - variable: NEXT_PUBLIC_DEV_AUTH_BYPASS
-      value: "false"
-    # Treasury
-    - variable: TREASURY_ENABLE_REAL_TRADING
-      value: "false"
-    - variable: TREASURY_USE_FIRESTORE
-      value: "true"
