@@ -21,21 +21,29 @@ function getServiceAccount() {
   };
 
   const key = getKey();
+  let serviceAccount;
 
   try {
     // 1. Try parsing as raw JSON first
-    return JSON.parse(key);
+    serviceAccount = JSON.parse(key);
   } catch (e) {
     // 2. If valid JSON fails, try Base64 decoding
     try {
       const decoded = Buffer.from(key, "base64").toString("utf8");
-      return JSON.parse(decoded);
+      serviceAccount = JSON.parse(decoded);
     } catch (decodeError) {
       console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY as JSON or Base64.", decodeError);
       // Re-throw the original error to be helpful, or throw a new one
       throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is invalid (not JSON and not Base64-encoded JSON).");
     }
   }
+
+  // Sanitize private_key to prevent "Unparsed DER bytes" errors
+  if (serviceAccount && typeof serviceAccount.private_key === 'string') {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n').trim();
+  }
+
+  return serviceAccount;
 }
 
 /**
