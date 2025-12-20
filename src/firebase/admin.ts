@@ -24,7 +24,7 @@ function getServiceAccount() {
 
     // Sanitize private_key to prevent "Unparsed DER bytes" errors
     if (serviceAccount && typeof serviceAccount.private_key === 'string') {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n').trim();
     }
 
     return serviceAccount;
