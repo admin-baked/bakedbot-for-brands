@@ -17,6 +17,7 @@ let app: App;
 function getServiceAccount() {
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   console.log('Initializing Firebase Admin. Key present:', !!serviceAccountKey);
+
   if (!serviceAccountKey) {
     throw new Error(
       "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. " +
@@ -24,18 +25,27 @@ function getServiceAccount() {
     );
   }
 
+  let serviceAccount;
+
   try {
     // First try to parse as raw JSON
-    return JSON.parse(serviceAccountKey);
+    serviceAccount = JSON.parse(serviceAccountKey);
   } catch (e) {
     try {
       const json = Buffer.from(serviceAccountKey, "base64").toString("utf8");
-      return JSON.parse(json);
+      serviceAccount = JSON.parse(json);
     } catch (decodeError) {
       console.error("Failed to parse service account key from Base64.", decodeError);
       throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not a valid JSON string or Base64-encoded JSON string.");
     }
   }
+
+  // Sanitize private_key to prevent "Unparsed DER bytes" errors
+  if (serviceAccount && typeof serviceAccount.private_key === 'string') {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+  }
+
+  return serviceAccount;
 }
 
 /**
