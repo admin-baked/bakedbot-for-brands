@@ -49,6 +49,9 @@ runConfig:
       secret: GEMINI_API_KEY
     - variable: SERPER_API_KEY
       secret: SERPER_API_KEY
+      availability:
+        - BUILD
+        - RUNTIME
     # SMS
     - variable: LEAFBUYER_API_KEY
       secret: LEAFBUYER_API_KEY
