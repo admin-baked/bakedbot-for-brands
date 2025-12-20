@@ -24,5 +24,6 @@ export async function GET() {
         status: 'ok',
         timestamp: new Date().toISOString(),
         env: envStatus,
+        availableKeys: Object.keys(process.env).sort(),
     });
 }
