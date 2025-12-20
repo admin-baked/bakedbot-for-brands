@@ -7,19 +7,27 @@ function getServiceAccount() {
     if (!serviceAccountKey) {
         return null;
     }
+    let serviceAccount;
     try {
         // First try to parse as raw JSON
-        return JSON.parse(serviceAccountKey);
+        serviceAccount = JSON.parse(serviceAccountKey);
     } catch (e) {
         // If not valid JSON, try base64 decoding
         try {
             const json = Buffer.from(serviceAccountKey, "base64").toString("utf8");
-            return JSON.parse(json);
+            serviceAccount = JSON.parse(json);
         } catch (decodeError) {
             console.error("Failed to parse service account key from Base64 or JSON.", decodeError);
             return null;
         }
     }
+
+    // Sanitize private_key to prevent "Unparsed DER bytes" errors
+    if (serviceAccount && typeof serviceAccount.private_key === 'string') {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+
+    return serviceAccount;
 }
 
 export function getAdminFirestore() {
