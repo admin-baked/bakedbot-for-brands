@@ -24,13 +24,17 @@ function getServiceAccount() {
 
     // Sanitize private_key to prevent "Unparsed DER bytes" errors
     if (serviceAccount && typeof serviceAccount.private_key === 'string') {
-        const rawKey = serviceAccount.private_key;
-        serviceAccount.private_key = rawKey.replace(/\\n/g, '\n').trim();
+        // 1. Handle escaped newlines
+        let privateKey = serviceAccount.private_key.replace(/\\n/g, '\n');
 
-        // DEBUG LOGGING (Temporary)
-        console.log(`[src/firebase/admin.ts] Parsed service account. Project ID: ${serviceAccount.project_id}`);
-        console.log(`[src/firebase/admin.ts] Private Key Length (Sanitized): ${serviceAccount.private_key.length}`);
-        console.log(`[src/firebase/admin.ts] Key starts with: ${JSON.stringify(serviceAccount.private_key.substring(0, 40))}`);
+        // 2. Extract ONLY the valid PEM block
+        const match = privateKey.match(/-----BEGIN PRIVATE KEY-----[\s\S]+?-----END PRIVATE KEY-----/);
+
+        if (match) {
+            serviceAccount.private_key = match[0];
+        } else {
+            serviceAccount.private_key = privateKey.trim();
+        }
     }
 
     return serviceAccount;
