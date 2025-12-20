@@ -55,6 +55,8 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/gcp_key.json"
           # env-config.json created before build, just deploy now
           firebase deploy --project studio-567050101-bc6e8 --force --only hosting,functions
+          # Activate gcloud with service account for Cloud Run update
+          gcloud auth activate-service-account --key-file="$HOME/gcp_key.json"
           # Set runtime env vars directly on the Cloud Run service
           gcloud run services update ssrstudio567050101bc6e8 \
             --region=us-central1 \
