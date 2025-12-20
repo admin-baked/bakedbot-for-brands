@@ -22,14 +22,14 @@ env:
   #   availability:
   #     - RUNTIME
   # Security
-  - variable: RECAPTCHA_SECRET_KEY
-    secret: RECAPTCHA_SECRET_KEY
-    availability:
-      - RUNTIME
-  - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-    secret: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-    availability:
-      - RUNTIME
+  # - variable: RECAPTCHA_SECRET_KEY
+  #   secret: RECAPTCHA_SECRET_KEY
+  #   availability:
+  #     - RUNTIME
+  # - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+  #   secret: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+  #   availability:
+  #     - RUNTIME
   # CannMenus
   - variable: CANNMENUS_API_BASE
     value: "https://api.cannmenus.com"
@@ -119,14 +119,14 @@ env:
   #   availability:
   #     - RUNTIME
   # Monitoring
-  - variable: SENTRY_DSN
-    secret: SENTRY_DSN
-    availability:
-      - RUNTIME
-  - variable: NEXT_PUBLIC_SENTRY_DSN
-    secret: SENTRY_DSN
-    availability:
-      - RUNTIME
+  # - variable: SENTRY_DSN
+  #   secret: SENTRY_DSN
+  #   availability:
+  #     - RUNTIME
+  # - variable: NEXT_PUBLIC_SENTRY_DSN
+  #   secret: SENTRY_DSN
+  #   availability:
+  #     - RUNTIME
   # Dev/Security
   - variable: NEXT_PUBLIC_DEV_AUTH_BYPASS
     value: "false"
