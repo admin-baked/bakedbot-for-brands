@@ -26,7 +26,11 @@ export interface SearchResponse {
  * Search the web using Serper.dev (Google Search API)
  */
 export async function searchWeb(query: string, numResults: number = 5): Promise<SearchResponse> {
+    // Read API key fresh at runtime (not cached at module load)
     const apiKey = process.env.SERPER_API_KEY;
+
+    // Debug logging for production troubleshooting
+    console.log('[searchWeb] API Key status:', apiKey ? `SET (${apiKey.length} chars, starts with ${apiKey.substring(0, 4)})` : 'NOT SET');
 
     if (!apiKey) {
         console.warn('[searchWeb] SERPER_API_KEY not configured');
@@ -49,6 +53,8 @@ export async function searchWeb(query: string, numResults: number = 5): Promise<
                 q: query,
                 num: numResults,
             }),
+            // Prevent Next.js from caching this API call
+            cache: 'no-store',
         });
 
         if (!response.ok) {
