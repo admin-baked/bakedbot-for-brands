@@ -52,11 +52,12 @@ function getServiceAccount() {
       const bodyRaw = match[2];
       let bodyClean = bodyRaw.replace(/[^a-zA-Z0-9+/=]/g, '');
 
-      // 4n+1 length is invalid Base64 and implies 1 extraneous char.
-      // We deterministically truncate it to solve the specific 1629 -> 1628 issue.
+      // 4n+1 length is invalid Base64.
+      // 1629 -> 1628 failed (Access Denied / Unparsed DER).
+      // This implies the key is shorter. Truncate 5 chars (1629 -> 1624).
       if (bodyClean.length % 4 === 1) {
-        console.log(`[src/server/server-client.ts] Truncating invalid 4n+1 body: ${bodyClean.length} -> ${bodyClean.length - 1}`);
-        bodyClean = bodyClean.slice(0, -1);
+        console.log(`[src/server/server-client.ts] Aggressively truncating invalid 4n+1 body: ${bodyClean.length} -> ${bodyClean.length - 5}`);
+        bodyClean = bodyClean.slice(0, -5);
       }
 
       // Fix Padding: Ensure length is multiple of 4
