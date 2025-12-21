@@ -1,4 +1,4 @@
-export type UserProfile = {
+export type DomainUserProfile = {
     id: string;
     uid: string;
     email: string | null;

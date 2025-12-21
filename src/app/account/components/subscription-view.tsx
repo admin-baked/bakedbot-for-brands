@@ -95,8 +95,8 @@ export function SubscriptionView() {
                 <BillingForm
                     organizationId={userData.currentOrgId as string}
                     locationCount={1} // TODO: Fetch real location count
-                    customerEmail={userData.email || undefined}
-                    customerName={userData.firstName && userData.lastName ? `${userData.firstName} ${userData.lastName}` : (userData.displayName || undefined)}
+                    customerEmail={userData.email ?? undefined}
+                    customerName={userData.firstName && userData.lastName ? `${userData.firstName} ${userData.lastName}` : (userData.displayName ?? undefined)}
                 />
             </div>
         </div>
