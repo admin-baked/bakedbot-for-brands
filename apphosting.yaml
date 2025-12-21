@@ -10,7 +10,7 @@ env:
       - RUNTIME
   # Email
   - variable: SENDGRID_API_KEY
-    secret: SENDGRID_API_KEY
+    secret: SENDGRID_API_KEY@2
     availability:
       - RUNTIME
   - variable: SENDGRID_FROM_EMAIL
@@ -36,7 +36,7 @@ env:
     availability:
       - RUNTIME
   - variable: CANNMENUS_API_KEY
-    value: "e13ed642a92c177163ecff93c997d4ae"
+    secret: CANNMENUS_API_KEY@3
     availability:
       - RUNTIME
   # Authorize.Net
@@ -64,11 +64,11 @@ env:
   #   availability:
   #     - RUNTIME
   - variable: GEMINI_API_KEY
-    secret: GEMINI_API_KEY
+    secret: GEMINI_API_KEY@2
     availability:
       - RUNTIME
   - variable: SERPER_API_KEY
-    secret: SERPER_API_KEY
+    secret: SERPER_API_KEY@3
     availability:
       - RUNTIME
   # SMS
