@@ -40,68 +40,36 @@ function getServiceAccount() {
 
   // Sanitize private_key to prevent "Unparsed DER bytes" errors
   if (serviceAccount && typeof serviceAccount.private_key === 'string') {
-    try {
-      // Using dynamic import for 'node:crypto' to ensure it's only loaded in Node.js environments
-      // and to avoid potential issues in non-Node.js contexts if this file were ever bundled for client.
-      const { createPrivateKey } = require('node:crypto'); // Using require for synchronous import in this context
-      const rawKey = serviceAccount.private_key;
+    const rawKey = serviceAccount.private_key;
 
-      // Pattern to capture Header (group 1), Body (group 2), Footer (group 3)
-      const pemPattern = /(-+BEGIN\s+.*PRIVATE\s+KEY-+)([\s\S]+?)(-+END\s+.*PRIVATE\s+KEY-+)/;
-      const match = rawKey.match(pemPattern);
+    // Pattern to capture Header (group 1), Body (group 2), Footer (group 3)
+    const pemPattern = /(-+BEGIN\s+.*PRIVATE\s+KEY-+)([\s\S]+?)(-+END\s+.*PRIVATE\s+KEY-+)/;
+    const match = rawKey.match(pemPattern);
 
-      if (match) {
-        const header = "-----BEGIN PRIVATE KEY-----";
-        const footer = "-----END PRIVATE KEY-----";
-        const bodyRaw = match[2];
-        const bodyClean = bodyRaw.replace(/[^a-zA-Z0-9+/=]/g, '');
+    if (match) {
+      const header = "-----BEGIN PRIVATE KEY-----";
+      const footer = "-----END PRIVATE KEY-----";
+      const bodyRaw = match[2];
+      let bodyClean = bodyRaw.replace(/[^a-zA-Z0-9+/=]/g, '');
 
-        // Candidates to try:
-        // 1. Exact clean body (padded if needed)
-        // 2. Truncated by 1 char (likely fix for 1629 -> 1628)
-        // 3. Truncated by 2 chars
-        const candidates = [bodyClean];
-        if (bodyClean.length > 1) candidates.push(bodyClean.slice(0, -1));
-        if (bodyClean.length > 2) candidates.push(bodyClean.slice(0, -2));
-
-        let bestKey = null;
-
-        for (const body of candidates) {
-          // Ensure padding
-          let candidateBody = body;
-          while (candidateBody.length % 4 !== 0) {
-            candidateBody += '=';
-          }
-
-          const candidateKey = `${header}\n${candidateBody.match(/.{1,64}/g)?.join('\n')}\n${footer}\n`;
-
-          try {
-            // Test if Node accepts this key
-            createPrivateKey(candidateKey);
-            // If no error, this is our key!
-            bestKey = candidateKey;
-            console.log(`[src/server/server-client.ts] Repaired Key Found! BodyLen: ${body.length} -> ${candidateBody.length}`);
-            break;
-          } catch (err) {
-            // Continue to next candidate
-          }
-        }
-
-        if (bestKey) {
-          serviceAccount.private_key = bestKey;
-        } else {
-          console.error(`[src/server/server-client.ts] Could not auto-repair key. Using strict normalization fallback.`);
-          // Fallback to strict padding
-          let fallbackBody = bodyClean;
-          while (fallbackBody.length % 4 !== 0) fallbackBody += '=';
-          serviceAccount.private_key = `${header}\n${fallbackBody.match(/.{1,64}/g)?.join('\n')}\n${footer}\n`;
-        }
-
-      } else {
-        serviceAccount.private_key = rawKey.trim().replace(/\\n/g, '\n');
+      // 4n+1 length is invalid Base64 and implies 1 extraneous char.
+      // We deterministically truncate it to solve the specific 1629 -> 1628 issue.
+      if (bodyClean.length % 4 === 1) {
+        console.log(`[src/server/server-client.ts] Truncating invalid 4n+1 body: ${bodyClean.length} -> ${bodyClean.length - 1}`);
+        bodyClean = bodyClean.slice(0, -1);
       }
-    } catch (err) {
-      console.error("[src/server/server-client.ts] Error during key repair:", err);
+
+      // Fix Padding: Ensure length is multiple of 4
+      while (bodyClean.length % 4 !== 0) {
+        bodyClean += '=';
+      }
+
+      const bodyFormatted = bodyClean.match(/.{1,64}/g)?.join('\n') || bodyClean;
+      serviceAccount.private_key = `${header}\n${bodyFormatted}\n${footer}\n`;
+
+      console.log(`[src/server/server-client.ts] Key Normalized. BodyLen: ${bodyClean.length}`);
+    } else {
+      serviceAccount.private_key = rawKey.trim().replace(/\\n/g, '\n');
     }
   }
 
