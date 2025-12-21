@@ -114,3 +114,33 @@ Resolved a TypeScript build error in the modular dashboard and fully implemented
 
 ### Tests Run
 *   `npm test src/app/account` (Passed: 3 suites, 7 tests).
+
+---
+
+## Session: Fix Type Errors & Build Deploy
+**Date:** 2025-12-21
+**Task ID:** BUILD-FIX-002
+
+### Summary
+Resolved Firebase App Hosting build errors caused by type mismatches between local and remote environments.
+
+### Key Changes
+1.  **Type Refactoring:**
+    *   Renamed `UserProfile` to `DomainUserProfile` in `src/types/users.ts` to avoid type collisions/shadowing.
+    *   Updated all references in:
+        - `src/hooks/use-user.ts`
+        - `src/hooks/use-user-role.ts`
+        - `src/server/auth/rbac.ts`
+        - `src/server/auth/auth-helpers.ts`
+        - `src/firebase/server-client.ts`
+
+2.  **Strict Null Handling:**
+    *   Fixed `subscription-view.tsx` to use nullish coalescing (`??`) instead of logical OR (`||`) for optional props.
+
+### Tests Run
+*   `npm run check:types` (Passed)
+*   `npm test -- profile-view.test.tsx` (Passed: 2 tests)
+
+### Commit
+*   `45babd38`: `fix: rename UserProfile to DomainUserProfile and fix strict null checks`
+
