@@ -22,14 +22,14 @@ env:
     availability:
       - RUNTIME
   # Security
-  - variable: RECAPTCHA_SECRET_KEY
-    secret: RECAPTCHA_SECRET_KEY
-    availability:
-      - RUNTIME
-  - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-    secret: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-    availability:
-      - RUNTIME
+  # - variable: RECAPTCHA_SECRET_KEY
+  #   secret: RECAPTCHA_SECRET_KEY
+  #   availability:
+  #     - RUNTIME
+  # - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+  #   secret: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+  #   availability:
+  #     - RUNTIME
   # CannMenus
   - variable: CANNMENUS_API_BASE
     value: "https://api.cannmenus.com"
@@ -40,29 +40,29 @@ env:
     availability:
       - RUNTIME
   # Authorize.Net
-  - variable: AUTHNET_API_LOGIN_ID
-    secret: AUTHNET_API_LOGIN_ID
-    availability:
-      - RUNTIME
-  - variable: AUTHNET_TRANSACTION_KEY
-    secret: AUTHNET_TRANSACTION_KEY
-    availability:
-      - RUNTIME
+  # - variable: AUTHNET_API_LOGIN_ID
+  #   secret: AUTHNET_API_LOGIN_ID
+  #   availability:
+  #     - RUNTIME
+  # - variable: AUTHNET_TRANSACTION_KEY
+  #   secret: AUTHNET_TRANSACTION_KEY
+  #   availability:
+  #     - RUNTIME
   - variable: AUTHNET_ENV
     value: "sandbox"
-  - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
-    secret: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
-    availability:
-      - RUNTIME
-  - variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
-    secret: AUTHNET_API_LOGIN_ID
-    availability:
-      - RUNTIME
+  # - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
+  #   secret: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
+  #   availability:
+  #     - RUNTIME
+  # - variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
+  #   secret: AUTHNET_API_LOGIN_ID
+  #   availability:
+  #     - RUNTIME
   # AI/Tools
-  - variable: CLAUDE_API_KEY
-    secret: CLAUDE_API_KEY
-    availability:
-      - RUNTIME
+  # - variable: CLAUDE_API_KEY
+  #   secret: CLAUDE_API_KEY
+  #   availability:
+  #     - RUNTIME
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY
     availability:
@@ -72,22 +72,22 @@ env:
     availability:
       - RUNTIME
   # SMS
-  - variable: LEAFBUYER_API_KEY
-    secret: LEAFBUYER_API_KEY
-    availability:
-      - RUNTIME
-  - variable: LEAFBUYER_API_SECRET
-    secret: LEAFBUYER_API_SECRET
-    availability:
-      - RUNTIME
-  - variable: LEAFBUYER_API_URL
-    secret: LEAFBUYER_API_URL
-    availability:
-      - RUNTIME
-  - variable: BLACKLEAF_API_KEY
-    secret: BLACKLEAF_API_KEY
-    availability:
-      - RUNTIME
+  # - variable: LEAFBUYER_API_KEY
+  #   secret: LEAFBUYER_API_KEY
+  #   availability:
+  #     - RUNTIME
+  # - variable: LEAFBUYER_API_SECRET
+  #   secret: LEAFBUYER_API_SECRET
+  #   availability:
+  #     - RUNTIME
+  # - variable: LEAFBUYER_API_URL
+  #   secret: LEAFBUYER_API_URL
+  #   availability:
+  #     - RUNTIME
+  # - variable: BLACKLEAF_API_KEY
+  #   secret: BLACKLEAF_API_KEY
+  #   availability:
+  #     - RUNTIME
   - variable: BLACKLEAF_BASE_URL
     value: "https://api.blackleaf.io"
   # CanPay
@@ -95,38 +95,38 @@ env:
     value: "sandbox"
   - variable: CANPAY_ENVIRONMENT
     value: "sandbox"
-  - variable: CANPAY_APP_KEY
-    secret: CANPAY_APP_KEY
-    availability:
-      - RUNTIME
-  - variable: CANPAY_API_SECRET
-    secret: CANPAY_API_SECRET
-    availability:
-      - RUNTIME
-  - variable: CANPAY_INTEGRATOR_ID
-    secret: CANPAY_INTEGRATOR_ID
-    availability:
-      - RUNTIME
+  # - variable: CANPAY_APP_KEY
+  #   secret: CANPAY_APP_KEY
+  #   availability:
+  #     - RUNTIME
+  # - variable: CANPAY_API_SECRET
+  #   secret: CANPAY_API_SECRET
+  #   availability:
+  #     - RUNTIME
+  # - variable: CANPAY_INTEGRATOR_ID
+  #   secret: CANPAY_INTEGRATOR_ID
+  #   availability:
+  #     - RUNTIME
   - variable: CANPAY_INTERNAL_VERSION
     value: "1.4.0"
   # Stripe
-  - variable: STRIPE_SECRET_KEY
-    secret: STRIPE_SECRET_KEY
-    availability:
-      - RUNTIME
-  - variable: STRIPE_WEBHOOK_SECRET
-    secret: STRIPE_WEBHOOK_SECRET
-    availability:
-      - RUNTIME
+  # - variable: STRIPE_SECRET_KEY
+  #   secret: STRIPE_SECRET_KEY
+  #   availability:
+  #     - RUNTIME
+  # - variable: STRIPE_WEBHOOK_SECRET
+  #   secret: STRIPE_WEBHOOK_SECRET
+  #   availability:
+  #     - RUNTIME
   # Monitoring
-  - variable: SENTRY_DSN
-    secret: SENTRY_DSN
-    availability:
-      - RUNTIME
-  - variable: NEXT_PUBLIC_SENTRY_DSN
-    secret: SENTRY_DSN
-    availability:
-      - RUNTIME
+  # - variable: SENTRY_DSN
+  #   secret: SENTRY_DSN
+  #   availability:
+  #     - RUNTIME
+  # - variable: NEXT_PUBLIC_SENTRY_DSN
+  #   secret: SENTRY_DSN
+  #   availability:
+  #     - RUNTIME
   # Dev/Security
   - variable: NEXT_PUBLIC_DEV_AUTH_BYPASS
     value: "false"
