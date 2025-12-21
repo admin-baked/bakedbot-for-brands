@@ -176,3 +176,30 @@ Enabled widget drag/drop/remove functionality on the Brand Dashboard by making t
 ### Commit
 *   `08123e65`: `feat: enable modular dashboard by default with brand-specific widgets`
 
+---
+
+## Session: Brand Data Import + Widget Bug Fix
+**Date:** 2025-12-21
+**Task ID:** BRAND-IMPORT-001
+
+### Summary
+Fixed critical production bug in modular dashboard and started Brand Page product import integration.
+
+### Key Changes
+1.  **Bug Fix: WidthProvider Import**
+    *   Fixed `(0, tr.WidthProvider) is not a function` error crashing production dashboard
+    *   Changed react-grid-layout import to use module-level WidthProvider extraction
+
+2.  **Brand Page Products Section:**
+    *   Created `SyncedProductsGrid` component showing imported products with source badges
+    *   Replaced "Coming Soon" placeholder with functional product display
+    *   Shows CannMenus/Leafly/POS/Manual source indicators
+
+### Tests Run
+*   `npm run check:types` (Passed)
+*   `npm test -- synced-products-grid.test.tsx` (Passed: 2 tests)
+
+### Commits
+*   `9f894e27`: `fix: resolve WidthProvider import for react-grid-layout in production`
+*   `8d287f47`: `feat: add synced products grid to Brand Page with source badges`
+
