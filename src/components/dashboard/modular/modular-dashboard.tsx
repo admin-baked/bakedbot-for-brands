@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import GridLayout from 'react-grid-layout';
+import ReactGridLayout from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { Button } from '@/components/ui/button';
@@ -140,10 +140,10 @@ export function ModularDashboard({
     // Get existing widget types
     const existingWidgetTypes = widgets.map(w => w.widgetType);
 
-    // Cast GridLayout to bypass type issues with react-grid-layout v2 bundled types
-    const Grid = GridLayout as any;
-    const WidthProvider = Grid.WidthProvider;
-    const ResponsiveGrid = WidthProvider(Grid);
+    // Correctly handle React-Grid-Layout imports for Next.js
+    const ResponsiveGridLayout = ReactGridLayout as unknown as React.ComponentType<any>;
+    const WidthProvider = ReactGridLayout.WidthProvider;
+    const ResponsiveGrid = WidthProvider(ResponsiveGridLayout);
 
     // Render grid with type assertion for react-grid-layout v2
     const renderGrid = () => {
