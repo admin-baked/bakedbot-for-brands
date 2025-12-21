@@ -1,6 +1,37 @@
 
 # Progress Log
 
+## Session: Wiring Products Page & Resolving Permissions
+**Date:** 2025-12-21
+**Task ID:** WIRING-PRODUCTS-PAGE-001
+
+### Summary
+Successfully implemented the data source hierarchy for the Products Page and resolved critical permission errors preventing the Brand Page from loading.
+
+### Key Changes
+1.  **Products Page Wiring:**
+    *   Updated `Product` type with `source` ('pos' | 'cannmenus' | 'leafly' | 'scrape') and `sourceTimestamp`.
+    *   Implemented `waterfall imports` in `products/actions.ts`: CannMenus -> Mock/Leafly -> Scrape.
+    *   Added `POS Sync` logic in `integrations/actions.ts` to attribute products to 'pos'.
+    *   Updated UI with "Live", "Delayed", and "Manual" badges.
+    *   Added POS connection alerts for dispensaries.
+
+2.  **Permission Fixes:**
+    *   Updated `firestore.rules` to allow `read` access to `brands` collection for all users (public profiles).
+    *   Allowed `read` access to `organizations` collection for authenticated users (required for plan info checks).
+
+3.  **Tests & Validation:**
+    *   Created `src/app/dashboard/products/__tests__/actions.test.ts`.
+    *   Tests verified waterfall logic and source attribution.
+    *   Fixed build error in `playbooks.ts`.
+    *   Fixed duplicate imports in `products/page.tsx`.
+
+### Tests Run
+*   `npm test -- actions.test.ts` (Passed after fixing imports and mocking leafly-connector).
+*   `npm run build` (Passed).
+
+---
+
 ## Phase G: Model B Claim-Based Access (Current)
 
 **Status**: In Progress  

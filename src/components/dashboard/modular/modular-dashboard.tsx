@@ -141,9 +141,10 @@ export function ModularDashboard({
     const existingWidgetTypes = widgets.map(w => w.widgetType);
 
     // Correctly handle React-Grid-Layout imports for Next.js
-    const ResponsiveGridLayout = ReactGridLayout as unknown as React.ComponentType<any>;
-    const WidthProvider = ReactGridLayout.WidthProvider;
-    const ResponsiveGrid = WidthProvider(ResponsiveGridLayout);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Grid = ReactGridLayout as any;
+    const WidthProvider = Grid.WidthProvider;
+    const ResponsiveGrid = WidthProvider(Grid);
 
     // Render grid with type assertion for react-grid-layout v2
     const renderGrid = () => {
