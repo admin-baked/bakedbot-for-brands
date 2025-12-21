@@ -2,14 +2,14 @@
 
 import { cookies } from 'next/headers';
 import { verifyIdToken, getUserProfile } from '@/firebase/server-client';
-import { UserProfile } from '@/types/domain';
+import { DomainUserProfile } from '@/types/domain';
 
 import { logger } from '@/lib/logger';
 /**
  * Get the current authenticated user from the request
  * Returns null if not authenticated
  */
-export async function getCurrentUser(): Promise<UserProfile | null> {
+export async function getCurrentUser(): Promise<DomainUserProfile | null> {
     try {
         const cookieStore = await cookies();
         const token = cookieStore.get('__session')?.value;
@@ -31,7 +31,7 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
 /**
  * Require authentication - throws error if not authenticated
  */
-export async function requireAuth(): Promise<UserProfile> {
+export async function requireAuth(): Promise<DomainUserProfile> {
     const user = await getCurrentUser();
 
     if (!user) {
@@ -69,7 +69,7 @@ export function getAuthToken(request: Request): string | null {
  */
 export async function getUserFromRequest(
     request: Request
-): Promise<UserProfile | null> {
+): Promise<DomainUserProfile | null> {
     try {
         const token = getAuthToken(request);
 
@@ -92,7 +92,7 @@ export async function getUserFromRequest(
  */
 export async function requireAuthFromRequest(
     request: Request
-): Promise<UserProfile> {
+): Promise<DomainUserProfile> {
     const user = await getUserFromRequest(request);
 
     if (!user) {

@@ -10,7 +10,7 @@ import {
 } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth, DecodedIdToken } from "firebase-admin/auth";
-import { UserProfile } from "@/types/domain";
+import { DomainUserProfile } from "@/types/domain";
 
 let app: App;
 
@@ -119,7 +119,7 @@ export async function verifyIdToken(token: string): Promise<DecodedIdToken> {
 /**
  * Get user profile from Firestore by UID
  */
-export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+export async function getUserProfile(uid: string): Promise<DomainUserProfile | null> {
   const { firestore } = await createServerClient();
   const userDoc = await firestore.collection('users').doc(uid).get();
 
@@ -127,7 +127,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     return null;
   }
 
-  return userDoc.data() as UserProfile;
+  return userDoc.data() as DomainUserProfile;
 }
 
 /**

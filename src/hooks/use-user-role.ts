@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
-import type { UserProfile } from '@/types/domain';
+import type { DomainUserProfile } from '@/types/domain';
 
 export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
 

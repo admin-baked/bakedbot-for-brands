@@ -1,6 +1,6 @@
 // src/server/auth/rbac.ts
 
-import { UserProfile } from '@/types/domain';
+import { DomainUserProfile } from '@/types/domain';
 
 export type UserRole = 'brand' | 'dispensary' | 'customer' | 'owner';
 
@@ -48,7 +48,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 /**
  * Check if a user has a specific role
  */
-export function hasRole(user: UserProfile | null, role: UserRole): boolean {
+export function hasRole(user: DomainUserProfile | null, role: UserRole): boolean {
     if (!user || !user.role) return false;
     return user.role === role || user.role === 'owner';
 }
@@ -57,7 +57,7 @@ export function hasRole(user: UserProfile | null, role: UserRole): boolean {
  * Check if a user has a specific permission
  */
 export function hasPermission(
-    user: UserProfile | null,
+    user: DomainUserProfile | null,
     permission: Permission
 ): boolean {
     if (!user || !user.role) return false;
@@ -73,7 +73,7 @@ export function hasPermission(
  * Check if a user can access a specific brand
  */
 export function canAccessBrand(
-    user: UserProfile | null,
+    user: DomainUserProfile | null,
     brandId: string
 ): boolean {
     if (!user) return false;
@@ -93,7 +93,7 @@ export function canAccessBrand(
  * Check if a user can access a specific dispensary
  */
 export function canAccessDispensary(
-    user: UserProfile | null,
+    user: DomainUserProfile | null,
     dispensaryId: string
 ): boolean {
     if (!user) return false;
@@ -113,7 +113,7 @@ export function canAccessDispensary(
  * Check if a user can access a specific order
  */
 export function canAccessOrder(
-    user: UserProfile | null,
+    user: DomainUserProfile | null,
     order: { userId?: string; brandId?: string; retailerId?: string }
 ): boolean {
     if (!user) return false;
@@ -142,7 +142,7 @@ export function canAccessOrder(
 /**
  * Get all permissions for a user
  */
-export function getUserPermissions(user: UserProfile | null): Permission[] {
+export function getUserPermissions(user: DomainUserProfile | null): Permission[] {
     if (!user || !user.role) return [];
     return ROLE_PERMISSIONS[user.role] || [];
 }
@@ -151,7 +151,7 @@ export function getUserPermissions(user: UserProfile | null): Permission[] {
  * Require a specific permission (throws error if not authorized)
  */
 export function requirePermission(
-    user: UserProfile | null,
+    user: DomainUserProfile | null,
     permission: Permission
 ): void {
     if (!hasPermission(user, permission)) {
@@ -162,7 +162,7 @@ export function requirePermission(
 /**
  * Require a specific role (throws error if not authorized)
  */
-export function requireRole(user: UserProfile | null, role: UserRole): void {
+export function requireRole(user: DomainUserProfile | null, role: UserRole): void {
     if (!hasRole(user, role)) {
         throw new Error(`Unauthorized: requires role ${role}`);
     }
@@ -172,7 +172,7 @@ export function requireRole(user: UserProfile | null, role: UserRole): void {
  * Require brand access (throws error if not authorized)
  */
 export function requireBrandAccess(
-    user: UserProfile | null,
+    user: DomainUserProfile | null,
     brandId: string
 ): void {
     if (!canAccessBrand(user, brandId)) {
