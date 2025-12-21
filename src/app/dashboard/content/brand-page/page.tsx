@@ -61,29 +61,43 @@ export default function BrandPageManager() {
 
                 if (bId) {
                     // 2. Get brand doc
-                    const brandRef = doc(db, 'brands', bId);
-                    const brandDoc = await getDoc(brandRef);
+                    try {
+                        const brandRef = doc(db, 'brands', bId);
+                        const brandDoc = await getDoc(brandRef);
 
-                    if (brandDoc.exists()) {
-                        const bData = brandDoc.data();
-                        console.log('[BrandPage] Brand data found:', bData.name);
-                        setBrand({ id: bId, ...bData });
-                        setFormData({
-                            description: bData.description || '',
-                            logoUrl: bData.logoUrl || '',
-                            coverImageUrl: bData.coverImageUrl || '',
-                            websiteUrl: bData.websiteUrl || ''
-                        });
-                    } else {
-                        console.warn('[BrandPage] Brand document not found:', bId);
-                        // Fallback to name from user doc if available
-                        setBrand({ id: bId, name: userData?.brandName || 'Unknown Brand' });
+                        if (brandDoc.exists()) {
+                            const bData = brandDoc.data();
+                            console.log('[BrandPage] Brand data found:', bData.name);
+                            setBrand({ id: bId, ...bData });
+                            setFormData({
+                                description: bData.description || '',
+                                logoUrl: bData.logoUrl || '',
+                                coverImageUrl: bData.coverImageUrl || '',
+                                websiteUrl: bData.websiteUrl || ''
+                            });
+                        } else {
+                            console.warn('[BrandPage] Brand document not found:', bId);
+                            // Fallback to name from user doc if available
+                            setBrand({ id: bId, name: userData?.brandName || 'Unknown Brand' });
+                        }
+                    } catch (brandError) {
+                        console.error('[BrandPage] Error reading brand doc:', brandError);
+                        throw brandError;
                     }
                 } else {
                     console.log('[BrandPage] No brandId associated with this user.');
                 }
             } catch (error: any) {
                 console.error('[BrandPage] Error loading brand:', error);
+
+                // Detailed debug info
+                if (error.code === 'permission-denied') {
+                    console.error('PERMISSION DENIED DEBUG:', {
+                        userId: user.uid,
+                        attemptedPath: 'users/' + user.uid
+                    });
+                }
+
                 toast({
                     variant: 'destructive',
                     title: 'Error Loading Brand',
