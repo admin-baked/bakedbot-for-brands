@@ -113,6 +113,35 @@ export const columns: ColumnDef<Product>[] = [
     header: 'Category',
   },
   {
+    accessorKey: 'source',
+    header: 'Source',
+    cell: ({ row }) => {
+      const source = (row.getValue('source') as string) || 'manual';
+      const isLive = source === 'pos';
+      const isDelayed = ['cannmenus', 'leafly', 'scrape'].includes(source);
+
+      return (
+        <div className="flex items-center">
+          {isLive && (
+            <span className="inline-flex items-center rounded-full border border-green-500/30 bg-green-500/10 px-2.5 py-0.5 text-xs font-semibold text-green-500">
+              Live
+            </span>
+          )}
+          {isDelayed && (
+            <span className="inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2.5 py-0.5 text-xs font-semibold text-yellow-500" title="Backup data (may be delayed)">
+              Delayed
+            </span>
+          )}
+          {!isLive && !isDelayed && (
+            <span className="inline-flex items-center rounded-full border border-gray-500/30 bg-gray-500/10 px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+              Manual
+            </span>
+          )}
+        </div>
+      );
+    }
+  },
+  {
     accessorKey: 'id', // Virtual column for Score
     id: 'score',
     header: 'Product Score',

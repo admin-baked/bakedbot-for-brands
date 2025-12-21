@@ -57,6 +57,8 @@ export type Product = {
     lineage?: StrainLineage;
     thcPercent?: number; // Quick access
     cbdPercent?: number; // Quick access
+    source?: 'manual' | 'pos' | 'cannmenus' | 'leafly' | 'scrape'; // Data source
+    sourceTimestamp?: Date; // Last synced with source
 };
 
 export type Retailer = {
