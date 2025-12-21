@@ -5,10 +5,15 @@
  * Drag-and-drop dashboard with role-aware widgets and layout persistence
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactGridLayout from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+
+// WidthProvider is available on the default export, not as named export in types
+const WidthProvider = (ReactGridLayout as any).WidthProvider as (
+    component: typeof ReactGridLayout
+) => React.ComponentType<any>;
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RotateCcw, Save } from 'lucide-react';
@@ -140,11 +145,8 @@ export function ModularDashboard({
     // Get existing widget types
     const existingWidgetTypes = widgets.map(w => w.widgetType);
 
-    // Correctly handle React-Grid-Layout imports for Next.js
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const Grid = ReactGridLayout as any;
-    const WidthProvider = Grid.WidthProvider;
-    const ResponsiveGrid = WidthProvider(Grid);
+    // Create responsive grid using imported WidthProvider (memoized to avoid recreation)
+    const ResponsiveGrid = useMemo(() => WidthProvider(ReactGridLayout), []);
 
     // Render grid with type assertion for react-grid-layout v2
     const renderGrid = () => {
