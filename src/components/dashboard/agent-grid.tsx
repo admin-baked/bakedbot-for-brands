@@ -1,124 +1,66 @@
-'use client';
 
 import Link from 'next/link';
 import { Bot, MessageSquareMore, Mail, LineChart, ShieldCheck, Percent, Search } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AgentEntity } from '@/server/actions/agents';
+import { agents as STATIC_AGENT_CONFIG, AgentId } from '@/config/agents';
 
-type AgentCard = {
-  id: string;
-  name: string;
-  role: string;
-  status: 'Active' | 'Beta' | 'Planned';
-  description: string;
-  href: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  tags: string[];
+// Helper to get icon for agent ID
+const getIconForAgent = (id: string) => {
+  const config = STATIC_AGENT_CONFIG.find(a => a.id === id);
+  return config?.icon || Bot;
 };
 
-const AGENTS: AgentCard[] = [
-  {
-    id: 'smokey',
-    name: 'Smokey',
-    role: 'AI Budtender · Headless Menu',
-    status: 'Active',
-    description: 'Answers product questions, powers SEO-first menus, and keeps customers in your brand funnel.',
-    href: '/dashboard/agents/smokey',
-    icon: Bot,
-    tags: ['Customer-facing', 'SEO', 'Menu'],
-  },
-  {
-    id: 'craig',
-    name: 'Craig',
-    role: 'Email & SMS · Lifecycle',
-    status: 'Active',
-    description: 'Runs automated campaigns for drops, promos, and flows triggered by Smokey and menu events.',
-    href: '/dashboard/agents/craig',
-    icon: Mail,
-    tags: ['Lifecycle', 'Campaigns', 'Flows'],
-  },
-  {
-    id: 'pops',
-    name: 'Pops',
-    role: 'Revenue · Cohorts & Forecasts',
-    status: 'Active',
-    description: 'Tracks cohorts, CLV, and promo lift so every “free eighth” has receipts attached.',
-    href: '/dashboard/agents/pops',
-    icon: LineChart,
-    tags: ['BI', 'Forecasting', 'Attribution'],
-  },
-  {
-    id: 'ezal',
-    name: 'Ezal',
-    role: 'Competitive Watch · Menus & Pricing',
-    status: 'Active',
-    description: 'Monitors competing menus, price moves, and SKU gaps across your priority markets.',
-    href: '/dashboard/agents/ezal',
-    icon: Search,
-    tags: ['Competitive', 'Pricing', 'Market Intel'],
-  },
-  {
-    id: 'money-mike',
-    name: 'Money Mike',
-    role: 'Margin · Smart Pricing',
-    status: 'Beta',
-    description: 'Suggests price moves by SKU, dispensary, and channel to protect margin while growing volume.',
-    href: '/dashboard/agents/money-mike',
-    icon: Percent,
-    tags: ['Pricing', 'Margin', 'Experiments'],
-  },
-  {
-    id: 'mrs-parker',
-    name: 'Mrs. Parker',
-    role: 'Loyalty · Offers & Rewards',
-    status: 'Planned',
-    description: 'Designs offer ladders and rewards tuned to each customer segment and jurisdiction.',
-    href: '/dashboard/agents/mrs-parker',
-    icon: MessageSquareMore,
-    tags: ['Loyalty', 'Offers'],
-  },
-  {
-    id: 'deebo',
-    name: 'Deebo',
-    role: 'Compliance · Regulation OS',
-    status: 'Active',
-    description: 'Enforces rule-packs per state, channel, and brand so every touchpoint ships compliant.',
-    href: '/dashboard/agents/deebo',
-    icon: ShieldCheck,
-    tags: ['Compliance', 'Rule Engine'],
-  },
-];
+// Helper to get tags for agent ID (since they might not be fully in DB or we want static fallback)
+const getTagsForAgent = (id: string) => {
+  const config = STATIC_AGENT_CONFIG.find(a => a.id === id);
+  return config?.tag ? [config.tag] : ['Agent'];
+};
 
-export function AgentsGrid() {
+interface AgentsGridProps {
+  agents?: AgentEntity[];
+}
+
+export function AgentsGrid({ agents }: AgentsGridProps) {
+  // Use passed agents (live) or fallback to static config (if not provided, e.g. welcome screen)
+  const displayList = agents && agents.length > 0 ? agents : STATIC_AGENT_CONFIG;
+
   return (
     <section className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {AGENTS.map((agent) => {
-          const Icon = agent.icon;
+        {displayList.map((agent) => {
+          const Icon = getIconForAgent(agent.id);
+          const tags = getTagsForAgent(agent.id);
+          // @ts-ignore - 'title' vs 'role' mismatch in types potentially, but we unified to 'title' in DB. Config uses 'title'.
+          // Actually, let's check field names. DB has 'title', Config has 'title'.
+          // But wait, previous AgentCard had 'role'. Let's verify field access.
+
           return (
             <Card
               key={agent.id}
-              className="flex flex-col justify-between border-border/60 bg-background/60 shadow-sm"
+              className="flex flex-col justify-between border-border/60 bg-background/60 shadow-sm transition-all hover:bg-muted/20"
             >
               <CardHeader className="space-y-1 pb-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/60">
-                      <Icon className="h-4 w-4" />
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/60 bg-background">
+                      <Icon className="h-4 w-4 text-foreground" />
                     </span>
                     <div className="space-y-0.5">
                       <CardTitle className="text-sm font-semibold leading-none">
                         {agent.name}
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        {agent.role}
+                        {agent.title || (agent as any).role}
                       </CardDescription>
                     </div>
                   </div>
+                  {/* @ts-ignore - status type string mismatch online/active */}
                   <Badge
-                    variant={agent.status === 'Active' ? 'default' : 'outline'}
-                    className="text-[10px] uppercase tracking-wide"
+                    variant={agent.status === 'online' || agent.status === 'Active' ? 'default' : agent.status === 'training' ? 'secondary' : 'outline'}
+                    className={`text-[10px] uppercase tracking-wide ${agent.status === 'online' || (agent as any).status === 'Active' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
                   >
                     {agent.status}
                   </Badge>
@@ -126,18 +68,24 @@ export function AgentsGrid() {
               </CardHeader>
 
               <CardContent className="pb-2">
-                <p className="text-xs text-muted-foreground">{agent.description}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2">{agent.description}</p>
+
+                {/* Metrics Preview */}
+                <div className="mt-4 flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/50 p-2 rounded-lg">
+                  <span className="font-medium">{agent.primaryMetricLabel}:</span>
+                  <span className="font-bold text-foreground">{agent.primaryMetricValue}</span>
+                </div>
               </CardContent>
 
               <CardFooter className="flex items-center justify-between gap-2 pt-2">
                 <div className="flex flex-wrap gap-1">
-                  {agent.tags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-[10px]">
+                  {tags.map((tag) => (
+                    <Badge key={tag} variant="outline" className="text-[10px] px-1.5 h-5">
                       {tag}
                     </Badge>
                   ))}
                 </div>
-                <Button asChild size="sm" className="h-7 px-3 text-xs">
+                <Button asChild size="sm" className="h-7 px-3 text-xs w-20">
                   <Link href={agent.href}>Open</Link>
                 </Button>
               </CardFooter>

@@ -1,126 +1,92 @@
-'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Search, Play, Clock } from 'lucide-react';
+import { Search, Play, Clock, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { listBrandPlaybooks, togglePlaybookStatus, runPlaybookTest } from '@/server/actions/playbooks';
+import { Playbook } from '@/types/playbook';
 
-interface Playbook {
-    id: string;
-    name: string;
-    description: string;
-    category: 'outreach' | 'marketing' | 'intel' | 'pricing' | 'compliance' | 'reporting' | 'content';
-    agents: string[];
-    active: boolean;
-    runsToday: number;
-    lastRun?: string;
-}
-
-const BRAND_PLAYBOOKS: Playbook[] = [
-    {
-        id: 'retail-coverage',
-        name: 'Retail Coverage Builder',
-        description: 'Identifies target doors and sequences outreach emails.',
-        category: 'outreach',
-        agents: ['Craig', 'Ezal'],
-        active: true,
-        runsToday: 1,
-        lastRun: '2 hours ago'
-    },
-    {
-        id: 'velocity-watch',
-        name: 'Velocity Watch',
-        description: 'Flags stores with slowing sell-through and suggests actions.',
-        category: 'reporting',
-        agents: ['Pops', 'Money Mike'],
-        active: true,
-        runsToday: 24, // Hourly check?
-        lastRun: '5 mins ago'
-    },
-    {
-        id: 'competitor-price',
-        name: 'Competitor Price Monitor',
-        description: 'Tracks category price deltas and promo detection.',
-        category: 'pricing',
-        agents: ['Ezal'],
-        active: true,
-        runsToday: 4,
-        lastRun: '1 hour ago'
-    },
-    {
-        id: 'oos-restock',
-        name: 'OOS / Restock Nudge',
-        description: 'Notifies retailers of low stock and recommends reorder.',
-        category: 'outreach',
-        agents: ['Smokey', 'Craig'],
-        active: true,
-        runsToday: 3,
-        lastRun: '4 hours ago'
-    },
-    {
-        id: 'compliance-preflight',
-        name: 'Campaign Compliance Pre-Flight',
-        description: 'Scans campaign copy for risky language before send.',
-        category: 'compliance',
-        agents: ['Deebo'],
-        active: true,
-        runsToday: 6,
-        lastRun: '30 mins ago'
-    },
-    {
-        id: 'weekly-digest',
-        name: 'Weekly Brand Digest',
-        description: 'Summary of wins, risks, and next best actions.',
-        category: 'reporting',
-        agents: ['Pops'],
-        active: true,
-        runsToday: 0,
-        lastRun: 'Yesterday'
-    },
-    {
-        id: 'content-engine',
-        name: 'Content Engine',
-        description: 'Generates product education and budtender notes.',
-        category: 'content',
-        agents: ['Smokey'],
-        active: false,
-        runsToday: 0
-    }
-];
-
-export function BrandPlaybooksList() {
+export function BrandPlaybooksList({ brandId }: { brandId: string }) {
     const { toast } = useToast();
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
-    const [playbooks, setPlaybooks] = useState(BRAND_PLAYBOOKS);
+    const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const togglePlaybook = (id: string) => {
+    useEffect(() => {
+        async function load() {
+            try {
+                const data = await listBrandPlaybooks(brandId);
+                setPlaybooks(data);
+            } catch (error) {
+                console.error("Failed to load playbooks", error);
+                toast({ variant: "destructive", title: "Error", description: "Failed to load playbooks" });
+            } finally {
+                setLoading(false);
+            }
+        }
+        load();
+    }, [brandId, toast]);
+
+    const togglePlaybook = async (id: string, currentStatus: boolean) => {
+        // Optimistic update
+        const newStatus = !currentStatus ? 'active' : 'paused';
         setPlaybooks(prev => prev.map(pb =>
-            pb.id === id ? { ...pb, active: !pb.active } : pb
+            pb.id === id ? { ...pb, status: newStatus } : pb
         ));
-        toast({
-            title: "Playbook Updated",
-            description: "Status changed successfully."
-        });
+
+        try {
+            await togglePlaybookStatus(brandId, id, !currentStatus);
+            toast({
+                title: !currentStatus ? "Playbook Activated" : "Playbook Paused",
+                description: "Status updated successfully."
+            });
+        } catch (error) {
+            // Revert on failure
+            setPlaybooks(prev => prev.map(pb =>
+                pb.id === id ? { ...pb, status: currentStatus ? 'active' : 'paused' } : pb
+            ));
+            toast({ variant: "destructive", title: "Error", description: "Failed to update status" });
+        }
     };
 
-    const runPlaybook = (id: string) => {
+    const runPlaybook = async (id: string, name: string) => {
         toast({
-            title: "Playbook Started",
-            description: `Executing ${id}...`
+            title: "Initiating Test Run",
+            description: `Starting simulated run for ${name}...`
         });
+
+        try {
+            await runPlaybookTest(brandId, id);
+            toast({
+                title: "Test Run Complete",
+                description: `Successfully executed ${name}. Check your email for results.`
+            });
+
+            // Update local state to show incremented run count
+            setPlaybooks(prev => prev.map(pb =>
+                pb.id === id ? { ...pb, runsToday: (pb.runCount || 0) + 1 } : pb
+            ));
+        } catch (error) {
+            toast({ variant: "destructive", description: "Failed to execute test run." });
+        }
     };
 
     const filtered = playbooks.filter(pb => {
         const matchesSearch = pb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             pb.description.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = categoryFilter === 'all' || pb.category === categoryFilter;
+        // @ts-ignore - Category typing match
+        const matchesCategory = categoryFilter === 'all' || (pb.category || 'other') === categoryFilter;
         return matchesSearch && matchesCategory;
     });
+
+    if (loading) {
+        return <div className="text-center py-10 text-muted-foreground animate-pulse">Loading operational playbooks...</div>;
+    }
 
     return (
         <div className="space-y-4">
@@ -161,35 +127,27 @@ export function BrandPlaybooksList() {
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
                                         <CardTitle className="text-base">{pb.name}</CardTitle>
-                                        {!pb.active && <Badge variant="outline" className="text-[10px]">Inactive</Badge>}
+                                        {pb.status !== 'active' && <Badge variant="outline" className="text-[10px] capitalize">{pb.status}</Badge>}
+                                        {pb.status === 'active' && <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Live Monitoring Active" />}
                                     </div>
-                                    <CardDescription className="text-xs">{pb.description}</CardDescription>
+                                    <CardDescription className="text-xs line-clamp-2">{pb.description}</CardDescription>
                                 </div>
                                 <Switch
-                                    checked={pb.active}
-                                    onCheckedChange={() => togglePlaybook(pb.id)}
+                                    checked={pb.status === 'active'}
+                                    onCheckedChange={() => togglePlaybook(pb.id, pb.status === 'active')}
                                 />
                             </div>
                         </CardHeader>
                         <CardContent>
                             <div className="flex items-center justify-between text-sm">
                                 <div className="flex items-center gap-2">
-                                    <div className="flex gap-1">
-                                        {pb.agents.map(agent => (
-                                            <Badge key={agent} variant="secondary" className="text-[10px] px-1.5 h-5">
-                                                {agent}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {pb.runsToday > 0 && (
+                                    {(pb.runCount || 0) > 0 && (
                                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                                             <Clock className="h-3 w-3" />
-                                            {pb.runsToday} runs today
+                                            {pb.runCount} runs
                                         </span>
                                     )}
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => runPlaybook(pb.id)}>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 hover:bg-green-50 hover:text-green-600" onClick={() => runPlaybook(pb.id, pb.name)}>
                                         <Play className="h-3 w-3" />
                                     </Button>
                                 </div>

@@ -17,7 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-export function BrandPlaybooksView() {
+export function BrandPlaybooksView({ brandId }: { brandId: string }) {
     const [view, setView] = useState<'library' | 'history'>('library');
 
     const runHistory = [
@@ -90,7 +90,7 @@ export function BrandPlaybooksView() {
                             <Button variant="outline" size="sm" className="h-8 text-xs font-bold text-red-600 hover:text-red-700">Clear Cache</Button>
                         </div>
                     </div>
-                    <BrandPlaybooksList />
+                    <BrandPlaybooksList brandId={brandId} />
                 </div>
             ) : (
                 <div className="space-y-4">
