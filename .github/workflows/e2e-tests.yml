@@ -76,14 +76,14 @@ jobs:
               
               const comment = `## ✅ E2E Test Results (Node ${{ matrix.node-version }})
               
-| Metric | Count |
-|--------|-------|
-| Total Tests | ${stats.expected} |
-| Passed | ${stats.expected - stats.unexpected} |
-| Failed | ${stats.unexpected} |
-| Skipped | ${stats.skipped || 0} |
+              | Metric | Count |
+              |--------|-------|
+              | Total Tests | ${stats.expected} |
+              | Passed | ${stats.expected - stats.unexpected} |
+              | Failed | ${stats.unexpected} |
+              | Skipped | ${stats.skipped || 0} |
 
-[View Playwright Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+              [View Playwright Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
               
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
