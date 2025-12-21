@@ -8,13 +8,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export const dynamic = 'force-dynamic';
 
+import { requireUser } from '@/server/auth/auth';
+import { redirect } from 'next/navigation';
+
 export default async function IntelligencePage() {
-    // In a real app, brandId comes from auth/context
-    const brandId = '10982'; // Hardcoded for demo
+    let brandId = '';
+    try {
+        const user = await requireUser();
+        brandId = user.uid;
+    } catch {
+        redirect('/dashboard');
+    }
+
     // Fetch data in parallel
     const [benchmarks, retailers] = await Promise.all([
         getCategoryBenchmarks(brandId),
-        getBrandRetailers('Baked Brand') // Example brand name
+        getBrandRetailers(brandId)
     ]);
 
     return (

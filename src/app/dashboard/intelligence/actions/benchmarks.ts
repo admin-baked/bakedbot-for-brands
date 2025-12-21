@@ -2,6 +2,8 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
+import { makeProductRepo } from '@/server/repos/productRepo';
+import { RetailerDoc } from '@/types/cannmenus';
 import { CannMenusService } from '@/server/services/cannmenus';
 
 export type BenchmarkData = {
@@ -23,58 +25,107 @@ export async function getCategoryBenchmarks(brandId: string): Promise<BenchmarkD
     try {
         const { firestore } = await createServerClient();
 
-        // 1. Fetch all products (market data)
-        // Optimization: In a real app, we would cache this or use a strictly aggregated collection.
-        // For now, we fetch products to demonstrate the logic.
-        // We limit to 500 to avoid reading the whole DB in this demo.
-        const productsSnapshot = await firestore.collection('products')
-            .limit(500)
-            .get();
+        // 1. Fetch Brand Products
+        const productRepo = makeProductRepo(firestore);
+        const products = await productRepo.getAllByBrand(brandId);
 
-        const marketData: Record<string, { total: number; count: number }> = {};
-        const brandData: Record<string, { total: number; count: number }> = {};
+        if (products.length === 0) return [];
 
-        productsSnapshot.forEach(doc => {
-            const data = doc.data();
-            const price = data.price || data.latest_price; // Handle different field names
-            const category = data.category;
-            const itemBrandId = data.brand_id;
+        // 2. Fetch Brand Data (State/City) for localized comparisons
+        // Optimization: Pass this in if available in context, otherwise fetch
+        const brandDoc = await firestore.collection('brands').doc(brandId).get();
+        const brandData = brandDoc.data() || {};
+        const state = brandData.state || 'IL';
+        const city = brandData.city;
 
-            if (typeof price !== 'number' || !category) return;
+        // 3. Fetch Market Data (Leafly Intel)
+        const activeIntel = await import('@/server/services/leafly-connector').then(m => m.getLocalCompetition(state, city));
 
-            // Aggregating Market Data
-            if (!marketData[category]) marketData[category] = { total: 0, count: 0 };
-            marketData[category].total += price;
-            marketData[category].count += 1;
 
-            // Aggregating Brand Data
-            if (itemBrandId === brandId) {
-                if (!brandData[category]) brandData[category] = { total: 0, count: 0 };
-                brandData[category].total += price;
-                brandData[category].count += 1;
+        // ... (inside getCategoryBenchmarks)
+
+        // 4. Compute Averages per Category
+        const brandCategoryStats: Record<string, { total: number; count: number }> = {};
+        const categoriesToCheck: string[] = [];
+
+        products.forEach(p => {
+            const cat = p.category || 'Other';
+            if (p.price) {
+                if (!brandCategoryStats[cat]) {
+                    brandCategoryStats[cat] = { total: 0, count: 0 };
+                    categoriesToCheck.push(cat);
+                }
+                brandCategoryStats[cat].total += p.price;
+                brandCategoryStats[cat].count += 1;
             }
         });
 
-        // 2. Calculate Averages and Format
+        // 5. Fetch CannMenus Data (Parallel)
+        // We'll try to get a market sample for each category active for the brand
+        const cannMenusService = new CannMenusService();
+        const cannMenusSamples = await Promise.allSettled(
+            categoriesToCheck.map(async (cat) => {
+                try {
+                    // Search for products in this category (generic market search)
+                    // We limit to 20 items to get a quick sample
+                    const { products } = await cannMenusService.searchProducts({
+                        category: cat,
+                        limit: 20
+                        // Note: We'd ideally pass 'near' if we had lat/long, or 'state' if API supported it in search.
+                        // For now, this gives a broad market average.
+                    });
+
+                    if (!products || products.length === 0) return { category: cat, avg: 0, count: 0 };
+
+                    const total = products.reduce((sum: number, p: any) => sum + (p.latest_price || 0), 0);
+                    return {
+                        category: cat,
+                        avg: total / products.length,
+                        count: products.length
+                    };
+                } catch (err) {
+                    console.warn(`Failed to fetch CannMenus data for ${cat}`, err);
+                    return { category: cat, avg: 0, count: 0 };
+                }
+            })
+        );
+
         const benchmarks: BenchmarkData[] = [];
 
-        // We only care about categories where the brand actually has products
-        for (const category in brandData) {
-            const BrandStats = brandData[category];
-            const MarketStats = marketData[category];
+        for (const category in brandCategoryStats) {
+            const stats = brandCategoryStats[category];
+            const yourAvg = stats.total / stats.count;
 
-            const avgBrandParams = BrandStats.total / BrandStats.count;
-            const avgMarketPrice = MarketStats.total / MarketStats.count;
+            // Get Leafly Data
+            const leaflyCat = activeIntel.pricingByCategory.find(c =>
+                c.category.toLowerCase().includes(category.toLowerCase()) ||
+                category.toLowerCase().includes(c.category.toLowerCase())
+            );
+            const leaflyAvg = leaflyCat?.avg || 0;
 
-            // Calculate difference percentage: (Brand - Market) / Market * 100
-            const difference = ((avgBrandParams - avgMarketPrice) / avgMarketPrice) * 100;
+            // Get CannMenus Data
+            // @ts-ignore
+            const cmSample = cannMenusSamples.find(r => r.status === 'fulfilled' && r.value.category === category)?.value;
+            const cannMenusAvg = cmSample?.avg || 0;
+
+            // Blended Market Avg
+            let marketAvg = 0;
+            if (leaflyAvg > 0 && cannMenusAvg > 0) {
+                marketAvg = (leaflyAvg + cannMenusAvg) / 2;
+            } else {
+                marketAvg = leaflyAvg || cannMenusAvg;
+            }
+
+            if (marketAvg === 0) continue; // No market data to compare
+
+            const diff = ((yourAvg - marketAvg) / marketAvg) * 100;
 
             benchmarks.push({
                 category,
-                yourPrice: parseFloat(avgBrandParams.toFixed(2)),
-                avgMarketPrice: parseFloat(avgMarketPrice.toFixed(2)),
-                difference: parseFloat(difference.toFixed(1)),
-                productCount: BrandStats.count
+                yourPrice: parseFloat(yourAvg.toFixed(2)),
+                avgMarketPrice: parseFloat(marketAvg.toFixed(2)),
+                difference: parseFloat(diff.toFixed(1)),
+                productCount: stats.count
             });
         }
 
@@ -86,24 +137,56 @@ export async function getCategoryBenchmarks(brandId: string): Promise<BenchmarkD
     }
 }
 
-export async function getBrandRetailers(brandName: string): Promise<BrandRetailer[]> {
+export async function getBrandRetailers(brandId: string): Promise<BrandRetailer[]> {
     try {
-        // Use CannMenus Service to find retailers stocking this brand
-        // Note: findRetailers expects location for proximity search, but we might just search by brand string if supported.
-        // If the service doesn't support brand-only search without location, we might simulate or default to a region.
+        const { firestore } = await createServerClient();
+        const productRepo = makeProductRepo(firestore);
 
-        // Mocking for Demo if API credentials aren't set or effectively used yet
-        // In real implementation:
-        // const results = await CannMenusService.findRetailers({ brand: brandName });
+        // 1. Get all products to find which retailers stock them
+        const products = await productRepo.getAllByBrand(brandId); // Cached/Optimized in Repo?
 
-        // Returning mock data for UI proof-of-concept as per authorized plan to ensure UI is visible for verification
-        return [
-            { name: "The Green Room", address: "123 Main St, Los Angeles, CA", distance: 2.5, stockCount: 15 },
-            { name: "Elevate Dispensary", address: "456 High Blvd, West Hollywood, CA", distance: 4.1, stockCount: 8 },
-            { name: "Pure Life", address: "789 Wellness Way, Santa Monica, CA", distance: 6.8, stockCount: 22 },
-            { name: "Cookies Melrose", address: "8150 Melrose Ave, Los Angeles, CA", distance: 3.2, stockCount: 12 },
-            { name: "MedMen", address: "8208 Santa Monica Blvd, West Hollywood, CA", distance: 4.5, stockCount: 5 }
-        ];
+        const retailerIds = new Set<string>();
+        // Map retailerCount to track how many SKUs per store
+        const retailerSkuCounts: Record<string, number> = {};
+
+        products.forEach(p => {
+            if (p.retailerIds) {
+                p.retailerIds.forEach(rid => {
+                    retailerIds.add(rid);
+                    retailerSkuCounts[rid] = (retailerSkuCounts[rid] || 0) + 1;
+                });
+            }
+        });
+
+        if (retailerIds.size === 0) return [];
+
+        // 2. Fetch Retailer Docs
+        // Firestore 'in' query limited to 10 or 30. Better to batch read or use getAll if feasible.
+        // For simplicity/robustness with potentially many retailers, we'll loop or use getAll.
+        // Assuming retailer IDs are document IDs in 'retailers' collection.
+
+        const retailerRefs = Array.from(retailerIds).map(id => firestore.collection('retailers').doc(id));
+        if (retailerRefs.length === 0) return [];
+
+        const retailerPnaps = await firestore.getAll(...retailerRefs);
+
+        const results: BrandRetailer[] = [];
+
+        retailerPnaps.forEach(snap => {
+            if (snap.exists) {
+                const data = snap.data() as RetailerDoc;
+                const address = data.address?.street1 ? `${data.address.street1}, ${data.address.city}, ${data.address.state}` : data.address?.city || 'Unknown Location';
+
+                results.push({
+                    name: data.name,
+                    address: address,
+                    distance: 0, // Logic for distance requires user location context, defaulting 0 or removing from UI comparison if unknown
+                    stockCount: retailerSkuCounts[snap.id] || 0
+                });
+            }
+        });
+
+        return results.sort((a, b) => (b.stockCount || 0) - (a.stockCount || 0));
 
     } catch (error) {
         logger.error('Failed to find retailers', error as any);

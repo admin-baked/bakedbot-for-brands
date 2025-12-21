@@ -1,28 +1,42 @@
 
 import type { Metadata } from 'next';
+import { AccountTabs } from './components/account-tabs';
+import { ProfileView } from './components/profile-view';
+import { SubscriptionView } from './components/subscription-view';
+import { IntegrationsView } from './components/integrations-view';
+import { TabsContent } from '@/components/ui/tabs';
+
+// Metadata must be in valid Server Component if using generating metadata, 
+// but we are switching this file to Client Component or keeping it Server Component 
+// that renders Client Components.
+// To keep metadata export, this file should remain a Server Component.
+// The components imported are 'use client'.
 
 export const metadata: Metadata = {
   title: 'Account | BakedBot AI',
 };
 
-export const dynamic = 'force-dynamic';
-
 export default function AccountPage() {
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Account</h1>
-        <p className="text-sm text-muted-foreground">
-          Account settings and brand configuration will live here. This placeholder keeps the
-          dashboard navigation and build happy while we wire in the full experience.
+    <main className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-10">
+      <header className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight">Account Settings</h1>
+        <p className="text-muted-foreground">
+          Manage your personal profile, organization subscription, and integrations.
         </p>
       </header>
 
-      <section className="rounded-xl border border-border/60 bg-background/60 px-4 py-3 text-sm text-muted-foreground">
-        <p>
-          Coming soon: brand profile, jurisdictions, stack integrations, and team access controls.
-        </p>
-      </section>
+      <AccountTabs defaultValue="profile">
+        <TabsContent value="profile" className="mt-6 space-y-4">
+          <ProfileView />
+        </TabsContent>
+        <TabsContent value="subscription" className="mt-6 space-y-4">
+          <SubscriptionView />
+        </TabsContent>
+        <TabsContent value="integrations" className="mt-6 space-y-4">
+          <IntegrationsView />
+        </TabsContent>
+      </AccountTabs>
     </main>
   );
 }
