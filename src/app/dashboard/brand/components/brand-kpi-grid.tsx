@@ -25,44 +25,39 @@ export function BrandKPIs({ data }: { data?: any }) {
     // STUB: Real data would come from context or query
     const stats = {
         coverage: {
-            value: data?.coverage?.value || 42,
-            trend: data?.coverage?.trend || '+2',
+            value: data?.coverage?.value ?? 0,
+            trend: data?.coverage?.trend || '-',
             label: data?.coverage?.label || 'Stores Carrying',
-            lastUpdated: data?.coverage?.lastUpdated || '2m ago',
-            source: 'Live Scrape',
+            lastUpdated: data?.coverage?.lastUpdated || 'Live',
             definition: 'Total unique dispensaries with at least one active SKU in stock.'
         },
         velocity: {
-            value: data?.velocity?.value || '18',
+            value: data?.velocity?.value ?? 0,
             unit: data?.velocity?.unit || 'units/wk',
-            trend: data?.velocity?.trend || '+5%',
+            trend: data?.velocity?.trend || '-',
             label: data?.velocity?.label || 'Avg per Store',
-            lastUpdated: data?.velocity?.lastUpdated || '1h ago',
-            source: 'POS Integration',
+            lastUpdated: data?.velocity?.lastUpdated || 'Live',
             definition: 'Average weekly units sold per store across all active accounts.'
         },
         priceIndex: {
-            value: data?.priceIndex?.value || '+6%',
+            value: data?.priceIndex?.value || '-',
             status: data?.priceIndex?.status || 'good',
             label: data?.priceIndex?.label || 'vs. Market Avg',
-            lastUpdated: data?.priceIndex?.lastUpdated || '5m ago',
-            source: 'Ezal Competitor Intel',
+            lastUpdated: data?.priceIndex?.lastUpdated || 'Live',
             definition: 'Your average price compared to direct competitors in the same market.'
         },
         shelfShare: {
-            value: '42%',
-            gap: '-16',
+            value: data?.competitiveIntel?.shelfShareTrend?.delta ? `${data.competitiveIntel.shelfShareTrend.delta}%` : '-',
+            gap: '0',
             label: 'vs Top Competitor',
-            lastUpdated: '12m ago',
-            source: 'Ezal Coverage Map',
+            lastUpdated: 'Live',
             definition: 'The percentage of target retail doors where your brand is present versus your top competitor.'
         },
         compliance: {
-            approved: data?.compliance?.approved || 8,
-            blocked: data?.compliance?.blocked || 1,
+            approved: data?.compliance?.approved ?? 0,
+            blocked: data?.compliance?.blocked ?? 0,
             label: data?.compliance?.label || 'Active Campaigns',
             lastUpdated: data?.compliance?.lastUpdated || 'Real-time',
-            source: 'Deebo Compliance Engine',
             definition: 'Number of creative assets approved vs blocked by state compliance filters.'
         }
     };
@@ -167,8 +162,8 @@ export function BrandKPIs({ data }: { data?: any }) {
                             <Badge
                                 variant="outline"
                                 className={`text-[10px] ${stats.priceIndex.status === 'good'
-                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                        : 'border-amber-200 bg-amber-50 text-amber-700'
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                    : 'border-amber-200 bg-amber-50 text-amber-700'
                                     }`}
                             >
                                 {stats.priceIndex.status === 'good' ? 'Healthy' : 'Price Gap'}
