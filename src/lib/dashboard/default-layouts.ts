@@ -49,16 +49,30 @@ const ADMIN_LAYOUT: WidgetInstance[] = [
 
 /**
  * Brand default layout
- * Focus on visibility and growth
+ * Matches the Brand Overview UI with KPIs, actions, intel, chat
  */
 const BRAND_LAYOUT: WidgetInstance[] = [
-    { id: makeId('top-zips', 1), widgetType: 'top-zips', x: 0, y: 0, w: 4, h: 3 },
-    { id: makeId('foot-traffic', 2), widgetType: 'foot-traffic', x: 4, y: 0, w: 4, h: 2 },
-    { id: makeId('seo-health', 3), widgetType: 'seo-health', x: 0, y: 3, w: 4, h: 3 },
-    { id: makeId('campaign-metrics', 4), widgetType: 'campaign-metrics', x: 4, y: 2, w: 4, h: 2 },
-    { id: makeId('playbook-tracker', 5), widgetType: 'playbook-tracker', x: 0, y: 6, w: 4, h: 2 },
-    { id: makeId('claim-cta', 6), widgetType: 'claim-cta', x: 4, y: 4, w: 4, h: 2 },
-    { id: makeId('compliance-alerts', 7), widgetType: 'compliance-alerts', x: 4, y: 6, w: 4, h: 2 },
+    // Row 1: KPIs spanning full width
+    { id: makeId('brand-kpis', 1), widgetType: 'brand-kpis', x: 0, y: 0, w: 12, h: 2 },
+
+    // Row 2: Next Best Actions + Competitive Intel (side by side)
+    { id: makeId('next-best-actions', 2), widgetType: 'next-best-actions', x: 0, y: 2, w: 4, h: 4 },
+    { id: makeId('competitive-intel', 3), widgetType: 'competitive-intel', x: 4, y: 2, w: 4, h: 4 },
+
+    // Row 2 Right: Brand Alerts + Quick Actions
+    { id: makeId('brand-alerts', 4), widgetType: 'brand-alerts', x: 8, y: 2, w: 4, h: 2 },
+    { id: makeId('quick-actions', 5), widgetType: 'quick-actions', x: 8, y: 4, w: 4, h: 2 },
+
+    // Row 3: Managed Pages
+    { id: makeId('managed-pages', 6), widgetType: 'managed-pages', x: 0, y: 6, w: 8, h: 3 },
+
+    // Row 4: Brand Chat
+    { id: makeId('brand-chat', 7), widgetType: 'brand-chat', x: 0, y: 9, w: 8, h: 5 },
+
+    // Sidebar continues
+    { id: makeId('claim-cta', 8), widgetType: 'claim-cta', x: 8, y: 6, w: 4, h: 2 },
+    { id: makeId('campaign-metrics', 9), widgetType: 'campaign-metrics', x: 8, y: 8, w: 4, h: 2 },
+    { id: makeId('compliance-alerts', 10), widgetType: 'compliance-alerts', x: 8, y: 10, w: 4, h: 2 },
 ];
 
 /**

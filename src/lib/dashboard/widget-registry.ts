@@ -253,6 +253,106 @@ const WIDGET_DEFINITIONS: WidgetConfig[] = [
         visibleFor: ['owner', 'admin'],
         category: 'compliance',
         icon: 'AlertTriangle'
+    },
+
+    // Brand-Specific Widgets
+    {
+        id: 'brand-kpis',
+        type: 'brand-kpis',
+        title: 'Brand KPIs',
+        description: 'Retail coverage, velocity, price index, and compliance metrics',
+        component: 'BrandKpisWidget',
+        minWidth: 6,
+        minHeight: 2,
+        defaultWidth: 12,
+        defaultHeight: 2,
+        visibleFor: ['brand', 'owner', 'admin'],
+        category: 'insights',
+        icon: 'Activity'
+    },
+    {
+        id: 'next-best-actions',
+        type: 'next-best-actions',
+        title: 'Next Best Actions',
+        description: 'AI-recommended actions to grow your brand',
+        component: 'NextBestActionsWidget',
+        minWidth: 3,
+        minHeight: 3,
+        defaultWidth: 4,
+        defaultHeight: 4,
+        visibleFor: ['brand', 'owner', 'admin'],
+        category: 'operations',
+        icon: 'Zap'
+    },
+    {
+        id: 'competitive-intel',
+        type: 'competitive-intel',
+        title: 'Competitive Intel (Ezal)',
+        description: 'Competitor pricing and shelf share analysis',
+        component: 'CompetitiveIntelWidget',
+        minWidth: 3,
+        minHeight: 3,
+        defaultWidth: 4,
+        defaultHeight: 4,
+        visibleFor: ['brand', 'owner', 'admin'],
+        category: 'insights',
+        icon: 'Eye'
+    },
+    {
+        id: 'managed-pages',
+        type: 'managed-pages',
+        title: 'Your Pages',
+        description: 'Manage your public-facing SEO pages',
+        component: 'ManagedPagesWidget',
+        minWidth: 4,
+        minHeight: 3,
+        defaultWidth: 8,
+        defaultHeight: 3,
+        visibleFor: ['brand', 'dispensary', 'owner', 'admin'],
+        category: 'seo',
+        icon: 'FileText'
+    },
+    {
+        id: 'brand-chat',
+        type: 'brand-chat',
+        title: 'Ask Baked HQ',
+        description: 'AI assistant for brand operations',
+        component: 'BrandChatWidgetWrapper',
+        minWidth: 4,
+        minHeight: 4,
+        defaultWidth: 8,
+        defaultHeight: 5,
+        visibleFor: ['brand', 'owner', 'admin'],
+        category: 'operations',
+        icon: 'MessageCircle'
+    },
+    {
+        id: 'quick-actions',
+        type: 'quick-actions',
+        title: 'Quick Actions',
+        description: 'Launch campaigns, reports, and scans',
+        component: 'QuickActionsWidget',
+        minWidth: 2,
+        minHeight: 2,
+        defaultWidth: 4,
+        defaultHeight: 3,
+        visibleFor: ['brand', 'dispensary', 'owner', 'admin'],
+        category: 'operations',
+        icon: 'Rocket'
+    },
+    {
+        id: 'brand-alerts',
+        type: 'brand-alerts',
+        title: 'Brand Alerts',
+        description: 'Stock, pricing, and compliance notifications',
+        component: 'BrandAlertsWidget',
+        minWidth: 2,
+        minHeight: 2,
+        defaultWidth: 4,
+        defaultHeight: 3,
+        visibleFor: ['brand', 'owner', 'admin'],
+        category: 'operations',
+        icon: 'Bell'
     }
 ];
 
