@@ -1,0 +1,10 @@
+---
+Test file to trigger Firebase hosting build
+Repository: admin-baked/bakedbot-for-brands
+Created-by: admin-baked (via Copilot)
+Created-at: 2025-12-21T15:40:00Z
+Purpose:
+- Minimal file to force a build/commit so we can inspect why deployments are blocked.
+
+If this commit triggers a build that fails or is stuck, please share the Firebase Hosting build ID or console link.
+---
