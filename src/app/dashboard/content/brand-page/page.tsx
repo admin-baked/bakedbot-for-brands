@@ -9,8 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateBrandProfile } from '@/server/actions/brand-profile';
 import { useUser } from '@/firebase/auth/use-user';
-import { Loader2, ExternalLink, Save, Package } from 'lucide-react';
+import { Loader2, ExternalLink, Save } from 'lucide-react';
 import Link from 'next/link';
+import { SyncedProductsGrid } from './components/synced-products-grid';
 
 export default function BrandPageManager() {
     const { user, isUserLoading } = useUser();
@@ -253,21 +254,7 @@ export default function BrandPageManager() {
                 </Card>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <CardTitle>Featured Products</CardTitle>
-                        <span className="text-[10px] font-bold uppercase bg-primary/10 text-primary px-2 py-1 rounded">Coming Soon</span>
-                    </div>
-                    <CardDescription>Select products to highlight on your page.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="p-8 text-center border-dashed border rounded-lg">
-                        <Package className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                        <p className="text-muted-foreground">Product selection coming soon.</p>
-                    </div>
-                </CardContent>
-            </Card>
+            <SyncedProductsGrid brandId={brand.id} />
         </div>
     );
 }
