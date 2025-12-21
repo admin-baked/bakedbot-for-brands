@@ -4,7 +4,7 @@
 env:
   # Firebase
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY
-    secret: FIREBASE_SERVICE_ACCOUNT_KEY@9
+    secret: FIREBASE_SERVICE_ACCOUNT_KEY@8
     availability:
       - BUILD
       - RUNTIME
