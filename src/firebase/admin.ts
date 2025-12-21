@@ -36,11 +36,11 @@ function getServiceAccount() {
             const bodyRaw = match[2];
             let bodyClean = bodyRaw.replace(/[^a-zA-Z0-9+/=]/g, '');
 
-            // 4n+1 length invalid. Try 2 bytes padding (xxx=)
+            // 4n+1 length invalid. Try 1 byte (xx==).
             if (bodyClean.length % 4 === 1) {
-                console.log(`[src/firebase/admin.ts] Truncating 4n+1 and forcing padding: ${bodyClean.length} -> 1628 (xxx=)`);
+                console.log(`[src/firebase/admin.ts] Truncating 4n+1 and forcing double padding: ${bodyClean.length} -> 1628 (xx==)`);
                 bodyClean = bodyClean.slice(0, -1);
-                bodyClean = bodyClean.slice(0, -1) + '=';
+                bodyClean = bodyClean.slice(0, -2) + '==';
             }
 
             // Fix Padding
