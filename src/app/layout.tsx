@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from 'next';
 import React from 'react';
 import { Inter, Teko } from 'next/font/google';
 import './globals.css';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 import { Providers } from './providers';
 import { AppLayout } from '@/components/AppLayout';
 import Chatbot from '@/components/chatbot';
