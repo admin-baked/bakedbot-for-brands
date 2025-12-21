@@ -71,6 +71,16 @@ export async function POST(request: NextRequest) {
             sameSite: 'lax',
         });
 
+        // Set a non-HttpOnly flag cookie so client can detect session existence
+        // This prevents the race condition in withAuth where it redirects before Firebase loads
+        (await cookies()).set('__session_is_active', 'true', {
+            maxAge: expiresIn / 1000, // seconds
+            httpOnly: false, // Visible to client JS
+            secure: isProduction,
+            path: '/',
+            sameSite: 'lax',
+        });
+
         return NextResponse.json({ success: true, uid: decodedToken.uid });
     } catch (error: any) {
         logger.error('Unexpected session creation error:', error);
@@ -83,5 +93,6 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE() {
     (await cookies()).delete('__session');
+    (await cookies()).delete('__session_is_active');
     return NextResponse.json({ success: true });
 }

@@ -39,10 +39,11 @@ export function withAuth<P extends object>(
             const session = getSuperAdminSession();
             setIsSuperAdmin(!!session);
 
-            // Check for __session cookie (server-side auth)
+            // Check for __session_is_active cookie (client-visible flag)
+            // We use this because __session is HttpOnly and invisible to document.cookie
             const sessionCookie = document.cookie
                 .split('; ')
-                .find(row => row.startsWith('__session='));
+                .find(row => row.startsWith('__session_is_active='));
             setHasSessionCookie(!!sessionCookie);
 
             setSuperAdminChecked(true);
