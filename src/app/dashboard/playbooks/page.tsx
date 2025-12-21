@@ -77,7 +77,8 @@ export default function PlaybooksPage() {
   }
 
   if (role === 'brand') {
-    return <BrandPlaybooksView />;
+    const brandId = (user as any)?.brandId || user?.uid;
+    return <BrandPlaybooksView brandId={brandId} />;
   }
 
   const filteredPlaybooks = MOCK_PLAYBOOKS.filter(playbook => {
