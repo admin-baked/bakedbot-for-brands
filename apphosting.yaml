@@ -130,6 +130,8 @@ env:
   # Dev/Security
   - variable: NEXT_PUBLIC_DEV_AUTH_BYPASS
     value: "false"
+  - variable: NEXT_PUBLIC_APP_URL
+    value: "https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
   # Treasury
   - variable: TREASURY_ENABLE_REAL_TRADING
     value: "false"
