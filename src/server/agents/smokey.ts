@@ -102,6 +102,18 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             const products = ['prod_1', 'prod_2', 'prod_3']; // Stub list
             const ranked = await tools.rankProductsForSegment('test_segment', products);
 
+            // Fix: Handle case where no valid rankings are returned
+            if (!ranked || ranked.length === 0) {
+                return {
+                    updatedMemory: agentMemory,
+                    logEntry: {
+                        action: 'validate_policy',
+                        result: 'Policy produced no valid rankings',
+                        metadata: { policy_id: policy.id, ranked_count: 0 }
+                    }
+                };
+            }
+
             // Perform Algorithmic Scoring on mocked products
             const scoredProducts = products.map(p => {
                 const { score, explanations } = computeSkuScore({
