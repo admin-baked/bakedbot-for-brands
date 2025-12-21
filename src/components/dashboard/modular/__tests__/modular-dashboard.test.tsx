@@ -34,13 +34,14 @@ jest.mock('../add-widget-menu', () => ({
 
 // Mock react-grid-layout
 jest.mock('react-grid-layout', () => {
-    return function MockGridLayout(props: any) {
-        return (
-            <div data-testid="grid-layout">
-                {props.children}
-            </div>
-        );
-    };
+    const MockGrid = (props: any) => (
+        <div data-testid="grid-layout">
+            {props.children}
+        </div>
+    );
+    // Mock WidthProvider as identity HOC
+    MockGrid.WidthProvider = (Comp: any) => Comp;
+    return MockGrid;
 });
 
 // Mock the widgets components

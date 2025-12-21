@@ -142,21 +142,25 @@ export function ModularDashboard({
 
     // Cast GridLayout to bypass type issues with react-grid-layout v2 bundled types
     const Grid = GridLayout as any;
+    const WidthProvider = Grid.WidthProvider;
+    const ResponsiveGrid = WidthProvider(Grid);
 
     // Render grid with type assertion for react-grid-layout v2
     const renderGrid = () => {
         return (
-            <Grid
+            <ResponsiveGrid
                 className="layout"
                 layout={layout}
                 cols={cols}
                 rowHeight={rowHeight}
-                width={width}
+                // Width is now handled by WidthProvider, but we can pass a fallback or explicit override if needed
+                // width={width} 
                 onLayoutChange={handleLayoutChange}
                 draggableHandle=".drag-handle"
                 compactType="vertical"
                 preventCollision={false}
                 isResizable={true}
+                isDraggable={true}
                 margin={[16, 16]}
             >
                 {widgets.map(widget => {
@@ -169,7 +173,7 @@ export function ModularDashboard({
                         </div>
                     );
                 })}
-            </Grid>
+            </ResponsiveGrid>
         );
     };
 
