@@ -10,6 +10,15 @@ export async function getBrandDashboardData(brandId: string) {
         const { firestore } = await createServerClient();
         const user = await requireUser();
 
+        // Fetch Brand Data for Location
+        const brandDoc = await firestore.collection('brands').doc(brandId).get();
+        const brandData = brandDoc.data() || {};
+        const state = brandData.state || 'IL'; // Default to IL if not set
+        const city = brandData.city;
+
+        // Fetch Competitive Intel (Leafly)
+        const activeIntel = await import('@/server/services/leafly-connector').then(m => m.getLocalCompetition(state, city));
+
         // 1. Retail Coverage
         // Count unique retailerIds across all products for this brand
         const productRepo = makeProductRepo(firestore);
@@ -25,19 +34,27 @@ export async function getBrandDashboardData(brandId: string) {
         const coverageCount = uniqueRetailers.size;
 
         // 2. Velocity (Sell-Through Placeholder)
-        // If we don't have real POS, we can calculate 'Presence Velocity' 
-        // by looking at how many products are active per store on average.
         const avgProductsPerStore = coverageCount > 0 ? (products.length / coverageCount).toFixed(1) : '0';
 
         // 3. Price Index
-        // Compare brand's avg price to market avg (cached or calculated)
+        // Compare brand's avg price to market avg from Leafly Intel
         const avgPrice = products.length > 0
             ? products.reduce((acc, p) => acc + (p.price || 0), 0) / products.length
             : 0;
 
-        // Mocking the market comparison for now until Ezal/CannMenus provides it
-        const marketAvgPrice = 45; // Placeholder
-        const priceIndexDelta = avgPrice > 0 ? ((avgPrice - marketAvgPrice) / marketAvgPrice * 100).toFixed(0) : '0';
+        // Calculate Average Market Price from Intel
+        // Weight by category if possible, otherwise simple avg of categoryavgs
+        let marketAvgPrice = 0;
+        if (activeIntel.pricingByCategory.length > 0) {
+            marketAvgPrice = activeIntel.pricingByCategory.reduce((acc, c) => acc + c.avg, 0) / activeIntel.pricingByCategory.length;
+        }
+
+        const priceIndexDelta = (avgPrice > 0 && marketAvgPrice > 0)
+            ? ((avgPrice - marketAvgPrice) / marketAvgPrice * 100).toFixed(0)
+            : '0';
+
+        const priceIndexStatus = Number(priceIndexDelta) > 15 ? 'alert' : 'good';
+
         // 4. Compliance (Campaigns from Firestore)
         const campaignSnap = await firestore.collection('campaigns')
             .where('brandId', '==', brandId)
@@ -46,29 +63,48 @@ export async function getBrandDashboardData(brandId: string) {
 
         return {
             coverage: {
-                value: coverageCount || 42, // Fallback to demo if 0 while onboarding
+                value: coverageCount,
                 trend: coverageCount > 0 ? '+1' : '0',
                 label: 'Stores Carrying',
                 lastUpdated: 'Live',
             },
             velocity: {
-                value: avgProductsPerStore !== '0' ? avgProductsPerStore : '18',
+                value: avgProductsPerStore,
                 unit: 'SKUs/store',
-                trend: '+2%',
+                trend: '+0%', // Hard to calc trend without history
                 label: 'Avg per Store',
                 lastUpdated: 'Live',
             },
             priceIndex: {
                 value: `${Number(priceIndexDelta) > 0 ? '+' : ''}${priceIndexDelta}%`,
-                status: Math.abs(Number(priceIndexDelta)) < 15 ? 'good' : 'alert',
+                status: priceIndexStatus,
                 label: 'vs. Market Avg',
-                lastUpdated: 'Live',
+                lastUpdated: activeIntel.dataFreshness ? 'Recent' : 'N/A',
             },
             compliance: {
-                approved: activeCampaigns || 8,
-                blocked: 0,
+                approved: activeCampaigns,
+                blocked: 0, // Placeholder until compliance engine is real
                 label: 'Active Campaigns',
                 lastUpdated: 'Real-time',
+            },
+            competitiveIntel: {
+                competitorsTracked: activeIntel.competitors.length,
+                pricePosition: {
+                    delta: `${Number(priceIndexDelta) > 0 ? '+' : ''}${priceIndexDelta}%`,
+                    status: Number(priceIndexDelta) > 0 ? 'above' : 'below',
+                    label: 'vs Market Avg'
+                },
+                undercutters: 0, // Need deeper product matching for this
+                promoActivity: {
+                    competitorCount: activeIntel.activeDeals,
+                    ownCount: 0,
+                    gap: activeIntel.activeDeals
+                },
+                shelfShareTrend: {
+                    added: 0,
+                    dropped: 0,
+                    delta: '+0'
+                }
             }
         };
     } catch (error) {

@@ -93,7 +93,7 @@ export function BrandOverviewView({ brandId }: { brandId: string }) {
                 <div className="lg:col-span-8 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <NextBestActions />
-                        <CompetitiveIntelSnapshot />
+                        <CompetitiveIntelSnapshot intel={liveData?.competitiveIntel} />
                     </div>
 
                     <ManagedPagesList userRole="brand" />

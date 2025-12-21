@@ -15,25 +15,25 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-export function CompetitiveIntelSnapshot() {
-    // STUB: Real data would come from Ezal service
+export function CompetitiveIntelSnapshot({ intel: data }: { intel?: any }) {
+    // Real data passed from server action
     const intel = {
-        competitorsTracked: 6,
+        competitorsTracked: data?.competitorsTracked ?? 0,
         pricePosition: {
-            delta: '+6%',
-            status: 'above' as const,
+            delta: data?.pricePosition?.delta || '-',
+            status: data?.pricePosition?.status || 'above',
             label: 'vs Market Avg'
         },
-        undercutters: 3,
+        undercutters: data?.undercutters ?? 0,
         promoActivity: {
-            competitorCount: 5,
-            ownCount: 1,
-            gap: 4
+            competitorCount: data?.promoActivity?.competitorCount ?? 0,
+            ownCount: data?.promoActivity?.ownCount ?? 0,
+            gap: (data?.promoActivity?.competitorCount ?? 0) - (data?.promoActivity?.ownCount ?? 0)
         },
         shelfShareTrend: {
-            added: 2,
-            dropped: 1,
-            delta: '+1'
+            added: data?.shelfShareTrend?.added ?? 0,
+            dropped: data?.shelfShareTrend?.dropped ?? 0,
+            delta: data?.shelfShareTrend?.delta || '-'
         }
     };
 

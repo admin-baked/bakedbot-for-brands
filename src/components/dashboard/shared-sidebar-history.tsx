@@ -39,15 +39,29 @@ export function SharedSidebarHistory() {
 
     const handleNewChat = () => {
         clearCurrentSession();
-        if (pathname !== '/dashboard/playbooks') {
-            router.push('/dashboard/playbooks');
+        // Brand chat is on the main dashboard overview
+        if (role === 'brand') {
+            if (pathname !== '/dashboard') {
+                router.push('/dashboard');
+            }
+        } else {
+            // Default/Super User chat is in playbooks (or specific chat view)
+            if (pathname !== '/dashboard/playbooks') {
+                router.push('/dashboard/playbooks');
+            }
         }
     };
 
     const handleSelectSession = (sessionId: string) => {
         setActiveSession(sessionId);
-        if (pathname !== '/dashboard/playbooks') {
-            router.push('/dashboard/playbooks');
+        if (role === 'brand') {
+            if (pathname !== '/dashboard') {
+                router.push('/dashboard');
+            }
+        } else {
+            if (pathname !== '/dashboard/playbooks') {
+                router.push('/dashboard/playbooks');
+            }
         }
     };
 
