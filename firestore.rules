@@ -182,11 +182,23 @@ service cloud.firestore {
 
     // --- Sync Status Collection ---
     match /sync_status/{syncId} {
-      // Brand and dispensary managers can read sync status.
-      allow read: if isRole('brand') || isRole('dispensary') || isRole('owner');
+      // Allow any authenticated user to read sync status (operational logs).
+      allow read: if request.auth != null;
 
       // Only server actions can write sync status.
       allow write: if false;
+    }
+
+    // --- Data Jobs Collection ---
+    match /data_jobs/{jobId} {
+      // Users can read their own data jobs.
+      allow read: if resource.data.userId == request.auth.uid || isRole('owner');
+
+      // Users can create jobs (e.g. via client components triggering them).
+      allow create: if request.resource.data.userId == request.auth.uid;
+
+      // Processing happens server-side.
+      allow update, delete: if false;
     }
 
     // --- Pricing Recommendations Collection ---
