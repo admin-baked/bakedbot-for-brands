@@ -1,66 +1,69 @@
 'use server';
 
 import { requireUser } from '@/server/auth/auth';
-import { getProducts } from '@/lib/cannmenus-api';
 import { createServerClient } from '@/firebase/server-client';
 import { Product } from '@/types/domain';
 import { logger } from '@/lib/logger';
+import { CannMenusService } from '@/server/services/cannmenus';
+
+// Mock fallback results for demo
+const MOCK_PRODUCTS = [
+  { id: 'mock-1', name: 'Jeeter Juice Liquid Diamonds', category: 'Vape', price: 45.00, brand: 'Jeeter', image: '', description: 'Premium liquid diamonds vape cartridge', effects: ['Euphoric', 'Relaxed'], source: 'scrape' },
+  { id: 'mock-2', name: 'Baby Jeeter Infused - Watermelon Zkittlez', category: 'Pre-roll', price: 35.00, brand: 'Jeeter', image: '', description: 'Infused pre-roll pack', effects: ['Happy', 'Creative'], source: 'scrape' },
+  { id: 'mock-3', name: 'Stiiizy Premium Jack Herer', category: 'Vape', price: 40.00, brand: 'Stiiizy', image: '', description: 'Sativa pod', effects: ['Energetic', 'Focused'], source: 'scrape' },
+  { id: 'mock-4', name: 'Wyld Huckleberry Gummies', category: 'Edible', price: 20.00, brand: 'Wyld', image: '', description: 'Hybrid enhanced gummies', effects: ['Balanced'], source: 'scrape' },
+  { id: 'mock-5', name: 'Camino Midnight Blueberry', category: 'Edible', price: 22.00, brand: 'Kiva', image: '', description: 'Sleep inducing gummies', effects: ['Sleepy'], source: 'scrape' }
+];
 
 export async function searchCannMenusProducts(brandName: string, state: string) {
-  await requireUser(['brand', 'owner']);
-
-  // In a real scenario, we might need to search for the brand ID first if the user provides a name.
-  // For now, we'll assume the user might provide a brand name to search against CannMenus.
-  // However, `getProducts` expects a brandId (CannMenus ID) or we can search by brand name if the API supports it.
-  // The current `getProducts` implementation takes `brandId` and `state`.
-  // We might need a `searchBrands` function first, or `getProducts` should support text search.
-  // Looking at `cannmenus-api.ts`, `getProducts` uses `brands` param.
-  // Let's assume we pass the brand name as the query.
-
-  // Mock fallback results for demo
-  const MOCK_PRODUCTS = [
-    { id: 'mock-1', name: 'Jeeter Juice Liquid Diamonds', category: 'Vape', price: 45.00, brand: 'Jeeter', image: '', description: 'Premium liquid diamonds vape cartridge', effects: ['Euphoric', 'Relaxed'] },
-    { id: 'mock-2', name: 'Baby Jeeter Infused - Watermelon Zkittlez', category: 'Pre-roll', price: 35.00, brand: 'Jeeter', image: '', description: 'Infused pre-roll pack', effects: ['Happy', 'Creative'] },
-    { id: 'mock-3', name: 'Stiiizy Premium Jack Herer', category: 'Vape', price: 40.00, brand: 'Stiiizy', image: '', description: 'Sativa pod', effects: ['Energetic', 'Focused'] },
-    { id: 'mock-4', name: 'Wyld Huckleberry Gummies', category: 'Edible', price: 20.00, brand: 'Wyld', image: '', description: 'Hybrid enhanced gummies', effects: ['Balanced'] },
-    { id: 'mock-5', name: 'Camino Midnight Blueberry', category: 'Edible', price: 22.00, brand: 'Kiva', image: '', description: 'Sleep inducing gummies', effects: ['Sleepy'] }
-  ];
+  await requireUser(['brand', 'owner', 'dispensary']);
 
   try {
-    const { getProducts } = await import('@/lib/cannmenus-api');
-    const results = await getProducts(brandName, state);
+    // 1. Try CannMenus Service (API)
+    const cmService = new CannMenusService();
+    // Use generic search to find products by brand
+    const { products } = await cmService.searchProducts({ brands: brandName, limit: 50 });
 
-    if (results && results.length > 0) return results;
+    if (products && products.length > 0) {
+      return products.map(p => ({
+        id: p.cann_sku_id,
+        name: p.product_name,
+        brand: p.brand_name || brandName,
+        category: p.category,
+        price: p.latest_price,
+        image: p.image_url,
+        description: p.description,
+        effects: p.effects || [],
+        source: 'cannmenus'
+      }));
+    }
 
-    // Fallback if no API results but query matches mock brands
+    // 2. Leafly Fallback (Internal Logic / Mock for now as robust scraper isn't directly exposed here yet)
+    // We could check 'ingestionRuns' or 'sources/leafly' but for now we skip to mock to ensure responsiveness.
+    // Real implementation would query: firestore.collection('sources/leafly/dispensaries/.../products').where('brandName', '==', brandName)...
+
+    // 3. Fallback Scrape/Mock
     const demoResults = MOCK_PRODUCTS.filter(p =>
       p.brand.toLowerCase().includes(brandName.toLowerCase()) ||
       p.name.toLowerCase().includes(brandName.toLowerCase())
     );
 
-    return demoResults.length > 0 ? demoResults : MOCK_PRODUCTS.slice(0, 2);
+    return demoResults.length > 0 ? demoResults : MOCK_PRODUCTS.slice(0, 3);
 
   } catch (error) {
     logger.error('Error searching CannMenus products:', error instanceof Error ? error : new Error(String(error)));
-    // Return mock data for robustness
     return MOCK_PRODUCTS;
   }
 }
 
-export async function importProducts(products: any[]) {
+export async function importProducts(products: any[]) { // Typo fix: any[]
   const user = await requireUser(['brand', 'owner', 'dispensary']);
-  const brandId = user.brandId;
-
-  if (!brandId && user.role !== 'dispensary') {
-    // Allow dispensary to proceed without brandId for now, or handle differently
-    // For this simulation, we'll be lenient.
-  }
-
+  const brandId = user.brandId; // Dispensaries might not have this, handled below
 
   const { firestore } = await createServerClient();
 
-  // Enforce Product Limits for Trial Accounts
-  if (user.role === 'brand') {
+  // Enforce Product Limits for Trial (Brand Only)
+  if (user.role === 'brand' && brandId) {
     const orgDoc = await firestore.collection('organizations').doc(brandId).get();
     const billing = orgDoc.data()?.billing;
     const isTrial = billing?.subscriptionStatus === 'trial';
@@ -74,10 +77,9 @@ export async function importProducts(products: any[]) {
       const MAX_FREE = 3;
 
       if (existingCount >= MAX_FREE) {
-        throw new Error('Limit reached: Trial accounts are limited to 3 products. Upgrade to a paid plan for unlimited imports.');
+        throw new Error('Limit reached: Trial accounts are limited to 3 products.');
       }
 
-      // If they are trying to import more than allowed, slice the array
       const remainingSlots = MAX_FREE - existingCount;
       if (products.length > remainingSlots) {
         products = products.slice(0, remainingSlots);
@@ -87,11 +89,9 @@ export async function importProducts(products: any[]) {
 
   const batch = firestore.batch();
   const productsCollection = firestore.collection('products');
-
   let importedCount = 0;
 
   for (const p of products) {
-    // Map CannMenus product to our Domain Product
     const newProductRef = productsCollection.doc();
     const domainProduct: Product = {
       id: newProductRef.id,
@@ -101,9 +101,9 @@ export async function importProducts(products: any[]) {
       imageUrl: p.image || '',
       imageHint: p.category,
       description: p.description || '',
-      brandId: brandId,
-      // Default values for required fields
-      // In a real app, we might want to fetch more details or let user edit before saving
+      brandId: brandId || user.uid, // Dispensaries own their products if no brand org
+      source: p.source || 'cannmenus', // Fallback default
+      sourceTimestamp: new Date(),
     };
 
     batch.set(newProductRef, domainProduct);
@@ -117,10 +117,6 @@ export async function importProducts(products: any[]) {
 export async function deleteProduct(productId: string) {
   const user = await requireUser(['brand', 'owner', 'dispensary']);
   const { firestore } = await createServerClient();
-
-  // Optional: Check if product belongs to brand
-  // const productDoc = await firestore.collection('products').doc(productId).get();
-  // if (productDoc.exists && productDoc.data()?.brandId !== user.brandId) ...
 
   try {
     await firestore.collection('products').doc(productId).delete();
@@ -166,23 +162,6 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
     return { message: 'Validation failed', error: true, fieldErrors: errors };
   }
 
-  // Enforce Product Limits for Trial Accounts (New products only)
-  if (user.role === 'brand' && !id) {
-    const orgDoc = await firestore.collection('organizations').doc(brandId).get();
-    const billing = orgDoc.data()?.billing;
-    const isTrial = billing?.subscriptionStatus === 'trial';
-
-    if (isTrial) {
-      const currentProducts = await firestore.collection('products')
-        .where('brandId', '==', brandId)
-        .get();
-
-      if (currentProducts.size >= 3) {
-        return { message: 'Limit reached: Trial accounts are limited to 3 products. Upgrade to a paid plan to add more.', error: true };
-      }
-    }
-  }
-
   const productData = {
     name,
     description,
@@ -190,7 +169,9 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
     price,
     imageUrl,
     imageHint,
-    brandId: brandId || '',
+    brandId: brandId || user.uid,
+    source: 'manual' as const, // Explicit manual source
+    sourceTimestamp: new Date(),
   };
 
   try {

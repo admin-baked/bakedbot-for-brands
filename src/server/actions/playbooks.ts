@@ -4,6 +4,8 @@ import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { DEFAULT_PLAYBOOKS } from '@/config/default-playbooks';
 import { Playbook } from '@/types/playbook';
+import { FieldValue } from 'firebase-admin/firestore';
+
 
 /**
  * List all playbooks for a brand.
@@ -86,7 +88,7 @@ export async function runPlaybookTest(brandId: string, playbookId: string) {
 
     // Increment run count to show liveness
     await docRef.update({
-        runCount: firestore.FieldValue.increment(1),
+        runCount: FieldValue.increment(1),
         lastRunAt: new Date(),
         updatedAt: new Date()
     });
