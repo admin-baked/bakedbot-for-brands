@@ -7,7 +7,7 @@ import { ModularDashboard } from '@/components/dashboard/modular/modular-dashboa
 import { LayoutDashboard, Grip } from 'lucide-react';
 
 export default function BrandDashboardClient({ brandId }: { brandId: string }) {
-    const [view, setView] = useState<'overview' | 'modular'>('overview');
+    const [view, setView] = useState<'overview' | 'modular'>('modular');
 
     return (
         <div className="space-y-4">
