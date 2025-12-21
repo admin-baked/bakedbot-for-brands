@@ -144,3 +144,35 @@ Resolved Firebase App Hosting build errors caused by type mismatches between loc
 ### Commit
 *   `45babd38`: `fix: rename UserProfile to DomainUserProfile and fix strict null checks`
 
+---
+
+## Session: Enable Modular Dashboard with Widgets
+**Date:** 2025-12-21
+**Task ID:** MODULAR-DASH-001
+
+### Summary
+Enabled widget drag/drop/remove functionality on the Brand Dashboard by making the modular dashboard the default view.
+
+### Key Changes
+1.  **Default View Change:**
+    *   Changed `dashboard-client.tsx` to default to 'modular' view instead of 'overview'.
+
+2.  **New Brand-Specific Widgets (7 total):**
+    *   `BrandKpisWidget` - KPI metrics grid
+    *   `NextBestActionsWidget` - AI-recommended actions
+    *   `CompetitiveIntelWidget` - Ezal competitor analysis
+    *   `ManagedPagesWidget` - SEO page management
+    *   `BrandChatWidgetWrapper` - AI chat interface
+    *   `QuickActionsWidget` - Quick action buttons
+    *   `BrandAlertsWidget` - Alerts and notifications
+
+3.  **Updated Default Layout:**
+    *   Brand dashboard now includes 10 widgets matching the Overview UI.
+
+### Tests Run
+*   `npm run check:types` (Passed)
+*   `npm test -- brand-widgets.test.tsx` (Passed: 11 tests)
+
+### Commit
+*   `08123e65`: `feat: enable modular dashboard by default with brand-specific widgets`
+
