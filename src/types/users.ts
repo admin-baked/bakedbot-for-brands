@@ -13,5 +13,10 @@ export type UserProfile = {
     brandId: string | null;
     locationId: string | null;
 
+    // Personal Details
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+
     favoriteRetailerId?: string | null;
 };

@@ -88,3 +88,29 @@ Successfully implemented the data source hierarchy for the Products Page and res
 ### Phase E: Marketplace Core (Completed)
 - Delivered Brand Dashboard, Dispensary Locator, and Claim Flows
 - Resolved build and deployment issues
+
+---
+
+## Session: Account Page Implementation & Build Fixes
+**Date:** 2025-12-21
+**Task ID:** ACCOUNT-PAGE-001
+
+### Summary
+Resolved a TypeScript build error in the modular dashboard and fully implemented the Account Page, including Subscription and Profile management views.
+
+### Key Changes
+1.  **Build Fix:**
+    *   Resolved `Property 'WidthProvider' does not exist` error in `modular-dashboard.tsx` by correcting import casting.
+
+2.  **Account Page:**
+    *   Implemented `AccountTabs` for navigation.
+    *   Created `ProfileView` using new `useUser` hook (fetching Firestore profile).
+    *   Created `SubscriptionView` integrating existing `BillingForm` logic.
+    *   Created `IntegrationsView` (placeholder).
+    *   Updated `src/app/account/page.tsx`.
+
+3.  **Hooks:**
+    *   Created `src/hooks/use-user.ts` to provide `userData` from `users` collection.
+
+### Tests Run
+*   `npm test src/app/account` (Passed: 3 suites, 7 tests).
