@@ -47,18 +47,26 @@ function getServiceAccount() {
     const match = rawKey.match(pemPattern);
 
     if (match) {
-      const header = match[1];
+      // Force canonical header/footer to be safe
+      const header = "-----BEGIN PRIVATE KEY-----";
+      const footer = "-----END PRIVATE KEY-----";
       const bodyRaw = match[2];
-      const footer = match[3];
 
-      // Clean body and reformat
-      const bodyClean = bodyRaw.replace(/\s+/g, '');
+      // Clean body: Remove ANYTHING that is not a valid Base64 character
+      let bodyClean = bodyRaw.replace(/[^a-zA-Z0-9+/=]/g, '');
+
+      // Fix Padding: Ensure length is multiple of 4
+      while (bodyClean.length % 4 !== 0) {
+        bodyClean += '=';
+      }
+
+      // Reformat body: Chunk into 64-char lines (standard PEM)
       const bodyFormatted = bodyClean.match(/.{1,64}/g)?.join('\n') || bodyClean;
 
       // Reconstruct
       serviceAccount.private_key = `${header}\n${bodyFormatted}\n${footer}\n`;
 
-      console.log(`[src/server/server-client.ts] Key Normalized. Header: ${header}, BodySize: ${bodyClean.length}`);
+      console.log(`[src/server/server-client.ts] Key Normalized. BodySize: ${bodyClean.length} (Valid Base64)`);
     } else {
       console.error(`[src/server/server-client.ts] Failed to parse PEM structure.`);
       serviceAccount.private_key = rawKey.trim().replace(/\\n/g, '\n');
