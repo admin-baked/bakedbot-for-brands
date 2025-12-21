@@ -52,14 +52,16 @@ function getServiceAccount() {
       const bodyRaw = match[2];
       let bodyClean = bodyRaw.replace(/[^a-zA-Z0-9+/=]/g, '');
 
-      // 4n+1 length is invalid. 1629 -> 1628 (3 bytes) was "Too much".
-      // 1629 -> 1624 (0 bytes) was "Too few".
-      // We need 1 or 2 bytes. Trying 2 bytes (xxx=).
+      // 4n+1 length invalid.
+      // 1628 (3 bytes) -> Too much ("Unparsed DER").
+      // 1628 (2 bytes, xxx=) -> Too much ("Unparsed DER").
+      // 1624 (0 bytes) -> Too few.
+      // Conclusion: Valid data is exactly 1 byte.
+      // Solution: Force 2 pad chars (xx==).
       if (bodyClean.length % 4 === 1) {
-        console.log(`[src/server/server-client.ts] Truncating 4n+1 and forcing padding: ${bodyClean.length} -> 1628 (xxx=)`);
+        console.log(`[src/server/server-client.ts] Truncating 4n+1 and forcing double padding: ${bodyClean.length} -> 1628 (xx==)`);
         bodyClean = bodyClean.slice(0, -1); // 1629 -> 1628
-        // Force last char to be padding to reduce decoded size from 3 bytes to 2 bytes
-        bodyClean = bodyClean.slice(0, -1) + '=';
+        bodyClean = bodyClean.slice(0, -2) + '==';
       }
 
       // Fix Padding (Standard)
