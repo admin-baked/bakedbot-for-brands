@@ -57,10 +57,10 @@ export function AgentsGrid({ agents }: AgentsGridProps) {
                       </CardDescription>
                     </div>
                   </div>
-                  {/* @ts-ignore - status type string mismatch online/active */}
+                  {/* Status badge with legacy support */}
                   <Badge
-                    variant={agent.status === 'online' || agent.status === 'Active' ? 'default' : agent.status === 'training' ? 'secondary' : 'outline'}
-                    className={`text-[10px] uppercase tracking-wide ${agent.status === 'online' || (agent as any).status === 'Active' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
+                    variant={agent.status === 'online' || (agent.status as string) === 'Active' ? 'default' : agent.status === 'training' ? 'secondary' : 'outline'}
+                    className={`text-[10px] uppercase tracking-wide ${agent.status === 'online' || (agent.status as string) === 'Active' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
                   >
                     {agent.status}
                   </Badge>
