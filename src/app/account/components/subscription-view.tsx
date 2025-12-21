@@ -93,10 +93,10 @@ export function SubscriptionView() {
                 </div>
 
                 <BillingForm
-                    organizationId={userData.currentOrgId}
+                    organizationId={userData.currentOrgId as string}
                     locationCount={1} // TODO: Fetch real location count
-                    customerEmail={userData.email}
-                    customerName={`${userData.firstName} ${userData.lastName}`}
+                    customerEmail={userData.email || undefined}
+                    customerName={userData.firstName && userData.lastName ? `${userData.firstName} ${userData.lastName}` : (userData.displayName || undefined)}
                 />
             </div>
         </div>
