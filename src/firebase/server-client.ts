@@ -55,10 +55,10 @@ function getServiceAccount() {
       const bodyRaw = match[2];
       let bodyClean = bodyRaw.replace(/[^a-zA-Z0-9+/=]/g, '');
 
-      // 4n+1 length implies 1 extraneous char. Truncate it.
+      // 4n+1 length implies extraneous chars. Truncate 5 (aggressively).
       if (bodyClean.length % 4 === 1) {
-        console.log(`[src/firebase/server-client.ts] Truncating invalid 4n+1 body: ${bodyClean.length} -> ${bodyClean.length - 1}`);
-        bodyClean = bodyClean.slice(0, -1);
+        console.log(`[src/firebase/server-client.ts] Aggressively truncating invalid 4n+1 body: ${bodyClean.length} -> ${bodyClean.length - 5}`);
+        bodyClean = bodyClean.slice(0, -5);
       }
 
       // Fix Padding
