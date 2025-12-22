@@ -16,14 +16,13 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserRole, WidgetInstance } from '@/lib/dashboard/widget-registry';
 import { getWidgetByType } from '@/lib/dashboard/widget-registry';
 import {
-import {
-        loadLayout as loadLocalLayout,
-        saveLayout as saveLocalLayout,
-        resetToDefaults,
-        addWidgetToLayout,
-        removeWidgetFromLayout,
-        updateWidgetPositions
-    } from '@/lib/dashboard/layout-persistence';
+    loadLayout as loadLocalLayout,
+    saveLayout as saveLocalLayout,
+    resetToDefaults,
+    addWidgetToLayout,
+    removeWidgetFromLayout,
+    updateWidgetPositions
+} from '@/lib/dashboard/layout-persistence';
 import { AddWidgetMenu } from './add-widget-menu';
 import { getWidgetComponent } from './widgets';
 import { saveDashboardLayout, getDashboardLayout } from '@/server/actions/dashboard-layout';
