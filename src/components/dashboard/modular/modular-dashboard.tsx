@@ -63,6 +63,7 @@ export function ModularDashboard({
 
     // Container ref and width for responsive grid
     const containerRef = useRef<HTMLDivElement>(null);
+    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [containerWidth, setContainerWidth] = useState(width);
 
     // Measure container width on mount and resize
@@ -151,6 +152,20 @@ export function ModularDashboard({
         setWidgets(updated);
         // Optimistic local save
         saveLocalLayout(role, updated);
+
+        // Debounced server save (2s)
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+
+        setIsSaving(true);
+        saveTimeoutRef.current = setTimeout(async () => {
+            const result = await saveDashboardLayout(role, updated);
+            setIsSaving(false);
+            if (!result.success) {
+                console.error('Failed to auto-save layout');
+            }
+        }, 2000);
     }, [widgets, isEditable, role]);
 
     // Save layout
@@ -237,11 +252,12 @@ export function ModularDashboard({
                 width={containerWidth}
                 onLayoutChange={handleLayoutChange}
                 draggableHandle=".drag-handle"
+                draggableCancel=".no-drag"
                 compactType="vertical"
                 preventCollision={false}
                 isResizable={isEditable}
                 isDraggable={isEditable}
-                margin={[16, 16]}
+                margin={[10, 10]}
             >
                 {widgets.map(widget => {
                     const Component = getWidgetComponent(widget.widgetType);

@@ -348,13 +348,17 @@ export interface PuffChatProps {
     onBack?: () => void;
     onSubmit?: (message: string) => Promise<void>;
     promptSuggestions?: string[];
+    hideHeader?: boolean;
+    className?: string;
 }
 
 export function PuffChat({
     initialTitle = 'New Automation',
     onBack,
     onSubmit,
-    promptSuggestions = []
+    promptSuggestions = [],
+    hideHeader = false,
+    className = ''
 }: PuffChatProps) {
     // Global Store State
     const { currentMessages, addMessage, updateMessage, createSession } = useAgentChatStore();
@@ -542,8 +546,8 @@ export function PuffChat({
 
     // Input component (reusable for both positions)
     const InputArea = (
-        <div className={cn("p-4", hasMessages ? "border-t" : "border-b")}>
-            <div className="max-w-3xl mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner">
+        <div className={cn("p-4", hasMessages ? "border-t" : "border-b", hideHeader && "p-2 border-0")}>
+            <div className={cn("mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner", hideHeader ? "w-full" : "max-w-3xl")}>
                 {promptSuggestions.length > 0 && !hasMessages && (
                     <div className="flex flex-wrap gap-2 mb-2">
                         {promptSuggestions.map((suggestion, i) => (
@@ -614,9 +618,9 @@ export function PuffChat({
     );
 
     return (
-        <div className="flex flex-col h-full bg-background border rounded-lg">
-            {/* Header - only show if we have messages */}
-            {hasMessages && (
+        <div className={cn("flex flex-col h-full bg-background border rounded-lg", className)}>
+            {/* Header - only show if we have messages and not hidden */}
+            {hasMessages && !hideHeader && (
                 <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-violet-50 to-purple-50">
                     <div className="flex items-center gap-3">
                         {onBack && (

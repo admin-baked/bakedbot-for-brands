@@ -13,19 +13,11 @@ export function BrandChatWidget() {
     ];
 
     return (
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col h-[500px]">
-            <div className="bg-muted/30 p-4 border-b">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-emerald-600" />
-                    Ask Baked HQ (Brand)
-                </h3>
-            </div>
-            <div className="flex-1 overflow-hidden">
-                <PuffChat
-                    initialTitle="Revenue Ops Assistant"
-                    promptSuggestions={BRAND_PROMPTS}
-                />
-            </div>
-        </div>
+        <PuffChat
+            initialTitle="Revenue Ops Assistant"
+            promptSuggestions={BRAND_PROMPTS}
+            hideHeader={true}
+            className="h-full border-0 shadow-none rounded-none"
+        />
     );
 }

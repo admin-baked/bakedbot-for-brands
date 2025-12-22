@@ -12,7 +12,7 @@ import {
     SimAssumptions,
 } from '@/types/simulation';
 import { DISPENSARY_PROFILE, BRAND_PROFILE, getProfileConfig } from '@/types/simulation-profiles';
-import { createScenario, updateScenario } from '../actions';
+import { createScenario, updateScenario } from './actions';
 import { Button } from '@/components/ui/button';
 import {
     Form,

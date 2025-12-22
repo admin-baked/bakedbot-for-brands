@@ -1,0 +1,30 @@
+
+> nextn@0.1.0 test
+> jest src/app/dashboard/brand/components/__tests__/brand-chat-widget.test.tsx
+
+FAIL src/app/dashboard/brand/components/__tests__/brand-chat-widget.test.tsx
+  BrandChatWidget
+    × renders PuffChat with correct props (32 ms)
+
+  ● BrandChatWidget › renders PuffChat with correct props
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value:  "h-full border-0 shadow-none rounded-none"
+    Received object: <span data-testid="class-name">h-full border-0 shadow-none rounded-none</span>
+
+    [0m [90m 24 |[39m         expect(screen[33m.[39mgetByTestId([32m'title'[39m))[33m.[39mtoHaveTextContent([32m'Revenue Ops Assistant'[39m)[33m;[39m
+     [90m 25 |[39m         expect(screen[33m.[39mgetByTestId([32m'hide-header'[39m))[33m.[39mtoHaveTextContent([32m'true'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 26 |[39m         expect(screen[33m.[39mgetByTestId([32m'class-name'[39m))[33m.[39mtoContain([32m'h-full border-0 shadow-none rounded-none'[39m)[33m;[39m
+     [90m    |[39m                                                  [31m[1m^[22m[39m
+     [90m 27 |[39m     })[33m;[39m
+     [90m 28 |[39m })[33m;[39m
+     [90m 29 |[39m[0m
+
+      at Object.toContain (src/app/dashboard/brand/components/__tests__/brand-chat-widget.test.tsx:26:50)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        2.778 s, estimated 3 s
+Ran all test suites matching /src\\app\\dashboard\\brand\\components\\__tests__\\brand-chat-widget.test.tsx/i.
