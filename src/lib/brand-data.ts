@@ -90,17 +90,24 @@ export async function fetchBrandPageData(brandParam: string) {
         products = productsQuery.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
     }
 
-    // 4. Fetch retailers carrying this brand (live or cached?)
+    // 4. Fetch retailers carrying this brand (with timeout to prevent page hanging)
     // Using live search from CannMenusService
     let retailers: Retailer[] = [];
     try {
         const service = new CannMenusService();
-        // Limit to 20 retailers for the page load speed
-        const retailerDocs = await service.findRetailersCarryingBrand(brand.name, 20);
+        // Add 5-second timeout to prevent page from hanging
+        const timeoutPromise = new Promise<RetailerDoc[]>((_, reject) =>
+            setTimeout(() => reject(new Error('Retailer fetch timeout')), 5000)
+        );
+
+        const retailerDocs = await Promise.race([
+            service.findRetailersCarryingBrand(brand.name, 20),
+            timeoutPromise
+        ]);
         retailers = retailerDocs.map(mapRetailerDocToDomain);
     } catch (error) {
         console.error('Failed to fetch retailers for brand page:', error);
-        // Fail gracefully, retailers will be empty
+        // Fail gracefully, retailers will be empty - page still loads
     }
 
     return { brand, products, retailers };
