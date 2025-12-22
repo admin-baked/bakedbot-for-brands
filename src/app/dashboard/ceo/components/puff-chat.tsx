@@ -37,7 +37,8 @@ import {
     Briefcase,
     ShoppingCart,
     Search,
-    ShieldCheck
+    ShieldCheck,
+    AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { runAgentChat } from '../agents/actions';
@@ -760,23 +761,13 @@ function StepsList({ steps }: { steps: ToolCallStep[] }) {
             {steps.map((step, i) => (
                 <div key={i} className="border rounded p-2 bg-muted/50">
                     <div className="flex items-center gap-2 font-medium">
-                        {step.status === 'running' && <Loader2 className="h-3 w-3 animate-spin text-blue-500" />}
-                        {step.status === 'complete' && <Check className="h-3 w-3 text-green-500" />}
+                        {step.status === 'in-progress' && <Loader2 className="h-3 w-3 animate-spin text-blue-500" />}
+                        {step.status === 'completed' && <Check className="h-3 w-3 text-green-500" />}
                         {step.status === 'failed' && <AlertCircle className="h-3 w-3 text-red-500" />}
-                        <span className="font-mono text-xs">{step.tool}</span>
+                        <span className="font-mono text-xs">{step.toolName || 'tool'}</span>
                     </div>
-                    {step.args && (
-                        <pre className="mt-1 ml-5 text-[10px] text-muted-foreground overflow-x-auto">
-                            {JSON.stringify(step.args)}
-                        </pre>
-                    )}
-                    {step.result && (
-                        <div className="mt-1 ml-5 p-1 bg-background rounded border">
-                            <pre className="text-[10px] overflow-x-auto whitespace-pre-wrap max-h-20">
-                                {typeof step.result === 'object' ? JSON.stringify(step.result, null, 2) : String(step.result)}
-                            </pre>
-                        </div>
-                    )}
+                    {/* step.args does not exist on ToolCallStep in this file, description does */}
+                    <div className="ml-5 text-[10px] text-muted-foreground">{step.description}</div>
                 </div>
             ))}
         </div>
