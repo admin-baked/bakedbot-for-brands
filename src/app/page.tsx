@@ -966,7 +966,7 @@ export default function HomePage() {
       <TestHarness />
     ) : null
   }
-    </div>
+</div>
   );
 }
 
