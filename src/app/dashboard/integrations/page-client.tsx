@@ -25,6 +25,15 @@ const APPS = [
         featured: true,
     },
     {
+        id: 'gmail',
+        name: 'Gmail',
+        category: 'Marketing',
+        description: 'Authorize agents to draft and send emails via your account.',
+        icon: '📧',
+        status: 'coming_soon',
+        featured: true,
+    },
+    {
         id: 'jane',
         name: 'iHeartJane',
         category: 'POS',
