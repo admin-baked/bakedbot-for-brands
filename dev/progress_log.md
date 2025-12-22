@@ -1,6 +1,38 @@
 
 # Progress Log
 
+## Session: Data Architecture Phase 2 - Import Actions
+**Date:** 2025-12-21
+**Task ID:** DATA-ARCH-PHASE2-001
+
+### Summary
+Continued implementation of BakedBot Data Architecture after tool crash recovery. Pushed Phase 1 and implemented Phase 2 import actions.
+
+### Key Changes
+1.  **Phase 1 Pushed:**
+    *   TypeScript interfaces (`directory.ts`, `tenant.ts`) for Directory/Tenant model
+    *   Import pipeline jobs (`import-jobs.ts`) - parser, merger, view builder
+    *   Schema migration utilities (`schema-migration.ts`) - legacy → new transforms
+    *   Firestore rules already in place (lines 257-418)
+
+2.  **Phase 2 Implemented:**
+    *   Created `import-actions.ts` with full pipeline integration
+    *   CannMenus adapter transforms API response → `RawProductData[]`
+    *   `createImport()` creates import records and runs pipeline
+    *   `importFromCannMenus()` high-level action for tenant imports
+    *   `getImportHistory()` and `getImportDetails()` for retrieval
+
+### Tests Run
+*   `npm test -- --testPathPattern="(directory|tenant|import-jobs|schema-migration)"` (56 passed)
+*   `npm test -- --testPathPattern="import-actions"` (10 passed)
+*   `npm run check:types` (Passed)
+
+### Commits
+*   `3170edc0`: Phase 1 - feat(pipeline): add import jobs, tenant types, and schema migration
+*   `38a3afc8`: Phase 2 - feat(import): add import server actions with CannMenus adapter
+
+---
+
 ## Session: Wiring Products Page & Resolving Permissions
 **Date:** 2025-12-21
 **Task ID:** WIRING-PRODUCTS-PAGE-001
