@@ -74,20 +74,39 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
 
     // Mock Response for Phase 1 "Hello World"
     if (def.name === 'context.getTenantProfile') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        const { getTenantProfile } = await import('./universal/context-tools');
         return {
             status: 'success',
-            data: {
-                tenantId: request.tenantId || 'demo-tenant',
-                name: 'BakedBot Demo Tenant',
-                plan: 'growth',
-                locations: 5
-            }
+            data: await getTenantProfile(request.tenantId)
         };
     }
 
     if (def.name === 'audit.log') {
-        // This is a meta-tool, it just logs (which happens anyway)
-        return { status: 'success', data: { logged: true } };
+        const { auditLog } = await import('./universal/context-tools');
+        return {
+            status: 'success',
+            data: await auditLog(request.tenantId || 'system', inputs.message, inputs.level || 'info', inputs.metadata)
+        };
+    }
+
+    // Phase 2: Catalog Tools
+    if (def.name === 'catalog.searchProducts') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        const { searchProducts } = await import('./domain/catalog');
+        return {
+            status: 'success',
+            data: await searchProducts(request.tenantId, inputs)
+        };
+    }
+
+    if (def.name === 'catalog.getProduct') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        const { getProduct } = await import('./domain/catalog');
+        return {
+            status: 'success',
+            data: await getProduct(request.tenantId, inputs.productId)
+        };
     }
 
     return {
