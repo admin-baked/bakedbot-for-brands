@@ -1,0 +1,143 @@
+/**
+ * Quick Start Cards Configuration
+ * Role-specific high-leverage actions for first-time users
+ */
+
+import { QuickStartCard } from '@/types/agent-workspace';
+
+export const QUICK_START_CARDS: QuickStartCard[] = [
+    // Dispensary Cards
+    {
+        id: 'dispensary_launch_menu',
+        title: 'Launch Headless Menu',
+        description: 'Get your menu live in 10 minutes with embed code',
+        icon: 'menu',
+        estimatedTime: '10 min',
+        prompt: 'Launch my headless menu. My dispensary name is [NAME] and we\'re located in [CITY, STATE].',
+        roles: ['dispensary']
+    },
+    {
+        id: 'dispensary_install_smokey',
+        title: 'Install Smokey Budtender',
+        description: 'Add AI product recommendations to your site',
+        icon: 'bot',
+        estimatedTime: '5 min',
+        prompt: 'Install Smokey budtender widget on my website.',
+        roles: ['dispensary']
+    },
+    {
+        id: 'dispensary_connect_pos',
+        title: 'Connect Menu/POS',
+        description: 'Sync your menu data automatically',
+        icon: 'link',
+        estimatedTime: '15 min',
+        prompt: 'Connect my POS or menu data source.',
+        roles: ['dispensary']
+    },
+    {
+        id: 'dispensary_daily_intel',
+        title: 'Enable Daily Intel Snapshot',
+        description: 'Track competitors, pricing, and market trends',
+        icon: 'chart',
+        estimatedTime: '2 min',
+        playbookId: 'pb_intel_daily_snapshot_v1',
+        prompt: 'Set up daily intelligence snapshot and email it to me every morning.',
+        roles: ['dispensary']
+    },
+    {
+        id: 'dispensary_compliance_check',
+        title: 'Run Compliance Check',
+        description: 'Ensure your content meets state regulations',
+        icon: 'shield',
+        estimatedTime: '5 min',
+        prompt: 'Run a compliance check on my menu and marketing materials.',
+        roles: ['dispensary']
+    },
+
+    // Brand Cards
+    {
+        id: 'brand_launch_page',
+        title: 'Launch Brand Page + Where-to-Buy',
+        description: 'Create SEO-optimized brand presence',
+        icon: 'globe',
+        estimatedTime: '15 min',
+        prompt: 'Launch my brand page with where-to-buy locator. Here\'s my website: [URL]',
+        roles: ['brand']
+    },
+    {
+        id: 'brand_footprint_audit',
+        title: 'Run Footprint Audit',
+        description: 'See where you\'re winning or missing placements',
+        icon: 'map',
+        estimatedTime: '10 min',
+        playbookId: 'pb_intel_footprint_audit_v1',
+        prompt: 'Run a footprint audit for my brand to show where we\'re placed and where we\'re missing.',
+        roles: ['brand']
+    },
+    {
+        id: 'brand_target_retailers',
+        title: 'Find 50 Target Retailers',
+        description: 'Build a list of high-potential retail partners',
+        icon: 'target',
+        estimatedTime: '5 min',
+        prompt: 'Find 50 target retailers that carry my competitors but not my brand.',
+        roles: ['brand']
+    },
+    {
+        id: 'brand_daily_snapshot',
+        title: 'Enable Daily Brand Snapshot',
+        description: 'Track placements, pricing changes, and new stores',
+        icon: 'notification',
+        estimatedTime: '2 min',
+        playbookId: 'pb_intel_daily_snapshot_v1',
+        prompt: 'Set up daily brand intelligence snapshot tracking new stores, lost stores, pricing changes, and promos.',
+        roles: ['brand']
+    },
+    {
+        id: 'brand_connect_gmail',
+        title: 'Connect Gmail for Outreach',
+        description: 'Enable automated email campaigns to retailers',
+        icon: 'mail',
+        estimatedTime: '3 min',
+        prompt: 'Connect my Gmail account so I can send retailer outreach emails.',
+        roles: ['brand']
+    }
+];
+
+/**
+ * Role-based prompt chips for chat interface
+ */
+export const PROMPT_CHIPS = {
+    dispensary: [
+        "Launch my headless menu",
+        "Install Smokey on my site",
+        "Enable daily competitive intel",
+        "Generate 25 SEO pages for Illinois",
+        "Draft a compliant text campaign"
+    ],
+    brand: [
+        "Launch my brand page + where-to-buy",
+        "Run a footprint audit",
+        "Find retailers that carry competitors, not us",
+        "Enable daily brand snapshot",
+        "Draft compliant outreach emails"
+    ],
+    owner: [
+        "Show me platform analytics",
+        "Generate revenue report",
+        "Review pending approvals",
+        "Configure compliance settings",
+        "Manage team access"
+    ]
+};
+
+/**
+ * First-login welcome messages by role
+ */
+export const WELCOME_MESSAGES = {
+    dispensary: "Welcome! I can get you live today. Choose one: launch your headless menu, install Smokey, connect your menu/POS, or turn on daily intel. Paste your menu link or tell me your dispensary name + city.",
+
+    brand: "Welcome! I can set up your brand presence and show where you're winning or missing. Paste your website or a listing link (Leafly/Weedmaps) to match your products.",
+
+    owner: "Welcome to Baked HQ. I can help you manage the platform, review analytics, configure compliance, or generate reports. What would you like to focus on?"
+};
