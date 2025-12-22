@@ -6,18 +6,94 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { Store, Zap, Package, Users, BarChart3, Settings, Check, ExternalLink } from 'lucide-react';
 import type { POSProvider } from '@/lib/pos/types';
 
-export default function IntegrationsPageClient() {
+// App definitions for the App Store
+const APPS = [
+    {
+        id: 'dutchie',
+        name: 'Dutchie',
+        category: 'POS',
+        description: 'Sync inventory, orders, and customers from Dutchie POS.',
+        icon: '🛒',
+        status: 'available',
+        featured: true,
+    },
+    {
+        id: 'jane',
+        name: 'iHeartJane',
+        category: 'POS',
+        description: 'Connect your Jane menu for product and inventory sync.',
+        icon: '💚',
+        status: 'available',
+        featured: true,
+    },
+    {
+        id: 'treez',
+        name: 'Treez',
+        category: 'POS',
+        description: 'Integrate with Treez for full inventory and order management.',
+        icon: '🌲',
+        status: 'coming_soon',
+        featured: true,
+    },
+    {
+        id: 'blaze',
+        name: 'Blaze',
+        category: 'POS',
+        description: 'Sync products and inventory from Blaze POS.',
+        icon: '🔥',
+        status: 'coming_soon',
+    },
+    {
+        id: 'flowhub',
+        name: 'Flowhub',
+        category: 'POS',
+        description: 'Connect Flowhub for compliance-ready inventory sync.',
+        icon: '📦',
+        status: 'coming_soon',
+    },
+    {
+        id: 'mailchimp',
+        name: 'Mailchimp',
+        category: 'Marketing',
+        description: 'Sync customer segments for email campaigns.',
+        icon: '📧',
+        status: 'coming_soon',
+    },
+    {
+        id: 'klaviyo',
+        name: 'Klaviyo',
+        category: 'Marketing',
+        description: 'Advanced email automation for cannabis brands.',
+        icon: '💌',
+        status: 'coming_soon',
+    },
+    {
+        id: 'springbig',
+        name: 'Springbig',
+        category: 'Loyalty',
+        description: 'Loyalty program integration for dispensaries.',
+        icon: '⭐',
+        status: 'coming_soon',
+    },
+];
+
+const CATEGORIES = ['All', 'POS', 'Marketing', 'Loyalty'];
+
+export default function AppStorePage() {
     const { toast } = useToast();
     const [provider, setProvider] = useState<POSProvider>('dutchie');
     const [storeId, setStoreId] = useState('');
     const [apiKey, setApiKey] = useState('');
     const [loading, setLoading] = useState(false);
     const [lastSync, setLastSync] = useState<any>(null);
+    const [selectedCategory, setSelectedCategory] = useState('All');
 
     const handleTest = async () => {
         setLoading(true);
@@ -60,22 +136,136 @@ export default function IntegrationsPageClient() {
         }
     };
 
+    const filteredApps = APPS.filter(app =>
+        selectedCategory === 'All' || app.category === selectedCategory
+    );
+
     return (
-        <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
+        <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">Integrations</h1>
-                <p className="text-muted-foreground">Connect your Point of Sale system for real-time inventory.</p>
+                <div className="flex items-center gap-3">
+                    <Store className="h-8 w-8 text-primary" />
+                    <h1 className="text-3xl font-bold tracking-tight">App Store</h1>
+                </div>
+                <p className="text-muted-foreground">
+                    Connect your favorite tools and services to supercharge your business.
+                </p>
             </div>
 
-            <Tabs defaultValue="available" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="available">Active Connections</TabsTrigger>
-                    <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
+            <Tabs defaultValue="browse" className="w-full">
+                <TabsList>
+                    <TabsTrigger value="browse">Browse Apps</TabsTrigger>
+                    <TabsTrigger value="installed">My Apps</TabsTrigger>
+                    <TabsTrigger value="configure">Configure</TabsTrigger>
                 </TabsList>
-                <TabsContent value="available" className="mt-6">
+
+                {/* Browse Apps Tab */}
+                <TabsContent value="browse" className="mt-6">
+                    {/* Category Filter */}
+                    <div className="flex gap-2 mb-6">
+                        {CATEGORIES.map(cat => (
+                            <Button
+                                key={cat}
+                                variant={selectedCategory === cat ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setSelectedCategory(cat)}
+                            >
+                                {cat}
+                            </Button>
+                        ))}
+                    </div>
+
+                    {/* Featured Apps */}
+                    <div className="mb-8">
+                        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <Zap className="h-5 w-5 text-yellow-500" />
+                            Featured Integrations
+                        </h2>
+                        <div className="grid gap-4 md:grid-cols-3">
+                            {filteredApps.filter(a => a.featured).map(app => (
+                                <Card key={app.id} className="hover:border-primary/50 transition-colors">
+                                    <CardHeader className="pb-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-3xl">{app.icon}</span>
+                                                <div>
+                                                    <CardTitle className="text-lg">{app.name}</CardTitle>
+                                                    <Badge variant="outline" className="text-xs">{app.category}</Badge>
+                                                </div>
+                                            </div>
+                                            {app.status === 'available' ? (
+                                                <Badge className="bg-green-100 text-green-800">Available</Badge>
+                                            ) : (
+                                                <Badge variant="secondary">Coming Soon</Badge>
+                                            )}
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground">{app.description}</p>
+                                    </CardContent>
+                                    <CardFooter>
+                                        {app.status === 'available' ? (
+                                            <Button className="w-full" size="sm">
+                                                <Check className="h-4 w-4 mr-2" /> Connect
+                                            </Button>
+                                        ) : (
+                                            <Button className="w-full" size="sm" variant="outline" disabled>
+                                                Coming Soon
+                                            </Button>
+                                        )}
+                                    </CardFooter>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* All Apps */}
+                    <h2 className="text-lg font-semibold mb-4">All Apps</h2>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        {filteredApps.map(app => (
+                            <Card key={app.id} className="hover:border-primary/50 transition-colors">
+                                <CardContent className="pt-6">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <span className="text-2xl">{app.icon}</span>
+                                        <div>
+                                            <div className="font-medium">{app.name}</div>
+                                            <div className="text-xs text-muted-foreground">{app.category}</div>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mb-3">{app.description}</p>
+                                    {app.status === 'available' ? (
+                                        <Button size="sm" variant="outline" className="w-full">Connect</Button>
+                                    ) : (
+                                        <Button size="sm" variant="ghost" className="w-full" disabled>Coming Soon</Button>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </TabsContent>
+
+                {/* My Apps Tab */}
+                <TabsContent value="installed" className="mt-6">
+                    <Card>
+                        <CardContent className="py-12 text-center">
+                            <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-medium mb-2">No Apps Connected Yet</h3>
+                            <p className="text-muted-foreground mb-4">
+                                Browse the App Store to connect your first integration.
+                            </p>
+                            <Button onClick={() => { }}>Browse Apps</Button>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Configure Tab */}
+                <TabsContent value="configure" className="mt-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>POS Configuration</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <Settings className="h-5 w-5" />
+                                POS Configuration
+                            </CardTitle>
                             <CardDescription>Enter your API credentials to enable sync.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -88,6 +278,7 @@ export default function IntegrationsPageClient() {
                                     <SelectContent>
                                         <SelectItem value="dutchie">Dutchie</SelectItem>
                                         <SelectItem value="jane">iHeartJane</SelectItem>
+                                        <SelectItem value="treez" disabled>Treez (Coming Soon)</SelectItem>
                                         <SelectItem value="manual" disabled>Manual (CSV)</SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -119,11 +310,6 @@ export default function IntegrationsPageClient() {
                             Last Sync: {lastSync.syncedCount} items processed successfully.
                         </div>
                     )}
-                </TabsContent>
-                <TabsContent value="marketplace">
-                    <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
-                        More integrations (Treez, Blaze, Flowhub) coming soon.
-                    </div>
                 </TabsContent>
             </Tabs>
         </div>

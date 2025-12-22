@@ -18,7 +18,7 @@ export default function JoinPageClient({ brandId }: { brandId: string }) {
         setError('');
         setIsLoading(true);
         try {
-            await captureLead(brandId, email, 'join-page');
+            await captureLead(brandId, { email, source: 'join-page' });
             setSubmitted(true);
         } catch (err: any) {
             setError(err.message || 'Unable to submit your email. Please check your connection and try again.');
