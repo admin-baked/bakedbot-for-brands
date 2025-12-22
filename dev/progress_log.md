@@ -1,6 +1,27 @@
 
 # Progress Log
 
+## Session: Leafly Adapter
+**Date:** 2025-12-21
+**Task ID:** DATA-ARCH-LEAFLY-001
+
+### Summary
+Added Leafly adapter to the import pipeline, enabling data ingestion from Leafly scraper data.
+
+### Key Changes
+*   Added `fetchLeaflyProducts()`, `importFromLeafly()`, `normalizeLeaflyCategory()` to `import-actions.ts`
+*   Reads from `sources/leafly/dispensaries/{slug}/products` Firestore path
+*   Category normalization for Leafly-specific categories
+*   Mock data generator for demo/testing
+
+### Tests Run
+*   `npm test -- --testPathPattern="import-actions"` (15 passed: 10 CannMenus + 5 Leafly)
+
+### Commits
+*   `4ad7cea0`: feat(import): add Leafly adapter for import pipeline
+
+---
+
 ## Session: Data Architecture Phase 3 - Full Merge Implementation
 **Date:** 2025-12-21
 **Task ID:** DATA-ARCH-PHASE3-001
