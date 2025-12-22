@@ -1,4 +1,21 @@
-export const PRICING_PLANS = [
+
+export interface PricingPlan {
+    id: string;
+    name: string;
+    badge?: string; // e.g. "Most Popular" or "Launch"
+    price: number | null;
+    priceDisplay: string;
+    priceLater?: number | null; // For launch pricing strikethrough
+    period: string;
+    setup?: string;
+    desc: string;
+    highlight?: string | boolean; // Marketing highlight text or boolean for styling
+    features: string[];
+    pill: string;
+    tier: "directory" | "platform";
+}
+
+export const DIRECTORY_PLANS: PricingPlan[] = [
     {
         id: "free",
         name: "Free Listing",
@@ -14,7 +31,7 @@ export const PRICING_PLANS = [
         ],
         pill: "Create Free Listing",
         highlight: false,
-        tier: "unclaimed"
+        tier: "directory"
     },
     {
         id: "claim_pro",
@@ -31,88 +48,152 @@ export const PRICING_PLANS = [
             "Set CTA (Order / Pickup / Find-in-store / Deals / Website)",
             "Basic analytics (views, clicks, top ZIPs)",
             "Lead capture (email/SMS form)",
-            "Data correction + audit trail"
+            "Data correction + audit trail",
+            "Agent Workspace (Lite): run basic tasks (summaries, page updates, quick insights)",
+            "Intel Preview: weekly placements + pricing bands (in-app)"
         ],
         pill: "Claim Pro",
         highlight: true,
-        tier: "claim"
+        tier: "directory"
     },
     {
         id: "founders_claim",
         name: "Claim Pro (Founders)",
+        badge: "Limited",
         price: 79,
         priceDisplay: "$79",
-        priceAnnual: 799,
+        priceLater: 99,
         period: "/ mo (locked)",
         setup: "Limited availability",
         desc: "Same as Claim Pro, but locked-in pricing for life.",
         features: [
             "All Claim Pro features",
             "Locked-in pricing ($79/mo)",
-            "Early adopter badge"
+            "Early adopter badge",
+            "Includes Agent Workspace (Lite) + Intel Preview"
         ],
         pill: "Get Founders Pricing",
         highlight: false,
-        tier: "claim",
-        scarcity: true,
-        scarcityLimit: 75
+        tier: "directory"
+    }
+];
+
+export const PLATFORM_PLANS: PricingPlan[] = [
+    {
+        id: "starter",
+        name: "Starter",
+        badge: "Launch",
+        price: 99,
+        priceDisplay: "$99",
+        priceLater: 149,
+        period: "/ mo",
+        highlight: "Best for getting live fast",
+        setup: "Best for: single location/brand site",
+        desc: "Best for: getting live fast",
+        features: [
+            "1 location (or 1 brand site)",
+            "2,000 menu/product pageviews / mo",
+            "300 Smokey chat sessions / mo",
+            "5,000 Deebo checks / mo",
+            "1,000 contacts stored",
+            "2 menu sync runs / day",
+            "Email support",
+            "Agent Workspace: core tasks + basic automations",
+            "Intel Starter: weekly snapshot + up to 10 Market Sensors"
+        ],
+        pill: "Choose Plan",
+        tier: "platform"
     },
     {
         id: "growth",
         name: "Growth",
-        price: 350,
-        priceDisplay: "$350",
+        badge: "Most Popular",
+        price: 249,
+        priceDisplay: "$249",
+        priceLater: 349,
         period: "/ mo",
-        setup: "Best for: growing brands (≈5 locations / multi-zone coverage)",
-        desc: "Best for: growing brands (≈5 locations / multi-zone coverage)",
+        highlight: "For consistent traffic + conversion",
+        setup: "Best for: multiple locations",
+        desc: "For consistent traffic + conversion",
         features: [
-            "Multi-market page coverage (more ZIPs/zones)",
-            "Craig automations starter (claim-to-lead nurture)",
-            "Pops reporting starter (traffic → clicks → claims)",
-            "Coverage Packs available"
+            "Up to 3 locations (or 3 brand sites)",
+            "10,000 menu/product pageviews / mo",
+            "1,500 Smokey chat sessions / mo",
+            "25,000 Deebo checks / mo",
+            "5,000 contacts stored",
+            "6 menu sync runs / day",
+            "Priority support",
+            "Agent Workspace: team workflows + automation starter",
+            "Intel Growth: daily snapshot + alerts + up to 50 Market Sensors"
         ],
         pill: "Start Growth",
-        highlight: false,
-        tier: "subscription"
+        tier: "platform"
     },
     {
         id: "scale",
         name: "Scale",
-        price: 700,
-        priceDisplay: "$700",
+        badge: "Teams",
+        price: 699,
+        priceDisplay: "$699",
+        priceLater: 899,
         period: "/ mo",
-        setup: "Best for: established brands (≈10 locations / aggressive expansion)",
-        desc: "Best for: established brands (≈10 locations / aggressive expansion)",
+        highlight: "For multi-location operators",
+        setup: "Best for: scaling teams",
+        desc: "For multi-location operators",
         features: [
-            "Expanded coverage + higher limits",
-            "Priority support + faster refresh cadence",
-            "Advanced reporting + optimization loop (what to build next / where to expand)",
-            "Coverage Packs available"
+            "Up to 10 locations (or 10 brand sites)",
+            "50,000 menu/product pageviews / mo",
+            "7,500 Smokey chat sessions / mo",
+            "100,000 Deebo checks / mo",
+            "25,000 contacts stored",
+            "Hourly menu sync",
+            "SLA + onboarding",
+            "Agent Workspace: advanced workflows + priority processing",
+            "Intel Scale: daily snapshot + competitor set + up to 200 Market Sensors"
         ],
         pill: "Start Scale",
-        highlight: false,
-        tier: "subscription"
+        tier: "platform"
     },
     {
         id: "enterprise",
         name: "Enterprise",
+        badge: "Custom",
         price: null,
         priceDisplay: "Custom",
         period: "",
-        setup: "Best for: MSOs / national brands / custom integrations",
-        desc: "Best for: MSOs / national brands / custom integrations",
+        highlight: "Custom integrations + unlimited scale",
+        setup: "Best for: MSOs / national brands",
+        desc: "Custom integrations + unlimited scale",
         features: [
-            "Custom coverage + SLAs",
-            "Integrations + bespoke workflows",
-            "Dedicated support"
+            "Unlimited locations/sites",
+            "Custom usage + dedicated infrastructure",
+            "Advanced compliance packs",
+            "Custom workflows + integrations",
+            "Dedicated success + support",
+            "Unlimited Intel Runs + custom Market Sensor coverage",
+            "Dedicated workflows + integrations"
         ],
         pill: "Talk to Sales",
-        highlight: false,
-        tier: "subscription"
+        tier: "platform"
     }
 ];
 
-// Coverage Pack Add-ons
+export const ADDONS = [
+    { name: "Craig (Marketing Automation)", price: 149, note: "Email workflows + segmentation", desc: "Automated email + SMS workflows with compliance pre-checks. Great for claim-to-lead nurture and lifecycle journeys." },
+    { name: "Pops (Analytics + Forecasting)", price: 179, note: "Dashboards + insights", desc: "Dashboards, cohorts, and decision-ready reporting across traffic → clicks → claims → outcomes." },
+    { name: "Ezal (Competitive Intelligence)", price: 249, note: "Menu + pricing tracking", desc: "Market Sensors track menus and pricing changes, then summarize what matters (price moves, promos, availability shifts)." },
+    { name: "Deebo Pro (Compliance OS)", price: 199, note: "Policy packs + audits", desc: "Jurisdiction-aware rule packs, audit trails, and pre-flight checks across web + email + SMS." },
+];
+
+export const OVERAGES = [
+    { k: "Smokey chat sessions", v: "$25 per 1,000" },
+    { k: "Menu/product pageviews", v: "$10 per 10,000" },
+    { k: "Deebo compliance checks", v: "$10 per 25,000" },
+    { k: "Contacts stored", v: "$15 per 5,000" },
+    { k: "Intel Runs", v: "Daily snapshot, weekly summary, alert batch, or scheduled report", unit: "per run" },
+    { k: "Market Sensors", v: "A monitored menu/URL/retailer tracked for changes during the month", unit: "per sensor" }
+];
+
 export const COVERAGE_PACKS = [
     {
         id: "pack_100",
@@ -131,3 +212,6 @@ export const COVERAGE_PACKS = [
         zips: 500
     }
 ];
+
+// Combine all for backward compatibility
+export const PRICING_PLANS = [...DIRECTORY_PLANS, ...PLATFORM_PLANS];

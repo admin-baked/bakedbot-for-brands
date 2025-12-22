@@ -1,0 +1,1012 @@
+# Playbooks Library (v1)
+# Purpose: executable examples (prompt → response → tool plan) that can be saved after a user runs them.
+# Notes:
+# - “Market Sensors” = your always-on monitoring pipelines (no “scrape” language).
+# - Any outbound marketing requires: (1) Deebo preflight + (2) approval gate + (3) opt-in validation.
+# - Gmail: default to "send-only" permission; "read" is optional and only requested when needed.
+
+# -------------------------------------------------------------------
+# PLAYBOOK 01: Daily Intelligence Snapshot (Brand/Dispensary)
+# -------------------------------------------------------------------
+version: 1
+name: "Daily Intelligence Snapshot"
+id: "pb_intel_daily_snapshot_v1"
+category: "Intel"
+who_uses_it: "Both"
+user_prompt_example: "Set up a daily intelligence snapshot for MFNY. Email it to me every morning. Track new stores, lost stores, pricing changes, and promos."
+assistant_response_example: >
+  Got it. I’ll create a daily MFNY intelligence snapshot using CannMenus, Leafly, and Market Sensors.
+  To email it automatically, please connect Gmail (send-only). If you skip it, the snapshot will still be generated and stored in-app.
+requires_integrations:
+  gmail: "optional"         # optional because we can still store in-app
+  google_sheets: "optional" # optional; used to maintain an ongoing log
+data_sources:
+  cannmenus: true
+  leafly: true
+  market_sensors: true
+  web_search: false
+guardrails:
+  deebo_required: false
+  approvals_required: false
+inputs_schema:
+  type: object
+  required: ["entity_name", "entity_type"]
+  properties:
+    entity_name: { type: string, example: "MFNY" }
+    entity_type: { type: string, enum: ["brand", "dispensary"] }
+    scope: { type: string, enum: ["NY_ONLY", "NATIONWIDE"], default: "NY_ONLY" }
+    schedule_time_local: { type: string, example: "08:00", default: "08:00" }
+    timezone: { type: string, default: "America/Chicago" }
+    recipients: { type: array, items: { type: string }, default: [] } # default: current user
+    log_to_sheet: { type: boolean, default: true }
+outputs:
+  in_app_run_record: true
+  email: "optional"
+  sheet_log: "optional"
+triggers:
+  - type: "manual"
+  - type: "schedule"
+    cron: "0 8 * * *"
+    timezone: "America/Chicago"
+steps:
+  - id: "resolve_entity"
+    tool: "intel.resolve_entity"
+    purpose: "Resolve canonical identity + aliases for matching across sources."
+    inputs: { entity_name: "{{entity_name}}", entity_type: "{{entity_type}}" }
+    outputs: { entity_id: "$.entityId", canonical_key: "$.canonicalKey" }
+
+  - id: "collect_cannmenus"
+    tool: "intel.collect.cannmenus"
+    purpose: "Pull structured menu presence + pricing signals."
+    inputs: { canonical_key: "{{steps.resolve_entity.outputs.canonical_key}}", scope: "{{scope}}" }
+    outputs: { cannmenus_signals_ref: "$.signalsRef" }
+
+  - id: "collect_leafly"
+    tool: "intel.collect.leafly"
+    purpose: "Pull public availability/listing signals."
+    inputs: { canonical_key: "{{steps.resolve_entity.outputs.canonical_key}}", scope: "{{scope}}" }
+    outputs: { leafly_signals_ref: "$.signalsRef" }
+
+  - id: "collect_market_sensors"
+    tool: "intel.collect.market_sensors"
+    purpose: "Pull monitoring diffs from Market Sensors relevant to entity + scope."
+    inputs: { canonical_key: "{{steps.resolve_entity.outputs.canonical_key}}", scope: "{{scope}}" }
+    outputs: { sensors_signals_ref: "$.signalsRef" }
+
+  - id: "compute_deltas"
+    tool: "intel.diff.daily"
+    purpose: "Compute new/lost placements, pricing changes, promo signals vs yesterday."
+    inputs:
+      canonical_key: "{{steps.resolve_entity.outputs.canonical_key}}"
+      sources:
+        - "{{steps.collect_cannmenus.outputs.cannmenus_signals_ref}}"
+        - "{{steps.collect_leafly.outputs.leafly_signals_ref}}"
+        - "{{steps.collect_market_sensors.outputs.sensors_signals_ref}}"
+    outputs: { summary_ref: "$.summaryRef", details_ref: "$.detailsRef", run_id: "$.runId" }
+
+  - id: "optional_sheet_log"
+    tool: "sheets.append_row"
+    if: "{{log_to_sheet}}"
+    purpose: "Append daily headline metrics to a long-term tracking sheet."
+    inputs:
+      sheet_key: "intel_daily_log"
+      row:
+        date: "{{today}}"
+        entity: "{{entity_name}}"
+        retailers: "{{steps.compute_deltas.outputs.summary_ref.metrics.retailersCarrying}}"
+        delta: "{{steps.compute_deltas.outputs.summary_ref.metrics.retailersDelta}}"
+        promo_signals: "{{steps.compute_deltas.outputs.summary_ref.metrics.promoSignals}}"
+        details_ref: "{{steps.compute_deltas.outputs.details_ref}}"
+
+  - id: "check_gmail_connected"
+    tool: "gmail.check_connected"
+    purpose: "Check if Gmail is authorized for sending."
+    outputs: { connected: "$.connected", reason: "$.reason" }
+
+  - id: "send_email_if_connected"
+    tool: "gmail.send"
+    if: "{{steps.check_gmail_connected.outputs.connected}}"
+    purpose: "Email the snapshot digest to recipients."
+    inputs:
+      to: "{{recipients | default(current_user.email)}}"
+      subject: "{{entity_name}} Daily Intelligence Snapshot — {{today}}"
+      html_ref: "{{steps.compute_deltas.outputs.summary_ref.renderedEmailHtmlRef}}"
+      attachments:
+        - "{{steps.compute_deltas.outputs.details_ref}}"
+
+artifacts_to_save:
+  - type: "intel_run"
+    ref: "{{steps.compute_deltas.outputs.run_id}}"
+  - type: "details_blob"
+    ref: "{{steps.compute_deltas.outputs.details_ref}}"
+  - type: "summary_blob"
+    ref: "{{steps.compute_deltas.outputs.summary_ref}}"
+
+---
+# -------------------------------------------------------------------
+# PLAYBOOK 02: Competitive Price Index Report (Weekly)
+# -------------------------------------------------------------------
+version: 1
+name: "Competitor Price Index (Weekly)"
+id: "pb_intel_price_index_weekly_v1"
+category: "Intel"
+who_uses_it: "Both"
+user_prompt_example: "Show me how our vape pricing compares to the market in Chicago. I want a weekly price index and the top 10 cheapest competitors."
+assistant_response_example: >
+  Done. I’ll compute a weekly category price index vs the market median using menu intelligence + Market Sensors,
+  then publish the index + competitor table into a Google Sheet and optionally email you the weekly summary.
+requires_integrations:
+  gmail: "optional"
+  google_sheets: "required"
+data_sources:
+  cannmenus: true
+  leafly: false
+  market_sensors: true
+  web_search: true
+guardrails:
+  deebo_required: false
+  approvals_required: false
+inputs_schema:
+  type: object
+  required: ["market", "category", "your_entity_name"]
+  properties:
+    market: { type: string, example: "Chicago, IL" }
+    category: { type: string, example: "vapes" }
+    your_entity_name: { type: string, example: "Your Dispensary" }
+    competitor_count: { type: integer, default: 10 }
+    schedule_time_local: { type: string, default: "09:00" }
+    timezone: { type: string, default: "America/Chicago" }
+triggers:
+  - type: "manual"
+  - type: "schedule"
+    cron: "0 9 * * 1"
+    timezone: "America/Chicago"
+steps:
+  - id: "resolve_market"
+    tool: "geo.resolve_market"
+    purpose: "Normalize market into geo boundary used for comparisons."
+    inputs: { market: "{{market}}" }
+    outputs: { market_key: "$.marketKey" }
+
+  - id: "seed_competitors"
+    tool: "search.find_competitors"
+    purpose: "Seed list of competitors in market (used to guide Market Sensors coverage)."
+    inputs: { market_key: "{{steps.resolve_market.outputs.market_key}}", category: "{{category}}" }
+    outputs: { competitor_list: "$.competitors" }
+
+  - id: "collect_market_prices"
+    tool: "intel.collect.market_sensors"
+    purpose: "Collect competitor pricing signals via Market Sensors."
+    inputs:
+      market_key: "{{steps.resolve_market.outputs.market_key}}"
+      category: "{{category}}"
+      competitors: "{{steps.seed_competitors.outputs.competitor_list}}"
+    outputs: { market_signals_ref: "$.signalsRef" }
+
+  - id: "collect_your_prices"
+    tool: "intel.collect.cannmenus"
+    purpose: "Collect your pricing signals for same category."
+    inputs: { entity_name: "{{your_entity_name}}", category: "{{category}}", market_key: "{{steps.resolve_market.outputs.market_key}}" }
+    outputs: { your_signals_ref: "$.signalsRef" }
+
+  - id: "compute_index"
+    tool: "pops.compute.price_index"
+    purpose: "Compute median price index and cheapest competitor table."
+    inputs:
+      category: "{{category}}"
+      market_signals_ref: "{{steps.collect_market_prices.outputs.market_signals_ref}}"
+      your_signals_ref: "{{steps.collect_your_prices.outputs.your_signals_ref}}"
+      top_n: "{{competitor_count}}"
+    outputs: { report: "$.report", table: "$.table" }
+
+  - id: "write_sheet"
+    tool: "sheets.upsert_table"
+    purpose: "Write index + competitor table into a shareable sheet."
+    inputs:
+      sheet_key: "weekly_price_index"
+      tabs:
+        - name: "Summary"
+          values: "{{steps.compute_index.outputs.report}}"
+        - name: "Top Competitors"
+          values: "{{steps.compute_index.outputs.table}}"
+    outputs: { sheet_url: "$.sheetUrl" }
+
+  - id: "email_optional"
+    tool: "gmail.send"
+    if: "{{gmail_connected}}"
+    purpose: "Email weekly summary link (optional)."
+    inputs:
+      to: "{{current_user.email}}"
+      subject: "Weekly {{category}} Price Index — {{market}}"
+      body: "Your report is ready: {{steps.write_sheet.outputs.sheet_url}}"
+
+artifacts_to_save:
+  - type: "sheet"
+    ref: "{{steps.write_sheet.outputs.sheet_url}}"
+
+---
+# -------------------------------------------------------------------
+# PLAYBOOK 03: Claim-to-Lead Follow-up Automation (Compliant)
+# -------------------------------------------------------------------
+version: 1
+name: "Claim Lead Follow-up (Compliant)"
+id: "pb_marketing_claim_lead_followup_v1"
+category: "Marketing"
+who_uses_it: "Both"
+user_prompt_example: "Anyone who claims our page or submits a lead form—send them a friendly follow-up and schedule a demo."
+assistant_response_example: >
+  Great. I’ll set up a compliant follow-up workflow: capture lead → log it → draft email → Deebo preflight → your approval → send.
+  To deliver emails automatically, connect Gmail (send-only).
+requires_integrations:
+  gmail: "required"
+  google_sheets: "required"
+data_sources:
+  cannmenus: false
+  leafly: false
+  market_sensors: false
+  web_search: false
+guardrails:
+  deebo_required: true
+  approvals_required: true
+inputs_schema:
+  type: object
+  required: ["from_name", "calendar_link"]
+  properties:
+    from_name: { type: string, example: "Martez" }
+    calendar_link: { type: string, example: "https://calendly.com/baked-martez/30min" }
+    lead_source: { type: string, enum: ["claim", "lead_form", "both"], default: "both" }
+    compliance_jurisdiction: { type: string, default: "IL" }
+    channel: { type: string, enum: ["email"], default: "email" }
+triggers:
+  - type: "event"
+    event_name: "lead.created"
+steps:
+  - id: "check_gmail"
+    tool: "gmail.check_connected"
+    purpose: "Ensure Gmail is connected for sending."
+    outputs: { connected: "$.connected" }
+
+  - id: "stop_if_no_gmail"
+    tool: "flow.stop"
+    if: "{{not steps.check_gmail.outputs.connected}}"
+    purpose: "Stop run and request Gmail permission in-app."
+    inputs:
+      reason: "Gmail not connected. Please connect Gmail (send-only) to enable automated follow-up."
+
+  - id: "log_lead"
+    tool: "sheets.append_row"
+    purpose: "Log the lead for tracking + audit."
+    inputs:
+      sheet_key: "leads_log"
+      row:
+        created_at: "{{event.created_at}}"
+        name: "{{event.lead.name}}"
+        email: "{{event.lead.email}}"
+        source: "{{event.lead.source}}"
+        status: "NEW"
+
+  - id: "draft_email"
+    tool: "craig.compose_email"
+    purpose: "Draft a friendly follow-up with clear CTA."
+    inputs:
+      lead: "{{event.lead}}"
+      from_name: "{{from_name}}"
+      calendar_link: "{{calendar_link}}"
+      tone: "helpful"
+    outputs: { draft_subject: "$.subject", draft_body: "$.body" }
+
+  - id: "deebo_preflight"
+    tool: "deebo.check_content"
+    purpose: "Compliance check before any outbound message."
+    inputs:
+      jurisdiction: "{{compliance_jurisdiction}}"
+      channel: "{{channel}}"
+      content:
+        subject: "{{steps.draft_email.outputs.draft_subject}}"
+        body: "{{steps.draft_email.outputs.draft_body}}"
+    outputs: { approved: "$.approved", redlines: "$.redlines", safe_subject: "$.safeSubject", safe_body: "$.safeBody" }
+
+  - id: "approval_gate"
+    tool: "approvals.request"
+    purpose: "Require user approval before sending."
+    inputs:
+      title: "Approve follow-up email to {{event.lead.email}}"
+      preview:
+        subject: "{{steps.deebo_preflight.outputs.safe_subject}}"
+        body: "{{steps.deebo_preflight.outputs.safe_body}}"
+      notes: "{{steps.deebo_preflight.outputs.redlines}}"
+    outputs: { approved: "$.approved" }
+
+  - id: "send_email"
+    tool: "gmail.send"
+    if: "{{steps.approval_gate.outputs.approved}}"
+    purpose: "Send the approved message."
+    inputs:
+      to: "{{event.lead.email}}"
+      subject: "{{steps.deebo_preflight.outputs.safe_subject}}"
+      body: "{{steps.deebo_preflight.outputs.safe_body}}"
+
+  - id: "update_lead_status"
+    tool: "sheets.update_row"
+    purpose: "Mark lead as contacted."
+    inputs:
+      sheet_key: "leads_log"
+      match: { email: "{{event.lead.email}}" }
+      patch: { status: "EMAILED", emailed_at: "{{now}}" }
+
+---
+# -------------------------------------------------------------------
+# PLAYBOOK 04: 25 Pages/Day Programmatic SEO Publisher (With Deebo + Approval)
+# -------------------------------------------------------------------
+version: 1
+name: "25 Pages/Day SEO Publisher (IL)"
+id: "pb_seo_25pages_daily_il_v1"
+category: "SEO"
+who_uses_it: "Both"
+user_prompt_example: "Generate 25 new Illinois ZIP pages daily and publish them. Use our menu data and make sure the copy is compliant."
+assistant_response_example: >
+  Locked in. I’ll generate 25 IL ZIP pages per day using your menu signals + local context, run Deebo compliance preflight,
+  queue drafts in a review sheet, and publish only after approval.
+requires_integrations:
+  gmail: "optional"
+  google_sheets: "required"
+data_sources:
+  cannmenus: true
+  leafly: false
+  market_sensors: false
+  web_search: true
+guardrails:
+  deebo_required: true
+  approvals_required: true
+inputs_schema:
+  type: object
+  properties:
+    state: { type: string, default: "IL" }
+    pages_per_day: { type: integer, default: 25 }
+    channel: { type: string, default: "web" }
+    jurisdiction: { type: string, default: "IL" }
+triggers:
+  - type: "schedule"
+    cron: "0 2 * * *"
+    timezone: "America/Chicago"
+steps:
+  - id: "select_targets"
+    tool: "seo.targets.zip_generate"
+    purpose: "Select next batch of ZIP targets for page creation."
+    inputs: { state: "{{state}}", count: "{{pages_per_day}}" }
+    outputs: { zips: "$.zips" }
+
+  - id: "draft_pages"
+    tool: "seo.compose.batch"
+    purpose: "Draft page content using CannMenus menu signals + optional web enrichment."
+    inputs:
+      zips: "{{steps.select_targets.outputs.zips}}"
+      include_menu_signals: true
+      web_enrichment: true
+    outputs: { drafts: "$.drafts" }
+
+  - id: "deebo_preflight_batch"
+    tool: "deebo.check_content_batch"
+    purpose: "Compliance preflight for web content before publishing."
+    inputs:
+      jurisdiction: "{{jurisdiction}}"
+      channel: "{{channel}}"
+      drafts: "{{steps.draft_pages.outputs.drafts}}"
+    outputs: { checked_drafts: "$.checkedDrafts" }
+
+  - id: "queue_review_sheet"
+    tool: "sheets.upsert_table"
+    purpose: "Queue drafts for review with scores + compliance notes."
+    inputs:
+      sheet_key: "seo_draft_queue"
+      tab: "IL_ZIP_Drafts"
+      values: "{{steps.deebo_preflight_batch.outputs.checked_drafts}}"
+    outputs: { sheet_url: "$.sheetUrl" }
+
+  - id: "approval_gate"
+    tool: "approvals.request"
+    purpose: "Approval required before publishing batch."
+    inputs:
+      title: "Approve publishing {{pages_per_day}} IL ZIP pages"
+      preview_link: "{{steps.queue_review_sheet.outputs.sheet_url}}"
+      notes: "Review compliance notes and approve to publish."
+    outputs: { approved: "$.approved" }
+
+  - id: "publish_batch"
+    tool: "seo.publish.batch"
+    if: "{{steps.approval_gate.outputs.approved}}"
+    purpose: "Publish approved drafts."
+    inputs: { checked_drafts: "{{steps.deebo_preflight_batch.outputs.checked_drafts}}" }
+    outputs: { published_urls: "$.urls" }
+
+---
+# -------------------------------------------------------------------
+# PLAYBOOK 05: Weekly Executive KPI Report (Pops)
+# -------------------------------------------------------------------
+version: 1
+name: "Weekly Executive KPI Report"
+id: "pb_reporting_weekly_exec_v1"
+category: "Reporting"
+who_uses_it: "Both"
+user_prompt_example: "Every Monday send me a weekly report: traffic, chats, leads, sales, and what changed."
+assistant_response_example: >
+  Done. I’ll send a Monday KPI snapshot with week-over-week deltas, the top drivers, and next actions.
+  If Gmail isn’t connected, the report will still generate in-app and in a sheet.
+requires_integrations:
+  gmail: "optional"
+  google_sheets: "required"
+data_sources:
+  cannmenus: true
+  leafly: false
+  market_sensors: false
+  web_search: false
+guardrails:
+  deebo_required: false
+  approvals_required: false
+inputs_schema:
+  type: object
+  properties:
+    schedule_time_local: { type: string, default: "08:00" }
+    timezone: { type: string, default: "America/Chicago" }
+    recipients: { type: array, items: { type: string }, default: [] }
+triggers:
+  - type: "schedule"
+    cron: "0 8 * * 1"
+    timezone: "America/Chicago"
+steps:
+  - id: "fetch_kpis"
+    tool: "pops.kpis.fetch"
+    purpose: "Fetch core KPIs for current and previous 7-day windows."
+    inputs: { window_days: 7 }
+    outputs: { current: "$.current", previous: "$.previous" }
+
+  - id: "compute_deltas"
+    tool: "pops.kpis.compare"
+    purpose: "Compute week-over-week deltas and drivers."
+    inputs: { current: "{{steps.fetch_kpis.outputs.current}}", previous: "{{steps.fetch_kpis.outputs.previous}}" }
+    outputs: { report: "$.report", insights: "$.insights" }
+
+  - id: "write_sheet"
+    tool: "sheets.upsert_table"
+    purpose: "Write report to a weekly report sheet."
+    inputs:
+      sheet_key: "weekly_exec_report"
+      tab: "Week of {{monday}}"
+      values: "{{steps.compute_deltas.outputs.report}}"
+    outputs: { sheet_url: "$.sheetUrl" }
+
+  - id: "send_email_optional"
+    tool: "gmail.send"
+    if: "{{gmail_connected}}"
+    purpose: "Email report link + highlights."
+    inputs:
+      to: "{{recipients | default(current_user.email)}}"
+      subject: "Weekly Executive Report — Week of {{monday}}"
+      body: |
+        Here are the highlights:
+        {{steps.compute_deltas.outputs.insights}}
+        Full report: {{steps.write_sheet.outputs.sheet_url}}
+
+---
+# -------------------------------------------------------------------
+# PLAYBOOK 06: Low Stock Risk Radar + Safer Promo Alternative
+# -------------------------------------------------------------------
+version: 1
+name: "Low Stock Risk Radar"
+id: "pb_ops_low_stock_radar_v1"
+category: "Ops"
+who_uses_it: "Dispensary"
+user_prompt_example: "Alert me when top sellers are at risk of going out of stock and suggest a safer promo alternative."
+assistant_response_example: >
+  Got it. I’ll monitor inventory risk daily and alert you when top sellers hit low-stock thresholds.
+  I’ll also suggest promo alternatives that avoid pushing items you can’t fulfill. Any outbound messaging requires Deebo + approval.
+requires_integrations:
+  gmail: "optional"
+  google_sheets: "required"
+data_sources:
+  cannmenus: true
+  leafly: false
+  market_sensors: false
+  web_search: false
+guardrails:
+  deebo_required: true
+  approvals_required: true
+inputs_schema:
+  type: object
+  properties:
+    threshold_days_cover: { type: number, default: 3 }
+    schedule_time_local: { type: string, default: "07:30" }
+    timezone: { type: string, default: "America/Chicago" }
+triggers:
+  - type: "schedule"
+    cron: "30 7 * * *"
+    timezone: "America/Chicago"
+steps:
+  - id: "sync_inventory"
+    tool: "inventory.sync.run"
+    purpose: "Pull latest inventory (or estimate from menu signals if POS not integrated)."
+    outputs: { inventory_ref: "$.inventoryRef" }
+
+  - id: "detect_risk"
+    tool: "pops.detect.low_stock_risk"
+    purpose: "Flag SKUs with low days-of-cover based on velocity priors or history."
+    inputs: { inventory_ref: "{{steps.sync_inventory.outputs.inventory_ref}}", threshold_days_cover: "{{threshold_days_cover}}" }
+    outputs: { risks: "$.risks" }
+
+  - id: "log_risk_sheet"
+    tool: "sheets.upsert_table"
+    purpose: "Write risk list to sheet for review and tracking."
+    inputs:
+      sheet_key: "inventory_risk"
+      tab: "Daily"
+      values: "{{steps.detect_risk.outputs.risks}}"
+    outputs: { sheet_url: "$.sheetUrl" }
+
+  - id: "draft_alternative_promo"
+    tool: "craig.draft.promo_alternative"
+    if: "{{steps.detect_risk.outputs.risks | length > 0}}"
+    purpose: "Suggest promo alternatives based on safer inventory position."
+    inputs: { risks: "{{steps.detect_risk.outputs.risks}}" }
+    outputs: { promo_draft: "$.draft" }
+
+  - id: "deebo_preflight"
+    tool: "deebo.check_content"
+    if: "{{steps.detect_risk.outputs.risks | length > 0}}"
+    purpose: "Compliance preflight for any outbound promo draft."
+    inputs:
+      jurisdiction: "{{tenant.jurisdiction}}"
+      channel: "email"
+      content: "{{steps.draft_alternative_promo.outputs.promo_draft}}"
+    outputs: { safe_content: "$.safeContent", notes: "$.notes" }
+
+  - id: "approval_gate"
+    tool: "approvals.request"
+    if: "{{steps.detect_risk.outputs.risks | length > 0}}"
+    purpose: "Approval required before any send."
+    inputs:
+      title: "Approve low-stock alert + promo alternative"
+      preview_link: "{{steps.log_risk_sheet.outputs.sheet_url}}"
+      notes: "{{steps.deebo_preflight.outputs.notes}}"
+      content_preview: "{{steps.deebo_preflight.outputs.safe_content}}"
+    outputs: { approved: "$.approved" }
+
+  - id: "notify_optional"
+    tool: "gmail.send"
+    if: "{{steps.approval_gate.outputs.approved and gmail_connected}}"
+    purpose: "Send alert and recommendation."
+    inputs:
+      to: "{{current_user.email}}"
+      subject: "Inventory Risk Alert — {{today}}"
+      body: |
+        Risk list: {{steps.log_risk_sheet.outputs.sheet_url}}
+        Recommended alternative: {{steps.deebo_preflight.outputs.safe_content}}
+
+---
+# -------------------------------------------------------------------
+# PLAYBOOK 07: Deebo Compliance Redline (IL SMS + Email)
+# -------------------------------------------------------------------
+version: 1
+name: "Deebo Compliance Redline"
+id: "pb_compliance_redline_v1"
+category: "Compliance"
+who_uses_it: "Both"
+user_prompt_example: "Here’s a promo text. Make it compliant for Illinois SMS and email, and tell me what was risky."
+assistant_response_example: >
+  Send the draft. I’ll run IL compliance preflight for SMS + email, redline risky language, return compliant versions, and explain the changes.
+requires_integrations:
+  gmail: "optional"
+  google_sheets: "optional"
+data_sources:
+  cannmenus: false
+  leafly: false
+  market_sensors: false
+  web_search: false
+guardrails:
+  deebo_required: true
+  approvals_required: false
+inputs_schema:
+  type: object
+  required: ["content"]
+  properties:
+    content: { type: string }
+    jurisdiction: { type: string, default: "IL" }
+steps:
+  - id: "check_sms"
+    tool: "deebo.check_content"
+    purpose: "Preflight for SMS."
+    inputs: { jurisdiction: "{{jurisdiction}}", channel: "sms", content: "{{content}}" }
+    outputs: { sms_safe: "$.safeContent", sms_notes: "$.notes" }
+
+  - id: "check_email"
+    tool: "deebo.check_content"
+    purpose: "Preflight for Email."
+    inputs: { jurisdiction: "{{jurisdiction}}", channel: "email", content: "{{content}}" }
+    outputs: { email_safe: "$.safeContent", email_notes: "$.notes" }
+
+  - id: "return_redline"
+    tool: "output.render"
+    purpose: "Return compliant variants + explanation."
+    inputs:
+      result:
+        sms:
+          compliant: "{{steps.check_sms.outputs.sms_safe}}"
+          notes: "{{steps.check_sms.outputs.sms_notes}}"
+        email:
+          compliant: "{{steps.check_email.outputs.email_safe}}"
+          notes: "{{steps.check_email.outputs.email_notes}}"
+
+---
+# -------------------------------------------------------------------
+# PLAYBOOK 08: Retail Partner Target List (NY) — “Competitor has it, we don’t”
+# -------------------------------------------------------------------
+version: 1
+name: "Retail Partner Target List (Competitor Gap)"
+id: "pb_intel_partner_targets_gap_v1"
+category: "Intel"
+who_uses_it: "Brand"
+user_prompt_example: "Find me 50 dispensaries in New York that carry our competitor but don’t carry us. Put them in a sheet."
+assistant_response_example: >
+  On it. I’ll build a NY target list where your competitor appears but you don’t, include evidence links, and rank targets by opportunity.
+requires_integrations:
+  gmail: "optional"
+  google_sheets: "required"
+data_sources:
+  cannmenus: true
+  leafly: true
+  market_sensors: true
+  web_search: true
+guardrails:
+  deebo_required: false
+  approvals_required: false
+inputs_schema:
+  type: object
+  required: ["your_brand", "competitor_brand"]
+  properties:
+    state: { type: string, default: "NY" }
+    your_brand: { type: string }
+    competitor_brand: { type: string }
+    limit: { type: integer, default: 50 }
+triggers:
+  - type: "manual"
+steps:
+  - id: "seed_retailers"
+    tool: "search.find_retailers"
+    purpose: "Seed retailer universe for NY."
+    inputs: { state: "{{state}}", limit: 500 }
+    outputs: { retailers: "$.retailers" }
+
+  - id: "detect_presence"
+    tool: "intel.detect.brand_presence"
+    purpose: "Detect competitor presence and your absence using CannMenus + Sensors (+ Leafly where helpful)."
+    inputs:
+      retailers: "{{steps.seed_retailers.outputs.retailers}}"
+      your_brand: "{{your_brand}}"
+      competitor_brand: "{{competitor_brand}}"
+      sources: ["cannmenus", "market_sensors", "leafly"]
+    outputs: { targets: "$.targets" }
+
+  - id: "score_targets"
+    tool: "pops.score.targets"
+    purpose: "Score targets by opportunity (fit + market pressure + retailer importance)."
+    inputs: { targets: "{{steps.detect_presence.outputs.targets}}", limit: "{{limit}}" }
+    outputs: { ranked: "$.rankedTargets" }
+
+  - id: "write_sheet"
+    tool: "sheets.upsert_table"
+    purpose: "Output target list with evidence."
+    inputs:
+      sheet_key: "retailer_targets_gap"
+      tab: "NY Targets"
+      values: "{{steps.score_targets.outputs.ranked}}"
+    outputs: { sheet_url: "$.sheetUrl" }
+
+---
+# -------------------------------------------------------------------
+# PLAYBOOK 09: Event Leads → Clean → Segment → Compliant Outreach (Email)
+# -------------------------------------------------------------------
+version: 1
+name: "Event Leads: Clean + Segment + Compliant Outreach"
+id: "pb_marketing_event_leads_v1"
+category: "Marketing"
+who_uses_it: "Both"
+user_prompt_example: "I have a CSV of event leads. Clean it, dedupe it, segment it, and email them a welcome message."
+assistant_response_example: >
+  Got it. I’ll import and dedupe the CSV, segment it, validate opt-in status, draft a compliant message, run Deebo preflight,
+  then ask for approval before sending.
+requires_integrations:
+  gmail: "required"
+  google_sheets: "required"
+guardrails:
+  deebo_required: true
+  approvals_required: true
+inputs_schema:
+  type: object
+  required: ["csv_file_ref"]
+  properties:
+    csv_file_ref: { type: string, description: "Reference to uploaded CSV in storage" }
+    opt_in_field: { type: string, default: "opt_in" }
+    jurisdiction: { type: string, default: "IL" }
+    channel: { type: string, enum: ["email"], default: "email" }
+triggers:
+  - type: "manual"
+steps:
+  - id: "import_csv"
+    tool: "sheets.import.csv"
+    purpose: "Import CSV into a working sheet."
+    inputs: { sheet_key: "event_leads_working", csv_file_ref: "{{csv_file_ref}}" }
+    outputs: { sheet_url: "$.sheetUrl" }
+
+  - id: "dedupe_normalize"
+    tool: "sheets.clean.dedupe_normalize"
+    purpose: "Normalize emails/phones, dedupe, basic validation."
+    inputs: { sheet_key: "event_leads_working" }
+    outputs: { stats: "$.stats" }
+
+  - id: "segment"
+    tool: "pops.segment.leads"
+    purpose: "Segment by available fields (retailer/brand/other)."
+    inputs: { sheet_key: "event_leads_working" }
+    outputs: { segments_ref: "$.segmentsRef" }
+
+  - id: "filter_opt_in"
+    tool: "pops.filter.opt_in"
+    purpose: "Only allow sends where opt-in is present/true; flag the rest."
+    inputs: { sheet_key: "event_leads_working", opt_in_field: "{{opt_in_field}}" }
+    outputs: { send_list_ref: "$.sendListRef", blocked_list_ref: "$.blockedListRef" }
+
+  - id: "draft_message"
+    tool: "craig.compose_email"
+    purpose: "Draft welcome message."
+    inputs: { segment_ref: "{{steps.segment.outputs.segments_ref}}", tone: "welcoming" }
+    outputs: { subject: "$.subject", body: "$.body" }
+
+  - id: "deebo_preflight"
+    tool: "deebo.check_content"
+    purpose: "Compliance preflight."
+    inputs:
+      jurisdiction: "{{jurisdiction}}"
+      channel: "{{channel}}"
+      content: { subject: "{{steps.draft_message.outputs.subject}}", body: "{{steps.draft_message.outputs.body}}" }
+    outputs: { safe_subject: "$.safeSubject", safe_body: "$.safeBody", notes: "$.notes" }
+
+  - id: "approval_gate"
+    tool: "approvals.request"
+    purpose: "Approval required before sending batch."
+    inputs:
+      title: "Approve event lead outreach (email)"
+      preview:
+        subject: "{{steps.deebo_preflight.outputs.safe_subject}}"
+        body: "{{steps.deebo_preflight.outputs.safe_body}}"
+      notes: "{{steps.deebo_preflight.outputs.notes}}"
+      recipients_count: "{{steps.filter_opt_in.outputs.send_list_ref.count}}"
+    outputs: { approved: "$.approved" }
+
+  - id: "send_batch"
+    tool: "gmail.send_batch"
+    if: "{{steps.approval_gate.outputs.approved}}"
+    purpose: "Send to opted-in recipients only."
+    inputs:
+      recipients_ref: "{{steps.filter_opt_in.outputs.send_list_ref}}"
+      subject: "{{steps.deebo_preflight.outputs.safe_subject}}"
+      body: "{{steps.deebo_preflight.outputs.safe_body}}"
+
+---
+# -------------------------------------------------------------------
+# PLAYBOOK 10: Brand Footprint Audit (Where-to-Buy)
+# -------------------------------------------------------------------
+version: 1
+name: "Brand Footprint Audit (Where-to-Buy)"
+id: "pb_intel_brand_footprint_audit_v1"
+category: "Intel"
+who_uses_it: "Brand"
+user_prompt_example: "Run a footprint audit for our brand: where we’re listed, where we’re missing, and what markets are easiest wins."
+assistant_response_example: >
+  Done. I’ll compile placements across menus and public listings, identify gaps by market, rank easiest wins, and publish a shareable sheet + summary.
+requires_integrations:
+  gmail: "optional"
+  google_sheets: "required"
+data_sources:
+  cannmenus: true
+  leafly: true
+  market_sensors: true
+  web_search: true
+guardrails:
+  deebo_required: false
+  approvals_required: false
+inputs_schema:
+  type: object
+  required: ["brand_name"]
+  properties:
+    brand_name: { type: string }
+    scope: { type: string, enum: ["STATE", "NATIONWIDE"], default: "STATE" }
+    state: { type: string, default: "NY" }
+triggers:
+  - type: "manual"
+steps:
+  - id: "resolve_brand"
+    tool: "intel.resolve_entity"
+    inputs: { entity_name: "{{brand_name}}", entity_type: "brand" }
+    outputs: { brand_key: "$.canonicalKey" }
+
+  - id: "placements_cannmenus"
+    tool: "intel.placements.cannmenus"
+    inputs: { brand_key: "{{steps.resolve_brand.outputs.brand_key}}", scope: "{{scope}}", state: "{{state}}" }
+    outputs: { placements_ref: "$.placementsRef" }
+
+  - id: "placements_leafly"
+    tool: "intel.placements.leafly"
+    inputs: { brand_key: "{{steps.resolve_brand.outputs.brand_key}}", scope: "{{scope}}", state: "{{state}}" }
+    outputs: { leafly_ref: "$.placementsRef" }
+
+  - id: "placements_sensors"
+    tool: "intel.placements.market_sensors"
+    inputs: { brand_key: "{{steps.resolve_brand.outputs.brand_key}}", scope: "{{scope}}", state: "{{state}}" }
+    outputs: { sensors_ref: "$.placementsRef" }
+
+  - id: "compute_gaps"
+    tool: "pops.identify.gaps_and_wins"
+    inputs:
+      brand_key: "{{steps.resolve_brand.outputs.brand_key}}"
+      placement_refs:
+        - "{{steps.placements_cannmenus.outputs.placements_ref}}"
+        - "{{steps.placements_leafly.outputs.leafly_ref}}"
+        - "{{steps.placements_sensors.outputs.sensors_ref}}"
+    outputs: { audit_table: "$.auditTable", summary: "$.summary" }
+
+  - id: "write_sheet"
+    tool: "sheets.upsert_table"
+    inputs:
+      sheet_key: "brand_footprint_audit"
+      tabs:
+        - name: "Audit"
+          values: "{{steps.compute_gaps.outputs.audit_table}}"
+        - name: "Summary"
+          values: "{{steps.compute_gaps.outputs.summary}}"
+    outputs: { sheet_url: "$.sheetUrl" }
+
+---
+# -------------------------------------------------------------------
+# PLAYBOOK 11: “What If” Promo Simulation (Planning-grade) + Report
+# -------------------------------------------------------------------
+version: 1
+name: "What-If Promo Simulation (Planning-grade)"
+id: "pb_sim_promo_whatif_v1"
+category: "Simulation"
+who_uses_it: "Both"
+user_prompt_example: "If we run 10% off edibles for 30 days, what happens to margin and AOV? Send me the result."
+assistant_response_example: >
+  I can simulate this as a planning-grade scenario using your catalog and market signals. You’ll get expected/best/worst outcomes,
+  a daily ledger in-app, and an emailed summary if Gmail is connected.
+requires_integrations:
+  gmail: "optional"
+  google_sheets: "optional"
+data_sources:
+  cannmenus: true
+  market_sensors: true
+guardrails:
+  deebo_required: false
+  approvals_required: false
+inputs_schema:
+  type: object
+  required: ["profile", "category", "discount_percent", "duration_days"]
+  properties:
+    profile: { type: string, enum: ["DISPENSARY", "BRAND"], default: "DISPENSARY" }
+    category: { type: string, example: "edibles" }
+    discount_percent: { type: number, example: 10 }
+    duration_days: { type: integer, example: 30 }
+    runs: { type: integer, default: 100 }
+triggers:
+  - type: "manual"
+steps:
+  - id: "create_scenario"
+    tool: "sim.createScenario"
+    inputs:
+      profile: "{{profile}}"
+      name: "{{discount_percent}}% off {{category}} for {{duration_days}} days"
+      interventions:
+        - type: "Promotion"
+          promoType: "%off"
+          eligibility: { categories: ["{{category}}"] }
+          value: "{{discount_percent}}"
+    outputs: { scenario_id: "$.scenarioId" }
+
+  - id: "run_sim"
+    tool: "sim.run"
+    inputs: { scenario_id: "{{steps.create_scenario.outputs.scenario_id}}", horizon_days: "{{duration_days}}", runs: "{{runs}}" }
+    outputs: { run_id: "$.runId", results_ref: "$.resultsRef" }
+
+  - id: "summarize"
+    tool: "pops.summarize.sim_results"
+    inputs: { results_ref: "{{steps.run_sim.outputs.results_ref}}" }
+    outputs: { summary_ref: "$.summaryRef", email_html_ref: "$.emailHtmlRef" }
+
+  - id: "send_email_optional"
+    tool: "gmail.send"
+    if: "{{gmail_connected}}"
+    inputs:
+      to: "{{current_user.email}}"
+      subject: "Simulation Result — {{discount_percent}}% off {{category}}"
+      html_ref: "{{steps.summarize.outputs.email_html_ref}}"
+
+---
+# -------------------------------------------------------------------
+# PLAYBOOK 12: Sales Thread Assist (Draft Reply + Log) — Gmail Read Optional
+# -------------------------------------------------------------------
+version: 1
+name: "Sales Thread Assist (Draft + Log)"
+id: "pb_gmail_thread_assist_v1"
+category: "Ops"
+who_uses_it: "Both"
+user_prompt_example: "Reply to this retailer email thread. Keep it short, professional, and compliant."
+assistant_response_example: >
+  I can draft a reply and log it. If you connect Gmail with read access, I can pull the thread automatically;
+  otherwise paste the email here and I’ll draft immediately. I’ll run Deebo preflight before you send.
+requires_integrations:
+  gmail: "optional_read"
+  google_sheets: "optional"
+guardrails:
+  deebo_required: true
+  approvals_required: true
+inputs_schema:
+  type: object
+  properties:
+    thread_id: { type: string, description: "Gmail thread id (if connected)" }
+    pasted_email: { type: string, description: "Email content if not connected" }
+    jurisdiction: { type: string, default: "IL" }
+triggers:
+  - type: "manual"
+steps:
+  - id: "get_context"
+    tool: "gmail.fetch_thread"
+    if: "{{gmail_read_connected and thread_id}}"
+    inputs: { thread_id: "{{thread_id}}" }
+    outputs: { thread_text: "$.threadText" }
+
+  - id: "fallback_context"
+    tool: "flow.assign"
+    if: "{{not (gmail_read_connected and thread_id)}}"
+    inputs: { thread_text: "{{pasted_email}}" }
+    outputs: { thread_text: "$.thread_text" }
+
+  - id: "draft_reply"
+    tool: "craig.compose_email_reply"
+    inputs: { thread_text: "{{steps.get_context.outputs.thread_text | default(steps.fallback_context.outputs.thread_text)}}", tone: "professional_short" }
+    outputs: { subject: "$.subject", body: "$.body" }
+
+  - id: "deebo_preflight"
+    tool: "deebo.check_content"
+    inputs:
+      jurisdiction: "{{jurisdiction}}"
+      channel: "email"
+      content: { subject: "{{steps.draft_reply.outputs.subject}}", body: "{{steps.draft_reply.outputs.body}}" }
+    outputs: { safe_subject: "$.safeSubject", safe_body: "$.safeBody", notes: "$.notes" }
+
+  - id: "approval_gate"
+    tool: "approvals.request"
+    inputs:
+      title: "Approve reply draft"
+      preview:
+        subject: "{{steps.deebo_preflight.outputs.safe_subject}}"
+        body: "{{steps.deebo_preflight.outputs.safe_body}}"
+      notes: "{{steps.deebo_preflight.outputs.notes}}"
+    outputs: { approved: "$.approved" }
+
+  - id: "create_draft"
+    tool: "gmail.create_draft"
+    if: "{{steps.approval_gate.outputs.approved and gmail_connected}}"
+    inputs:
+      thread_id: "{{thread_id}}"
+      subject: "{{steps.deebo_preflight.outputs.safe_subject}}"
+      body: "{{steps.deebo_preflight.outputs.safe_body}}"
+    outputs: { draft_id: "$.draftId" }
+
+  - id: "log_to_sheet_optional"
+    tool: "sheets.append_row"
+    if: "{{log_to_sheet}}"
+    inputs:
+      sheet_key: "crm_log"
+      row:
+        date: "{{today}}"
+        contact: "{{extracted_contact_email}}"
+        action: "Drafted reply"
+        draft_id: "{{steps.create_draft.outputs.draft_id}}"
