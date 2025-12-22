@@ -5,15 +5,10 @@
  * Drag-and-drop dashboard with role-aware widgets and layout persistence
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactGridLayout from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
-
-// WidthProvider is available on the default export, not as named export in types
-const WidthProvider = (ReactGridLayout as any).WidthProvider as (
-    component: typeof ReactGridLayout
-) => React.ComponentType<any>;
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RotateCcw, Save } from 'lucide-react';
@@ -58,6 +53,33 @@ export function ModularDashboard({
     const { toast } = useToast();
     const [widgets, setWidgets] = useState<WidgetInstance[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
+
+    // Container ref and width for responsive grid
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [containerWidth, setContainerWidth] = useState(width);
+
+    // Measure container width on mount and resize
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const updateWidth = () => {
+            setContainerWidth(container.offsetWidth || width);
+        };
+
+        updateWidth();
+
+        // Use ResizeObserver if available
+        if (typeof ResizeObserver !== 'undefined') {
+            const observer = new ResizeObserver(updateWidth);
+            observer.observe(container);
+            return () => observer.disconnect();
+        } else {
+            // Fallback to window resize
+            window.addEventListener('resize', updateWidth);
+            return () => window.removeEventListener('resize', updateWidth);
+        }
+    }, [width]);
 
     // Load layout on mount
     useEffect(() => {
@@ -145,19 +167,17 @@ export function ModularDashboard({
     // Get existing widget types
     const existingWidgetTypes = widgets.map(w => w.widgetType);
 
-    // Create responsive grid using imported WidthProvider (memoized to avoid recreation)
-    const ResponsiveGrid = useMemo(() => WidthProvider(ReactGridLayout), []);
-
-    // Render grid with type assertion for react-grid-layout v2
+    // Render grid - using ReactGridLayout directly with measured container width
     const renderGrid = () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const GridComponent = ReactGridLayout as any;
         return (
-            <ResponsiveGrid
+            <GridComponent
                 className="layout"
                 layout={layout}
                 cols={cols}
                 rowHeight={rowHeight}
-                // Width is now handled by WidthProvider, but we can pass a fallback or explicit override if needed
-                // width={width} 
+                width={containerWidth}
                 onLayoutChange={handleLayoutChange}
                 draggableHandle=".drag-handle"
                 compactType="vertical"
@@ -176,7 +196,7 @@ export function ModularDashboard({
                         </div>
                     );
                 })}
-            </ResponsiveGrid>
+            </GridComponent>
         );
     };
 
@@ -189,7 +209,7 @@ export function ModularDashboard({
     }
 
     return (
-        <div className="space-y-4">
+        <div ref={containerRef} className="space-y-4">
             {/* Dashboard Controls */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
