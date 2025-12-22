@@ -237,4 +237,33 @@ async function logAudit(req: ToolRequest, start: number, res: ToolResponse) {
 
     console.log(`[AUDIT] Tool:${req.toolName} Status:${res.status} Actor:${req.actor.userId}`, entry);
     // TODO: await firestore.collection(...).add(entry);
+
+    // Intuition OS: Trace Logging
+    if (req.tenantId && req.actor.userId) {
+        try {
+            const { persistence } = await import('../persistence');
+
+            // Map Audit -> AgentLogEntry
+            // We use the actorId as agent_name if it's an agent, or 'user:${userId}' if human
+            // For now, let's assume agent calls have agent names or we just log whatever actorId is.
+            const agentName = req.actor.userId;
+
+            await persistence.appendLog(req.tenantId, agentName, {
+                id: entry.id,
+                timestamp: new Date(entry.timestamp),
+                agent_name: agentName,
+                action: req.toolName,
+                result: JSON.stringify(res.data || res.error),
+                metadata: {
+                    inputs: req.inputs,
+                    status: res.status,
+                    latency: Date.now() - start,
+                    role: req.actor.role
+                }
+            });
+        } catch (e) {
+            console.error('[IntuitionOS] Failed to log trace:', e);
+            // Don't fail the request completely if logging fails
+        }
+    }
 }
