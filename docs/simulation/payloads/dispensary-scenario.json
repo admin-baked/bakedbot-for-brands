@@ -1,0 +1,47 @@
+{
+    "scenarioId": "scn_disp_001",
+    "profile": "DISPENSARY",
+    "name": "10% Off Vapes + $60 Threshold Gift",
+    "description": "Test whether vape discount drives revenue without crushing margin; add threshold gift to lift AOV.",
+    "horizonDays": 180,
+    "interventions": [
+        {
+            "type": "PriceChange",
+            "scope": {
+                "kind": "category",
+                "category": "vapes"
+            },
+            "mode": "percent",
+            "value": -10,
+            "startDate": "2026-01-01",
+            "endDate": "2026-03-31",
+            "constraints": {
+                "minPrice": 10
+            }
+        },
+        {
+            "type": "Promotion",
+            "promoType": "gift_with_purchase",
+            "eligibility": {
+                "categories": [
+                    "vapes",
+                    "edibles"
+                ]
+            },
+            "minSpend": 60,
+            "value": 1,
+            "bundle": {
+                "giftSkuId": "gift_pre_roll_1g"
+            },
+            "startDate": "2026-01-15",
+            "endDate": "2026-02-15"
+        }
+    ],
+    "assumptions": {
+        "elasticityStrength": "mid",
+        "substitutionStrength": "mid",
+        "promoLiftMultiplier": 1.0,
+        "competitorPressureSensitivity": 0.7,
+        "seasonalityIntensity": 0.6
+    }
+}

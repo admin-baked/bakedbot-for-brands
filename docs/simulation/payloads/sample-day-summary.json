@@ -1,0 +1,17 @@
+{
+    "date": "2026-02-14",
+    "orders": 312,
+    "units": 524,
+    "netRevenue": 18342.50,
+    "discountTotal": 1260.25,
+    "grossMargin": 8421.10,
+    "aov": 58.79,
+    "repeatRateEstimate": 0.42,
+    "stockouts": 3,
+    "missedSalesEstimate": 410.00,
+    "ledgerRef": {
+        "bucket": "bakedbot-sim",
+        "path": "tenants/tnt_123/sim/runs/run_abc/ledgers/2026-02-14.jsonl.gz",
+        "contentType": "application/gzip"
+    }
+}
