@@ -50,33 +50,36 @@ export function WidgetWrapper({
                     <CardTitle className="text-sm font-medium">{title}</CardTitle>
                 </div>
 
-                <DropdownMenu modal={true}>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="z-50">
-                        {onExpand && (
-                            <DropdownMenuItem onClick={onExpand}>
-                                <Maximize2 className="h-4 w-4 mr-2" />
-                                Expand
-                            </DropdownMenuItem>
-                        )}
-                        {onSettings && (
-                            <DropdownMenuItem onClick={onSettings}>
-                                <Settings className="h-4 w-4 mr-2" />
-                                Settings
-                            </DropdownMenuItem>
-                        )}
-                        {onRemove && (
-                            <DropdownMenuItem onClick={onRemove} className="text-destructive">
-                                <X className="h-4 w-4 mr-2" />
-                                Remove
-                            </DropdownMenuItem>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                {/* Only show menu if at least one action is available */}
+                {(onExpand || onSettings || onRemove) && (
+                    <DropdownMenu modal={true}>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="z-[9999]" sideOffset={5}>
+                            {onExpand && (
+                                <DropdownMenuItem onClick={onExpand}>
+                                    <Maximize2 className="h-4 w-4 mr-2" />
+                                    Expand
+                                </DropdownMenuItem>
+                            )}
+                            {onSettings && (
+                                <DropdownMenuItem onClick={onSettings}>
+                                    <Settings className="h-4 w-4 mr-2" />
+                                    Settings
+                                </DropdownMenuItem>
+                            )}
+                            {onRemove && (
+                                <DropdownMenuItem onClick={onRemove} className="text-destructive">
+                                    <X className="h-4 w-4 mr-2" />
+                                    Remove
+                                </DropdownMenuItem>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
             </CardHeader>
             <CardContent className="flex-1 overflow-auto px-4 pb-4">
                 {children}
