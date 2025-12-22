@@ -184,8 +184,32 @@ export default function OnboardingPage() {
     }
   }
 
-  function handleEntitySelect(entity: { id: string, name: string }) {
+  async function handleEntitySelect(entity: { id: string, name: string }) {
     setSelectedCannMenusEntity(entity);
+
+    // 🚀 START BACKGROUND IMPORT IMMEDIATELY
+    if (role && marketState && entity.id) {
+      try {
+        const { preStartDataImport } = await import('./pre-start-import');
+        const result = await preStartDataImport({
+          role: role as 'brand' | 'dispensary',
+          entityId: entity.id,
+          entityName: entity.name,
+          marketState
+        });
+
+        if (result.success && result.jobIds.length > 0) {
+          toast({
+            title: 'Preparing your workspace...',
+            description: `Importing ${role === 'brand' ? 'products and partners' : 'menu data'} in the background.`
+          });
+        }
+      } catch (err) {
+        // Non-fatal - continue onboarding even if pre-start fails
+        console.warn('Pre-start import failed:', err);
+      }
+    }
+
     if (role === 'dispensary') {
       // Pre-fetch competitors if we can (mocked for now, or use zip)
       setNearbyCompetitors([
