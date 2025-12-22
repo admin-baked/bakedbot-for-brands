@@ -109,33 +109,46 @@ export async function syncCannMenusProducts(
     brandId: string, // The internal Firestore Brand ID
     limit?: number
 ): Promise<number> {
-    const { firestore } = await createServerClient();
-    const productRepo = makeProductRepo(firestore);
+    const { CannMenusService } = await import('@/server/services/cannmenus');
+    const service = new CannMenusService();
 
-    // Define limits
-    const LIMIT = limit || (role === 'brand' ? 5 : 25);
+    // Mapping 'cm_xxx' ID to the name if possible, or passing it directly?
+    // CannMenusService expects a Brand Name for search, OR we can implement ID based sync if supported.
+    // The current signature of syncMenusForBrand takes (brandId, brandName).
+    // If we have the ID, we might need to lookup the name or pass the ID if the service supports it.
+    // However, looking at CannMenusService, it searches by NAME.
+    // The MOCK_RETAILERS list has the name.
 
-    // Simulate fetching products from CannMenus API
-    // In reality, this would call `cannmenus-api.ts`
-    const mockProducts = Array.from({ length: LIMIT }).map((_, i) => ({
-        name: `Imported ${role === 'brand' ? 'Strain' : 'Item'} ${i + 1} (${cannMenusId})`,
-        brandId: brandId,
-        category: i % 2 === 0 ? 'Flower' : 'Edible',
-        price: 25 + i * 5,
-        categoryId: `cat_${i % 2}`,
-        description: `Automatically imported from CannMenus for ${cannMenusId}.`,
-        imageUrl: `https://picsum.photos/seed/${cannMenusId}-${i}/400/400`,
-        cannMenusId: `${cannMenusId}_sku_${i}`,
-        imageHint: 'product sample'
-    }));
+    // Find name from mock list or passed ID (hacky reverse lookup not needed if we trust the name passed upstream)
+    // Actually, syncMenusForBrand is for BRANDS.
+    // If role is dispensary, we need syncRetailerMenu logic.
 
-    // Save to Firestore
-    let count = 0;
-    for (const p of mockProducts) {
-        // Simple check to avoid duplicates if running multiple times (omitted for speed)
-        await productRepo.create(p);
-        count++;
+    if (role === 'brand') {
+        // We need the brand name. 
+        // In onboarding/actions.ts, we had finalBrandName available but didn't pass it here?
+        // Let's assume cannMenusId might ALSO be the name if it's not a cm_ ID? 
+        // No, it's definitely an ID in the mock case.
+        // Let's look up the name from our MOCK list if possible, or default.
+        const mockEntry = MOCK_RETAILERS.find(r => r.id === cannMenusId);
+        const nameToUse = mockEntry ? mockEntry.name : cannMenusId;
+
+        const result = await service.syncMenusForBrand(brandId, nameToUse, {
+            maxRetailers: limit || 10
+        });
+        return result.productsProcessed;
+    } else {
+        // Dispensary Sync
+        const mockEntry = MOCK_RETAILERS.find(r => r.id === cannMenusId);
+        const nameToUse = mockEntry ? mockEntry.name : cannMenusId;
+
+        console.log(`[CannMenus] Syncing dispensary inventory for ${nameToUse} (${cannMenusId}) to ${brandId}`);
+
+        const result = await service.syncDispensaryInventory(
+            cannMenusId, // retailerId
+            nameToUse,   // dispensaryName
+            brandId,     // locationId (passed as brandId arg)
+            { maxRetailers: limit || 1000 }
+        );
+        return result.productsProcessed;
     }
-
-    return count;
 }

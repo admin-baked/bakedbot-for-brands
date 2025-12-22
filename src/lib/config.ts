@@ -17,3 +17,13 @@ export const GOOGLE_MAPS_CONFIG = {
     API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyASUULiUcdtqVnPrTqZTsxoNiXdFPJ5e7E',
     MAP_ID: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || '8e0a97af9386fef', // Light Mode
 };
+
+export const GOOGLE_OAUTH_CONFIG = {
+    CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+    CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
+    REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/google/callback',
+    SCOPES: [
+        'https://www.googleapis.com/auth/gmail.send',
+        'https://www.googleapis.com/auth/userinfo.email'
+    ]
+};

@@ -1,0 +1,48 @@
+[0m[7m[1m[31m FAIL [39m[22m[27m[0m [2msrc/server/services/__tests__/[22m[1mcannmenus.test.ts[22m
+  [1m● [22mTest suite failed to run
+
+    [1m[31mJest encountered an unexpected token[39m[22m
+
+    Jest failed to parse a file. This happens e.g. when your code or its dependencies use non-standard JavaScript syntax, or when Jest is not configured to support such syntax.
+
+    Out of the box Jest supports Babel, which will be used to transform your files into valid JS based on your Babel configuration.
+
+    By default "node_modules" folder is ignored by transformers.
+
+    Here's what you can do:
+     • If you are trying to use ECMAScript Modules, see [4mhttps://jestjs.io/docs/ecmascript-modules[24m for how to enable it.
+     • If you are trying to use TypeScript, see [4mhttps://jestjs.io/docs/getting-started#using-typescript[24m
+     • To have some of your "node_modules" files transformed, you can specify a custom [1m"transformIgnorePatterns"[22m in your config.
+     • If you need a custom transformation specify a [1m"transform"[22m option in your config.
+     • If you simply want to mock your non-JS modules (e.g. binary assets) you can stub them out with the [1m"moduleNameMapper"[22m config option.
+
+    You'll find more details and examples of these config options in the docs:
+    [36mhttps://jestjs.io/docs/configuration[39m
+    For information about custom transformations, see:
+    [36mhttps://jestjs.io/docs/code-transformation[39m
+
+    [1m[31mDetails:[39m[22m
+
+    C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\uuid\dist\index.js:1
+    ({"Object.<anonymous>":function(module,exports,require,__dirname,__filename,jest){export { default as MAX } from './max.js';
+                                                                                      ^^^^^^
+
+    SyntaxError: Unexpected token 'export'
+
+    [0m [90m 18 |[39m     success[33m:[39m boolean[33m;[39m
+     [90m 19 |[39m     brandId[33m:[39m string[33m;[39m
+    [31m[1m>[22m[39m[90m 20 |[39m     retailersProcessed[33m:[39m number[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 21 |[39m     productsProcessed[33m:[39m number[33m;[39m
+     [90m 22 |[39m     errors[33m:[39m string[][33m;[39m
+     [90m 23 |[39m     startTime[33m:[39m [33mDate[39m[33m;[39m[0m
+
+      [2mat Runtime.createScriptFromCode ([22mnode_modules/jest-runtime/build/index.js[2m:1505:14)[22m
+      [2mat Object.<anonymous> ([22msrc/server/services/cannmenus.ts[2m:20:15)[22m
+      [2mat Object.<anonymous> ([22m[0m[36msrc/server/services/__tests__/cannmenus.test.ts[39m[0m[2m:45:20)[22m
+
+[1mTest Suites: [22m[1m[31m1 failed[39m[22m, 1 total
+[1mTests:       [22m0 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        3.177 s
+[2mRan all test suites[22m[2m matching [22m/src\\server\\services\\__tests__\\cannmenus.test.ts/i[2m.[22m

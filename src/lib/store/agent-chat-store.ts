@@ -44,6 +44,7 @@ interface AgentChatState {
     addMessage: (message: ChatMessage) => void;
     updateMessage: (id: string, updates: Partial<ChatMessage>) => void;
     clearCurrentSession: () => void;
+    hydrateSessions: (sessions: ChatSession[]) => void;
 }
 
 export const useAgentChatStore = create<AgentChatState>()(
@@ -165,6 +166,10 @@ export const useAgentChatStore = create<AgentChatState>()(
                     activeSessionId: null,
                     currentMessages: []
                 });
+            },
+
+            hydrateSessions: (sessions) => {
+                set({ sessions });
             },
         }),
         {

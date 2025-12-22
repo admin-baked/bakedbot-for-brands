@@ -1,4 +1,4 @@
-[0m[7m[1m[31m FAIL [39m[22m[27m[0m [2msrc/server/integrations/gmail/__tests__/[22m[1mtoken-storage.test.ts[22m
+[0m[7m[1m[31m FAIL [39m[22m[27m[0m [2msrc/server/integrations/gmail/__tests__/[22m[1msend.test.ts[22m
   [1m● [22mTest suite failed to run
 
     [1m[31mJest encountered an unexpected token[39m[22m
@@ -49,10 +49,11 @@
       [2mat Object.<anonymous> ([22mnode_modules/firebase-admin/lib/auth/index.js[2m:27:16)[22m
       [2mat Object.<anonymous> ([22msrc/firebase/server-client.ts[2m:34:15)[22m
       [2mat Object.<anonymous> ([22msrc/server/integrations/gmail/token-storage.ts[2m:19:23)[22m
-      [2mat Object.<anonymous> ([22m[0m[36msrc/server/integrations/gmail/__tests__/token-storage.test.ts[39m[0m[2m:17:23)[22m
+      [2mat Object.<anonymous> ([22msrc/server/integrations/gmail/send.ts[2m:13:23)[22m
+      [2mat Object.<anonymous> ([22m[0m[36msrc/server/integrations/gmail/__tests__/send.test.ts[39m[0m[2m:13:15)[22m
 
 [1mTest Suites: [22m[1m[31m1 failed[39m[22m, 1 total
 [1mTests:       [22m0 total
 [1mSnapshots:   [22m0 total
-[1mTime:[22m        3.885 s
-[2mRan all test suites[22m[2m matching [22m/src\\server\\integrations\\gmail\\__tests__\\token-storage.test.ts/i[2m.[22m
+[1mTime:[22m        3.151 s
+[2mRan all test suites[22m[2m matching [22m/src\\server\\integrations\\gmail\\__tests__\\send.test.ts/i[2m.[22m

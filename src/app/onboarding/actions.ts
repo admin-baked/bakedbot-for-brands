@@ -378,7 +378,8 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       if (locationId.startsWith('cm_')) {
         try {
           const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
-          syncCount = await syncCannMenusProducts(locationId, 'dispensary', 'retail-inventory');
+          // Pass locationId as the entity ID (brandId arg) to own the products
+          syncCount = await syncCannMenusProducts(locationId, 'dispensary', locationId);
 
           await syncJobRef.update({
             status: 'complete',

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, doc, getDoc } from 'firebase/firestore';
 
 export function useBrandId() {
     const { user, isUserLoading } = useUser();
@@ -39,6 +39,22 @@ export function useBrandId() {
                     if (!snapshot.empty) {
                         setBrandId(snapshot.docs[0].id);
                     } else {
+                        // Fallback: Check user profile for locationId (for dispensaries)
+                        try {
+                            const db = firebase.firestore;
+                            if (db) {
+                                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                                if (userDoc.exists()) {
+                                    const userData = userDoc.data();
+                                    if (userData.locationId) {
+                                        setBrandId(userData.locationId);
+                                        setLoading(false);
+                                        return;
+                                    }
+                                }
+                            }
+                        } catch (e) { console.warn('Error fetching user profile fallback', e); }
+
                         // Fallback for demo or dev
                         // If user role is brand but no brand found, maybe use demo?
                         const role = (user as any).role;
