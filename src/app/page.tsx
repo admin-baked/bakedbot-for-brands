@@ -404,7 +404,7 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" asChild href="/brand-login" className="hidden sm:inline-flex">
+            <Button variant="ghost" asChild href="/login" className="hidden sm:inline-flex">
               Login
             </Button>
             <Button asChild href="/get-started">

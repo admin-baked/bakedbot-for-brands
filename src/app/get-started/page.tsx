@@ -67,7 +67,7 @@ export default function GetStartedPage() {
                     <div className="flex items-center gap-2 font-semibold">
                         <Logo height={32} />
                     </div>
-                    <Link href="/brand-login" className="text-sm text-muted-foreground hover:text-foreground">
+                    <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">
                         Already have an account? Login
                     </Link>
                 </div>
