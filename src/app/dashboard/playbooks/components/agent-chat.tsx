@@ -13,6 +13,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
+    DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
 import {
     ArrowLeft,
@@ -30,17 +31,19 @@ import {
     Brain,
     Zap,
     Rocket,
-
     Briefcase,
     ShoppingCart,
     Search,
-    ShieldCheck
+    ShieldCheck,
+    Wrench,
+    Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { runAgentChat } from '../../ceo/agents/actions';
 import { AgentPersona } from '../../ceo/agents/personas';
 import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useUserRole } from '@/hooks/use-user-role';
+import { useUser } from '@/firebase/auth/use-user';
 
 // ============ Types ============
 
@@ -110,6 +113,10 @@ export interface PuffState {
 // ThinkingLevel type for intelligence selector
 export type ThinkingLevel = 'standard' | 'advanced' | 'expert' | 'genius';
 
+// Tool Selection Types
+export type ToolMode = 'auto' | 'manual';
+export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
+
 // ============ Sub-components ============
 
 function ModelSelector({ value, onChange }: { value: ThinkingLevel, onChange: (v: ThinkingLevel) => void }) {
@@ -176,6 +183,64 @@ function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (
                         </div>
                         <span className="text-xs text-muted-foreground ml-6">{opt.desc}</span>
                     </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
+function ToolSelector({
+    mode,
+    selectedTools,
+    onModeChange,
+    onToggleTool
+}: {
+    mode: ToolMode;
+    selectedTools: AvailableTool[];
+    onModeChange: (mode: ToolMode) => void;
+    onToggleTool: (tool: AvailableTool) => void;
+}) {
+    const tools: { id: AvailableTool; label: string; icon: any }[] = [
+        { id: 'gmail', label: 'Gmail', icon: Mail },
+        { id: 'calendar', label: 'Calendar', icon: Calendar },
+        { id: 'drive', label: 'Drive', icon: FolderOpen },
+        { id: 'search', label: 'Web Search', icon: Globe },
+    ];
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs font-medium border border-transparent hover:border-border hover:bg-background">
+                    <Wrench className="h-3 w-3 text-primary" />
+                    {mode === 'auto' ? 'Auto Tools' : `${selectedTools.length} Tools`}
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[240px]">
+                <DropdownMenuLabel>Tool Settings</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onModeChange(mode === 'auto' ? 'manual' : 'auto')}>
+                    <div className="flex items-center justify-between w-full">
+                        <span className="text-sm">Auto-detect</span>
+                        {mode === 'auto' && <Check className="h-4 w-4" />}
+                    </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                    Available Tools
+                </DropdownMenuLabel>
+                {tools.map(tool => (
+                    <DropdownMenuCheckboxItem
+                        key={tool.id}
+                        checked={selectedTools.includes(tool.id) || mode === 'auto'}
+                        disabled={mode === 'auto'}
+                        onCheckedChange={() => onToggleTool(tool.id)}
+                    >
+                        <div className="flex items-center gap-2">
+                            <tool.icon className="h-3 w-3" />
+                            <span>{tool.label}</span>
+                        </div>
+                    </DropdownMenuCheckboxItem>
                 ))}
             </DropdownMenuContent>
         </DropdownMenu>
@@ -349,6 +414,7 @@ export function AgentChat({
     // Global Store State
     const { currentMessages, addMessage, updateMessage, setCurrentRole } = useAgentChatStore();
     const { role } = useUserRole();
+    const { user } = useUser(); // Get authenticated user
 
     // Ensure store knows current role
     useEffect(() => {
@@ -368,6 +434,16 @@ export function AgentChat({
     const [showPermissions, setShowPermissions] = useState(true);
     const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
     const [persona, setPersona] = useState<AgentPersona>('puff');
+
+    // Tool Selection State
+    const [toolMode, setToolMode] = useState<ToolMode>('auto');
+    const [selectedTools, setSelectedTools] = useState<AvailableTool[]>([]);
+
+    const handleToggleTool = (tool: AvailableTool) => {
+        setSelectedTools(prev =>
+            prev.includes(tool) ? prev.filter(t => t !== tool) : [...prev, tool]
+        );
+    };
 
     // Map store messages to PuffMessage structure
     const displayMessages: PuffMessage[] = currentMessages.map(m => ({
@@ -416,10 +492,19 @@ export function AgentChat({
 
             clearInterval(durationInterval);
 
-            // Check if response mentions integrations
+            // Determine tools based on mode
             const responseText = response.content.toLowerCase();
-            const needsGmail = responseText.includes('email') || responseText.includes('gmail') || userInput.toLowerCase().includes('email');
-            const needsSchedule = responseText.includes('daily') || responseText.includes('schedule') || userInput.toLowerCase().includes('daily');
+
+            let needsGmail = false;
+            let needsSchedule = false;
+
+            if (toolMode === 'auto') {
+                needsGmail = responseText.includes('email') || responseText.includes('gmail') || userInput.toLowerCase().includes('email');
+                needsSchedule = responseText.includes('daily') || responseText.includes('schedule') || userInput.toLowerCase().includes('daily');
+            } else {
+                needsGmail = selectedTools.includes('gmail');
+                needsSchedule = selectedTools.includes('calendar'); // Assuming schedule maps to calendar
+            }
 
             const newPermissions: ToolPermission[] = [];
             const newTriggers: PuffTrigger[] = [];
@@ -429,7 +514,7 @@ export function AgentChat({
                     id: 'gmail',
                     name: 'Gmail',
                     icon: 'mail',
-                    email: 'martez@bakedbot.ai',
+                    email: user?.email || 'unknown@user.com', // Dynamic Email
                     description: 'Integration with Gmail',
                     status: 'granted',
                     tools: ['Send Message'],
@@ -478,7 +563,7 @@ export function AgentChat({
         if (onSubmit) {
             await onSubmit(userInput);
         }
-    }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona]);
+    }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona, toolMode, selectedTools, user]);
 
     const handleGrantPermission = (permissionId: string) => {
         setState(prev => ({
@@ -515,6 +600,12 @@ export function AgentChat({
                         <div className="border-l pl-2 flex items-center gap-1">
                             <PersonaSelector value={persona} onChange={setPersona} />
                             <ModelSelector value={thinkingLevel} onChange={setThinkingLevel} />
+                            <ToolSelector
+                                mode={toolMode}
+                                selectedTools={selectedTools}
+                                onModeChange={setToolMode}
+                                onToggleTool={handleToggleTool}
+                            />
                         </div>
                     </div>
                     <Button

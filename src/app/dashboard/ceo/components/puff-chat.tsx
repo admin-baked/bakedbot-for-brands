@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -12,6 +14,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
+    DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
 import {
     ArrowLeft,
@@ -29,14 +32,30 @@ import {
     Brain,
     Zap,
     Rocket,
+    Wrench,
+    Settings,
+    Briefcase,
+    ShoppingCart,
+    Search,
+    ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { runAgentChat } from '../agents/actions';
 import { AgentPersona } from '../agents/personas';
-import { Briefcase, Search, ShoppingCart } from 'lucide-react';
 import { useAgentChatStore } from '@/lib/store/agent-chat-store';
+import { useUser } from '@/firebase/auth/use-user';
 
 // ============ Types ============
+
+export interface ToolCallStep {
+    id: string;
+    toolName: string;
+    description: string;
+    status: 'pending' | 'in-progress' | 'completed' | 'failed';
+    durationMs?: number;
+    subagentId?: string;
+    isComputerUse?: boolean;
+}
 
 export interface ToolPermission {
     id: string;
@@ -62,6 +81,7 @@ export interface PuffMessage {
     timestamp: Date;
     isThinking?: boolean;
     workDuration?: number; // seconds
+    steps?: ToolCallStep[];
     metadata?: {
         type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context';
         data?: any;
@@ -82,6 +102,10 @@ export interface PuffState {
 
 // ThinkingLevel type for intelligence selector
 export type ThinkingLevel = 'standard' | 'advanced' | 'expert' | 'genius';
+
+// Tool Selection Types
+export type ToolMode = 'auto' | 'manual';
+export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
 
 // ============ Sub-components ============
 
@@ -149,6 +173,64 @@ function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (
                         </div>
                         <span className="text-xs text-muted-foreground ml-6">{opt.desc}</span>
                     </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
+function ToolSelector({
+    mode,
+    selectedTools,
+    onModeChange,
+    onToggleTool
+}: {
+    mode: ToolMode;
+    selectedTools: AvailableTool[];
+    onModeChange: (mode: ToolMode) => void;
+    onToggleTool: (tool: AvailableTool) => void;
+}) {
+    const tools: { id: AvailableTool; label: string; icon: any }[] = [
+        { id: 'gmail', label: 'Gmail', icon: Mail },
+        { id: 'calendar', label: 'Calendar', icon: Calendar },
+        { id: 'drive', label: 'Drive', icon: FolderOpen },
+        { id: 'search', label: 'Web Search', icon: Globe },
+    ];
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs font-medium border border-transparent hover:border-border hover:bg-background">
+                    <Wrench className="h-3 w-3 text-primary" />
+                    {mode === 'auto' ? 'Auto Tools' : `${selectedTools.length} Tools`}
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[240px]">
+                <DropdownMenuLabel>Tool Settings</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onModeChange(mode === 'auto' ? 'manual' : 'auto')}>
+                    <div className="flex items-center justify-between w-full">
+                        <span className="text-sm">Auto-detect</span>
+                        {mode === 'auto' && <Check className="h-4 w-4" />}
+                    </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                    Available Tools
+                </DropdownMenuLabel>
+                {tools.map(tool => (
+                    <DropdownMenuCheckboxItem
+                        key={tool.id}
+                        checked={selectedTools.includes(tool.id) || mode === 'auto'}
+                        disabled={mode === 'auto'}
+                        onCheckedChange={() => onToggleTool(tool.id)}
+                    >
+                        <div className="flex items-center gap-2">
+                            <tool.icon className="h-3 w-3" />
+                            <span>{tool.label}</span>
+                        </div>
+                    </DropdownMenuCheckboxItem>
                 ))}
             </DropdownMenuContent>
         </DropdownMenu>
@@ -255,10 +337,9 @@ function TriggerIndicator({ triggers, expanded, onToggle }: { triggers: PuffTrig
 
 function ThinkingIndicator({ duration }: { duration?: number }) {
     return (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Worked for {duration || 0}s</span>
-            <ChevronDown className="h-4 w-4" />
+            <span>Thinking... {duration ? `(${duration}s)` : ''}</span>
         </div>
     );
 }
@@ -280,6 +361,7 @@ export function PuffChat({
 }: PuffChatProps) {
     // Global Store State
     const { currentMessages, addMessage, updateMessage, createSession } = useAgentChatStore();
+    const { user } = useUser(); // Get authenticated user for dynamic email
 
     const [state, setState] = useState<PuffState>({
         title: initialTitle,
@@ -297,6 +379,16 @@ export function PuffChat({
     const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
     const searchParams = useSearchParams();
     const [persona, setPersona] = useState<AgentPersona>('puff');
+
+    // Tool Selection State
+    const [toolMode, setToolMode] = useState<ToolMode>('auto');
+    const [selectedTools, setSelectedTools] = useState<AvailableTool[]>([]);
+
+    const handleToggleTool = (tool: AvailableTool) => {
+        setSelectedTools(prev =>
+            prev.includes(tool) ? prev.filter(t => t !== tool) : [...prev, tool]
+        );
+    };
 
     // Effect to read persona from query parameters
     useEffect(() => {
@@ -328,33 +420,13 @@ export function PuffChat({
         content: m.content,
         timestamp: new Date(m.timestamp),
         isThinking: m.thinking?.isThinking,
+        steps: m.thinking?.steps,
         metadata: m.metadata,
         workDuration: 0 // Not persisted but OK
     }));
 
     const handleSubmit = useCallback(async () => {
         if (!input.trim() || isProcessing) return;
-
-        // If it's the very first message ever in this session, ensure session exists?
-        // Actually SuperAdminAgentChat handles `createSession` if null.
-        // But if we are in 'New Chat' state (activeSessionId is null), `addMessage` adds to `currentMessages` array in store temporarily.
-        // But `createSession` logic in store only happens if `createSession` called explicitly.
-        // We should just add messages. The Store's `createSession` handles flushing 'currentMessages' to a saved session.
-        // Ideally we should auto-create session on first message?
-        // Let's rely on the store's `addMessage` adding to `currentMessages`.
-        // If the user clicks 'New Chat' later, those messages get saved as a session.
-        // This is slightly buggy: if I chat, then reload, `activeSessionId` is null, messages lost if not saved to session?
-        // `useAgentChatStore` persists `sessions`. `currentMessages` might not be persisted if not in `partialize`.
-        // I should check `partialize` config I wrote. I wrote `partialize: (state) => ({ sessions: state.sessions })`.
-        // So `currentMessages` are LOST on reload if not currently a saved session.
-        // FIX: I should call `createSession` immediately if this is the first message OR make `currentMessages` persistent.
-        // I'll assume standard behavior: First message = Create Session.
-
-        // However, `createSession` in the store resets currentMessages.
-        // I need a `saveCurrentSession` or `ensureSession` action.
-        // For now, I will just operate on `currentMessages`. If the user wants to save history they better keep the session active?
-        // No, currentMessages should be synced to the active session.
-        // If activeSessionId is null, I should probably create a session now.
 
         const userInput = input;
 
@@ -378,11 +450,8 @@ export function PuffChat({
             thinking: { isThinking: true, steps: [], plan: [] }
         });
 
-        // Simulate work duration locally (visual only)
-        let duration = 0;
         const durationInterval = setInterval(() => {
-            duration++;
-            // We're not updating store for duration to avoid excessive writes/renders
+            // duration update logic
         }, 1000);
 
         try {
@@ -391,11 +460,19 @@ export function PuffChat({
 
             clearInterval(durationInterval);
 
-            // Check if response mentions integrations
+            // Determine tools based on mode
             const responseText = response.content.toLowerCase();
-            const needsGmail = responseText.includes('email') || responseText.includes('gmail') || userInput.toLowerCase().includes('email');
-            const needsDrive = responseText.includes('spreadsheet') || responseText.includes('sheet') || responseText.includes('drive') || userInput.toLowerCase().includes('sheet');
-            const needsSchedule = responseText.includes('daily') || responseText.includes('schedule') || userInput.toLowerCase().includes('daily');
+
+            let needsGmail = false;
+            let needsSchedule = false;
+
+            if (toolMode === 'auto') {
+                needsGmail = responseText.includes('email') || responseText.includes('gmail') || userInput.toLowerCase().includes('email');
+                needsSchedule = responseText.includes('daily') || responseText.includes('schedule') || userInput.toLowerCase().includes('daily');
+            } else {
+                needsGmail = selectedTools.includes('gmail');
+                needsSchedule = selectedTools.includes('calendar'); // Assuming schedule maps to calendar
+            }
 
             const newPermissions: ToolPermission[] = [];
             const newTriggers: PuffTrigger[] = [];
@@ -405,13 +482,12 @@ export function PuffChat({
                     id: 'gmail',
                     name: 'Gmail',
                     icon: 'mail',
-                    email: 'martez@bakedbot.ai',
+                    email: user?.email || 'unknown@user.com', // Dynamic Email
                     description: 'Integration with Gmail',
                     status: 'granted',
                     tools: ['Send Message'],
                 });
             }
-            // ... (Other permissions simplified for now, logic remains similar)
 
             if (needsSchedule) newTriggers.push({ id: 'schedule-1', type: 'schedule', label: 'Daily at 9:00 AM' });
 
@@ -426,11 +502,19 @@ export function PuffChat({
             // Update Global Store with response
             updateMessage(thinkingId, {
                 content: response.content,
-                thinking: { isThinking: false, steps: [], plan: [] } // Clear thinking
+                metadata: response.metadata, // Store rich metadata
+                thinking: {
+                    isThinking: false,
+                    steps: response.toolCalls?.map(tc => ({
+                        id: tc.id,
+                        toolName: tc.name, // Mapping 'name' to 'toolName'
+                        description: tc.result, // Using result as description or status
+                        status: tc.status === 'success' ? 'completed' : tc.status === 'error' ? 'failed' : 'pending',
+                        durationMs: 0
+                    })) || [],
+                    plan: []
+                }
             });
-
-            // Auto-create session if this was the first exchange?
-            // Ideally we'd do this.
 
         } catch (error) {
             clearInterval(durationInterval);
@@ -446,7 +530,7 @@ export function PuffChat({
         if (onSubmit) {
             await onSubmit(userInput);
         }
-    }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona]);
+    }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona, toolMode, selectedTools, user]);
 
     const handleGrantPermission = (permissionId: string) => {
         setState(prev => ({
@@ -498,6 +582,12 @@ export function PuffChat({
                         <div className="border-l pl-2 flex items-center gap-1">
                             <PersonaSelector value={persona} onChange={setPersona} />
                             <ModelSelector value={thinkingLevel} onChange={setThinkingLevel} />
+                            <ToolSelector
+                                mode={toolMode}
+                                selectedTools={selectedTools}
+                                onModeChange={setToolMode}
+                                onToggleTool={handleToggleTool}
+                            />
                         </div>
                     </div>
                     <Button
@@ -557,6 +647,7 @@ export function PuffChat({
             {hasMessages && (
                 <ScrollArea className="flex-1">
                     <div className="p-4 space-y-4">
+
                         {/* Messages */}
                         {displayMessages.map(message => (
                             <div key={message.id}>
@@ -568,11 +659,54 @@ export function PuffChat({
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
+                                        {message.steps && message.steps.length > 0 && (
+                                            <StepsList steps={message.steps} />
+                                        )}
                                         {message.isThinking ? (
                                             <ThinkingIndicator duration={message.workDuration} />
                                         ) : (
                                             <>
-                                                {/* Work duration omitted to save space */}
+                                                {/* Rich Metadata Rendering */}
+                                                {message.metadata?.type === 'compliance_report' && (
+                                                    <Card className="border-red-200 bg-red-50 mb-2">
+                                                        <CardContent className="p-3">
+                                                            <div className="flex items-center gap-2 text-red-700 font-semibold mb-2">
+                                                                <ShieldCheck className="h-4 w-4" />
+                                                                <span>Compliance Violation Detected</span>
+                                                            </div>
+                                                            <ul className="list-disc list-inside text-xs text-red-600 space-y-1">
+                                                                {message.metadata.data.violations.map((v: string, i: number) => (
+                                                                    <li key={i}>{v}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+
+                                                {message.metadata?.type === 'product_rec' && (
+                                                    <Card className="border-emerald-200 bg-emerald-50 mb-2">
+                                                        <CardContent className="p-3">
+                                                            <div className="flex items-center gap-2 text-emerald-700 font-semibold mb-2">
+                                                                <ShoppingCart className="h-4 w-4" />
+                                                                <span>Smokey's Picks</span>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                {message.metadata.data.products.map((p: any, i: number) => (
+                                                                    <div key={i} className="flex justify-between items-center bg-white p-2 rounded border border-emerald-100">
+                                                                        <div>
+                                                                            <p className="text-sm font-medium">{p.name}</p>
+                                                                            <p className="text-[10px] text-muted-foreground">{p.reason}</p>
+                                                                        </div>
+                                                                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
+                                                                            {Math.round(p.score * 100)}% Match
+                                                                        </Badge>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+
                                                 <div className="prose prose-sm max-w-none">
                                                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                                                 </div>
