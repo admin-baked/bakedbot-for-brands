@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Search } from 'lucide-react';
+import { Play, Terminal } from 'lucide-react';
 import { useUserRole } from '@/hooks/use-user-role';
 import { useToast } from '@/hooks/use-toast';
 import { ActivityFeed } from './components/activity-feed';
@@ -14,61 +15,20 @@ import { UsageMeter } from './components/usage-meter';
 import { AgentChat } from './components/agent-chat';
 import DispensaryDashboardClient from '../dispensary/dashboard-client';
 import { BrandPlaybooksView } from '../brand/components/brand-playbooks-view';
-
-type Playbook = {
-  id: string;
-  title: string;
-  type: 'SIGNAL' | 'AUTOMATION';
-  description: string;
-  tags: string[];
-  active: boolean;
-  status: 'active' | 'disabled';
-};
-
-const MOCK_PLAYBOOKS: Playbook[] = [
-  {
-    id: '1',
-    title: 'abandon-browse-cart-saver',
-    type: 'SIGNAL',
-    description: 'Recover lost sales by engaging users who abandoned their cart.',
-    tags: ['retention', 'recovery', 'sms', 'email', 'on-site'],
-    active: true,
-    status: 'active',
-  },
-  {
-    id: '2',
-    title: 'competitor-price-drop-watch',
-    type: 'SIGNAL',
-    description: 'Monitor competitor pricing and alert when they drop below threshold.',
-    tags: ['competitive', 'pricing', 'experiments'],
-    active: true,
-    status: 'active',
-  },
-  {
-    id: '3',
-    title: 'new-subscriber-welcome-series',
-    type: 'AUTOMATION',
-    description: 'Onboard new subscribers with a personalized email sequence.',
-    tags: ['email', 'onboarding', 'engagement'],
-    active: true,
-    status: 'active',
-  },
-  {
-    id: '4',
-    title: 'win-back-lapsed-customers',
-    type: 'SIGNAL',
-    description: 'Re-engage customers who haven\'t purchased in 60 days.',
-    tags: ['retention', 'sms', 'discounts'],
-    active: false,
-    status: 'disabled',
-  },
-];
+import { PLAYBOOKS } from './data';
 
 export default function PlaybooksPage() {
   const { role, user } = useUserRole();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Disabled'>('All');
+  const [selectedPrompt, setSelectedPrompt] = useState<string>('');
+
+  const handleRunPlaybook = (prompt: string) => {
+    setSelectedPrompt(prompt);
+    // Smooth scroll to top to see chat
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Redirect Dispensary users to their specific console (which includes playbooks)
   if (role === 'dispensary') {
@@ -81,7 +41,8 @@ export default function PlaybooksPage() {
     return <BrandPlaybooksView brandId={brandId} />;
   }
 
-  const filteredPlaybooks = MOCK_PLAYBOOKS.filter(playbook => {
+
+  const filteredPlaybooks = PLAYBOOKS.filter(playbook => {
     const matchesSearch = playbook.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       playbook.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = statusFilter === 'All' ||
@@ -100,7 +61,7 @@ export default function PlaybooksPage() {
 
       {/* Agent Builder Chat Interface */}
       <section className="w-full">
-        <AgentChat />
+        <AgentChat initialInput={selectedPrompt} />
       </section>
 
       {/* Activity & Usage Section */}
@@ -154,8 +115,14 @@ export default function PlaybooksPage() {
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${playbook.type === 'SIGNAL' ? 'text-green-600' : 'text-blue-600'
-                      }`}>
+                    <span className={
+                      `text-[10px] font-bold uppercase tracking-wider 
+                      ${playbook.type === 'INTEL' ? 'text-blue-600' :
+                        playbook.type === 'OPS' ? 'text-orange-600' :
+                          playbook.type === 'COMPLIANCE' ? 'text-red-600' :
+                            playbook.type === 'FINANCE' ? 'text-green-600' :
+                              'text-purple-600'}`
+                    }>
                       {playbook.type}
                     </span>
                   </div>
@@ -176,6 +143,17 @@ export default function PlaybooksPage() {
                     {tag}
                   </Badge>
                 ))}
+              </div>
+              <div className="pt-2 mt-auto">
+                <Button
+                  className="w-full gap-2"
+                  variant="default"
+                  size="sm"
+                  onClick={() => handleRunPlaybook(playbook.prompt)}
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  Run Playbook
+                </Button>
               </div>
             </CardContent>
           </Card>
