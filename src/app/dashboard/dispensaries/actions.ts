@@ -29,13 +29,23 @@ export async function getBrandDispensaries() {
         source: 'manual'
     }));
 
-    // 3. Fetch automated partners from CannMenus if we have a name
+    // 3. Fetch automated partners from CannMenus if we have a name (with timeout)
     let automatedPartners: any[] = [];
     if (brandName) {
         try {
             const { CannMenusService } = await import('@/server/services/cannmenus');
             const cms = new CannMenusService();
-            const retailers = await cms.findRetailersCarryingBrand(brandName, 20);
+
+            // Add 5-second timeout to prevent page from hanging
+            const timeoutPromise = new Promise<any[]>((_, reject) =>
+                setTimeout(() => reject(new Error('CannMenus timeout')), 5000)
+            );
+
+            const retailers = await Promise.race([
+                cms.findRetailersCarryingBrand(brandName, 20),
+                timeoutPromise
+            ]);
+
             automatedPartners = retailers.map(r => ({
                 id: r.id,
                 name: r.name,
@@ -48,6 +58,7 @@ export async function getBrandDispensaries() {
             }));
         } catch (err) {
             logger.error('Failed to fetch automated dispensaries', { brandName, error: err });
+            // Continue with manual partners only
         }
     }
 
