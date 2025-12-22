@@ -1,0 +1,54 @@
+{
+    "scenarioId": "scn_brand_001",
+    "profile": "BRAND",
+    "name": "Trade Spend: Fund 10% Off at 25 Retailers",
+    "description": "Allocate promo funding to top retailers to lift sell-through and share in gummies category.",
+    "horizonDays": 90,
+    "interventions": [
+        {
+            "type": "TradeSpend",
+            "budgetTotal": 20000,
+            "mechanism": "percent_off_funding",
+            "allocation": {
+                "partnerRetailerId:ret_001": 1200,
+                "partnerRetailerId:ret_002": 800,
+                "partnerRetailerId:ret_003": 900
+            },
+            "startDate": "2026-02-01",
+            "endDate": "2026-03-02"
+        },
+        {
+            "type": "Promotion",
+            "promoType": "%off",
+            "eligibility": {
+                "brands": [
+                    "yourBrandId"
+                ],
+                "categories": [
+                    "edibles"
+                ]
+            },
+            "value": 10,
+            "startDate": "2026-02-01",
+            "endDate": "2026-03-02"
+        },
+        {
+            "type": "PlacementBoost",
+            "partners": [
+                "ret_001",
+                "ret_002",
+                "ret_003"
+            ],
+            "liftAssumption": 0.12,
+            "startDate": "2026-02-01",
+            "endDate": "2026-03-15"
+        }
+    ],
+    "assumptions": {
+        "elasticityStrength": "mid",
+        "substitutionStrength": "mid",
+        "promoLiftMultiplier": 1.1,
+        "competitorPressureSensitivity": 0.8,
+        "seasonalityIntensity": 0.5
+    }
+}
