@@ -1,6 +1,31 @@
 
 # Progress Log
 
+## Session: Data Architecture Phase 3 - Full Merge Implementation
+**Date:** 2025-12-21
+**Task ID:** DATA-ARCH-PHASE3-001
+
+### Summary
+Completed full merge implementation for the import pipeline, writing CatalogProducts, ProductMappings, and PublicViews to Firestore.
+
+### Key Changes
+1.  **Full Merge Implementation:**
+    *   Batch writes with 400 ops/batch limit
+    *   `generateProductId()` / `generateMappingId()` for deterministic IDs
+    *   `createCatalogProductFromStaging()` transforms staging → catalog
+    *   Writes to `tenants/{tenantId}/catalog/products/items/{productId}`
+    *   Writes to `tenants/{tenantId}/mappings/products/items/{mappingId}`
+    *   Writes to `tenants/{tenantId}/publicViews/products/items/{productId}`
+
+### Tests Run
+*   `npm run check:types` (Passed)
+*   `npm test -- --testPathPattern="import-actions"` (10 passed)
+
+### Commits
+*   `2a7b4453`: feat(import): implement full Firestore writes for products, mappings, and views
+
+---
+
 ## Session: Data Architecture Phase 2 - Import Actions
 **Date:** 2025-12-21
 **Task ID:** DATA-ARCH-PHASE2-001
