@@ -52,8 +52,8 @@ export async function updateBrandProfile(brandId: string, formData: FormData) {
         updateData.slug = createSlug(name);
     }
 
-    // 5. Update Firestore
-    await firestore.collection('brands').doc(brandId).update(updateData);
+    // 5. Update Firestore (use set with merge to handle creation if missing)
+    await firestore.collection('brands').doc(brandId).set(updateData, { merge: true });
 
     // 6. Revalidate
     const slug = updateData.slug || brandId;
