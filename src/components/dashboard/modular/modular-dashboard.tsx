@@ -42,13 +42,18 @@ interface ModularDashboardProps {
     width?: number;
     cols?: number;
     rowHeight?: number;
+    isEditable?: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dashboardData?: any;
 }
 
 export function ModularDashboard({
     role,
     width = 1200,
     cols = 12,
-    rowHeight = 80
+    rowHeight = 80,
+    isEditable = true,
+    dashboardData
 }: ModularDashboardProps) {
     const { toast } = useToast();
     const [widgets, setWidgets] = useState<WidgetInstance[]>([]);
@@ -105,6 +110,9 @@ export function ModularDashboard({
     // Handle layout change from drag/resize
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleLayoutChange = useCallback((newLayout: any) => {
+        // Only allow layout changes if editable
+        if (!isEditable) return;
+
         // Convert layout items to our simple format
         const simplified = (newLayout as LayoutItem[]).map(item => ({
             i: item.i,
@@ -115,7 +123,7 @@ export function ModularDashboard({
         }));
         const updated = updateWidgetPositions(widgets, simplified);
         setWidgets(updated);
-    }, [widgets]);
+    }, [widgets, isEditable]);
 
     // Save layout
     const handleSave = useCallback(() => {
@@ -173,7 +181,7 @@ export function ModularDashboard({
         const GridComponent = ReactGridLayout as any;
         return (
             <GridComponent
-                className="layout"
+                className={`layout ${!isEditable ? 'pointer-events-none-if-needed' : ''}`}
                 layout={layout}
                 cols={cols}
                 rowHeight={rowHeight}
@@ -182,8 +190,8 @@ export function ModularDashboard({
                 draggableHandle=".drag-handle"
                 compactType="vertical"
                 preventCollision={false}
-                isResizable={true}
-                isDraggable={true}
+                isResizable={isEditable}
+                isDraggable={isEditable}
                 margin={[16, 16]}
             >
                 {widgets.map(widget => {
@@ -192,7 +200,11 @@ export function ModularDashboard({
 
                     return (
                         <div key={widget.id}>
-                            <Component onRemove={() => handleRemoveWidget(widget.id)} />
+                            <Component
+                                onRemove={isEditable ? () => handleRemoveWidget(widget.id) : undefined}
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                {...(dashboardData ? { data: dashboardData } : {})}
+                            />
                         </div>
                     );
                 })}
@@ -210,38 +222,42 @@ export function ModularDashboard({
 
     return (
         <div ref={containerRef} className="space-y-4">
-            {/* Dashboard Controls */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-semibold">Dashboard</h2>
-                    <Badge variant="outline" className="capitalize">{role}</Badge>
+            {/* Dashboard Controls - Only show in Edit Mode */}
+            {isEditable && (
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-semibold">Dashboard</h2>
+                        <Badge variant="outline" className="capitalize">{role}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <AddWidgetMenu
+                            role={role}
+                            existingWidgetTypes={existingWidgetTypes}
+                            onAddWidget={handleAddWidget}
+                        />
+                        <Button variant="outline" size="sm" onClick={handleReset}>
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Reset
+                        </Button>
+                        <Button size="sm" onClick={handleSave}>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Layout
+                        </Button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <AddWidgetMenu
-                        role={role}
-                        existingWidgetTypes={existingWidgetTypes}
-                        onAddWidget={handleAddWidget}
-                    />
-                    <Button variant="outline" size="sm" onClick={handleReset}>
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Reset
-                    </Button>
-                    <Button size="sm" onClick={handleSave}>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save Layout
-                    </Button>
-                </div>
-            </div>
+            )}
 
             {/* Widget Grid */}
             {widgets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg">
                     <p className="text-muted-foreground mb-4">No widgets on your dashboard</p>
-                    <AddWidgetMenu
-                        role={role}
-                        existingWidgetTypes={existingWidgetTypes}
-                        onAddWidget={handleAddWidget}
-                    />
+                    {isEditable && (
+                        <AddWidgetMenu
+                            role={role}
+                            existingWidgetTypes={existingWidgetTypes}
+                            onAddWidget={handleAddWidget}
+                        />
+                    )}
                 </div>
             ) : (
                 renderGrid()

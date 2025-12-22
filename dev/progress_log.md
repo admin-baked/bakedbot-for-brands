@@ -279,5 +279,32 @@ Fixed critical production bug in modular dashboard and started Brand Page produc
 
 ### Commits
 *   `9f894e27`: `fix: resolve WidthProvider import for react-grid-layout in production`
-*   `8d287f47`: `feat: add synced products grid to Brand Page with source badges`
+
+---
+
+## Session: Dashboard Unification & Brand Name
+**Date:** 2025-12-21
+**Task ID:** DASH-UNIFY-001
+
+### Summary
+Unified the Brand Dashboard layout engine and implemented Brand Name setting flows.
+
+### Key Changes
+1.  **Dashboard Unification:**
+    *   Replaced static `BrandOverviewView` with `ModularDashboard` (read-only mode) for the "Overview" tab.
+    *   Added `isEditable` and `dashboardData` props to `ModularDashboard`.
+    *   Updated `BrandKPIs`, `NextBestActions`, `BrandChat`, and `ManagedPages` widgets to use real components and data.
+    *   Preserved specific dashboard features like the Market Filter Header.
+
+2.  **Brand Name Management:**
+    *   Updated `updateBrandProfile` server action to handle initial name setting.
+    *   Created `requestBrandNameChange` server action.
+    *   Added UI in Brand Page for setting initial name or requesting changes.
+
+### Tests Run
+*   `npm run check:types` (Passed)
+
+### Commit
+*   `pending`: `feat: unify dashboard layouts and add brand name setting`
+
 

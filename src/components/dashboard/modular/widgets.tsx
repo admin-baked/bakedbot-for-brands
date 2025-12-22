@@ -342,51 +342,29 @@ export function RuleChangesWidget({ onRemove }: { onRemove?: () => void }) {
 // BRAND-SPECIFIC WIDGETS
 // ============================================================================
 
-export function BrandKpisWidget({ onRemove }: { onRemove?: () => void }) {
-    const kpis = [
-        { label: 'Retail Coverage', value: '42', sublabel: 'STORES CARRYING', trend: '+2', trendLabel: '2m ago' },
-        { label: 'Velocity', value: '18', sublabel: 'AVG PER STORE', trend: '+5%', trendLabel: '1h ago' },
-        { label: 'Price Index', value: '+6%', sublabel: 'VS. MARKET AVG', trend: 'Healthy', trendLabel: '5m ago' },
-        { label: 'Share of Shelf', value: '42%', sublabel: 'VS TOP COMPETITOR', trend: '-16', trendLabel: '12m ago' },
-        { label: 'Compliance', value: '8', sublabel: 'ACTIVE CAMPAIGNS', trend: '1 Blocked', trendLabel: 'Real-time' },
-    ];
+// Shared components
+import { BrandKPIs } from '@/app/dashboard/brand/components/brand-kpi-grid';
+import { NextBestActions } from '@/app/dashboard/brand/components/next-best-actions';
 
+// ... (other imports)
+
+// ...
+
+export function BrandKpisWidget({ onRemove, data }: { onRemove?: () => void, data?: any }) {
     return (
         <WidgetWrapper title="Brand KPIs" icon={<TrendingUp className="h-4 w-4" />} onRemove={onRemove}>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                {kpis.map((kpi, i) => (
-                    <div key={i} className="text-center p-2 bg-muted/50 rounded-lg">
-                        <div className="text-2xl font-bold">{kpi.value}</div>
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{kpi.sublabel}</div>
-                        <div className="text-xs text-emerald-600 mt-1">{kpi.trend}</div>
-                    </div>
-                ))}
+            <div className="h-full overflow-auto">
+                <BrandKPIs data={data} />
             </div>
         </WidgetWrapper>
     );
 }
 
 export function NextBestActionsWidget({ onRemove }: { onRemove?: () => void }) {
-    const actions = [
-        { title: 'Fix Price Parity', priority: 'HIGH', description: '3 retailers in IL are pricing your top SKU below MAP.' },
-        { title: 'Expand to Detroit', priority: 'MEDIUM', description: 'Top competitor just gained 5 doors in MI.' },
-        { title: 'OOS Warning', priority: 'HIGH', description: 'Warehouse stock for "Premium Flower" is low.' },
-    ];
-
     return (
         <WidgetWrapper title="Next Best Actions" icon={<Zap className="h-4 w-4" />} onRemove={onRemove}>
-            <div className="space-y-3">
-                {actions.map((action, i) => (
-                    <div key={i} className="p-3 border rounded-lg">
-                        <div className="flex items-start justify-between">
-                            <div className="font-medium text-sm">{action.title}</div>
-                            <span className={`text-[10px] px-2 py-0.5 rounded ${action.priority === 'HIGH' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                                {action.priority}
-                            </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">{action.description}</p>
-                    </div>
-                ))}
+            <div className="h-full overflow-auto">
+                <NextBestActions />
             </div>
         </WidgetWrapper>
     );
@@ -425,35 +403,17 @@ export function CompetitiveIntelWidget({ onRemove }: { onRemove?: () => void }) 
     );
 }
 
-export function ManagedPagesWidget({ onRemove }: { onRemove?: () => void }) {
-    const pages = [
-        { name: 'Chicago Flagship', status: 'LIVE', path: '/dispensaries/il/chicago/flagship', views: 1240 },
-        { name: 'Summer Promo Landing', status: 'DRAFT', path: '/brands/wyld/summer-promo', views: 0 },
-    ];
+// ... other imports
+import { BrandChatWidget } from '@/app/dashboard/brand/components/brand-chat-widget';
+import { ManagedPagesList } from '@/components/dashboard/managed-pages-list';
 
+// ...
+
+export function ManagedPagesWidget({ onRemove }: { onRemove?: () => void }) {
     return (
         <WidgetWrapper title="Your Pages" icon={<Globe className="h-4 w-4" />} onRemove={onRemove}>
-            <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Manage your public facing SEO pages</span>
-                    <button className="px-3 py-1.5 bg-primary text-primary-foreground text-xs rounded-md font-medium">
-                        Create New Page
-                    </button>
-                </div>
-                {pages.map((page, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <span className="font-medium text-sm">{page.name}</span>
-                                <span className={`text-[10px] px-2 py-0.5 rounded ${page.status === 'LIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
-                                    {page.status}
-                                </span>
-                            </div>
-                            <div className="text-xs text-muted-foreground">{page.path} • {page.views.toLocaleString()} views</div>
-                        </div>
-                        <button className="text-xs text-primary hover:underline">Edit</button>
-                    </div>
-                ))}
+            <div className="h-full overflow-auto">
+                <ManagedPagesList userRole="brand" />
             </div>
         </WidgetWrapper>
     );
@@ -462,12 +422,8 @@ export function ManagedPagesWidget({ onRemove }: { onRemove?: () => void }) {
 export function BrandChatWidgetWrapper({ onRemove }: { onRemove?: () => void }) {
     return (
         <WidgetWrapper title="Ask Baked HQ (Brand)" icon={<MessageSquare className="h-4 w-4" />} onRemove={onRemove}>
-            <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center">
-                <div className="text-muted-foreground mb-4">Revenue Ops Assistant</div>
-                <div className="text-sm bg-muted/50 rounded-lg p-3 max-w-sm">
-                    <span className="text-primary">Connected</span> • Ask me anything about your brand performance, pricing, or campaigns.
-                </div>
-                <div className="mt-4 text-xs text-muted-foreground">Type a message to start...</div>
+            <div className="h-full overflow-hidden">
+                <BrandChatWidget />
             </div>
         </WidgetWrapper>
     );
@@ -509,7 +465,7 @@ export function BrandAlertsWidget({ onRemove }: { onRemove?: () => void }) {
                 {alerts.map((alert, i) => (
                     <div key={i} className="flex items-center gap-2 text-sm">
                         <div className={`w-2 h-2 rounded-full ${alert.type === 'error' ? 'bg-red-500' :
-                                alert.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'
+                            alert.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'
                             }`} />
                         <span>{alert.text}</span>
                     </div>
