@@ -90,7 +90,13 @@ export function withAuth<P extends object>(
             return (
                 <div className="flex min-h-screen items-center justify-center bg-background">
                     <div className="flex flex-col items-center gap-4">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <div className="h-16 w-16 animate-pulse">
+                            <img
+                                src="/icon.png"
+                                alt="BakedBot verifying access"
+                                className="h-full w-full object-contain"
+                            />
+                        </div>
                         <p className="text-sm text-muted-foreground">Verifying access...</p>
                     </div>
                 </div>
