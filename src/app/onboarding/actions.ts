@@ -439,6 +439,22 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       }
     }
 
+    // --- AUTO-DISCOVER COMPETITORS ---
+    let competitorsDiscovered = 0;
+    if ((finalRole === 'brand' || finalRole === 'dispensary') && orgId && marketState) {
+      try {
+        const { autoDiscoverCompetitors } = await import('./competitive-intel-auto');
+        const result = await autoDiscoverCompetitors(orgId, marketState, firestore);
+        competitorsDiscovered = result.discovered;
+        if (competitorsDiscovered > 0) {
+          logger.info(`Auto-discovered ${competitorsDiscovered} competitors for ${orgId} in ${marketState}`);
+        }
+      } catch (compError) {
+        // Non-fatal - log but don't fail onboarding
+        logger.warn('Failed to auto-discover competitors:', compError instanceof Error ? compError : new Error(String(compError)));
+      }
+    }
+
     revalidatePath('/dashboard');
     revalidatePath('/account');
 
