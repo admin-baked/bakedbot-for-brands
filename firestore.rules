@@ -253,5 +253,168 @@ service cloud.firestore {
       // Owner can access all addresses.
       allow read: if isRole('owner');
     }
+
+    // ===========================================================================
+    // DIRECTORY COLLECTIONS (Public SEO Graph)
+    // See: dev/data-architecture.md
+    // ===========================================================================
+
+    // Helper: Check if user has tenant claim matching directory link
+    function isTenantOwnerOfEntity(entityType, entityId) {
+      return request.auth != null &&
+             request.auth.token.tenantId != null &&
+             exists(/databases/$(database)/documents/directory/tenantLinks/$(entityType + ':' + entityId)) &&
+             get(/databases/$(database)/documents/directory/tenantLinks/$(entityType + ':' + entityId)).data.tenantId == request.auth.token.tenantId;
+    }
+
+    // Directory Brands - Public read, no client writes
+    match /directory/brands/{brandId} {
+      allow read: if true;
+      allow write: if false; // Admin SDK only
+    }
+
+    // Directory Dispensaries - Public read, no client writes
+    match /directory/dispensaries/{dispensaryId} {
+      allow read: if true;
+      allow write: if false; // Admin SDK only
+    }
+
+    // Directory Locations - Public read, no client writes
+    match /directory/locations/{locationId} {
+      allow read: if true;
+      allow write: if false; // Admin SDK only
+    }
+
+    // Directory Pages - Public read, no client writes
+    match /directory/pages/{pageId} {
+      allow read: if true;
+      allow write: if false; // Admin SDK only
+    }
+
+    // Directory Entity Views (derived) - Public read, no client writes
+    match /directory/entityViews/{entityId} {
+      allow read: if true;
+      allow write: if false; // Admin SDK only
+    }
+
+    // Directory Page Views (derived) - Public read, no client writes
+    match /directory/pageViews/{pageId} {
+      allow read: if true;
+      allow write: if false; // Admin SDK only
+    }
+
+    // Directory Imports/Sources - Admin only
+    match /directory/imports/{importId} {
+      allow read, write: if isRole('owner');
+    }
+    match /directory/sources/{sourceId} {
+      allow read, write: if isRole('owner');
+    }
+
+    // Directory Claims - Authenticated create, admin manage
+    match /directory/claims/{claimId} {
+      // Authenticated users can create claim requests
+      allow create: if request.auth != null &&
+                      request.resource.data.claimantEmail == request.auth.token.email;
+      
+      // Claimant can read their own claims
+      allow read: if request.auth != null &&
+                    resource.data.claimantEmail == request.auth.token.email;
+      
+      // Admins can read/update all claims
+      allow read, update: if isRole('owner');
+      
+      // No client deletes
+      allow delete: if false;
+    }
+
+    // Directory Tenant Links - Read for claimants, write admin only
+    match /directory/tenantLinks/{linkKey} {
+      allow read: if request.auth != null;
+      allow write: if false; // Admin SDK only
+    }
+
+    // ===========================================================================
+    // TENANT COLLECTIONS (Customer Workspace)
+    // See: dev/data-architecture.md
+    // ===========================================================================
+
+    // Helper: Check if user belongs to this tenant
+    function isTenantMember(tenantId) {
+      return request.auth != null && request.auth.token.tenantId == tenantId;
+    }
+
+    // Helper: Check if user is tenant admin
+    function isTenantAdmin(tenantId) {
+      return isTenantMember(tenantId) && 
+             (request.auth.token.role == 'brand' || request.auth.token.role == 'dispensary');
+    }
+
+    // Tenant Root Document
+    match /tenants/{tenantId} {
+      allow read: if isTenantMember(tenantId) || isRole('owner');
+      allow create: if false; // Admin SDK only (via claim flow)
+      allow update: if isTenantAdmin(tenantId) || isRole('owner');
+      allow delete: if false;
+    }
+
+    // Tenant Sources (POS connections, API keys)
+    match /tenants/{tenantId}/sources/{sourceId} {
+      allow read: if isTenantMember(tenantId) || isRole('owner');
+      allow write: if isTenantAdmin(tenantId) || isRole('owner');
+    }
+
+    // Tenant Imports
+    match /tenants/{tenantId}/imports/{importId} {
+      allow read: if isTenantMember(tenantId) || isRole('owner');
+      allow create: if isTenantAdmin(tenantId) || isRole('owner');
+      allow update, delete: if false; // Immutable records
+    }
+
+    // Tenant Staging (temporary import data)
+    match /tenants/{tenantId}/staging/{collection}/{docId} {
+      allow read: if isTenantMember(tenantId) || isRole('owner');
+      allow write: if false; // Server-side only
+    }
+
+    // Tenant Mappings
+    match /tenants/{tenantId}/mappings/{collection}/{mappingId} {
+      allow read: if isTenantMember(tenantId) || isRole('owner');
+      allow write: if isTenantAdmin(tenantId) || isRole('owner');
+    }
+
+    // Tenant Catalog Products
+    match /tenants/{tenantId}/catalog/products/{productId} {
+      allow read: if isTenantMember(tenantId) || isRole('owner');
+      allow write: if isTenantAdmin(tenantId) || isRole('owner');
+      
+      // Subcollections
+      match /{subcollection}/{docId} {
+        allow read: if isTenantMember(tenantId) || isRole('owner');
+        allow write: if isTenantAdmin(tenantId) || isRole('owner');
+      }
+    }
+
+    // Tenant Public Views - Public read (headless menu), no client writes
+    match /tenants/{tenantId}/publicViews/{collection}/{docId} {
+      allow read: if true; // Public for headless menus
+      allow write: if false; // Server-side only
+    }
+
+    // Tenant Events (analytics)
+    match /tenants/{tenantId}/events/{eventId} {
+      // Anyone can write events (for anonymous tracking)
+      allow create: if true;
+      // Only tenant members can read events
+      allow read: if isTenantMember(tenantId) || isRole('owner');
+      // Events are append-only
+      allow update, delete: if false;
+    }
+
+    // Tenant Audit Trail
+    match /tenants/{tenantId}/audit/{collection}/{docId} {
+      allow read: if isTenantMember(tenantId) || isRole('owner');
+      allow write: if false; // Server-side only
+    }
   }
 }
