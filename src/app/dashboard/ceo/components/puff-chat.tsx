@@ -335,11 +335,32 @@ function TriggerIndicator({ triggers, expanded, onToggle }: { triggers: PuffTrig
     );
 }
 
+
+function StepsList({ steps }: { steps: ToolCallStep[] }) {
+    return (
+        <div className="space-y-2 mt-2">
+            {steps.map((step) => (
+                <div key={step.id} className="flex items-start gap-2 text-xs bg-muted/50 p-2 rounded-md border">
+                    <div className="mt-0.5">
+                        {step.status === 'running' && <Loader2 className="h-3 w-3 animate-spin text-blue-500" />}
+                        {step.status === 'success' && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
+                        {step.status === 'error' && <div className="h-3 w-3 rounded-full bg-red-500" />}
+                    </div>
+                    <div className="flex-1">
+                        <div className="font-medium">{step.name}</div>
+                        <div className="text-muted-foreground">{step.result}</div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 function ThinkingIndicator({ duration }: { duration?: number }) {
     return (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Thinking... {duration ? `(${duration}s)` : ''}</span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
+            <Brain className="h-3 w-3" />
+            <span>Thinking... {duration ? `(${duration}ms)` : ''}</span>
         </div>
     );
 }
