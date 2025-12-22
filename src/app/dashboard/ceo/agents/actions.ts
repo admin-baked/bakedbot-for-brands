@@ -354,7 +354,17 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
         };
 
         console.log('[runAgentChat] Getting intuition summary...');
-        const intuition = getIntuitionSummary(userBrandId);
+
+        // Intuition OS: Load Memory
+        const brandMemory = await persistence.loadBrandMemory(userBrandId);
+        // We could also load agent-specific memory here if needed
+
+        // Derived stats for UI
+        const intuition = {
+            stage: brandMemory.brand_profile.name ? 'Active Learning' : 'Cold Start',
+            interactions: (brandMemory.experiments_index?.length || 0) * 10, // Mock derivation
+            confidence: 0.85 // Mock derivation
+        };
 
         // Add routing info
         executedTools.push({
@@ -367,9 +377,9 @@ export async function runAgentChat(userMessage: string, personaId?: string): Pro
         // Add Intuition context
         executedTools.push({
             id: `intuition-${Date.now()}`,
-            name: `Learning: ${intuition.stage}`,
+            name: `Intuition: ${intuition.stage}`,
             status: 'success',
-            result: `${Math.round(intuition.confidence * 100)}% personalization · ${intuition.interactions} interactions`
+            result: `Loaded ${brandMemory.brand_profile.name} profile · ${intuition.interactions} ops`
         });
 
         // --- Specialized Agent Execution ---
