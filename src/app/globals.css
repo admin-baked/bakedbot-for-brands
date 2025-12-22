@@ -255,3 +255,17 @@
 .privacy-mode [data-info="pii"]:hover {
   filter: blur(2px);
 }
+
+/* Fix: Ensure Radix dropdown portals render above react-grid-layout items */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
+/* React Grid Layout overrides */
+.react-grid-item {
+  overflow: visible !important;
+}
+
+.react-grid-layout {
+  overflow: visible !important;
+}
