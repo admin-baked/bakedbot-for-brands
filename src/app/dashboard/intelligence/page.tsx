@@ -46,12 +46,26 @@ export default async function IntelligencePage() {
                             <LineChart className="h-5 w-5" /> Market Pulse
                         </CardTitle>
                         <CardDescription className="text-indigo-100">
-                            Overall Market Health
+                            Your Price Position
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">Bullish</div>
-                        <p className="text-sm opacity-80 mt-1">Prices up 2% this week</p>
+                        {benchmarks.length === 0 ? (
+                            <>
+                                <div className="text-3xl font-bold">No Data</div>
+                                <p className="text-sm opacity-80 mt-1">Add products to see insights</p>
+                            </>
+                        ) : (() => {
+                            const avgDiff = benchmarks.reduce((sum, b) => sum + b.difference, 0) / benchmarks.length;
+                            const status = avgDiff > 5 ? 'Premium' : avgDiff < -5 ? 'Value' : 'Market Parity';
+                            const trend = avgDiff > 0 ? `+${avgDiff.toFixed(1)}%` : `${avgDiff.toFixed(1)}%`;
+                            return (
+                                <>
+                                    <div className="text-3xl font-bold">{status}</div>
+                                    <p className="text-sm opacity-80 mt-1">{trend} vs market avg</p>
+                                </>
+                            );
+                        })()}
                     </CardContent>
                 </Card>
             </div>

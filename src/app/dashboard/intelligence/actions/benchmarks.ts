@@ -32,10 +32,10 @@ export async function getCategoryBenchmarks(brandId: string): Promise<BenchmarkD
         if (products.length === 0) return [];
 
         // 2. Fetch Brand Data (State/City) for localized comparisons
-        // Optimization: Pass this in if available in context, otherwise fetch
+        // Use marketState (from onboarding) if available, fall back to legacy state field
         const brandDoc = await firestore.collection('brands').doc(brandId).get();
         const brandData = brandDoc.data() || {};
-        const state = brandData.state || 'IL';
+        const state = brandData.marketState || brandData.state || 'IL';
         const city = brandData.city;
 
         // 3. Fetch Market Data (Leafly Intel)
@@ -142,11 +142,35 @@ export async function getBrandRetailers(brandId: string): Promise<BrandRetailer[
         const { firestore } = await createServerClient();
         const productRepo = makeProductRepo(firestore);
 
-        // 1. Get all products to find which retailers stock them
-        const products = await productRepo.getAllByBrand(brandId); // Cached/Optimized in Repo?
+        const results: BrandRetailer[] = [];
+
+        // 1. Get auto-imported partners first (from onboarding/brand page)
+        try {
+            const partnersSnap = await firestore
+                .collection('organizations')
+                .doc(brandId)
+                .collection('partners')
+                .where('status', '==', 'active')
+                .limit(20)
+                .get();
+
+            partnersSnap.forEach(doc => {
+                const data = doc.data();
+                results.push({
+                    name: data.name,
+                    address: `${data.address || ''}, ${data.city || ''}, ${data.state || ''}`.replace(/^, |, $/g, '') || 'Unknown',
+                    distance: 0,
+                    stockCount: data.stockCount || 0
+                });
+            });
+        } catch (partnerErr) {
+            // Non-fatal, continue to product-based retailers
+        }
+
+        // 2. Get retailers from product associations
+        const products = await productRepo.getAllByBrand(brandId);
 
         const retailerIds = new Set<string>();
-        // Map retailerCount to track how many SKUs per store
         const retailerSkuCounts: Record<string, number> = {};
 
         products.forEach(p => {
@@ -158,33 +182,29 @@ export async function getBrandRetailers(brandId: string): Promise<BrandRetailer[
             }
         });
 
-        if (retailerIds.size === 0) return [];
+        if (retailerIds.size > 0) {
+            const retailerRefs = Array.from(retailerIds).map(id => firestore.collection('retailers').doc(id));
+            const retailerPnaps = await firestore.getAll(...retailerRefs);
 
-        // 2. Fetch Retailer Docs
-        // Firestore 'in' query limited to 10 or 30. Better to batch read or use getAll if feasible.
-        // For simplicity/robustness with potentially many retailers, we'll loop or use getAll.
-        // Assuming retailer IDs are document IDs in 'retailers' collection.
+            retailerPnaps.forEach(snap => {
+                if (snap.exists) {
+                    const data = snap.data() as RetailerDoc;
+                    const address = data.address?.street1
+                        ? `${data.address.street1}, ${data.address.city}, ${data.address.state}`
+                        : data.address?.city || 'Unknown Location';
 
-        const retailerRefs = Array.from(retailerIds).map(id => firestore.collection('retailers').doc(id));
-        if (retailerRefs.length === 0) return [];
-
-        const retailerPnaps = await firestore.getAll(...retailerRefs);
-
-        const results: BrandRetailer[] = [];
-
-        retailerPnaps.forEach(snap => {
-            if (snap.exists) {
-                const data = snap.data() as RetailerDoc;
-                const address = data.address?.street1 ? `${data.address.street1}, ${data.address.city}, ${data.address.state}` : data.address?.city || 'Unknown Location';
-
-                results.push({
-                    name: data.name,
-                    address: address,
-                    distance: 0, // Logic for distance requires user location context, defaulting 0 or removing from UI comparison if unknown
-                    stockCount: retailerSkuCounts[snap.id] || 0
-                });
-            }
-        });
+                    // Avoid duplicates
+                    if (!results.find(r => r.name === data.name)) {
+                        results.push({
+                            name: data.name,
+                            address: address,
+                            distance: 0,
+                            stockCount: retailerSkuCounts[snap.id] || 0
+                        });
+                    }
+                }
+            });
+        }
 
         return results.sort((a, b) => (b.stockCount || 0) - (a.stockCount || 0));
 
