@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { runAgentChat } from '../agents/actions';
+import { saveChatSession, getChatSessions } from '@/server/actions/chat-persistence'; // Import server actions
 import { AgentPersona } from '../agents/personas';
 import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useUser } from '@/firebase/auth/use-user';
@@ -411,6 +412,34 @@ export function PuffChat({
         }
     }, [searchParams]);
 
+    // --- Persistence Logic ---
+
+    // Load sessions on mount
+    useEffect(() => {
+        if (user?.uid) {
+            getChatSessions(user.uid).then(result => {
+                if (result.success && result.sessions) {
+                    // Update store with loaded sessions
+                    useAgentChatStore.getState().hydrateSessions(result.sessions);
+                }
+            });
+        }
+    }, [user]);
+
+    // Save active session on change (debounced)
+    useEffect(() => {
+        const { activeSessionId, sessions } = useAgentChatStore.getState();
+        if (activeSessionId && user?.uid) {
+            const session = sessions.find(s => s.id === activeSessionId);
+            if (session) {
+                const timeoutId = setTimeout(() => {
+                    saveChatSession(session).catch(err => console.error("Failed to save session:", err));
+                }, 2000); // 2s debounce
+                return () => clearTimeout(timeoutId);
+            }
+        }
+    }, [currentMessages, user]); // Trigger save when messages change
+
     // Effect to scroll to bottom on new messages
     // ... (omitted for brevity, scroll logic is usually handled by ScrollArea or separate ref)
 
@@ -539,20 +568,12 @@ export function PuffChat({
         const permission = state.permissions.find(p => p.id === permissionId);
 
         if (permission?.id === 'gmail') {
-            // Mock loading/auth flow
-            const width = 500;
-            const height = 600;
-            const left = window.screen.width / 2 - width / 2;
-            const top = window.screen.height / 2 - height / 2;
-
-            // We can't actually open a window in this mock, but we can simulate the "Check"
-            // const authWindow = window.open('/api/auth/google', 'Google Auth', `width=${width},height=${height},top=${top},left=${left}`);
-
-            // Use toast to inform user
-            // We need to import useToast first, but it's not imported.
-            // Checking imports... imports are at the top.
-            // I will assume I need to add useToast hook usage if not present.
-            // But simpler: just toggle state for now as requested by user "The tool doesnt seem to work" -> fix the UI first.
+            // Trigger OAuth flow
+            // Open in a new window or redirect
+            // For better UX during "chat", a popup is often used, but redirect is simpler for MVP.
+            // Let's use redirect for robustness.
+            window.location.href = '/api/auth/google';
+            return;
         }
 
         setState(prev => ({

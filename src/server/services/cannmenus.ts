@@ -141,7 +141,35 @@ export class CannMenusService {
             for (let i = 0; i < retailers.length; i++) {
                 const retailer = retailers[i];
                 try {
-                    // Update progress
+                    await this.updateSyncProgress(syncId, {
+                        currentRetailer: retailer.name,
+                        retailersProcessed: i + 1
+                    });
+
+                    // Sync products for this retailer
+                    const productsCount = await this.syncRetailerMenu(
+                        retailer.id,
+                        brandName,
+                        brandId,
+                        isIncremental ? lastSyncTime : null,
+                        maxProducts // Pass global max or per-retailer max? Typically global max, but here we iterate. 
+                        // Actually, if we hit maxProducts globally we should stop?
+                        // For now, let's just pass limits.maxProducts (if we had it inside loop) or null.
+                        // The method signature uses maxProducts as 'limit' for the query, not a global cap.
+                    );
+
+                    productsProcessed += productsCount;
+
+                    await this.updateSyncProgress(syncId, {
+                        productsProcessed
+                    });
+
+                    // Respect Plan Limits - global product cap
+                    if (productsProcessed >= maxProducts) {
+                        logger.info('Reached plan product limit', { brandId, productsProcessed, maxProducts });
+                        break;
+                    }
+
                 } catch (error: any) {
                     const errMsg = `Failed sync for retailer ${retailer.name}: ${error.message}`;
                     errors.push(errMsg);
@@ -205,8 +233,69 @@ export class CannMenusService {
     }
 
     /**
-     * Find retailers carrying a brand with retry logic
+     * Sync a dispensary's entire inventory
      */
+    async syncDispensaryInventory(
+        retailerId: string,
+        dispensaryName: string,
+        locationId: string,
+        options: SyncOptions = {}
+    ): Promise<SyncResult> {
+        const startTime = new Date();
+        const errors: string[] = [];
+        let productsProcessed = 0;
+
+        // Create sync status (using locationId as 'brandId')
+        const syncId = await this.createSyncStatus(locationId, dispensaryName);
+
+        try {
+            logger.info('Starting Dispensary Inventory sync', { locationId, retailerId, dispensaryName });
+
+            // 1. Sync the menu (no brand filter)
+            productsProcessed = await this.syncRetailerMenu(
+                retailerId,
+                null, // No brand filter
+                locationId, // Use locationId as the 'brand_id' owner for these products
+                null,
+                options.maxRetailers // repurpose maxRetailers or use default 1000?
+            );
+
+
+            // Mark sync as complete
+            const endTime = new Date();
+            await this.completeSyncStatus(syncId, {
+                status: 'completed',
+                retailersProcessed: 1,
+                productsProcessed,
+                errors: [],
+                endTime
+            });
+
+            return {
+                success: true,
+                brandId: locationId,
+                retailersProcessed: 1,
+                productsProcessed,
+                errors: [],
+                startTime,
+                endTime,
+                isIncremental: false
+            };
+
+        } catch (error: any) {
+            await this.failSyncStatus(syncId, error.message);
+            return {
+                success: false,
+                brandId: locationId,
+                retailersProcessed: 0,
+                productsProcessed: 0,
+                errors: [error.message],
+                startTime,
+                endTime: new Date(),
+                isIncremental: false
+            };
+        }
+    }
     /**
      * Find retailers carrying a brand with retry logic
      */
@@ -408,16 +497,18 @@ export class CannMenusService {
      */
     private async syncRetailerMenu(
         retailerId: string,
-        brandName: string,
+        brandName: string | null,
         brandId: string,
         lastSyncTime: Date | null,
         maxProducts?: number
     ): Promise<number> {
         return await withRetry(async () => {
-            const params = new URLSearchParams({
-                retailers: retailerId,
-                brand_name: brandName
-            });
+            const params = new URLSearchParams();
+            params.set('retailers', retailerId);
+            if (brandName) params.set('brand_name', brandName);
+            // If extracting full inventory, we might need a higher limit or paging.
+            // For now, accept default or maxProducts.
+            if (maxProducts) params.set('limit', String(maxProducts));
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000);

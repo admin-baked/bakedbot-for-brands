@@ -1,0 +1,70 @@
+[0m[7m[1m[31m FAIL [39m[22m[27m[0m [2msrc/server/integrations/gmail/__tests__/[22m[1mtoken-storage.test.ts[22m
+  Gmail Token Storage
+    saveGmailToken
+      [31m×[39m [2mshould save encrypted refresh token (3 ms)[22m
+      [31m×[39m [2mshould not save if no tokens provided (1 ms)[22m
+    getGmailToken
+      [31m×[39m [2mshould return null if doc does not exist[22m
+      [31m×[39m [2mshould decrypt and return tokens (1 ms)[22m
+
+[1m[31m  [1m● [22m[1mGmail Token Storage › saveGmailToken › should save encrypted refresh token[39m[22m
+
+    ReferenceError: encrypt is not defined
+[2m[22m
+[2m    [0m [90m 35 |[39m[22m
+[2m     [90m 36 |[39m         [90m// Setup encryption mocks[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 37 |[39m         (encrypt [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockImplementation((text) [33m=>[39m [32m`encrypted_${text}`[39m)[33m;[39m[22m
+[2m     [90m    |[39m          [31m[1m^[22m[2m[39m[22m
+[2m     [90m 38 |[39m         (decrypt [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockImplementation((text) [33m=>[39m text[33m.[39mreplace([32m'encrypted_'[39m[33m,[39m [32m''[39m))[33m;[39m[22m
+[2m     [90m 39 |[39m     })[33m;[39m[22m
+[2m     [90m 40 |[39m[0m[22m
+[2m[22m
+[2m      [2mat Object.encrypt ([22m[2m[0m[36msrc/server/integrations/gmail/__tests__/token-storage.test.ts[39m[0m[2m:37:10)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mGmail Token Storage › saveGmailToken › should not save if no tokens provided[39m[22m
+
+    ReferenceError: encrypt is not defined
+[2m[22m
+[2m    [0m [90m 35 |[39m[22m
+[2m     [90m 36 |[39m         [90m// Setup encryption mocks[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 37 |[39m         (encrypt [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockImplementation((text) [33m=>[39m [32m`encrypted_${text}`[39m)[33m;[39m[22m
+[2m     [90m    |[39m          [31m[1m^[22m[2m[39m[22m
+[2m     [90m 38 |[39m         (decrypt [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockImplementation((text) [33m=>[39m text[33m.[39mreplace([32m'encrypted_'[39m[33m,[39m [32m''[39m))[33m;[39m[22m
+[2m     [90m 39 |[39m     })[33m;[39m[22m
+[2m     [90m 40 |[39m[0m[22m
+[2m[22m
+[2m      [2mat Object.encrypt ([22m[2m[0m[36msrc/server/integrations/gmail/__tests__/token-storage.test.ts[39m[0m[2m:37:10)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mGmail Token Storage › getGmailToken › should return null if doc does not exist[39m[22m
+
+    ReferenceError: encrypt is not defined
+[2m[22m
+[2m    [0m [90m 35 |[39m[22m
+[2m     [90m 36 |[39m         [90m// Setup encryption mocks[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 37 |[39m         (encrypt [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockImplementation((text) [33m=>[39m [32m`encrypted_${text}`[39m)[33m;[39m[22m
+[2m     [90m    |[39m          [31m[1m^[22m[2m[39m[22m
+[2m     [90m 38 |[39m         (decrypt [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockImplementation((text) [33m=>[39m text[33m.[39mreplace([32m'encrypted_'[39m[33m,[39m [32m''[39m))[33m;[39m[22m
+[2m     [90m 39 |[39m     })[33m;[39m[22m
+[2m     [90m 40 |[39m[0m[22m
+[2m[22m
+[2m      [2mat Object.encrypt ([22m[2m[0m[36msrc/server/integrations/gmail/__tests__/token-storage.test.ts[39m[0m[2m:37:10)[22m[2m[22m
+
+[1m[31m  [1m● [22m[1mGmail Token Storage › getGmailToken › should decrypt and return tokens[39m[22m
+
+    ReferenceError: encrypt is not defined
+[2m[22m
+[2m    [0m [90m 35 |[39m[22m
+[2m     [90m 36 |[39m         [90m// Setup encryption mocks[39m[22m
+[2m    [31m[1m>[22m[2m[39m[90m 37 |[39m         (encrypt [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockImplementation((text) [33m=>[39m [32m`encrypted_${text}`[39m)[33m;[39m[22m
+[2m     [90m    |[39m          [31m[1m^[22m[2m[39m[22m
+[2m     [90m 38 |[39m         (decrypt [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmockImplementation((text) [33m=>[39m text[33m.[39mreplace([32m'encrypted_'[39m[33m,[39m [32m''[39m))[33m;[39m[22m
+[2m     [90m 39 |[39m     })[33m;[39m[22m
+[2m     [90m 40 |[39m[0m[22m
+[2m[22m
+[2m      [2mat Object.encrypt ([22m[2m[0m[36msrc/server/integrations/gmail/__tests__/token-storage.test.ts[39m[0m[2m:37:10)[22m[2m[22m
+
+[1mTest Suites: [22m[1m[31m1 failed[39m[22m, 1 total
+[1mTests:       [22m[1m[31m4 failed[39m[22m, 4 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2.945 s
+[2mRan all test suites[22m[2m matching [22m/src\\server\\integrations\\gmail\\__tests__\\token-storage.test.ts/i[2m.[22m

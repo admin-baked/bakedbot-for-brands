@@ -4,6 +4,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/monitoring';
 import { autoSetupCompetitors } from '@/server/services/auto-competitor';
 import { revalidatePath } from 'next/cache';
+import { CannMenusService } from '@/server/services/cannmenus';
 
 export async function setupBrandAndCompetitors(formData: FormData) {
     try {
@@ -53,10 +54,26 @@ export async function setupBrandAndCompetitors(formData: FormData) {
         revalidatePath('/dashboard');
         revalidatePath('/dashboard/settings');
 
+        // 4. Trigger CannMenus Sync (Products & Retailers)
+        let syncStatus = null;
+        try {
+            const cannMenusService = new CannMenusService();
+            const syncResult = await cannMenusService.syncMenusForBrand(slugifiedId, brandName, {
+                // Initial sync options
+                maxRetailers: 25 // Conservative limit for onboarding
+            });
+            syncStatus = { started: true, details: syncResult };
+            logger.info('Triggered initial menu sync', { brandId: slugifiedId });
+        } catch (syncError) {
+            logger.error('Failed to trigger initial sync', syncError);
+            syncStatus = { started: false, error: 'Sync initiation failed' };
+        }
+
         return {
             success: true,
             brandId: slugifiedId,
-            competitors: discoveryResult.competitors
+            competitors: discoveryResult.competitors,
+            syncStatus
         };
 
     } catch (error: any) {

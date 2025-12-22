@@ -13,13 +13,28 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn() })
 }));
 
-jest.mock('@/lib/store/agent-chat-store', () => ({
-    useAgentChatStore: () => ({
+jest.mock('@/lib/store/agent-chat-store', () => {
+    const mockStore = {
         currentMessages: [],
         addMessage: jest.fn(),
         updateMessage: jest.fn(),
-        createSession: jest.fn()
-    })
+        createSession: jest.fn(),
+        hydrateSessions: jest.fn(),
+        sessions: [],
+        activeSessionId: null
+    };
+    // Cast to any to avoid type check issues in mock
+    const useAgentChatStoreMock: any = () => mockStore;
+    useAgentChatStoreMock.getState = () => mockStore;
+    useAgentChatStoreMock.setState = jest.fn();
+    return {
+        useAgentChatStore: useAgentChatStoreMock
+    };
+});
+
+jest.mock('@/server/actions/chat-persistence', () => ({
+    getChatSessions: jest.fn().mockResolvedValue({ success: true, sessions: [] }),
+    saveChatSession: jest.fn().mockResolvedValue({ success: true })
 }));
 
 jest.mock('@/firebase/auth/use-user', () => ({
