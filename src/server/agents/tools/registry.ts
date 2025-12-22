@@ -101,6 +101,26 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'write',
         requiredPermission: 'manage:campaigns',
     },
+    'marketing.segmentBuilder': {
+        name: 'marketing.segmentBuilder',
+        description: 'Builds or estimates a customer segment based on criteria.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                criteria: {
+                    type: 'object',
+                    properties: {
+                        minSpends: { type: 'number' },
+                        lastVisitDays: { type: 'number' },
+                        purchasedCategory: { type: 'string' }
+                    }
+                }
+            },
+            required: ['criteria']
+        },
+        category: 'read', // or write if persisting
+        requiredPermission: 'manage:campaigns',
+    },
     'marketing.send': {
         name: 'marketing.send',
         description: 'Executes a marketing campaign (side effect). Requires Approval.',
@@ -116,8 +136,39 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         requiredPermission: 'manage:campaigns',
     },
 
+
+
     // ===================================
-    // 4. Compliance Tools (Deebo)
+    // 5. BI & Intel Tools (Pops & Ezal)
+    // ===================================
+    'analytics.getKPIs': {
+        name: 'analytics.getKPIs',
+        description: 'Retrieves key performance indicators (revenue, orders, etc) for a given period.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                period: { type: 'string', enum: ['day', 'week', 'month'] }
+            },
+            required: ['period']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics',
+    },
+    'intel.scanCompetitors': {
+        name: 'intel.scanCompetitors',
+        description: 'Scans configured competitors for pricing and promotions.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                competitors: { type: 'array', items: { type: 'string' } }
+            }
+        },
+        category: 'read', // External read
+        requiredPermission: 'read:analytics', // Strategic intel usually falls under analytics/management
+    },
+
+    // ===================================
+    // 6. Compliance Tools (Deebo)
     // ===================================
     'deebo.checkContent': {
         name: 'deebo.checkContent',
