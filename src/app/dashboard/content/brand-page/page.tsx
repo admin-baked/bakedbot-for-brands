@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { updateBrandProfile, requestBrandNameChange } from '@/server/actions/brand-profile';
 import { useUser } from '@/firebase/auth/use-user';
-import { Loader2, ExternalLink, Save, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, ExternalLink, Save, AlertCircle, CheckCircle2, Search, Check } from 'lucide-react';
 import Link from 'next/link';
 import { SyncedProductsGrid } from './components/synced-products-grid';
 import {
@@ -21,6 +21,10 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { searchCannMenusRetailers, type CannMenusResult } from '@/server/actions/cannmenus';
+import { importFromCannMenus } from '@/server/actions/import-actions';
+
+import { useDebounce } from '@/hooks/use-debounce';
 
 export default function BrandPageManager() {
     const { user, isUserLoading } = useUser();
@@ -35,6 +39,13 @@ export default function BrandPageManager() {
     const [nameChangeRequest, setNameChangeRequest] = useState({ requestedName: '', reason: '' });
     const [submittingRequest, setSubmittingRequest] = useState(false);
 
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<CannMenusResult[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [selectedExternalBrand, setSelectedExternalBrand] = useState<CannMenusResult | null>(null);
+    const [showResults, setShowResults] = useState(false);
+
     // Form state
     const [formData, setFormData] = useState({
         name: '',
@@ -43,6 +54,24 @@ export default function BrandPageManager() {
         coverImageUrl: '',
         websiteUrl: ''
     });
+
+    // Debounce search to avoid spamming API
+    const debouncedSearch = useDebounce(searchQuery, 300);
+
+    useEffect(() => {
+        if (debouncedSearch && debouncedSearch.length >= 2 && canEditName && !selectedExternalBrand) {
+            setIsSearching(true);
+            searchCannMenusRetailers(debouncedSearch)
+                .then(results => {
+                    setSearchResults(results.filter(r => r.type === 'brand'));
+                    setShowResults(true);
+                })
+                .finally(() => setIsSearching(false));
+        } else {
+            setSearchResults([]);
+            setShowResults(false);
+        }
+    }, [debouncedSearch, canEditName, selectedExternalBrand]);
 
     useEffect(() => {
         async function loadBrand() {
@@ -140,6 +169,19 @@ export default function BrandPageManager() {
         }
     }, [user, isUserLoading, toast]);
 
+    const handleSelectBrand = (brand: CannMenusResult) => {
+        setSelectedExternalBrand(brand);
+        setFormData(prev => ({ ...prev, name: brand.name }));
+        setSearchQuery(brand.name);
+        setShowResults(false);
+    };
+
+    const handleClearSelection = () => {
+        setSelectedExternalBrand(null);
+        setFormData(prev => ({ ...prev, name: '' }));
+        setSearchQuery('');
+    };
+
     const handleSave = async () => {
         if (!brand?.id) return;
 
@@ -162,9 +204,45 @@ export default function BrandPageManager() {
             if (result.success) {
                 // If name was updated, lock the field
                 const typedResult = result as { success: boolean; nameUpdated?: boolean };
+
                 if (typedResult.nameUpdated) {
                     setCanEditName(false);
                     setBrand((prev: any) => ({ ...prev, name: formData.name.trim(), nameSetByUser: true }));
+
+                    // Trigger Sync if external brand was selected
+                    if (selectedExternalBrand) {
+                        toast({
+                            title: "Starting Sync...",
+                            description: `Importing products for ${selectedExternalBrand.name} from CannMenus.`,
+                        });
+
+                        importFromCannMenus({
+                            tenantId: brand.id,
+                            sourceId: 'cannmenus',
+                            cannMenusId: selectedExternalBrand.id,
+                            entityType: 'brand',
+                            limit: 100
+                        }).then(importResult => {
+                            if (importResult.success) {
+                                toast({
+                                    title: "Sync Complete",
+                                    description: `Successfully imported products.`,
+                                    variant: "default" // success variant if available
+                                });
+                                // Refresh to show products
+                                window.location.reload();
+                            } else {
+                                toast({
+                                    title: "Sync Failed",
+                                    description: importResult.error || "Could not import products.",
+                                    variant: "destructive"
+                                });
+                            }
+                        });
+                    } else {
+                        // Just reload if no sync needed
+                        window.location.reload();
+                    }
                 }
 
                 toast({
@@ -245,21 +323,55 @@ export default function BrandPageManager() {
                         <div className="space-y-2">
                             <Label>Brand Name</Label>
                             {canEditName ? (
-                                <>
-                                    <div className="flex items-center gap-2">
+                                <div className="relative space-y-2">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <Input
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            placeholder="Enter your brand name"
-                                            className="border-primary"
+                                            value={selectedExternalBrand ? selectedExternalBrand.name : (formData.name || searchQuery)}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setSearchQuery(val);
+                                                setFormData({ ...formData, name: val });
+                                                if (selectedExternalBrand) setSelectedExternalBrand(null);
+                                            }}
+                                            placeholder="Search for your brand (e.g. Wyld, Kiva)..."
+                                            className="pl-9 pr-10 border-primary"
                                         />
-                                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                                        {isSearching && (
+                                            <div className="absolute right-3 top-2.5">
+                                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                            </div>
+                                        )}
+                                        {selectedExternalBrand && (
+                                            <div className="absolute right-3 top-2.5 cursor-pointer text-green-600" onClick={handleClearSelection}>
+                                                <Check className="h-4 w-4" />
+                                            </div>
+                                        )}
                                     </div>
-                                    <p className="text-xs text-primary flex items-center gap-1">
+
+                                    {/* Search Results Dropdown */}
+                                    {showResults && searchResults.length > 0 && !selectedExternalBrand && (
+                                        <div className="absolute z-10 w-full bg-popover text-popover-foreground border rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto">
+                                            {searchResults.map((resultBrand) => (
+                                                <div
+                                                    key={resultBrand.id}
+                                                    className="px-4 py-3 hover:bg-muted/50 cursor-pointer text-sm flex justify-between items-center transition-colors"
+                                                    onClick={() => handleSelectBrand(resultBrand)}
+                                                >
+                                                    <span className="font-medium">{resultBrand.name}</span>
+                                                    <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded border">
+                                                        cannmenus
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-center gap-2 text-xs text-amber-600 font-medium">
                                         <AlertCircle className="h-3 w-3" />
-                                        Set your brand name now. This cannot be changed without support approval.
-                                    </p>
-                                </>
+                                        <span>Set this carefully. It can only be changed by support later.</span>
+                                    </div>
+                                </div>
                             ) : (
                                 <>
                                     <Input value={brand?.name || 'Unknown Brand'} disabled className="bg-muted/50" />
