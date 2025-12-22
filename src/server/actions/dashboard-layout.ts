@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
+import { requireUser } from '@/server/auth/auth';
 import type { WidgetInstance, UserRole } from '@/lib/dashboard/widget-registry';
 import { LAYOUT_VERSION } from '@/lib/dashboard/widget-registry';
 
@@ -9,12 +10,8 @@ import { LAYOUT_VERSION } from '@/lib/dashboard/widget-registry';
  */
 export async function saveDashboardLayout(role: UserRole, widgets: WidgetInstance[]) {
     try {
-        const { firestore, auth } = await createServerClient();
-        const user = auth.currentUser;
-
-        if (!user) {
-            return { success: false, error: 'Unauthorized' };
-        }
+        const user = await requireUser();
+        const { firestore } = await createServerClient();
 
         const layoutId = `${user.uid}_${role}`;
 
@@ -38,12 +35,8 @@ export async function saveDashboardLayout(role: UserRole, widgets: WidgetInstanc
  */
 export async function getDashboardLayout(role: UserRole) {
     try {
-        const { firestore, auth } = await createServerClient();
-        const user = auth.currentUser;
-
-        if (!user) {
-            return { success: false, error: 'Unauthorized' };
-        }
+        const user = await requireUser();
+        const { firestore } = await createServerClient();
 
         const layoutId = `${user.uid}_${role}`;
         const doc = await firestore.collection('dashboard_layouts').doc(layoutId).get();

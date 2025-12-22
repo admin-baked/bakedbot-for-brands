@@ -70,6 +70,15 @@ export function hasPermission(
 }
 
 /**
+ * Check permission by role directly
+ */
+export function hasRolePermission(role: UserRole, permission: Permission): boolean {
+    if (role === 'owner') return true;
+    const permissions = ROLE_PERMISSIONS[role] || [];
+    return permissions.includes(permission) || permissions.includes('admin:all');
+}
+
+/**
  * Check if a user can access a specific brand
  */
 export function canAccessBrand(
