@@ -109,6 +109,52 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         };
     }
 
+    // Phase 2: Marketing Tools
+    if (def.name === 'marketing.createCampaignDraft') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        const { createCampaignDraft } = await import('./domain/marketing');
+        return {
+            status: 'success',
+            data: await createCampaignDraft(request.tenantId, inputs)
+        };
+    }
+
+    if (def.name === 'marketing.segmentBuilder') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        const { segmentBuilder } = await import('./domain/marketing');
+        return {
+            status: 'success',
+            data: await segmentBuilder(request.tenantId, inputs)
+        };
+    }
+
+    // Phase 3: Side Effect Stub
+    if (def.name === 'marketing.send') {
+        return {
+            status: 'blocked',
+            error: 'Approval required for marketing.send'
+        };
+    }
+
+    // Phase 2: BI & Intel
+    if (def.name === 'analytics.getKPIs') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        const { getKPIs } = await import('./domain/analytics');
+        return {
+            status: 'success',
+            data: await getKPIs(request.tenantId, inputs)
+        };
+    }
+
+    if (def.name === 'intel.scanCompetitors') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        const { scanCompetitors } = await import('./domain/intel');
+        return {
+            status: 'success',
+            data: await scanCompetitors(request.tenantId, inputs)
+        };
+    }
+
     return {
         status: 'success',
         data: { message: `Executed tool: ${def.name}`, inputs }
