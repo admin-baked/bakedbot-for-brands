@@ -336,34 +336,7 @@ function TriggerIndicator({ triggers, expanded, onToggle }: { triggers: PuffTrig
 }
 
 
-function StepsList({ steps }: { steps: ToolCallStep[] }) {
-    return (
-        <div className="space-y-2 mt-2">
-            {steps.map((step) => (
-                <div key={step.id} className="flex items-start gap-2 text-xs bg-muted/50 p-2 rounded-md border">
-                    <div className="mt-0.5">
-                        {step.status === 'running' && <Loader2 className="h-3 w-3 animate-spin text-blue-500" />}
-                        {step.status === 'success' && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
-                        {step.status === 'error' && <div className="h-3 w-3 rounded-full bg-red-500" />}
-                    </div>
-                    <div className="flex-1">
-                        <div className="font-medium">{step.name}</div>
-                        <div className="text-muted-foreground">{step.result}</div>
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-}
 
-function ThinkingIndicator({ duration }: { duration?: number }) {
-    return (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
-            <Brain className="h-3 w-3" />
-            <span>Thinking... {duration ? `(${duration}ms)` : ''}</span>
-        </div>
-    );
-}
 
 // ============ Main Component ============
 
@@ -773,6 +746,54 @@ export function PuffChat({
 
             {/* Input at BOTTOM when we have messages */}
             {hasMessages && InputArea}
+        </div>
+    );
+}
+
+// --- Helper Components ---
+
+function StepsList({ steps }: { steps: ToolCallStep[] }) {
+    if (!steps || steps.length === 0) return null;
+
+    return (
+        <div className="space-y-2 mt-2 text-xs">
+            {steps.map((step, i) => (
+                <div key={i} className="border rounded p-2 bg-muted/50">
+                    <div className="flex items-center gap-2 font-medium">
+                        {step.status === 'running' && <Loader2 className="h-3 w-3 animate-spin text-blue-500" />}
+                        {step.status === 'complete' && <Check className="h-3 w-3 text-green-500" />}
+                        {step.status === 'failed' && <AlertCircle className="h-3 w-3 text-red-500" />}
+                        <span className="font-mono text-xs">{step.tool}</span>
+                    </div>
+                    {step.args && (
+                        <pre className="mt-1 ml-5 text-[10px] text-muted-foreground overflow-x-auto">
+                            {JSON.stringify(step.args)}
+                        </pre>
+                    )}
+                    {step.result && (
+                        <div className="mt-1 ml-5 p-1 bg-background rounded border">
+                            <pre className="text-[10px] overflow-x-auto whitespace-pre-wrap max-h-20">
+                                {typeof step.result === 'object' ? JSON.stringify(step.result, null, 2) : String(step.result)}
+                            </pre>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function ThinkingIndicator({ level = 'balanced', duration }: { level?: 'fast' | 'balanced' | 'deep'; duration?: number }) {
+    const labels = {
+        fast: 'Thinking fast...',
+        balanced: 'Reasoning...',
+        deep: 'Deep thinking...'
+    };
+
+    return (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground italic p-2">
+            <Sparkles className="h-3 w-3 animate-pulse text-purple-400" />
+            <span>{labels[level]} {duration ? `(${duration}ms)` : ''}</span>
         </div>
     );
 }
