@@ -38,7 +38,9 @@ import {
     ShoppingCart,
     Search,
     ShieldCheck,
-    AlertCircle
+    AlertCircle,
+    Copy,
+    CheckCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { runAgentChat } from '../agents/actions';
@@ -702,8 +704,24 @@ export function PuffChat({
                                                     </Card>
                                                 )}
 
-                                                <div className="prose prose-sm max-w-none">
+                                                <div className="prose prose-sm max-w-none group relative">
                                                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(message.content);
+                                                            // Show brief visual feedback
+                                                            const btn = document.getElementById(`copy-btn-${message.id}`);
+                                                            if (btn) {
+                                                                btn.classList.add('text-emerald-500');
+                                                                setTimeout(() => btn.classList.remove('text-emerald-500'), 1500);
+                                                            }
+                                                        }}
+                                                        id={`copy-btn-${message.id}`}
+                                                        className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                                        title="Copy to clipboard"
+                                                    >
+                                                        <Copy className="h-4 w-4" />
+                                                    </button>
                                                 </div>
                                             </>
                                         )}
