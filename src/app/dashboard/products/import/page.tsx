@@ -124,7 +124,7 @@ export default function ImportProductsPage() {
                     <AlertTriangle className="h-4 w-4 text-primary" />
                     <AlertTitle className="font-bold">Trial Account Limits</AlertTitle>
                     <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <span>Trial accounts are limited to 3 products total. Upgrade to a paid plan for unlimited CannMenus imports.</span>
+                        <span>Trial accounts are limited to 10 products total. Upgrade to a paid plan for unlimited CannMenus imports.</span>
                         <Button size="sm" variant="default" className="shrink-0" asChild>
                             <a href="/#pricing">View Plans</a>
                         </Button>
