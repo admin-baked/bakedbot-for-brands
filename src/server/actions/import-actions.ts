@@ -216,17 +216,125 @@ async function runImportPipeline(
 
     const mergeResult = mergeProducts(parseResult.stagingDocs, existingMappings, tenantId);
 
-    // Write new catalog products and mappings
-    const mergeBatch = firestore.batch();
+    // Write catalog products and mappings to Firestore
+    // Using multiple batches to handle > 500 operations
+    const BATCH_SIZE = 400; // Leave room for other operations
+    let batchIndex = 0;
+    let currentBatch = firestore.batch();
+    let operationsInBatch = 0;
 
-    // Note: In a real implementation, we'd also write the new catalog products
-    // For now, we're relying on the merge result to track dirty product IDs
+    // Track created products for view building
+    const createdProducts: CatalogProduct[] = [];
+
+    for (const staging of parseResult.stagingDocs) {
+        const mappingKey = `${sourceType}:${staging.externalId}`;
+        const existingMapping = existingMappings.get(mappingKey);
+
+        // Create catalog product
+        const productId = existingMapping?.productId || generateProductId(tenantId, staging.externalId);
+        const catalogProduct = createCatalogProductFromStaging(staging, productId, tenantId, sourceType);
+
+        const productRef = firestore
+            .collection('tenants')
+            .doc(tenantId)
+            .collection('catalog')
+            .doc('products')
+            .collection('items')
+            .doc(productId);
+
+        currentBatch.set(productRef, catalogProduct, { merge: true });
+        createdProducts.push(catalogProduct);
+        operationsInBatch++;
+
+        // Create mapping if new product
+        if (!existingMapping) {
+            const mappingId = generateMappingId(sourceType, staging.externalId);
+            const mapping: ProductMapping = {
+                id: mappingId,
+                source: sourceType,
+                externalId: staging.externalId,
+                productId,
+                confidence: staging.matchConfidence || 1.0,
+                method: staging.matchMethod || 'exact',
+                createdAt: new Date() as any,
+                updatedAt: new Date() as any
+            };
+
+            const mappingRef = firestore
+                .collection('tenants')
+                .doc(tenantId)
+                .collection('mappings')
+                .doc('products')
+                .collection('items')
+                .doc(mappingId);
+
+            currentBatch.set(mappingRef, mapping);
+            operationsInBatch++;
+        }
+
+        // Commit batch if reaching limit
+        if (operationsInBatch >= BATCH_SIZE) {
+            await currentBatch.commit();
+            currentBatch = firestore.batch();
+            operationsInBatch = 0;
+            batchIndex++;
+        }
+    }
+
+    // Commit remaining operations
+    if (operationsInBatch > 0) {
+        await currentBatch.commit();
+    }
 
     // Phase 4: Build views
     await importRef.update({ status: 'building_views' });
 
-    // In a real implementation, we'd load the dirty products and build views
-    // For now, we mark completion
+    // Build and write public views
+    const viewResult = buildPublicViews(createdProducts);
+
+    // Write public views in batches
+    let viewBatch = firestore.batch();
+    let viewOps = 0;
+
+    for (const product of createdProducts) {
+        const publicView = {
+            id: product.id,
+            tenantId: product.tenantId,
+            name: product.name,
+            brandName: product.brandName,
+            category: product.category,
+            strainType: product.strainType,
+            description: product.shortDescription || product.description,
+            thcPercent: product.potency?.thc?.unit === 'percent' ? product.potency.thc.value : undefined,
+            cbdPercent: product.potency?.cbd?.unit === 'percent' ? product.potency.cbd.value : undefined,
+            imageUrl: product.images?.[0]?.url,
+            imageUrls: product.images?.map(i => i.url),
+            currency: 'USD',
+            viewBuiltAt: new Date() as any,
+            sourceProductUpdatedAt: product.updatedAt
+        };
+
+        const viewRef = firestore
+            .collection('tenants')
+            .doc(tenantId)
+            .collection('publicViews')
+            .doc('products')
+            .collection('items')
+            .doc(product.id);
+
+        viewBatch.set(viewRef, publicView, { merge: true });
+        viewOps++;
+
+        if (viewOps >= BATCH_SIZE) {
+            await viewBatch.commit();
+            viewBatch = firestore.batch();
+            viewOps = 0;
+        }
+    }
+
+    if (viewOps > 0) {
+        await viewBatch.commit();
+    }
 
     // Update import record with final stats
     await importRef.update({
@@ -238,9 +346,11 @@ async function runImportPipeline(
             updatedRecords: mergeResult.updatedProducts,
             unchangedRecords: mergeResult.unchangedProducts,
             errorRecords: parseResult.errorRecords + mergeResult.errors.length,
+            viewsBuilt: viewResult.viewsBuilt,
             warnings: [
                 ...parseResult.errors.map(e => e.error),
-                ...mergeResult.errors.map(e => e.error)
+                ...mergeResult.errors.map(e => e.error),
+                ...viewResult.errors.map(e => e.error)
             ]
         }
     });
@@ -254,6 +364,79 @@ async function runImportPipeline(
             updatedProducts: mergeResult.updatedProducts,
             errors: parseResult.errorRecords + mergeResult.errors.length
         }
+    };
+}
+
+// ============================================================================
+// Pipeline Helpers
+// ============================================================================
+
+/**
+ * Generate deterministic product ID
+ */
+function generateProductId(tenantId: string, externalId: string): string {
+    // Use a simple hash for deterministic IDs
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256')
+        .update(`${tenantId}:${externalId}`)
+        .digest('hex')
+        .slice(0, 20);
+    return `prod_${hash}`;
+}
+
+/**
+ * Generate deterministic mapping ID
+ */
+function generateMappingId(sourceType: DataSourceType, externalId: string): string {
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256')
+        .update(`${sourceType}:${externalId}`)
+        .digest('hex')
+        .slice(0, 20);
+    return `map_${hash}`;
+}
+
+/**
+ * Create catalog product from staging data
+ */
+function createCatalogProductFromStaging(
+    staging: StagingProduct,
+    productId: string,
+    tenantId: string,
+    sourceType: DataSourceType
+): CatalogProduct {
+    const externalRefKey = `${sourceType}:${staging.externalId}`;
+
+    return {
+        id: productId,
+        tenantId,
+        name: staging.name,
+        brandName: staging.brandName,
+        category: (staging.category as CatalogProduct['category']) || 'other',
+        subcategory: staging.subcategory,
+        strainType: undefined,
+        potency: buildPotency(staging),
+        description: undefined,
+        images: staging.imageUrl ? [{ url: staging.imageUrl, isPrimary: true }] :
+            staging.imageUrls?.map((url, i) => ({ url, isPrimary: i === 0 })),
+        externalRefs: { [externalRefKey]: true },
+        isActive: true,
+        isPublished: false,
+        createdAt: new Date() as any,
+        updatedAt: new Date() as any,
+        lastImportedAt: new Date() as any
+    };
+}
+
+/**
+ * Build potency object from staging data
+ */
+function buildPotency(staging: StagingProduct): CatalogProduct['potency'] {
+    if (!staging.thc && !staging.cbd) return undefined;
+
+    return {
+        thc: staging.thc ? { value: staging.thc, unit: staging.thcUnit || 'percent' } : undefined,
+        cbd: staging.cbd ? { value: staging.cbd, unit: staging.cbdUnit || 'percent' } : undefined
     };
 }
 
