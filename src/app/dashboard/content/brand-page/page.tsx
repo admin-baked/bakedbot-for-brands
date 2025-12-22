@@ -25,6 +25,8 @@ import { searchCannMenusRetailers, type CannMenusResult } from '@/server/actions
 import { importFromCannMenus } from '@/server/actions/import-actions';
 
 import { useDebounce } from '@/hooks/use-debounce';
+import { MarketSelector } from '@/components/ui/market-selector';
+import { getMarketByCode } from '@/lib/config/markets';
 
 export default function BrandPageManager() {
     const { user, isUserLoading } = useUser();
@@ -52,7 +54,8 @@ export default function BrandPageManager() {
         description: '',
         logoUrl: '',
         coverImageUrl: '',
-        websiteUrl: ''
+        websiteUrl: '',
+        marketState: ''
     });
 
     // Debounce search to avoid spamming API
@@ -126,7 +129,8 @@ export default function BrandPageManager() {
                                 description: bData.description || '',
                                 logoUrl: bData.logoUrl || '',
                                 coverImageUrl: bData.coverImageUrl || '',
-                                websiteUrl: bData.websiteUrl || ''
+                                websiteUrl: bData.websiteUrl || '',
+                                marketState: bData.marketState || ''
                             });
                         } else {
                             console.warn('[BrandPage] Brand document not found:', bId);
@@ -192,6 +196,11 @@ export default function BrandPageManager() {
             data.append('websiteUrl', formData.websiteUrl);
             data.append('logoUrl', formData.logoUrl);
             data.append('coverImageUrl', formData.coverImageUrl);
+
+            // Include marketState for auto-import
+            if (formData.marketState) {
+                data.append('marketState', formData.marketState);
+            }
 
             // Include name if it's the initial set
             if (canEditName && formData.name.trim()) {
@@ -429,6 +438,32 @@ export default function BrandPageManager() {
                                 onChange={(e) => setFormData({ ...formData, coverImageUrl: e.target.value })}
                             />
                         </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="md:col-span-2">
+                    <CardHeader>
+                        <CardTitle>Location & Market</CardTitle>
+                        <CardDescription>
+                            Select your primary market to auto-import products and dispensaries.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <MarketSelector
+                            value={formData.marketState}
+                            onChange={(value) => setFormData({ ...formData, marketState: value })}
+                            label="Primary Market"
+                            description={
+                                formData.marketState
+                                    ? `Products and dispensaries from ${getMarketByCode(formData.marketState)?.name || formData.marketState} will be auto-imported.`
+                                    : "Choose a state and we'll automatically find your products and retail partners."
+                            }
+                        />
+                        {!formData.marketState && (
+                            <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-md">
+                                💡 Tip: Setting your market enables automatic product and dispensary discovery.
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
             </div>

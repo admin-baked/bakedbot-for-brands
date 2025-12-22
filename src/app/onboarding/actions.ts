@@ -11,6 +11,8 @@ import { logger } from '@/lib/logger';
 // Define the schema for the form data
 const OnboardingSchema = z.object({
   role: z.enum(['brand', 'dispensary', 'customer', 'skip']),
+  // Market/Location selection (state code like 'IL', 'CA')
+  marketState: z.string().optional(),
   // CannMenus selection
   locationId: z.string().optional(),
   brandId: z.string().optional(),
@@ -65,7 +67,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     }
 
     const {
-      role, locationId, brandId, brandName,
+      role, marketState, locationId, brandId, brandName,
       manualBrandName, manualProductName, manualDispensaryName,
       chatbotPersonality, chatbotTone, chatbotSellingPoints,
       posProvider, posApiKey, posDispensaryId,
@@ -154,6 +156,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
           name: finalBrandName || manualDispensaryName || 'My Organization',
           type: orgType,
           ownerId: uid,
+          marketState: marketState || null, // Store selected market/state
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
           settings: {
@@ -164,6 +167,12 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
           billing: {
             subscriptionStatus: 'trial'
           }
+        });
+      } else if (marketState) {
+        // Update existing org with market if provided
+        await orgRef.update({
+          marketState,
+          updatedAt: FieldValue.serverTimestamp()
         });
       }
     }
@@ -256,14 +265,98 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
           });
           logger.warn('Product sync failed:', { error: syncError instanceof Error ? syncError.message : String(syncError) });
         }
+      } else if (finalBrandName && marketState) {
+        // Brand has name + market but no CannMenus ID - auto-discover using state
+        try {
+          const { CannMenusService } = await import('@/server/services/cannmenus');
+          const service = new CannMenusService();
+
+          // Search for products by brand name in the selected state
+          const searchResult = await service.searchProducts({
+            brands: finalBrandName,
+            limit: 10
+          });
+
+          if (searchResult.products.length > 0) {
+            syncCount = searchResult.products.length;
+            await syncJobRef.update({
+              status: 'complete',
+              progress: 100,
+              message: `Found ${syncCount} products for ${finalBrandName} in ${marketState}`,
+              updatedAt: FieldValue.serverTimestamp()
+            });
+          } else {
+            await syncJobRef.update({
+              status: 'pending',
+              message: `No products found yet for ${finalBrandName}. Add products manually or try again later.`,
+              progress: 0,
+              updatedAt: FieldValue.serverTimestamp()
+            });
+          }
+        } catch (discoverError) {
+          await syncJobRef.update({
+            status: 'pending',
+            message: `Discovery pending for ${finalBrandName}`,
+            updatedAt: FieldValue.serverTimestamp()
+          });
+          logger.warn('Product discovery failed:', { error: discoverError instanceof Error ? discoverError.message : String(discoverError) });
+        }
       } else {
-        // Non-CannMenus brand - mark as pending for manual discovery
+        // Non-CannMenus brand without market - mark as pending for manual discovery
         await syncJobRef.update({
           status: 'pending',
           message: `Awaiting data discovery for ${finalBrandName}`,
           progress: 0,
           updatedAt: FieldValue.serverTimestamp()
         });
+      }
+
+      // --- AUTO-IMPORT DISPENSARIES for brands with marketState ---
+      if (finalBrandName && marketState) {
+        try {
+          const { CannMenusService } = await import('@/server/services/cannmenus');
+          const service = new CannMenusService();
+
+          // Use 3-second timeout for dispensary fetch
+          const timeoutPromise = new Promise<any[]>((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), 3000)
+          );
+
+          const retailers = await Promise.race([
+            service.findRetailersCarryingBrand(finalBrandName, 10),
+            timeoutPromise
+          ]);
+
+          if (retailers.length > 0) {
+            // Store as automated partners
+            const partnersRef = firestore.collection('organizations').doc(orgId).collection('partners');
+            const batch = firestore.batch();
+
+            for (const r of retailers) {
+              // Only add if in the selected market state
+              if (!marketState || r.state?.toUpperCase() === marketState.toUpperCase()) {
+                const partnerRef = partnersRef.doc(r.id);
+                batch.set(partnerRef, {
+                  id: r.id,
+                  name: r.name,
+                  address: r.street_address,
+                  city: r.city,
+                  state: r.state,
+                  zip: r.postal_code,
+                  source: 'automated',
+                  status: 'active',
+                  syncedAt: new Date()
+                }, { merge: true });
+              }
+            }
+
+            await batch.commit();
+            logger.info(`Auto-imported ${retailers.length} dispensaries for brand ${finalBrandName} in ${marketState}`);
+          }
+        } catch (dispErr) {
+          logger.warn('Dispensary auto-import failed:', { error: dispErr instanceof Error ? dispErr.message : String(dispErr) });
+          // Non-fatal, continue
+        }
       }
     } else if (finalRole === 'dispensary' && locationId) {
       // Create dispensary sync job

@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { MarketSelector } from '@/components/ui/market-selector';
 
 type BrandResult = {
   id: string;
@@ -30,7 +31,7 @@ type BrandResult = {
   market: string | null;
 };
 
-type Step = 'role' | 'brand-search' | 'manual' | 'integrations' | 'competitors' | 'features' | 'review';
+type Step = 'role' | 'market' | 'brand-search' | 'manual' | 'integrations' | 'competitors' | 'features' | 'review';
 
 export default function OnboardingPage() {
   const { toast } = useToast();
@@ -59,6 +60,7 @@ export default function OnboardingPage() {
   const [authLoading, setAuthLoading] = useState(false);
   const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([]);
   const [nearbyCompetitors, setNearbyCompetitors] = useState<BrandResult[]>([]);
+  const [marketState, setMarketState] = useState<string>('');
 
   // Handle URL params for pre-filling (e.g. coming from Claim Page)
   const searchParams = useSearchParams();
@@ -172,7 +174,8 @@ export default function OnboardingPage() {
   function handleSelectRole(r: typeof role) {
     setRole(r);
     if (r === 'brand' || r === 'dispensary') {
-      setStep('brand-search');
+      // Go to market selection first for brand/dispensary
+      setStep('market');
     } else if (r === 'skip') {
       // Just terminate immediately for 'skip'
       window.location.assign('/');
@@ -278,6 +281,35 @@ export default function OnboardingPage() {
         </Button>
         <Button variant="ghost" className="h-auto text-left p-4 justify-start" onClick={() => handleSelectRole('skip')}>
           <span className="text-muted-foreground">Skip setup for now &rarr;</span>
+        </Button>
+      </div>
+    </section>
+  );
+
+  const renderMarketSelection = () => (
+    <section className="space-y-6">
+      <div className="text-center space-y-2">
+        <h2 className="font-semibold text-xl">Where do you operate?</h2>
+        <p className="text-sm text-muted-foreground">
+          Select your primary market. We'll auto-import products and dispensaries for this location.
+        </p>
+      </div>
+
+      <MarketSelector
+        value={marketState}
+        onChange={setMarketState}
+        label="Primary Market"
+        description="This helps us find relevant products, dispensaries, and competitors in your area."
+        required
+      />
+
+      <div className="pt-4 flex justify-between items-center">
+        <Button variant="ghost" onClick={() => setStep('role')}>Back</Button>
+        <Button
+          onClick={() => setStep('brand-search')}
+          disabled={!marketState}
+        >
+          Continue
         </Button>
       </div>
     </section>
@@ -540,6 +572,7 @@ export default function OnboardingPage() {
           <input type="hidden" name="posApiKey" value={posConfig.apiKey} />
           <input type="hidden" name="posDispensaryId" value={posConfig.id} />
           <input type="hidden" name="competitors" value={selectedCompetitors.join(',')} />
+          <input type="hidden" name="marketState" value={marketState} />
 
           {/* Intercepted Submit Button */}
           <Button
@@ -574,6 +607,7 @@ export default function OnboardingPage() {
         )}
 
         {step === 'role' && renderRoleSelection()}
+        {step === 'market' && renderMarketSelection()}
         {step === 'brand-search' && renderSearchStep()}
         {step === 'manual' && renderManualStep()}
         {step === 'integrations' && renderIntegrationsStep()}
