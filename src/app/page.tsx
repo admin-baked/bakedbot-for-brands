@@ -920,8 +920,8 @@ export default function HomePage() {
       </div>
     </section>
 
-    {/* Final CTA */ }
-  <section className="mx-auto max-w-6xl px-4 py-14">
+    {/* Final CTA */}
+    <section className="mx-auto max-w-6xl px-4 py-14">
     <Card>
       <CardHeader>
         <CardTitle className="text-2xl">Ready to turn your menu into a growth channel?</CardTitle>
@@ -966,7 +966,7 @@ export default function HomePage() {
       <TestHarness />
     ) : null
   }
-    </div >
+    </div>
   );
 }
 
