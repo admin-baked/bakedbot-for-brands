@@ -60,7 +60,63 @@ export async function updateBrandProfile(brandId: string, formData: FormData) {
     revalidatePath(`/brands/${slug}`);
     revalidatePath('/dashboard/content/brand-page');
 
+    // 7. Trigger async dispensary sync if brand has a name (non-blocking)
+    const brandName = updateData.name || name;
+    if (brandName) {
+        syncDispensariesForBrand(brandId, brandName).catch(err => {
+            console.error('Background dispensary sync failed:', err);
+        });
+    }
+
     return { success: true, nameUpdated: !!name && isInitialNameSet };
+}
+
+/**
+ * Sync dispensaries carrying this brand into Firestore partners collection (async, non-blocking)
+ */
+async function syncDispensariesForBrand(brandId: string, brandName: string) {
+    try {
+        const { CannMenusService } = await import('@/server/services/cannmenus');
+        const { createServerClient } = await import('@/firebase/server-client');
+
+        const cms = new CannMenusService();
+        const { firestore } = await createServerClient();
+
+        // Use 5-second timeout to prevent long waits
+        const timeoutPromise = new Promise<any[]>((_, reject) =>
+            setTimeout(() => reject(new Error('Sync timeout')), 5000)
+        );
+
+        const retailers = await Promise.race([
+            cms.findRetailersCarryingBrand(brandName, 20),
+            timeoutPromise
+        ]);
+
+        // Store as automated partners
+        const partnersRef = firestore.collection('organizations').doc(brandId).collection('partners');
+        const batch = firestore.batch();
+
+        for (const r of retailers) {
+            const partnerRef = partnersRef.doc(r.id);
+            batch.set(partnerRef, {
+                id: r.id,
+                name: r.name,
+                address: r.street_address,
+                city: r.city,
+                state: r.state,
+                zip: r.postal_code,
+                source: 'automated',
+                status: 'active',
+                syncedAt: new Date()
+            }, { merge: true });
+        }
+
+        await batch.commit();
+        console.log(`Synced ${retailers.length} dispensaries for brand ${brandName}`);
+    } catch (err) {
+        console.error('Dispensary sync error:', err);
+        // Non-fatal, don't throw
+    }
 }
 
 /**
