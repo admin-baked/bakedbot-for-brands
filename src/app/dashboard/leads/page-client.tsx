@@ -27,8 +27,8 @@ import {
     getLeads,
     updateLead,
     deleteLead,
-    getLeadTypeInfo
 } from './actions';
+import { getLeadTypeInfo } from './utils';
 import {
     DropdownMenu,
     DropdownMenuContent,

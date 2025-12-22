@@ -81,7 +81,7 @@ export function WidgetWrapper({
                     </DropdownMenu>
                 )}
             </CardHeader>
-            <CardContent className="flex-1 overflow-auto px-4 pb-4">
+            <CardContent className="flex-1 overflow-auto px-3 pb-3 no-drag">
                 {children}
             </CardContent>
         </Card>

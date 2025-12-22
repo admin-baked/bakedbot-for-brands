@@ -427,4 +427,4 @@ export async function getSuggestedSegments(brandId: string): Promise<SegmentSugg
 // Segment Helpers (exported for UI)
 // ==========================================
 
-export { getSegmentInfo } from '@/types/customers';
+

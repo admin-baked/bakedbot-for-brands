@@ -185,7 +185,16 @@ export default async function SimulationRunPage({ params }: { params: { runId: s
     );
 }
 
-function SummaryCard({ title, icon: Icon, p50, p10, p90, format }: any) {
+interface SummaryCardProps {
+    title: string;
+    icon: any;
+    p50: number;
+    p10: number;
+    p90: number;
+    format: (v: number) => string;
+}
+
+function SummaryCard({ title, icon: Icon, p50, p10, p90, format }: SummaryCardProps) {
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
