@@ -296,10 +296,13 @@ Unified the Brand Dashboard layout engine and implemented Brand Name setting flo
     *   Updated `BrandKPIs`, `NextBestActions`, `BrandChat`, and `ManagedPages` widgets to use real components and data.
     *   Preserved specific dashboard features like the Market Filter Header.
 
+
 2.  **Brand Name Management:**
     *   Updated `updateBrandProfile` server action to handle initial name setting.
     *   Created `requestBrandNameChange` server action.
     *   Added UI in Brand Page for setting initial name or requesting changes.
+    *   **Enhancement:** Integrated `searchCannMenusRetailers` for autocomplete.
+    *   **Enhancement:** Added auto-sync trigger via `importFromCannMenus`.
 
 ### Tests Run
 *   `npm run check:types` (Passed)
