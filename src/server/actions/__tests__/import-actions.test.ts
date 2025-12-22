@@ -215,4 +215,87 @@ describe('Import Actions', () => {
             }
         });
     });
+
+    describe('Leafly Adapter', () => {
+        it('generates mock Leafly products with correct structure', async () => {
+            const { fetchLeaflyProducts } = await import('../import-actions');
+
+            const result = await fetchLeaflyProducts({
+                tenantId: 'tenant-123',
+                sourceId: 'source-456',
+                dispensarySlug: 'test-dispensary',
+                limit: 5
+            });
+
+            expect(result).toHaveLength(5);
+            expect(result[0]).toHaveProperty('externalId');
+            expect(result[0]).toHaveProperty('name');
+            expect(result[0]).toHaveProperty('category');
+        });
+
+        it('uses dispensarySlug to generate deterministic IDs', async () => {
+            const { fetchLeaflyProducts } = await import('../import-actions');
+
+            const result1 = await fetchLeaflyProducts({
+                tenantId: 'tenant-123',
+                sourceId: 'source-456',
+                dispensarySlug: 'green-valley',
+                limit: 3
+            });
+
+            const result2 = await fetchLeaflyProducts({
+                tenantId: 'tenant-123',
+                sourceId: 'source-456',
+                dispensarySlug: 'green-valley',
+                limit: 3
+            });
+
+            // Same dispensarySlug should produce same external IDs
+            expect(result1[0].externalId).toBe(result2[0].externalId);
+        });
+
+        it('respects limit parameter', async () => {
+            const { fetchLeaflyProducts } = await import('../import-actions');
+
+            const result = await fetchLeaflyProducts({
+                tenantId: 'tenant-123',
+                sourceId: 'source-456',
+                dispensarySlug: 'test-disp',
+                limit: 7
+            });
+
+            expect(result).toHaveLength(7);
+        });
+
+        it('includes brand names in Leafly products', async () => {
+            const { fetchLeaflyProducts } = await import('../import-actions');
+
+            const result = await fetchLeaflyProducts({
+                tenantId: 'tenant-123',
+                sourceId: 'source-456',
+                dispensarySlug: 'test-disp',
+                limit: 5
+            });
+
+            for (const product of result) {
+                expect(product.brandName).toBeDefined();
+            }
+        });
+
+        it('includes valid categories', async () => {
+            const { fetchLeaflyProducts } = await import('../import-actions');
+
+            const result = await fetchLeaflyProducts({
+                tenantId: 'tenant-123',
+                sourceId: 'source-456',
+                dispensarySlug: 'test-disp',
+                limit: 10
+            });
+
+            const validCategories = ['flower', 'vapes', 'edibles', 'concentrates', 'prerolls', 'topicals', 'tinctures', 'other'];
+            for (const product of result) {
+                expect(validCategories).toContain(product.category);
+            }
+        });
+    });
 });

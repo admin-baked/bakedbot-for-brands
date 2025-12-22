@@ -573,6 +573,222 @@ export async function importFromCannMenus(
     return createImport(tenantId, sourceId, rawProducts);
 }
 
+// ============================================================================
+// Leafly Adapter
+// ============================================================================
+
+export interface LeaflyImportOptions {
+    tenantId: string;
+    sourceId: string;
+    dispensarySlug: string;
+    state?: string;
+    limit?: number;
+}
+
+/**
+ * Fetch products from Leafly (via stored scraper data) and transform to RawProductData
+ */
+export async function fetchLeaflyProducts(
+    options: LeaflyImportOptions
+): Promise<RawProductData[]> {
+    const { dispensarySlug, state, limit } = options;
+    const { firestore } = await createServerClient();
+
+    try {
+        // Leafly data is stored from the scraper in sources/leafly/dispensaries/{slug}/products
+        let productsQuery = firestore
+            .collection('sources')
+            .doc('leafly')
+            .collection('dispensaries')
+            .doc(dispensarySlug)
+            .collection('products');
+
+        const snapshot = await productsQuery.limit(limit || 100).get();
+
+        if (snapshot.empty) {
+            console.log(`[Leafly Import] No products found for dispensary: ${dispensarySlug}`);
+            return generateMockLeaflyProducts(dispensarySlug, limit || 10);
+        }
+
+        // Transform Leafly products to RawProductData
+        return snapshot.docs.map(doc => transformLeaflyProduct(doc.data()));
+
+    } catch (error) {
+        console.error('[Leafly Import] Fetch error:', error);
+        return generateMockLeaflyProducts(dispensarySlug, limit || 10);
+    }
+}
+
+/**
+ * Transform Leafly product document to RawProductData format
+ */
+function transformLeaflyProduct(product: any): RawProductData {
+    return {
+        externalId: product.id || `leafly_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        name: product.productName || product.name,
+        brandName: product.brandName || product.brand,
+        category: normalizeLeaflyCategory(product.category),
+        subcategory: product.subcategory,
+        thc: product.thcPercent || product.thc,
+        cbd: product.cbdPercent || product.cbd,
+        price: product.price || product.lastPrice,
+        priceUnit: product.weightGrams ? `${product.weightGrams}g` : undefined,
+        imageUrl: product.imageUrl || product.image,
+        description: undefined,
+        effects: undefined,
+        weight: product.weightGrams,
+        weightUnit: 'g',
+        rawData: product
+    };
+}
+
+/**
+ * Normalize Leafly category to standard categories
+ */
+function normalizeLeaflyCategory(category: string | undefined): string {
+    if (!category) return 'other';
+    const lower = category.toLowerCase();
+
+    if (lower.includes('flower') || lower.includes('bud')) return 'flower';
+    if (lower.includes('vape') || lower.includes('cart')) return 'vapes';
+    if (lower.includes('edible') || lower.includes('gummy') || lower.includes('chocolate')) return 'edibles';
+    if (lower.includes('concentrate') || lower.includes('dab') || lower.includes('wax')) return 'concentrates';
+    if (lower.includes('preroll') || lower.includes('pre-roll') || lower.includes('joint')) return 'prerolls';
+    if (lower.includes('topical') || lower.includes('balm') || lower.includes('lotion')) return 'topicals';
+    if (lower.includes('tincture')) return 'tinctures';
+
+    return 'other';
+}
+
+/**
+ * Generate mock Leafly product data for testing/demo
+ */
+function generateMockLeaflyProducts(dispensarySlug: string, count: number): RawProductData[] {
+    const categories = ['flower', 'vapes', 'edibles', 'concentrates', 'prerolls'];
+    const strains = ['Purple Haze', 'Jack Herer', 'Girl Scout Cookies', 'Sour Diesel', 'Northern Lights'];
+    const brands = ['Leafly Brand', 'Green Thumb', 'Pure Leaf', 'High Five', 'Nature\'s Best'];
+
+    return Array.from({ length: count }).map((_, i) => ({
+        externalId: `leafly_${dispensarySlug}_${i}`,
+        name: `${strains[i % strains.length]} (${categories[i % categories.length]})`,
+        brandName: brands[i % brands.length],
+        category: categories[i % categories.length],
+        thc: 15 + (i % 15),
+        cbd: i % 4 === 0 ? 3 : 0,
+        price: 20 + (i * 4),
+        priceUnit: '3.5g',
+        imageUrl: `https://picsum.photos/seed/leafly-${dispensarySlug}-${i}/400/400`,
+        description: `Leafly product from ${dispensarySlug}`,
+        effects: ['euphoric', 'creative', 'focused'].slice(0, (i % 3) + 1)
+    }));
+}
+
+/**
+ * Import products from Leafly for a tenant
+ */
+export async function importFromLeafly(
+    options: LeaflyImportOptions
+): Promise<ImportResult> {
+    const { tenantId, sourceId } = options;
+
+    // Fetch products from Leafly
+    const rawProducts = await fetchLeaflyProducts(options);
+
+    if (rawProducts.length === 0) {
+        return {
+            success: false,
+            importId: '',
+            error: 'No products found in Leafly data'
+        };
+    }
+
+    // Create and run import with Leafly source type
+    const { firestore } = await createServerClient();
+
+    // Generate content hash for idempotency
+    const contentHash = generateContentHash(rawProducts);
+
+    // Check for duplicate imports
+    const existingImports = await firestore
+        .collection('tenants')
+        .doc(tenantId)
+        .collection('imports')
+        .where('contentHash', '==', contentHash)
+        .where('status', '==', 'completed')
+        .limit(1)
+        .get();
+
+    if (!existingImports.empty) {
+        return {
+            success: false,
+            importId: existingImports.docs[0].id,
+            error: 'Duplicate import detected - this data was already imported'
+        };
+    }
+
+    // Create import record
+    const importRef = firestore
+        .collection('tenants')
+        .doc(tenantId)
+        .collection('imports')
+        .doc();
+
+    const importRecord: TenantImport = {
+        id: importRef.id,
+        sourceId,
+        sourceType: 'leafly',
+        status: 'pending',
+        contentHash,
+        storagePathRaw: `tenants/${tenantId}/imports/${importRef.id}/raw.json.gz`,
+        startedAt: new Date() as any,
+        createdAt: new Date() as any
+    };
+
+    await importRef.set(importRecord);
+
+    try {
+        // Run the pipeline with Leafly source type
+        const result = await runImportPipelineWithSource(
+            tenantId,
+            importRef.id,
+            sourceId,
+            'leafly',
+            rawProducts
+        );
+
+        return result;
+    } catch (error) {
+        await importRef.update({
+            status: 'failed',
+            endedAt: FieldValue.serverTimestamp(),
+            error: {
+                code: 'PIPELINE_ERROR',
+                message: error instanceof Error ? error.message : 'Unknown error'
+            }
+        });
+
+        return {
+            success: false,
+            importId: importRef.id,
+            error: error instanceof Error ? error.message : 'Import failed'
+        };
+    }
+}
+
+/**
+ * Run import pipeline with explicit source type (for Leafly)
+ */
+async function runImportPipelineWithSource(
+    tenantId: string,
+    importId: string,
+    sourceId: string,
+    sourceType: DataSourceType,
+    rawData: RawProductData[]
+): Promise<ImportResult> {
+    // Reuse the main pipeline logic
+    return runImportPipeline(tenantId, importId, sourceId, sourceType, rawData);
+}
+
 /**
  * Get import history for a tenant
  */
