@@ -5,6 +5,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { Product } from '@/types/domain';
 import { logger } from '@/lib/logger';
 import { CannMenusService } from '@/server/services/cannmenus';
+import { FREE_ACCOUNT_LIMITS } from '@/lib/config/limits';
 
 // Mock fallback results for demo
 const MOCK_PRODUCTS = [
@@ -74,10 +75,10 @@ export async function importProducts(products: any[]) { // Typo fix: any[]
         .get();
 
       const existingCount = currentProducts.size;
-      const MAX_FREE = 3;
+      const MAX_FREE = FREE_ACCOUNT_LIMITS.brand.products;
 
       if (existingCount >= MAX_FREE) {
-        throw new Error('Limit reached: Trial accounts are limited to 3 products.');
+        throw new Error('Limit reached: Trial accounts are limited to 10 products.');
       }
 
       const remainingSlots = MAX_FREE - existingCount;
@@ -206,6 +207,6 @@ export async function getBrandStatus() {
   return {
     isTrial,
     count: currentProducts.size,
-    max: 3
+    max: FREE_ACCOUNT_LIMITS.brand.products
   };
 }

@@ -50,7 +50,7 @@ export function WidgetWrapper({
                     <CardTitle className="text-sm font-medium">{title}</CardTitle>
                 </div>
 
-                <DropdownMenu>
+                <DropdownMenu modal={true}>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                             <MoreVertical className="h-4 w-4" />
