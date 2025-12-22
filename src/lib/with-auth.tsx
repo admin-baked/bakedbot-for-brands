@@ -88,9 +88,15 @@ export function withAuth<P extends object>(
         // Show loading state while checking both auth and super admin
         if (isLoading) {
             return (
-                <div className="flex min-h-screen items-center justify-center">
+                <div className="flex min-h-screen items-center justify-center bg-background">
                     <div className="flex flex-col items-center gap-4">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <div className="h-24 w-24 animate-pulse">
+                            <img
+                                src="/access-robot.png"
+                                alt="Smokey verifying access"
+                                className="h-full w-full object-contain"
+                            />
+                        </div>
                         <p className="text-sm text-muted-foreground">Verifying access...</p>
                     </div>
                 </div>
