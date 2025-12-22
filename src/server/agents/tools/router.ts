@@ -38,15 +38,56 @@ export async function routeToolCall(request: ToolRequest): Promise<ToolResponse>
         }
     }
 
-    // 3. Schema Validation (Placeholder)
+    // 3. Idempotency Check
+    if (request.idempotencyKey) {
+        const { checkIdempotency } = await import('../approvals/service');
+        const cachedResult = await checkIdempotency(request.idempotencyKey);
+        if (cachedResult) {
+            await logAudit(request, startTime, { ...cachedResult.result, status: 'success' }); // Log replay
+            return cachedResult.result;
+        }
+    }
+
+    // 4. Side-Effect Gate
+    if (definition.category === 'side-effect') {
+        // In Phase 3, we auto-create an approval request and block
+        // Unless specific "approved" override logic is generic (not yet implemented)
+        const { createApprovalRequest } = await import('../approvals/service');
+        if (!request.tenantId) throw new Error('Side-effects require tenant context.');
+
+        const approval = await createApprovalRequest(
+            request.tenantId,
+            toolName,
+            inputs,
+            actor.userId,
+            actor.role
+        );
+
+        const response: ToolResponse = {
+            status: 'blocked',
+            error: `Approval required. Request ID: ${approval.id}`,
+            data: { approvalId: approval.id }
+        };
+
+        await logAudit(request, startTime, response);
+        return response;
+    }
+
+    // 5. Schema Validation (Placeholder)
     // TODO: Implement Zod schema validation against definition.inputSchema
 
-    // 4. Execution Dispatch
+    // 6. Execution Dispatch
     try {
         const result = await dispatchExecution(definition, inputs, request);
 
-        // 5. Audit Logging (Success)
+        // 7. Audit Logging (Success)
         await logAudit(request, startTime, result);
+
+        // Save Idempotency
+        if (request.idempotencyKey) {
+            const { saveIdempotency } = await import('../approvals/service');
+            await saveIdempotency(request.idempotencyKey, result);
+        }
 
         return result;
 
