@@ -16,15 +16,17 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserRole, WidgetInstance } from '@/lib/dashboard/widget-registry';
 import { getWidgetByType } from '@/lib/dashboard/widget-registry';
 import {
-    loadLayout,
-    saveLayout,
-    resetToDefaults,
-    addWidgetToLayout,
-    removeWidgetFromLayout,
-    updateWidgetPositions
-} from '@/lib/dashboard/layout-persistence';
+import {
+        loadLayout as loadLocalLayout,
+        saveLayout as saveLocalLayout,
+        resetToDefaults,
+        addWidgetToLayout,
+        removeWidgetFromLayout,
+        updateWidgetPositions
+    } from '@/lib/dashboard/layout-persistence';
 import { AddWidgetMenu } from './add-widget-menu';
 import { getWidgetComponent } from './widgets';
+import { saveDashboardLayout, getDashboardLayout } from '@/server/actions/dashboard-layout';
 
 // Define our layout item type matching react-grid-layout expectations
 interface LayoutItem {
@@ -58,6 +60,7 @@ export function ModularDashboard({
     const { toast } = useToast();
     const [widgets, setWidgets] = useState<WidgetInstance[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Container ref and width for responsive grid
     const containerRef = useRef<HTMLDivElement>(null);
@@ -86,11 +89,33 @@ export function ModularDashboard({
         }
     }, [width]);
 
-    // Load layout on mount
+    // Load layout on mount (Server > Local > Default)
     useEffect(() => {
-        const loaded = loadLayout(role);
-        setWidgets(loaded);
-        setIsLoaded(true);
+        let mounted = true;
+
+        async function initLayout() {
+            // 1. Try local first (fastest)
+            const local = loadLocalLayout(role);
+            if (mounted) setWidgets(local);
+
+            // 2. Fetch server layout
+            try {
+                const result = await getDashboardLayout(role);
+                if (mounted && result.success && result.layout) {
+                    setWidgets(result.layout);
+                    // Update local storage to match server
+                    saveLocalLayout(role, result.layout);
+                }
+            } catch (err) {
+                console.error('Failed to sync layout from server', err);
+            } finally {
+                if (mounted) setIsLoaded(true);
+            }
+        }
+
+        initLayout();
+
+        return () => { mounted = false; };
     }, [role]);
 
     // Convert widgets to react-grid-layout format
@@ -123,15 +148,34 @@ export function ModularDashboard({
         }));
         const updated = updateWidgetPositions(widgets, simplified);
         setWidgets(updated);
-    }, [widgets, isEditable]);
+        // Optimistic local save
+        saveLocalLayout(role, updated);
+    }, [widgets, isEditable, role]);
 
     // Save layout
-    const handleSave = useCallback(() => {
-        saveLayout(role, widgets);
-        toast({
-            title: 'Layout Saved',
-            description: 'Your dashboard layout has been saved.'
-        });
+    const handleSave = useCallback(async () => {
+        setIsSaving(true);
+
+        // 1. Save Local
+        saveLocalLayout(role, widgets);
+
+        // 2. Save Server
+        const result = await saveDashboardLayout(role, widgets);
+
+        setIsSaving(false);
+
+        if (result.success) {
+            toast({
+                title: 'Layout Saved',
+                description: 'Your dashboard layout has been saved to your profile.'
+            });
+        } else {
+            toast({
+                title: 'Save Failed',
+                description: 'Could not save to server, but local copy is updated.',
+                variant: 'destructive'
+            });
+        }
     }, [role, widgets, toast]);
 
     // Reset to defaults
@@ -142,7 +186,11 @@ export function ModularDashboard({
             title: 'Layout Reset',
             description: 'Dashboard has been reset to default layout.'
         });
+        // Trigger server save of defaults? Or just let them save manually?
+        // Let's autosave defaults to sync
+        saveDashboardLayout(role, defaults);
     }, [role, toast]);
+
 
     // Add widget
     const handleAddWidget = useCallback((widgetType: string) => {
@@ -239,9 +287,13 @@ export function ModularDashboard({
                             <RotateCcw className="h-4 w-4 mr-2" />
                             Reset
                         </Button>
-                        <Button size="sm" onClick={handleSave}>
-                            <Save className="h-4 w-4 mr-2" />
-                            Save Layout
+                        <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                            {isSaving ? (
+                                <RotateCcw className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Save className="mr-2 h-4 w-4" />
+                            )}
+                            {isSaving ? 'Saving...' : 'Save Layout'}
                         </Button>
                     </div>
                 </div>
