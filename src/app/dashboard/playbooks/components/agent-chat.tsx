@@ -392,6 +392,7 @@ export interface PageContext {
 
 export interface AgentChatProps {
     initialTitle?: string;
+    initialInput?: string;
     onBack?: () => void;
     onSubmit?: (message: string) => Promise<void>;
     // Context-aware props for brand/dispensary pages
@@ -407,6 +408,7 @@ export interface AgentChatProps {
 
 export function AgentChat({
     initialTitle = 'New Automation',
+    initialInput = '',
     onBack,
     onSubmit,
     pageContext
@@ -420,6 +422,13 @@ export function AgentChat({
     useEffect(() => {
         if (role) setCurrentRole(role);
     }, [role, setCurrentRole]);
+
+    // Update input when initialInput changes
+    useEffect(() => {
+        if (initialInput) {
+            setInput(initialInput);
+        }
+    }, [initialInput]);
 
     const [state, setState] = useState<PuffState>({
         title: initialTitle,

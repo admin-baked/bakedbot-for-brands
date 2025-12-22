@@ -638,6 +638,7 @@ export function PuffChat({
                         className={cn("h-8 w-8 rounded-full transition-all", input.trim() ? "bg-primary" : "bg-muted text-muted-foreground")}
                         disabled={!input.trim() || isProcessing}
                         onClick={handleSubmit}
+                        data-testid="send-button"
                     >
                         {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                     </Button>
