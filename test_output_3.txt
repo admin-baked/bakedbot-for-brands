@@ -1,0 +1,15 @@
+
+> nextn@0.1.0 test
+> jest src/app/dashboard/ceo/components/__tests__/puff-chat.test.tsx
+
+PASS src/app/dashboard/ceo/components/__tests__/puff-chat.test.tsx
+  PuffChat Component
+    √ renders the chat interface (72 ms)
+    √ handles user input and shows response (125 ms)
+    √ shows permission card when agent requests tools (80 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        3.787 s, estimated 5 s
+Ran all test suites matching /src\\app\\dashboard\\ceo\\components\\__tests__\\puff-chat.test.tsx/i.

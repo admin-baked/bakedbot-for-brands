@@ -222,12 +222,12 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     await userDocRef.set(finalProfile, { merge: true });
     await auth.setCustomUserClaims(uid, finalClaims);
 
-    // --- SYNC PRODUCTS ---
+    // --- QUEUE PRODUCT SYNC (NON-BLOCKING) ---
     let syncCount = 0;
     let productSyncJobId: string | null = null;
 
     if (finalRole === 'brand' && finalBrandId) {
-      // Create product sync job for tracking
+      // Queue product sync job (don't execute here)
       const syncJobRef = await firestore.collection('data_jobs').add({
         type: 'product_sync',
         entityId: finalBrandId,
@@ -235,131 +235,23 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         entityType: 'brand',
         orgId: orgId,
         userId: uid,
-        status: 'syncing',
-        message: `Syncing products for ${finalBrandName || 'brand'}...`,
-        progress: 10,
+        status: 'pending', // Will be picked up by worker
+        message: `Queued product sync for ${finalBrandName || 'brand'}`,
+        progress: 0,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-        attempts: 1
+        attempts: 0,
+        metadata: {
+          brandId: finalBrandId,
+          brandName: finalBrandName,
+          marketState: marketState || null,
+          isCannMenus: finalBrandId.startsWith('cm_')
+        }
       });
       productSyncJobId = syncJobRef.id;
-
-      if (finalBrandId.startsWith('cm_')) {
-        try {
-          const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
-          syncCount = await syncCannMenusProducts(finalBrandId, 'brand', orgId, 3);
-
-          // Update job as complete
-          await syncJobRef.update({
-            status: 'complete',
-            progress: 100,
-            message: `Synced ${syncCount} products successfully`,
-            updatedAt: FieldValue.serverTimestamp()
-          });
-        } catch (syncError) {
-          await syncJobRef.update({
-            status: 'error',
-            message: 'Product sync failed',
-            error: syncError instanceof Error ? syncError.message : 'Unknown error',
-            updatedAt: FieldValue.serverTimestamp()
-          });
-          logger.warn('Product sync failed:', { error: syncError instanceof Error ? syncError.message : String(syncError) });
-        }
-      } else if (finalBrandName && marketState) {
-        // Brand has name + market but no CannMenus ID - auto-discover using state
-        try {
-          const { CannMenusService } = await import('@/server/services/cannmenus');
-          const service = new CannMenusService();
-
-          // Search for products by brand name in the selected state
-          const searchResult = await service.searchProducts({
-            brands: finalBrandName,
-            limit: 10
-          });
-
-          if (searchResult.products.length > 0) {
-            syncCount = searchResult.products.length;
-            await syncJobRef.update({
-              status: 'complete',
-              progress: 100,
-              message: `Found ${syncCount} products for ${finalBrandName} in ${marketState}`,
-              updatedAt: FieldValue.serverTimestamp()
-            });
-          } else {
-            await syncJobRef.update({
-              status: 'pending',
-              message: `No products found yet for ${finalBrandName}. Add products manually or try again later.`,
-              progress: 0,
-              updatedAt: FieldValue.serverTimestamp()
-            });
-          }
-        } catch (discoverError) {
-          await syncJobRef.update({
-            status: 'pending',
-            message: `Discovery pending for ${finalBrandName}`,
-            updatedAt: FieldValue.serverTimestamp()
-          });
-          logger.warn('Product discovery failed:', { error: discoverError instanceof Error ? discoverError.message : String(discoverError) });
-        }
-      } else {
-        // Non-CannMenus brand without market - mark as pending for manual discovery
-        await syncJobRef.update({
-          status: 'pending',
-          message: `Awaiting data discovery for ${finalBrandName}`,
-          progress: 0,
-          updatedAt: FieldValue.serverTimestamp()
-        });
-      }
-
-      // --- AUTO-IMPORT DISPENSARIES for brands with marketState ---
-      if (finalBrandName && marketState) {
-        try {
-          const { CannMenusService } = await import('@/server/services/cannmenus');
-          const service = new CannMenusService();
-
-          // Use 3-second timeout for dispensary fetch
-          const timeoutPromise = new Promise<any[]>((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout')), 3000)
-          );
-
-          const retailers = await Promise.race([
-            service.findRetailersCarryingBrand(finalBrandName, 10),
-            timeoutPromise
-          ]);
-
-          if (retailers.length > 0) {
-            // Store as automated partners
-            const partnersRef = firestore.collection('organizations').doc(orgId).collection('partners');
-            const batch = firestore.batch();
-
-            for (const r of retailers) {
-              // Only add if in the selected market state
-              if (!marketState || r.state?.toUpperCase() === marketState.toUpperCase()) {
-                const partnerRef = partnersRef.doc(r.id);
-                batch.set(partnerRef, {
-                  id: r.id,
-                  name: r.name,
-                  address: r.street_address,
-                  city: r.city,
-                  state: r.state,
-                  zip: r.postal_code,
-                  source: 'automated',
-                  status: 'active',
-                  syncedAt: new Date()
-                }, { merge: true });
-              }
-            }
-
-            await batch.commit();
-            logger.info(`Auto-imported ${retailers.length} dispensaries for brand ${finalBrandName} in ${marketState}`);
-          }
-        } catch (dispErr) {
-          logger.warn('Dispensary auto-import failed:', { error: dispErr instanceof Error ? dispErr.message : String(dispErr) });
-          // Non-fatal, continue
-        }
-      }
+      logger.info('Queued product sync job', { jobId: productSyncJobId, brandId: finalBrandId });
     } else if (finalRole === 'dispensary' && locationId) {
-      // Create dispensary sync job
+      // Queue dispensary sync job
       const syncJobRef = await firestore.collection('data_jobs').add({
         type: 'product_sync',
         entityId: locationId,
@@ -367,103 +259,72 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         entityType: 'dispensary',
         orgId: orgId,
         userId: uid,
-        status: 'syncing',
-        message: `Setting up ${manualDispensaryName || 'dispensary'}...`,
-        progress: 10,
+        status: 'pending',
+        message: `Queued menu sync for ${manualDispensaryName || 'dispensary'}`,
+        progress: 0,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-        attempts: 1
+        attempts: 0,
+        metadata: {
+          locationId: locationId,
+          isCannMenus: locationId.startsWith('cm_')
+        }
       });
-
-      if (locationId.startsWith('cm_')) {
-        try {
-          const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
-          // Pass locationId as the entity ID (brandId arg) to own the products
-          syncCount = await syncCannMenusProducts(locationId, 'dispensary', locationId);
-
-          await syncJobRef.update({
-            status: 'complete',
-            progress: 100,
-            message: `Synced ${syncCount} products successfully`,
-            updatedAt: FieldValue.serverTimestamp()
-          });
-        } catch (syncError) {
-          await syncJobRef.update({
-            status: 'error',
-            message: 'Dispensary sync failed',
-            error: syncError instanceof Error ? syncError.message : 'Unknown error',
-            updatedAt: FieldValue.serverTimestamp()
-          });
-          logger.warn('Dispensary sync failed:', { error: syncError instanceof Error ? syncError.message : String(syncError) });
-        }
-      }
+      logger.info('Queued dispensary sync job', { jobId: syncJobRef.id, locationId });
     }
 
-    // --- AUTO-GENERATE LOCAL SEO PAGES ---
-    let pagesGenerated = 0;
+    // --- QUEUE SEO PAGE GENERATION (NON-BLOCKING) ---
     if ((finalRole === 'brand' || finalRole === 'dispensary') && orgId) {
-      try {
-        const { generatePagesForPartner } = await import('@/server/services/auto-page-generator');
-
-        // Try to extract ZIP from location data or use a default
-        // For brands, we might not have location - skip for now
-        // For dispensaries with a locationId, we can extract ZIP from CannMenus data
-        let partnerZip: string | null = null;
-
-        if (finalRole === 'dispensary' && locationId) {
-          // Try to get location data from Firestore
-          const locDoc = await firestore.collection('locations').doc(locationId).get();
-          if (locDoc.exists) {
-            const locData = locDoc.data();
-            partnerZip = locData?.address?.zip || locData?.postalCode || null;
-          }
+      await firestore.collection('data_jobs').add({
+        type: 'seo_page_generation',
+        entityId: orgId,
+        entityName: finalBrandName || manualDispensaryName || 'Partner',
+        entityType: finalRole,
+        orgId: orgId,
+        userId: uid,
+        status: 'pending',
+        message: `Queued SEO page generation`,
+        progress: 0,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        attempts: 0,
+        metadata: {
+          role: finalRole,
+          locationId: locationId || null
         }
-
-        // If we have a ZIP, generate pages
-        if (partnerZip) {
-          const orgName = finalBrandName || manualDispensaryName || 'Partner';
-          const result = await generatePagesForPartner(
-            orgId,
-            partnerZip,
-            orgName,
-            finalRole as 'brand' | 'dispensary'
-          );
-          pagesGenerated = result.generated;
-          logger.info('Auto-generated SEO pages for new partner:', {
-            orgId,
-            zipCodes: result.zipCodes,
-          });
-        }
-      } catch (pageError) {
-        // Non-fatal - log but don't fail onboarding
-        logger.warn('Failed to auto-generate SEO pages:', pageError instanceof Error ? pageError : new Error(String(pageError)));
-      }
+      });
+      logger.info('Queued SEO page generation job', { orgId, role: finalRole });
     }
 
-    // --- AUTO-DISCOVER COMPETITORS ---
-    let competitorsDiscovered = 0;
+    // --- QUEUE COMPETITOR DISCOVERY (NON-BLOCKING) ---
     if ((finalRole === 'brand' || finalRole === 'dispensary') && orgId && marketState) {
-      try {
-        const { autoDiscoverCompetitors } = await import('./competitive-intel-auto');
-        const result = await autoDiscoverCompetitors(orgId, marketState, firestore);
-        competitorsDiscovered = result.discovered;
-        if (competitorsDiscovered > 0) {
-          logger.info(`Auto-discovered ${competitorsDiscovered} competitors for ${orgId} in ${marketState}`);
+      await firestore.collection('data_jobs').add({
+        type: 'competitor_discovery',
+        entityId: orgId,
+        entityName: finalBrandName || manualDispensaryName || 'Partner',
+        entityType: finalRole,
+        orgId: orgId,
+        userId: uid,
+        status: 'pending',
+        message: `Queued competitor discovery for ${marketState}`,
+        progress: 0,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        attempts: 0,
+        metadata: {
+          marketState: marketState
         }
-      } catch (compError) {
-        // Non-fatal - log but don't fail onboarding
-        logger.warn('Failed to auto-discover competitors:', compError instanceof Error ? compError : new Error(String(compError)));
-      }
+      });
+      logger.info('Queued competitor discovery job', { orgId, marketState });
     }
 
     revalidatePath('/dashboard');
     revalidatePath('/account');
 
-    const successMessage = syncCount > 0 || pagesGenerated > 0
-      ? `Welcome! Organization created${syncCount > 0 ? `, ${syncCount} products imported` : ''}${pagesGenerated > 0 ? `, ${pagesGenerated} local pages generated` : ''}.`
-      : 'Welcome! Organization created.';
-
-    return { message: successMessage, error: false };
+    return {
+      message: 'Welcome! Your workspace is being prepared. Data import is running in the background.',
+      error: false
+    };
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
