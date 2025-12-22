@@ -1,0 +1,215 @@
+{
+    "version": "1.0.0",
+    "locale": "en-US",
+    "pricing": {
+        "tabs": {
+            "plans": {
+                "header": "Predictable plans with included usage",
+                "subheader": "All agents run inside the Agent Workspace and share the same allowance + overages."
+            },
+            "addons": {
+                "header": "Agent Workspace Add-ons",
+                "subheader": "Add specialized agents as you grow. They plug into the same data and share your monthly usage."
+            },
+            "overages": {
+                "header": "Transparent overages",
+                "subheader": "Upgrade anytime or add coverage. You’ll always see what each workflow used before you hit a limit."
+            }
+        },
+        "usageExplainerModal": {
+            "title": "How usage works",
+            "body": "BakedBot includes monthly usage so you can run day-to-day tasks without surprises.\n\n• Core meters track platform activity (pageviews, chats, contacts, compliance checks, and refresh jobs).\n• Agent meters track intelligence and monitoring:\n  – Intel Runs = finished outputs (snapshots, summaries, reports, alerts)\n  – Market Sensors = your watchlist (menus/URLs monitored)\n\nMost customers just enable playbooks (daily snapshot, weekly report, lead follow-up). We track usage automatically and show warnings before you hit a limit.",
+            "ctaPrimary": "View usage dashboard",
+            "ctaSecondary": "Compare plans"
+        }
+    },
+    "meters": {
+        "menuPageviews": {
+            "label": "Menu/Pageviews",
+            "tooltipShort": "Visits to your menu and SEO pages.",
+            "tooltipLong": "Counts each time someone loads a BakedBot-hosted menu or SEO page. Helps you track discovery and visibility.",
+            "whatCountsTitle": "What counts",
+            "whatCounts": [
+                "A page load of a headless menu page",
+                "A page load of an SEO page (city/ZIP/brand/dispensary)"
+            ],
+            "whatDoesNotCountTitle": "What doesn’t",
+            "whatDoesNotCount": [
+                "Admin dashboard views",
+                "Bot traffic you block (if enabled)"
+            ]
+        },
+        "smokeySessions": {
+            "label": "Smokey Sessions",
+            "tooltipShort": "Customer conversations with Smokey.",
+            "tooltipLong": "Counts each customer session where Smokey provides recommendations or guidance. A session can include multiple messages.",
+            "whatCountsTitle": "What counts",
+            "whatCounts": [
+                "A new chat session started",
+                "A session that returns after the inactivity window (configurable)"
+            ],
+            "whatDoesNotCountTitle": "What doesn’t",
+            "whatDoesNotCount": [
+                "Internal testing sessions (if flagged as internal)",
+                "Page loads without a chat session"
+            ]
+        },
+        "deeboChecks": {
+            "label": "Deebo Checks",
+            "tooltipShort": "Compliance preflight scans.",
+            "tooltipLong": "Counts each time content is checked against jurisdiction + channel rules (web, email, SMS). Used across Craig, Smokey, and publishing.",
+            "whatCountsTitle": "What counts",
+            "whatCounts": [
+                "Checking a page draft before publishing",
+                "Checking an email/SMS draft before sending",
+                "Checking a template variant (each unique version counts)"
+            ],
+            "whatDoesNotCountTitle": "What doesn’t",
+            "whatDoesNotCount": [
+                "Viewing past check results",
+                "Minor formatting changes that reuse the same exact content hash (optional optimization)"
+            ]
+        },
+        "contactsStored": {
+            "label": "Contacts Stored",
+            "tooltipShort": "Leads and customers saved in your workspace.",
+            "tooltipLong": "Counts unique contacts stored in your BakedBot workspace for follow-ups, reporting, and audience building.",
+            "whatCountsTitle": "What counts",
+            "whatCounts": [
+                "A new unique contact (email or phone) saved",
+                "A lead form submission creating a contact"
+            ],
+            "whatDoesNotCountTitle": "What doesn’t",
+            "whatDoesNotCount": [
+                "Updating existing contact fields",
+                "Anonymous website visitors"
+            ]
+        },
+        "syncRuns": {
+            "label": "Sync Runs",
+            "tooltipShort": "Data refresh jobs.",
+            "tooltipLong": "Counts each time BakedBot refreshes menus, catalogs, or connected sources. Used for keeping pages and agents up to date.",
+            "whatCountsTitle": "What counts",
+            "whatCounts": [
+                "Scheduled menu refresh",
+                "Manual “sync now”",
+                "Import jobs (catalog/menu updates)"
+            ],
+            "whatDoesNotCountTitle": "What doesn’t",
+            "whatDoesNotCount": [
+                "Viewing existing menu data",
+                "Generating reports from already-synced data"
+            ]
+        },
+        "intelRuns": {
+            "label": "Intel Runs",
+            "tooltipShort": "Generated reports, snapshots, and alerts.",
+            "tooltipLong": "Counts each intelligence output created by the Agent Workspace—daily snapshots, weekly summaries, alert batches, footprint audits, and KPI reports.",
+            "uiHint": "Think of an Intel Run as “one finished report.”",
+            "whatCountsTitle": "What counts",
+            "whatCounts": [
+                "A daily brand/dispensary snapshot",
+                "A weekly competitor summary",
+                "An alert batch (e.g., “top changes since yesterday”)",
+                "A scheduled KPI report or audit"
+            ],
+            "whatDoesNotCountTitle": "What doesn’t",
+            "whatDoesNotCount": [
+                "Viewing a previously generated report",
+                "Simple filters/sorts on existing results",
+                "Downloading already-created artifacts"
+            ]
+        },
+        "marketSensors": {
+            "label": "Market Sensors",
+            "tooltipShort": "Monitored menus and URLs.",
+            "tooltipLong": "Counts each monitored menu/URL/retailer we track for changes during the month. Used by Ezal and intelligence snapshots.",
+            "uiHint": "Sensors are your watchlist. More sensors = wider coverage.",
+            "whatCountsTitle": "What counts",
+            "whatCounts": [
+                "Each monitored menu URL",
+                "Each monitored retailer menu endpoint",
+                "Each monitored listing URL (Leafly/marketplace pages) if configured"
+            ],
+            "whatDoesNotCountTitle": "What doesn’t",
+            "whatDoesNotCount": [
+                "Reports that reuse existing monitoring data",
+                "One-time web lookups without monitoring"
+            ]
+        }
+    },
+    "addons": {
+        "craig": {
+            "name": "Craig (Marketing Automation)",
+            "blurb": "Automated email + SMS workflows with compliance pre-checks. Great for claim-to-lead nurture and lifecycle journeys.",
+            "tooltip": "Uses Contacts Stored + Deebo Checks. Optional Intel Runs for performance summaries."
+        },
+        "pops": {
+            "name": "Pops (Analytics + Forecasting)",
+            "blurb": "Dashboards, cohorts, and decision-ready reporting across traffic → clicks → claims → outcomes.",
+            "tooltip": "Uses Intel Runs to generate reports. May use Sync Runs to refresh data before reporting."
+        },
+        "ezal": {
+            "name": "Ezal (Competitive Intelligence)",
+            "blurb": "Market Sensors track menus and pricing changes, then summarize what matters (price moves, promos, availability shifts).",
+            "tooltip": "Uses Market Sensors for monitoring + Intel Runs for summaries and alerts."
+        },
+        "deeboPro": {
+            "name": "Deebo Pro (Compliance OS)",
+            "blurb": "Jurisdiction-aware rule packs, audit trails, and pre-flight checks across web + email + SMS.",
+            "tooltip": "Uses Deebo Checks across web, email, and SMS. Adds audit trails and jurisdiction rule packs."
+        }
+    },
+    "directoryPricingPage": {
+        "intro": {
+            "headline": "Simple, transparent pricing",
+            "subheadline": "Start with discovery + claiming. Then add the Agent Workspace when you want automation, reporting, competitive intel, and compliance guardrails."
+        },
+        "howItWorks": {
+            "title": "How it works",
+            "bullets": [
+                "Directory Plans get you discovered and let you claim your page.",
+                "Agent Workspace powers ongoing tasks: daily intel, automated follow-ups, reporting, and compliance checks.",
+                "Usage is simple: plans include monthly allowances, and you can add coverage when you grow."
+            ]
+        },
+        "claimProAppendBullets": [
+            "Agent Workspace (Lite): run basic tasks (summaries, page updates, quick insights)",
+            "Intel Preview: weekly placements + pricing bands (in-app)"
+        ],
+        "foundersAppendBullets": [
+            "Includes Agent Workspace (Lite) + Intel Preview"
+        ],
+        "coveragePacksNote": "Coverage Packs can expand ZIP/zone pages and Market Sensor coverage."
+    },
+    "inProductFlows": {
+        "dailySnapshot": {
+            "ctaButton": "Enable Daily Snapshot",
+            "gmailGate": {
+                "title": "Connect Gmail to receive your daily snapshot",
+                "body": "We’ll only use this connection to send the reports you configure. Inbox reading is not required for this feature.",
+                "ctaPrimary": "Connect Gmail",
+                "ctaSecondary": "Not now (view in-app only)"
+            },
+            "setupDefaults": {
+                "title": "MFNY Daily Snapshot Settings",
+                "fields": {
+                    "scopeLabel": "Scope",
+                    "scopeOptions": [
+                        "NY-only (recommended)",
+                        "Nationwide"
+                    ],
+                    "deliveryTimeLabel": "Delivery time",
+                    "deliveryTimeDefault": "8:00 AM America/Chicago",
+                    "recipientsLabel": "Recipients",
+                    "coverageLabel": "Coverage"
+                },
+                "footerNote": "Snapshots use your plan’s Intel Runs + Market Sensors. Upgrade anytime if you need more coverage."
+            }
+        }
+    },
+    "usageWarnings": {
+        "threshold70": "You’re at 70% of {meterLabel}. Upgrade or add coverage to avoid interruptions.",
+        "threshold90": "You’re at 90% of {meterLabel}. Upgrade or add coverage to avoid interruptions."
+    }
+}

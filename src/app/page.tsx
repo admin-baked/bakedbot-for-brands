@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 
 import { LiveStats } from "@/components/landing/live-stats";
+import { PLATFORM_PLANS, ADDONS, OVERAGES } from "@/lib/config/pricing";
 
 /**
  * NOTE
@@ -626,13 +627,19 @@ export default function HomePage() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" asChild href="/pricing">
+              <Button variant="outline" asChild href="/pricing/launch">
                 Full details
               </Button>
               <Button asChild href="/get-started">
                 Start Launch Plan
               </Button>
             </div>
+          </div>
+
+          <div className="mt-6">
+            <p className="font-medium text-center md:text-left text-sm text-foreground bg-primary/5 inline-block px-3 py-1 rounded-lg border border-primary/10">
+              All agents run inside the Agent Workspace and share the same usage allowance + overages.
+            </p>
           </div>
 
           <Tabs
@@ -644,22 +651,22 @@ export default function HomePage() {
                 content: (
                   <div>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                      {pricingTiers.map((t) => (
+                      {PLATFORM_PLANS.map((t) => (
                         <Card key={t.name}>
                           <CardHeader>
                             <div className="flex items-center justify-between gap-2">
                               <CardTitle className="text-lg">{t.name}</CardTitle>
                               <Badge className={t.badge === "Most Popular" ? "bg-foreground text-background" : ""}>
-                                {t.badge}
+                                {t.badge || "Plan"}
                               </Badge>
                             </div>
-                            <CardDescription className="mt-1">{t.highlight}</CardDescription>
+                            <CardDescription className="mt-1">{typeof t.highlight === 'string' ? t.highlight : t.desc}</CardDescription>
                             <div className="mt-4">
                               {t.name === "Enterprise" ? (
                                 <Price value={null} />
                               ) : (
                                 <div>
-                                  <Price value={t.priceLaunch} />
+                                  <Price value={t.price} />
                                   <div className="mt-1 text-xs text-muted-foreground">
                                     <span className="line-through mr-2">{formatMoney(t.priceLater ?? 0)}/mo</span>
                                     <span className="font-medium">Launch pricing</span>
@@ -671,9 +678,9 @@ export default function HomePage() {
                           <CardContent>
                             <Separator className="mb-4" />
                             <ul className="space-y-2 text-sm">
-                              {t.includes.map((inc) => (
-                                <li key={inc} className="flex gap-2">
-                                  <span className="mt-0.5">✓</span>
+                              {t.features.map((inc) => (
+                                <li key={inc} className="flex gap-2 items-start">
+                                  <span className="mt-0.5 shrink-0">✓</span>
                                   <span>{inc}</span>
                                 </li>
                               ))}
@@ -681,7 +688,7 @@ export default function HomePage() {
                           </CardContent>
                           <CardFooter>
                             <Button className="w-full" asChild href={t.name === "Enterprise" ? "/contact" : "/get-started"}>
-                              {t.name === "Enterprise" ? "Talk to Sales" : "Choose Plan"}
+                              {t.name === "Enterprise" ? "Talk to Sales" : t.pill}
                             </Button>
                           </CardFooter>
                         </Card>
@@ -700,8 +707,14 @@ export default function HomePage() {
                 label: "Add-ons",
                 content: (
                   <div>
+                    <div className="mb-6 p-4 bg-muted/50 rounded-xl border border-border">
+                      <h4 className="font-semibold mb-2 text-sm">Agent Workspace Add-ons</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Add specialized agents as your team grows. They plug into the same data and share your monthly usage allowance.
+                      </p>
+                    </div>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                      {addOnPricing.map((a) => (
+                      {ADDONS.map((a) => (
                         <Card key={a.name}>
                           <CardHeader>
                             <CardTitle className="text-lg">{a.name}</CardTitle>
@@ -713,8 +726,7 @@ export default function HomePage() {
                               <span className="text-sm text-muted-foreground pb-1">/mo</span>
                             </div>
                             <p className="mt-3 text-sm text-muted-foreground">
-                              Add-ons layer on top of your Core plan. Included usage stays the same—add-ons expand what you
-                              can do.
+                              {a.desc}
                             </p>
                           </CardContent>
                           <CardFooter>
@@ -725,10 +737,6 @@ export default function HomePage() {
                         </Card>
                       ))}
                     </div>
-                    <p className="mt-6 text-xs text-muted-foreground">
-                      Add-on pricing shown is launch pricing. Enterprise customers may bundle modules with custom limits and
-                      support.
-                    </p>
                   </div>
                 ),
               },
@@ -742,11 +750,14 @@ export default function HomePage() {
                       <CardDescription>Rates keep plans predictable while protecting performance at scale.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {overages.map((o) => (
-                          <div key={o.k} className="rounded-2xl border border-border bg-background p-4">
-                            <div className="text-sm font-medium">{o.k}</div>
-                            <div className="text-sm text-muted-foreground mt-1">{o.v}</div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {OVERAGES.map((o) => (
+                          <div key={o.k} className="rounded-2xl border border-border bg-background p-4 flex flex-col justify-between">
+                            <div>
+                              <div className="text-sm font-medium">{o.k}</div>
+                              <div className="text-sm text-muted-foreground mt-1">{o.v}</div>
+                            </div>
+                            {o.unit && <div className="text-xs text-muted-foreground mt-2 border-t pt-2 w-full text-right">{o.unit}</div>}
                           </div>
                         ))}
                       </div>
@@ -762,52 +773,200 @@ export default function HomePage() {
           />
         </div>
       </section>
-
-      {/* Final CTA */}
-      <section className="mx-auto max-w-6xl px-4 py-14">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Ready to turn your menu into a growth channel?</CardTitle>
-            <CardDescription>
-              Start with Core (Headless Menu + Smokey). Add Craig, Pops, Ezal, and Deebo when you want more automation.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button size="lg" asChild href="/get-started">
-                Start Launch Plan
-              </Button>
-              <Button size="lg" variant="outline" asChild href="/free-audit">
-                Run a Free Audit
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <footer className="mt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-muted-foreground">
-          <div>© {year} BakedBot AI</div>
-          <div className="flex gap-4">
-            <A href="/terms" className="hover:text-foreground">
-              Terms
-            </A>
-            <A href="/privacy" className="hover:text-foreground">
-              Privacy
-            </A>
-            <A href="/contact" className="hover:text-foreground">
-              Contact
-            </A>
+      <div className="mx-auto max-w-6xl px-4 py-14">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-semibold tracking-tight">Launch pricing (tiered usage + overage)</h2>
+            <p className="mt-2 text-muted-foreground max-w-2xl">
+              Predictable plans with included usage. When you outgrow the included limits, you pay transparent overages—no
+              surprises.
+            </p>
           </div>
-        </footer>
-      </section>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild href="/pricing">
+              Full details
+            </Button>
+            <Button asChild href="/get-started">
+              Start Launch Plan
+            </Button>
+          </div>
+        </div>
 
-      {/*
+        <Tabs
+          initial="tiers"
+          tabs={[
+            {
+              key: "tiers",
+              label: "Plans",
+              content: (
+                <div>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {pricingTiers.map((t) => (
+                      <Card key={t.name}>
+                        <CardHeader>
+                          <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-lg">{t.name}</CardTitle>
+                            <Badge className={t.badge === "Most Popular" ? "bg-foreground text-background" : ""}>
+                              {t.badge}
+                            </Badge>
+                          </div>
+                          <CardDescription className="mt-1">{t.highlight}</CardDescription>
+                          <div className="mt-4">
+                            {t.name === "Enterprise" ? (
+                              <Price value={null} />
+                            ) : (
+                              <div>
+                                <Price value={t.priceLaunch} />
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  <span className="line-through mr-2">{formatMoney(t.priceLater ?? 0)}/mo</span>
+                                  <span className="font-medium">Launch pricing</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <Separator className="mb-4" />
+                          <ul className="space-y-2 text-sm">
+                            {t.includes.map((inc) => (
+                              <li key={inc} className="flex gap-2">
+                                <span className="mt-0.5">✓</span>
+                                <span>{inc}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                        <CardFooter>
+                          <Button className="w-full" asChild href={t.name === "Enterprise" ? "/contact" : "/get-started"}>
+                            {t.name === "Enterprise" ? "Talk to Sales" : "Choose Plan"}
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <p className="mt-6 text-xs text-muted-foreground">
+                    Launch pricing is a temporary offer designed to gather real usage data. Plans include a monthly usage
+                    allowance. If you exceed included usage, overages apply (see tab). You can upgrade at any time.
+                  </p>
+                </div>
+              ),
+            },
+            {
+              key: "addons",
+              label: "Add-ons",
+              content: (
+                <div>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {addOnPricing.map((a) => (
+                      <Card key={a.name}>
+                        <CardHeader>
+                          <CardTitle className="text-lg">{a.name}</CardTitle>
+                          <CardDescription>{a.note}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-end gap-2">
+                            <span className="text-3xl font-semibold">{formatMoney(a.price)}</span>
+                            <span className="text-sm text-muted-foreground pb-1">/mo</span>
+                          </div>
+                          <p className="mt-3 text-sm text-muted-foreground">
+                            Add-ons layer on top of your Core plan. Included usage stays the same—add-ons expand what you
+                            can do.
+                          </p>
+                        </CardContent>
+                        <CardFooter>
+                          <Button variant="outline" className="w-full" asChild href="/get-started">
+                            Add to Plan
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    ))}
+                  </div>
+                  <p className="mt-6 text-xs text-muted-foreground">
+                    Add-on pricing shown is launch pricing. Enterprise customers may bundle modules with custom limits and
+                    support.
+                  </p>
+                </div>
+              ),
+            },
+            {
+              key: "overages",
+              label: "Overages",
+              content: (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Transparent overages</CardTitle>
+                    <CardDescription>Rates keep plans predictable while protecting performance at scale.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {overages.map((o) => (
+                        <div key={o.k} className="rounded-2xl border border-border bg-background p-4">
+                          <div className="text-sm font-medium">{o.k}</div>
+                          <div className="text-sm text-muted-foreground mt-1">{o.v}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-4 text-xs text-muted-foreground">
+                      We’ll never silently throttle your growth. You’ll see usage, limits, and projected overages in your
+                      dashboard.
+                    </p>
+                  </CardContent>
+                </Card>
+              ),
+            },
+          ]}
+        />
+      </div>
+    </section>
+
+      {/* Final CTA */ }
+  <section className="mx-auto max-w-6xl px-4 py-14">
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-2xl">Ready to turn your menu into a growth channel?</CardTitle>
+        <CardDescription>
+          Start with Core (Headless Menu + Smokey). Add Craig, Pops, Ezal, and Deebo when you want more automation.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button size="lg" asChild href="/get-started">
+            Start Launch Plan
+          </Button>
+          <Button size="lg" variant="outline" asChild href="/free-audit">
+            Run a Free Audit
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+
+    <footer className="mt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-muted-foreground">
+      <div>© {year} BakedBot AI</div>
+      <div className="flex gap-4">
+        <A href="/terms" className="hover:text-foreground">
+          Terms
+        </A>
+        <A href="/privacy" className="hover:text-foreground">
+          Privacy
+        </A>
+        <A href="/contact" className="hover:text-foreground">
+          Contact
+        </A>
+      </div>
+    </footer>
+  </section>
+
+  {/*
         Lightweight “tests” (no test runner needed):
         These run only in non-production environments to catch regressions.
       */}
-      {process?.env?.NODE_ENV !== "production" ? (
-        <TestHarness />
-      ) : null}
-    </div>
+  {
+    process?.env?.NODE_ENV !== "production" ? (
+      <TestHarness />
+    ) : null
+  }
+    </div >
   );
 }
 
