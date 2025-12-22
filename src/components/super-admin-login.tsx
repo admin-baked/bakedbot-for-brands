@@ -6,7 +6,7 @@
  * Uses Firebase Auth + Server Session Cookie to satisfy middleware protection.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -153,13 +153,36 @@ export default function SuperAdminLogin() {
         }
     };
 
+    const [quote, setQuote] = useState('');
+
+    useEffect(() => {
+        const quotes = [
+            "We ain't got no sugar.",
+            "You got knocked the f*** out!",
+            "Friday is the day you get paid.",
+            "I know you don't smoke weed, I know this...",
+            "Every time I come in the kitchen, you in the kitchen.",
+            "Bye Felicia.",
+            "Daaaaamn!",
+            "It's Friday, you ain't got no job, and you ain't got sh*t to do.",
+            "Don't nobody go in the bathroom for about 35, 45 minutes.",
+            "You win some, you lose some, but you live to fight another day."
+        ];
+        // Select random quote only on client-side mount
+        setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+    }, []);
+
     // Already logged in as super admin
     if (isSuperAdmin) {
         return (
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                        <Shield className="h-6 w-6 text-green-600" />
+                    <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center">
+                        <img
+                            src="/access-robot.png"
+                            alt="BakedBot Security"
+                            className="h-full w-full object-contain"
+                        />
                     </div>
                     <CardTitle className="text-2xl">Super Admin Active</CardTitle>
                     <CardDescription>
@@ -189,12 +212,16 @@ export default function SuperAdminLogin() {
     return (
         <Card className="w-full max-w-md">
             <CardHeader className="text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                    <Shield className="h-6 w-6 text-primary" />
+                <div className="mx-auto mb-4 flex h-32 w-32 items-center justify-center">
+                    <img
+                        src="/access-robot.png"
+                        alt="Verifying Access"
+                        className="h-full w-full object-contain animate-pulse"
+                    />
                 </div>
-                <CardTitle className="text-2xl">Super Admin Access</CardTitle>
+                <CardTitle className="text-2xl">Restricted Access</CardTitle>
                 <CardDescription>
-                    Secure login required for CEO Dashboard
+                    {isSubmitting ? quote : "Authorized Personnel Only"}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -213,7 +240,7 @@ export default function SuperAdminLogin() {
                     {isSubmitting ? (
                         <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Verifying Access...
+                            Verifying Credentials...
                         </>
                     ) : (
                         <>
@@ -261,7 +288,7 @@ export default function SuperAdminLogin() {
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    Logging in...
+                                    Checking ID...
                                 </>
                             ) : (
                                 <>
@@ -272,8 +299,8 @@ export default function SuperAdminLogin() {
                     </>
                 )}
 
-                <div className="text-center text-xs text-muted-foreground">
-                    <p>Protected by Firebase Auth & Server Middleware</p>
+                <div className="text-center text-xs text-muted-foreground mt-4">
+                    <p className="opacity-70">"You ain't got to lie to kick it."</p>
                 </div>
             </CardContent>
         </Card>
