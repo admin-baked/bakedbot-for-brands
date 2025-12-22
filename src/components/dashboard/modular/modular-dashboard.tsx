@@ -88,14 +88,16 @@ export function ModularDashboard({
         }
     }, [width]);
 
-    // Load layout on mount (Server > Local > Default)
+    // Load layout on mount (Server > Local > Default) - deferred to avoid hydration mismatch
     useEffect(() => {
         let mounted = true;
 
         async function initLayout() {
-            // 1. Try local first (fastest)
-            const local = loadLocalLayout(role);
-            if (mounted) setWidgets(local);
+            // 1. Try local first (fastest) - only runs on client after hydration
+            if (typeof window !== 'undefined') {
+                const local = loadLocalLayout(role);
+                if (mounted) setWidgets(local);
+            }
 
             // 2. Fetch server layout
             try {
