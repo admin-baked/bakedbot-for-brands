@@ -3,11 +3,14 @@
  * 
  * Prompts users to install the app when PWA criteria are met.
  * Shows a custom install banner with better UX than browser default.
+ * 
+ * NOTE: Hidden on auth/onboarding pages per onboarding v2 spec.
  */
 
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { X, Download } from 'lucide-react';
@@ -18,9 +21,16 @@ interface BeforeInstallPromptEvent extends Event {
     userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+// Routes where PWA prompt should NOT appear (per onboarding v2 spec)
+const AUTH_ROUTES = ['/onboarding', '/login', '/brand-login', '/customer-login', '/dispensary-login', '/get-started', '/super-admin'];
+
 export function PWAInstallPrompt() {
+    const pathname = usePathname();
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [showPrompt, setShowPrompt] = useState(false);
+    
+    // Hide on auth/onboarding pages
+    const isAuthPage = AUTH_ROUTES.some(route => pathname?.startsWith(route));
 
     useEffect(() => {
         const handler = (e: Event) => {
@@ -80,7 +90,8 @@ export function PWAInstallPrompt() {
         }
     }, []);
 
-    if (!showPrompt) return null;
+    // Hide on auth pages or if prompt not showing
+    if (isAuthPage || !showPrompt) return null;
 
     return (
         <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96 animate-in slide-in-from-bottom-5">

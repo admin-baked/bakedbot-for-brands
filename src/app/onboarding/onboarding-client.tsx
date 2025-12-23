@@ -206,18 +206,9 @@ export default function OnboardingPage() {
       }
     }
 
-    if (role === 'dispensary') {
-      // Pre-fetch competitors if we can (mocked for now, or use zip)
-      setNearbyCompetitors([
-        { id: 'disp_001', name: 'Green Valley Collective', market: 'Nearby' },
-        { id: 'disp_002', name: 'The Higher Path', market: 'Nearby' },
-        { id: 'disp_003', name: 'Sweet Flower', market: 'Nearby' },
-        { id: 'disp_004', name: 'MedMen', market: 'Nearby' }
-      ]);
-      setStep('integrations');
-    } else {
-      setStep('review');
-    }
+    // V2: Skip integrations/competitors/features - move to Setup Checklist
+    // Go directly to review for both Brand and Dispensary
+    setStep('review');
   }
 
   function handleGoToManual() {
@@ -226,11 +217,8 @@ export default function OnboardingPage() {
   }
 
   function handleManualContinue() {
-    if (role === 'dispensary') {
-      setStep('integrations');
-    } else {
-      setStep('review');
-    }
+    // V2: Go directly to review for all roles
+    setStep('review');
   }
 
   // --- Auth Handlers for "Almost There" Modal ---
