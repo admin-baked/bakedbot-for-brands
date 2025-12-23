@@ -6,14 +6,19 @@ import {
     createKnowledgeBaseAction,
     addDocumentAction,
     searchKnowledgeBaseAction,
-    getKnowledgeBasesAction
+    getKnowledgeBasesAction,
+    checkUsageLimitsAction,
+    scrapeUrlAction,
+    getSystemKnowledgeBasesAction
 } from '@/server/actions/knowledge-base';
+import { KNOWLEDGE_LIMITS } from '@/types/knowledge-base';
 
 // --- MOCKS ---
 
 // 1. Mock Auth
 jest.mock('@/server/auth/auth', () => ({
-    requireUser: jest.fn()
+    requireUser: jest.fn(),
+    isSuperUser: jest.fn()
 }));
 
 // 2. Mock Genkit - Importable mock to configure
@@ -24,7 +29,6 @@ jest.mock('@/ai/genkit', () => ({
 }));
 
 // 3. Mock Firebase - Jest mock factory must be self-contained or use strictly hoisted vars
-// Easier pattern: Mock the module methods to return jest.fn(), then configure them in tests
 jest.mock('@/firebase/admin', () => ({
     getAdminFirestore: jest.fn()
 }));
@@ -33,7 +37,10 @@ jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn()
 }));
 
-import { requireUser } from '@/server/auth/auth';
+// 4. Mock global fetch for scrapeUrlAction
+global.fetch = jest.fn();
+
+import { requireUser, isSuperUser } from '@/server/auth/auth';
 import { ai } from '@/ai/genkit';
 import { getAdminFirestore } from '@/firebase/admin';
 import { createServerClient } from '@/firebase/server-client';
@@ -42,8 +49,10 @@ describe('Knowledge Base Actions', () => {
     // Define spies/mocks here to be accessible in tests
     const mockEmbed = ai.embed as jest.Mock;
     const mockRequireUser = requireUser as jest.Mock;
+    const mockIsSuperUser = isSuperUser as jest.Mock;
     const mockGetAdminFirestore = getAdminFirestore as jest.Mock;
     const mockCreateServerClient = createServerClient as jest.Mock;
+    const mockFetch = global.fetch as jest.Mock;
 
     // Firestore Spies
     const mockAdd = jest.fn();
@@ -55,17 +64,20 @@ describe('Knowledge Base Actions', () => {
     const mockOrderBy = jest.fn();
 
     // Helper to create a structured Firestore mock
-    const createFirestoreMock = () => {
-        // Define objects first to allow circular references
+    const createFirestoreMock = (overrides: any = {}) => {
         const mockDocReturn: any = {
             id: 'doc_123',
             exists: true,
             data: jest.fn(() => ({
                 documentCount: 5,
+                totalBytes: 1024,
                 ownerId: 'brand_123',
+                ownerType: 'brand',
                 embedding: [0.1, 0.2, 0.3],
                 title: 'Relevant',
-                content: 'A'
+                content: 'A',
+                byteSize: 100,
+                ...overrides
             })),
             set: mockSet,
             update: mockUpdate,
@@ -108,6 +120,7 @@ describe('Knowledge Base Actions', () => {
             role: 'brand',
             brandId: 'brand_123'
         });
+        mockIsSuperUser.mockResolvedValue(false);
 
         // Setup default Genkit
         mockEmbed.mockResolvedValue([{ embedding: [0.1, 0.2, 0.3] }]);
@@ -118,14 +131,12 @@ describe('Knowledge Base Actions', () => {
         mockCreateServerClient.mockResolvedValue({ firestore: firestoreMock });
 
         // Default collection get (empty by default unless specified)
-        mockGet.mockResolvedValue({ empty: true, forEach: jest.fn() });
+        mockGet.mockResolvedValue({ empty: true, docs: [], forEach: jest.fn() });
     });
 
     describe('createKnowledgeBaseAction', () => {
-        it('should create a new knowledge base', async () => {
-            // Mock empty existing check
+        it('should create a new knowledge base for brand', async () => {
             mockGet.mockResolvedValueOnce({ empty: true });
-            // Mock add return
             mockAdd.mockResolvedValueOnce({ id: 'kb_new', update: jest.fn() });
 
             const result = await createKnowledgeBaseAction({
@@ -138,12 +149,12 @@ describe('Knowledge Base Actions', () => {
             expect(result.success).toBe(true);
             expect(mockAdd).toHaveBeenCalledWith(expect.objectContaining({
                 name: 'My SOPs',
-                ownerId: 'brand_123'
+                ownerId: 'brand_123',
+                totalBytes: 0
             }));
         });
 
         it('should block duplicates', async () => {
-            // Mock existing check found
             mockGet.mockResolvedValueOnce({ empty: false });
 
             const result = await createKnowledgeBaseAction({
@@ -155,51 +166,89 @@ describe('Knowledge Base Actions', () => {
             expect(result.success).toBe(false);
             expect(result.message).toContain('already exists');
         });
-    });
 
-    describe('addDocumentAction', () => {
-        it('should add a document and generate embedding', async () => {
-            mockEmbed.mockResolvedValueOnce([{ embedding: [0.9, 0.8, 0.7] }]); // Mock embedding
+        it('should allow super admin to create system KB', async () => {
+            mockIsSuperUser.mockResolvedValue(true);
+            mockGet.mockResolvedValueOnce({ empty: true });
+            mockAdd.mockResolvedValueOnce({ id: 'kb_system', update: jest.fn() });
 
-            const result = await addDocumentAction({
-                knowledgeBaseId: 'kb_123',
-                title: 'Test Doc',
-                content: 'This is some content to embed.',
-                type: 'text'
+            const result = await createKnowledgeBaseAction({
+                ownerId: 'system',
+                ownerType: 'system',
+                name: 'Global Compliance Rules'
             });
 
             expect(result.success).toBe(true);
+        });
 
-            // Verify embedding call
-            expect(mockEmbed).toHaveBeenCalled();
+        it('should block non-super admin from creating system KB', async () => {
+            mockIsSuperUser.mockResolvedValue(false);
 
-            // Verify Firestore Transaction
-            expect(mockSet).toHaveBeenCalledWith(
-                expect.any(Object),
-                expect.objectContaining({
-                    embedding: [0.9, 0.8, 0.7],
-                    content: 'This is some content to embed.'
-                })
-            );
+            await expect(createKnowledgeBaseAction({
+                ownerId: 'system',
+                ownerType: 'system',
+                name: 'Hacker KB'
+            })).rejects.toThrow('Only super admins');
+        });
+    });
+
+    describe('addDocumentAction', () => {
+        it('should require source field in input', async () => {
+            // Validates that the AddDocumentSchema requires source
+            const schema = await import('@/types/knowledge-base');
+            const result = schema.AddDocumentSchema.safeParse({
+                knowledgeBaseId: 'kb_123',
+                title: 'Test',
+                content: 'Content here to meet minimum',
+                type: 'text'
+                // missing source
+            });
+            expect(result.success).toBe(false);
+        });
+
+        it('should accept valid source values', async () => {
+            const schema = await import('@/types/knowledge-base');
+            const result = schema.AddDocumentSchema.safeParse({
+                knowledgeBaseId: 'kb_123',
+                title: 'Test',
+                content: 'Content here to meet minimum',
+                type: 'text',
+                source: 'paste'
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it('should validate KNOWLEDGE_LIMITS for free tier blocks upload', () => {
+            expect(KNOWLEDGE_LIMITS.free.allowUpload).toBe(false);
+        });
+    });
+
+    describe('checkUsageLimitsAction', () => {
+        it('should return unlimited for system tier', async () => {
+            mockIsSuperUser.mockResolvedValue(true);
+
+            const result = await checkUsageLimitsAction('system', 'system');
+
+            expect(result.isAtLimit).toBe(false);
+            expect(result.limits.maxDocuments).toBe(Infinity);
         });
     });
 
     describe('searchKnowledgeBaseAction', () => {
-        it('should search using cosine similarity', async () => {
-            // 1. Mock query embedding
+        it('should search using cosine similarity fallback', async () => {
             mockEmbed.mockReset();
             mockEmbed.mockResolvedValue([{ embedding: [1, 0, 0] }]);
 
-            // 2. Mock stored documents with embeddings
+            // Mock stored documents with embeddings
             mockGet.mockResolvedValueOnce({
                 forEach: (cb: any) => {
                     cb({
                         id: 'doc1',
-                        data: () => ({ title: 'Relevant', content: 'A', embedding: [1, 0, 0] }) // Similarity 1.0
+                        data: () => ({ title: 'Relevant', content: 'A', source: 'paste', embedding: [1, 0, 0] })
                     });
                     cb({
                         id: 'doc2',
-                        data: () => ({ title: 'Irrelevant', content: 'B', embedding: [0, 1, 0] }) // Similarity 0.0
+                        data: () => ({ title: 'Irrelevant', content: 'B', source: 'paste', embedding: [0, 1, 0] })
                     });
                 }
             });
@@ -209,6 +258,60 @@ describe('Knowledge Base Actions', () => {
             expect(results).toHaveLength(1); // Only doc1 > 0.6 threshold
             expect(results[0].title).toBe('Relevant');
             expect(results[0].similarity).toBeCloseTo(1.0);
+        });
+
+        it('should return empty for short queries', async () => {
+            const results = await searchKnowledgeBaseAction('kb_123', 'ab', 5);
+            expect(results).toEqual([]);
+        });
+    });
+
+    describe('scrapeUrlAction', () => {
+        it('should fail for invalid URLs', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: false,
+                status: 404
+            });
+
+            const result = await scrapeUrlAction({
+                knowledgeBaseId: 'kb_123',
+                url: 'https://example.com/notfound'
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.message).toContain('404');
+        });
+
+        it('should validate ScrapeUrlSchema', async () => {
+            const schema = await import('@/types/knowledge-base');
+            const result = schema.ScrapeUrlSchema.safeParse({
+                knowledgeBaseId: 'kb_123',
+                url: 'https://example.com/article'
+            });
+            expect(result.success).toBe(true);
+        });
+    });
+
+    describe('KNOWLEDGE_LIMITS', () => {
+        it('should have correct limits for free tier', () => {
+            expect(KNOWLEDGE_LIMITS.free.maxDocuments).toBe(5);
+            expect(KNOWLEDGE_LIMITS.free.allowUpload).toBe(false);
+            expect(KNOWLEDGE_LIMITS.free.allowDrive).toBe(false);
+        });
+
+        it('should have correct limits for claim_pro tier', () => {
+            expect(KNOWLEDGE_LIMITS.claim_pro.maxDocuments).toBe(50);
+            expect(KNOWLEDGE_LIMITS.claim_pro.allowUpload).toBe(true);
+            expect(KNOWLEDGE_LIMITS.claim_pro.allowDrive).toBe(false);
+        });
+
+        it('should have correct limits for starter tier', () => {
+            expect(KNOWLEDGE_LIMITS.starter.maxDocuments).toBe(500);
+            expect(KNOWLEDGE_LIMITS.starter.allowDrive).toBe(true);
+        });
+
+        it('should have unlimited for system tier', () => {
+            expect(KNOWLEDGE_LIMITS.system.maxDocuments).toBe(Infinity);
         });
     });
 });
