@@ -7,19 +7,34 @@
 
 import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
 import { getServerSessionUser } from '@/server/auth/session';
+import { isSuperAdminEmail } from '@/lib/super-admin-config';
 
 /**
  * Check if current user is a Super User
+ * Checks both Firestore role/flag AND email whitelist
  */
 export async function isSuperUser(uid: string): Promise<boolean> {
     try {
         const adminDb = getAdminFirestore();
-        const auth = getAdminAuth();
         const userDoc = await adminDb.collection('users').doc(uid).get();
         const userData = userDoc.data();
         
         // Check for super_user role or admin with elevated permissions
-        return userData?.role === 'super_user' || userData?.isSuperAdmin === true;
+        if (userData?.role === 'super_user' || userData?.isSuperAdmin === true) {
+            return true;
+        }
+        
+        // Also check email whitelist (syncs with client-side super admin check)
+        if (userData?.email && isSuperAdminEmail(userData.email)) {
+            return true;
+        }
+        
+        // Also check owner role (they have super admin access)
+        if (userData?.role === 'owner') {
+            return true;
+        }
+        
+        return false;
     } catch (error) {
         console.error('Error checking super user status:', error);
         return false;
