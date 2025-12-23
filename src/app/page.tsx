@@ -4,6 +4,32 @@ import React, { useMemo, useState } from "react";
 
 import { LiveStats } from "@/components/landing/live-stats";
 import { PLATFORM_PLANS, ADDONS, OVERAGES } from "@/lib/config/pricing";
+import { useUser } from "@/hooks/use-user";
+
+function AuthButtons() {
+    const { user, isLoading } = useUser();
+
+    if (isLoading) return null; // Or a spinner
+
+    if (user) {
+        return (
+            <Button asChild href="/dashboard">
+                Dashboard <span className="ml-2">→</span>
+            </Button>
+        );
+    }
+
+    return (
+        <>
+            <Button variant="ghost" asChild href="/login" className="hidden sm:inline-flex">
+                Login
+            </Button>
+            <Button asChild href="/get-started">
+                Get Started <span className="ml-2">→</span>
+            </Button>
+        </>
+    );
+}
 
 /**
  * NOTE
@@ -405,12 +431,7 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" asChild href="/login" className="hidden sm:inline-flex">
-              Login
-            </Button>
-            <Button asChild href="/get-started">
-              Get Started <span className="ml-2">→</span>
-            </Button>
+            <AuthButtons />
           </div>
         </div>
       </header>
