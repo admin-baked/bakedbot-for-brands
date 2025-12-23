@@ -1,6 +1,27 @@
 
 # Progress Log
 
+## Session: Delete Action Test Mock Fixes
+**Date:** 2025-12-23
+**Task ID:** DELETE-TESTS-FIX-001
+
+### Summary
+Fixed test mocks in `delete-account.test.ts` that were causing 9 test failures. The mocks were using direct exports (`adminDb`, `auth`) instead of function calls (`getAdminFirestore()`, `getAdminAuth()`).
+
+### Key Changes
+*   Updated mock structure to use `getAdminFirestore()` and `getAdminAuth()` function exports
+*   Replaced all `adminDb` references with `mockAdminDb`
+*   Replaced all `auth` references with `mockAuth`
+*   All 24 delete action tests now pass (15 delete-account + 9 delete-organization)
+
+### Tests Run
+*   `npm test -- --testPathPattern="delete-account.test|delete-organization.test"` (24/24 Passed)
+
+### Commits
+*   `1fc502ee`: fix(tests): Update delete-account tests to use getAdminFirestore/getAdminAuth function mocks
+
+---
+
 ## Session: Console Error Fixes - PWA Icon, Auth Redirect, Hydration
 **Date:** 2025-12-23
 **Task ID:** CONSOLE-FIX-001
@@ -434,3 +455,21 @@ Comprehensive testing and verification of the Account & Organization Deletion sy
 
 ### Commits
 *   `93f74d4a`: `feat: implement comprehensive testing for deletion system and recent dashboard features`
+
+## Session: Fix Build - Server Actions Error
+**Date:** 2025-12-23
+**Task ID:** BUILD-FIX-SERVER-ACTIONS-001
+
+### Summary
+Fixed critical build errors where `src/server/integrations/gmail/oauth.ts` and `src/server/utils/secrets.ts` were incorrectly marked with `'use server'`, causing the build to fail because they exported synchronous functions which Next.js treats as invalid Server Actions.
+
+### Key Changes
+*   Removed `'use server'` from `src/server/integrations/gmail/oauth.ts`.
+*   Removed `'use server'` from `src/server/utils/secrets.ts`.
+*   Added `// server-only` comment to clarify intent.
+*   Verified types with `npm run check:types`.
+
+### Tests Run
+*   `npm run check:types` (Passed)
+
+---

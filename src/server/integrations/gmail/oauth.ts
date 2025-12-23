@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Gmail OAuth Module
  *
