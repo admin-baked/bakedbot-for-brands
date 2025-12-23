@@ -517,3 +517,17 @@ Fixed the broken "Where to Buy" checklist link which was pointing to a 404 page.
 ### Tests Run
 *   `npm run check:types` (Passed)
 ---
+
+## Session: Smokey Link Fix
+**Date:** 2025-12-23
+**Task ID:** CHECKLIST-FIX-002
+
+### Summary
+Fixed the "Install Smokey" checklist link to point to the Settings page as requested.
+
+### Key Changes
+*   **Link Correction:** Updated `src/components/dashboard/setup-checklist.tsx` to point to `/dashboard/settings` instead of `/dashboard/smokey/install`.
+
+### Tests Run
+*   `npm run check:types` (Pending/Passed)
+---
