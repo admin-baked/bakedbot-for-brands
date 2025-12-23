@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { AudioRecorder } from '@/components/ui/audio-recorder';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -40,7 +41,11 @@ import {
     ShieldCheck,
     AlertCircle,
     Copy,
-    CheckCircle
+    CheckCircle,
+    Paperclip,
+    X,
+    FileText,
+    Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { runAgentChat } from '../agents/actions';
@@ -115,10 +120,10 @@ export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
 
 function ModelSelector({ value, onChange }: { value: ThinkingLevel, onChange: (v: ThinkingLevel) => void }) {
     const options: Record<ThinkingLevel, { label: string, desc: string, icon: any }> = {
-        standard: { label: 'Standard', desc: 'Fast & cost-effective', icon: Sparkles },
-        advanced: { label: 'Advanced', desc: 'Complex logic', icon: Brain },
-        expert: { label: 'Expert', desc: 'Deep reasoning', icon: Zap },
-        genius: { label: 'Genius', desc: 'Maximum intelligence', icon: Rocket },
+        standard: { label: 'Standard', desc: 'Fast & cost-effective (Gemini Flash)', icon: Sparkles },
+        advanced: { label: 'Reasoning', desc: 'Complex logic (Gemini Pro)', icon: Brain },
+        expert: { label: 'Expert', desc: 'Deep reasoning (O1 Preview)', icon: Zap },
+        genius: { label: 'Gemini 3', desc: 'Next-Gen Intelligence', icon: Rocket },
     };
     const SelectedIcon = options[value].icon;
     return (
@@ -386,10 +391,43 @@ export function PuffChat({
     const [toolMode, setToolMode] = useState<ToolMode>('auto');
     const [selectedTools, setSelectedTools] = useState<AvailableTool[]>([]);
 
+    // Multi-modal State
+    const [attachments, setAttachments] = useState<{ id: string, file: File, preview?: string, type: 'image' | 'file' }[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const handleToggleTool = (tool: AvailableTool) => {
         setSelectedTools(prev =>
             prev.includes(tool) ? prev.filter(t => t !== tool) : [...prev, tool]
         );
+    };
+
+    // --- File Handling ---
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const newAttachments = Array.from(e.target.files).map(file => ({
+                id: Math.random().toString(36).substr(2, 9),
+                file,
+                type: file.type.startsWith('image/') ? 'image' as const : 'file' as const,
+                preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+            }));
+            setAttachments(prev => [...prev, ...newAttachments]);
+        }
+    };
+
+    const removeAttachment = (id: string) => {
+        setAttachments(prev => prev.filter(a => a.id !== id));
+    };
+
+    const handleAudioComplete = async (audioBlob: Blob) => {
+        // Convert blob to base64
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+             const base64Audio = reader.result as string; 
+             // Auto-submit audio for now, or append as attachment?
+             // Let's create a specialized submission for audio
+             submitMessage('', base64Audio);
+        };
     };
 
     // Effect to read persona from query parameters
@@ -455,20 +493,40 @@ export function PuffChat({
         workDuration: 0 // Not persisted but OK
     }));
 
-    const handleSubmit = useCallback(async () => {
-        if (!input.trim() || isProcessing) return;
+    const convertAttachments = async () => {
+        return Promise.all(attachments.map(async (a) => {
+            return new Promise<{ name: string, type: string, base64: string }>((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(a.file);
+                reader.onloadend = () => {
+                    resolve({
+                        name: a.file.name,
+                        type: a.file.type,
+                        base64: reader.result as string
+                    });
+                };
+            });
+        }));
+    };
 
-        const userInput = input;
+    const submitMessage = async (textInput: string, audioBase64?: string) => {
+        if ((!textInput.trim() && !audioBase64 && attachments.length === 0) || isProcessing) return;
+
+        const userInput = textInput;
+        // If audio, we might show "Audio Message" or wait for transscript
+        const displayContent = audioBase64 ? '🎤 Voice Message' : (userInput || (attachments.length > 0 ? `Sent ${attachments.length} attachment(s)` : ''));
 
         const userMsgId = `user-${Date.now()}`;
         addMessage({
             id: userMsgId,
             type: 'user',
-            content: userInput,
-            timestamp: new Date()
+            content: displayContent,
+            timestamp: new Date(),
+            // Store attachment metadata if needed in future
         });
 
         setInput('');
+        setAttachments([]); // Clear attachments after send
         setIsProcessing(true);
 
         const thinkingId = `thinking-${Date.now()}`;
@@ -485,8 +543,19 @@ export function PuffChat({
         }, 1000);
 
         try {
+            // Prepare payload
+            const processedAttachments = await convertAttachments();
+            
             // Call the real AI backend
-            const response = await runAgentChat(userInput, persona);
+            const response = await runAgentChat(
+                userInput, 
+                persona, 
+                { 
+                    modelLevel: thinkingLevel,
+                    audioInput: audioBase64,
+                    attachments: processedAttachments 
+                }
+            );
 
             clearInterval(durationInterval);
 
@@ -558,9 +627,12 @@ export function PuffChat({
         setIsProcessing(false);
 
         if (onSubmit) {
+            // Callback primarily for outside hooks, if needed
             await onSubmit(userInput);
         }
-    }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona, toolMode, selectedTools, user]);
+    };
+
+    const handleSubmit = () => submitMessage(input);
 
     const handleGrantPermission = (permissionId: string) => {
         // In a real app, this would trigger an OAuth flow
@@ -589,6 +661,29 @@ export function PuffChat({
     // Input component (reusable for both positions)
     const InputArea = (
         <div className={cn("p-4", hasMessages ? "border-t" : "border-b", hideHeader && "p-2 border-0")}>
+            {/* Attachment Previews */}
+            {attachments.length > 0 && (
+                <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
+                    {attachments.map(att => (
+                        <div key={att.id} className="relative group shrink-0">
+                            <div className="border rounded-lg overflow-hidden w-16 h-16 flex items-center justify-center bg-muted">
+                                {att.type === 'image' ? (
+                                    <img src={att.preview} alt="preview" className="w-full h-full object-cover" />
+                                ) : (
+                                    <FileText className="w-8 h-8 text-muted-foreground" />
+                                )}
+                            </div>
+                            <button 
+                                onClick={() => removeAttachment(att.id)}
+                                className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
+                            >
+                                <X className="w-3 h-3" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+            
             <div className={cn("mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner", hideHeader ? "w-full" : "max-w-3xl")}>
                 {promptSuggestions.length > 0 && !hasMessages && (
                     <div className="flex flex-wrap gap-2 mb-2">
@@ -605,24 +700,39 @@ export function PuffChat({
                         ))}
                     </div>
                 )}
-                <Textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={hasMessages ? "Reply to continue..." : "Ask Baked HQ anything..."}
-                    className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base"
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSubmit();
-                        }
-                    }}
-                />
+                
+                <div className="flex gap-2">
+                     <Textarea
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder={hasMessages ? "Reply, or use microphone..." : "Ask Baked HQ anything..."}
+                        className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base flex-1"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSubmit();
+                            }
+                        }}
+                    />
+                </div>
+
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Upload className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => fileInputRef.current?.click()}>
+                            <Paperclip className="h-4 w-4" />
                         </Button>
-                        <div className="border-l pl-2 flex items-center gap-1">
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            className="hidden" 
+                            multiple 
+                            onChange={handleFileSelect}
+                        />
+                         
+                         {/* Separator / Divider */}
+                        <div className="h-4 w-[1px] bg-border mx-1" />
+
+                        <div className="flex items-center gap-1">
                             <PersonaSelector value={persona} onChange={setPersona} />
                             <ModelSelector value={thinkingLevel} onChange={setThinkingLevel} />
                             <ToolSelector
@@ -633,15 +743,23 @@ export function PuffChat({
                             />
                         </div>
                     </div>
-                    <Button
-                        size="icon"
-                        className={cn("h-8 w-8 rounded-full transition-all", input.trim() ? "bg-primary" : "bg-muted text-muted-foreground")}
-                        disabled={!input.trim() || isProcessing}
-                        onClick={handleSubmit}
-                        data-testid="send-button"
-                    >
-                        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    </Button>
+                    
+                    <div className="flex items-center gap-2">
+                        <AudioRecorder 
+                            onRecordingComplete={handleAudioComplete} 
+                            isProcessing={isProcessing}
+                        />
+
+                        <Button
+                            size="icon"
+                            className={cn("h-8 w-8 rounded-full transition-all", input.trim() || attachments.length > 0 ? "bg-primary" : "bg-muted text-muted-foreground")}
+                            disabled={(!input.trim() && attachments.length === 0) || isProcessing}
+                            onClick={handleSubmit}
+                            data-testid="send-button"
+                        >
+                            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        </Button>
+                    </div>
                 </div>
             </div>
             {!hasMessages && (

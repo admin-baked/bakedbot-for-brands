@@ -277,8 +277,55 @@ export interface AgentResult {
     logs?: string[];
 }
 
-export async function runAgentChat(userMessage: string, personaId?: string): Promise<AgentResult> {
-    console.log('[runAgentChat] Starting with message:', userMessage, 'Persona:', personaId);
+// Extending the input options
+interface ChatExtraOptions {
+    modelLevel?: string;
+    audioInput?: string; // base64
+    attachments?: { name: string; type: string; base64: string }[];
+}
+
+export async function runAgentChat(userMessage: string, personaId?: string, extraOptions?: ChatExtraOptions): Promise<AgentResult> {
+    console.log('[runAgentChat] Starting with message:', userMessage.substring(0, 50), 'Persona:', personaId, 'Mode:', extraOptions?.modelLevel);
+    
+    // If audio input is present, we would ideally transcode/transcribe here.
+    // For now, we will simulate a transcription or assume the UserMessage contains the transcribed text if done client-side.
+    // However, if we want server-side STT (Speech-to-Text), we would call a tool here.
+    // Assuming for this MVP iteration, client sends text or we treat audio as an attachment for the model to "hear" if supported.
+    // Multi-modal Gemini supports audio directly.
+
+    let finalMessage = userMessage;
+
+    // Handle Attachments (Prepending to prompt for now, or using Genkit's multi-modal structure if applicable)
+    // Since we are using a simplified 'triggerAgentRun' which takes a string string stimulus,
+    // we will serialize the context into the string for the agents to "read".
+    // Later upgrade: Update `triggerAgentRun` to support real multi-modal Parts.
+    
+    if (extraOptions?.attachments?.length) {
+        finalMessage += `\n\n[ATTACHMENTS]\nThe user has uploaded ${extraOptions.attachments.length} files.`;
+        // We can't easily pass base64 to all underlying agents via string, 
+        // so for MVP we might just acknowledge them or if they are text/code, decode them.
+        
+        for (const file of extraOptions.attachments) {
+            // For text files, we can inline content
+            if (file.type.includes('text') || file.type.includes('json') || file.type.includes('javascript')) {
+                try {
+                     const content = Buffer.from(file.base64.split(',')[1], 'base64').toString('utf-8');
+                     finalMessage += `\n\n--- File: ${file.name} ---\n${content.substring(0, 2000)}\n--- End File ---\n`;
+                } catch (e) { console.error('Failed to decode file', e); }
+            } else {
+                 finalMessage += `\n- ${file.name} (${file.type})`;
+            }
+        }
+    }
+    
+    // Handle Audio (Simulated transcription indication)
+    if (extraOptions?.audioInput) {
+        finalMessage += `\n\n[AUDIO INPUT RECEIVED] (Voice processing enabled)`;
+        // In a real system: const text = await transcode(extraOptions.audioInput); finalMessage = text;
+    }
+
+    // Override userMessage with rich content
+    userMessage = finalMessage;
 
     // Select Persona
     const activePersona = personaId && PERSONAS[personaId as AgentPersona]

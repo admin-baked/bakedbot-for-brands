@@ -114,6 +114,9 @@ export async function createKnowledgeBaseAction(input: z.infer<typeof CreateKnow
 /**
  * Get all Knowledge Bases for a specific owner
  */
+/**
+ * Get all Knowledge Bases for a specific owner
+ */
 export async function getKnowledgeBasesAction(ownerId: string) {
     await requireUser();
     const { firestore } = await createServerClient();
@@ -123,7 +126,15 @@ export async function getKnowledgeBasesAction(ownerId: string) {
         .orderBy('createdAt', 'desc')
         .get();
 
-    return snapshot.docs.map(doc => doc.data() as KnowledgeBase);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            ...data,
+            id: doc.id,
+            createdAt: (data.createdAt as any)?.toDate ? (data.createdAt as any).toDate() : new Date(data.createdAt),
+            updatedAt: (data.updatedAt as any)?.toDate ? (data.updatedAt as any).toDate() : new Date(data.updatedAt)
+        } as KnowledgeBase;
+    });
 }
 
 /**
@@ -138,7 +149,15 @@ export async function getSystemKnowledgeBasesAction() {
         .where('enabled', '==', true)
         .get();
 
-    return snapshot.docs.map(doc => doc.data() as KnowledgeBase);
+    return snapshot.docs.map(doc => {
+         const data = doc.data();
+         return {
+             ...data,
+             id: doc.id,
+             createdAt: (data.createdAt as any)?.toDate ? (data.createdAt as any).toDate() : new Date(data.createdAt),
+             updatedAt: (data.updatedAt as any)?.toDate ? (data.updatedAt as any).toDate() : new Date(data.updatedAt)
+         } as KnowledgeBase;
+    });
 }
 
 /**
@@ -314,7 +333,12 @@ export async function getDocumentsAction(kbId: string) {
     return snapshot.docs.map(doc => {
         const data = doc.data();
         const { embedding, ...rest } = data;
-        return rest as Omit<KnowledgeDocument, 'embedding'>;
+        return {
+            ...rest,
+            id: doc.id,
+            createdAt: (data.createdAt as any)?.toDate ? (data.createdAt as any).toDate() : new Date(data.createdAt),
+            updatedAt: (data.updatedAt as any)?.toDate ? (data.updatedAt as any).toDate() : new Date(data.updatedAt)
+        } as Omit<KnowledgeDocument, 'embedding'>;
     });
 }
 
