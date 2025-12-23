@@ -32,7 +32,7 @@ export async function sendGmail(options: SendEmailOptions) {
     oauth2Client.setCredentials(credentials);
 
     // Listen for token refresh events to update stored tokens
-    oauth2Client.on('tokens', async (tokens) => {
+    oauth2Client.on('tokens', async (tokens: { refresh_token?: string | null; access_token?: string | null }) => {
         if (tokens.refresh_token) {
             await saveGmailToken(userId, tokens);
         }
