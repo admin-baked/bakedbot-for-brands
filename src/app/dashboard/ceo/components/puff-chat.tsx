@@ -53,6 +53,7 @@ import { saveChatSession, getChatSessions } from '@/server/actions/chat-persiste
 import { AgentPersona } from '../agents/personas';
 import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useUser } from '@/firebase/auth/use-user';
+import { ModelSelector, ThinkingLevel } from './model-selector';
 
 // ============ Types ============
 

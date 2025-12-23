@@ -361,12 +361,19 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
         try {
             const { getKnowledgeBasesAction, searchKnowledgeBaseAction } = await import('@/server/actions/knowledge-base');
 
-            // 1. Find relevant KBs (Agent-specific OR Brand-specific)
-            // Strategy: Check if there is an Agent KB (primary) or Brand KB (secondary)
+            // 1. Find relevant KBs (Agent-specific OR Brand/Dispensary-specific)
+            // Strategy: Check if there is an Agent KB (primary) or Brand/Dispensary KB (secondary)
             const kbs = await getKnowledgeBasesAction(agentInfo?.id || 'general');
-            const brandKbs = role === 'brand' ? await getKnowledgeBasesAction(userBrandId) : [];
+            
+            let userKbs: any[] = [];
+            if (role === 'brand') {
+                userKbs = await getKnowledgeBasesAction(userBrandId);
+            } else if (role === 'dispensary') {
+                 // Assuming dispensary uses same knowledge base structure, mapped by ownerId
+                 userKbs = await getKnowledgeBasesAction(userBrandId);
+            }
 
-            const allKbs = [...kbs, ...brandKbs];
+            const allKbs = [...kbs, ...userKbs];
 
             if (allKbs.length > 0) {
                 // 2. Perform semantic search across found KBs

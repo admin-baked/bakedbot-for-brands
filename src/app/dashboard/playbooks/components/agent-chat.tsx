@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +36,14 @@ import {
     Search,
     ShieldCheck,
     Wrench,
-    Settings
+    Settings,
+    Copy,
+    CheckCircle,
+    Paperclip,
+    X,
+    FileText,
+    Image as ImageIcon,
+    Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { runAgentChat } from '../../ceo/agents/actions';
@@ -44,6 +51,8 @@ import { AgentPersona } from '../../ceo/agents/personas';
 import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useUserRole } from '@/hooks/use-user-role';
 import { useUser } from '@/firebase/auth/use-user';
+import { AudioRecorder } from '@/components/ui/audio-recorder';
+import { ModelSelector, ThinkingLevel } from '../../ceo/components/model-selector';
 
 // ============ Types ============
 
@@ -119,40 +128,12 @@ export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
 
 // ============ Sub-components ============
 
-function ModelSelector({ value, onChange }: { value: ThinkingLevel, onChange: (v: ThinkingLevel) => void }) {
-    const options: Record<ThinkingLevel, { label: string, desc: string, icon: any }> = {
-        standard: { label: 'Standard', desc: 'Fast & cost-effective', icon: Sparkles },
-        advanced: { label: 'Advanced', desc: 'Complex logic', icon: Brain },
-        expert: { label: 'Expert', desc: 'Deep reasoning', icon: Zap },
-        genius: { label: 'Genius', desc: 'Maximum intelligence', icon: Rocket },
-    };
-    const SelectedIcon = options[value].icon;
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs font-medium border border-transparent hover:border-border hover:bg-background">
-                    <SelectedIcon className="h-3 w-3 text-primary" />
-                    {options[value].label}
-                    <ChevronDown className="h-3 w-3 opacity-50" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[280px]">
-                <DropdownMenuLabel>Intelligence Level</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {(Object.entries(options) as [ThinkingLevel, typeof options['standard']][]).map(([key, opt]) => (
-                    <DropdownMenuItem key={key} onClick={() => onChange(key)} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
-                        <div className="flex items-center gap-2 w-full">
-                            <opt.icon className="h-4 w-4 text-primary" />
-                            <span className="font-medium flex-1">{opt.label}</span>
-                            {value === key && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
-                        </div>
-                        <span className="text-xs text-muted-foreground ml-6">{opt.desc}</span>
-                    </DropdownMenuItem>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-}
+// ModelSelector is now imported
+
+
+// ... (PersonaSelector and ToolSelector omitted as they assume no changes, keeping surrounding code) - wait I need to keep them or I overwrite if I replaced huge chunk.
+// Actually, to precise edit, I will replace ModelSelector definition first, then Update AgentChat Component separately.
+// This block targetted ModelSelector definition range.
 
 function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (v: AgentPersona) => void }) {
     const options: Record<AgentPersona, { label: string, desc: string, icon: any }> = {
@@ -200,6 +181,7 @@ function ToolSelector({
     onModeChange: (mode: ToolMode) => void;
     onToggleTool: (tool: AvailableTool) => void;
 }) {
+    // ... existing implementation ...
     const tools: { id: AvailableTool; label: string; icon: any }[] = [
         { id: 'gmail', label: 'Gmail', icon: Mail },
         { id: 'calendar', label: 'Calendar', icon: Calendar },
@@ -246,6 +228,12 @@ function ToolSelector({
         </DropdownMenu>
     );
 }
+
+// ... ConnectionIcon, PermissionCard, TriggerIndicator, ThinkingIndicator, StepsList ...
+// I will keep the rest of the file and only replace main component logic in next chunk if needed.
+// IMPORTANT: I am replacing ModelSelector, PersonaSelector, ToolSelector to keep file clean.
+
+// ... (Keeping ConnectionIcon and others)
 
 function ConnectionIcon({ type }: { type: ToolPermission['icon'] }) {
     switch (type) {
@@ -380,6 +368,7 @@ function StepsList({ steps }: { steps: ToolCallStep[] }) {
     );
 }
 
+
 // ============ Main Component ============
 
 // Page context for brand/dispensary pages
@@ -450,9 +439,9 @@ export function AgentChat({
     const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
     const [persona, setPersona] = useState<AgentPersona>('puff');
 
-    // ... (rest of the state)
-
-    if (!hasMounted) return null;
+    // Multi-modal State
+    const [attachments, setAttachments] = useState<{ id: string, file: File, preview?: string, type: 'image' | 'file' }[]>([]);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     // Tool Selection State
     const [toolMode, setToolMode] = useState<ToolMode>('auto');
@@ -462,6 +451,48 @@ export function AgentChat({
         setSelectedTools(prev =>
             prev.includes(tool) ? prev.filter(t => t !== tool) : [...prev, tool]
         );
+    };
+
+    // --- File Handling ---
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const newAttachments = Array.from(e.target.files).map(file => ({
+                id: Math.random().toString(36).substr(2, 9),
+                file,
+                type: file.type.startsWith('image/') ? 'image' as const : 'file' as const,
+                preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+            }));
+            setAttachments(prev => [...prev, ...newAttachments]);
+        }
+    };
+
+    const removeAttachment = (id: string) => {
+        setAttachments(prev => prev.filter(a => a.id !== id));
+    };
+
+    const handleAudioComplete = async (audioBlob: Blob) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+             const base64Audio = reader.result as string; 
+             submitMessage('', base64Audio);
+        };
+    };
+
+    const convertAttachments = async () => {
+        return Promise.all(attachments.map(async (a) => {
+            return new Promise<{ name: string, type: string, base64: string }>((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(a.file);
+                reader.onloadend = () => {
+                    resolve({
+                        name: a.file.name,
+                        type: a.file.type,
+                        base64: reader.result as string
+                    });
+                };
+            });
+        }));
     };
 
     // Map store messages to PuffMessage structure
@@ -476,20 +507,22 @@ export function AgentChat({
         workDuration: 0 // Not persisted but OK
     }));
 
-    const handleSubmit = useCallback(async () => {
-        if (!input.trim() || isProcessing) return;
+    const submitMessage = useCallback(async (textInput: string, audioBase64?: string) => {
+        if ((!textInput.trim() && !audioBase64 && attachments.length === 0) || isProcessing) return;
 
-        const userInput = input;
+        const userInput = textInput;
+        const displayContent = audioBase64 ? '🎤 Voice Message' : (userInput || (attachments.length > 0 ? `Sent ${attachments.length} attachment(s)` : ''));
 
         const userMsgId = `user-${Date.now()}`;
         addMessage({
             id: userMsgId,
             type: 'user',
-            content: userInput,
+            content: displayContent,
             timestamp: new Date()
         });
 
         setInput('');
+        setAttachments([]);
         setIsProcessing(true);
 
         const thinkingId = `thinking-${Date.now()}`;
@@ -506,8 +539,18 @@ export function AgentChat({
         }, 1000);
 
         try {
+            const processedAttachments = await convertAttachments();
+
             // Call the real AI backend
-            const response = await runAgentChat(userInput, persona);
+            const response = await runAgentChat(
+                userInput, 
+                persona,
+                { 
+                    modelLevel: thinkingLevel,
+                    audioInput: audioBase64,
+                    attachments: processedAttachments 
+                }
+            );
 
             clearInterval(durationInterval);
 
@@ -582,7 +625,9 @@ export function AgentChat({
         if (onSubmit) {
             await onSubmit(userInput);
         }
-    }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona, toolMode, selectedTools, user]);
+    }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona, toolMode, selectedTools, user, attachments, thinkingLevel, convertAttachments]);
+
+    const handleSubmit = () => submitMessage(input);
 
     const handleGrantPermission = (permissionId: string) => {
         setState(prev => ({
@@ -593,16 +638,41 @@ export function AgentChat({
         }));
     };
 
+    if (!hasMounted) return null;
+
     const hasMessages = displayMessages.length > 0;
 
     // Input component (reusable for both positions)
     const InputArea = (
         <div className={cn("p-4", hasMessages ? "border-t" : "border-b")}>
+             {/* Attachment Previews */}
+             {attachments.length > 0 && (
+                <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
+                    {attachments.map(att => (
+                        <div key={att.id} className="relative group shrink-0">
+                            <div className="border rounded-lg overflow-hidden w-16 h-16 flex items-center justify-center bg-muted">
+                                {att.type === 'image' ? (
+                                    <img src={att.preview} alt="preview" className="w-full h-full object-cover" />
+                                ) : (
+                                    <FileText className="w-8 h-8 text-muted-foreground" />
+                                )}
+                            </div>
+                            <button 
+                                onClick={() => removeAttachment(att.id)}
+                                className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
+                            >
+                                <X className="w-3 h-3" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             <div className="max-w-3xl mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner">
                 <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder={hasMessages ? "Reply to continue..." : "Ask Baked HQ anything..."}
+                    placeholder={hasMessages ? "Reply, or use microphone..." : "Ask Baked HQ anything..."}
                     className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base"
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
@@ -613,12 +683,27 @@ export function AgentChat({
                 />
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Upload className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => fileInputRef.current?.click()}>
+                            <Paperclip className="h-4 w-4" />
                         </Button>
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            className="hidden" 
+                            multiple 
+                            onChange={handleFileSelect}
+                        />
+
+                        {/* Separator */}
+                        <div className="h-4 w-[1px] bg-border mx-1" />
+
                         <div className="border-l pl-2 flex items-center gap-1">
                             <PersonaSelector value={persona} onChange={setPersona} />
-                            <ModelSelector value={thinkingLevel} onChange={setThinkingLevel} />
+                            <ModelSelector 
+                                value={thinkingLevel} 
+                                onChange={setThinkingLevel} 
+                                userPlan={(user as any)?.planId || 'free'} 
+                            />
                             <ToolSelector
                                 mode={toolMode}
                                 selectedTools={selectedTools}
@@ -627,14 +712,20 @@ export function AgentChat({
                             />
                         </div>
                     </div>
-                    <Button
-                        size="icon"
-                        className={cn("h-8 w-8 rounded-full transition-all", input.trim() ? "bg-primary" : "bg-muted text-muted-foreground")}
-                        disabled={!input.trim() || isProcessing}
-                        onClick={handleSubmit}
-                    >
-                        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                         <AudioRecorder 
+                            onRecordingComplete={handleAudioComplete} 
+                            isProcessing={isProcessing}
+                        />
+                        <Button
+                            size="icon"
+                            className={cn("h-8 w-8 rounded-full transition-all", input.trim() || attachments.length > 0 ? "bg-primary" : "bg-muted text-muted-foreground")}
+                            disabled={(!input.trim() && attachments.length === 0) || isProcessing}
+                            onClick={handleSubmit}
+                        >
+                            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        </Button>
+                    </div>
                 </div>
             </div>
             {!hasMessages && (
@@ -645,26 +736,26 @@ export function AgentChat({
                             {pageContext.isOwner ? (
                                 // Owner Quick Actions
                                 <>
-                                    <Button variant="outline" size="sm" onClick={() => setInput('Help me claim and verify this page')}>
+                                    <Button variant="outline" size="sm" onClick={() => submitMessage('Help me claim and verify this page')}>
                                         ✓ Claim This Page
                                     </Button>
-                                    <Button variant="outline" size="sm" onClick={() => setInput('How do I edit my page info?')}>
+                                    <Button variant="outline" size="sm" onClick={() => submitMessage('How do I edit my page info?')}>
                                         ✏️ Edit Info
                                     </Button>
-                                    <Button variant="outline" size="sm" onClick={() => setInput('Show me my page analytics')}>
+                                    <Button variant="outline" size="sm" onClick={() => submitMessage('Show me my page analytics')}>
                                         📊 View Analytics
                                     </Button>
                                 </>
                             ) : (
                                 // Customer Quick Actions
                                 <>
-                                    <Button variant="outline" size="sm" onClick={() => setInput(`Set up a drop alert for ${pageContext.name || 'this brand'}`)}>
+                                    <Button variant="outline" size="sm" onClick={() => submitMessage(`Set up a drop alert for ${pageContext.name || 'this brand'}`)}>
                                         🔔 Set Drop Alert
                                     </Button>
-                                    <Button variant="outline" size="sm" onClick={() => setInput(`I want to follow ${pageContext.name || 'this brand'}`)}>
+                                    <Button variant="outline" size="sm" onClick={() => submitMessage(`I want to follow ${pageContext.name || 'this brand'}`)}>
                                         ❤️ Follow Brand
                                     </Button>
-                                    <Button variant="outline" size="sm" onClick={() => setInput('Find dispensaries near me that carry this brand')}>
+                                    <Button variant="outline" size="sm" onClick={() => submitMessage('Find dispensaries near me that carry this brand')}>
                                         📍 Find Nearby
                                     </Button>
                                 </>
