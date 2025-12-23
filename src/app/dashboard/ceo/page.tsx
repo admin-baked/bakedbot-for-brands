@@ -6,7 +6,7 @@
  * Protected by super admin check
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
@@ -40,7 +40,7 @@ import { RoleSwitcher } from '@/components/debug/role-switcher';
 import { MockDataToggle } from '@/components/debug/mock-data-toggle';
 import { DataImportDropdown } from '@/components/dashboard/data-import-dropdown';
 
-export default function CeoDashboardPage() {
+function CeoDashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const pathname = usePathname();
@@ -131,5 +131,11 @@ export default function CeoDashboardPage() {
     );
 }
 
-
-
+// Wrap with Suspense to fix React #300 hydration error caused by useSearchParams
+export default function CeoDashboardPage() {
+    return (
+        <Suspense fallback={<div className="flex min-h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+            <CeoDashboardContent />
+        </Suspense>
+    );
+}
