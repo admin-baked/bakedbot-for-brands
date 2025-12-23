@@ -25,8 +25,8 @@ import { searchCannMenusRetailers, CannMenusResult } from '../actions';
 import { useMockData } from '@/hooks/use-mock-data';
 
 // BakedBot assets
-const BAKEDBOT_LOGO = 'https://storage.cloud.google.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
-const AI_AGENT_WIDGET = 'https://storage.cloud.google.com/bakedbot-global-assets/Untitled%20design.png';
+const BAKEDBOT_LOGO = 'https://storage.googleapis.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
+const AI_AGENT_WIDGET = 'https://storage.googleapis.com/bakedbot-global-assets/Untitled%20design.png';
 
 export default function AIAgentEmbedTab() {
   const { toast } = useToast();
