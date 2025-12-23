@@ -22,7 +22,8 @@ import {
     Activity,
     Users,
     Factory,
-    UserMinus
+    UserMinus,
+    BookOpen
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -183,6 +184,14 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/ceo?tab=coupons">
                                     <Tag />
                                     <span>Coupons</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("knowledge-base")}>
+                                <Link href="/dashboard/ceo?tab=knowledge-base">
+                                    <BookOpen />
+                                    <span>Knowledge Base</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

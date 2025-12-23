@@ -37,7 +37,6 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     href: '/dashboard/knowledge-base',
     icon: 'book-open',
     group: 'core',
-    badge: 'coming-soon',
   },
   {
     key: 'growth-engine',
