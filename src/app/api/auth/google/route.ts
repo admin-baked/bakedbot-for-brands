@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUrl } from '@/server/integrations/gmail/oauth';
 
 export async function GET(req: NextRequest) {
-    // Optionally check if user is logged in
-    // const user = await getServerSessionUser();
-    // if (!user) return NextResponse.redirect(new URL('/login', req.url));
-
-    // We can pass state (e.g., return URL or random token)
-    // For now, let's keep it simple.
-    const url = getAuthUrl();
-    return NextResponse.redirect(url);
+    try {
+        // Generate the OAuth URL (now async since it fetches secrets)
+        const url = await getAuthUrl();
+        return NextResponse.redirect(url);
+    } catch (error: any) {
+        console.error('[Gmail OAuth] Error generating auth URL:', error);
+        return NextResponse.redirect(
+            new URL('/dashboard/ceo?error=oauth_config_error', req.url)
+        );
+    }
 }
