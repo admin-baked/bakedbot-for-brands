@@ -52,7 +52,7 @@ const BRAND_CHECKLIST: ChecklistItem[] = [
         title: 'Install Smokey',
         description: 'Add AI budtender widget to your website',
         estimatedTime: '2 min',
-        href: '/dashboard/smokey/install',
+        href: '/dashboard/settings',
         icon: <Bot className="h-4 w-4" />,
         status: 'todo'
     },
@@ -110,7 +110,7 @@ const DISPENSARY_CHECKLIST: ChecklistItem[] = [
         title: 'Install Smokey',
         description: 'Add AI budtender to your website',
         estimatedTime: '2 min',
-        href: '/dashboard/smokey/install',
+        href: '/dashboard/settings',
         icon: <Bot className="h-4 w-4" />,
         status: 'todo'
     },
