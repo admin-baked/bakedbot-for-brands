@@ -119,9 +119,8 @@ export default function BrandPageManager() {
                             console.log('[BrandPage] Brand data found:', bData.name);
                             setBrand({ id: bId, ...bData });
 
-                            // Check if name can be edited (not yet set by user)
-                            const isNameUnset = !bData.nameSetByUser &&
-                                (!bData.name || bData.name === 'Unknown Brand' || bData.name.trim() === '');
+                            // Check if name can be edited (if nameSetByUser is false/undefined)
+                            const isNameUnset = !bData.nameSetByUser;
                             setCanEditName(isNameUnset);
 
                             setFormData({
@@ -134,8 +133,24 @@ export default function BrandPageManager() {
                             });
                         } else {
                             console.warn('[BrandPage] Brand document not found:', bId);
-                            // Fallback to name from user doc if available
-                            const fallbackName = userData?.brandName || 'Unknown Brand';
+                            
+                            // Fallback: Try to get name from Organization or User profile
+                            let fallbackName = userData?.brandName || 'Unknown Brand';
+                            const orgId = userData?.currentOrgId;
+
+                            if (orgId && fallbackName === 'Unknown Brand') {
+                                try {
+                                    const orgRef = doc(db, 'organizations', orgId);
+                                    const orgDoc = await getDoc(orgRef);
+                                    if (orgDoc.exists()) {
+                                        fallbackName = orgDoc.data()?.name || fallbackName;
+                                        console.log('[BrandPage] Using Organization name fallback:', fallbackName);
+                                    }
+                                } catch (e) {
+                                    console.error('[BrandPage] Error fetching org fallback:', e);
+                                }
+                            }
+
                             setBrand({ id: bId, name: fallbackName });
                             setCanEditName(true); // Allow editing since no brand doc exists
                             setFormData(prev => ({ ...prev, name: fallbackName }));
