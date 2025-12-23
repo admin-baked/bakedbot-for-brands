@@ -92,7 +92,7 @@ export default function AgentKnowledgePage() {
         try {
             const result = await createKnowledgeBaseAction({
                 ownerId: selectedAgent,
-                ownerType: 'agent',
+                ownerType: 'system',
                 name: newKbName,
                 description: `Knowledge Base for ${selectedAgent}`
             });
@@ -120,6 +120,7 @@ export default function AgentKnowledgePage() {
                 title: newDocTitle,
                 content: newDocContent,
                 type: newDocType as any,
+                source: 'paste',
                 sourceUrl: newDocType === 'link' ? newDocContent : undefined
             });
 

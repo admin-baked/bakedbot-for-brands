@@ -1,5 +1,6 @@
 // src/components/footer.tsx
 import { SmokeyControlCenter } from '@/components/home/smokey-control-center';
+import { APP_VERSION_DISPLAY } from '@/lib/version';
 
 export function Footer() {
   return (
@@ -13,7 +14,7 @@ export function Footer() {
         </div>
         <div className="text-xs text-center text-gray-500 border-t pt-8 flex justify-between items-center">
           <span>© {new Date().getFullYear()} BakedBot AI – Agentic Commerce OS for Cannabis</span>
-          <span className="font-mono opacity-50">v1.5.2</span>
+          <span className="font-mono opacity-50">{APP_VERSION_DISPLAY}</span>
         </div>
       </div>
     </footer>

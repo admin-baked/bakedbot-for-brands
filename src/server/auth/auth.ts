@@ -91,3 +91,17 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
 
   return decodedToken;
 }
+
+/**
+ * Check if the current user is a Super Admin
+ * @returns true if the user has owner/admin/super-admin role
+ */
+export async function isSuperUser(): Promise<boolean> {
+  try {
+    const user = await requireUser();
+    const role = (user.role as string) || '';
+    return ['owner', 'admin', 'super-admin'].includes(role);
+  } catch {
+    return false;
+  }
+}
