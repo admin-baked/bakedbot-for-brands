@@ -17,7 +17,7 @@ import { isSuperUser } from './delete-account';
 export async function deleteBrand(brandId: string): Promise<{ success: boolean; error?: string }> {
     try {
         const currentUser = await getServerSessionUser();
-        if (!currentUser || !(await isSuperUser(currentUser.uid))) {
+        if (!currentUser || !(await isSuperUser(currentUser.uid, currentUser.email))) {
             return { success: false, error: 'Unauthorized: Super User access required' };
         }
 
@@ -37,7 +37,7 @@ export async function deleteBrand(brandId: string): Promise<{ success: boolean; 
 export async function deleteDispensary(dispensaryId: string): Promise<{ success: boolean; error?: string }> {
     try {
         const currentUser = await getServerSessionUser();
-        if (!currentUser || !(await isSuperUser(currentUser.uid))) {
+        if (!currentUser || !(await isSuperUser(currentUser.uid, currentUser.email))) {
             return { success: false, error: 'Unauthorized: Super User access required' };
         }
 
@@ -134,7 +134,7 @@ export async function getAllBrands(): Promise<Array<{
 }>> {
     try {
         const currentUser = await getServerSessionUser();
-        if (!currentUser || !(await isSuperUser(currentUser.uid))) {
+        if (!currentUser || !(await isSuperUser(currentUser.uid, currentUser.email))) {
             throw new Error('Unauthorized: Super User access required');
         }
 
@@ -176,7 +176,7 @@ export async function getAllDispensaries(): Promise<Array<{
 }>> {
     try {
         const currentUser = await getServerSessionUser();
-        if (!currentUser || !(await isSuperUser(currentUser.uid))) {
+        if (!currentUser || !(await isSuperUser(currentUser.uid, currentUser.email))) {
             throw new Error('Unauthorized: Super User access required');
         }
 

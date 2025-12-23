@@ -13,8 +13,14 @@ import { isSuperAdminEmail } from '@/lib/super-admin-config';
  * Check if current user is a Super User
  * Checks both Firestore role/flag AND email whitelist
  */
-export async function isSuperUser(uid: string): Promise<boolean> {
+export async function isSuperUser(uid: string, email?: string | null): Promise<boolean> {
     try {
+        // Quick check: If email is provided and in whitelist, grant access immediately
+        // This avoids Firestore lookup failures if user profile is missing/incomplete
+        if (email && isSuperAdminEmail(email)) {
+            return true;
+        }
+
         const adminDb = getAdminFirestore();
         const userDoc = await adminDb.collection('users').doc(uid).get();
         const userData = userDoc.data();
@@ -24,7 +30,7 @@ export async function isSuperUser(uid: string): Promise<boolean> {
             return true;
         }
         
-        // Also check email whitelist (syncs with client-side super admin check)
+        // Also check email whitelist from Firestore doc if strictly relying on UID
         if (userData?.email && isSuperAdminEmail(userData.email)) {
             return true;
         }
@@ -50,11 +56,21 @@ export async function deleteUserAccount(userId: string): Promise<{ success: bool
     try {
         // Get current user and verify Super User status
         const currentUser = await getServerSessionUser();
-        if (!currentUser || !(await isSuperUser(currentUser.uid))) {
+        if (!currentUser || !(await isSuperUser(currentUser.uid, currentUser.email))) {
             return { success: false, error: 'Unauthorized: Super User access required' };
         }
 
         // Prevent deleting Super Users
+        // Check using both ID and email if available (usually we only have ID here for target)
+        // We fetch the target user data first to check if they are a super user
+        const adminDb = getAdminFirestore();
+        const targetUserDoc = await adminDb.collection('users').doc(userId).get();
+        const targetUserData = targetUserDoc.data();
+        
+        if (targetUserData?.email && isSuperAdminEmail(targetUserData.email)) {
+             return { success: false, error: 'Cannot delete Super User accounts (email match)' };
+        }
+        
         if (await isSuperUser(userId)) {
             return { success: false, error: 'Cannot delete Super User accounts' };
         }
@@ -150,7 +166,7 @@ export async function getAllUsers(): Promise<Array<{
 }>> {
     try {
         const currentUser = await getServerSessionUser();
-        if (!currentUser || !(await isSuperUser(currentUser.uid))) {
+        if (!currentUser || !(await isSuperUser(currentUser.uid, currentUser.email))) {
             throw new Error('Unauthorized: Super User access required');
         }
 
