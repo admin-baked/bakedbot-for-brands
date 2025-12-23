@@ -531,3 +531,18 @@ Fixed the "Install Smokey" checklist link to point to the Settings page as reque
 ### Tests Run
 *   `npm run check:types` (Pending/Passed)
 ---
+
+## Session: Navigation Enhancements
+**Date:** 2025-12-23
+**Task ID:** NAV-AUTH-001
+
+### Summary
+Updated the landing page and pricing page headers to show a "Dashboard" link instead of "Login/Get Started" when the user is already authenticated.
+
+### Key Changes
+*   **Smart Homepage Header:** Modified `src/app/page.tsx` to conditionally render `AuthButtons`.
+*   **Smart Navbar:** Updated `src/components/landing/navbar.tsx` to include `useUser` hook and conditional rendering.
+
+### Tests Run
+*   `npm run check:types` (Passed)
+---
