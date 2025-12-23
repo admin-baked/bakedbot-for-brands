@@ -2,6 +2,18 @@
 
 All updates should be incremented by .1 for minor fixes and .2 or greater for major features.
 
+## [1.5.5] - 2025-12-23
+### Added
+- **Knowledge Base Training System**: Multi-tier knowledge base with Firestore Vector Search support
+  - System-level KB for Super Admin global agent training (new "Knowledge" tab in HQ)
+  - Plan-based usage limits (Free: 5 docs, Claim Pro: 50, Starter+: 500+)
+  - Multiple input methods: copy/paste, URL scrape (Google Drive pending)
+- **Centralized Version Display**: Created `src/lib/version.ts` with `APP_VERSION_DISPLAY` for consistent footer versioning
+
+### Changed
+- Extended `KnowledgeBaseOwnerType` to support `system | brand | dispensary | customer`
+- Added `isSuperUser()` helper to auth module
+
 ## [1.5.4] - 2025-12-23
 ### Fixed
 - **Build Blockage**: Fixed `TS2614` type error in `AgentInterface` by correcting `FootTrafficTab` import from named to default.

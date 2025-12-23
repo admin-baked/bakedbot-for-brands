@@ -2,7 +2,8 @@ import Chatbot from '@/components/chatbot';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { AccountManagementTab } from '@/components/admin/account-management-tab';
 import FootTrafficTab from '@/app/dashboard/ceo/components/foot-traffic-tab';
-import { MessageSquare, Users, Globe } from 'lucide-react';
+import { SystemKnowledgeBase } from '@/app/dashboard/ceo/components/system-knowledge-base';
+import { MessageSquare, Users, Globe, Brain } from 'lucide-react';
 
 export default function AgentInterface() {
     return (
@@ -14,6 +15,10 @@ export default function AgentInterface() {
                         <TabsTrigger value="chat" className="gap-2">
                             <MessageSquare className="h-4 w-4" />
                             HQ Chat
+                        </TabsTrigger>
+                        <TabsTrigger value="knowledge" className="gap-2">
+                            <Brain className="h-4 w-4" />
+                            Knowledge
                         </TabsTrigger>
                         <TabsTrigger value="accounts" className="gap-2">
                             <Users className="h-4 w-4" />
@@ -37,6 +42,10 @@ export default function AgentInterface() {
                                 windowClassName="w-full h-full shadow-none border-0"
                             />
                         </div>
+                    </TabsContent>
+
+                    <TabsContent value="knowledge" className="h-full m-0 overflow-auto">
+                        <SystemKnowledgeBase />
                     </TabsContent>
 
                     <TabsContent value="accounts" className="h-full m-0 overflow-auto">

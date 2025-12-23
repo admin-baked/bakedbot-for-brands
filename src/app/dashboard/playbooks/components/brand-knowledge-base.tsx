@@ -122,6 +122,7 @@ export function BrandKnowledgeBase({ brandId }: BrandKnowledgeBaseProps) {
                 title: newDocTitle,
                 content: newDocContent,
                 type: newDocType as any,
+                source: 'paste',
                 sourceUrl: newDocType === 'link' ? newDocContent : undefined
             });
 
