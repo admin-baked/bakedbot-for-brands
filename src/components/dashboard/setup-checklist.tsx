@@ -43,7 +43,7 @@ const BRAND_CHECKLIST: ChecklistItem[] = [
         title: 'Add "Where to Buy" retailers',
         description: 'Connect dispensaries that carry your products',
         estimatedTime: '3 min',
-        href: '/dashboard/retailers',
+        href: '/dashboard/dispensaries',
         icon: <Store className="h-4 w-4" />,
         status: 'todo'
     },

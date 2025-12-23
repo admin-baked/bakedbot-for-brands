@@ -503,3 +503,17 @@ Fixed the "Data Imports" notification dropdown which was always empty ("No activ
 ### Tests Run
 *   `npm run check:types` (Passed)
 ---
+
+## Session: Checklist Link Fix
+**Date:** 2025-12-23
+**Task ID:** CHECKLIST-FIX-001
+
+### Summary
+Fixed the broken "Where to Buy" checklist link which was pointing to a 404 page.
+
+### Key Changes
+*   **Link Correction:** Updated `src/components/dashboard/setup-checklist.tsx` to point to `/dashboard/dispensaries` instead of `/dashboard/retailers`.
+
+### Tests Run
+*   `npm run check:types` (Passed)
+---
