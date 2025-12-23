@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run build:embed && npm run check:structure && npm run check:types && next build",
+    "build": "cross-env NODE_OPTIONS='--max-old-space-size=6144' npm run build:embed && npm run check:structure && npm run check:types && next build",
     "build:embed": "tsup",
     "start": "next start",
     "lint": "next lint",
@@ -113,6 +113,7 @@
     "@types/ws": "^8.18.1",
     "autocannon": "^8.0.0",
     "autoprefixer": "^10.4.14",
+    "cross-env": "^10.1.0",
     "dependency-cruiser": "^16.0.0",
     "dotenv": "^16.6.1",
     "esbuild-plugin-alias": "^0.2.1",
