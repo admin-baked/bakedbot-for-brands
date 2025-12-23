@@ -473,3 +473,19 @@ Fixed critical build errors where `src/server/integrations/gmail/oauth.ts` and `
 *   `npm run check:types` (Passed)
 
 ---
+
+## Session: Brand Page Name Fix
+**Date:** 2025-12-23
+**Task ID:** BRAND-PAGE-FIX-001
+
+### Summary
+Fixed an issue where the Brand Page dashboard would show "Unknown Brand" for newly onboarded brands because the `brands` document hadn't been created yet (sync job pending), while the name was actually stored in the `organizations` collection.
+
+### Key Changes
+*   **Fallback Logic:** Updated `src/app/dashboard/content/brand-page/page.tsx` to check the `organizations` collection for the brand/entity name if the main `brands` document is missing.
+*   **One-Time Edit:** Relaxed the `canEditName` logic to allow editing as long as `nameSetByUser` is not true, instead of requiring the name to be strictly "Unknown". This allows users to correct the name once after onboarding.
+
+### Tests Run
+*   `npm run check:types` (Passed)
+
+---
