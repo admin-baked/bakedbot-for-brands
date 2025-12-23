@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUrl } from '@/server/integrations/gmail/oauth';
-import { getServerSessionUser } from '@/server/auth/auth'; // Hypothetical - check auth.ts
 
 export async function GET(req: NextRequest) {
     // Optionally check if user is logged in

@@ -24,6 +24,11 @@ const ROLE_CONFIG = {
         label: 'Owner',
         icon: User,
         color: 'bg-green-500'
+    },
+    customer: {
+        label: 'Customer',
+        icon: User,
+        color: 'bg-gray-500'
     }
 };
 

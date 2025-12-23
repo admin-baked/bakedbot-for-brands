@@ -4,8 +4,7 @@
  * Server actions for Setup Health status checks
  */
 
-import { auth } from '@/firebase/admin';
-import { getUserProfile } from './profile';
+// Auth and profile imports removed - not used in current implementation
 import { getGmailToken } from '@/server/integrations/gmail/token-storage';
 import type { SetupHealth, SetupHealthStatus, UserRole } from '@/types/agent-workspace';
 
@@ -14,7 +13,7 @@ import type { SetupHealth, SetupHealthStatus, UserRole } from '@/types/agent-wor
  */
 export async function getSetupHealth(userId: string, role: UserRole): Promise<SetupHealth> {
     try {
-        const user = await getUserProfile(userId);
+        // User profile check removed - not needed for health status
 
         return {
             dataConnected: await checkDataConnection(userId, role),

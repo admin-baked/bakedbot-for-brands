@@ -128,6 +128,13 @@ export const PROMPT_CHIPS = {
         "Review pending approvals",
         "Configure compliance settings",
         "Manage team access"
+    ],
+    customer: [
+        "Find products near me",
+        "Recommend products for sleep",
+        "Show me deals nearby",
+        "Find high-CBD strains",
+        "Get product recommendations"
     ]
 };
 
@@ -139,5 +146,7 @@ export const WELCOME_MESSAGES = {
 
     brand: "Welcome! I can set up your brand presence and show where you're winning or missing. Paste your website or a listing link (Leafly/Weedmaps) to match your products.",
 
-    owner: "Welcome to Baked HQ. I can help you manage the platform, review analytics, configure compliance, or generate reports. What would you like to focus on?"
+    owner: "Welcome to Baked HQ. I can help you manage the platform, review analytics, configure compliance, or generate reports. What would you like to focus on?",
+
+    customer: "Welcome! I'm Smokey, your AI budtender. I can help you find products, get recommendations, discover deals nearby, and learn about strains. What are you looking for today?"
 };

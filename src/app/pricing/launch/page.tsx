@@ -305,10 +305,10 @@ export default function LaunchPricingDetails() {
                                 Start with the Core (menu + discovery + compliance). Add agents when you want automation, intel, and growth loops.
                             </p>
                             <div className="flex justify-center gap-3">
-                                <Button size="lg" asChild href="/get-started">
+                                <Button size="lg" asChild>
                                     <Link href="/get-started">Start Launch Plan</Link>
                                 </Button>
-                                <Button size="lg" variant="outline" asChild href="/pricing">
+                                <Button size="lg" variant="outline" asChild>
                                     <Link href="/pricing">Compare Plans</Link>
                                 </Button>
                             </div>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, FieldPath } from 'firebase-admin/firestore';
 
 /**
  * Job Processor API Route
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         if (jobIds.length > 0) {
             query = firestore
                 .collection('data_jobs')
-                .where(FieldValue.documentId(), 'in', jobIds.slice(0, 10)); // Firestore limit
+                .where(FieldPath.documentId(), 'in', jobIds.slice(0, 10)); // Firestore limit
         }
 
         const snapshot = await query.get();
