@@ -24,8 +24,8 @@ export function Spinner({
 
     // Use animated GIF by default, static PNG as fallback
     const imageUrl = variant === "static"
-        ? "https://storage.cloud.google.com/bakedbot-global-assets/Untitled%20design.png"
-        : "https://storage.cloud.google.com/bakedbot-global-assets/smokey%20animated%20spinner.gif";
+        ? "https://storage.googleapis.com/bakedbot-global-assets/Untitled%20design.png"
+        : "https://storage.googleapis.com/bakedbot-global-assets/smokey%20animated%20spinner.gif";
 
     return (
         <div
