@@ -76,8 +76,11 @@ export default function BrandLoginPage() {
     }
 
     // Check if user has appropriate role for brand login
-    if (userRole === 'brand' || userRole === 'owner') {
-      console.log('Redirecting to dashboard for brand/owner...');
+    if (userRole === 'owner') {
+      console.log('Redirecting to CEO dashboard for owner...');
+      window.location.href = '/dashboard/ceo';
+    } else if (userRole === 'brand') {
+      console.log('Redirecting to dashboard for brand...');
       window.location.href = '/dashboard';
     } else if (userRole === 'dispensary') {
       console.log('Redirecting to dashboard for dispensary...');

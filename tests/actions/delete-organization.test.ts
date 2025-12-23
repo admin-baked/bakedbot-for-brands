@@ -1,5 +1,5 @@
 import { deleteBrand, deleteDispensary, getAllBrands, getAllDispensaries } from '@/server/actions/delete-organization';
-import { adminDb } from '@/firebase/admin';
+import { getAdminFirestore } from '@/firebase/admin';
 import { getServerSessionUser } from '@/server/auth/session';
 import { isSuperUser } from '@/server/actions/delete-account';
 
@@ -9,11 +9,13 @@ jest.mock('next/headers', () => ({
     cookies: jest.fn(),
 }));
 
+const mockAdminDb = {
+    collection: jest.fn(),
+    batch: jest.fn(),
+};
+
 jest.mock('@/firebase/admin', () => ({
-    adminDb: {
-        collection: jest.fn(),
-        batch: jest.fn(),
-    },
+    getAdminFirestore: jest.fn(() => mockAdminDb),
 }));
 
 jest.mock('@/server/auth/session', () => ({
@@ -39,8 +41,8 @@ describe('delete-organization actions', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        (adminDb.collection as jest.Mock).mockReturnValue({ doc: mockDoc });
-        (adminDb.batch as jest.Mock).mockReturnValue(mockBatch);
+        (mockAdminDb.collection as jest.Mock).mockReturnValue({ doc: mockDoc });
+        (mockAdminDb.batch as jest.Mock).mockReturnValue(mockBatch);
         mockBatch.commit.mockResolvedValue(undefined);
         (isSuperUser as jest.Mock).mockResolvedValue(true);
         (getServerSessionUser as jest.Mock).mockResolvedValue({ uid: 'superuser123' });
@@ -54,7 +56,7 @@ describe('delete-organization actions', () => {
             });
 
             // Mock other collections
-            (adminDb.collection as jest.Mock).mockImplementation((name) => {
+            (mockAdminDb.collection as jest.Mock).mockImplementation((name) => {
                 const mockWhere = jest.fn(() => ({
                     get: jest.fn().mockResolvedValue({ docs: [] }),
                 }));
@@ -90,7 +92,7 @@ describe('delete-organization actions', () => {
             const mockClaims = [{ ref: { path: 'claims/1' } }];
             const mockProducts = [{ ref: { path: 'products/1' } }];
 
-            (adminDb.collection as jest.Mock).mockImplementation((name) => {
+            (mockAdminDb.collection as jest.Mock).mockImplementation((name) => {
                 let docs: any[] = [];
                 if (name === 'seo_pages') docs = mockPages;
                 if (name === 'claims') docs = mockClaims;
@@ -123,7 +125,7 @@ describe('delete-organization actions', () => {
                 },
             ];
 
-            (adminDb.collection as jest.Mock).mockImplementation((name) => {
+            (mockAdminDb.collection as jest.Mock).mockImplementation((name) => {
                 if (name === 'users') {
                     return {
                         where: jest.fn(() => ({
@@ -158,7 +160,7 @@ describe('delete-organization actions', () => {
                 listDocuments: jest.fn().mockResolvedValue([]),
             });
 
-            (adminDb.collection as jest.Mock).mockImplementation((name) => {
+            (mockAdminDb.collection as jest.Mock).mockImplementation((name) => {
                 return {
                     doc: mockDoc,
                     where: jest.fn(() => ({
@@ -180,7 +182,7 @@ describe('delete-organization actions', () => {
             const mockPages = [{ ref: { path: 'seo_pages/1' } }];
             const mockClaims = [{ ref: { path: 'claims/1' } }];
 
-            (adminDb.collection as jest.Mock).mockImplementation((name) => {
+            (mockAdminDb.collection as jest.Mock).mockImplementation((name) => {
                 let docs: any[] = [];
                 if (name === 'seo_pages') docs = mockPages;
                 if (name === 'claims') docs = mockClaims;
@@ -209,8 +211,8 @@ describe('delete-organization actions', () => {
                 },
             ];
 
-            (adminDb.collection as jest.Mock).mockImplementation((name) => {
-                if (name === 'brands') {
+            (mockAdminDb.collection as jest.Mock).mockImplementation((name) => {
+                if (name === 'organizations') {
                     return { get: jest.fn().mockResolvedValue({ docs: mockBrands }) };
                 }
                 if (name === 'seo_pages') {
@@ -253,8 +255,8 @@ describe('delete-organization actions', () => {
                 },
             ];
 
-            (adminDb.collection as jest.Mock).mockImplementation((name) => {
-                if (name === 'retailers') {
+            (mockAdminDb.collection as jest.Mock).mockImplementation((name) => {
+                if (name === 'dispensaries') {
                     return { get: jest.fn().mockResolvedValue({ docs: mockRetailers }) };
                 }
                 if (name === 'seo_pages') {

@@ -55,7 +55,7 @@ export async function deleteDispensary(dispensaryId: string): Promise<{ success:
 async function deleteOrganizationData(type: 'brand' | 'dispensary', orgId: string): Promise<void> {
     const adminDb = getAdminFirestore();
     const batch = adminDb.batch();
-    const collection = type === 'brand' ? 'brands' : 'retailers';
+    const collection = type === 'brand' ? 'organizations' : 'dispensaries';
 
     // Delete main organization document
     const orgRef = adminDb.collection(collection).doc(orgId);
@@ -139,7 +139,7 @@ export async function getAllBrands(): Promise<Array<{
         }
 
         const adminDb = getAdminFirestore();
-        const brandsSnapshot = await adminDb.collection('brands').get();
+        const brandsSnapshot = await adminDb.collection('organizations').get();
         
         const brands = await Promise.all(brandsSnapshot.docs.map(async (doc: any) => {
             const data = doc.data();
@@ -181,7 +181,7 @@ export async function getAllDispensaries(): Promise<Array<{
         }
 
         const adminDb = getAdminFirestore();
-        const dispensariesSnapshot = await adminDb.collection('retailers').get();
+        const dispensariesSnapshot = await adminDb.collection('dispensaries').get();
         
         const dispensaries = await Promise.all(dispensariesSnapshot.docs.map(async (doc: any) => {
             const data = doc.data();

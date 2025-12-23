@@ -1,6 +1,44 @@
 
 # Progress Log
 
+## Session: Console Error Fixes - PWA Icon, Auth Redirect, Hydration
+**Date:** 2025-12-23
+**Task ID:** CONSOLE-FIX-001
+
+### Summary
+Fixed three production console errors: broken PWA icon manifest, incorrect super admin redirect, and React #300 hydration mismatch.
+
+### Key Changes
+*   **PWA Icon:** Created `public/icon.svg` with BakedBot robot mascot, updated `manifest.json` to use SVG icon with maskable purpose.
+*   **Auth Redirect:** Fixed `brand-login/page.tsx` to redirect `owner` role to `/dashboard/ceo` instead of `/dashboard`.
+*   **Hydration Fix:** Wrapped CEO dashboard `useSearchParams` consumer in React `Suspense` boundary to prevent React #300 error.
+
+### Tests Run
+*   `npm run check:types` (Passed)
+*   `npm test -- tests/config/manifest.test.ts tests/app/auth-redirect.test.ts` (9/9 Passed)
+
+### New Test Files
+*   `tests/config/manifest.test.ts` - PWA manifest/icon validation
+*   `tests/app/auth-redirect.test.ts` - Role-based redirect logic
+
+---
+
+## Session: Account Management Data Loading Fix
+**Date:** 2025-12-23
+**Task ID:** ACCT-MGMT-FIX-001
+
+### Summary
+Fixed Account Management tab not showing organizations/brands/dispensaries by correcting Firestore collection names.
+
+### Key Changes
+*   **Collection Names:** Changed queries from `brands`→`organizations` and `retailers`→`dispensaries`.
+*   **Test Mocks:** Updated `delete-organization.test.ts` to mock `getAdminFirestore()` correctly.
+
+### Tests Run
+*   `npm test -- tests/actions/delete-organization.test.ts` (9/9 Passed)
+
+---
+
 ## Session: Build Fixes - Spinner GIF & FootTrafficTab Import
 **Date:** 2025-12-23
 **Task ID:** BUILD-FIX-SPINNER-001
