@@ -2,6 +2,15 @@
 
 All updates should be incremented by .1 for minor fixes and .2 or greater for major features.
 
+## [1.5.4] - 2025-12-23
+### Fixed
+- **Build Blockage**: Fixed `TS2614` type error in `AgentInterface` by correcting `FootTrafficTab` import from named to default.
+
+## [1.5.3] - 2025-12-23
+### Fixed
+- **Asset Accessibility**: Corrected Google Cloud Storage URLs for "Verify Access" spinner GIF from internal `storage.cloud.google.com` to public `storage.googleapis.com`.
+- **Unit Testing**: Added `tests/components/ui/spinner.test.tsx` to verify spinner asset loading and size classes.
+
 ## [1.5.2] - 2025-12-23
 ### Added
 - **Command Center Dashboard**: New default view for Brands featuring `SetupHealth`, `QuickStartCards`, and `TaskFeed` alongside modular widgets.

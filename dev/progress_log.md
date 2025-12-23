@@ -1,6 +1,27 @@
 
 # Progress Log
 
+## Session: Build Fixes - Spinner GIF & FootTrafficTab Import
+**Date:** 2025-12-23
+**Task ID:** BUILD-FIX-SPINNER-001
+
+### Summary
+Fixed two critical issues blocking Firebase deployment: incorrect GCS URLs for the spinner GIF and a named import error for `FootTrafficTab`.
+
+### Key Changes
+*   **v1.5.3:** Corrected spinner asset URLs from `storage.cloud.google.com` (internal) to `storage.googleapis.com` (public) in `spinner.tsx` and `ai-agent-embed-tab.tsx`.
+*   **v1.5.3:** Added `tests/components/ui/spinner.test.tsx` for spinner URL verification.
+*   **v1.5.4:** Fixed `TS2614` type error by changing `FootTrafficTab` import in `AgentInterface.tsx` from named (`{ FootTrafficTab }`) to default (`FootTrafficTab`).
+
+### Tests Run
+*   `npm test tests/components/ui/spinner.test.tsx` (4/4 Passed)
+
+### Commits
+*   `fcec6875`: v1.5.3: Fix missing spinner GIF and add unit tests
+*   `49b45a4d`: v1.5.4: Fix FootTrafficTab import in AgentInterface
+
+---
+
 ## Session: Critical Build Fix - Duplicate Pricing Section
 **Date:** 2025-12-22
 **Task ID:** BUILD-FIX-PAGE-TSX-001
