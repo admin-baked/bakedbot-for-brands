@@ -1,7 +1,7 @@
 import Chatbot from '@/components/chatbot';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { AccountManagementTab } from '@/components/admin/account-management-tab';
-import { FootTrafficTab } from '@/app/dashboard/ceo/components/foot-traffic-tab';
+import FootTrafficTab from '@/app/dashboard/ceo/components/foot-traffic-tab';
 import { MessageSquare, Users, Globe } from 'lucide-react';
 
 export default function AgentInterface() {
