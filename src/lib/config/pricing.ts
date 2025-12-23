@@ -13,6 +13,7 @@ export interface PricingPlan {
     features: string[];
     pill: string;
     tier: "directory" | "platform";
+    scarcity?: string; // Optional scarcity message (e.g., "Only 50 spots left")
 }
 
 export const DIRECTORY_PLANS: PricingPlan[] = [
