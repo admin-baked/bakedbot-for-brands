@@ -18,6 +18,7 @@ import { DataImportDropdown } from '@/components/dashboard/data-import-dropdown'
 import { SetupHealth } from '@/components/dashboard/setup-health';
 import { QuickStartCards } from '@/components/dashboard/quick-start-cards';
 import { TaskFeed } from '@/components/dashboard/task-feed';
+import { SetupChecklist } from '@/components/dashboard/setup-checklist';
 import { getBrandDashboardData } from './actions';
 
 export default function BrandDashboardClient({ brandId }: { brandId: string }) {
@@ -99,6 +100,9 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
                     </div>
                 </div>
             </div>
+
+            {/* Setup Checklist - Onboarding v2 progressive disclosure */}
+            <SetupChecklist />
 
             {/* View Toggle */}
             <div className="flex items-center justify-between">
