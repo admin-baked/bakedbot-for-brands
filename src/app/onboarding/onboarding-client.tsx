@@ -272,7 +272,7 @@ export default function OnboardingPage() {
   // --- Render Steps ---
 
   const renderRoleSelection = () => (
-    <section className="space-y-4">
+    <section className="space-y-6">
       <h2 className="font-semibold text-xl text-center">First, who are you?</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <Button variant="outline" className="h-auto text-left p-6 flex-col items-start gap-2 hover:border-primary/50 transition-all shadow-sm" onClick={() => handleSelectRole('brand')}>
@@ -283,12 +283,15 @@ export default function OnboardingPage() {
           <h3 className="font-bold text-lg">A Dispensary</h3>
           <p className="text-sm text-muted-foreground">Retail locations, delivery services, & storefronts.</p>
         </Button>
-        <Button variant="outline" className="h-auto text-left p-6 flex-col items-start gap-2 hover:border-primary/50 transition-all shadow-sm" onClick={() => handleSelectRole('customer')}>
+        <Button variant="outline" className="h-auto text-left p-6 flex-col items-start gap-2 hover:border-primary/50 transition-all shadow-sm sm:col-span-2" onClick={() => handleSelectRole('customer')}>
           <h3 className="font-bold text-lg">A Customer</h3>
           <p className="text-sm text-muted-foreground">Looking to shop, browse deals, or find products.</p>
         </Button>
-        <Button variant="ghost" className="h-auto text-left p-4 justify-start" onClick={() => handleSelectRole('skip')}>
-          <span className="text-muted-foreground">Skip setup for now &rarr;</span>
+      </div>
+      
+      <div className="flex justify-center pt-2">
+        <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => handleSelectRole('skip')}>
+          Skip setup for now &rarr;
         </Button>
       </div>
     </section>
