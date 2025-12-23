@@ -13,6 +13,7 @@ import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, type UserCredential } from 'firebase/auth';
 import Image from 'next/image';
+import { Spinner } from '@/components/ui/spinner';
 
 import { logger } from '@/lib/logger';
 const isProd = process.env.NODE_ENV === 'production';
@@ -197,6 +198,7 @@ export default function BrandLoginPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? <Spinner size="sm" className="mr-2" /> : null}
               {isSignUp ? 'Sign Up' : 'Login'}
             </Button>
           </form>

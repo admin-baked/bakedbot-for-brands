@@ -5,7 +5,7 @@
  * SUPER USER ONLY - Destructive operations for testing
  */
 
-import { adminDb } from '@/firebase/admin';
+import { getAdminFirestore } from '@/firebase/admin';
 import { getServerSessionUser } from '@/server/auth/session';
 import { isSuperUser } from './delete-account';
 
@@ -53,6 +53,7 @@ export async function deleteDispensary(dispensaryId: string): Promise<{ success:
  * Delete organization data and all associated records
  */
 async function deleteOrganizationData(type: 'brand' | 'dispensary', orgId: string): Promise<void> {
+    const adminDb = getAdminFirestore();
     const batch = adminDb.batch();
     const collection = type === 'brand' ? 'brands' : 'retailers';
 
@@ -75,23 +76,23 @@ async function deleteOrganizationData(type: 'brand' | 'dispensary', orgId: strin
         : adminDb.collection('seo_pages').where('dispensaryId', '==', orgId);
     
     const pages = await pageQuery.get();
-    pages.docs.forEach(doc => batch.delete(doc.ref));
+    pages.docs.forEach((doc: any) => batch.delete(doc.ref));
 
     // Delete claims for this organization
     const claimsQuery = adminDb.collection('claims').where('entityId', '==', orgId);
     const claims = await claimsQuery.get();
-    claims.docs.forEach(doc => batch.delete(doc.ref));
+    claims.docs.forEach((doc: any) => batch.delete(doc.ref));
 
     // Delete products (brands only)
     if (type === 'brand') {
         const products = await adminDb.collection('products').where('brandId', '==', orgId).get();
-        products.docs.forEach(doc => batch.delete(doc.ref));
+        products.docs.forEach((doc: any) => batch.delete(doc.ref));
     }
 
     // Delete knowledge base entries for this org
     const kbField = type === 'brand' ? 'brandId' : 'dispensaryId';
     const kbEntries = await adminDb.collection('knowledge_base').where(kbField, '==', orgId).get();
-    kbEntries.docs.forEach(doc => batch.delete(doc.ref));
+    kbEntries.docs.forEach((doc: any) => batch.delete(doc.ref));
 
     // Update users - remove org associations
     const users = await adminDb.collection('users')
@@ -137,9 +138,10 @@ export async function getAllBrands(): Promise<Array<{
             throw new Error('Unauthorized: Super User access required');
         }
 
+        const adminDb = getAdminFirestore();
         const brandsSnapshot = await adminDb.collection('brands').get();
         
-        const brands = await Promise.all(brandsSnapshot.docs.map(async (doc) => {
+        const brands = await Promise.all(brandsSnapshot.docs.map(async (doc: any) => {
             const data = doc.data();
             
             // Count SEO pages for this brand
@@ -178,9 +180,10 @@ export async function getAllDispensaries(): Promise<Array<{
             throw new Error('Unauthorized: Super User access required');
         }
 
+        const adminDb = getAdminFirestore();
         const dispensariesSnapshot = await adminDb.collection('retailers').get();
         
-        const dispensaries = await Promise.all(dispensariesSnapshot.docs.map(async (doc) => {
+        const dispensaries = await Promise.all(dispensariesSnapshot.docs.map(async (doc: any) => {
             const data = doc.data();
             
             // Count SEO pages for this dispensary
