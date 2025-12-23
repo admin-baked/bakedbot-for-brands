@@ -40,9 +40,14 @@ interface DataImportDropdownProps {
     className?: string;
 }
 
+import { useUser } from '@/hooks/use-user';
+
 export function DataImportDropdown({ userId, className }: DataImportDropdownProps) {
+    const { user } = useUser();
+    const effectiveUserId = userId || user?.uid;
+
     // Listen for data job updates
-    useDataJobsListener(userId);
+    useDataJobsListener(effectiveUserId);
 
     const {
         ingestionNotifications,
