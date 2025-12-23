@@ -61,7 +61,7 @@ export interface QuickStartCard {
     estimatedTime: string; // "10 min", "5 min"
     playbookId?: string; // References playbook from data.ts
     prompt?: string; // Direct prompt to send to chat
-    roles: ('brand' | 'dispensary')[]; // Which roles see this card
+    roles: ('brand' | 'dispensary' | 'owner')[]; // Which roles see this card
 }
 
 export type UserRole = 'brand' | 'dispensary' | 'owner' | 'customer';

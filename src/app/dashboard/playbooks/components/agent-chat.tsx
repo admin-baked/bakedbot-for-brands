@@ -437,12 +437,22 @@ export function AgentChat({
         triggers: [],
     });
 
+    // Fix hydration mismatch
+    const [hasMounted, setHasMounted] = useState(false);
+    useEffect(() => {
+        setHasMounted(true);
+    }, []);
+
     const [input, setInput] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [showTriggers, setShowTriggers] = useState(false);
     const [showPermissions, setShowPermissions] = useState(true);
     const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
     const [persona, setPersona] = useState<AgentPersona>('puff');
+
+    // ... (rest of the state)
+
+    if (!hasMounted) return null;
 
     // Tool Selection State
     const [toolMode, setToolMode] = useState<ToolMode>('auto');
