@@ -20,18 +20,20 @@ export async function getBrandDashboardData(brandId: string) {
         const activeIntel = await import('@/server/services/leafly-connector').then(m => m.getLocalCompetition(state, city));
 
         // 1. Retail Coverage
-        // Count unique retailerIds across all products for this brand
+        
+        // Fetch products for other metrics (Velocity, Price Index)
         const productRepo = makeProductRepo(firestore);
         const products = await productRepo.getAllByBrand(brandId);
 
-        const uniqueRetailers = new Set<string>();
-        products.forEach(p => {
-            if (p.retailerIds) {
-                p.retailerIds.forEach(id => uniqueRetailers.add(id));
-            }
-        });
-
-        const coverageCount = uniqueRetailers.size;
+        // Retailer count: Use the same logic as the Dispensaries page so the numbers match
+        const { getBrandDispensaries } = await import('@/app/dashboard/dispensaries/actions');
+        let coverageCount = 0;
+        try {
+            const dispensaries = await getBrandDispensaries();
+            coverageCount = dispensaries.length;
+        } catch (err) {
+            console.error('Failed to get dispensary count for dashboard', err);
+        }
 
         // 2. Velocity (Sell-Through Placeholder)
         const avgProductsPerStore = coverageCount > 0 ? (products.length / coverageCount).toFixed(1) : '0';

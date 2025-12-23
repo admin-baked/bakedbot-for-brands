@@ -250,6 +250,27 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       });
       productSyncJobId = syncJobRef.id;
       logger.info('Queued product sync job', { jobId: productSyncJobId, brandId: finalBrandId });
+
+      // Queue dispensary import job (find retailers carrying this brand)
+      await firestore.collection('data_jobs').add({
+        type: 'dispensary_import',
+        entityId: finalBrandId,
+        entityName: finalBrandName || 'Brand',
+        entityType: 'brand',
+        orgId: orgId,
+        userId: uid,
+        status: 'pending',
+        message: `Queued dispensary import for ${finalBrandName}`,
+        progress: 0,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        attempts: 0,
+        metadata: {
+          brandId: finalBrandId,
+          marketState: marketState || null
+        }
+      });
+      logger.info('Queued dispensary import job', { brandId: finalBrandId });
     } else if (finalRole === 'dispensary' && locationId) {
       // Queue dispensary sync job
       const syncJobRef = await firestore.collection('data_jobs').add({
