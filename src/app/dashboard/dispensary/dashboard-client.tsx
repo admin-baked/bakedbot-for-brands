@@ -7,8 +7,7 @@ import { DispensaryPlaybooksList } from './components/dispensary-playbooks-list'
 import { Button } from '@/components/ui/button';
 import { MapPin, Power, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import {
-    DropdownMenu,
+import { DropdownMenu,
     DropdownMenuTrigger,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -17,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { ManagedPagesList } from '@/components/dashboard/managed-pages-list';
+import { SetupChecklist } from '@/components/dashboard/setup-checklist';
 
 export default function DispensaryDashboardClient({ brandId }: { brandId: string }) {
 
@@ -60,6 +60,9 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
                     </div>
                 </div>
             </div>
+
+            {/* Setup Checklist - Onboarding v2 progressive disclosure */}
+            <SetupChecklist />
 
             {/* 2. KPI Row */}
             <DispensaryKPIs />
