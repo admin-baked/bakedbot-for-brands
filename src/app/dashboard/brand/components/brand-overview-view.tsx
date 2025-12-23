@@ -49,7 +49,7 @@ export function BrandOverviewView({ brandId }: { brandId: string }) {
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground font-medium">
                         <span className="flex items-center gap-1.5 underline decoration-emerald-500/30 underline-offset-4 decoration-2">
-                            Active Retailers: 42
+                            Active Retailers: {liveData?.coverage?.value || 0}
                         </span>
                         <span>•</span>
                         <span className="flex items-center gap-1.5">
