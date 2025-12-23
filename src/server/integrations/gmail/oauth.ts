@@ -27,7 +27,7 @@ const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ||
  * Creates an OAuth2 client with credentials from Secret Manager
  * This is async because it fetches secrets at runtime
  */
-export async function getOAuth2ClientAsync(): Promise<ReturnType<typeof google.auth.OAuth2>> {
+export async function getOAuth2ClientAsync() {
     const { clientId, clientSecret } = await getGoogleOAuthCredentials();
 
     if (!clientId || !clientSecret) {

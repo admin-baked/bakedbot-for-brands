@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import type { DomainUserProfile } from '@/types/domain';
 
@@ -9,6 +9,9 @@ export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
 /**
  * Hook for accessing user role and checking permissions.
  * Provides helper functions for role-based access control.
+ * 
+ * NOTE: Simulation cookie is read client-side only (after hydration)
+ * to avoid React hydration mismatch errors.
  */
 export function useUserRole() {
     const { user, isUserLoading } = useUser();
@@ -18,22 +21,29 @@ export function useUserRole() {
         return (user as any).role as Role | null;
     }, [user]);
 
-    const role = useMemo(() => {
-        // 1. Check for simulation cookie (Dev/Admin Override)
-        if (typeof document !== 'undefined') {
-            const match = document.cookie.match(new RegExp('(^| )x-simulated-role=([^;]+)'));
-            if (match) {
-                return match[2] as Role;
-            }
-        }
-
-        // 2. Fallback: Get role from user object (Firebase Auth)
+    // Base role from user object (safe for SSR)
+    const baseRole = useMemo(() => {
         if (user && (user as any).role) {
             return (user as any).role as Role;
         }
-
         return null;
     }, [user]);
+
+    // Simulated role from cookie (client-side only, after hydration)
+    const [simulatedRole, setSimulatedRole] = useState<Role | null>(null);
+    
+    useEffect(() => {
+        // Only check cookie on client after hydration
+        if (typeof document !== 'undefined') {
+            const match = document.cookie.match(new RegExp('(^| )x-simulated-role=([^;]+)'));
+            if (match) {
+                setSimulatedRole(match[2] as Role);
+            }
+        }
+    }, []);
+
+    // Final role: simulation (if set) overrides base role
+    const role = simulatedRole || baseRole;
 
     const isRole = useMemo(() => {
         return (checkRole: Role) => role === checkRole;
