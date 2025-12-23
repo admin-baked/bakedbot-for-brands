@@ -5,12 +5,14 @@ import Image from "next/image";
 export interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
     size?: "sm" | "md" | "lg" | "xl";
     label?: string; // Optional label for accessibility or visual text
+    variant?: "default" | "static"; // default = animated GIF, static = PNG
 }
 
 export function Spinner({
     className,
     size = "md",
     label,
+    variant = "default",
     ...props
 }: SpinnerProps) {
     const sizeClasses = {
@@ -20,6 +22,11 @@ export function Spinner({
         xl: "h-24 w-24",
     };
 
+    // Use animated GIF by default, static PNG as fallback
+    const imageUrl = variant === "static"
+        ? "https://storage.cloud.google.com/bakedbot-global-assets/Untitled%20design.png"
+        : "https://storage.cloud.google.com/bakedbot-global-assets/smokey%20animated%20spinner.gif";
+
     return (
         <div
             className={cn("flex flex-col items-center justify-center gap-2", className)}
@@ -27,11 +34,11 @@ export function Spinner({
             role="status"
         >
             <Image
-                src="https://storage.cloud.google.com/bakedbot-global-assets/Untitled%20design.png"
+                src={imageUrl}
                 alt="Loading"
                 width={96}
                 height={96}
-                className={cn("animate-spin", sizeClasses[size])}
+                className={cn(sizeClasses[size])}
                 priority
                 unoptimized
             />
