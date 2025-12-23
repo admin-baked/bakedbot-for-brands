@@ -6,7 +6,7 @@
  */
 
 import { requireUser } from './auth';
-import { adminDb } from '@/firebase/admin';
+import { getAdminFirestore } from '@/firebase/admin';
 
 export async function getServerSessionUser() {
     try {
@@ -25,6 +25,7 @@ export async function getServerSessionUser() {
  * Get user profile from Firestore
  */
 export async function getUserProfile(uid: string) {
+    const adminDb = getAdminFirestore();
     const userDoc = await adminDb.collection('users').doc(uid).get();
     if (!userDoc.exists) {
         return null;

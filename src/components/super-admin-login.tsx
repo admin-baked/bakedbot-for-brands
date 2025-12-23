@@ -11,7 +11,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import { Shield, Sparkles, AlertCircle } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import { useSuperAdmin } from '@/hooks/use-super-admin';
 import { useFirebase } from '@/firebase/provider';
 import { GoogleAuthProvider, signInWithPopup, signOut, signInWithCustomToken } from 'firebase/auth';
@@ -178,11 +179,7 @@ export default function SuperAdminLogin() {
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
                     <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center">
-                        <img
-                            src="/access-robot.png"
-                            alt="BakedBot Security"
-                            className="h-full w-full object-contain"
-                        />
+                        <Spinner size="lg" />
                     </div>
                     <CardTitle className="text-2xl">Super Admin Active</CardTitle>
                     <CardDescription>
@@ -213,11 +210,7 @@ export default function SuperAdminLogin() {
         <Card className="w-full max-w-md">
             <CardHeader className="text-center">
                 <div className="mx-auto mb-4 flex h-32 w-32 items-center justify-center">
-                    <img
-                        src="/access-robot.png"
-                        alt="Verifying Access"
-                        className="h-full w-full object-contain animate-pulse"
-                    />
+                    <Spinner size="xl" />
                 </div>
                 <CardTitle className="text-2xl">Restricted Access</CardTitle>
                 <CardDescription>
@@ -239,7 +232,7 @@ export default function SuperAdminLogin() {
                 >
                     {isSubmitting ? (
                         <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            <Spinner size="sm" className="mr-2" />
                             Verifying Credentials...
                         </>
                     ) : (
@@ -287,7 +280,7 @@ export default function SuperAdminLogin() {
                         >
                             {isSubmitting ? (
                                 <>
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    <Spinner size="sm" className="mr-2" />
                                     Checking ID...
                                 </>
                             ) : (

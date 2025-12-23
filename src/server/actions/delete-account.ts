@@ -5,7 +5,7 @@
  * SUPER USER ONLY - Destructive operations for testing
  */
 
-import { adminDb, auth } from '@/firebase/admin';
+import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
 import { getServerSessionUser } from '@/server/auth/session';
 
 /**
@@ -13,6 +13,8 @@ import { getServerSessionUser } from '@/server/auth/session';
  */
 export async function isSuperUser(uid: string): Promise<boolean> {
     try {
+        const adminDb = getAdminFirestore();
+        const auth = getAdminAuth();
         const userDoc = await adminDb.collection('users').doc(uid).get();
         const userData = userDoc.data();
         
@@ -44,6 +46,7 @@ export async function deleteUserAccount(userId: string): Promise<{ success: bool
 
         // Delete Firebase Auth user
         try {
+            const auth = getAdminAuth();
             await auth.deleteUser(userId);
         } catch (authError: any) {
             if (authError.code !== 'auth/user-not-found') {
@@ -66,6 +69,7 @@ export async function deleteUserAccount(userId: string): Promise<{ success: bool
  * Delete user document and all subcollections/associated data
  */
 async function deleteUserData(userId: string): Promise<void> {
+    const adminDb = getAdminFirestore();
     const batch = adminDb.batch();
     
     // Delete main user document
@@ -94,25 +98,25 @@ async function deleteUserData(userId: string): Promise<void> {
     const kbEntries = await adminDb.collection('knowledge_base')
         .where('createdBy', '==', userId)
         .get();
-    kbEntries.docs.forEach(doc => batch.delete(doc.ref));
+    kbEntries.docs.forEach((doc: any) => batch.delete(doc.ref));
 
     // 2. Tasks assigned to user
     const tasks = await adminDb.collection('tasks')
         .where('userId', '==', userId)
         .get();
-    tasks.docs.forEach(doc => batch.delete(doc.ref));
+    tasks.docs.forEach((doc: any) => batch.delete(doc.ref));
 
     // 3. Drop alerts/subscriptions
     const alerts = await adminDb.collection('drop_alerts')
         .where('userId', '==', userId)
         .get();
-    alerts.docs.forEach(doc => batch.delete(doc.ref));
+    alerts.docs.forEach((doc: any) => batch.delete(doc.ref));
 
     // 4. User sessions
     const sessions = await adminDb.collection('user_sessions')
         .where('userId', '==', userId)
         .get();
-    sessions.docs.forEach(doc => batch.delete(doc.ref));
+    sessions.docs.forEach((doc: any) => batch.delete(doc.ref));
 
     // Commit all deletions
     await batch.commit();
@@ -135,9 +139,10 @@ export async function getAllUsers(): Promise<Array<{
             throw new Error('Unauthorized: Super User access required');
         }
 
+        const adminDb = getAdminFirestore();
         const usersSnapshot = await adminDb.collection('users').get();
         
-        return usersSnapshot.docs.map(doc => {
+        return usersSnapshot.docs.map((doc: any) => {
             const data = doc.data();
             return {
                 uid: doc.id,

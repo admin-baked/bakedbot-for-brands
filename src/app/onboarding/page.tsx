@@ -5,12 +5,12 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import OnboardingClient from './onboarding-client';
 
 export default function OnboardingPage() {
     return (
-        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>}>
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Spinner size="lg" /></div>}>
             <OnboardingClient />
         </Suspense>
     );
