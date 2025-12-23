@@ -4,7 +4,7 @@
 env:
   # Build-time memory allocation for Node.js processes (including Next.js workers)
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=6144"
+    value: "--max-old-space-size=8192"
     availability: [BUILD, RUNTIME]
   # Firebase
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY

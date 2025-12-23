@@ -117,12 +117,18 @@ function TaskItem({ task, onViewDetails, onApprove }: TaskItemProps) {
     );
 }
 
-export function TaskFeed() {
+interface TaskFeedProps {
+    initialTasks?: Task[];
+}
+
+export function TaskFeed({ initialTasks }: TaskFeedProps) {
     const { user } = useUserRole();
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [tasks, setTasks] = useState<Task[]>(initialTasks || []);
+    const [loading, setLoading] = useState(!initialTasks);
 
     useEffect(() => {
+        if (initialTasks) return; // Skip fetch if tasks are provided via props
+
         async function fetchTasks() {
             if (!user?.uid) return;
 

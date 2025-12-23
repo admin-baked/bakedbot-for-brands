@@ -1,60 +1,78 @@
-import { setupBrandAndCompetitors } from '../../src/server/actions/brand-setup';
-import { createServerClient } from '@/firebase/server-client';
-import { autoSetupCompetitors } from '@/server/services/auto-competitor';
-
-// Mock dependencies
+// Mock dependencies BEFORE importing the action
 jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn(),
 }));
-
 jest.mock('@/server/services/auto-competitor', () => ({
     autoSetupCompetitors: jest.fn(),
 }));
-
+jest.mock('@/server/services/cannmenus', () => ({
+    CannMenusService: jest.fn().mockImplementation(() => ({
+        syncMenusForBrand: jest.fn()
+    })),
+}));
 jest.mock('next/cache', () => ({
     revalidatePath: jest.fn(),
 }));
+jest.mock('@/lib/monitoring', () => ({
+    logger: {
+        info: jest.fn(),
+        error: jest.fn(),
+    },
+}));
 
-describe('Brand Setup Action', () => {
+import { setupBrandAndCompetitors } from '@/server/actions/brand-setup';
+import { createServerClient } from '@/firebase/server-client';
+import { autoSetupCompetitors } from '@/server/services/auto-competitor';
+import { CannMenusService } from '@/server/services/cannmenus';
+import { revalidatePath } from 'next/cache';
+
+describe('setupBrandAndCompetitors', () => {
     let mockFirestore: any;
-    let mockAuth: any;
-    let mockDocSet: jest.Mock;
-    let mockDocUpdate: jest.Mock;
 
     beforeEach(() => {
         jest.clearAllMocks();
 
-        mockDocSet = jest.fn().mockResolvedValue(undefined);
-        mockDocUpdate = jest.fn().mockResolvedValue(undefined);
-
         mockFirestore = {
-            collection: jest.fn((name) => ({
-                doc: jest.fn((id) => ({
-                    set: mockDocSet,
-                    update: mockDocUpdate,
-                })),
-            })),
+            collection: jest.fn().mockReturnThis(),
+            doc: jest.fn().mockReturnThis(),
+            set: jest.fn().mockResolvedValue(undefined),
+            update: jest.fn().mockResolvedValue(undefined),
         };
 
-        mockAuth = {
-            currentUser: { uid: 'test-user-id' },
-        };
-
-        (createServerClient as jest.Mock).mockResolvedValue({
-            firestore: mockFirestore,
-            auth: mockAuth,
-        });
-
+        (createServerClient as jest.Mock).mockResolvedValue({ firestore: mockFirestore });
         (autoSetupCompetitors as jest.Mock).mockResolvedValue({
-            competitors: [
-                { id: 'comp1', name: 'Competitor 1', city: 'Chicago', state: 'IL' },
-                { id: 'comp2', name: 'Competitor 2', city: 'Chicago', state: 'IL' },
-            ]
+            competitors: [{ id: 'comp_1', name: 'Competitor 1' }]
         });
+        
+        // Mocking the class constructor and its method
+        const mockSyncMenus = jest.fn().mockResolvedValue({ synced: true });
+        (CannMenusService as jest.Mock).mockImplementation(() => ({
+            syncMenusForBrand: mockSyncMenus
+        }));
     });
 
-    it('should successfully setup a brand and trigger competitor discovery', async () => {
+    it('returns error if userId is missing', async () => {
         const formData = new FormData();
+        formData.append('brandName', 'Test Brand');
+        formData.append('zipCode', '60601');
+
+        const result = await setupBrandAndCompetitors(formData);
+
+        expect(result).toEqual({ success: false, error: 'Authentication required' });
+    });
+
+    it('returns error if brandName or zipCode is missing', async () => {
+        const formData = new FormData();
+        formData.append('userId', 'user_1');
+
+        const result = await setupBrandAndCompetitors(formData);
+
+        expect(result).toEqual({ success: false, error: 'Brand name and ZIP code are required' });
+    });
+
+    it('successfully sets up brand and triggers discovery/sync', async () => {
+        const formData = new FormData();
+        formData.append('userId', 'user_1');
         formData.append('brandName', 'Test Brand');
         formData.append('zipCode', '60601');
 
@@ -62,49 +80,47 @@ describe('Brand Setup Action', () => {
 
         expect(result.success).toBe(true);
         expect(result.brandId).toBe('test-brand');
-        expect(result.competitors).toHaveLength(2);
+        expect(result.competitors).toHaveLength(1);
+        expect(result.syncStatus.started).toBe(true);
 
         // Verify Firestore calls
         expect(mockFirestore.collection).toHaveBeenCalledWith('brands');
-        expect(mockDocSet).toHaveBeenCalledWith(expect.objectContaining({
-            name: 'Test Brand',
-            id: 'test-brand',
-            zipCode: '60601'
-        }), { merge: true });
+        expect(mockFirestore.doc).toHaveBeenCalledWith('test-brand');
+        expect(mockFirestore.set).toHaveBeenCalledWith(
+            expect.objectContaining({ name: 'Test Brand', zipCode: '60601' }),
+            { merge: true }
+        );
 
         expect(mockFirestore.collection).toHaveBeenCalledWith('users');
-        expect(mockDocUpdate).toHaveBeenCalledWith({
+        expect(mockFirestore.doc).toHaveBeenCalledWith('user_1');
+        expect(mockFirestore.update).toHaveBeenCalledWith({
             brandId: 'test-brand',
-            setupComplete: true,
+            setupComplete: true
         });
 
-        // Verify Auto-competitor call
+        // Verify Service calls
         expect(autoSetupCompetitors).toHaveBeenCalledWith('test-brand', '60601');
+        
+        // Verify Next.js revalidation
+        expect(revalidatePath).toHaveBeenCalledWith('/dashboard');
+        expect(revalidatePath).toHaveBeenCalledWith('/dashboard/settings');
     });
 
-    it('should fail if user is not authenticated', async () => {
-        (createServerClient as jest.Mock).mockResolvedValue({
-            firestore: mockFirestore,
-            auth: { currentUser: null },
-        });
+    it('handles sync failures gracefully but remains successful', async () => {
+        // We need to re-mock the sync method to fail
+        (CannMenusService as jest.Mock).mockImplementation(() => ({
+            syncMenusForBrand: jest.fn().mockRejectedValue(new Error('Sync error'))
+        }));
 
         const formData = new FormData();
+        formData.append('userId', 'user_1');
         formData.append('brandName', 'Test Brand');
         formData.append('zipCode', '60601');
 
         const result = await setupBrandAndCompetitors(formData);
 
-        expect(result.success).toBe(false);
-        expect(result.error).toBe('Authentication required');
-    });
-
-    it('should fail if required fields are missing', async () => {
-        const formData = new FormData();
-        // Missing zipCode
-
-        const result = await setupBrandAndCompetitors(formData);
-
-        expect(result.success).toBe(false);
-        expect(result.error).toBe('Brand name and ZIP code are required');
+        expect(result.success).toBe(true);
+        expect(result.syncStatus.started).toBe(false);
+        expect(result.syncStatus.error).toBe('Sync initiation failed');
     });
 });

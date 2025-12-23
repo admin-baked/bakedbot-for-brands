@@ -192,6 +192,8 @@ export function AccountManagementTab() {
                 description: error.message || 'Failed to delete',
                 variant: 'destructive',
             });
+        } finally {
+            setDeleteDialog((prev) => ({ ...prev, open: false }));
         }
     }
 
