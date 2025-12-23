@@ -52,6 +52,11 @@ const nextConfig = {
     'path',
     'os',
   ],
+  typescript: {
+    // Disable Next.js TypeScript checking - we run tsc --noEmit separately in check:types
+    // This avoids duplicate TS compilation and memory issues in Firebase builds
+    ignoreBuildErrors: true,
+  },
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
 
