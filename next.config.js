@@ -41,19 +41,17 @@ const nextConfig = {
       },
     ],
   },
-  experimental: {
-    serverComponentsExternalPackages: [
-      'genkit',
-      '@genkit-ai/google-genai',
-      '@genkit-ai/core',
-      '@opentelemetry/sdk-node',
-      '@opentelemetry/instrumentation',
-      'google-auth-library',
-      'fs',
-      'path',
-      'os',
-    ],
-  },
+  serverExternalPackages: [
+    'genkit',
+    '@genkit-ai/google-genai',
+    '@genkit-ai/core',
+    '@opentelemetry/sdk-node',
+    '@opentelemetry/instrumentation',
+    'google-auth-library',
+    'fs',
+    'path',
+    'os',
+  ],
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
 
