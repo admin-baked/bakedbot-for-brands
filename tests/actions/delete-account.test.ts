@@ -1,5 +1,5 @@
 import { deleteUserAccount, getAllUsers, isSuperUser } from '@/server/actions/delete-account';
-import { adminDb, auth } from '@/firebase/admin';
+import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
 import { getServerSessionUser } from '@/server/auth/session';
 
 // Mock dependencies
@@ -8,14 +8,19 @@ jest.mock('next/headers', () => ({
     cookies: jest.fn(),
 }));
 
+// Create mock objects first, then use them in the mock factory
+const mockAdminDb = {
+    collection: jest.fn(),
+    batch: jest.fn(),
+};
+
+const mockAuth = {
+    deleteUser: jest.fn(),
+};
+
 jest.mock('@/firebase/admin', () => ({
-    adminDb: {
-        collection: jest.fn(),
-        batch: jest.fn(),
-    },
-    auth: {
-        deleteUser: jest.fn(),
-    },
+    getAdminFirestore: jest.fn(() => mockAdminDb),
+    getAdminAuth: jest.fn(() => mockAuth),
 }));
 
 jest.mock('@/server/auth/session', () => ({
@@ -38,8 +43,8 @@ describe('delete-account actions', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        (adminDb.collection as jest.Mock).mockReturnValue({ doc: mockDoc });
-        (adminDb.batch as jest.Mock).mockReturnValue(mockBatch);
+        (mockAdminDb.collection as jest.Mock).mockReturnValue({ doc: mockDoc });
+        (mockAdminDb.batch as jest.Mock).mockReturnValue(mockBatch);
         mockBatch.commit.mockResolvedValue(undefined);
     });
 
@@ -52,7 +57,7 @@ describe('delete-account actions', () => {
 
             const result = await isSuperUser('user123');
 
-            expect(adminDb.collection).toHaveBeenCalledWith('users');
+            expect(mockAdminDb.collection).toHaveBeenCalledWith('users');
             expect(mockDoc).toHaveBeenCalledWith('user123');
             expect(result).toBe(true);
         });
@@ -125,7 +130,7 @@ describe('delete-account actions', () => {
             });
 
             // Mock related collections (empty by default)
-            (adminDb.collection as jest.Mock).mockImplementation((name) => {
+            (mockAdminDb.collection as jest.Mock).mockImplementation((name) => {
                 if (name === 'users') {
                     return { doc: mockDoc };
                 }
@@ -140,12 +145,12 @@ describe('delete-account actions', () => {
 
         it('should successfully delete a user account', async () => {
             (getServerSessionUser as jest.Mock).mockResolvedValue({ uid: 'superuser123' });
-            (auth.deleteUser as jest.Mock).mockResolvedValue(undefined);
+            (mockAuth.deleteUser as jest.Mock).mockResolvedValue(undefined);
 
             const result = await deleteUserAccount('user456');
 
             expect(getServerSessionUser).toHaveBeenCalled();
-            expect(auth.deleteUser).toHaveBeenCalledWith('user456');
+            expect(mockAuth.deleteUser).toHaveBeenCalledWith('user456');
             expect(mockBatch.commit).toHaveBeenCalled();
             expect(result).toEqual({ success: true });
         });
@@ -163,7 +168,7 @@ describe('delete-account actions', () => {
                 success: false,
                 error: 'Unauthorized: Super User access required',
             });
-            expect(auth.deleteUser).not.toHaveBeenCalled();
+            expect(mockAuth.deleteUser).not.toHaveBeenCalled();
         });
 
         it('should reject if current user is not logged in', async () => {
@@ -197,7 +202,7 @@ describe('delete-account actions', () => {
                 success: false,
                 error: 'Cannot delete Super User accounts',
             });
-            expect(auth.deleteUser).not.toHaveBeenCalled();
+            expect(mockAuth.deleteUser).not.toHaveBeenCalled();
         });
 
         it('should continue if auth user not found', async () => {
@@ -205,7 +210,7 @@ describe('delete-account actions', () => {
             
             const authError = new Error('User not found');
             (authError as any).code = 'auth/user-not-found';
-            (auth.deleteUser as jest.Mock).mockRejectedValue(authError);
+            (mockAuth.deleteUser as jest.Mock).mockRejectedValue(authError);
 
             const result = await deleteUserAccount('user456');
 
@@ -218,7 +223,7 @@ describe('delete-account actions', () => {
             
             const authError = new Error('Auth service error');
             (authError as any).code = 'auth/internal-error';
-            (auth.deleteUser as jest.Mock).mockRejectedValue(authError);
+            (mockAuth.deleteUser as jest.Mock).mockRejectedValue(authError);
 
             const result = await deleteUserAccount('user456');
 
@@ -228,7 +233,7 @@ describe('delete-account actions', () => {
 
         it('should delete user subcollections', async () => {
             (getServerSessionUser as jest.Mock).mockResolvedValue({ uid: 'superuser123' });
-            (auth.deleteUser as jest.Mock).mockResolvedValue(undefined);
+            (mockAuth.deleteUser as jest.Mock).mockResolvedValue(undefined);
 
             await deleteUserAccount('user456');
 
@@ -242,14 +247,14 @@ describe('delete-account actions', () => {
 
         it('should delete related data across collections', async () => {
             (getServerSessionUser as jest.Mock).mockResolvedValue({ uid: 'superuser123' });
-            (auth.deleteUser as jest.Mock).mockResolvedValue(undefined);
+            (mockAuth.deleteUser as jest.Mock).mockResolvedValue(undefined);
 
             const mockRelatedDocs = [
                 { ref: { path: 'knowledge_base/1' } },
                 { ref: { path: 'knowledge_base/2' } },
             ];
 
-            (adminDb.collection as jest.Mock).mockImplementation((name) => {
+            (mockAdminDb.collection as jest.Mock).mockImplementation((name) => {
                 const mockWhere = jest.fn(() => ({
                     get: jest.fn().mockResolvedValue({ docs: name === 'knowledge_base' ? mockRelatedDocs : [] }),
                 }));
@@ -297,7 +302,7 @@ describe('delete-account actions', () => {
                 },
             ];
 
-            (adminDb.collection as jest.Mock).mockReturnValue({
+            (mockAdminDb.collection as jest.Mock).mockReturnValue({
                 get: jest.fn().mockResolvedValue({ docs: mockUsers }),
                 doc: mockDoc,
             });
