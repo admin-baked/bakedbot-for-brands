@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Google Cloud Secret Manager Utility
  *
