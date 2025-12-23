@@ -489,3 +489,17 @@ Fixed an issue where the Brand Page dashboard would show "Unknown Brand" for new
 *   `npm run check:types` (Passed)
 
 ---
+
+## Session: Notifications Fix
+**Date:** 2025-12-23
+**Task ID:** NOTIFICATIONS-FIX-001
+
+### Summary
+Fixed the "Data Imports" notification dropdown which was always empty ("No active imports") because it was failing to receive the `userId`.
+
+### Key Changes
+*   **Auto-detect User ID:** Updated `src/components/dashboard/data-import-dropdown.tsx` to use the `useUser` hook to retrieve the current user's ID if one isn't passed via props. This ensures the component correctly subscribes to `data_jobs` in Firestore.
+
+### Tests Run
+*   `npm run check:types` (Passed)
+---
