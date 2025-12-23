@@ -19,7 +19,9 @@ import {
     Target,
     Bell,
     Mail,
-    Clock
+    Clock,
+    DollarSign,
+    Users
 } from 'lucide-react';
 import { QUICK_START_CARDS } from '@/lib/config/quick-start-cards';
 import type { UserRole } from '@/types/agent-workspace';
@@ -35,7 +37,9 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     map: <Map className="h-5 w-5" />,
     target: <Target className="h-5 w-5" />,
     notification: <Bell className="h-5 w-5" />,
-    mail: <Mail className="h-5 w-5" />
+    mail: <Mail className="h-5 w-5" />,
+    dollar: <DollarSign className="h-5 w-5" />,
+    users: <Users className="h-5 w-5" />
 };
 
 interface QuickStartCardsProps {
@@ -45,12 +49,12 @@ interface QuickStartCardsProps {
 export function QuickStartCards({ onCardClick }: QuickStartCardsProps) {
     const { role } = useUserRole();
 
-    if (!role || role === 'owner') {
-        return null; // Owner doesn't see quick start cards
+    if (!role) {
+        return null;
     }
 
     const roleCards = QUICK_START_CARDS.filter(card =>
-        card.roles.includes(role as 'brand' | 'dispensary')
+        card.roles.includes(role as any)
     );
 
     const handleCardClick = (prompt: string, playbookId?: string) => {

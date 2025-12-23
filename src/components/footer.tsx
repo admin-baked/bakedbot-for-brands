@@ -11,8 +11,9 @@ export function Footer() {
             <SmokeyControlCenter />
           </div>
         </div>
-        <div className="text-xs text-center text-gray-500 border-t pt-8">
-          © {new Date().getFullYear()} BakedBot AI – Agentic Commerce OS for Cannabis
+        <div className="text-xs text-center text-gray-500 border-t pt-8 flex justify-between items-center">
+          <span>© {new Date().getFullYear()} BakedBot AI – Agentic Commerce OS for Cannabis</span>
+          <span className="font-mono opacity-50">v1.5.2</span>
         </div>
       </div>
     </footer>

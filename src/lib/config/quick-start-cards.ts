@@ -101,6 +101,33 @@ export const QUICK_START_CARDS: QuickStartCard[] = [
         estimatedTime: '3 min',
         prompt: 'Connect my Gmail account so I can send retailer outreach emails.',
         roles: ['brand']
+    },
+    {
+        id: 'owner_analytics',
+        title: 'Platform Analytics',
+        description: 'View aggregate data across all brands and dispensaries',
+        icon: 'chart',
+        estimatedTime: '2 min',
+        prompt: 'Show me platform-wide analytics for the last 30 days.',
+        roles: ['owner']
+    },
+    {
+        id: 'owner_revenue',
+        title: 'Generate Revenue Report',
+        description: 'Calculate margins and payouts for this period',
+        icon: 'dollar',
+        estimatedTime: '5 min',
+        prompt: 'Generate a revenue report for all active accounts.',
+        roles: ['owner']
+    },
+    {
+        id: 'owner_team',
+        title: 'Manage Team Access',
+        description: 'Configure permissions and add new admins',
+        icon: 'users',
+        estimatedTime: '3 min',
+        prompt: 'Open user management console.',
+        roles: ['owner']
     }
 ];
 

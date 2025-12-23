@@ -15,12 +15,30 @@ import {
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { DataImportDropdown } from '@/components/dashboard/data-import-dropdown';
+import { SetupHealth } from '@/components/dashboard/setup-health';
+import { QuickStartCards } from '@/components/dashboard/quick-start-cards';
+import { TaskFeed } from '@/components/dashboard/task-feed';
 import { getBrandDashboardData } from './actions';
 
 export default function BrandDashboardClient({ brandId }: { brandId: string }) {
-    const [view, setView] = useState<'overview' | 'modular'>('overview');
+    const [view, setView] = useState<'hq' | 'classic' | 'customize'>('hq');
     const [liveData, setLiveData] = useState<any>(null);
     const market = "All Markets";
+
+    // Persist view preference
+    useEffect(() => {
+        const savedView = localStorage.getItem(`dash_view_${brandId}`);
+        if (savedView === 'classic' || savedView === 'hq') {
+            setView(savedView);
+        }
+    }, [brandId]);
+
+    const handleViewChange = (newView: 'hq' | 'classic' | 'customize') => {
+        setView(newView);
+        if (newView !== 'customize') {
+            localStorage.setItem(`dash_view_${brandId}`, newView);
+        }
+    };
 
     // Fetch data for widgets
     useEffect(() => {
@@ -32,7 +50,7 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
     }, [brandId]);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6" data-testid="brand-dashboard-client">
             {/* Unified Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
@@ -84,13 +102,17 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
 
             {/* View Toggle */}
             <div className="flex items-center justify-between">
-                <Tabs value={view} onValueChange={(v) => setView(v as 'overview' | 'modular')}>
+                <Tabs value={view} onValueChange={(v) => handleViewChange(v as any)} data-testid="dashboard-view-tabs">
                     <TabsList className="h-8">
-                        <TabsTrigger value="overview" className="text-xs gap-1.5 px-3">
-                            <LayoutDashboard className="h-3.5 w-3.5" />
-                            Overview
+                        <TabsTrigger value="hq" className="text-xs gap-1.5 px-3" data-testid="tab-hq">
+                            <Activity className="h-3.5 w-3.5" />
+                            Command Center
                         </TabsTrigger>
-                        <TabsTrigger value="modular" className="text-xs gap-1.5 px-3">
+                        <TabsTrigger value="classic" className="text-xs gap-1.5 px-3" data-testid="tab-classic">
+                            <LayoutDashboard className="h-3.5 w-3.5" />
+                            Classic
+                        </TabsTrigger>
+                        <TabsTrigger value="customize" className="text-xs gap-1.5 px-3" data-testid="tab-customize">
                             <Grip className="h-3.5 w-3.5" />
                             Customize
                         </TabsTrigger>
@@ -99,11 +121,28 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
             </div>
 
             {/* Content - Unified Dashboard */}
-            <ModularDashboard
-                role="brand"
-                isEditable={view === 'modular'}
-                dashboardData={liveData}
-            />
+            {view === 'hq' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    <div className="lg:col-span-1 space-y-8">
+                        <SetupHealth />
+                        <QuickStartCards />
+                        <TaskFeed />
+                    </div>
+                    <div className="lg:col-span-3">
+                        <ModularDashboard
+                            role="brand"
+                            isEditable={false}
+                            dashboardData={liveData}
+                        />
+                    </div>
+                </div>
+            ) : (
+                <ModularDashboard
+                    role="brand"
+                    isEditable={view === 'customize'}
+                    dashboardData={liveData}
+                />
+            )}
         </div>
     );
 }
