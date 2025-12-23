@@ -1,15 +1,16 @@
 import { sendGmail } from '../send';
 import { getGmailToken, saveGmailToken } from '../token-storage';
-import { getOAuth2Client } from '../oauth';
+import { getOAuth2ClientAsync } from '../oauth';
 import { google } from 'googleapis';
 
 // Mock dependencies with explicit factories
+jest.mock('server-only', () => ({}));
 jest.mock('../token-storage', () => ({
     getGmailToken: jest.fn(),
     saveGmailToken: jest.fn()
 }));
 jest.mock('../oauth', () => ({
-    getOAuth2Client: jest.fn()
+    getOAuth2ClientAsync: jest.fn()
 }));
 jest.mock('googleapis', () => ({
     google: {
@@ -32,7 +33,7 @@ describe('Gmail Send', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        (getOAuth2Client as jest.Mock).mockReturnValue(mockOAuth2Client);
+        (getOAuth2ClientAsync as jest.Mock).mockResolvedValue(mockOAuth2Client);
         (google.gmail as jest.Mock).mockReturnValue(mockGmailClient);
     });
 
@@ -66,6 +67,7 @@ describe('Gmail Send', () => {
 
     it('should set up token refresh listener', async () => {
         (getGmailToken as jest.Mock).mockResolvedValue({ refresh_token: 'valid_refresh' });
+        mockGmailClient.users.messages.send.mockResolvedValue({ data: { id: 'msg_123' } });
 
         await sendGmail({ userId: 'u1', to: ['test@test.com'], subject: 'Hi', html: '<b>Hi</b>' });
 
