@@ -110,14 +110,9 @@ export default function OnboardingPage() {
             await auth.currentUser.getIdToken(true);
           } catch (e) { console.error("Token refresh failed", e); }
         }
-        // Logic to determine redirect based on role
-        if (role === 'brand') {
-          window.location.assign('/dashboard/playbooks');
-        } else if (role === 'dispensary') {
-          window.location.assign('/dashboard/playbooks');
-        } else {
-          window.location.assign('/dashboard');
-        }
+        // Onboarding v2: Brand/Dispensary → /dashboard, Customer → /dashboard
+        // SuperUser uses separate /super-admin flow
+        window.location.assign('/dashboard');
       };
       redirect();
     }
