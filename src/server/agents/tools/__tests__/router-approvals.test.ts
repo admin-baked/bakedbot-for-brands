@@ -1,13 +1,7 @@
 
-import { routeToolCall } from '../router';
-import { ToolRequest } from '@/types/agent-toolkit';
-
-// Mock dependencies
-jest.mock('@/server/auth/rbac', () => ({
-    hasRolePermission: jest.fn().mockReturnValue(true)
-}));
-
-jest.mock('../registry', () => ({
+jest.mock('uuid', () => ({ v4: () => 'mock' }));
+jest.mock('@/server/auth/rbac', () => ({ hasRolePermission: jest.fn().mockReturnValue(true) }));
+jest.mock('@/server/agents/tools/registry', () => ({
     getToolDefinition: jest.fn((name) => {
         if (name === 'side.effect.tool') {
             return {
@@ -21,26 +15,32 @@ jest.mock('../registry', () => ({
         return null;
     })
 }));
-
-jest.mock('../approvals/service', () => ({
+jest.mock('@/server/agents/persistence', () => ({ persistence: { appendLog: jest.fn() } }));
+jest.mock('@/server/agents/approvals/service', () => ({
     createApprovalRequest: jest.fn().mockResolvedValue({ id: 'mock-approval-id' }),
     checkIdempotency: jest.fn().mockResolvedValue(null),
     saveIdempotency: jest.fn()
 }));
+jest.mock('@/server/agents/tools/universal/context-tools', () => ({}));
+jest.mock('@/server/agents/tools/domain/catalog', () => ({}));
+jest.mock('@/server/agents/tools/domain/marketing', () => ({}));
+jest.mock('@/server/agents/tools/domain/analytics', () => ({}));
+jest.mock('@/server/agents/tools/domain/intel', () => ({}));
+// Dynamic mocks
+jest.mock('@/server/tools/web-search', () => ({}));
+jest.mock('@/lib/email/dispatcher', () => ({}));
+jest.mock('@/server/actions/knowledge-base', () => ({}));
+jest.mock('@/server/agents/deebo', () => ({}));
 
-// Mock Universal Tools to avoid import errors
-jest.mock('../universal/context-tools', () => ({}));
-jest.mock('../../domain/catalog', () => ({}));
-jest.mock('../../domain/marketing', () => ({}));
-jest.mock('../../domain/analytics', () => ({}));
-jest.mock('../../domain/intel', () => ({}));
+import { routeToolCall } from '../router';
+import { ToolRequest } from '@/types/agent-toolkit';
 
 describe('Router Side-Effects', () => {
     it('should block side-effect tools and create approval request', async () => {
         const req: ToolRequest = {
             toolName: 'side.effect.tool',
             tenantId: 'tenant-123',
-            actor: { userId: 'user-1', role: 'brand-admin' },
+            actor: { userId: 'user-1', role: 'brand' },
             inputs: { foo: 'bar' }
         };
 

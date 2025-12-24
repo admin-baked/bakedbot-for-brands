@@ -23,7 +23,8 @@ export default function TeamPage() {
     const [invitations, setInvitations] = useState<Invitation[]>([]);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
-    const { user, userProfile } = useUser();
+    const { user } = useUser();
+    const userProfile = user as any; // Augmented user from hook
 
     const orgId = userProfile?.currentOrgId || userProfile?.brandId;
     const userRole = userProfile?.role as 'brand' | 'dispensary' | 'super_admin' | 'customer' | undefined;
@@ -44,8 +45,8 @@ export default function TeamPage() {
         setLoading(true);
         try {
             const result = await getInvitationsAction(orgId);
-            if (result.success && result.invitations) {
-                setInvitations(result.invitations as Invitation[]);
+            if (Array.isArray(result)) {
+                setInvitations(result);
             }
         } catch (error) {
             console.error('Failed to load invitations:', error);

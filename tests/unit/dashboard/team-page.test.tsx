@@ -29,14 +29,11 @@ describe('TeamPage', () => {
 
     beforeEach(() => {
         (useUser as jest.Mock).mockReturnValue({
-            user: mockUser,
-            userProfile: mockUserProfile,
+            // Merge profile into user for the new component logic
+            user: { ...mockUser, ...mockUserProfile },
         });
 
-        (getInvitationsAction as jest.Mock).mockResolvedValue({
-            success: true,
-            invitations: []
-        });
+        (getInvitationsAction as jest.Mock).mockResolvedValue([]);
     });
 
     it('renders loading state initially', () => {
@@ -74,10 +71,7 @@ describe('TeamPage', () => {
             }
         ];
 
-        (getInvitationsAction as jest.Mock).mockResolvedValue({
-            success: true,
-            invitations: mockInvitations
-        });
+        (getInvitationsAction as jest.Mock).mockResolvedValue(mockInvitations);
 
         render(<TeamPage />);
 
@@ -105,10 +99,7 @@ describe('TeamPage', () => {
             }
         ];
 
-        (getInvitationsAction as jest.Mock).mockResolvedValue({
-            success: true,
-            invitations: mockInvitations
-        });
+        (getInvitationsAction as jest.Mock).mockResolvedValue(mockInvitations);
 
         (revokeInvitationAction as jest.Mock).mockResolvedValue({
             success: true

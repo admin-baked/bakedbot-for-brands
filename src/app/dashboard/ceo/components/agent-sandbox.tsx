@@ -24,15 +24,22 @@ export function AgentSandbox() {
     const [loading, setLoading] = useState(false);
     const [executionTime, setExecutionTime] = useState<number>(0);
 
+    const [error, setError] = useState<string | null>(null);
+
     useEffect(() => {
         // Load capabilities on mount
         const loadData = async () => {
-            const [agentList, toolList] = await Promise.all([
-                listAgentsAction(),
-                listToolsAction()
-            ]);
-            setAgents(agentList);
-            setTools(toolList);
+            try {
+                const [agentList, toolList] = await Promise.all([
+                    listAgentsAction(),
+                    listToolsAction()
+                ]);
+                setAgents(agentList);
+                setTools(toolList);
+            } catch (err: any) {
+                console.error('Failed to load sandbox data:', err);
+                setError(err.message || 'Failed to load configuration. You may need to relogin.');
+            }
         };
         loadData();
     }, []);
@@ -94,6 +101,12 @@ export function AgentSandbox() {
                         <CardDescription>Select identity and capability to test</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        {error && (
+                            <Alert variant="destructive">
+                                <AlertTitle>Error</AlertTitle>
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
                         <div className="space-y-2">
                             <Label>Agent Identity</Label>
                             <Select value={selectedAgent} onValueChange={setSelectedAgent}>
