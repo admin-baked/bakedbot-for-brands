@@ -1,6 +1,30 @@
 
 # Progress Log
 
+## Session: Resume Mailjet Integration & Build Check
+**Date:** 2025-12-23
+**Task ID:** MAILJET-RESUME-001
+
+### Summary
+Resumed the Mailjet integration task after a session interruption. Verified that the `node-mailjet` dependency is installed and the integration code (`mailjet.ts`, `dispatcher.ts`, `settings.ts`) is fully implemented and type-safe. Validated that the build is passing (TypeScript check passed). Fixed a build error in `join/[token]/page.tsx` where `loading` was accessed instead of `isUserLoading`.
+
+### Key Verification
+*   **Mailjet Implementation:** Confirmed `src/lib/email/mailjet.ts` handles email sending.
+*   **Dispatcher:** Confirmed `src/lib/email/dispatcher.ts` switches between SendGrid and Mailjet based on settings.
+*   **Settings UI:** Confirmed `CeoSettingsTab` allows toggling the provider.
+*   **Build Health:** Ran `npm run check:types` - Passed.
+*   **Config:** Verified `apphosting.yaml` includes `MAILJET_API_KEY` and `MAILJET_SECRET_KEY` references.
+*   **Build Fix:** Confirmed `src/app/join/[token]/page.tsx` uses `isUserLoading` correctly.
+
+### Tests Run
+*   `npm run check:types` (Passed)
+*   `npm list node-mailjet` (Present)
+
+### Notes
+*   **Action Required:** Ensure `MAILJET_API_KEY` and `MAILJET_SECRET_KEY` are defined in Google Secret Manager for the integration to function in production.
+
+---
+
 ## Session: Delete Action Test Mock Fixes
 **Date:** 2025-12-23
 **Task ID:** DELETE-TESTS-FIX-001

@@ -30,7 +30,8 @@ import {
     History,
     Trash2,
     ChevronRight,
-    MoreHorizontal
+    MoreHorizontal,
+    Settings
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -281,6 +282,14 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/ceo?tab=account-management">
                                     <UserMinus />
                                     <span>User Management</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("settings")}>
+                                <Link href="/dashboard/ceo?tab=settings">
+                                    <Settings />
+                                    <span>System Settings</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
