@@ -339,6 +339,32 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       logger.info('Queued competitor discovery job', { orgId, marketState });
     }
 
+    // --- SEND WELCOME EMAIL (NON-BLOCKING) ---
+    try {
+      const { triggerWelcomeEmail } = await import('@/server/services/autoresponder-service');
+      const userEmail = user.email || '';
+      const userName = user.name || userEmail.split('@')[0];
+      
+      if (userEmail) {
+        const emailRole = finalRole === 'skip' ? 'customer' : finalRole as 'brand' | 'dispensary' | 'customer';
+        const entityName = finalRole === 'brand' ? finalBrandName : manualDispensaryName;
+        
+        // Fire and forget - don't block onboarding completion
+        triggerWelcomeEmail(uid, userEmail, emailRole, userName, entityName || undefined)
+          .then(result => {
+            if (result.success) {
+              logger.info('Welcome email sent', { userId: uid, role: emailRole });
+            } else {
+              logger.warn('Welcome email failed', { userId: uid, message: result.message });
+            }
+          })
+          .catch(err => logger.error('Welcome email error', { error: err.message }));
+      }
+    } catch (emailError) {
+      // Don't fail onboarding if email fails
+      logger.error('Failed to trigger welcome email', { error: emailError });
+    }
+
     revalidatePath('/dashboard');
     revalidatePath('/account');
 
