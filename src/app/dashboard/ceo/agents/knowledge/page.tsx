@@ -343,7 +343,7 @@ export default function AgentKnowledgePage() {
                                                     <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">
                                                         {doc.content.substring(0, 50)}...
                                                     </TableCell>
-                                                    <TableCell className="text-xs text-muted-foreground">
+                                                    <TableCell className="text-xs text-muted-foreground" suppressHydrationWarning>
                                                         {new Date(doc.createdAt as any).toLocaleDateString()}
                                                     </TableCell>
                                                     <TableCell>

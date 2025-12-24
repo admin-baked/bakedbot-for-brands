@@ -267,7 +267,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                                             </TableCell>
                                             <TableCell className="font-medium">${customer.totalSpent.toFixed(2)}</TableCell>
                                             <TableCell>{customer.orderCount}</TableCell>
-                                            <TableCell>
+                                            <TableCell suppressHydrationWarning>
                                                 {customer.lastOrderDate
                                                     ? new Date(customer.lastOrderDate).toLocaleDateString()
                                                     : 'N/A'}

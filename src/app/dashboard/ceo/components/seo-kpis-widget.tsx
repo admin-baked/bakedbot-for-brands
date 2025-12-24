@@ -383,7 +383,7 @@ export default function SeoKpisWidget({
             </Card>
 
             {/* Last Updated */}
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-xs text-muted-foreground text-center" suppressHydrationWarning>
                 Last updated: {kpis.lastUpdated.toLocaleString()}
             </p>
         </div>

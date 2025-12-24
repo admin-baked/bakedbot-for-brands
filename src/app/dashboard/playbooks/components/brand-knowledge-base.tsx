@@ -312,7 +312,7 @@ export function BrandKnowledgeBase({ brandId }: BrandKnowledgeBaseProps) {
                                                 <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">
                                                     {doc.content.substring(0, 60)}...
                                                 </TableCell>
-                                                <TableCell className="text-xs text-muted-foreground">
+                                                <TableCell className="text-xs text-muted-foreground" suppressHydrationWarning>
                                                     {new Date(doc.createdAt as any).toLocaleDateString()}
                                                 </TableCell>
                                                 <TableCell>

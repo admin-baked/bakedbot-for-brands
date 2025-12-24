@@ -108,7 +108,7 @@ export default function MenuSyncPage() {
             )}
 
             {lastSync && (
-                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6" suppressHydrationWarning>
                     Sync completed successfully at {new Date(lastSync).toLocaleTimeString()}
                 </div>
             )}
@@ -152,7 +152,7 @@ export default function MenuSyncPage() {
                                                 {retailer.menu_discovery_status}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-gray-500 text-sm">
+                                        <td className="px-6 py-4 text-gray-500 text-sm" suppressHydrationWarning>
                                             {retailer.updatedAt?.toDate
                                                 ? retailer.updatedAt.toDate().toLocaleDateString()
                                                 : 'N/A'}

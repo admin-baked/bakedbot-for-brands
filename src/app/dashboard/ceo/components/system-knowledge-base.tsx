@@ -491,7 +491,7 @@ export function SystemKnowledgeBase() {
                                                             <TableCell className="text-muted-foreground">
                                                                 {formatBytes(doc.byteSize)}
                                                             </TableCell>
-                                                            <TableCell className="text-muted-foreground">
+                                                            <TableCell className="text-muted-foreground" suppressHydrationWarning>
                                                                 {new Date(doc.createdAt).toLocaleDateString()}
                                                             </TableCell>
                                                             <TableCell>

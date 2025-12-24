@@ -120,7 +120,7 @@ function LiveCameraView({ cameraId, cameraName }: { cameraId: string; cameraName
                                 </span>
                                 <Badge variant="secondary" className="text-xs">{cameraName}</Badge>
                             </div>
-                            <div className="flex items-center gap-2 text-white text-xs">
+                            <div className="flex items-center gap-2 text-white text-xs" suppressHydrationWarning>
                                 <Clock className="h-3 w-3" />
                                 {new Date().toLocaleTimeString()}
                             </div>

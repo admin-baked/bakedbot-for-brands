@@ -448,11 +448,11 @@ export default function SuperAdminPlaybooksTab() {
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-sm font-medium text-muted-foreground">Last Run</p>
-                                                <p className="text-sm">{selectedPlaybook.lastRun?.toLocaleString() || 'Never'}</p>
+                                                <p className="text-sm" suppressHydrationWarning>{selectedPlaybook.lastRun?.toLocaleString() || 'Never'}</p>
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-sm font-medium text-muted-foreground">Next Run</p>
-                                                <p className="text-sm">{selectedPlaybook.nextRun?.toLocaleString() || 'Not scheduled'}</p>
+                                                <p className="text-sm" suppressHydrationWarning>{selectedPlaybook.nextRun?.toLocaleString() || 'Not scheduled'}</p>
                                             </div>
                                         </div>
 
