@@ -52,9 +52,9 @@ export async function browserAction(params: BrowserActionParams): Promise<Browse
 
         // Determine launch config based on environment
         let launchConfig: any = {
-            headless: headless ? (process.env.NODE_ENV === 'production' ? chromium.headless : true) : false,
-            args: process.env.NODE_ENV === 'production' ? chromium.args : [],
-            defaultViewport: chromium.defaultViewport,
+            headless: headless ? (process.env.NODE_ENV === 'production' ? (chromium as any).headless : true) : false,
+            args: process.env.NODE_ENV === 'production' ? (chromium as any).args : [],
+            defaultViewport: (chromium as any).defaultViewport,
         };
 
         if (process.env.NODE_ENV === 'production') {

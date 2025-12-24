@@ -4,7 +4,7 @@ import { listBrandAgents } from '@/server/actions/agents';
 export default async function AgentDashboardPage() {
     // For Super Admin view, we fetch the "System" agents which are the global defaults
     // or the agents assigned to the system "brand"
-    let agents = [];
+    let agents: any[] = [];
     try {
         agents = await listBrandAgents('system');
     } catch (error) {
