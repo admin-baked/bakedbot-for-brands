@@ -103,7 +103,8 @@ export async function createKnowledgeBaseAction(input: z.infer<typeof CreateKnow
             updatedAt: new Date(),
             documentCount: 0,
             totalBytes: 0,
-            enabled: true
+            enabled: true,
+            systemInstructions: input.systemInstructions || ''
         };
 
         const docRef = await collection.add(newKb);
@@ -113,12 +114,52 @@ export async function createKnowledgeBaseAction(input: z.infer<typeof CreateKnow
     } catch (error: any) {
         console.error('[createKnowledgeBaseAction] Error:', error);
         return { success: false, message: error.message || 'Failed to create Knowledge Base.' };
-    }
+        }
 }
 
 /**
- * Get all Knowledge Bases for a specific owner
+ * Update a Knowledge Base (e.g. System Instructions)
  */
+export const UpdateKnowledgeBaseSchema = z.object({
+    knowledgeBaseId: z.string(),
+    name: z.string().min(3).optional(),
+    description: z.string().optional(),
+    systemInstructions: z.string().optional(),
+});
+
+export async function updateKnowledgeBaseAction(input: z.infer<typeof UpdateKnowledgeBaseSchema>) {
+    try {
+        const user = await requireUser();
+        const isSuper = await isSuperUser();
+        const firestore = getAdminFirestore();
+        const kbRef = firestore.collection('knowledge_bases').doc(input.knowledgeBaseId);
+
+        const doc = await kbRef.get();
+        if (!doc.exists) throw new Error('Knowledge Base not found');
+
+        const data = doc.data() as KnowledgeBase;
+
+        // Security Check
+        if (data.ownerType === 'system' && !isSuper) {
+            throw new Error('Unauthorized: Only super admins can update system KBs.');
+        }
+        if (data.ownerType !== 'system' && data.ownerId !== user.brandId && data.ownerId !== user.dispensaryId && !isSuper) {
+             throw new Error('Unauthorized: Cannot update this KB.');
+        }
+
+        const updates: any = { updatedAt: new Date() };
+        if (input.name) updates.name = input.name;
+        if (input.description) updates.description = input.description;
+        if (input.systemInstructions !== undefined) updates.systemInstructions = input.systemInstructions;
+
+        await kbRef.update(updates);
+        return { success: true, message: 'Knowledge Base updated.' };
+    } catch (error: any) {
+         console.error('[updateKnowledgeBaseAction] Error:', error);
+         return { success: false, message: error.message };
+    }
+}
+
 /**
  * Get all Knowledge Bases for a specific owner
  */

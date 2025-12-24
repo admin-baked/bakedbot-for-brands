@@ -47,6 +47,7 @@ import {
     RefreshCw,
     Database,
     Shield,
+    Bot,
 } from 'lucide-react';
 
 import {
@@ -56,6 +57,7 @@ import {
     getDocumentsAction,
     deleteDocumentAction,
     scrapeUrlAction,
+    updateKnowledgeBaseAction,
 } from '@/server/actions/knowledge-base';
 import type { KnowledgeBase, KnowledgeDocument } from '@/types/knowledge-base';
 
@@ -433,65 +435,136 @@ export function SystemKnowledgeBase() {
                             )}
                         </div>
                     </CardHeader>
+
                     <CardContent>
                         {!selectedKb ? (
                             <div className="text-center py-12 text-muted-foreground">
                                 <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-50" />
                                 <p>Select a knowledge base to view documents</p>
                             </div>
-                        ) : documents.length === 0 ? (
-                            <div className="text-center py-12 text-muted-foreground">
-                                <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                                <p>No documents yet</p>
-                                <Button variant="link" onClick={() => setIsAddDocOpen(true)}>
-                                    Add your first document
-                                </Button>
-                            </div>
                         ) : (
-                            <ScrollArea className="h-[400px]">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Title</TableHead>
-                                            <TableHead>Source</TableHead>
-                                            <TableHead>Size</TableHead>
-                                            <TableHead>Added</TableHead>
-                                            <TableHead></TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {documents.map((doc) => (
-                                            <TableRow key={doc.id}>
-                                                <TableCell className="font-medium">{doc.title}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {doc.source === 'paste' && <FileText className="h-3 w-3 mr-1" />}
-                                                        {doc.source === 'scrape' && <Globe className="h-3 w-3 mr-1" />}
-                                                        {doc.source === 'upload' && <Upload className="h-3 w-3 mr-1" />}
-                                                        {doc.source}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {formatBytes(doc.byteSize)}
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {new Date(doc.createdAt).toLocaleDateString()}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        className="text-destructive hover:text-destructive"
-                                                        onClick={() => handleDeleteDocument(doc.id)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </ScrollArea>
+                            <Tabs defaultValue="documents">
+                                <TabsList className="mb-4">
+                                    <TabsTrigger value="documents">
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        Documents
+                                    </TabsTrigger>
+                                    <TabsTrigger value="settings">
+                                        <Bot className="h-4 w-4 mr-2" />
+                                        System Instructions
+                                    </TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="documents">
+                                    {documents.length === 0 ? (
+                                        <div className="text-center py-12 text-muted-foreground">
+                                            <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                                            <p>No documents yet</p>
+                                            <Button variant="link" onClick={() => setIsAddDocOpen(true)}>
+                                                Add your first document
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <ScrollArea className="h-[400px]">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Title</TableHead>
+                                                        <TableHead>Source</TableHead>
+                                                        <TableHead>Size</TableHead>
+                                                        <TableHead>Added</TableHead>
+                                                        <TableHead></TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {documents.map((doc) => (
+                                                        <TableRow key={doc.id}>
+                                                            <TableCell className="font-medium">{doc.title}</TableCell>
+                                                            <TableCell>
+                                                                <Badge variant="outline" className="text-xs">
+                                                                    {doc.source === 'paste' && <FileText className="h-3 w-3 mr-1" />}
+                                                                    {doc.source === 'scrape' && <Globe className="h-3 w-3 mr-1" />}
+                                                                    {doc.source === 'upload' && <Upload className="h-3 w-3 mr-1" />}
+                                                                    {doc.source}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-muted-foreground">
+                                                                {formatBytes(doc.byteSize)}
+                                                            </TableCell>
+                                                            <TableCell className="text-muted-foreground">
+                                                                {new Date(doc.createdAt).toLocaleDateString()}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="text-destructive hover:text-destructive"
+                                                                    onClick={() => handleDeleteDocument(doc.id)}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </ScrollArea>
+                                    )}
+                                </TabsContent>
+
+                                <TabsContent value="settings">
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label>Core Persona & Instructions</Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                These instructions serve as the "System Prompt" when an agent references this knowledge base.
+                                                Define how the agent should interpret the data (e.g., "Act as a compliance officer...").
+                                            </p>
+                                            <Textarea
+                                                className="min-h-[300px] font-mono text-sm"
+                                                placeholder="e.g. You are an expert in Nevada Cannabis Compliance..."
+                                                defaultValue={selectedKb.systemInstructions}
+                                                onChange={async (e) => {
+                                                    // Debounce auto-save or use a save button
+                                                }}
+                                                // Using a simple save button pattern below instead of auto-save for safety
+                                                id="sys-instructions"
+                                            />
+                                        </div>
+                                        <div className="flex justify-end">
+                                            <Button 
+                                                onClick={async () => {
+                                                    const val = (document.getElementById('sys-instructions') as HTMLTextAreaElement).value;
+                                                    setIsSaving(true);
+                                                    try {
+                                                        const res = await updateKnowledgeBaseAction({
+                                                            knowledgeBaseId: selectedKb.id,
+                                                            systemInstructions: val
+                                                        });
+                                                        if (res.success) {
+                                                            toast({ title: 'Saved', description: 'System instructions updated.' });
+                                                            // update local state
+                                                            setSelectedKb({ ...selectedKb, systemInstructions: val });
+                                                            // update list
+                                                            setKnowledgeBases(prev => prev.map(k => k.id === selectedKb.id ? { ...k, systemInstructions: val } : k));
+                                                        } else {
+                                                            toast({ title: 'Error', description: res.message, variant: 'destructive' });
+                                                        }
+                                                    } catch (e: any) {
+                                                        toast({ title: 'Error', description: e.message, variant: 'destructive' });
+                                                    } finally {
+                                                        setIsSaving(false);
+                                                    }
+                                                }}
+                                                disabled={isSaving}
+                                            >
+                                                {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                                                Save Instructions
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
                         )}
                     </CardContent>
                 </Card>
