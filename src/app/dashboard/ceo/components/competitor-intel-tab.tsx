@@ -640,7 +640,7 @@ export default function CompetitorIntelTab() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>{run.placesFound}</TableCell>
-                                            <TableCell>{run.startedAt.toLocaleString()}</TableCell>
+                                            <TableCell suppressHydrationWarning>{run.startedAt.toLocaleString()}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

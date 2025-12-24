@@ -62,7 +62,7 @@ function TaskItem({ task, onViewDetails, onApprove }: TaskItemProps) {
                                 {STATUS_LABELS[task.status]}
                             </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground" suppressHydrationWarning>
                             {new Date(task.createdAt).toLocaleString()}
                         </p>
                     </div>
