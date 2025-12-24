@@ -398,7 +398,7 @@ export default function SuperAdminPlaybooksTab() {
                                     </div>
                                 </div>
                                 {playbook.lastRun && (
-                                    <p className="text-xs text-muted-foreground mt-2">
+                                    <p className="text-xs text-muted-foreground mt-2" suppressHydrationWarning>
                                         Last run: {playbook.lastRun.toLocaleString()}
                                     </p>
                                 )}
@@ -497,7 +497,7 @@ ${selectedPlaybook.agents.map(a => `  - ${a}`).join('\n')}
                                                         <div className="h-2 w-2 rounded-full bg-green-500" />
                                                         <div className="space-y-0.5">
                                                             <p className="text-sm font-medium">Execution Success</p>
-                                                            <p className="text-xs text-muted-foreground">{selectedPlaybook.lastRun.toLocaleString()}</p>
+                                                            <p className="text-xs text-muted-foreground" suppressHydrationWarning>{selectedPlaybook.lastRun.toLocaleString()}</p>
                                                         </div>
                                                     </div>
                                                     <Button variant="ghost" size="sm">View Output</Button>

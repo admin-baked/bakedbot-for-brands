@@ -224,7 +224,7 @@ export function InternalPlaybooksGrid({ searchQuery }: InternalPlaybooksGridProp
                             </div>
                         </div>
                         {playbook.lastRun && (
-                            <p className="text-xs text-muted-foreground mt-2">
+                            <p className="text-xs text-muted-foreground mt-2" suppressHydrationWarning>
                                 Last run: {playbook.lastRun.toLocaleString()}
                             </p>
                         )}
