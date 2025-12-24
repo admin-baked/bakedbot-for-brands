@@ -26,13 +26,19 @@ import {
     BookOpen
 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 
 export function SuperAdminSidebar() {
     const searchParams = useSearchParams();
+    const pathname = usePathname();
     const currentTab = searchParams?.get("tab") || "playbooks";
 
-    const isActive = (tab: string) => currentTab === tab;
+    const isActive = (tab: string) => {
+        if (tab === 'agents') {
+            return pathname?.startsWith('/dashboard/ceo/agents') || currentTab === 'agents';
+        }
+        return currentTab === tab;
+    };
 
     return (
         <>
@@ -51,7 +57,7 @@ export function SuperAdminSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("agents")}>
-                                <Link href="/dashboard/ceo?tab=agents">
+                                <Link href="/dashboard/ceo/agents">
                                     <Bot />
                                     <span>Agents</span>
                                 </Link>

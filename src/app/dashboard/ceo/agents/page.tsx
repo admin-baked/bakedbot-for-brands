@@ -1,19 +1,26 @@
-import { fetchAgentLogs } from './actions';
-import AgentDashboardClient from './agent-dashboard-client';
+import { AgentsGrid } from '@/components/dashboard/agent-grid';
+import { listBrandAgents } from '@/server/actions/agents';
 
 export default async function AgentDashboardPage() {
-    const logs = await fetchAgentLogs();
+    // For Super Admin view, we fetch the "System" agents which are the global defaults
+    // or the agents assigned to the system "brand"
+    let agents = [];
+    try {
+        agents = await listBrandAgents('system');
+    } catch (error) {
+        console.error("Failed to load system agents", error);
+    }
 
     return (
         <div className="p-8 space-y-8">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Agent Intelligence Center</h1>
-                <p className="text-muted-foreground mt-2">
-                    Monitor active implementation of Domain Memory agents. Trigger manual runs and inspect decision logs.
+            <header className="space-y-1">
+                <h1 className="text-3xl font-bold tracking-tight">Agents</h1>
+                <p className="text-muted-foreground">
+                    Configure and monitor your AI agents. Orchestrate Smokey, Craig, Pops, Ezal, Money Mike, Mrs. Parker, and Deebo from a single command center.
                 </p>
-            </div>
+            </header>
 
-            <AgentDashboardClient initialLogs={logs} />
+            <AgentsGrid agents={agents} />
         </div>
     );
 }
