@@ -2,11 +2,13 @@
 
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Code, Download, Store } from 'lucide-react';
+import { Globe, Code, Download, Store, Users } from 'lucide-react';
 import DomainSettingsTab from './components/domain-tab';
 import EmbedGeneratorTab from './components/embed-tab';
 import WordPressPluginTab from './components/wordpress-tab';
 import BrandSetupTab from './components/brand-setup-tab';
+import { InvitationsList } from '@/components/invitations/invitations-list';
+import { CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
@@ -73,6 +75,12 @@ export default function SettingsPage() {
             <Download className="mr-2 h-4 w-4" />
             WordPress Plugin
           </TabsTrigger>
+          {(role === 'brand' || role === 'dispensary' || role === 'owner') && (
+             <TabsTrigger value="team">
+                <Users className="mr-2 h-4 w-4" />
+                Team
+             </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="brand" className="space-y-4">
@@ -89,6 +97,22 @@ export default function SettingsPage() {
 
         <TabsContent value="wordpress" className="space-y-4">
           <WordPressPluginTab />
+        </TabsContent>
+
+        <TabsContent value="team" className="space-y-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Team Management</CardTitle>
+                    <CardDescription>Invite team members to your organization.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {/* Pass role context dynamically. For now assuming active org context is set in invite dialog or server action */}
+                    <InvitationsList 
+                        orgId={(user as any)?.brandId || (user as any)?.locationId} // Simplified context passing
+                        allowedRoles={role === 'brand' ? ['brand'] : ['dispensary']} 
+                    />
+                </CardContent>
+            </Card>
         </TabsContent>
       </Tabs>
     </div>
