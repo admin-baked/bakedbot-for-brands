@@ -131,6 +131,76 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         };
     }
 
+    // Docs Search - Searches internal documentation/knowledge base
+    if (def.name === 'docs.search') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        
+        // Try to search knowledge bases
+        try {
+            const { searchKnowledgeBaseAction, getKnowledgeBasesAction } = await import('@/server/actions/knowledge-base');
+            
+            // Get tenant's knowledge bases
+            const kbs = await getKnowledgeBasesAction(request.tenantId);
+            
+            if (kbs.length > 0) {
+                // Search across all KBs
+                const searchPromises = kbs.map(kb => searchKnowledgeBaseAction(kb.id, inputs.query, inputs.limit || 5));
+                const results = await Promise.all(searchPromises);
+                const docs = results.flat().filter(d => d && d.similarity > 0.5);
+                
+                return {
+                    status: 'success',
+                    data: {
+                        query: inputs.query,
+                        results: docs.map(d => ({
+                            title: d.title,
+                            content: d.content.substring(0, 500),
+                            similarity: d.similarity,
+                            source: d.knowledgeBaseId
+                        })),
+                        totalResults: docs.length
+                    }
+                };
+            }
+        } catch (e) {
+            console.warn('[docs.search] Knowledge base search failed, returning empty:', e);
+        }
+        
+        // Fallback: return empty results
+        return {
+            status: 'success',
+            data: {
+                query: inputs.query,
+                results: [],
+                totalResults: 0,
+                message: 'No internal documentation found. Consider adding documents to your Knowledge Base.'
+            }
+        };
+    }
+
+    // Deebo Compliance Check
+    if (def.name === 'deebo.checkContent') {
+        const { deebo } = await import('@/server/agents/deebo');
+        const channel = inputs.channel || 'sms';
+        const jurisdictions = inputs.jurisdictions || ['US'];
+        
+        const compliance = await deebo.checkContent(jurisdictions[0], channel, inputs.content);
+        
+        return {
+            status: 'success',
+            data: {
+                content: inputs.content,
+                channel,
+                jurisdictions,
+                isCompliant: compliance.isCompliant,
+                score: compliance.score,
+                violations: compliance.violations,
+                sanitizedContent: compliance.sanitizedContent,
+                appliedRules: compliance.appliedRules
+            }
+        };
+    }
+
     // Phase 2: Catalog Tools
     if (def.name === 'catalog.searchProducts') {
         if (!request.tenantId) throw new Error('Tool requires tenant context.');

@@ -2,6 +2,78 @@
 
 ---
 
+## Session: 2025-12-24 (Autoresponder Welcome Emails)
+### Task ID
+autoresponder-service-001
+
+### Summary
+Created autoresponder email system that sends role-specific welcome emails on signup via Mailjet/SendGrid.
+
+### Key Changes
+*   **NEW**: `src/lib/email/autoresponder-templates.ts` - HTML templates for Brand (green), Dispensary (purple), Customer (orange)
+*   **NEW**: `src/server/services/autoresponder-service.ts` - Service with `triggerWelcomeEmail`, `sendBrandWelcomeEmail`, `sendDispensaryWelcomeEmail`, `sendCustomerWelcomeEmail`
+*   **MOD**: `src/app/onboarding/actions.ts` - Integrated welcome email trigger (fire-and-forget pattern)
+*   **NEW**: `tests/unit/email/autoresponder-templates.test.ts` - 7 unit tests
+
+### Commits
+*   `fca260b3`: feat(email): add autoresponder welcome emails for Brand/Dispensary/Customer signups
+
+### Tests
+*   Autoresponder tests: 7 passed ✅
+
+---
+
+## Session: 2025-12-24 (Playbook Mailjet Integration)
+### Task ID
+playbook-mailjet-wiring-001
+
+### Summary
+Wired playbooks with Mailjet email dispatch to enable automated email sending from playbook executions.
+
+### Key Changes
+*   **Tool Registry:** Added `marketing.sendEmail` tool with schema for `to`, `subject`, `content`, `recipientName`, `brandName`
+*   **Tool Router:** Implemented `marketing.sendEmail` dispatch using email dispatcher (routes to Mailjet/SendGrid based on admin setting)
+*   **Playbook Update:** `welcome-sequence` now uses email dispatcher instead of logging about SendGrid
+*   **Unit Tests:** Added tests for `marketing.sendEmail` tool properties and playbook execution
+
+### Commits
+*   `69ade4df`: feat(playbooks): wire playbooks with Mailjet email dispatch
+
+### Tests
+*   Registry tests: 57 passed ✅
+
+---
+
+## Session: 2025-12-24 (Dashboard & Knowledge Base Fixes)
+### Task ID
+fix-firestore-indexes-001
+
+### Summary
+Fixed 500 errors on CEO dashboard Knowledge Base tab and data_jobs listener by adding missing Firestore composite indexes.
+
+### Key Changes
+*   **Firestore Indexes:** Added 3 composite indexes to `firestore.indexes.json`:
+    *   `knowledge_bases`: (ownerId + createdAt DESC) - for `getKnowledgeBasesAction`
+    *   `knowledge_bases`: (ownerType + enabled + createdAt DESC) - for `getSystemKnowledgeBasesAction`
+    *   `data_jobs`: (userId + createdAt DESC) - for data job listener
+*   **KB Schema:** Added `UpdateKnowledgeBaseSchema` for system instructions
+
+### Root Cause Analysis
+*   `/dashboard/ceo?tab=knowledge-base` 500 errors: Query uses `.where('ownerId', '==', ownerId).orderBy('createdAt', 'desc')` which requires a composite index
+*   `data_jobs` listener errors: Query uses `.where('userId', '==', userId).orderBy('createdAt', 'desc')` which requires a composite index
+*   POST /dashboard 500 errors: Server actions calling `requireUser()` before auth completes - expected behavior with graceful error handling
+
+### Commits
+*   `8640d814`: fix(indexes): add composite indexes for knowledge_bases and data_jobs collections
+*   `26bb7008`: feat(kb): add UpdateKnowledgeBaseSchema for system instructions
+
+### Deployment Required
+*   Run: `firebase deploy --only firestore:indexes`
+*   Wait 2-3 minutes for indexes to build
+*   Then verify Knowledge Base tab loads without 500 errors
+
+---
+
 ## Session: 2025-12-24 (Agent Sandbox)
 ### Task ID
 Agent Sandbox
