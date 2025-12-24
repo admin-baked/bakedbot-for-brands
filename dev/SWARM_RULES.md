@@ -76,3 +76,23 @@ Only AFTER completing all 4 steps may you proceed to implementation.
 *   **Check existing patterns** before introducing new ones
 *   **Confirm dependencies** are installed before importing
 
+## 7. Secret Management Protocol (App Hosting)
+**CRITICAL**: After ANY changes to `apphosting.yaml` secrets, grant access for **ALL** secrets.
+
+Firebase App Hosting uses multiple service accounts. Partial fixes cause production outages (see: 2025-12-24 incident).
+
+### After Modifying Secrets:
+```bash
+# Run for EVERY secret in apphosting.yaml, not just new ones
+firebase apphosting:secrets:grantaccess FIREBASE_SERVICE_ACCOUNT_KEY --backend bakedbot-prod --project studio-567050101-bc6e8
+firebase apphosting:secrets:grantaccess SENDGRID_API_KEY --backend bakedbot-prod --project studio-567050101-bc6e8
+firebase apphosting:secrets:grantaccess MAILJET_API_KEY --backend bakedbot-prod --project studio-567050101-bc6e8
+firebase apphosting:secrets:grantaccess MAILJET_SECRET_KEY --backend bakedbot-prod --project studio-567050101-bc6e8
+firebase apphosting:secrets:grantaccess CANNMENUS_API_KEY --backend bakedbot-prod --project studio-567050101-bc6e8
+firebase apphosting:secrets:grantaccess SERPER_API_KEY --backend bakedbot-prod --project studio-567050101-bc6e8
+firebase apphosting:secrets:grantaccess STRIPE_SECRET_KEY --backend bakedbot-prod --project studio-567050101-bc6e8
+```
+
+### Warning Signs:
+- 500 errors on homepage AND favicon = server initialization crash (likely secret access issue)
+- Build fails with "Misconfigured Secret" = missing permissions
