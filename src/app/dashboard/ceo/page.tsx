@@ -32,6 +32,7 @@ const CRMTab = dynamic(() => import("./components/crm-tab"), { loading: TabLoade
 const AccountManagementTab = dynamic(() => import("@/components/admin/account-management-tab").then(mod => mod.AccountManagementTab), { loading: TabLoader });
 const SystemKnowledgeBase = dynamic(() => import("./components/system-knowledge-base").then(mod => mod.SystemKnowledgeBase), { loading: TabLoader });
 const CeoSettingsTab = dynamic(() => import("./components/ceo-settings-tab"), { loading: TabLoader });
+const AgentSandbox = dynamic(() => import("./components/agent-sandbox").then(mod => mod.AgentSandbox), { loading: TabLoader });
 
 import { useSuperAdmin } from '@/hooks/use-super-admin';
 import { Loader2, Shield, ShieldX } from 'lucide-react';
@@ -99,6 +100,7 @@ function CeoDashboardContent() {
             case 'account-management': return <AccountManagementTab />;
             case 'knowledge-base': return <SystemKnowledgeBase />;
             case 'settings': return <CeoSettingsTab />;
+            case 'sandbox': return <AgentSandbox />;
             case 'invites': return (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">

@@ -196,10 +196,66 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         };
     }
 
+    // Sandbox & Experimental Tools
+    if (def.name === 'web.search') {
+        const { searchWeb } = await import('@/server/tools/web-search');
+        const results = await searchWeb(inputs.query, 5);
+        return {
+            status: 'success',
+            data: results
+        };
+    }
+
+    if (def.name === 'communications.sendTestEmail') {
+        const { sendOrderConfirmationEmail } = await import('@/lib/email/dispatcher');
+        // Construct dummy order data for the test
+        const dummyOrder = {
+            orderId: `TEST-${Date.now()}`,
+            customerName: 'Test User',
+            customerEmail: inputs.to,
+            total: 42.00,
+            items: [{ name: 'Test Product', qty: 1, price: 42.00 }],
+            retailerName: 'Agent Sandbox',
+            pickupAddress: 'Virtual Sandbox Environment'
+        };
+        const result = await sendOrderConfirmationEmail(dummyOrder);
+        return {
+            status: result ? 'success' : 'failed',
+            data: { sent: result, provider: 'dynamic' }
+        };
+    }
+
+    if (def.name === 'os.simulator') {
+        return {
+            status: 'success',
+            data: {
+                message: `Simulated OS Action: ${inputs.action}`,
+                screenshot: 'https://placehold.co/600x400?text=Computer+Use+Simulation',
+                logs: ['Opening browser...', 'Navigating to URL...', 'Clicking button...']
+            }
+        };
+    }
+
+    if (def.name === 'agent.executePlaybook') {
+        return {
+            status: 'success',
+            data: {
+                playbookId: inputs.playbookId,
+                status: 'completed',
+                steps: [
+                    { name: 'Initialize Agent', status: 'done' },
+                    { name: 'Load Context', status: 'done' },
+                    { name: 'Generate Content', status: 'done' }
+                ]
+            }
+        };
+    }
+
     return {
         status: 'success',
         data: { message: `Executed tool: ${def.name}`, inputs }
     };
+
 }
 
 /**

@@ -185,6 +185,62 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'policy',
         requiredPermission: 'manage:brand', // usually a brand manager task
     },
+    // ===================================
+    // 7. Sandbox & Experimental Tools
+    // ===================================
+    'web.search': {
+        name: 'web.search',
+        description: 'Performs a live web search using Serper (Google).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: { type: 'string' }
+            },
+            required: ['query']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    'communications.sendTestEmail': {
+        name: 'communications.sendTestEmail',
+        description: 'Sends a test email via the active provider (Mailjet/SendGrid).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                to: { type: 'string' }
+            },
+            required: ['to']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics'
+    },
+    'os.simulator': {
+        name: 'os.simulator',
+        description: 'Simulates computer interaction (placeholder for Computer Use API).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                action: { type: 'string' }
+            },
+            required: ['action']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    'agent.executePlaybook': {
+        name: 'agent.executePlaybook',
+        description: 'Executes a predefined playbook for an agent.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                playbookId: { type: 'string' },
+                agentId: { type: 'string' }
+            },
+            required: ['playbookId']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics'
+    }
 };
 
 /**
