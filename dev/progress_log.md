@@ -1,5 +1,32 @@
-
 # Progress Log
+
+---
+
+## Session: 2025-12-24 (Agent Sandbox)
+### Task ID
+Agent Sandbox
+
+### Summary
+Built a comprehensive Agent Sandbox for Super Users to test all agent tools (email, web search, playbook execution, computer use simulation).
+
+### Changes
+*   **NEW**: `src/server/actions/super-admin/sandbox.ts` - Server actions: `listAgentsAction`, `listToolsAction`, `executeToolAction`
+*   **MOD**: `src/server/agents/tools/registry.ts` - Added 4 sandbox tools: `web.search`, `communications.sendTestEmail`, `os.simulator`, `agent.executePlaybook`
+*   **MOD**: `src/server/agents/tools/router.ts` - Implemented dispatch logic for new sandbox tools
+*   **NEW**: `src/app/dashboard/ceo/components/agent-sandbox.tsx` - UI component with agent/tool selection, JSON input editor, and execution output display
+*   **MOD**: `src/app/dashboard/ceo/page.tsx` - Added `sandbox` tab routing
+*   **MOD**: `src/components/dashboard/super-admin-sidebar.tsx` - Added "Agent Sandbox" link in Admin section
+
+### Secret Permissions
+*   Granted `roles/secretmanager.secretAccessor` to `app-hosting-pipeline@studio-567050101-bc6e8.iam.gserviceaccount.com` for `MAILJET_API_KEY` and `MAILJET_SECRET_KEY`
+
+### Tests Run
+*   `npm run check:types` (Passed)
+
+### Commits
+*   `feat(sandbox): add Agent Sandbox for Super Users with tool testing capabilities` (75fe0662)
+
+---
 
 ## Session: Resume Mailjet Integration & Build Check
 **Date:** 2025-12-23
