@@ -187,7 +187,7 @@ export function LocalCompetitionCard({ state, city, className }: LocalCompetitio
 
                 {/* Data Freshness */}
                 {data.dataFreshness && (
-                    <p className="text-xs text-muted-foreground pt-2 border-t">
+                    <p className="text-xs text-muted-foreground pt-2 border-t" suppressHydrationWarning>
                         Updated: {data.dataFreshness.toLocaleDateString()}
                     </p>
                 )}

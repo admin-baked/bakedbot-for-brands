@@ -259,7 +259,7 @@ export function AccountManagementTab() {
                                                     <TableCell>
                                                         <Badge variant="outline">{user.role || 'none'}</Badge>
                                                     </TableCell>
-                                                    <TableCell>
+                                                    <TableCell suppressHydrationWarning>
                                                         {user.createdAt
                                                             ? new Date(user.createdAt).toLocaleDateString()
                                                             : 'N/A'}
