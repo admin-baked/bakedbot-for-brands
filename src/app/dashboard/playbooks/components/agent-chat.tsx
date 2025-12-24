@@ -119,8 +119,7 @@ export interface PuffState {
     // Messages are now in global store
 }
 
-// ThinkingLevel type for intelligence selector
-export type ThinkingLevel = 'standard' | 'advanced' | 'expert' | 'genius';
+// ThinkingLevel type for intelligence selector (Removed - using import)
 
 // Tool Selection Types
 export type ToolMode = 'auto' | 'manual';
