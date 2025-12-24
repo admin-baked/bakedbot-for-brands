@@ -19,6 +19,11 @@ Resumed the Mailjet integration task after a session interruption. Verified that
 ### Tests Run
 *   `npm run check:types` (Passed)
 *   `npm list node-mailjet` (Present)
+*   `npm test -- tests/lib/email tests/actions/email-settings.test.ts` (Passed locally)
+
+### Commits
+*   `test(email): add unit tests for mailjet and settings`
+*   `feat(email): complete Mailjet integration and fix build errors`
 
 ### Notes
 *   **Action Required:** Ensure `MAILJET_API_KEY` and `MAILJET_SECRET_KEY` are defined in Google Secret Manager for the integration to function in production.

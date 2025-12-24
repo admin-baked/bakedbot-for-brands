@@ -293,6 +293,14 @@ export function SuperAdminSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("sandbox")}>
+                                <Link href="/dashboard/ceo?tab=sandbox">
+                                    <Bot />
+                                    <span>Agent Sandbox</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
