@@ -20,6 +20,7 @@ const customJestConfig = {
     '^react-markdown$': '<rootDir>/tests/__mocks__/react-markdown.js',
     '^remark-gfm$': '<rootDir>/tests/__mocks__/remark-gfm.js',
     '^server-only$': '<rootDir>/tests/__mocks__/server-only.js',
+    '^lucide-react$': '<rootDir>/tests/__mocks__/lucide-react.js',
   },
   testEnvironment: 'jsdom',
   testMatch: [
@@ -39,7 +40,7 @@ const customJestConfig = {
     '!src/**/__tests__/**',
   ],
   transformIgnorePatterns: [
-    'node_modules/(?!(uuid|firebase|@firebase|react-markdown|remark-gfm|micromark|unist|hast|mdast|rehype|remark|vfile|bail|trough|unified|is-plain-obj|property-information|space-separated-tokens|comma-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|longest-streak)/)',
+    'node_modules/(?!(uuid|firebase|@firebase|react-markdown|remark-gfm|micromark|unist|hast|mdast|rehype|remark|vfile|bail|trough|unified|is-plain-obj|property-information|space-separated-tokens|comma-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|longest-streak|lucide-react)/)',
   ],
   coverageThreshold: {
     global: {
