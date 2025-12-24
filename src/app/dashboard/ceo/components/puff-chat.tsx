@@ -110,8 +110,7 @@ export interface PuffState {
     // Messages are now in global store
 }
 
-// ThinkingLevel type for intelligence selector
-export type ThinkingLevel = 'standard' | 'advanced' | 'expert' | 'genius';
+// ThinkingLevel type for intelligence selector (Removed - using import)
 
 // Tool Selection Types
 export type ToolMode = 'auto' | 'manual';
@@ -119,40 +118,8 @@ export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
 
 // ============ Sub-components ============
 
-function ModelSelector({ value, onChange }: { value: ThinkingLevel, onChange: (v: ThinkingLevel) => void }) {
-    const options: Record<ThinkingLevel, { label: string, desc: string, icon: any }> = {
-        standard: { label: 'Standard', desc: 'Fast & cost-effective (Gemini Flash)', icon: Sparkles },
-        advanced: { label: 'Reasoning', desc: 'Complex logic (Gemini Pro)', icon: Brain },
-        expert: { label: 'Expert', desc: 'Deep reasoning (O1 Preview)', icon: Zap },
-        genius: { label: 'Gemini 3', desc: 'Next-Gen Intelligence', icon: Rocket },
-    };
-    const SelectedIcon = options[value].icon;
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs font-medium border border-transparent hover:border-border hover:bg-background">
-                    <SelectedIcon className="h-3 w-3 text-primary" />
-                    {options[value].label}
-                    <ChevronDown className="h-3 w-3 opacity-50" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[280px]">
-                <DropdownMenuLabel>Intelligence Level</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {(Object.entries(options) as [ThinkingLevel, typeof options['standard']][]).map(([key, opt]) => (
-                    <DropdownMenuItem key={key} onClick={() => onChange(key)} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
-                        <div className="flex items-center gap-2 w-full">
-                            <opt.icon className="h-4 w-4 text-primary" />
-                            <span className="font-medium flex-1">{opt.label}</span>
-                            {value === key && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
-                        </div>
-                        <span className="text-xs text-muted-foreground ml-6">{opt.desc}</span>
-                    </DropdownMenuItem>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-}
+// ModelSelector is imported
+
 
 function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (v: AgentPersona) => void }) {
     const options: Record<AgentPersona, { label: string, desc: string, icon: any }> = {
