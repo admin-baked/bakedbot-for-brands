@@ -546,3 +546,24 @@ Updated the landing page and pricing page headers to show a "Dashboard" link ins
 ### Tests Run
 *   `npm run check:types` (Passed)
 ---
+
+## Session: Unit Test Invites & Fix KB Action
+**Date:** 2025-12-23
+**Task ID:** TEST-INVITE-KB-001
+
+### Summary
+Implemented comprehensive unit tests for the Invitation System (Server Actions) and fixed a production error with the Knowledge Base Server Action ("UnrecognizedActionError") by refreshing the file signature.
+
+### Key Changes
+*   **Invitation Tests:** Created `src/server/actions/__tests__/invitations.test.ts` blocking `create` and `accept` flows.
+    *   Mocked `uuid`, `firebase-admin`, and `zod` dependencies.
+    *   Verified `createInvitationAction` functionality and permissions.
+    *   Verified `acceptInvitationAction` status updates and user profile linking.
+*   **Knowledge Base Fix:**
+    *   Updated `src/server/actions/knowledge-base.ts` with logging to force a new build hash/cache invalidation for Next.js Server Actions.
+    *   Verified imports and dependencies for `knowledge-base.ts`.
+
+### Tests Run
+*   `npm test src/server/actions/__tests__/invitations.test.ts` (Passed: 2 tests)
+*   `npm run check:types` (Passed)
+---

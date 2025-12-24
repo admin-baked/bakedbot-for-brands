@@ -63,6 +63,7 @@ async function generateEmbedding(content: string): Promise<number[]> {
  * Create a new Knowledge Base
  */
 export async function createKnowledgeBaseAction(input: z.infer<typeof CreateKnowledgeBaseSchema>) {
+    console.log('[createKnowledgeBaseAction] Starting creation for:', input.name);
     try {
         const user = await requireUser();
         const isSuper = await isSuperUser();
