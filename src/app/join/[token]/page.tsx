@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function JoinPage({ params }: { params: { token: string } }) {
     const router = useRouter();
-    const { user, loading: authLoading } = useUser();
+    const { user, isUserLoading: authLoading } = useUser();
     const { toast } = useToast();
     
     const [status, setStatus] = useState<'validating' | 'valid' | 'invalid' | 'accepting' | 'success'>('validating');

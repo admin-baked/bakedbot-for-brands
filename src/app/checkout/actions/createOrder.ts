@@ -8,7 +8,7 @@
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { createTransaction } from '@/lib/authorize-net';
-import { sendOrderConfirmationEmail } from '@/lib/email/sendgrid';
+import { sendOrderConfirmationEmail } from '@/lib/email/dispatcher';
 
 
 import { logger } from '@/lib/logger';

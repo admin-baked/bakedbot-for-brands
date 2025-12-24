@@ -25,6 +25,14 @@ env:
     value: "BakedBot Orders"
     availability:
       - RUNTIME
+  - variable: MAILJET_API_KEY
+    secret: MAILJET_API_KEY
+    availability:
+      - RUNTIME
+  - variable: MAILJET_SECRET_KEY
+    secret: MAILJET_SECRET_KEY
+    availability:
+      - RUNTIME
   # Security
   # - variable: RECAPTCHA_SECRET_KEY
   #   secret: RECAPTCHA_SECRET_KEY
