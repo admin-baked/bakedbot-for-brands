@@ -1,4 +1,5 @@
 'use client';
+import { InvitationsList } from '@/components/invitations/invitations-list';
 
 // src/app/dashboard/ceo/page.tsx
 /**
@@ -96,6 +97,22 @@ function CeoDashboardContent() {
             case 'crm': return <CRMTab />;
             case 'account-management': return <AccountManagementTab />;
             case 'knowledge-base': return <SystemKnowledgeBase />;
+            case 'invites': return (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-bold tracking-tight">Team Invitations</h2>
+                    </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Super Admin Invitations</CardTitle>
+                            <CardDescription>Invite other users to join as Super Admins.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <InvitationsList allowedRoles={['super_admin']} />
+                        </CardContent>
+                    </Card>
+                </div>
+            );
             default: return <SuperAdminPlaybooksTab />;
         }
     };

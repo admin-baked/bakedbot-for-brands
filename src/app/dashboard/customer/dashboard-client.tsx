@@ -1,4 +1,5 @@
 'use client';
+import { InvitationsList } from '@/components/invitations/invitations-list';
 
 import { CustomerKPIs } from './components/customer-kpi-grid';
 import { CustomerChatWidget } from './components/customer-chat-widget';
@@ -75,7 +76,19 @@ export default function CustomerDashboardClient() {
                 </div>
 
                 {/* Right Rail */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Refer a Friend */}
+                    <div className="rounded-xl border bg-card p-6 shadow-sm">
+                        <div className="flex items-center gap-2 mb-4">
+                            <h3 className="font-semibold">Refer a Friend</h3>
+                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">Earn $10</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Invite friends to join BakedBot. You'll get $10 credit for each friend who verifies.
+                        </p>
+                        <InvitationsList allowedRoles={['customer']} />
+                    </div>
+
                     <CustomerRightRail />
                 </div>
             </div>

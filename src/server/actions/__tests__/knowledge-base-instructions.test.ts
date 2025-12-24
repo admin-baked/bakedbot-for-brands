@@ -3,9 +3,21 @@ import { createKnowledgeBaseAction, updateKnowledgeBaseAction } from '../knowled
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser, isSuperUser } from '@/server/auth/auth';
 
-// Mock dependencies
-jest.mock('@/firebase/admin');
-jest.mock('@/server/auth/auth');
+// Mocks must be likely hoisted, but definition matters
+jest.mock('server-only', () => {});
+jest.mock('firebase-admin/firestore', () => ({
+    FieldValue: {
+        serverTimestamp: jest.fn(),
+        delete: jest.fn(),
+    },
+}));
+jest.mock('@/firebase/admin', () => ({
+    getAdminFirestore: jest.fn(),
+}));
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn(),
+    isSuperUser: jest.fn(),
+}));
 jest.mock('@/ai/genkit', () => ({
     ai: { embed: jest.fn() }
 }));
@@ -17,14 +29,22 @@ describe('Knowledge Base Actions - System Instructions', () => {
     const mockDb = {
         collection: jest.fn(),
     };
-    const mockCollection = {
-        add: jest.fn(),
-        doc: jest.fn(),
-    };
     const mockDoc = {
         get: jest.fn(),
         update: jest.fn(),
         set: jest.fn(),
+    };
+    
+    // Support chaining where().where().get()
+    const mockQuery = {
+        where: jest.fn().mockReturnThis(),
+        get: jest.fn().mockResolvedValue({ empty: true }), // No duplicates by default
+    };
+    
+    const mockCollection = {
+        add: jest.fn(),
+        doc: jest.fn(),
+        where: jest.fn().mockReturnValue(mockQuery),
     };
 
     beforeEach(() => {
@@ -32,7 +52,13 @@ describe('Knowledge Base Actions - System Instructions', () => {
         (getAdminFirestore as jest.Mock).mockReturnValue(mockDb);
         mockDb.collection.mockReturnValue(mockCollection);
         mockCollection.doc.mockReturnValue(mockDoc);
-        mockCollection.add.mockResolvedValue({ id: 'new-kb-id' });
+        
+        // Fix: add returns a DocumentReference which has update()
+        const mockDocRef = {
+            id: 'new-kb-id',
+            update: jest.fn().mockResolvedValue(true),
+        };
+        mockCollection.add.mockResolvedValue(mockDocRef);
         
         // Default auth mocks (Super User)
         (requireUser as jest.Mock).mockResolvedValue({ uid: 'test-user', email: 'test@example.com', brandId: 'brand-1' });
