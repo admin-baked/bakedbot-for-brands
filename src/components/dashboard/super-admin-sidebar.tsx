@@ -1,3 +1,4 @@
+'use client';
 
 import {
     SidebarGroup,
@@ -6,6 +7,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarMenuAction,
 } from "@/components/ui/sidebar";
 import {
     Bot,
@@ -23,15 +25,26 @@ import {
     Users,
     Factory,
     UserMinus,
-    BookOpen
+    BookOpen,
+    MessageSquarePlus,
+    History,
+    Trash2,
+    ChevronRight,
+    MoreHorizontal
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
+import { useAgentChatStore } from '@/lib/store/agent-chat-store';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export function SuperAdminSidebar() {
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const currentTab = searchParams?.get("tab") || "playbooks";
+    const { toast } = useToast();
+    const { sessions, activeSessionId, clearCurrentSession, setActiveSession } = useAgentChatStore();
 
     const isActive = (tab: string) => {
         if (tab === 'agents') {
@@ -42,6 +55,68 @@ export function SuperAdminSidebar() {
 
     return (
         <>
+             {/* Assistant / Chat Group */}
+             <SidebarGroup>
+                <SidebarGroupLabel>Assistant</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton 
+                                onClick={() => {
+                                    clearCurrentSession();
+                                    toast({ title: 'New Chat', description: 'Started a new chat session' });
+                                }}
+                                className="text-blue-600 font-medium"
+                            >
+                                <MessageSquarePlus />
+                                <span>New Chat</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        
+                        {/* Recent Chats Collapsible */}
+                        {sessions.length > 0 && (
+                            <Collapsible defaultOpen className="group/collapsible">
+                                <SidebarMenuItem>
+                                    <CollapsibleTrigger asChild>
+                                        <SidebarMenuButton>
+                                            <History />
+                                            <span>Recent Chats</span>
+                                            <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                                        </SidebarMenuButton>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <SidebarMenuSub>
+                                            {sessions.slice(0, 5).map((session) => (
+                                                <SidebarMenuSubItem key={session.id}>
+                                                    <SidebarMenuSubButton 
+                                                        isActive={activeSessionId === session.id}
+                                                        onClick={() => setActiveSession(session.id)}
+                                                    >
+                                                        <span className="truncate">{session.title || 'Untitled Chat'}</span>
+                                                    </SidebarMenuSubButton>
+                                                </SidebarMenuSubItem>
+                                            ))}
+                                            <SidebarMenuSubItem>
+                                                 <SidebarMenuSubButton 
+                                                    onClick={() => {
+                                                        localStorage.removeItem('agent-chat-storage');
+                                                        window.location.reload();
+                                                    }}
+                                                    className="text-muted-foreground hover:text-destructive"
+                                                >
+                                                    <Trash2 className="h-3 w-3 mr-2" />
+                                                    <span>Clear History</span>
+                                                </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                        </SidebarMenuSub>
+                                    </CollapsibleContent>
+                                </SidebarMenuItem>
+                            </Collapsible>
+                        )}
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
             {/* Operations Group */}
             <SidebarGroup>
                 <SidebarGroupLabel>Operations</SidebarGroupLabel>
@@ -215,3 +290,8 @@ export function SuperAdminSidebar() {
         </>
     );
 }
+
+// Helper components for SubMenu (assuming they might not be exported from ui/sidebar or standard shadcn)
+// If they are missing, I'll use standard list items.
+// Based on typical shadcn sidebar, we need:
+import { SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";

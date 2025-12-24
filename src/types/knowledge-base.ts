@@ -90,6 +90,7 @@ export interface KnowledgeBase {
     documentCount: number;
     totalBytes: number; // Track storage usage
     enabled: boolean;
+    systemInstructions?: string; // Custom instructions for agents using this KB
 }
 
 // --- Knowledge Document Interface ---
@@ -130,6 +131,7 @@ export const CreateKnowledgeBaseSchema = z.object({
     ownerType: z.enum(['system', 'brand', 'dispensary', 'customer']),
     name: z.string().min(3),
     description: z.string().optional(),
+    systemInstructions: z.string().optional(),
 });
 
 export const AddDocumentSchema = z.object({

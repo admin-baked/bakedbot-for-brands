@@ -1,15 +1,44 @@
 
 > nextn@0.1.0 test
-> jest src/app/dashboard/ceo/components/__tests__/puff-chat.test.tsx
+> jest src/server/actions/__tests__/knowledge-base-instructions.test.ts
 
-PASS src/app/dashboard/ceo/components/__tests__/puff-chat.test.tsx
-  PuffChat Component
-    √ renders the chat interface (72 ms)
-    √ handles user input and shows response (125 ms)
-    √ shows permission card when agent requests tools (80 ms)
+FAIL src/server/actions/__tests__/knowledge-base-instructions.test.ts
+  ● Test suite failed to run
 
-Test Suites: 1 passed, 1 total
-Tests:       3 passed, 3 total
+      [31mx[0m Expression expected
+         ,-[[36;1;4mC:\Users\marte\Baked for Brands\bakedbot-for-brands\src\server\actions\knowledge-base.ts[0m:162:1]
+     [2m159[0m |          return { success: false, message: error.message };
+     [2m160[0m |     }
+     [2m161[0m | }
+     [2m162[0m | }
+         : [35;1m^[0m
+     [2m163[0m | 
+     [2m164[0m | /**
+     [2m164[0m |  * Get all Knowledge Bases for a specific owner
+         `----
+
+
+    Caused by:
+        Syntax Error
+
+    [0m [90m 14 |[39m }))[33m;[39m
+     [90m 15 |[39m
+    [31m[1m>[22m[39m[90m 16 |[39m describe([32m'Knowledge Base Actions - System Instructions'[39m[33m,[39m () [33m=>[39m {
+     [90m    |[39m                        [31m[1m^[22m[39m
+     [90m 17 |[39m     [36mconst[39m mockDb [33m=[39m {
+     [90m 18 |[39m         collection[33m:[39m jest[33m.[39mfn()[33m,[39m
+     [90m 19 |[39m     }[33m;[39m[0m
+
+      at Object.transformSync (node_modules/next/src/build/swc/index.ts:1444:25)
+      at transformSync (node_modules/next/src/build/swc/index.ts:1575:19)
+      at Object.process (node_modules/next/src/build/swc/jest-transformer.ts:105:25)
+      at ScriptTransformer.transformSource (node_modules/@jest/transform/build/ScriptTransformer.js:545:31)
+      at ScriptTransformer._transformAndBuildScript (node_modules/@jest/transform/build/ScriptTransformer.js:674:40)
+      at ScriptTransformer.transform (node_modules/@jest/transform/build/ScriptTransformer.js:726:19)
+      at Object.<anonymous> (src/server/actions/__tests__/knowledge-base-instructions.test.ts:16:24)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
 Snapshots:   0 total
-Time:        3.787 s, estimated 5 s
-Ran all test suites matching /src\\app\\dashboard\\ceo\\components\\__tests__\\puff-chat.test.tsx/i.
+Time:        2.193 s
+Ran all test suites matching /src\\server\\actions\\__tests__\\knowledge-base-instructions.test.ts/i.
