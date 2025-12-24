@@ -127,6 +127,7 @@ function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (
         wholesale_analyst: { label: 'Wholesale', desc: 'LeafLink & Inventory', icon: Briefcase },
         menu_watchdog: { label: 'Watchdog', desc: 'Menu Monitoring', icon: ShoppingCart },
         sales_scout: { label: 'Scout', desc: 'Lead Generation', icon: Search },
+        ezal: { label: 'Ezal', desc: 'Market Intelligence', icon: Zap },
     };
     const SelectedIcon = options[value].icon;
     return (

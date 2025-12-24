@@ -622,7 +622,17 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
                 });
 
                 const synthesis = await ai.generate({
-                    prompt: `You are an expert Research Analyst.
+                    prompt: activePersona.id === 'ezal' || activePersona.id !== 'puff' 
+                    ? `
+                    SYSTEM PROMPT: ${activePersona.systemPrompt}
+                    
+                    USER QUERY: "${userMessage}"
+                    SEARCH RESULTS: ${JSON.stringify(searchResults.results)}
+                    KNOWLEDGE CONTEXT: ${knowledgeContext}
+                    
+                    TASK: Generate a response strictly adhering to your System Prompt persona and format.
+                    `
+                    : `You are an expert Research Analyst.
                     The user asked: "${userMessage}"
                     
                     I searched for: "${searchQuery}"
@@ -643,6 +653,8 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
                 });
 
                 formattedResults = synthesis.text;
+                // Add identity prefix
+                formattedResults = `**${activePersona.name}**: \n\n${formattedResults}`;
 
                 executedTools[executedTools.length - 1].status = 'success';
                 executedTools[executedTools.length - 1].result = 'Report generated';
