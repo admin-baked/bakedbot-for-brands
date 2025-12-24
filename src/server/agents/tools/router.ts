@@ -177,6 +177,25 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         };
     }
 
+    // Marketing Email - Direct dispatch via Mailjet/SendGrid
+    if (def.name === 'marketing.sendEmail') {
+        const { sendOrderConfirmationEmail } = await import('@/lib/email/dispatcher');
+        const emailData = {
+            orderId: `MARKETING-${Date.now()}`,
+            customerName: inputs.recipientName || 'Valued Customer',
+            customerEmail: inputs.to,
+            total: 0,
+            items: [{ name: inputs.subject || 'Marketing Email', qty: 1, price: 0 }],
+            retailerName: inputs.brandName || 'BakedBot',
+            pickupAddress: inputs.content || ''
+        };
+        const result = await sendOrderConfirmationEmail(emailData);
+        return {
+            status: result ? 'success' : 'failed',
+            data: { sent: result, provider: 'dynamic', to: inputs.to }
+        };
+    }
+
     // Phase 2: BI & Intel
     if (def.name === 'analytics.getKPIs') {
         if (!request.tenantId) throw new Error('Tool requires tenant context.');
