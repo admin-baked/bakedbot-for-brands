@@ -156,7 +156,7 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
                             title: d.title,
                             content: d.content.substring(0, 500),
                             similarity: d.similarity,
-                            source: d.knowledgeBaseId
+                            source: d.id
                         })),
                         totalResults: docs.length
                     }
@@ -192,11 +192,10 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
                 content: inputs.content,
                 channel,
                 jurisdictions,
-                isCompliant: compliance.isCompliant,
-                score: compliance.score,
+                isCompliant: compliance.status === 'pass',
+                complianceStatus: compliance.status,
                 violations: compliance.violations,
-                sanitizedContent: compliance.sanitizedContent,
-                appliedRules: compliance.appliedRules
+                suggestions: compliance.suggestions
             }
         };
     }
