@@ -22,7 +22,7 @@ export async function getEmailProviderAction() {
     const doc = await firestore.collection('settings').doc('system').get();
     
     // Default to 'sendgrid' if not set
-    return doc.data()?.emailProvider || 'sendgrid';
+    return doc.data()?.emailProvider || 'mailjet';
 }
 
 export async function updateEmailProviderAction(input: z.infer<typeof UpdateEmailProviderSchema>) {
