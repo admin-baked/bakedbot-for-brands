@@ -128,6 +128,13 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     group: 'lifecycle',
   },
   {
+    key: 'team',
+    label: 'Team',
+    href: '/dashboard/team',
+    icon: 'user-plus',
+    group: 'settings',
+  },
+  {
     key: 'settings',
     label: 'Settings',
     href: '/dashboard/settings',
