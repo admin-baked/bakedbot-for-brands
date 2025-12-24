@@ -1,15 +1,18 @@
 'use server';
 
 /**
- * Headless Browser Tool using Playwright
+ * Headless Browser Tool using Puppeteer Core (Serverless Compatible)
  * 
  * Allows agents to execute a sequence of browser actions in a single session.
  * Useful for scraping, form submission, and navigating complex flows.
  * 
- * Note: Requires @playwright/test or playwright-core to be installed.
+ * Note: Uses puppeteer-core and @sparticuz/chromium for production (Firebase/Cloud Functions).
+ * Locally requires a Chrome installation.
  */
 
-import { chromium } from '@playwright/test';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
+import { logger } from '@/lib/logger';
 
 export type BrowserStep =
     | { action: 'goto', url: string }
@@ -45,9 +48,29 @@ export async function browserAction(params: BrowserActionParams): Promise<Browse
 
     try {
         console.log('[browserAction] Launching browser...');
-        browser = await chromium.launch({ headless });
-        const context = await browser.newContext();
-        const page = await context.newPage();
+        logs.push('Launching browser...');
+
+        // Determine launch config based on environment
+        let launchConfig: any = {
+            headless: headless ? (process.env.NODE_ENV === 'production' ? chromium.headless : true) : false,
+            args: process.env.NODE_ENV === 'production' ? chromium.args : [],
+            defaultViewport: chromium.defaultViewport,
+        };
+
+        if (process.env.NODE_ENV === 'production') {
+            // Production: Use @sparticuz/chromium
+            console.log('[browserAction] Using @sparticuz/chromium');
+            launchConfig.executablePath = await chromium.executablePath();
+        } else {
+            // Development: Use local Chrome
+            // Try to find local chrome or use 'chrome' channel
+            console.log('[browserAction] Using local configuration');
+            launchConfig.channel = 'chrome';
+            // If chrome is not installed, this might fail. Fallback to standard paths could be added here.
+        }
+
+        browser = await puppeteer.launch(launchConfig);
+        const page = await browser.newPage();
 
         let lastResult: any = null;
         let substringScreenshot: string | undefined;
@@ -65,7 +88,7 @@ export async function browserAction(params: BrowserActionParams): Promise<Browse
                         break;
 
                     case 'type':
-                        await page.fill(step.selector, step.text);
+                        await page.type(step.selector, step.text);
                         logs.push(`Typed into ${step.selector}`);
                         break;
 
@@ -81,7 +104,8 @@ export async function browserAction(params: BrowserActionParams): Promise<Browse
 
                     case 'scrape':
                         const selector = step.selector || 'body';
-                        const text = await page.textContent(selector);
+                        // Puppeteer specific: use $eval to get text content
+                        const text = await page.$eval(selector, (el) => el.textContent);
                         lastResult = text?.trim() || '';
                         logs.push(`Scraped content from ${selector}`);
                         break;
@@ -97,8 +121,8 @@ export async function browserAction(params: BrowserActionParams): Promise<Browse
                         break;
 
                     case 'screenshot':
-                        const buffer = await page.screenshot({ fullPage: false });
-                        substringScreenshot = buffer.toString('base64');
+                        const buffer = await page.screenshot({ fullPage: false, encoding: 'base64' });
+                        substringScreenshot = buffer; // already base64 string due to encoding option
                         logs.push('Captured screenshot');
                         break;
                 }
@@ -121,7 +145,9 @@ export async function browserAction(params: BrowserActionParams): Promise<Browse
 
     } catch (error: any) {
         console.error('[browserAction] Failed:', error);
-        if (browser) await browser.close();
+        if (browser) {
+             try { await browser.close(); } catch (e) { /* ignore */ }
+        }
 
         return {
             success: false,

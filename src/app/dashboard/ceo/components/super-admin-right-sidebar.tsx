@@ -16,6 +16,8 @@ import {
     Sparkles,
     Terminal,
     Activity,
+} from 'lucide-react';
+
 import { SUPER_ADMIN_SMOKEY } from '@/config/super-admin-smokey-config';
 import { triggerAgentRun } from '../agents/actions';
 import { triggerPatternAnalysis, triggerComplianceScan, generateDailyReport } from '@/app/dashboard/ceo/actions/intuition-actions';
