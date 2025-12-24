@@ -21,7 +21,6 @@ const PlatformAnalyticsTab = dynamic(() => import("./components/platform-analyti
 const TicketsTab = dynamic(() => import("./components/tickets-tab"), { loading: TabLoader });
 const FootTrafficTab = dynamic(() => import("./components/foot-traffic-tab"), { loading: TabLoader });
 const SuperAdminAgentChat = dynamic(() => import("./components/super-admin-agent-chat"), { loading: TabLoader });
-const AgentDashboardClient = dynamic(() => import("./agents/agent-dashboard-client"), { loading: TabLoader }); // New Integration
 const SuperAdminPlaybooksTab = dynamic(() => import("./components/super-admin-playbooks-tab"), { loading: TabLoader });
 const UsageTab = dynamic(() => import("./components/usage-tab"), { loading: TabLoader });
 const EzalTab = dynamic(() => import("./components/ezal-tab"), { loading: TabLoader });

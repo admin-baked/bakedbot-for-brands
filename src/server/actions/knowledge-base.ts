@@ -64,51 +64,56 @@ async function generateEmbedding(content: string): Promise<number[]> {
  * Create a new Knowledge Base
  */
 export async function createKnowledgeBaseAction(input: z.infer<typeof CreateKnowledgeBaseSchema>) {
-    const user = await requireUser();
-    const isSuper = await isSuperUser();
+    try {
+        const user = await requireUser();
+        const isSuper = await isSuperUser();
 
-    // Security: System KBs require super user
-    if (input.ownerType === 'system' && !isSuper) {
-        throw new Error('Unauthorized: Only super admins can create system Knowledge Bases.');
-    }
-
-    // Security: Brand/Dispensary must match user's org
-    if ((input.ownerType === 'brand' || input.ownerType === 'dispensary') && !isSuper) {
-        const userOrgId = user.brandId || user.dispensaryId;
-        if (input.ownerId !== userOrgId) {
-            throw new Error('Unauthorized: Cannot create KB for another organization.');
+        // Security: System KBs require super user
+        if (input.ownerType === 'system' && !isSuper) {
+            throw new Error('Unauthorized: Only super admins can create system Knowledge Bases.');
         }
+
+        // Security: Brand/Dispensary must match user's org
+        if ((input.ownerType === 'brand' || input.ownerType === 'dispensary') && !isSuper) {
+            const userOrgId = user.brandId || user.dispensaryId;
+            if (input.ownerId !== userOrgId) {
+                throw new Error('Unauthorized: Cannot create KB for another organization.');
+            }
+        }
+
+        const firestore = getAdminFirestore();
+        const collection = firestore.collection('knowledge_bases');
+
+        // Check for duplicate name
+        const existing = await collection
+            .where('ownerId', '==', input.ownerId)
+            .where('name', '==', input.name)
+            .get();
+
+        if (!existing.empty) {
+            return { success: false, message: 'A Knowledge Base with this name already exists.' };
+        }
+
+        const newKb: Omit<KnowledgeBase, 'id'> = {
+            ownerId: input.ownerId,
+            ownerType: input.ownerType as KnowledgeBaseOwnerType,
+            name: input.name,
+            description: input.description,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            documentCount: 0,
+            totalBytes: 0,
+            enabled: true
+        };
+
+        const docRef = await collection.add(newKb);
+        await docRef.update({ id: docRef.id });
+
+        return { success: true, message: 'Knowledge Base created successfully.', id: docRef.id };
+    } catch (error: any) {
+        console.error('[createKnowledgeBaseAction] Error:', error);
+        return { success: false, message: error.message || 'Failed to create Knowledge Base.' };
     }
-
-    const firestore = getAdminFirestore();
-    const collection = firestore.collection('knowledge_bases');
-
-    // Check for duplicate name
-    const existing = await collection
-        .where('ownerId', '==', input.ownerId)
-        .where('name', '==', input.name)
-        .get();
-
-    if (!existing.empty) {
-        return { success: false, message: 'A Knowledge Base with this name already exists.' };
-    }
-
-    const newKb: Omit<KnowledgeBase, 'id'> = {
-        ownerId: input.ownerId,
-        ownerType: input.ownerType as KnowledgeBaseOwnerType,
-        name: input.name,
-        description: input.description,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        documentCount: 0,
-        totalBytes: 0,
-        enabled: true
-    };
-
-    const docRef = await collection.add(newKb);
-    await docRef.update({ id: docRef.id });
-
-    return { success: true, message: 'Knowledge Base created successfully.', id: docRef.id };
 }
 
 /**
