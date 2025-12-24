@@ -16,7 +16,8 @@ import {
     KnowledgeUsageLimits,
     KnowledgeUsageStatus,
     KNOWLEDGE_LIMITS,
-    KnowledgeDocumentSource
+    KnowledgeDocumentSource,
+    UpdateKnowledgeBaseSchema
 } from '@/types/knowledge-base';
 import { requireUser, isSuperUser } from '@/server/auth/auth';
 
@@ -120,13 +121,6 @@ export async function createKnowledgeBaseAction(input: z.infer<typeof CreateKnow
 /**
  * Update a Knowledge Base (e.g. System Instructions)
  */
-export const UpdateKnowledgeBaseSchema = z.object({
-    knowledgeBaseId: z.string(),
-    name: z.string().min(3).optional(),
-    description: z.string().optional(),
-    systemInstructions: z.string().optional(),
-});
-
 export async function updateKnowledgeBaseAction(input: z.infer<typeof UpdateKnowledgeBaseSchema>) {
     try {
         const user = await requireUser();

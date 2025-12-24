@@ -161,3 +161,10 @@ export const ScrapeUrlSchema = z.object({
     url: z.string().url(),
     title: z.string().optional(),
 });
+
+export const UpdateKnowledgeBaseSchema = z.object({
+    knowledgeBaseId: z.string(),
+    name: z.string().min(3).optional(),
+    description: z.string().optional(),
+    systemInstructions: z.string().optional(),
+});
