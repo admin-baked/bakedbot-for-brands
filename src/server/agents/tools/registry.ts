@@ -135,6 +135,23 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'side-effect',
         requiredPermission: 'manage:campaigns',
     },
+    'marketing.sendEmail': {
+        name: 'marketing.sendEmail',
+        description: 'Sends an email via the active provider (Mailjet/SendGrid). Used by playbooks for automated email dispatch.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                to: { type: 'string', description: 'Recipient email address' },
+                subject: { type: 'string', description: 'Email subject line' },
+                content: { type: 'string', description: 'Email body content' },
+                recipientName: { type: 'string', description: 'Recipient display name' },
+                brandName: { type: 'string', description: 'Sender brand name' }
+            },
+            required: ['to', 'subject', 'content']
+        },
+        category: 'write',
+        requiredPermission: 'manage:campaigns',
+    },
 
 
 

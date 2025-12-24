@@ -188,12 +188,28 @@ const PLAYBOOK_REGISTRY: Record<string, () => Promise<PlaybookResult>> = {
         const result = await triggerAgentRun('mrs_parker');
         logs.push(`Mrs. Parker Result: ${result.message}`);
 
-        logs.push("Dispatching welcome emails to 5 new VIP segments via SendGrid...");
+        logs.push("Dispatching welcome emails via active provider (Mailjet/SendGrid)...");
+        
+        // Import and use the email dispatcher
+        const { sendOrderConfirmationEmail } = await import('@/lib/email/dispatcher');
+        
+        // Send welcome email (demo recipient for now)
+        const emailResult = await sendOrderConfirmationEmail({
+            orderId: `WELCOME-${Date.now()}`,
+            customerEmail: 'demo@bakedbot.ai', // Would be dynamic in production
+            customerName: 'New VIP Member',
+            total: 0,
+            items: [{ name: 'Welcome to BakedBot!', qty: 1, price: 0 }],
+            retailerName: 'BakedBot',
+            pickupAddress: 'Welcome to the BakedBot family! Your AI agents are ready to help.'
+        });
+        
+        logs.push(`Email dispatch result: ${emailResult ? 'Success' : 'Failed'}`);
         logs.push("Playbook 'Welcome Email Sequence' completed successfully.");
 
         return {
             success: true,
-            message: "Welcome Sequence executed. Mrs. Parker analyzed segments and 5 emails were queued.",
+            message: `Welcome Sequence executed. Mrs. Parker analyzed segments and welcome email ${emailResult ? 'sent' : 'failed'}.`,
             logs
         };
     },

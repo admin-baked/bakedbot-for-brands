@@ -33,6 +33,17 @@ describe('Tool Registry', () => {
         it('should contain marketing tools', () => {
             expect(getToolDefinition('marketing.createCampaignDraft')).toBeDefined();
             expect(getToolDefinition('marketing.send')).toBeDefined();
+            expect(getToolDefinition('marketing.sendEmail')).toBeDefined();
+        });
+
+        it('marketing.sendEmail should have correct properties', () => {
+            const def = getToolDefinition('marketing.sendEmail');
+            expect(def).toBeDefined();
+            expect(def?.category).toBe('write');
+            expect(def?.requiredPermission).toBe('manage:campaigns');
+            expect(def?.inputSchema?.required).toContain('to');
+            expect(def?.inputSchema?.required).toContain('subject');
+            expect(def?.inputSchema?.required).toContain('content');
         });
 
         it('should contain analytics tools', () => {
