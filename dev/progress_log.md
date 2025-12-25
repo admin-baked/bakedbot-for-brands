@@ -738,3 +738,33 @@ Implemented real "production-ready" logic for the Analytics and Intel tools, rep
 ### Tests Run
 *   `npx jest analytics.test.ts intel.test.ts` (Passed: 4 tests)
 ---
+
+## Session: Dashboard UX & Deployment Fixes
+**Date:** 2025-12-24
+**Task ID:** DASHBOARD-UX-DEPLOY-001
+
+### Summary
+Fixed critical sidebar UX issues (double highlighting, sticky buttons) for all roles. Added Super Admin feature unlock (Enterprise tier auto-granted). Resolved deployment blockers related to Google OAuth secrets.
+
+### Key Changes
+*   **FIX**: `src/hooks/use-dashboard-config.ts` - Fixed sidebar active link logic to use strict path matching (`pathname === href || pathname.startsWith(href + '/')`) preventing false positives like `/menu` matching `/menu-sync`.
+*   **FIX**: `src/components/dashboard/super-admin-sidebar.tsx` - Refactored `isActive` logic to prevent default tab from highlighting when on sub-routes.
+*   **FEAT**: `src/hooks/use-plan-info.ts` - Auto-unlock Enterprise tier for `role: 'owner' | 'super_admin'`.
+*   **FIX**: `src/server/actions/super-admin/sandbox.ts` - Added try-catch error handling to prevent 500 errors.
+*   **FIX**: `src/app/dashboard/ceo/components/ceo-settings-tab.tsx` - Fixed React #418 hydration error with mounted state check.
+*   **DEPLOY**: `apphosting.yaml` - Temporarily commented out Google OAuth secrets to unblock build (IAM permissions pending).
+
+### Secrets Created
+*   `GOOGLE_CLIENT_ID` - Created in Secret Manager (access grant pending)
+*   `GOOGLE_CLIENT_SECRET` - Created in Secret Manager (access grant pending)
+
+### Commits
+*   `0b4d1985`: fix: hydration error in settings and error handling in sandbox
+*   `e084843d`: fix: sidebar highlighting and unlock admin features
+*   `027e0c95`: fix: sidebar highlighting logic
+*   `dceeb9be`: chore: disable Google OAuth secrets temporarily to unblock build
+
+### Action Required (Post-Deploy)
+*   Grant `firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com` the "Secret Manager Secret Accessor" role on `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+*   Uncomment OAuth secrets in `apphosting.yaml` and redeploy.
+---
