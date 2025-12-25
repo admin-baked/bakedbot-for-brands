@@ -94,13 +94,27 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
 
 /**
  * Check if the current user is a Super Admin
- * @returns true if the user has owner/admin/super-admin role
+ * @returns true if the user has owner/admin/super-admin role OR is in the super admin email whitelist
  */
 export async function isSuperUser(): Promise<boolean> {
   try {
     const user = await requireUser();
     const role = (user.role as string) || '';
-    return ['owner', 'admin', 'super-admin'].includes(role);
+    const email = (user.email as string) || '';
+    
+    // Check 1: Role-based access
+    if (['owner', 'admin', 'super-admin'].includes(role)) {
+      return true;
+    }
+    
+    // Check 2: Email whitelist (from super-admin-config)
+    // Import dynamically to avoid circular dependencies
+    const { isSuperAdminEmail } = await import('@/lib/super-admin-config');
+    if (isSuperAdminEmail(email)) {
+      return true;
+    }
+    
+    return false;
   } catch {
     return false;
   }
