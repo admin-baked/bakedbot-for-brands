@@ -9,34 +9,47 @@ const UpdateEmailProviderSchema = z.object({
     provider: z.enum(['sendgrid', 'mailjet']),
 });
 
-export async function getEmailProviderAction() {
-    await requireUser();
-    // Allow read for authenticated users if needed, or strictly super admin?
-    // Let's restrict to super admin for configuring, but read might be internal.
-    // Actually, "get" is for the UI, so super admin only.
-    if (!await isSuperUser()) {
-        throw new Error('Unauthorized');
-    }
+import { logger } from '@/lib/logger';
 
-    const firestore = getAdminFirestore();
-    const doc = await firestore.collection('settings').doc('system').get();
-    
-    // Default to 'sendgrid' if not set
-    return doc.data()?.emailProvider || 'mailjet';
+export async function getEmailProviderAction() {
+    try {
+        await requireUser();
+        // Allow read for authenticated users if needed, or strictly super admin?
+        // Let's restrict to super admin for configuring, but read might be internal.
+        // Actually, "get" is for the UI, so super admin only.
+        if (!await isSuperUser()) {
+            throw new Error('Unauthorized');
+        }
+
+        const firestore = getAdminFirestore();
+        const doc = await firestore.collection('settings').doc('system').get();
+        if (!doc.exists) return 'sendgrid'; // Default
+        
+        // Default to 'sendgrid' if not set
+        return doc.data()?.emailProvider || 'sendgrid';
+    } catch (error) {
+        logger.error('[settings] Failed to get email provider:', error);
+        throw error; // Let UI handle it
+    }
 }
 
 export async function updateEmailProviderAction(input: z.infer<typeof UpdateEmailProviderSchema>) {
-    await requireUser();
-    if (!await isSuperUser()) {
-        throw new Error('Unauthorized');
+    try {
+        await requireUser();
+        if (!await isSuperUser()) {
+            throw new Error('Unauthorized');
+        }
+
+        const firestore = getAdminFirestore();
+        await firestore.collection('settings').doc('system').set({
+            emailProvider: input.provider,
+            updatedAt: new Date()
+        }, { merge: true });
+
+        revalidatePath('/dashboard/ceo/settings');
+        return { success: true };
+    } catch (error) {
+        logger.error('[settings] Failed to update email provider:', error);
+        throw new Error('Failed to update email settings. Check server logs.');
     }
-
-    const firestore = getAdminFirestore();
-    await firestore.collection('settings').doc('system').set({
-        emailProvider: input.provider,
-        updatedAt: new Date()
-    }, { merge: true });
-
-    revalidatePath('/dashboard/ceo/settings');
-    return { success: true };
 }

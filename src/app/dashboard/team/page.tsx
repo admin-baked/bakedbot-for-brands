@@ -27,14 +27,15 @@ export default function TeamPage() {
     const userProfile = user as any; // Augmented user from hook
 
     const orgId = userProfile?.currentOrgId || userProfile?.brandId;
-    const userRole = userProfile?.role as 'brand' | 'dispensary' | 'super_admin' | 'customer' | undefined;
+    const userRole = userProfile?.role as 'brand' | 'dispensary' | 'super_admin' | 'customer' | 'owner' | undefined;
 
     // Determine allowed roles based on current user's role
     const getAllowedRoles = (): ('brand' | 'dispensary' | 'super_admin' | 'customer')[] => {
         if (userRole === 'super_admin') {
             return ['brand', 'dispensary', 'super_admin', 'customer'];
         }
-        if (userRole === 'brand' || userRole === 'dispensary') {
+        if (userRole === 'brand' || userRole === 'dispensary' || userRole === 'owner') {
+            if (userRole === 'owner') return ['brand']; // Owner invites brand members
             return [userRole]; // Can only invite same role (team members)
         }
         return [];
