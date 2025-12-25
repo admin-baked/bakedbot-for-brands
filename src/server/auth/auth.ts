@@ -85,7 +85,12 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
 
   if (requiredRoles && requiredRoles.length > 0) {
     const userRole = (decodedToken.role as Role) || null;
-    if (!userRole || !requiredRoles.includes(userRole)) {
+    const userEmail = (decodedToken.email as string)?.toLowerCase() || '';
+    
+    // Super admin emails bypass role restrictions
+    const isSuperAdminByEmail = SUPER_ADMIN_EMAILS.some(e => e.toLowerCase() === userEmail);
+    
+    if (!isSuperAdminByEmail && (!userRole || !requiredRoles.includes(userRole))) {
       throw new Error('Forbidden: You do not have the required permissions.');
     }
   }
