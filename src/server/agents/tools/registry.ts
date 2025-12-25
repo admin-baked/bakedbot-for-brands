@@ -257,6 +257,41 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         },
         category: 'write',
         requiredPermission: 'read:analytics'
+    },
+
+    // ===================================
+    // 8. Creative Tools (All Roles)
+    // ===================================
+    'creative.generateImage': {
+        name: 'creative.generateImage',
+        description: 'Generates a marketing image from a text prompt using Nano Banana Pro (Gemini 3 Pro Image).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                prompt: { type: 'string', description: 'Detailed description of the image to generate' },
+                aspectRatio: { type: 'string', enum: ['1:1', '16:9', '9:16', '4:3'], description: 'Image aspect ratio' },
+                brandName: { type: 'string', description: 'Optional brand name for context' }
+            },
+            required: ['prompt']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics', // All roles can use this
+    },
+    'creative.generateVideo': {
+        name: 'creative.generateVideo',
+        description: 'Generates a short marketing video (5-10 seconds) from a text prompt using Veo 3.1.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                prompt: { type: 'string', description: 'Detailed description of the video to generate' },
+                duration: { type: 'string', enum: ['5', '10'], description: 'Video duration in seconds' },
+                aspectRatio: { type: 'string', enum: ['16:9', '9:16', '1:1'], description: 'Video aspect ratio' },
+                brandName: { type: 'string', description: 'Optional brand name for watermark/context' }
+            },
+            required: ['prompt']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics', // All roles can use this
     }
 };
 

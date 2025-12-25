@@ -65,6 +65,16 @@ describe('AI Model Configuration', () => {
     });
   });
 
+  describe('Video Generation', () => {
+    it('should use Veo 3.1 for marketing videos', () => {
+      const content = fs.readFileSync(
+        path.join(srcDir, 'flows', 'generate-video.ts'),
+        'utf-8'
+      );
+      expect(content).toContain("model: 'googleai/veo-3.1-generate-preview'");
+    });
+  });
+
   describe('Cost Optimization Strategy', () => {
     it('should have more Flash usages than Pro usages', () => {
       const files = [

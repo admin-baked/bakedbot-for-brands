@@ -339,6 +339,58 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         };
     }
 
+    // Creative Tools - Image Generation (Nano Banana Pro / Gemini 3 Pro Image)
+    if (def.name === 'creative.generateImage') {
+        try {
+            const { generateImageFromPrompt } = await import('@/ai/flows/generate-social-image');
+            const imageUrl = await generateImageFromPrompt(inputs.prompt, {
+                aspectRatio: inputs.aspectRatio,
+                brandName: inputs.brandName
+            });
+            return {
+                status: 'success',
+                data: {
+                    imageUrl,
+                    prompt: inputs.prompt,
+                    model: 'gemini-3-pro-image-preview'
+                }
+            };
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Image generation failed';
+            return {
+                status: 'failed',
+                error: `Image generation failed: ${errorMessage}`
+            };
+        }
+    }
+
+    // Creative Tools - Video Generation (Veo 3.1)
+    if (def.name === 'creative.generateVideo') {
+        try {
+            const { generateVideoFromPrompt } = await import('@/ai/flows/generate-video');
+            const videoUrl = await generateVideoFromPrompt(inputs.prompt, {
+                duration: inputs.duration || '5',
+                aspectRatio: inputs.aspectRatio || '16:9',
+                brandName: inputs.brandName
+            });
+            return {
+                status: 'success',
+                data: {
+                    videoUrl,
+                    prompt: inputs.prompt,
+                    duration: parseInt(inputs.duration || '5', 10),
+                    model: 'veo-3.1-generate-preview'
+                }
+            };
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Video generation failed';
+            return {
+                status: 'failed',
+                error: `Video generation failed: ${errorMessage}`
+            };
+        }
+    }
+
     return {
         status: 'success',
         data: { message: `Executed tool: ${def.name}`, inputs }
