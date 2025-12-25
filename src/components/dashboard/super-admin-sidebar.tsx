@@ -43,15 +43,21 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 export function SuperAdminSidebar() {
     const searchParams = useSearchParams();
     const pathname = usePathname();
-    const currentTab = searchParams?.get("tab") || "playbooks";
+    const currentTabParam = searchParams?.get("tab");
     const { toast } = useToast();
     const { sessions, activeSessionId, clearCurrentSession, setActiveSession } = useAgentChatStore();
 
     const isActive = (tab: string) => {
         if (tab === 'agents') {
-            return pathname?.startsWith('/dashboard/ceo/agents') || currentTab === 'agents';
+            return pathname?.startsWith('/dashboard/ceo/agents') || currentTabParam === 'agents';
         }
-        return currentTab === tab;
+        
+        if (tab === 'playbooks') {
+            // Only active if explicitly 'playbooks' or we are on root with no tab selected
+            return currentTabParam === 'playbooks' || (!currentTabParam && pathname === '/dashboard/ceo');
+        }
+
+        return currentTabParam === tab;
     };
 
     return (

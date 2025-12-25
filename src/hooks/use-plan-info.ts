@@ -105,6 +105,20 @@ export function usePlanInfo() {
                 const userDoc = await getDoc(doc(firestore, 'users', user.uid));
                 const userData = userDoc.data();
 
+                // Unlock all features for Super Admins and Owners
+                if (userData?.role === 'super_admin' || userData?.role === 'owner') {
+                     setPlanInfo({
+                         ...DEFAULT_PLAN,
+                         planId: 'enterprise',
+                         planName: 'Super Admin Access',
+                         tier: 'subscription',
+                         isActive: true,
+                         features: PLAN_FEATURES.enterprise
+                     });
+                     setIsLoading(false);
+                     return;
+                }
+
                 let planId: PlanId = 'free';
                 let isActive = false;
 
