@@ -155,6 +155,55 @@ export async function updateKnowledgeBaseAction(input: z.infer<typeof UpdateKnow
 }
 
 /**
+ * Delete a Knowledge Base and all its documents
+ */
+export async function deleteKnowledgeBaseAction(kbId: string) {
+    console.log('[deleteKnowledgeBaseAction] Deleting:', kbId);
+    try {
+        const user = await requireUser();
+        const isSuper = await isSuperUser();
+        const firestore = getAdminFirestore();
+        const kbRef = firestore.collection('knowledge_bases').doc(kbId);
+
+        const doc = await kbRef.get();
+        if (!doc.exists) throw new Error('Knowledge Base not found');
+
+        const data = doc.data() as KnowledgeBase;
+
+        // Security Check
+        if (data.ownerType === 'system' && !isSuper) {
+            throw new Error('Unauthorized: Only super admins can delete system KBs.');
+        }
+        if (data.ownerType !== 'system' && data.ownerId !== user.brandId && data.ownerId !== user.dispensaryId && !isSuper) {
+             throw new Error('Unauthorized: Cannot delete this KB.');
+        }
+
+        // Recursive Delete Documents (Manual Batching)
+        const batchSize = 200;
+        const documentsRef = kbRef.collection('documents');
+        
+        while (true) {
+            const snapshot = await documentsRef.limit(batchSize).get();
+            if (snapshot.empty) break;
+
+            const batch = firestore.batch();
+            for (const doc of snapshot.docs) {
+                batch.delete(doc.ref);
+            }
+            await batch.commit();
+        }
+
+        // Delete KB itself
+        await kbRef.delete();
+
+        return { success: true, message: 'Knowledge Base deleted.' };
+    } catch (error: any) {
+        console.error('[deleteKnowledgeBaseAction] Error:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+/**
  * Get all Knowledge Bases for a specific owner
  */
 export async function getKnowledgeBasesAction(ownerId: string) {
