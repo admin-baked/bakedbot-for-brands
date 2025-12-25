@@ -2,6 +2,7 @@
 
 import { deebo } from '@/server/agents/deebo';
 import { ai } from '@/ai/genkit';
+import { getGenerateOptions } from '@/ai/model-selector';
 import { runAgent } from '@/server/agents/harness';
 import { persistence } from '@/server/agents/persistence';
 
@@ -550,6 +551,7 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
                 executedTools[executedTools.length - 1].result = `Discovered ${results.length} locations for ${brandName}`;
 
                 const synthesis = await ai.generate({
+                    ...getGenerateOptions(extraOptions?.modelLevel),
                     prompt: `You are a Retail Strategic Advisor for cannabis brands.
                     Your Brand: ${brandName}
                     User Request: "${userMessage}"
@@ -638,6 +640,7 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
                 });
 
                 const synthesis = await ai.generate({
+                    ...getGenerateOptions(extraOptions?.modelLevel),
                     prompt: activePersona.id === 'ezal' || activePersona.id !== 'puff' 
                     ? `
                     SYSTEM PROMPT: ${activePersona.systemPrompt}
@@ -1464,6 +1467,7 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
         // Use AI for general queries
         try {
             const response = await ai.generate({
+                ...getGenerateOptions(extraOptions?.modelLevel),
                 prompt: `${activePersona.systemPrompt}
                 
 IMPORTANT: You must provide COMPLETE responses. Do NOT promise to "search the web" or "be back shortly" - you cannot perform real-time web searches unless you use the "Web Search" tool. Instead, provide helpful information based on what you know or explain how to set up an automation.
