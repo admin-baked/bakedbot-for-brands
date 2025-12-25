@@ -151,7 +151,11 @@ export function SystemKnowledgeBase() {
 
     // Add Document
     const handleAddDocument = async () => {
-        if (!selectedKb) return;
+        console.log('[SystemKB] Adding document...');
+        if (!selectedKb) {
+             console.error('[SystemKB] No KB selected');
+             return;
+        }
 
         setIsSaving(true);
         try {
@@ -174,6 +178,7 @@ export function SystemKnowledgeBase() {
                     setIsSaving(false);
                     return;
                 }
+                console.log('[SystemKB] Calling addDocumentAction with title:', docTitle);
                 result = await addDocumentAction({
                     knowledgeBaseId: selectedKb.id,
                     type: 'text',
@@ -182,6 +187,8 @@ export function SystemKnowledgeBase() {
                     content: docContent.trim(),
                 });
             }
+            
+            console.log('[SystemKB] Action Result:', result);
 
             if (result.success) {
                 toast({ title: 'Success', description: 'Document added and indexed' });
@@ -195,6 +202,7 @@ export function SystemKnowledgeBase() {
                 toast({ title: 'Error', description: result.message, variant: 'destructive' });
             }
         } catch (error: any) {
+            console.error('[SystemKB] Error adding document:', error);
             toast({ title: 'Error', description: error.message, variant: 'destructive' });
         } finally {
             setIsSaving(false);
@@ -275,12 +283,10 @@ export function SystemKnowledgeBase() {
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-base">Knowledge Bases</CardTitle>
                             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                                <DialogTrigger asChild>
-                                    <Button size="sm" variant="outline">
-                                        <Plus className="h-4 w-4 mr-1" />
-                                        New
-                                    </Button>
-                                </DialogTrigger>
+                                <Button size="sm" variant="outline" onClick={() => setIsCreateOpen(true)}>
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    New
+                                </Button>
                                 <DialogContent>
                                     <DialogHeader>
                                         <DialogTitle>Create System Knowledge Base</DialogTitle>
@@ -379,12 +385,10 @@ export function SystemKnowledgeBase() {
                                         <RefreshCw className="h-4 w-4" />
                                     </Button>
                                     <Dialog open={isAddDocOpen} onOpenChange={setIsAddDocOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button size="sm">
-                                                <Plus className="h-4 w-4 mr-1" />
-                                                Add Document
-                                            </Button>
-                                        </DialogTrigger>
+                                        <Button size="sm" onClick={() => setIsAddDocOpen(true)}>
+                                            <Plus className="h-4 w-4 mr-1" />
+                                            Add Document
+                                        </Button>
                                         <DialogContent className="max-w-2xl">
                                             <DialogHeader>
                                                 <DialogTitle>Add Training Document</DialogTitle>

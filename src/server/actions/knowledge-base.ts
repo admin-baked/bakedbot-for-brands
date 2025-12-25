@@ -339,7 +339,19 @@ export async function addDocumentAction(input: z.infer<typeof AddDocumentSchema>
         }
 
         // Generate embedding
-        const embedding = await generateEmbedding(input.content);
+        console.log('[addDocumentAction] Generating embedding for content length:', input.content.length);
+        const response: any = await ai.embed({
+            embedder: EMBEDDING_MODEL,
+            content: input.content
+        });
+        console.log('[addDocumentAction] Embedding response keys:', Object.keys(response));
+        
+        const embedding = Array.isArray(response) ? response[0].embedding : response.embedding;
+        if (!embedding) {
+            console.error('[addDocumentAction] Embedding generation failed. Response:', JSON.stringify(response).substring(0, 200));
+            throw new Error('Failed to generate embedding: Output is missing.');
+        }
+
         const byteSize = new Blob([input.content]).size;
 
         // Prepare document with Firestore Vector
@@ -371,6 +383,7 @@ export async function addDocumentAction(input: z.infer<typeof AddDocumentSchema>
             });
         });
 
+        console.log('[addDocumentAction] Document added successfully.');
         return { success: true, message: 'Document added and indexed.' };
 
     } catch (error: any) {

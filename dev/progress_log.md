@@ -905,3 +905,21 @@ Audited and cleaned up the `dev/` directory, moving 40+ temporary log files to `
 *   N/A (Documentation changes only)
 
 
+## Session: 2025-12-25 (KB Debugging)
+### Task ID
+kb-debug-001
+
+### Summary
+Diagnosed and fixed an issue where the System Knowledge Base modal was not opening. Refactored the UI to use explicit state handlers instead of `DialogTrigger`. Verified backend embedding generation capabilities via a manual test script.
+
+### Key Changes
+*   **FIX**: `src/app/dashboard/ceo/components/system-knowledge-base.tsx` - Replaced `DialogTrigger` with `onClick` handlers to reliably open modals. Added frontend logging.
+*   **DEBUG**: `src/server/actions/knowledge-base.ts` - Added detailed error logging to `addDocumentAction` to trace embedding failures.
+*   **VERIFY**: Created and ran `tests/manual/check-genkit.ts` to confirm API key and Genkit configuration are correct.
+
+### Tests
+*   `tests/unit/server/actions/knowledge-base.test.ts`: 19 passed ✅
+*   Manual Genkit Check: Passed ✅
+
+
+
