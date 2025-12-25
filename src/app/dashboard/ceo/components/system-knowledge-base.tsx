@@ -58,6 +58,7 @@ import {
     deleteDocumentAction,
     scrapeUrlAction,
     updateKnowledgeBaseAction,
+    deleteKnowledgeBaseAction,
 } from '@/server/actions/knowledge-base';
 import type { KnowledgeBase, KnowledgeDocument } from '@/types/knowledge-base';
 
@@ -214,6 +215,29 @@ export function SystemKnowledgeBase() {
             }
         } catch (error: any) {
             toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        }
+    };
+
+
+    // Delete KB
+    const handleDeleteKb = async () => {
+        if (!selectedKb) return;
+        if (!confirm(`Are you sure you want to delete "${selectedKb.name}"? This will delete ${selectedKb.documentCount} documents. This cannot be undone.`)) return;
+
+        setIsSaving(true);
+        try {
+            const result = await deleteKnowledgeBaseAction(selectedKb.id);
+            if (result.success) {
+                toast({ title: 'Deleted', description: 'Knowledge Base deleted.' });
+                setSelectedKb(null);
+                loadKnowledgeBases();
+            } else {
+                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+            }
+        } catch (error: any) {
+            toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -531,7 +555,16 @@ export function SystemKnowledgeBase() {
                                                 id="sys-instructions"
                                             />
                                         </div>
-                                        <div className="flex justify-end">
+                                        <div className="flex justify-between items-center pt-8 border-t">
+                                            <Button 
+                                                variant="destructive"
+                                                onClick={handleDeleteKb}
+                                                disabled={isSaving}
+                                            >
+                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                Delete Knowledge Base
+                                            </Button>
+                                            
                                             <Button 
                                                 onClick={async () => {
                                                     const val = (document.getElementById('sys-instructions') as HTMLTextAreaElement).value;

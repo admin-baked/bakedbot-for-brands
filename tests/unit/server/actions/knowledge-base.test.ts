@@ -9,7 +9,8 @@ import {
     getKnowledgeBasesAction,
     checkUsageLimitsAction,
     scrapeUrlAction,
-    getSystemKnowledgeBasesAction
+    getSystemKnowledgeBasesAction,
+    deleteKnowledgeBaseAction
 } from '@/server/actions/knowledge-base';
 import { KNOWLEDGE_LIMITS } from '@/types/knowledge-base';
 
@@ -81,15 +82,19 @@ describe('Knowledge Base Actions', () => {
             })),
             set: mockSet,
             update: mockUpdate,
-            delete: mockDelete
+            delete: mockDelete,
+            get: jest.fn() // Add get method for DocumentReference
         };
+        // Self-referential get for simple mocking (Ref.get() -> Snapshot)
+        mockDocReturn.get.mockResolvedValue(mockDocReturn);
 
         const mockCollectionReturn: any = {
             add: mockAdd,
             doc: jest.fn(() => mockDocReturn),
             where: mockWhere,
             orderBy: mockOrderBy,
-            get: mockGet
+            get: mockGet,
+            limit: jest.fn().mockReturnThis()
         };
 
         // Circular reference: Doc -> Collection
@@ -106,12 +111,20 @@ describe('Knowledge Base Actions', () => {
                 set: mockSet,
                 update: mockUpdate,
                 delete: mockDelete
+            })),
+            batch: jest.fn(() => ({
+                set: mockSet,
+                update: mockUpdate,
+                delete: mockDelete,
+                commit: jest.fn().mockResolvedValue(true)
             }))
         };
     };
 
     beforeEach(() => {
         jest.clearAllMocks();
+        mockGet.mockReset();
+        mockEmbed.mockReset();
 
         // Setup default Auth
         mockRequireUser.mockResolvedValue({
@@ -192,6 +205,49 @@ describe('Knowledge Base Actions', () => {
 
             expect(result.success).toBe(false);
             expect(result.message).toContain('Only super admins');
+        });
+    });
+
+    describe('deleteKnowledgeBaseAction', () => {
+        it('should delete KB and its documents recursively', async () => {
+            mockRequireUser.mockResolvedValue({ brandId: 'brand_123' });
+            mockIsSuperUser.mockResolvedValue(false);
+
+            mockRequireUser.mockResolvedValue({ brandId: 'brand_123' });
+            mockIsSuperUser.mockResolvedValue(false);
+
+            // Mock KB check
+            const kbSnapshot = { exists: true, data: () => ({ ownerId: 'brand_123', ownerType: 'brand' }), ref: { collection: jest.fn() } };
+            
+            // Mock Documents Batch 1
+            const batch1 = { empty: false, docs: [{ ref: 'doc1' }, { ref: 'doc2' }] };
+            
+            // Mock Documents Batch 2 (Empty)
+            const batch2 = { empty: true };
+
+            // Sequence: 1. Get Batch 1, 2. Get Batch 2 (Empty)
+            mockGet
+                .mockImplementationOnce(() => Promise.resolve(batch1))
+                .mockImplementationOnce(() => Promise.resolve(batch2));
+
+            const result = await deleteKnowledgeBaseAction('kb_123');
+
+            expect(result).toEqual({ success: true, message: 'Knowledge Base deleted.' });
+            expect(mockGet).toHaveBeenCalledTimes(2); // 2 batches checked
+            expect(mockDelete).toHaveBeenCalledTimes(3); // 2 docs + 1 KB
+        });
+
+        it('should block unauthorized deletion', async () => {
+             mockRequireUser.mockResolvedValue({ brandId: 'hacker_123' });
+             mockGet.mockResolvedValueOnce({ 
+                 exists: true, 
+                 data: () => ({ ownerId: 'brand_123', ownerType: 'brand' }) 
+             });
+
+             const result = await deleteKnowledgeBaseAction('kb_123');
+             
+             expect(result.success).toBe(false);
+             expect(result.message).toContain('Unauthorized');
         });
     });
 

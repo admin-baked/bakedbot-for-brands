@@ -845,7 +845,8 @@ Implemented 'Agent Chat' mode in the Agent Sandbox (AgentSandbox component). Thi
 
 ### Key Changes
 *   **FEAT**: src/app/dashboard/ceo/components/agent-sandbox.tsx - Added Chat Mode toggle, input, and trace visualization.
-*   **TEST**: 	ests/actions/sandbox-chat.test.ts - Added unit tests for unAgentChat logic (mocking Genkit/Firebase).
+*   **TEST**: 	ests/actions/sandbox-chat.test.ts - Added unit tests for 
+unAgentChat logic (mocking Genkit/Firebase).
 
 ### Tests
 *   	ests/actions/sandbox-chat.test.ts: 2 passed ?
@@ -868,7 +869,23 @@ Implemented 'Agent Chat' mode in the Agent Sandbox (AgentSandbox component). Thi
 *   **TEST**: 	ests/actions/sandbox-chat.test.ts - Enhanced test suite to cover direct chat fallback, playbook execution, and KB context injection.
 
 
-### Debugging
-*   **FIX**: src/app/dashboard/ceo/components/agent-sandbox.tsx - Updated UI to display error messages in the Debug Report instead of showing 'No content' when a run fails.
-*   **TEST**: 	ests/actions/sandbox-chat.test.ts - Verified Agent Chat flow, including Ezal dispensary search.
+### Tests
+*   tests/actions/sandbox-chat.test.ts: 5 passed ✅
+
+
+## Session: 2025-12-25 (Knowledge Base Deletion)
+### Task ID
+kb-deletion-001
+
+### Summary
+Implemented robust, recursive deletion for Knowledge Bases. Super Admins can now delete system KBs (and brands their own) via the dashboard, with all 19 unit tests passing.
+
+### Key Changes
+*   **FEAT**: `src/server/actions/knowledge-base.ts` - Implemented `deleteKnowledgeBaseAction` with batch execution (delete docs -> delete KB).
+*   **FEAT**: `src/app/dashboard/ceo/components/system-knowledge-base.tsx` - Added 'Delete Knowledge Base' button with confirmation dialog.
+*   **TEST**: `tests/unit/server/actions/knowledge-base.test.ts` - Added recursive deletion and security permission tests.
+
+### Tests
+*   `tests/unit/server/actions/knowledge-base.test.ts`: 19 passed ✅
+
 
