@@ -65,7 +65,7 @@ const prompt = ai.definePrompt({
         },
     ]
   },
-  model: 'googleai/gemini-2.5-flash-image-preview',
+  model: 'googleai/gemini-3-pro-image-preview',
 });
 
 const generateSocialMediaImageFlow = ai.defineFlow(
