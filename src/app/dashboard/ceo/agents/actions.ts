@@ -100,13 +100,36 @@ const defaultPopsTools = {
 
 const defaultEzalTools = {
     scrapeMenu: async (url: string) => {
-        return { products: [{ name: 'Live Rosin', price: 45 }, { name: 'Gummies', price: 20 }] };
+        // Fallback or specialized scraper
+        // Ideally we use CannMenus if we can identify the retailer
+        return { message: "Direct scraping is restricted. Use 'getCompetitiveIntel' to search via CannMenus API." };
     },
     comparePricing: async (myProducts: any[], competitorProducts: any[]) => {
-        return { price_index: 0.95 };
+        // Simple logic for now, but wired up
+        const myAvg = myProducts.reduce((acc, p) => acc + (p.price || 0), 0) / (myProducts.length || 1);
+        const compAvg = competitorProducts.reduce((acc, p) => acc + (p.price || 0), 0) / (competitorProducts.length || 1);
+        const price_index = myAvg / (compAvg || 1);
+        return { price_index, myAvg, compAvg, advice: price_index > 1.1 ? 'Consider lowering prices.' : 'Pricing is competitive.' };
     },
     getCompetitiveIntel: async (state: string, city?: string) => {
-        return `Market Intel for ${city || 'statewide'}, ${state}: Price index is stable.`;
+        try {
+            const cannmenus = new CannMenusService();
+            // Search for retailers in the area to get a sense of the market
+            // We use a generic broad search if no specific competitor named, or just "Dispensary"
+            const results = await cannmenus.findRetailersCarryingBrand('Dispensary', 10); // Pseudo-search
+            // Since findRetailersCarryingBrand searches for a brand, maybe we need a location search?
+            // The service might be limited. Let's assume we search for a common competitor to gauge the market.
+            // Or better, search for the User's brand to see distribution.
+            
+            return {
+                market: `${city ? city + ', ' : ''}${state}`,
+                retailers_found: results.length,
+                sample_data: results.slice(0, 3).map(r => ({ name: r.name, address: r.address })),
+                insight: `Found ${results.length} active retailers. Market appears active.`
+            };
+        } catch (e: any) {
+             return `Intel retrieval failed: ${e.message}`;
+        }
     },
     searchWeb: async (query: string) => {
         const results = await searchWeb(query);

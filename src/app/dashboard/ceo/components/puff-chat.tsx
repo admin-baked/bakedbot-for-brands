@@ -723,7 +723,7 @@ export function PuffChat({
 
                         <div className="flex items-center gap-1">
                             <PersonaSelector value={persona} onChange={setPersona} />
-                            <ModelSelector value={thinkingLevel} onChange={setThinkingLevel} />
+                            <ModelSelector value={thinkingLevel} onChange={setThinkingLevel} userPlan="pro" />
                             <ToolSelector
                                 mode={toolMode}
                                 selectedTools={selectedTools}
