@@ -858,3 +858,7 @@ Implemented 'Agent Chat' mode in the Agent Sandbox (AgentSandbox component). Thi
 ### Bug Fix
 *   **FIX**: src/server/actions/knowledge-base.ts - Removed .orderBy from getKnowledgeBasesAction to fix missing Firestore composite index issue preventing KB list from loading. Defaulting to in-memory sort.
 
+
+### Tests
+*   **TEST**: 	ests/unit/server/actions/knowledge-base.test.ts - Added unit tests for getKnowledgeBasesAction (verified in-memory sorting) and updated createKnowledgeBaseAction auth test.
+

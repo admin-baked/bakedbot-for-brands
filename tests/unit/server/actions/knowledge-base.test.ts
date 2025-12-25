@@ -184,11 +184,14 @@ describe('Knowledge Base Actions', () => {
         it('should block non-super admin from creating system KB', async () => {
             mockIsSuperUser.mockResolvedValue(false);
 
-            await expect(createKnowledgeBaseAction({
+            const result = await createKnowledgeBaseAction({
                 ownerId: 'system',
                 ownerType: 'system',
                 name: 'Hacker KB'
-            })).rejects.toThrow('Only super admins');
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.message).toContain('Only super admins');
         });
     });
 
@@ -289,6 +292,38 @@ describe('Knowledge Base Actions', () => {
                 url: 'https://example.com/article'
             });
             expect(result.success).toBe(true);
+        });
+    });
+
+    describe('getKnowledgeBasesAction', () => {
+        it('should return KBs sorted by createdAt descending (in-memory sort)', async () => {
+            const dateOld = new Date('2023-01-01');
+            const dateNew = new Date('2023-12-31');
+            const dateMid = new Date('2023-06-15');
+
+            mockGet.mockResolvedValueOnce({
+                docs: [
+                    {
+                        id: 'kb1',
+                        data: () => ({ name: 'Old', createdAt: dateOld, updatedAt: dateOld })
+                    },
+                    {
+                        id: 'kb2',
+                        data: () => ({ name: 'New', createdAt: dateNew, updatedAt: dateNew })
+                    },
+                    {
+                        id: 'kb3',
+                        data: () => ({ name: 'Mid', createdAt: dateMid, updatedAt: dateMid })
+                    }
+                ]
+            });
+
+            const results = await getKnowledgeBasesAction('brand_123');
+
+            expect(results).toHaveLength(3);
+            expect(results[0].name).toBe('New'); // Dec 31
+            expect(results[1].name).toBe('Mid'); // Jun 15
+            expect(results[2].name).toBe('Old'); // Jan 01
         });
     });
 
