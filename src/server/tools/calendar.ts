@@ -4,10 +4,13 @@
  * Google Calendar Tool
  * 
  * Allows agents to list and create events.
- * Requires an access token stored in Firestore at `integrations/calendar`.
+ * Uses User-Scoped Authentication via `requireUser`.
  */
 
-import { getAdminFirestore } from '@/firebase/admin';
+import { google } from 'googleapis';
+import { requireUser } from '@/server/auth/auth';
+import { getCalendarToken } from '@/server/integrations/calendar/token-storage';
+import { getOAuth2ClientAsync } from '@/server/integrations/gmail/oauth';
 
 export type CalendarAction = 'list' | 'create';
 
@@ -27,77 +30,72 @@ export interface CalendarResult {
     error?: string;
 }
 
-const CALENDAR_API_BASE = 'https://www.googleapis.com/calendar/v3/calendars/primary';
+import { DecodedIdToken } from 'firebase-admin/auth';
 
-async function getAccessToken(): Promise<string | null> {
+export async function calendarAction(params: CalendarParams, injectedUser?: DecodedIdToken): Promise<CalendarResult> {
     try {
-        const db = getAdminFirestore();
-        const doc = await db.collection('integrations').doc('calendar').get();
-        return doc.data()?.accessToken || null;
-    } catch (e) {
-        console.error('Failed to fetch Calendar token', e);
-        return null;
-    }
-}
+        // 1. Authenticate User
+        const user = injectedUser || await requireUser();
+        
+        // 2. Get User-Specific Token
+        const credentials = await getCalendarToken(user.uid);
 
-export async function calendarAction(params: CalendarParams): Promise<CalendarResult> {
-    const token = await getAccessToken();
+        if (!credentials || (!credentials.access_token && !credentials.refresh_token)) {
+            return {
+                success: false,
+                error: 'Calendar is not connected. Please connect your account in Settings > Integrations.'
+            };
+        }
 
-    if (!token) {
-        return {
-            success: false,
-            error: 'Authentication required. Please connect Calendar in Integrations.'
-        };
-    }
+        // 3. Initialize OAuth Client
+        const authClient = await getOAuth2ClientAsync();
+        authClient.setCredentials(credentials);
 
-    const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-    };
+        // 4. Initialize Calendar API
+        const calendar = google.calendar({ version: 'v3', auth: authClient });
 
-    try {
         switch (params.action) {
             case 'list':
                 const timeMin = params.timeMin || new Date().toISOString();
                 const max = params.maxResults || 10;
-                const listUrl = `${CALENDAR_API_BASE}/events?timeMin=${timeMin}&maxResults=${max}&orderBy=startTime&singleEvents=true`;
+                
+                const listRes = await calendar.events.list({
+                    calendarId: 'primary',
+                    timeMin,
+                    maxResults: max,
+                    orderBy: 'startTime',
+                    singleEvents: true
+                });
 
-                const listRes = await fetch(listUrl, { headers });
-                if (!listRes.ok) throw new Error(`Calendar API error: ${listRes.statusText}`);
-
-                const listData = await listRes.json();
-                const events = listData.items || [];
-
-                return { success: true, data: events };
+                return { success: true, data: listRes.data.items || [] };
 
             case 'create':
                 if (!params.summary || !params.startTime || !params.endTime) {
                     return { success: false, error: 'Missing summary, startTime, or endTime' };
                 }
 
-                const eventBody = {
-                    summary: params.summary,
-                    description: params.description || 'Created by BakedBot',
-                    start: { dateTime: params.startTime },
-                    end: { dateTime: params.endTime }
-                };
-
-                const createRes = await fetch(`${CALENDAR_API_BASE}/events`, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify(eventBody)
+                const createRes = await calendar.events.insert({
+                    calendarId: 'primary',
+                    requestBody: {
+                        summary: params.summary,
+                        description: params.description || 'Created by BakedBot',
+                        start: { dateTime: params.startTime },
+                        end: { dateTime: params.endTime }
+                    }
                 });
 
-                if (!createRes.ok) throw new Error(`Calendar API error: ${createRes.statusText}`);
-                const createData = await createRes.json();
-
-                return { success: true, data: createData };
+                return { success: true, data: createRes.data };
 
             default:
                 return { success: false, error: `Unknown action: ${params.action}` };
         }
     } catch (error: any) {
         console.error('[calendarAction] Error:', error);
+        
+        if (error.message.includes('invalid_grant') || error.code === 401) {
+             return { success: false, error: 'Calendar session expired. Please reconnect in Settings.' };
+        }
+
         return { success: false, error: error.message };
     }
 }

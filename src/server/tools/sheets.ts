@@ -4,10 +4,13 @@
  * Google Sheets Tool
  * 
  * Allows agents to read, append, and create spreadsheets.
- * Requires an access token stored in Firestore at `integrations/sheets`.
+ * Uses User-Scoped Authentication via `requireUser`.
  */
 
-import { getAdminFirestore } from '@/firebase/admin';
+import { google } from 'googleapis';
+import { requireUser } from '@/server/auth/auth';
+import { getSheetsToken } from '@/server/integrations/sheets/token-storage';
+import { getOAuth2ClientAsync } from '@/server/integrations/gmail/oauth';
 
 export type SheetsAction = 'read' | 'append' | 'create';
 
@@ -25,51 +28,46 @@ export interface SheetsResult {
     error?: string;
 }
 
-const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
+import { DecodedIdToken } from 'firebase-admin/auth';
 
-async function getAccessToken(): Promise<string | null> {
+export async function sheetsAction(params: SheetsParams, injectedUser?: DecodedIdToken): Promise<SheetsResult> {
     try {
-        const db = getAdminFirestore();
-        const doc = await db.collection('integrations').doc('sheets').get();
-        return doc.data()?.accessToken || null;
-    } catch (e) {
-        console.error('Failed to fetch Sheets token', e);
-        return null;
-    }
-}
+        // 1. Authenticate User
+        const user = injectedUser || await requireUser();
 
-export async function sheetsAction(params: SheetsParams): Promise<SheetsResult> {
-    const token = await getAccessToken();
+        // 2. Get User-Specific Token
+        const credentials = await getSheetsToken(user.uid);
 
-    if (!token) {
-        return {
-            success: false,
-            error: 'Authentication required. Please connect Sheets in Integrations.'
-        };
-    }
+        if (!credentials || (!credentials.access_token && !credentials.refresh_token)) {
+            return {
+                success: false,
+                error: 'Sheets is not connected. Please connect your account in Settings > Integrations.'
+            };
+        }
 
-    const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-    };
+        // 3. Initialize OAuth Client
+        const authClient = await getOAuth2ClientAsync();
+        authClient.setCredentials(credentials);
 
-    try {
+        // 4. Initialize Sheets API
+        const sheets = google.sheets({ version: 'v4', auth: authClient });
+
         switch (params.action) {
             case 'read':
                 if (!params.spreadsheetId || !params.range) {
                     return { success: false, error: 'Missing spreadsheetId or range' };
                 }
-                const readUrl = `${SHEETS_API_BASE}/${params.spreadsheetId}/values/${params.range}`;
-                const readRes = await fetch(readUrl, { headers });
-
-                if (!readRes.ok) throw new Error(`Sheets API error: ${readRes.statusText}`);
-                const readData = await readRes.json();
+                
+                const readRes = await sheets.spreadsheets.values.get({
+                    spreadsheetId: params.spreadsheetId,
+                    range: params.range
+                });
 
                 return {
                     success: true,
                     data: {
-                        values: readData.values || [],
-                        range: readData.range
+                        values: readRes.data.values || [],
+                        range: readRes.data.range
                     }
                 };
 
@@ -78,42 +76,34 @@ export async function sheetsAction(params: SheetsParams): Promise<SheetsResult> 
                     return { success: false, error: 'Missing spreadsheetId, range, or values' };
                 }
 
-                const appendUrl = `${SHEETS_API_BASE}/${params.spreadsheetId}/values/${params.range}:append?valueInputOption=USER_ENTERED`;
-                const appendRes = await fetch(appendUrl, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({
+                const appendRes = await sheets.spreadsheets.values.append({
+                    spreadsheetId: params.spreadsheetId,
+                    range: params.range,
+                    valueInputOption: 'USER_ENTERED',
+                    requestBody: {
                         range: params.range,
                         majorDimension: 'ROWS',
                         values: params.values
-                    })
+                    }
                 });
 
-                if (!appendRes.ok) throw new Error(`Sheets API error: ${appendRes.statusText}`);
-                const appendData = await appendRes.json();
-
-                return { success: true, data: appendData };
+                return { success: true, data: appendRes.data };
 
             case 'create':
-                const createRes = await fetch(SHEETS_API_BASE, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({
+                const createRes = await sheets.spreadsheets.create({
+                    requestBody: {
                         properties: {
                             title: params.title || 'Agent Spreadsheet'
                         }
-                    })
+                    }
                 });
-
-                if (!createRes.ok) throw new Error(`Sheets API error: ${createRes.statusText}`);
-                const createData = await createRes.json();
 
                 return {
                     success: true,
                     data: {
-                        spreadsheetId: createData.spreadsheetId,
-                        url: createData.spreadsheetUrl,
-                        title: createData.properties.title
+                        spreadsheetId: createRes.data.spreadsheetId,
+                        url: createRes.data.spreadsheetUrl,
+                        title: createRes.data.properties?.title
                     }
                 };
 
@@ -122,6 +112,11 @@ export async function sheetsAction(params: SheetsParams): Promise<SheetsResult> 
         }
     } catch (error: any) {
         console.error('[sheetsAction] Error:', error);
+
+        if (error.message.includes('invalid_grant') || error.code === 401) {
+             return { success: false, error: 'Sheets session expired. Please reconnect in Settings.' };
+        }
+
         return { success: false, error: error.message };
     }
 }

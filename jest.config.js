@@ -15,6 +15,10 @@ const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   modulePathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/usr/'],
   moduleNameMapper: {
+    // Specific mocks (Must come before generic aliases)
+    '^@/ai/genkit$': '<rootDir>/tests/__mocks__/genkit.ts',
+    '^@/ai/model-selector$': '<rootDir>/tests/__mocks__/model-selector.ts',
+    
     // Handle module aliases (this will be automatically configured for you soon)
     '^@/(.*)$': '<rootDir>/src/$1',
     '^react-markdown$': '<rootDir>/tests/__mocks__/react-markdown.js',
@@ -40,7 +44,7 @@ const customJestConfig = {
     '!src/**/__tests__/**',
   ],
   transformIgnorePatterns: [
-    'node_modules/(?!(uuid|firebase|@firebase|react-markdown|remark-gfm|micromark|unist|hast|mdast|rehype|remark|vfile|bail|trough|unified|is-plain-obj|property-information|space-separated-tokens|comma-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|longest-streak|lucide-react)/)',
+    'node_modules/(?!(uuid|firebase|@firebase|react-markdown|remark-gfm|micromark|unist|hast|mdast|rehype|remark|vfile|bail|trough|unified|is-plain-obj|property-information|space-separated-tokens|comma-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|longest-streak|lucide-react|@genkit-ai|genkit|dotprompt|zod)/)',
   ],
   coverageThreshold: {
     global: {

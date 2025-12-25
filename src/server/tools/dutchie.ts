@@ -4,12 +4,13 @@
  * Dutchie Tool
  * 
  * Allows agents to interact with Dutchie Ecommerce (Menu, Orders).
- * Requires an API key stored in Firestore at `integrations/dutchie`.
+ * Uses User-Scoped Authentication via `requireUser`.
  * 
  * Note: Dutchie Plus / Ecommerce API
  */
 
-import { getAdminFirestore } from '@/firebase/admin';
+import { requireUser } from '@/server/auth/auth';
+import { getDutchieKey } from '@/server/integrations/dutchie/token-storage';
 
 export type DutchieAction = 'list_menu' | 'list_orders';
 
@@ -27,33 +28,28 @@ export interface DutchieResult {
 
 const DUTCHIE_API_BASE = 'https://plus.dutchie.com/api/v1'; // Generic placeholder for Plus API
 
-async function getApiKey(): Promise<string | null> {
+import { DecodedIdToken } from 'firebase-admin/auth';
+
+export async function dutchieAction(params: DutchieParams, injectedUser?: DecodedIdToken): Promise<DutchieResult> {
     try {
-        const db = getAdminFirestore();
-        const doc = await db.collection('integrations').doc('dutchie').get();
-        return doc.data()?.apiKey || null;
-    } catch (e) {
-        console.error('Failed to fetch Dutchie key', e);
-        return null;
-    }
-}
+        // 1. Authenticate User
+        const user = injectedUser || await requireUser();
 
-export async function dutchieAction(params: DutchieParams): Promise<DutchieResult> {
-    const apiKey = await getApiKey();
+        // 2. Get User-Specific Key
+        const apiKey = await getDutchieKey(user.uid);
 
-    if (!apiKey) {
-        return {
-            success: false,
-            error: 'Authentication required. Please connect Dutchie in Integrations.'
+        if (!apiKey) {
+            return {
+                success: false,
+                error: 'Dutchie is not connected. Please connect your account in Settings > Integrations.'
+            };
+        }
+
+        const headers = {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
         };
-    }
 
-    const headers = {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-    };
-
-    try {
         switch (params.action) {
             case 'list_menu':
                 // Endpoint: /products (Hypothetical standard endpoint for Plus)

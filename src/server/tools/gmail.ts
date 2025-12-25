@@ -4,10 +4,13 @@
  * Gmail Tool
  * 
  * Allows agents to interact with Gmail (List, Read, Send).
- * Requires an access token stored in Firestore at `integrations/gmail`.
+ * Uses User-Scoped Authentication via `requireUser`.
  */
 
-import { getAdminFirestore } from '@/firebase/admin';
+import { google } from 'googleapis';
+import { requireUser } from '@/server/auth/auth';
+import { getGmailToken } from '@/server/integrations/gmail/token-storage';
+import { getOAuth2ClientAsync } from '@/server/integrations/gmail/oauth';
 
 export type GmailAction = 'list' | 'read' | 'send';
 
@@ -26,54 +29,58 @@ export interface GmailResult {
     error?: string;
 }
 
-const GMAIL_API_BASE = 'https://gmail.googleapis.com/gmail/v1/users/me';
+import { DecodedIdToken } from 'firebase-admin/auth';
 
-async function getAccessToken(): Promise<string | null> {
+export async function gmailAction(params: GmailParams, injectedUser?: DecodedIdToken): Promise<GmailResult> {
     try {
-        const db = getAdminFirestore();
-        const doc = await db.collection('integrations').doc('gmail').get();
-        return doc.data()?.accessToken || null;
-    } catch (e) {
-        console.error('Failed to fetch Gmail token', e);
-        return null;
-    }
-}
+        // 1. Authenticate User
+        const user = injectedUser || await requireUser();
+        
+        // 2. Get User-Specific Token
+        const credentials = await getGmailToken(user.uid);
 
-export async function gmailAction(params: GmailParams): Promise<GmailResult> {
-    const token = await getAccessToken();
+        if (!credentials || (!credentials.access_token && !credentials.refresh_token)) {
+            return {
+                success: false,
+                error: 'Gmail is not connected. Please connect your account in Settings > Integrations.'
+            };
+        }
 
-    if (!token) {
-        return {
-            success: false,
-            error: 'Authentication required. Please connect Gmail in Integrations.'
-        };
-    }
+        // 3. Initialize OAuth Client (Handles Token Refresh Automatically)
+        const authClient = await getOAuth2ClientAsync();
+        authClient.setCredentials(credentials);
 
-    const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-    };
+        // 4. Initialize Gmail API
+        const gmail = google.gmail({ version: 'v1', auth: authClient });
 
-    try {
         switch (params.action) {
             case 'list':
-                const q = encodeURIComponent(params.query || '');
-                const listUrl = `${GMAIL_API_BASE}/messages?q=${q}&maxResults=5`;
-                const listRes = await fetch(listUrl, { headers });
+                const listRes = await gmail.users.messages.list({
+                    userId: 'me',
+                    q: params.query || '',
+                    maxResults: 5
+                });
 
-                if (!listRes.ok) throw new Error(`Gmail API error: ${listRes.statusText}`);
-
-                const listData = await listRes.json();
-                const messages = listData.messages || [];
+                const messages = listRes.data.messages || [];
 
                 // Fetch snippets for context
-                const threads = await Promise.all(messages.map(async (msg: any) => {
-                    const detailRes = await fetch(`${GMAIL_API_BASE}/messages/${msg.id}?format=metadata`, { headers });
-                    const detail = await detailRes.json();
-                    const snippet = detail.snippet;
-                    const subject = detail.payload?.headers?.find((h: any) => h.name === 'Subject')?.value;
-                    const from = detail.payload?.headers?.find((h: any) => h.name === 'From')?.value;
-                    return { id: msg.id, subject, from, snippet };
+                const threads = await Promise.all(messages.map(async (msg) => {
+                    const detailRes = await gmail.users.messages.get({
+                        userId: 'me',
+                        id: msg.id!,
+                        format: 'metadata'
+                    });
+                    
+                    const headers = detailRes.data.payload?.headers;
+                    const subject = headers?.find(h => h.name === 'Subject')?.value;
+                    const from = headers?.find(h => h.name === 'From')?.value;
+                    
+                    return { 
+                        id: msg.id, 
+                        subject, 
+                        from, 
+                        snippet: detailRes.data.snippet 
+                    };
                 }));
 
                 return { success: true, data: threads };
@@ -81,22 +88,25 @@ export async function gmailAction(params: GmailParams): Promise<GmailResult> {
             case 'read':
                 if (!params.messageId) return { success: false, error: 'Missing messageId' };
 
-                const readUrl = `${GMAIL_API_BASE}/messages/${params.messageId}`;
-                const readRes = await fetch(readUrl, { headers });
+                const readRes = await gmail.users.messages.get({
+                    userId: 'me',
+                    id: params.messageId,
+                });
 
-                if (!readRes.ok) throw new Error(`Gmail API error: ${readRes.statusText}`);
-
-                const email = await readRes.json();
+                const email = readRes.data;
                 let body = email.snippet; // Fallback
 
-                // Try to find body parts
-                if (email.payload?.parts) {
-                    const textPart = email.payload.parts.find((p: any) => p.mimeType === 'text/plain');
-                    if (textPart?.body?.data) {
-                        body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
+                // Parse Body
+                const payload = email.payload;
+                if (payload) {
+                    if (payload.body?.data) {
+                        body = Buffer.from(payload.body.data, 'base64').toString('utf-8');
+                    } else if (payload.parts) {
+                        const textPart = payload.parts.find(p => p.mimeType === 'text/plain');
+                        if (textPart?.body?.data) {
+                            body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
+                        }
                     }
-                } else if (email.payload?.body?.data) {
-                    body = Buffer.from(email.payload.body.data, 'base64').toString('utf-8');
                 }
 
                 return {
@@ -125,22 +135,24 @@ export async function gmailAction(params: GmailParams): Promise<GmailResult> {
                     .replace(/\//g, '_')
                     .replace(/=+$/, '');
 
-                const sendRes = await fetch(`${GMAIL_API_BASE}/messages/send`, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ raw })
+                const sendRes = await gmail.users.messages.send({
+                    userId: 'me',
+                    requestBody: { raw }
                 });
 
-                if (!sendRes.ok) throw new Error(`Gmail API error: ${sendRes.statusText}`);
-                const sendData = await sendRes.json();
-
-                return { success: true, data: sendData };
+                return { success: true, data: sendRes.data };
 
             default:
                 return { success: false, error: `Unknown action: ${params.action}` };
         }
     } catch (error: any) {
         console.error('[gmailAction] Error:', error);
+        
+        // Handle Token Errors
+        if (error.message.includes('invalid_grant') || error.code === 401) {
+             return { success: false, error: 'Gmail session expired. Please reconnect in Settings.' };
+        }
+
         return { success: false, error: error.message };
     }
 }
