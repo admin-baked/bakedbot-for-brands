@@ -12,26 +12,41 @@ import { v4 as uuidv4 } from 'uuid';
 /**
  * Returns available agents for the sandbox.
  */
+import { logger } from '@/lib/logger';
+
+/**
+ * Returns available agents for the sandbox.
+ */
 export async function listAgentsAction() {
-    await requireUser();
-    if (!await isSuperUser()) throw new Error('Unauthorized');
-    return AGENT_CAPABILITIES;
+    try {
+        await requireUser();
+        if (!await isSuperUser()) throw new Error('Unauthorized');
+        return AGENT_CAPABILITIES;
+    } catch (error) {
+        logger.error('[sandbox] listAgentsAction failed:', error);
+        throw new Error('Failed to load agents. Please refresh.');
+    }
 }
 
 /**
  * Returns available tools for the sandbox.
  */
 export async function listToolsAction() {
-    await requireUser();
-    if (!await isSuperUser()) throw new Error('Unauthorized');
-    
-    // Convert registry object to array
-    return Object.values(TOOL_REGISTRY).map(tool => ({
-        name: tool.name,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-        category: tool.category
-    }));
+    try {
+        await requireUser();
+        if (!await isSuperUser()) throw new Error('Unauthorized');
+        
+        // Convert registry object to array
+        return Object.values(TOOL_REGISTRY).map(tool => ({
+            name: tool.name,
+            description: tool.description,
+            inputSchema: tool.inputSchema,
+            category: tool.category
+        }));
+    } catch (error) {
+        logger.error('[sandbox] listToolsAction failed:', error);
+        throw new Error('Failed to load tools. Please refresh.');
+    }
 }
 
 const ExecuteToolSchema = z.object({
