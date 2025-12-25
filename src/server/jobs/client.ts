@@ -15,7 +15,7 @@ export async function getCloudTasksClient() {
 
     const client = await auth.getClient();
     
-    return google.cloudtasks({
+    return (google.cloudtasks as any)({
         version: CLOUD_TASKS_VERSION,
         auth: client
     });

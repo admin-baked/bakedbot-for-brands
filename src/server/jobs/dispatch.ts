@@ -44,8 +44,11 @@ export async function dispatchAgentJob(payload: AgentJobPayload) {
     };
 
     try {
-        const [response] = await tasksClient.createTask({ parent, task });
-        return { success: true, taskId: response.name };
+        const response = await tasksClient.projects.locations.queues.tasks.create({
+            parent,
+            requestBody: { task }
+        });
+        return { success: true, taskId: response.data.name };
     } catch (error: any) {
         console.error('Failed to dispatch agent job:', error);
         return { success: false, error: error.message };
