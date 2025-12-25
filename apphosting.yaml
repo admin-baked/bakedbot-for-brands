@@ -83,15 +83,15 @@ env:
     secret: SERPER_API_KEY@3
     availability:
       - RUNTIME
-  # Google OAuth (temporarily disabled - IAM permissions pending)
-  # - variable: GOOGLE_CLIENT_ID
-  #   secret: GOOGLE_CLIENT_ID
-  #   availability:
-  #     - RUNTIME
-  # - variable: GOOGLE_CLIENT_SECRET
-  #   secret: GOOGLE_CLIENT_SECRET
-  #   availability:
-  #     - RUNTIME
+  # Google OAuth
+  - variable: GOOGLE_CLIENT_ID
+    secret: GOOGLE_CLIENT_ID
+    availability:
+      - RUNTIME
+  - variable: GOOGLE_CLIENT_SECRET
+    secret: GOOGLE_CLIENT_SECRET
+    availability:
+      - RUNTIME
   # SMS
   # - variable: LEAFBUYER_API_KEY
   #   secret: LEAFBUYER_API_KEY
