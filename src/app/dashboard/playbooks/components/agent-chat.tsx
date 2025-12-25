@@ -4,6 +4,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ChatMediaPreview, extractMediaFromToolResponse } from '@/components/chat/chat-media-preview';
+import { useSearchParams } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -70,7 +72,7 @@ export interface ToolCallStep {
 
 export interface ChatArtifact {
     id: string;
-    type: 'code' | 'image' | 'file' | 'yaml' | 'json';
+    type: 'code' | 'image' | 'video' | 'file' | 'yaml' | 'json';
     title: string;
     content: string;
 }
@@ -108,6 +110,13 @@ export interface PuffMessage {
         brandName?: string;
         agentName?: string;
         role?: string;
+        media?: {
+            type: 'image' | 'video';
+            url: string;
+            prompt?: string;
+            duration?: number;
+            model?: string;
+        } | null;
     };
 }
 
@@ -597,7 +606,19 @@ export function AgentChat({
             // Update Global Store with response
             updateMessage(thinkingId, {
                 content: response.content,
-                metadata: response.metadata, // Store rich metadata
+                metadata: {
+                    ...response.metadata,
+                    // Check for generated media in tool calls
+                    media: response.toolCalls?.map(tc => {
+                        // Attempt to extract media from result if it's an object or JSON string
+                        try {
+                            const resultData = typeof tc.result === 'string' && (tc.result.startsWith('{') || tc.result.includes('"url"')) 
+                                ? JSON.parse(tc.result) 
+                                : tc.result;
+                            return extractMediaFromToolResponse(resultData);
+                        } catch (e) { return null; }
+                    }).find(m => m !== null)
+                }, // Store rich metadata with media
                 thinking: {
                     isThinking: false,
                     steps: response.toolCalls?.map(tc => ({
@@ -841,6 +862,19 @@ export function AgentChat({
                                                             </ul>
                                                         </CardContent>
                                                     </Card>
+                                                )}
+
+                                                {/* Media Preview (Video/Image) */}
+                                                {message.metadata?.media && (
+                                                    <div className="mb-4">
+                                                        <ChatMediaPreview
+                                                            type={message.metadata.media.type}
+                                                            url={message.metadata.media.url}
+                                                            prompt={message.metadata.media.prompt}
+                                                            duration={message.metadata.media.duration}
+                                                            model={message.metadata.media.model}
+                                                        />
+                                                    </div>
                                                 )}
 
                                                 {message.metadata?.type === 'product_rec' && (

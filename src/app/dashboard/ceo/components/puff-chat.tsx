@@ -54,6 +54,7 @@ import { AgentPersona } from '../agents/personas';
 import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useUser } from '@/firebase/auth/use-user';
 import { ModelSelector, ThinkingLevel } from './model-selector';
+import { ChatMediaPreview, extractMediaFromToolResponse } from '@/components/chat/chat-media-preview';
 
 // ============ Types ============
 
@@ -99,6 +100,13 @@ export interface PuffMessage {
         brandName?: string;
         agentName?: string;
         role?: string;
+        media?: {
+            type: 'image' | 'video';
+            url: string;
+            prompt?: string;
+            duration?: number;
+            model?: string;
+        } | null;
     };
 }
 
@@ -570,7 +578,19 @@ export function PuffChat({
             // Update Global Store with response
             updateMessage(thinkingId, {
                 content: response.content,
-                metadata: response.metadata, // Store rich metadata
+                metadata: {
+                    ...response.metadata,
+                    // Check for generated media in tool calls
+                    media: response.toolCalls?.map(tc => {
+                        // Attempt to extract media from result if it's an object or JSON string
+                        try {
+                            const resultData = typeof tc.result === 'string' && (tc.result.startsWith('{') || tc.result.includes('"url"')) 
+                                ? JSON.parse(tc.result) 
+                                : tc.result;
+                            return extractMediaFromToolResponse(resultData);
+                        } catch (e) { return null; }
+                    }).find(m => m !== null)
+                }, // Store rich metadata with media
                 thinking: {
                     isThinking: false,
                     steps: response.toolCalls?.map(tc => ({
@@ -812,6 +832,19 @@ export function PuffChat({
                                                             </ul>
                                                         </CardContent>
                                                     </Card>
+                                                )}
+
+                                                {/* Media Preview (Video/Image) */}
+                                                {message.metadata?.media && (
+                                                    <div className="mb-4">
+                                                        <ChatMediaPreview
+                                                            type={message.metadata.media.type}
+                                                            url={message.metadata.media.url}
+                                                            prompt={message.metadata.media.prompt}
+                                                            duration={message.metadata.media.duration}
+                                                            model={message.metadata.media.model}
+                                                        />
+                                                    </div>
                                                 )}
 
                                                 {message.metadata?.type === 'product_rec' && (
