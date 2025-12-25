@@ -53,6 +53,47 @@
             "area": "frontend"
         },
         {
+            "id": "feat_super_user_agent_ux",
+            "title": "Super User Agent Command UX (Agent Sandbox)",
+            "status": "passing",
+            "description": "Update Agent Command UX for Super Users (CEO dashboard). Implemented Agent Sandbox with Chat Mode, Tool Testing, and Debug Reports.",
+            "acceptance_tests": [
+                "test_super_user_playbooks_page_renders",
+                "test_agent_command_input_works",
+                "test_triggers_modal_opens",
+                "test_vault_integration",
+                "test_playbook_execution",
+                "test_sandbox_chat_execution"
+            ],
+            "use_cases": [
+                "Testing agent tools in isolation",
+                "Simulating agent chat flows",
+                "Debugging tool outputs and traces"
+            ],
+            "ui_reference": "CEO Dashboard -> Agent Sandbox",
+            "owner": "ai_architect",
+            "dependencies": [
+                "feat_intuition_os"
+            ],
+            "area": "frontend",
+            "completed_at": "2025-12-25T12:00:00Z"
+        },
+        {
+            "id": "feat_kb_deletion_system",
+            "title": "Knowledge Base Recursive Deletion",
+            "status": "passing",
+            "description": "Implement secure, recursive deletion for Knowledge Bases. Deletes all 500+ documents in batches before removing the KB record.",
+            "acceptance_tests": [
+                "test_recursive_doc_deletion",
+                "test_security_permissions",
+                "test_system_kb_protection"
+            ],
+            "owner": "antigravity",
+            "dependencies": [],
+            "area": "backend",
+            "completed_at": "2025-12-25T12:00:00Z"
+        },
+        {
             "id": "feat_intuition_os",
             "title": "Intuition OS - Firebase Architecture for Intelligent Agents",
             "status": "passing",

@@ -118,6 +118,13 @@ Minimum viable Claim Pro must include:
 
 ## Execution Workflow (Agents + Dev)
 
+### Agentic Testing & Verification
+We utilize the **Agent Sandbox** (`/dashboard/ceo/sandbox`) as the primary testing ground for rollout agents.
+*   **Sandbox Chat**: Simulate user interactions with Smokey/Craig/Pops before live deployment.
+*   **Tool Verification**: Test individual tools (`marketing.sendEmail`, `geo.search`, etc.) in isolation.
+*   **Debug Reports**: Analyze execution traces and cost/latency metrics for each agent step.
+*   **Seed Data**: Use the "Seed Sandbox" action to generate ephemeral test scenarios without polluting production data.
+
 ### CannMenus Data Pull (Hydration)
 
 **How ZIP coverage enters the system (no bulk import):**
