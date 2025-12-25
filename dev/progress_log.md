@@ -815,3 +815,22 @@ Fixed critical sidebar UX issues (double highlighting, sticky buttons) for all r
 *   Grant `firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com` the "Secret Manager Secret Accessor" role on `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 *   Uncomment OAuth secrets in `apphosting.yaml` and redeploy.
 ---
+
+## Session: 2025-12-25 (Agent Sandbox Image Viewer & Seeding Tests)
+### Task ID
+sandbox-debugging-001
+
+### Summary
+Fixed the Agent Sandbox UI to correctly display base64-encoded images from agent outputs (e.g., image generation tools). Added comprehensive unit tests for the seedSandboxData server action, ensuring database interactions are properly verified.
+
+### Key Changes
+*   **FEAT**: src/app/dashboard/ceo/components/agent-sandbox.tsx - Added an image viewer to the results panel to render data.imageUrl outputs.
+*   **TEST**: tests/actions/seed-sandbox.test.ts - Created unit tests for the seeding script, mocking Firestore, Auth, and UUID to verify batch operations.
+*   **FIX**: tests/actions/seed-sandbox.test.ts - Resolved Jest hoisting issue with inline mocks for firebase-admin.
+
+### Commits
+*   pending: feat(sandbox): add image viewer and unit tests for data seeding
+
+### Tests
+*   tests/actions/seed-sandbox.test.ts: 1 passed 
+

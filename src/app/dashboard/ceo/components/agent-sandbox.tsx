@@ -291,6 +291,20 @@ ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
                                 <pre className="whitespace-pre-wrap break-all">
                                     {JSON.stringify(output.result || output, null, 2)}
                                 </pre>
+                                
+                                {/* Image Viewer for Base64/URL outputs */}
+                                {output?.result?.data?.imageUrl && (
+                                    <div className="mt-4 border-t border-slate-800 pt-4">
+                                        <p className="text-slate-400 mb-2">Image Preview:</p>
+                                        <div className="relative rounded-lg overflow-hidden border border-slate-700 bg-slate-900 inline-block">
+                                            <img 
+                                                src={output.result.data.imageUrl} 
+                                                alt="Tool Output" 
+                                                className="max-w-full h-auto max-h-[400px] object-contain" 
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-4">
