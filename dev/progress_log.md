@@ -854,3 +854,7 @@ Implemented 'Agent Chat' mode in the Agent Sandbox (AgentSandbox component). Thi
 ### Bug Fix
 *   **FIX**: src/app/dashboard/ceo/page.tsx - Disabled SSR for SystemKnowledgeBase to resolve 500 errors and hydration mismatches on the Knowledge Base tab.
 
+
+### Bug Fix
+*   **FIX**: src/server/actions/knowledge-base.ts - Removed .orderBy from getKnowledgeBasesAction to fix missing Firestore composite index issue preventing KB list from loading. Defaulting to in-memory sort.
+
