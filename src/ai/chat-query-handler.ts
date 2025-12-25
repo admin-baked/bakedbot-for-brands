@@ -103,7 +103,7 @@ Examples:
 - "Is it legal to sell delta-8 in NY?" → searchType: compliance, complianceParams: {action: "check_regulation", state: "NY"}
 - "Predict sales for next month" → searchType: analytics, analyticsParams: {action: "forecast_sales", timeframe: "next month"}
 `,
-    model: 'googleai/gemini-3-pro-preview',
+    model: 'googleai/gemini-3-flash-preview',
 });
 
 // Schema for generating conversational responses
@@ -161,7 +161,7 @@ Generate a friendly response that:
 1. Apologizes for not finding matches
 IMPORTANT: Do NOT make medical claims. Use phrases like "users often report" or "known for" instead of claiming effects.
 `,
-    model: 'googleai/gemini-3-pro-preview',
+    model: 'googleai/gemini-3-flash-preview',
 });
 
 /**
