@@ -33,7 +33,7 @@ export async function seedSandboxData(tenantId: string = 'sandbox-demo-brand') {
     });
 
     // 2. Generate Orders (Last 30 Days)
-    const orders = Array.from({ length: 50 }).map(() => {
+    const orders = Array.from({ length: 50 }).map((_, i) => {
         const orderId = uuidv4();
         const daysAgo = Math.floor(Math.random() * 30);
         const date = new Date();
@@ -58,8 +58,8 @@ export async function seedSandboxData(tenantId: string = 'sandbox-demo-brand') {
             brandId: tenantId,
             status: getRandomStatus(),
             customer: {
-                name: `Customer ${Math.floor(Math.random() * 100)}`,
-                email: `customer${Math.floor(Math.random() * 20)}@example.com`
+                name: i === 0 && user.email ? (user.decodedToken.name || 'Team Tester') : `Customer ${Math.floor(Math.random() * 100)}`,
+                email: i === 0 && user.email ? user.email : `customer${Math.floor(Math.random() * 20)}@example.com`
             },
             items: orderItems,
             total,
