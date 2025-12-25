@@ -58,7 +58,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={`${inter.variable} ${teko.variable}`} suppressHydrationWarning>
-      <body className="font-sans min-h-screen bg-background text-foreground">
+      <body className="font-sans min-h-screen bg-background text-foreground" suppressHydrationWarning>
         <Providers>
           <AppLayout>
             {children}
