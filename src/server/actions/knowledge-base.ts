@@ -163,10 +163,9 @@ export async function getKnowledgeBasesAction(ownerId: string) {
 
     const snapshot = await firestore.collection('knowledge_bases')
         .where('ownerId', '==', ownerId)
-        .orderBy('createdAt', 'desc')
         .get();
 
-    return snapshot.docs.map(doc => {
+    const results = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
             ...data,
@@ -175,6 +174,9 @@ export async function getKnowledgeBasesAction(ownerId: string) {
             updatedAt: (data.updatedAt as any)?.toDate ? (data.updatedAt as any).toDate() : new Date(data.updatedAt)
         } as KnowledgeBase;
     });
+
+    // In-memory sort
+    return results.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 /**
