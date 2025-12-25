@@ -34,7 +34,7 @@ export async function generateSocialMediaImage(input: GenerateSocialMediaImageIn
 const prompt = ai.definePrompt({
   name: 'generateSocialMediaImagePrompt',
   input: {schema: GenerateSocialMediaImageInputSchema},
-  output: {schema: GenerateSocialMediaImageOutputSchema},
+  output: { format: 'media' }, // Expect media output, not JSON
   prompt: `You are a specialized AI assistant for creating product-focused social media marketing images.
   Your task is to generate a compelling, eye-catching image that has viral potential for a social media post about a cannabis product.
   The image should be vibrant, modern, share-worthy, and suitable for platforms like Instagram and Twitter.
@@ -57,7 +57,7 @@ const prompt = ai.definePrompt({
   {{/if}}
   `,
   config: {
-    responseModalities: ['TEXT', 'IMAGE'],
+    responseModalities: ['IMAGE'], // Only expect image
     safetySettings: [
         {
           category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
@@ -75,11 +75,16 @@ const generateSocialMediaImageFlow = ai.defineFlow(
     outputSchema: GenerateSocialMediaImageOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
-    if (!output?.imageUrl) {
-        throw new Error('Image generation failed to return a URL. This may be due to content safety policies or a temporary model issue.');
+    const response = await prompt(input);
+    const image = response.media;
+    
+    if (!image || !image.url) {
+        throw new Error('Image generation failed to return a URL. The model may have blocked the request or returned no media.');
     }
-    return output;
+    
+    return {
+        imageUrl: image.url
+    };
   }
 );
 
