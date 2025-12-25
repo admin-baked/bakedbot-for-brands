@@ -73,6 +73,20 @@ export function AgentSandbox() {
 
     const { toast } = useToast();
 
+    const [elapsedTime, setElapsedTime] = useState<number>(0);
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (loading) {
+            const startTime = Date.now();
+            setElapsedTime(0);
+            interval = setInterval(() => {
+                setElapsedTime(Date.now() - startTime);
+            }, 100);
+        }
+        return () => clearInterval(interval);
+    }, [loading]);
+
     const handleExecute = async () => {
         setLoading(true);
         setOutput(null);
@@ -89,7 +103,8 @@ export function AgentSandbox() {
         } catch (e: any) {
             setOutput({ success: false, error: e.message });
         } finally {
-            setExecutionTime(Date.now() - start);
+            const finalDuration = Date.now() - start;
+            setExecutionTime(finalDuration);
             setLoading(false);
         }
     };
@@ -119,6 +134,10 @@ ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
             title: "Report Copied",
             description: "Debug report copied to clipboard.",
         });
+    };
+
+    const formatDuration = (ms: number) => {
+        return (ms / 1000).toFixed(1) + 's';
     };
 
     return (
@@ -196,7 +215,7 @@ ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
                             size="lg"
                         >
                             {loading ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Executing...</>
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Executing ({formatDuration(elapsedTime)})</>
                             ) : (
                                 <><Play className="mr-2 h-4 w-4" /> Execute Run</>
                             )}
