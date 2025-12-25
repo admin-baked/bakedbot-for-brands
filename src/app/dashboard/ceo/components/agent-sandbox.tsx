@@ -25,6 +25,8 @@ export function AgentSandbox() {
     const [output, setOutput] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [executionTime, setExecutionTime] = useState<number>(0);
+    const [mode, setMode] = useState<'tool' | 'chat'>('tool'); // New Mode State
+    const [chatMessage, setChatMessage] = useState(''); // Chat Input
 
     const [error, setError] = useState<string | null>(null);
 
@@ -93,14 +95,21 @@ export function AgentSandbox() {
         setOutput(null);
         const start = Date.now();
         try {
-            const parsedInputs = JSON.parse(inputs);
-            const result = await executeToolAction({
-                toolName: selectedTool,
-                inputs: parsedInputs,
-                agentId: selectedAgent,
-                tenantId: 'sandbox-brand-id' // Could be made selectable
-            });
-            setOutput(result);
+            if (mode === 'tool') {
+                const parsedInputs = JSON.parse(inputs);
+                const result = await executeToolAction({
+                    toolName: selectedTool,
+                    inputs: parsedInputs,
+                    agentId: selectedAgent,
+                    tenantId: 'sandbox-brand-id'
+                });
+                setOutput(result);
+            } else {
+                // Chat Mode
+                const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
+                const result = await runAgentChat(chatMessage, selectedAgent);
+                setOutput({ success: true, result }); // Wrap to match structure somewhat or handle distinct
+            }
         } catch (e: any) {
             setOutput({ success: false, error: e.message });
         } finally {
@@ -112,8 +121,11 @@ export function AgentSandbox() {
 
     const handleCopyReport = () => {
         const agentName = agents.find(a => a.id === selectedAgent)?.name || selectedAgent || 'Unknown Agent';
-        const report = `
-## 🐞 Agent Debug Report
+        
+        let report = '';
+        if (mode === 'tool') {
+             report = `
+## 🐞 Agent Debug Report (Tool Mode)
 **Agent:** ${agentName}
 **Tool:** ${selectedTool || 'None'}
 **Execution Time:** ${executionTime}ms
@@ -129,6 +141,22 @@ ${inputs}
 ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
 \`\`\`
 `.trim();
+        } else {
+             report = `
+## 🐞 Agent Debug Report (Chat Mode)
+**Agent:** ${agentName}
+**Message:** "${chatMessage}"
+**Execution Time:** ${executionTime}ms
+
+### Response
+${output?.result?.content || 'No content'}
+
+### Trace
+\`\`\`json
+${JSON.stringify(output?.result?.toolCalls || [], null, 2)}
+\`\`\`
+`.trim();
+        }
         
         navigator.clipboard.writeText(report);
         toast({
@@ -168,12 +196,12 @@ ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
             {/* Control Panel */}
             <div className="space-y-6">
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                         <div className="space-y-1">
                             <CardTitle>Configuration</CardTitle>
                             <CardDescription>Select identity and capability to test</CardDescription>
                         </div>
-                        <Button
+                         <Button
                             variant="outline"
                             size="sm"
                             onClick={handleSeedData}
@@ -184,7 +212,23 @@ ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
                             {seeding ? 'Seeding...' : 'Seed Data'}
                         </Button>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 pt-0">
+                         {/* Mode Toggle */}
+                        <div className="flex p-1 bg-muted rounded-lg mb-4">
+                            <button
+                                onClick={() => setMode('tool')}
+                                className={`flex-1 text-sm font-medium py-1.5 rounded-md transition-all ${mode === 'tool' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
+                            >
+                                Direct Tool
+                            </button>
+                            <button
+                                onClick={() => setMode('chat')}
+                                className={`flex-1 text-sm font-medium py-1.5 rounded-md transition-all ${mode === 'chat' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
+                            >
+                                Agent Chat
+                            </button>
+                        </div>
+
                         {error && (
                             <Alert variant="destructive">
                                 <AlertTitle>Error</AlertTitle>
@@ -192,7 +236,7 @@ ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
                             </Alert>
                         )}
                         <div className="space-y-2">
-                            <Label>Agent Identity</Label>
+                            <Label>Agent Persona</Label>
                             <Select value={selectedAgent} onValueChange={setSelectedAgent}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select an Agent" />
@@ -210,49 +254,68 @@ ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
                             </Select>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label>Tool / Capability</Label>
-                            <Select value={selectedTool} onValueChange={handleToolChange}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a Tool" />
-                                </SelectTrigger>
-                                <SelectContent className="max-h-[300px]">
-                                    {tools.map(tool => (
-                                        <SelectItem key={tool.name} value={tool.name || ''}>
-                                            <span className="font-mono text-xs mr-2">{tool.name}</span>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {selectedTool && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {tools.find(t => t.name === selectedTool)?.description}
-                                </p>
-                            )}
-                        </div>
+                        {mode === 'tool' ? (
+                            <>
+                                <div className="space-y-2">
+                                    <Label>Tool / Capability</Label>
+                                    <Select value={selectedTool} onValueChange={handleToolChange}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a Tool" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-[300px]">
+                                            {tools.map(tool => (
+                                                <SelectItem key={tool.name} value={tool.name || ''}>
+                                                    <span className="font-mono text-xs mr-2">{tool.name}</span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {selectedTool && (
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {tools.find(t => t.name === selectedTool)?.description}
+                                        </p>
+                                    )}
+                                </div>
 
-                        <div className="space-y-2">
-                            <Label>Inputs (JSON)</Label>
-                            <div className="border rounded-md font-mono text-sm">
-                                <Textarea
-                                    value={inputs}
-                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputs(e.target.value)}
-                                    className="min-h-[200px] bg-muted/50 border-0 focus-visible:ring-0 resize-none font-mono"
-                                />
+                                <div className="space-y-2">
+                                    <Label>Inputs (JSON)</Label>
+                                    <div className="border rounded-md font-mono text-sm">
+                                        <Textarea
+                                            value={inputs}
+                                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputs(e.target.value)}
+                                            className="min-h-[200px] bg-muted/50 border-0 focus-visible:ring-0 resize-none font-mono"
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                             <div className="space-y-2">
+                                <Label>User Prompt</Label>
+                                <div className="border rounded-md font-sans text-sm">
+                                    <Textarea
+                                        value={chatMessage}
+                                        onChange={(e) => setChatMessage(e.target.value)}
+                                        placeholder="e.g. 'Find dispensaries in Denver selling Wyld Gummies'"
+                                        className="min-h-[200px] bg-background border-0 focus-visible:ring-0 resize-none"
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    The agent will auto-select tools based on your prompt.
+                                </p>
                             </div>
-                        </div>
+                        )}
                     </CardContent>
                     <CardFooter>
                         <Button 
                             className="w-full" 
                             onClick={handleExecute} 
-                            disabled={loading || !selectedTool}
+                            disabled={loading || (mode === 'tool' && !selectedTool) || (mode === 'chat' && !chatMessage)}
                             size="lg"
                         >
                             {loading ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Executing ({formatDuration(elapsedTime)})</>
                             ) : (
-                                <><Play className="mr-2 h-4 w-4" /> Execute Run</>
+                                <><Play className="mr-2 h-4 w-4" /> {mode === 'chat' ? 'Kickstart Agent' : 'Execute Run'}</>
                             )}
                         </Button>
                     </CardFooter>
@@ -264,7 +327,9 @@ ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
                 <Card className="flex-1 flex flex-col min-h-[500px]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <div className="flex items-center gap-2">
-                            <CardTitle className="text-sm font-medium">Execution Output</CardTitle>
+                            <CardTitle className="text-sm font-medium">
+                                {mode === 'chat' ? 'Agent Trace & Response' : 'Execution Output'}
+                            </CardTitle>
                             {output && (
                                 <Button 
                                     variant="ghost" 
@@ -277,28 +342,58 @@ ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
                                 </Button>
                             )}
                         </div>
-                        <Badge variant={output ? (output.success && output.result.status === 'success' ? 'default' : 'destructive') : 'outline'}>
-                            {output ? (output.success ? output.result.status.toUpperCase() : 'ERROR') : 'IDLE'}
+                        <Badge variant={output ? (output.success !== false ? 'default' : 'destructive') : 'outline'}>
+                            {output ? (output.success !== false ? 'SUCCESS' : 'ERROR') : 'IDLE'}
                         </Badge>
                     </CardHeader>
                     <CardContent className="flex-1 p-0 relative">
                         {output ? (
-                            <div className="absolute inset-0 p-4 overflow-auto bg-slate-950 text-slate-50 font-mono text-xs space-y-2">
-                                <div className="flex border-b border-slate-800 pb-2 mb-2 items-center justify-between text-slate-400">
-                                    <span>Result Payload</span>
-                                    <span>{executionTime}ms</span>
-                                </div>
-                                <pre className="whitespace-pre-wrap break-all">
-                                    {JSON.stringify(output.result || output, null, 2)}
-                                </pre>
+                            <div className="absolute inset-0 p-4 overflow-auto bg-slate-950 text-slate-50 font-mono text-xs space-y-4">
                                 
-                                {/* Image Viewer for Base64/URL outputs */}
-                                {output?.result?.data?.imageUrl && (
+                                {mode === 'chat' && output.result?.toolCalls && (
+                                    <div className="space-y-2 border-b border-slate-800 pb-4">
+                                        <p className="text-slate-400 font-semibold mb-2">Execution Trace</p>
+                                        {output.result.toolCalls.map((call: any, idx: number) => (
+                                            <div key={idx} className="flex flex-col gap-1 bg-slate-900/50 p-2 rounded border border-slate-800/50">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant="outline" className="text-[10px] h-5 border-slate-700 text-slate-300">
+                                                            {call.name}
+                                                        </Badge>
+                                                        <span className="text-slate-500 text-[10px]">{call.id?.split('-')[0]}</span>
+                                                    </div>
+                                                    <span className={`text-[10px] ${call.status === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                                                        {call.status.toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <div className="text-slate-300 pl-1 border-l-2 border-slate-800 ml-1">
+                                                    {call.result}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div>
+                                    <div className="flex border-b border-slate-800 pb-2 mb-2 items-center justify-between text-slate-400">
+                                        <span>{mode === 'chat' ? 'Final Response' : 'Result Payload'}</span>
+                                        <span>{executionTime}ms</span>
+                                    </div>
+                                    <pre className="whitespace-pre-wrap break-all">
+                                        {mode === 'chat' 
+                                            ? output.result?.content 
+                                            : JSON.stringify(output.result || output, null, 2)
+                                        }
+                                    </pre>
+                                </div>
+                                
+                                {/* Image Viewer for Base64/URL outputs (Generic) */}
+                                {(output?.result?.data?.imageUrl || output?.result?.imageUrl) && (
                                     <div className="mt-4 border-t border-slate-800 pt-4">
                                         <p className="text-slate-400 mb-2">Image Preview:</p>
                                         <div className="relative rounded-lg overflow-hidden border border-slate-700 bg-slate-900 inline-block">
                                             <img 
-                                                src={output.result.data.imageUrl} 
+                                                src={output.result.data?.imageUrl || output.result.imageUrl} 
                                                 alt="Tool Output" 
                                                 className="max-w-full h-auto max-h-[400px] object-contain" 
                                             />
@@ -309,16 +404,11 @@ ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-4">
                                 <Terminal className="h-12 w-12 opacity-20" />
-                                <p className="text-sm">Ready to execute. Select a tool to begin.</p>
+                                <p className="text-sm">Ready to execute. Select mode to begin.</p>
                             </div>
                         )}
                     </CardContent>
-                    {output && output.result?.data?.message && (
-                        <div className="p-4 border-t bg-muted/20">
-                            <span className="text-sm font-medium">Human Readable: </span>
-                            <span className="text-sm text-muted-foreground">{output.result.data.message}</span>
-                        </div>
-                    )}
+                    
                 </Card>
             </div>
         </div>

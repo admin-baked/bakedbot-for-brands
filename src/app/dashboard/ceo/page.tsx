@@ -30,7 +30,7 @@ const OperationsTab = dynamic(() => import("./components/operations-tab"), { loa
 const CompetitorIntelTab = dynamic(() => import("./components/competitor-intel-tab"), { loading: TabLoader });
 const CRMTab = dynamic(() => import("./components/crm-tab"), { loading: TabLoader });
 const AccountManagementTab = dynamic(() => import("@/components/admin/account-management-tab").then(mod => mod.AccountManagementTab), { loading: TabLoader });
-const SystemKnowledgeBase = dynamic(() => import("./components/system-knowledge-base").then(mod => mod.SystemKnowledgeBase), { loading: TabLoader });
+const SystemKnowledgeBase = dynamic(() => import("./components/system-knowledge-base").then(mod => mod.SystemKnowledgeBase), { loading: TabLoader, ssr: false });
 const CeoSettingsTab = dynamic(() => import("./components/ceo-settings-tab"), { loading: TabLoader });
 const AgentSandbox = dynamic(() => import("./components/agent-sandbox").then(mod => mod.AgentSandbox), { loading: TabLoader, ssr: false });
 
