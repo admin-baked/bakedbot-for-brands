@@ -297,7 +297,9 @@ export function useDashboardConfig() {
     // Mark active link
     return filteredLinks.map((link) => ({
       ...link,
-      active: link.href === '/dashboard' ? pathname === link.href : pathname.startsWith(link.href),
+      active: link.href === '/dashboard' 
+        ? pathname === link.href 
+        : (pathname === link.href || pathname.startsWith(`${link.href}/`)),
     }));
   }, [pathname, role]);
 
