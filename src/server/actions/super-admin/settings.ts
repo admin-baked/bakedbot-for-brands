@@ -27,8 +27,8 @@ export async function getEmailProviderAction() {
         
         // Default to 'sendgrid' if not set
         return doc.data()?.emailProvider || 'sendgrid';
-    } catch (error) {
-        logger.error('[settings] Failed to get email provider:', error);
+    } catch (error: unknown) {
+        logger.error('[settings] Failed to get email provider:', error instanceof Error ? { message: error.message } : { error });
         throw error; // Let UI handle it
     }
 }
@@ -48,8 +48,8 @@ export async function updateEmailProviderAction(input: z.infer<typeof UpdateEmai
 
         revalidatePath('/dashboard/ceo/settings');
         return { success: true };
-    } catch (error) {
-        logger.error('[settings] Failed to update email provider:', error);
+    } catch (error: unknown) {
+        logger.error('[settings] Failed to update email provider:', error instanceof Error ? { message: error.message } : { error });
         throw new Error('Failed to update email settings. Check server logs.');
     }
 }

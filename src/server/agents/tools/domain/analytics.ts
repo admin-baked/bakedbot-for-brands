@@ -1,19 +1,3 @@
-
-import { createServerClient } from '@/firebase/server-client';
-
-export interface KPIReport {
-    tenantId: string;
-    period: 'day' | 'week' | 'month';
-    revenue: number;
-    orders: number;
-    topProducts: Array<{ name: string; sales: number }>;
-    newCustomers: number;
-}
-
-/**
- * Retrieves key performance indicators for the tenant.
- * Aggregates data from `orders` and `customers` collections.
- */
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 

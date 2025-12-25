@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -8,10 +7,6 @@ import { routeToolCall } from '@/server/agents/tools/router';
 import { requireUser, isSuperUser } from '@/server/auth/auth';
 import { ToolRequest, ToolResponse } from '@/types/agent-toolkit';
 import { v4 as uuidv4 } from 'uuid';
-
-/**
- * Returns available agents for the sandbox.
- */
 import { logger } from '@/lib/logger';
 
 /**
@@ -22,8 +17,8 @@ export async function listAgentsAction() {
         await requireUser();
         if (!await isSuperUser()) throw new Error('Unauthorized');
         return AGENT_CAPABILITIES;
-    } catch (error) {
-        logger.error('[sandbox] listAgentsAction failed:', error);
+    } catch (error: unknown) {
+        logger.error('[sandbox] listAgentsAction failed:', error instanceof Error ? { message: error.message } : { error });
         throw new Error('Failed to load agents. Please refresh.');
     }
 }
@@ -43,8 +38,8 @@ export async function listToolsAction() {
             inputSchema: tool.inputSchema,
             category: tool.category
         }));
-    } catch (error) {
-        logger.error('[sandbox] listToolsAction failed:', error);
+    } catch (error: unknown) {
+        logger.error('[sandbox] listToolsAction failed:', error instanceof Error ? { message: error.message } : { error });
         throw new Error('Failed to load tools. Please refresh.');
     }
 }
