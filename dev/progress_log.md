@@ -722,3 +722,19 @@ Implemented comprehensive unit tests for the Invitation System (Server Actions) 
 *   `npm test src/server/actions/__tests__/invitations.test.ts` (Passed: 2 tests)
 *   `npm run check:types` (Passed)
 ---
+
+## Session: Agent Tools Implementation
+**Date:** 2025-12-24
+**Task ID:** AGENT-TOOLS-IMPL-001
+
+### Summary
+Implemented real "production-ready" logic for the Analytics and Intel tools, replacing previous mocks.
+
+### Key Changes
+*   **Analytics (`analytics.ts`)**: Implemented `getKPIs` using real Firestore aggregations on the `orders` collection. Supports Day/Week/Month filtering.
+*   **Intel (`intel.ts`)**: Implemented `scanCompetitors` using Serper (Google Search) API to fetch live competitor menu snippets and pricing.
+*   **Unit Tests**: Added `analytics.test.ts` and `intel.test.ts` verifying the new implementations with mocks.
+
+### Tests Run
+*   `npx jest analytics.test.ts intel.test.ts` (Passed: 4 tests)
+---
