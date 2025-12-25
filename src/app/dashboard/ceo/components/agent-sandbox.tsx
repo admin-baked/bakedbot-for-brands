@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, Play, Terminal, Database, Copy } from 'lucide-react';
 import { listAgentsAction, listToolsAction, executeToolAction } from '@/server/actions/super-admin/sandbox';
+import { seedSandboxData } from '@/server/actions/super-admin/seed-sandbox'; // Add Import
 import { AgentCapability } from '@/server/agents/agent-definitions';
 import { ToolDefinition } from '@/types/agent-toolkit';
 import { useToast } from '@/hooks/use-toast';
@@ -140,14 +141,48 @@ ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
         return (ms / 1000).toFixed(1) + 's';
     };
 
+    const [seeding, setSeeding] = useState(false);
+
+    const handleSeedData = async () => {
+        if (!confirm('This will generate 50+ synthetic orders in "sandbox-demo-brand". Continue?')) return;
+        setSeeding(true);
+        try {
+            const result = await seedSandboxData();
+            toast({
+                title: "Data Seeded",
+                description: result.message,
+            });
+        } catch (e: any) {
+            toast({
+                title: "Seeding Failed",
+                description: e.message,
+                variant: 'destructive'
+            });
+        } finally {
+            setSeeding(false);
+        }
+    };
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
             {/* Control Panel */}
             <div className="space-y-6">
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Configuration</CardTitle>
-                        <CardDescription>Select identity and capability to test</CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>Configuration</CardTitle>
+                            <CardDescription>Select identity and capability to test</CardDescription>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSeedData}
+                            disabled={seeding}
+                            title="Seed synthetic data"
+                        >
+                            <Database className="mr-2 h-4 w-4" />
+                            {seeding ? 'Seeding...' : 'Seed Data'}
+                        </Button>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {error && (
