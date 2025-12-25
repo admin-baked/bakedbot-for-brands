@@ -103,7 +103,8 @@ export const firestoreMemoryAdapter: MemoryAdapter = {
 
     async loadAgentMemory<T extends AgentMemory>(brandId: string, agentName: string): Promise<T> {
         const { firestore } = await createServerClient();
-        const doc = await firestore.doc(`tenants/${brandId}/agents/${agentName}/memory`).get();
+        // Path must be even segments: tenants/bid/agents/aid/data/memory
+        const doc = await firestore.doc(`tenants/${brandId}/agents/${agentName}/data/memory`).get();
 
         if (!doc.exists) {
             // Fallback to mock/default for cold start
@@ -114,7 +115,7 @@ export const firestoreMemoryAdapter: MemoryAdapter = {
 
     async saveAgentMemory<T extends AgentMemory>(brandId: string, agentName: string, memory: T): Promise<void> {
         const { firestore } = await createServerClient();
-        const docRef = firestore.doc(`tenants/${brandId}/agents/${agentName}/memory`);
+        const docRef = firestore.doc(`tenants/${brandId}/agents/${agentName}/data/memory`);
 
         await docRef.set({
             ...memory,
