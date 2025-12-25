@@ -449,6 +449,62 @@ export function AgentChat({
     const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
     const [persona, setPersona] = useState<AgentPersona>('puff');
 
+    // Tool Selection State
+    const [toolMode, setToolMode] = useState<ToolMode>('auto');
+    const [selectedTools, setSelectedTools] = useState<AvailableTool[]>([]);
+
+    // Multi-modal State
+    const [attachments, setAttachments] = useState<{ id: string, file: File, preview?: string, type: 'image' | 'file' }[]>([]);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleToggleTool = (tool: AvailableTool) => {
+        setSelectedTools(prev =>
+            prev.includes(tool) ? prev.filter(t => t !== tool) : [...prev, tool]
+        );
+    };
+
+    // --- File Handling ---
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const newAttachments = Array.from(e.target.files).map(file => ({
+                id: Math.random().toString(36).substr(2, 9),
+                file,
+                type: file.type.startsWith('image/') ? 'image' as const : 'file' as const,
+                preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+            }));
+            setAttachments(prev => [...prev, ...newAttachments]);
+        }
+    };
+
+    const removeAttachment = (id: string) => {
+        setAttachments(prev => prev.filter(a => a.id !== id));
+    };
+
+    const handleAudioComplete = async (audioBlob: Blob) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+             const base64Audio = reader.result as string; 
+             submitMessage('', base64Audio);
+        };
+    };
+
+    const convertAttachments = async () => {
+        return Promise.all(attachments.map(async (a) => {
+            return new Promise<{ name: string, type: string, base64: string }>((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(a.file);
+                reader.onloadend = () => {
+                    resolve({
+                        name: a.file.name,
+                        type: a.file.type,
+                        base64: reader.result as string
+                    });
+                };
+            });
+        }));
+    };
+
 // ... (skip down to submitMessage)
 
     const submitMessage = useCallback(async (textInput: string, audioBase64?: string) => {
@@ -597,6 +653,20 @@ export function AgentChat({
     };
 
     if (!hasMounted) return null;
+
+    if (!hasMounted) return null;
+
+    // Use currentMessages from store converted to PuffMessage format for display
+    const displayMessages: PuffMessage[] = currentMessages.map(m => ({
+        id: m.id,
+        role: m.type === 'agent' ? 'assistant' : 'user',
+        content: m.content,
+        timestamp: new Date(m.timestamp),
+        isThinking: m.thinking?.isThinking,
+        steps: m.thinking?.steps,
+        metadata: m.metadata,
+        workDuration: 0
+    }));
 
     const hasMessages = displayMessages.length > 0;
 
