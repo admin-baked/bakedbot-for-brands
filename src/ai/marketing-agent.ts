@@ -49,7 +49,7 @@ const generateCampaignPrompt = ai.definePrompt({
   
   4. **Suggested Segment**: Briefly describe who this should be sent to if the audience wasn't specific.
   `,
-    model: 'googleai/gemini-2.5-flash',
+    model: 'googleai/gemini-3-pro-preview',
 });
 
 /**
