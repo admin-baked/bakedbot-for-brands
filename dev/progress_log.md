@@ -867,3 +867,8 @@ Implemented 'Agent Chat' mode in the Agent Sandbox (AgentSandbox component). Thi
 *   **FIX**: src/app/dashboard/ceo/agents/actions.ts - Fixed issue where Knowledge Base context was not being injected into general AI chat responses.
 *   **TEST**: 	ests/actions/sandbox-chat.test.ts - Enhanced test suite to cover direct chat fallback, playbook execution, and KB context injection.
 
+
+### Debugging
+*   **FIX**: src/app/dashboard/ceo/components/agent-sandbox.tsx - Updated UI to display error messages in the Debug Report instead of showing 'No content' when a run fails.
+*   **TEST**: 	ests/actions/sandbox-chat.test.ts - Verified Agent Chat flow, including Ezal dispensary search.
+
