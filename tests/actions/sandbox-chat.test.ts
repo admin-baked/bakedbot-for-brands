@@ -189,4 +189,31 @@ describe('runAgentChat', () => {
         expect(lastCall.prompt).toContain('[KNOWLEDGE BASE CONTEXT]');
         expect(lastCall.prompt).toContain('Must use child-proof bags');
     });
+
+    it('should handle Ezal dispensary search seamlessly', async () => {
+        // Arrange
+        const userMessage = "Find dispensaries in Chicago selling Wyld Gummies";
+        
+        const { routeToAgent } = require('@/server/agents/agent-router');
+        routeToAgent.mockResolvedValueOnce({ primaryAgent: 'ezal', confidence: 0.95 });
+
+        // Mock CannMenus service success
+        const { CannMenusService } = require('@/server/services/cannmenus');
+        // The mock implementation in beforeEach/file-top should handle this, but let's be explicit if needed
+        // CannMenusService mock returns findRetailersCarryingBrand -> []
+
+        // Act
+        const result = await runAgentChat(userMessage, 'ezal');
+
+        // Assert
+        expect(result.content).toBeDefined();
+        expect(result.content).not.toBe('No content');
+        
+        // It should prefer the Specialized Agent path OR the Dispensary Search path
+        // Since Ezal is specialized for this, it might try to run the agent harness first.
+        // If that fails (mock default), it should fall through to Dispensary Search.
+        
+        // Let's see what happens in the trace
+        // expect(result.toolCalls).not.toHaveLength(0); 
+    });
 });

@@ -149,7 +149,7 @@ ${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
 **Execution Time:** ${executionTime}ms
 
 ### Response
-${output?.result?.content || 'No content'}
+${output?.success === false ? `❌ Error: ${output.error}` : (output?.result?.content || 'No content')}
 
 ### Trace
 \`\`\`json
@@ -346,7 +346,7 @@ ${JSON.stringify(output?.result?.toolCalls || [], null, 2)}
                             {output ? (output.success !== false ? 'SUCCESS' : 'ERROR') : 'IDLE'}
                         </Badge>
                     </CardHeader>
-                    <CardContent className="flex-1 p-0 relative">
+                    <CardContent className="flex-1 p-0 relative min-h-[400px]">
                         {output ? (
                             <div className="absolute inset-0 p-4 overflow-auto bg-slate-950 text-slate-50 font-mono text-xs space-y-4">
                                 
@@ -379,9 +379,9 @@ ${JSON.stringify(output?.result?.toolCalls || [], null, 2)}
                                         <span>{mode === 'chat' ? 'Final Response' : 'Result Payload'}</span>
                                         <span>{executionTime}ms</span>
                                     </div>
-                                    <pre className="whitespace-pre-wrap break-all">
+                                    <pre className="whitespace-pre-wrap break-all text-sm font-mono">
                                         {mode === 'chat' 
-                                            ? output.result?.content 
+                                            ? (output.success === false ? `❌ Error: ${output.error}` : (output.result?.content || 'No content'))
                                             : JSON.stringify(output.result || output, null, 2)
                                         }
                                     </pre>
