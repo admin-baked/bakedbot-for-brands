@@ -803,7 +803,16 @@ export function PuffChat({
                         {displayMessages.map(message => (
                             <div key={message.id}>
                                 {message.role === 'user' ? (
-                                    <div className="flex justify-end">
+                                    <div className="flex justify-end group items-start gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity mt-2"
+                                            onClick={() => navigator.clipboard.writeText(message.content)}
+                                            title="Copy prompt"
+                                        >
+                                            <Copy className="h-3 w-3 text-muted-foreground" />
+                                        </Button>
                                         <div className="bg-primary text-primary-foreground rounded-lg px-4 py-2 max-w-[80%]">
                                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                                         </div>
