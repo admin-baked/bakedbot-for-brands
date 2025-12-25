@@ -862,3 +862,8 @@ Implemented 'Agent Chat' mode in the Agent Sandbox (AgentSandbox component). Thi
 ### Tests
 *   **TEST**: 	ests/unit/server/actions/knowledge-base.test.ts - Added unit tests for getKnowledgeBasesAction (verified in-memory sorting) and updated createKnowledgeBaseAction auth test.
 
+
+### Bug Fix & Testing
+*   **FIX**: src/app/dashboard/ceo/agents/actions.ts - Fixed issue where Knowledge Base context was not being injected into general AI chat responses.
+*   **TEST**: 	ests/actions/sandbox-chat.test.ts - Enhanced test suite to cover direct chat fallback, playbook execution, and KB context injection.
+

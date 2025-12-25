@@ -1497,6 +1497,8 @@ IMPORTANT: You must provide COMPLETE responses. Do NOT promise to "search the we
 
 User message: "${userMessage}"
 
+${knowledgeContext ? `CONTEXT FROM KNOWLEDGE BASE:\n${knowledgeContext}\n` : ''}
+
 CONTENTS:
 If the user's message triggered a compliance check (keyword 'compliance' or 'check'), affirm that you have analyzed the content for compliance and found issues.
 If the user's message asked for recommendations (keyword 'recommend' or 'product'), affirm that you found some high-scoring products.
