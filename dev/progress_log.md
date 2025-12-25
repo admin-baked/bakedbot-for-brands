@@ -834,3 +834,4 @@ Fixed the Agent Sandbox UI to correctly display base64-encoded images from agent
 ### Tests
 *   tests/actions/seed-sandbox.test.ts: 1 passed 
 
+*   **FIX**: src/app/dashboard/ceo/page.tsx - Disabled SSR for AgentSandbox to resolve 500/hydration errors.
