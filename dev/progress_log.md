@@ -835,3 +835,22 @@ Fixed the Agent Sandbox UI to correctly display base64-encoded images from agent
 *   tests/actions/seed-sandbox.test.ts: 1 passed 
 
 *   **FIX**: src/app/dashboard/ceo/page.tsx - Disabled SSR for AgentSandbox to resolve 500/hydration errors.
+
+## Session: 2025-12-25 (Agent Sandbox Chat Mode)
+### Task ID
+sandbox-chat-001
+
+### Summary
+Implemented 'Agent Chat' mode in the Agent Sandbox (AgentSandbox component). This enables natural language testing of agent orchestration directly from the dashboard, with full visibility into execution traces (tool calls, routing, results).
+
+### Key Changes
+*   **FEAT**: src/app/dashboard/ceo/components/agent-sandbox.tsx - Added Chat Mode toggle, input, and trace visualization.
+*   **TEST**: 	ests/actions/sandbox-chat.test.ts - Added unit tests for unAgentChat logic (mocking Genkit/Firebase).
+
+### Tests
+*   	ests/actions/sandbox-chat.test.ts: 2 passed ?
+
+
+### Bug Fix
+*   **FIX**: src/app/dashboard/ceo/page.tsx - Disabled SSR for SystemKnowledgeBase to resolve 500 errors and hydration mismatches on the Knowledge Base tab.
+
