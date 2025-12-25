@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { devPersonas } from '@/lib/dev-personas';
+import { SUPER_ADMIN_EMAILS } from '@/lib/super-admin-config';
 
 // Define the roles used in the application for type safety.
 export type Role = 'brand' | 'dispensary' | 'customer' | 'owner' | 'admin';
@@ -100,17 +101,15 @@ export async function isSuperUser(): Promise<boolean> {
   try {
     const user = await requireUser();
     const role = (user.role as string) || '';
-    const email = (user.email as string) || '';
+    const email = (user.email as string)?.toLowerCase() || '';
     
     // Check 1: Role-based access
     if (['owner', 'admin', 'super-admin'].includes(role)) {
       return true;
     }
     
-    // Check 2: Email whitelist (from super-admin-config)
-    // Import dynamically to avoid circular dependencies
-    const { isSuperAdminEmail } = await import('@/lib/super-admin-config');
-    if (isSuperAdminEmail(email)) {
+    // Check 2: Email whitelist (using static import)
+    if (email && SUPER_ADMIN_EMAILS.some(adminEmail => adminEmail.toLowerCase() === email)) {
       return true;
     }
     
