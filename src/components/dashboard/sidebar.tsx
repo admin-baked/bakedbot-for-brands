@@ -20,10 +20,11 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { signOut } from 'firebase/auth';
-import { LogOut, Crown, Zap, Sparkles } from 'lucide-react';
+import { LogOut, Crown, Zap, Sparkles, UserPlus } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import type { ElementType } from 'react';
 import { useUserRole } from '@/hooks/use-user-role';
+import { InviteUserDialog } from '@/components/invitations/invite-user-dialog';
 
 
 import { SuperAdminSidebar } from '@/components/dashboard/super-admin-sidebar';
@@ -158,6 +159,31 @@ export function DashboardSidebar() {
               })}
             </SidebarMenu>
           </>
+        )}
+
+        
+        {/* Invite Team Member Action */}
+        {!isCeoDashboard && user && (
+            <div className="mt-auto p-4">
+               <InviteUserDialog 
+                    orgId={(user as any).currentOrgId || (user as any).brandId}
+                    allowedRoles={(() => {
+                        const r = (user as any).role;
+                        if (r === 'super_admin') return ['brand', 'dispensary', 'super_admin', 'customer'];
+                        if (r === 'brand' || r === 'dispensary' || r === 'owner') {
+                             if (r === 'owner') return ['brand'];
+                             return [r];
+                        }
+                        return [];
+                    })()}
+                    trigger={
+                        <div className="w-full flex items-center justify-start gap-2 px-4 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md cursor-pointer transition-colors">
+                            <UserPlus className="h-4 w-4" />
+                            <span>Invite Member</span>
+                        </div>
+                    }
+               />
+            </div>
         )}
       </SidebarContent>
       <SidebarFooter>

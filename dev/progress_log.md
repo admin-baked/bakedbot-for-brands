@@ -24,6 +24,7 @@ Upgraded to Gemini 3 models with proper intelligence level wiring. Added Veo 3.1
 *   **MOD**: `src/app/dashboard/ceo/components/puff-chat.tsx` - Integrated media preview & metadata extraction, added copy prompt button
 *   **MOD**: `src/lib/store/agent-chat-store.ts` - Updated store types to support media metadata
 *   **FIX**: `src/server/agents/persistence.ts` - Fixed Firestore path validation error (odd segments) in agent memory loading
+*   **MOD**: `src/components/dashboard/sidebar.tsx` - Reintroduced 'Invite Member' button in sidebar footer for accessible team management
 
 ### Model Configuration
 
