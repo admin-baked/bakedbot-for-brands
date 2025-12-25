@@ -37,7 +37,7 @@ export async function generateMarketingVideo(input: GenerateVideoInput): Promise
 const videoPrompt = ai.definePrompt({
     name: 'generateMarketingVideoPrompt',
     input: { schema: GenerateVideoInputSchema },
-    output: { schema: GenerateVideoOutputSchema },
+    output: { format: 'media' }, // Expect media output, not JSON
     prompt: `You are a specialized AI assistant for creating product-focused marketing videos.
     Your task is to generate a compelling, eye-catching short video for a cannabis brand.
     The video should be vibrant, modern, and suitable for social media platforms.
@@ -58,7 +58,7 @@ const videoPrompt = ai.definePrompt({
     Generate a video that captures attention in the first 2 seconds and maintains engagement throughout.
     `,
     config: {
-        responseModalities: ['VIDEO'],
+        responseModalities: ['VIDEO'], // Only expect video
     },
     model: 'googleai/veo-3.1-generate-preview',
 });
@@ -71,15 +71,16 @@ const generateVideoFlow = ai.defineFlow(
     },
     async (input) => {
         try {
-            const { output } = await videoPrompt(input);
+            const response = await videoPrompt(input);
+            const video = response.media;
             
-            if (!output?.videoUrl) {
+            if (!video || !video.url) {
                 throw new Error('Video generation failed to return a URL. This may be due to content safety policies or a temporary model issue.');
             }
             
             return {
-                videoUrl: output.videoUrl,
-                thumbnailUrl: output.thumbnailUrl,
+                videoUrl: video.url,
+                thumbnailUrl: undefined, // Veo preview might not return separate thumbnail
                 duration: parseInt(input.duration || '5', 10),
             };
         } catch (error: unknown) {

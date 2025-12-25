@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Play, Terminal, Database } from 'lucide-react';
+import { Loader2, Play, Terminal, Database, Copy } from 'lucide-react';
 import { listAgentsAction, listToolsAction, executeToolAction } from '@/server/actions/super-admin/sandbox';
 import { AgentCapability } from '@/server/agents/agent-definitions';
 import { ToolDefinition } from '@/types/agent-toolkit';
+import { useToast } from '@/hooks/use-toast';
 
 export function AgentSandbox() {
     const [agents, setAgents] = useState<AgentCapability[]>([]);
@@ -70,6 +71,8 @@ export function AgentSandbox() {
         return obj;
     };
 
+    const { toast } = useToast();
+
     const handleExecute = async () => {
         setLoading(true);
         setOutput(null);
@@ -89,6 +92,33 @@ export function AgentSandbox() {
             setExecutionTime(Date.now() - start);
             setLoading(false);
         }
+    };
+
+    const handleCopyReport = () => {
+        const agentName = agents.find(a => a.id === selectedAgent)?.name || selectedAgent || 'Unknown Agent';
+        const report = `
+## 🐞 Agent Debug Report
+**Agent:** ${agentName}
+**Tool:** ${selectedTool || 'None'}
+**Execution Time:** ${executionTime}ms
+**Status:** ${output?.success ? 'Success' : (output ? 'Failed' : 'Not Run')}
+
+### Inputs
+\`\`\`json
+${inputs}
+\`\`\`
+
+### Output
+\`\`\`json
+${output ? JSON.stringify(output.result || output, null, 2) : 'null'}
+\`\`\`
+`.trim();
+        
+        navigator.clipboard.writeText(report);
+        toast({
+            title: "Report Copied",
+            description: "Debug report copied to clipboard.",
+        });
     };
 
     return (
@@ -179,7 +209,20 @@ export function AgentSandbox() {
             <div className="space-y-6 h-full flex flex-col">
                 <Card className="flex-1 flex flex-col min-h-[500px]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Execution Output</CardTitle>
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-sm font-medium">Execution Output</CardTitle>
+                            {output && (
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6" 
+                                    onClick={handleCopyReport}
+                                    title="Copy Debug Report"
+                                >
+                                    <Copy className="h-3 w-3" />
+                                </Button>
+                            )}
+                        </div>
                         <Badge variant={output ? (output.success && output.result.status === 'success' ? 'default' : 'destructive') : 'outline'}>
                             {output ? (output.success ? output.result.status.toUpperCase() : 'ERROR') : 'IDLE'}
                         </Badge>

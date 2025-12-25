@@ -25,6 +25,8 @@ Upgraded to Gemini 3 models with proper intelligence level wiring. Added Veo 3.1
 *   **MOD**: `src/lib/store/agent-chat-store.ts` - Updated store types to support media metadata
 *   **FIX**: `src/server/agents/persistence.ts` - Fixed Firestore path validation error (odd segments) in agent memory loading
 *   **MOD**: `src/components/dashboard/sidebar.tsx` - Reintroduced 'Invite Member' button in sidebar footer for accessible team management
+*   **FEAT**: `src/app/dashboard/ceo/components/agent-sandbox.tsx` - Added 'Copy Debug Report' button for easier issue reporting
+*   **FIX**: `src/ai/flows/generate-social-image.ts` & `generate-video.ts` - Refactored media generation flows to handle raw media output, resolving 'Provided data: null' schema validation errors
 
 ### Model Configuration
 
