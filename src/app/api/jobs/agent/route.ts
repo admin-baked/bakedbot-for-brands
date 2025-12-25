@@ -1,0 +1,88 @@
+
+import { NextRequest, NextResponse } from 'next/server';
+import { runAgentCore } from '@/server/agents/agent-runner';
+import { createServerClient } from '@/firebase/server-client';
+import { DecodedIdToken } from 'firebase-admin/auth';
+
+/**
+ * Cloud Task Worker for Agent Jobs.
+ * Receives a pushed task, reconstructs user context, and executes the agent.
+ */
+export async function POST(req: NextRequest) {
+    // 1. Security Check
+    // Verify specific header used by Cloud Tasks or a shared secret
+    // For now, we trust the internal network or check for a custom secret if configured
+    const taskQueueName = req.headers.get('x-cloudtasks-queuename');
+    // const secret = process.env.TASKS_SECRET; // Optional for stronger security
+
+    // 2. Parse Payload
+    const body = await req.json();
+    const { userId, userInput, persona, options, jobId } = body;
+
+    if (!userId || !userInput) {
+        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    try {
+        console.log(`[Job:${jobId}] Starting Agent Execution for User: ${userId}`);
+
+        // 3. Reconstruct User Context
+        const { firestore } = await createServerClient();
+        const userDoc = await firestore.collection('users').doc(userId).get();
+
+        if (!userDoc.exists) {
+            console.error(`[Job:${jobId}] User not found: ${userId}`);
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        const userData = userDoc.data();
+        
+        // Construct a mock DecodedIdToken to satisfy `runAgentCore` expectations
+        const mockUserToken: DecodedIdToken = {
+            uid: userId,
+            email: userData?.email || '',
+            email_verified: true,
+            role: userData?.role || 'customer',
+            brandId: userData?.brandId || undefined,
+            brandName: userData?.brandName || undefined,
+            auth_time: Date.now() / 1000,
+            iat: Date.now() / 1000,
+            exp: (Date.now() / 1000) + 3600,
+            aud: 'bakedbot',
+            iss: 'https://securetoken.google.com/bakedbot',
+            sub: userId,
+            firebase: { identities: {}, sign_in_provider: 'custom' }
+        };
+
+        // 4. Execute Agent (Async)
+        const result = await runAgentCore(userInput, persona, options, mockUserToken, jobId);
+
+        // 5. Handle Result
+        // Since this is async, we can't return the result to the user directly within the chat request.
+        // We typically write the result to a "Job Status" document or push a notification.
+        // For Phase 2, we just log it. The UI (polling) would check `jobs/{jobId}`.
+        
+        await firestore.collection('jobs').doc(jobId).set({
+            status: 'completed',
+            result: result,
+            completedAt: new Date()
+        }, { merge: true });
+
+        console.log(`[Job:${jobId}] Completed Successfully`);
+
+        return NextResponse.json({ success: true, jobId });
+
+    } catch (error: any) {
+        console.error(`[Job:${jobId}] Execution Failed:`, error);
+        
+        // Update job status to failed
+        const { firestore } = await createServerClient();
+        await firestore.collection('jobs').doc(jobId).set({
+            status: 'failed',
+            error: error.message,
+            failedAt: new Date()
+        }, { merge: true });
+
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}

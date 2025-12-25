@@ -55,6 +55,7 @@ import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useUser } from '@/firebase/auth/use-user';
 import { ModelSelector, ThinkingLevel } from './model-selector';
 import { ChatMediaPreview, extractMediaFromToolResponse } from '@/components/chat/chat-media-preview';
+import { useJobPoller } from '@/hooks/use-job-poller';
 
 // ============ Types ============
 
@@ -372,6 +373,63 @@ export function PuffChat({
     const [attachments, setAttachments] = useState<{ id: string, file: File, preview?: string, type: 'image' | 'file' }[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Async Job Polling
+    const [activeJob, setActiveJob] = useState<{ jobId: string, messageId: string } | null>(null);
+    const { job, thoughts, isComplete, error: jobError } = useJobPoller(activeJob?.jobId);
+
+    // Sync Async Job to UI Store
+    useEffect(() => {
+        if (!activeJob) return;
+
+        // 1. Update Thinking Steps from Thoughts
+        if (thoughts.length > 0) {
+            updateMessage(activeJob.messageId, {
+                thinking: {
+                    isThinking: !isComplete,
+                    steps: thoughts.map(t => ({
+                        id: t.id,
+                        toolName: t.title,
+                        description: t.detail || '',
+                        status: 'completed',
+                        durationMs: 0
+                    })),
+                    plan: []
+                }
+            });
+        }
+
+        // 2. Handle Completion
+        if (isComplete && job?.result) {
+            const result = job.result; // AgentResult object
+            updateMessage(activeJob.messageId, {
+                content: result.content || '**Task Completed** (No content returned)',
+                metadata: result.metadata,
+                thinking: {
+                    isThinking: false,
+                    steps: thoughts.map(t => ({
+                        id: t.id,
+                        toolName: t.title,
+                        description: t.detail || '',
+                        status: 'completed',
+                    })),
+                    plan: []
+                }
+            });
+            setActiveJob(null); // Stop polling
+            setIsProcessing(false);
+        }
+
+        // 3. Handle Failure
+        if (job?.status === 'failed') {
+             updateMessage(activeJob.messageId, {
+                content: `**Task Failed**: ${job.error || 'Unknown error'}`,
+                thinking: { isThinking: false, steps: [], plan: [] }
+            });
+            setActiveJob(null);
+            setIsProcessing(false);
+        }
+    }, [job, thoughts, isComplete, activeJob, updateMessage]);
+
     const handleToggleTool = (tool: AvailableTool) => {
         setSelectedTools(prev =>
             prev.includes(tool) ? prev.filter(t => t !== tool) : [...prev, tool]
@@ -536,7 +594,16 @@ export function PuffChat({
 
             clearInterval(durationInterval);
 
-            // Determine tools based on mode
+            // Handle Async Job Response
+            if (response.metadata?.jobId) {
+                // Determine tools based on mode (optimistic update while pending)
+                // We'll let the poller handle the final result, 
+                // but we can start tracking the job now.
+                setActiveJob({ jobId: response.metadata.jobId, messageId: thinkingId });
+                return; // Exit and let poller handle the rest
+            }
+
+            // Fallback for Synchronous response (if applicable, or legacy)
             const responseText = response.content.toLowerCase();
 
             let needsGmail = false;
@@ -547,7 +614,7 @@ export function PuffChat({
                 needsSchedule = responseText.includes('daily') || responseText.includes('schedule') || userInput.toLowerCase().includes('daily');
             } else {
                 needsGmail = selectedTools.includes('gmail');
-                needsSchedule = selectedTools.includes('calendar'); // Assuming schedule maps to calendar
+                needsSchedule = selectedTools.includes('calendar');
             }
 
             const newPermissions: ToolPermission[] = [];
@@ -558,7 +625,7 @@ export function PuffChat({
                     id: 'gmail',
                     name: 'Gmail',
                     icon: 'mail',
-                    email: user?.email || 'unknown@user.com', // Dynamic Email
+                    email: user?.email || 'unknown@user.com',
                     description: 'Integration with Gmail',
                     status: 'pending',
                     tools: ['Send Message'],
@@ -567,7 +634,6 @@ export function PuffChat({
 
             if (needsSchedule) newTriggers.push({ id: 'schedule-1', type: 'schedule', label: 'Daily at 9:00 AM' });
 
-            // Update local state for permissions/triggers (not persisted in store yet, acceptable trade-off)
             setState(prev => ({
                 ...prev,
                 permissions: [...prev.permissions, ...newPermissions],
@@ -575,14 +641,11 @@ export function PuffChat({
             }));
             if (newPermissions.length > 0) setShowPermissions(true);
 
-            // Update Global Store with response
             updateMessage(thinkingId, {
                 content: response.content,
                 metadata: {
                     ...response.metadata,
-                    // Check for generated media in tool calls
                     media: response.toolCalls?.map(tc => {
-                        // Attempt to extract media from result if it's an object or JSON string
                         try {
                             const resultData = typeof tc.result === 'string' && (tc.result.startsWith('{') || tc.result.includes('"url"')) 
                                 ? JSON.parse(tc.result) 
@@ -590,13 +653,13 @@ export function PuffChat({
                             return extractMediaFromToolResponse(resultData);
                         } catch (e) { return null; }
                     }).find(m => m !== null)
-                }, // Store rich metadata with media
+                },
                 thinking: {
                     isThinking: false,
                     steps: response.toolCalls?.map(tc => ({
                         id: tc.id,
-                        toolName: tc.name, // Mapping 'name' to 'toolName'
-                        description: tc.result, // Using result as description or status
+                        toolName: tc.name,
+                        description: tc.result,
                         status: tc.status === 'success' ? 'completed' : tc.status === 'error' ? 'failed' : 'pending',
                         durationMs: 0
                     })) || [],
@@ -604,13 +667,14 @@ export function PuffChat({
                 }
             });
 
-        } catch (error) {
+        } catch (error: any) {
             clearInterval(durationInterval);
             console.error(error);
             updateMessage(thinkingId, {
-                content: 'I ran into an issue. Please try again.',
+                content: `I ran into an issue. Please try again. ${error.message}`,
                 thinking: { isThinking: false, steps: [], plan: [] }
             });
+            setIsProcessing(false);
         }
 
         setIsProcessing(false);

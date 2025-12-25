@@ -15,6 +15,7 @@ import { seedSandboxData } from '@/server/actions/super-admin/seed-sandbox'; // 
 import { AgentCapability } from '@/server/agents/agent-definitions';
 import { ToolDefinition } from '@/types/agent-toolkit';
 import { useToast } from '@/hooks/use-toast';
+import { useJobPoller } from '@/hooks/use-job-poller';
 
 export function AgentSandbox() {
     const [agents, setAgents] = useState<AgentCapability[]>([]);
@@ -90,6 +91,42 @@ export function AgentSandbox() {
         return () => clearInterval(interval);
     }, [loading]);
 
+    // Async Job Polling for Chat Mode
+    const [activeJobId, setActiveJobId] = useState<string | null>(null);
+    const { job, thoughts, isComplete, error: jobError } = useJobPoller(activeJobId || undefined);
+
+    useEffect(() => {
+        if (!activeJobId) return;
+
+        // Stream thoughts to output
+        if (thoughts.length > 0) {
+            setOutput((prev: any) => ({
+                success: true,
+                result: {
+                    content: 'Thinking...',
+                    toolCalls: thoughts.map(t => ({
+                        id: t.id,
+                        name: t.title,
+                        status: 'success',
+                        result: t.detail
+                    }))
+                }
+            }));
+        }
+
+        if (isComplete && job?.result) {
+            setOutput({ success: true, result: job.result });
+            setActiveJobId(null);
+            setLoading(false);
+        }
+
+        if (job?.status === 'failed') {
+            setOutput({ success: false, error: job.error || 'Async Job Failed' });
+            setActiveJobId(null);
+            setLoading(false);
+        }
+    }, [job, thoughts, isComplete, activeJobId]);
+
     const handleExecute = async () => {
         setLoading(true);
         setOutput(null);
@@ -108,14 +145,28 @@ export function AgentSandbox() {
                 // Chat Mode
                 const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
                 const result = await runAgentChat(chatMessage, selectedAgent);
-                setOutput({ success: true, result }); // Wrap to match structure somewhat or handle distinct
+                
+                if (result.metadata?.jobId) {
+                    setActiveJobId(result.metadata.jobId);
+                    // Don't stop loading yet, let polling handle it
+                } else {
+                    setOutput({ success: true, result });
+                    setLoading(false);
+                }
             }
         } catch (e: any) {
             setOutput({ success: false, error: e.message });
+            setLoading(false);
         } finally {
             const finalDuration = Date.now() - start;
             setExecutionTime(finalDuration);
-            setLoading(false);
+            // Only stop loading if NOT async (if activeJobId is set, keep loading)
+            if (activeJobId === null) {
+                 // But await setState isn't immediate. Valid check?
+                 // Actually activeJobId is set in the block above.
+                 // We can check local variable.
+            }
+            // Logic handled inside 'if' blocks
         }
     };
 

@@ -4,12 +4,13 @@
  * LeafLink Tool
  * 
  * Allows agents to interact with LeafLink (Orders, Products, Inventory).
- * Requires an API key stored in Firestore at `integrations/leaflink`.
+ * Uses User-Scoped Authentication via `requireUser`.
  * 
  * Note: LeafLink API v2
  */
 
-import { getAdminFirestore } from '@/firebase/admin';
+import { requireUser } from '@/server/auth/auth';
+import { getLeafLinkKey } from '@/server/integrations/leaflink/token-storage';
 
 export type LeafLinkAction = 'list_orders' | 'list_products' | 'update_inventory';
 
@@ -29,35 +30,28 @@ export interface LeafLinkResult {
 
 const LEAFLINK_API_BASE = 'https://www.leaflink.com/api/v2';
 
-async function getApiKey(): Promise<string | null> {
+import { DecodedIdToken } from 'firebase-admin/auth';
+
+export async function leaflinkAction(params: LeafLinkParams, injectedUser?: DecodedIdToken): Promise<LeafLinkResult> {
     try {
-        const db = getAdminFirestore();
-        const doc = await db.collection('integrations').doc('leaflink').get();
-        return doc.data()?.apiKey || null;
-    } catch (e) {
-        console.error('Failed to fetch LeafLink key', e);
-        return null;
-    }
-}
+        // 1. Authenticate User
+        const user = injectedUser || await requireUser();
 
-export async function leaflinkAction(params: LeafLinkParams): Promise<LeafLinkResult> {
-    const apiKey = await getApiKey();
+        // 2. Get User-Specific Key
+        const apiKey = await getLeafLinkKey(user.uid);
 
-    if (!apiKey) {
-        return {
-            success: false,
-            error: 'Authentication required. Please connect LeafLink in Integrations.'
+        if (!apiKey) {
+            return {
+                success: false,
+                error: 'LeafLink is not connected. Please connect your account in Settings > Integrations.'
+            };
+        }
+
+        const headers = {
+            'Authorization': `Token ${apiKey}`,
+            'Content-Type': 'application/json'
         };
-    }
 
-    // LeafLink typically uses "Authorization: Token <key>" or "App-Id / App-Key"
-    // We'll assume the standard Token auth for v2 public API
-    const headers = {
-        'Authorization': `Token ${apiKey}`,
-        'Content-Type': 'application/json'
-    };
-
-    try {
         switch (params.action) {
             case 'list_orders':
                 // Endpoint: /orders-received/
@@ -106,8 +100,7 @@ export async function leaflinkAction(params: LeafLinkParams): Promise<LeafLinkRe
                     return { success: false, error: 'Missing productId or quantity' };
                 }
 
-                // Endpoint: /products/{id}/inventory/ (Hypothetical, depends on specific logic)
-                // Actually usually PATCH /products/{id}/
+                // Endpoint: /products/{id}/ (PATCH)
                 const updateUrl = `${LEAFLINK_API_BASE}/products/${params.productId}/`;
 
                 const updateRes = await fetch(updateUrl, {

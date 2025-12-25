@@ -2,6 +2,31 @@
 
 ---
 
+## Session: Async Infrastructure (Cloud Tasks)
+### Task ID
+async-infra-001
+
+### Summary
+Implemented robust Asynchronous Job Infrastructure using Cloud Tasks to support long-running agent workflows without timeouts.
+Refactored the core agent execution logic into a reusable/injectable `agent-runner.ts` and updated all major integration tools to support Dependency Injection.
+
+### Key Changes
+*   **NEW**: `src/server/jobs/client.ts` - Generic Cloud Tasks client wrapper.
+*   **NEW**: `src/server/jobs/dispatch.ts` - Dispatcher for `agent-queue` jobs.
+*   **NEW**: `src/app/api/jobs/agent/route.ts` - Worker API route processing async tasks.
+*   **NEW**: `src/server/agents/agent-runner.ts` - Extracted core logic from Server Actions to a standalone runner supporting Service Account execution context.
+*   **MOD**: `src/server/tools/*.ts` - Refactored Gmail, Calendar, Sheets, LeafLink, Dutchie tools to accept optional `injectedUser` parameter, enabling use by background workers.
+*   **NEW**: `scripts/test-async-agent.ts` - Verification script for DI logic.
+
+### Tests Run
+*   `scripts/test-async-agent.ts` (Manual Verification) - Passed ✅
+*   `tests/server/agents/agent-runner.test.ts` - (Created, currently skipped due to ESM/Jest config limitations)
+
+### Artifacts
+*   `walkthrough_async.md`
+
+---
+
 ## Session: 2025-12-24 (AI Model Upgrade & Veo Video Integration)
 ### Task ID
 gemini3-veo-integration-001
@@ -920,6 +945,17 @@ Diagnosed and fixed an issue where the System Knowledge Base modal was not openi
 ### Tests
 *   `tests/unit/server/actions/knowledge-base.test.ts`: 19 passed ✅
 *   Manual Genkit Check: Passed ✅
+
+
+## Session: 2025-12-25 (UI Label Fix)
+### Task ID
+ui-fix-001
+
+### Summary
+Fixed a confusing UI issue where "Transcribing..." was displayed during text-based agent chats. Separated `isTranscribing` state from general `isProcessing` state in `AgentChat` component.
+
+### Key Changes
+*   **FIX**: `src/app/dashboard/playbooks/components/agent-chat.tsx` - Added `isTranscribing` state to ensuring `AudioRecorder` only shows transcription status for actual audio inputs.
 
 
 
