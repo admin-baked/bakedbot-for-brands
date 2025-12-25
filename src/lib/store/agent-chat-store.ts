@@ -19,6 +19,13 @@ export interface ChatMessage {
         brandName?: string;
         agentName?: string;
         role?: string;
+        media?: {
+            type: 'image' | 'video';
+            url: string;
+            prompt?: string;
+            duration?: number;
+            model?: string;
+        } | null;
     };
 }
 

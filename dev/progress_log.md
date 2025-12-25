@@ -18,6 +18,11 @@ Upgraded to Gemini 3 models with proper intelligence level wiring. Added Veo 3.1
 *   **MOD**: `src/app/dashboard/ceo/agents/actions.ts` - Import `getGenerateOptions`, wire 3 key `ai.generate()` calls to use selected model
 *   **NEW**: `tests/ai/model-selector.test.ts` - 13 tests for model selector
 *   **MOD**: `tests/ai/model-config.test.ts` - Added Veo 3.1 test
+*   **NEW**: `src/components/chat/chat-media-preview.tsx` - Inline video/image preview component with download actions
+*   **NEW**: `tests/components/chat/chat-media-preview.test.tsx` - 18 unit tests for media preview
+*   **MOD**: `src/app/dashboard/playbooks/components/agent-chat.tsx` - Integrated media preview & metadata extraction
+*   **MOD**: `src/app/dashboard/ceo/components/puff-chat.tsx` - Integrated media preview & metadata extraction
+*   **MOD**: `src/lib/store/agent-chat-store.ts` - Updated store types to support media metadata
 
 ### Model Configuration
 
@@ -35,6 +40,7 @@ Upgraded to Gemini 3 models with proper intelligence level wiring. Added Veo 3.1
 ### Tests
 *   model-selector.test.ts: 13 passed ✅
 *   model-config.test.ts: 10 passed ✅
+*   chat-media-preview.test.tsx: 18 passed ✅
 
 ---
 
