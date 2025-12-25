@@ -2,6 +2,42 @@
 
 ---
 
+## Session: 2025-12-24 (AI Model Upgrade & Veo Video Integration)
+### Task ID
+gemini3-veo-integration-001
+
+### Summary
+Upgraded to Gemini 3 models with proper intelligence level wiring. Added Veo 3.1 video generation and creative tools for Agent Chat.
+
+### Key Changes
+*   **NEW**: `src/ai/model-selector.ts` - Central model mapper (Standard→Flash, Advanced→Pro, Expert→Pro+thinking high, Genius→Pro+thinking max)
+*   **NEW**: `src/ai/flows/generate-video.ts` - Veo 3.1 video generation flow
+*   **MOD**: `src/ai/flows/generate-social-image.ts` - Added `generateImageFromPrompt()` wrapper
+*   **MOD**: `src/server/agents/tools/registry.ts` - Added `creative.generateImage` and `creative.generateVideo` tools
+*   **MOD**: `src/server/agents/tools/router.ts` - Added handlers for creative tools
+*   **MOD**: `src/app/dashboard/ceo/agents/actions.ts` - Import `getGenerateOptions`, wire 3 key `ai.generate()` calls to use selected model
+*   **NEW**: `tests/ai/model-selector.test.ts` - 13 tests for model selector
+*   **MOD**: `tests/ai/model-config.test.ts` - Added Veo 3.1 test
+
+### Model Configuration
+
+| Intelligence Level | Model | Thinking |
+|-------------------|-------|----------|
+| Standard | gemini-3-flash-preview | None |
+| Advanced | gemini-3-pro-preview | None |
+| Expert | gemini-3-pro-preview | High |
+| Genius | gemini-3-pro-preview | Max |
+
+### Commits
+*   `325cc53b`: feat(ai): wire intelligence levels to Gemini 3 models with thinking_level support
+*   `c23331ad`: feat(ai): add Veo 3.1 video generation and creative tools for Agent Chat
+
+### Tests
+*   model-selector.test.ts: 13 passed ✅
+*   model-config.test.ts: 10 passed ✅
+
+---
+
 ## Session: 2025-12-24 (Hydration Fixes & Team Page)
 ### Task ID
 hydration-fix-team-page-001
