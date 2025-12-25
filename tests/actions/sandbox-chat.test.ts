@@ -135,28 +135,58 @@ describe('runAgentChat', () => {
         // Arrange
         const userMessage = "Hello, who are you?";
         
-        // Ensure router returns low confidence for specialized agents to avoid triggering them?
-        // Or if routing returns 'ezal', and ezal is selected, it might try to run ezal.
-        // Let's force routing to general or low confidence
+        // Mock routing to general
         const { routeToAgent } = require('@/server/agents/agent-router');
         routeToAgent.mockResolvedValueOnce({ primaryAgent: 'general', confidence: 0.5 });
         
-        // Act
-        const result = await runAgentChat(userMessage, 'puff'); // 'puff' is general
+        // Mock AI chat response
+        (ai.generate as jest.Mock).mockResolvedValue({ text: 'I am BakedBot.' });
 
-        // If no specific tools triggered (search, browser, etc), it might just fall through
-        // Wait, looking at actions.ts, if no tools trigger, does it return a simple chat response?
-        // The current implementation in actions.ts primarily checks for 'search', 'http', 'browser'.
-        // If NONE match, it actually might NOT return a final text response unless handled by a fallback!
-        // Let's check actions.ts... it falls through?
+        // Act
+        const result = await runAgentChat(userMessage, 'general');
+
+        // Assert
+        expect(result.content).toBe('I am BakedBot.');
+        expect(result.toolCalls).toHaveLength(2); // Route + Intuition (always added)
+        expect(result.toolCalls?.some(t => t.name.startsWith('Agent:'))).toBe(true);
+    });
+
+    it('should trigger a playbook when command is detected', async () => {
+        // Arrange
+        const userMessage = "Run welcome-sequence";
+
+        // Act
+        const result = await runAgentChat(userMessage);
+
+        // Assert
+        expect(result.content).toContain('Welcome Sequence Executed');
+        expect(result.toolCalls?.some(t => t.name === 'Execute: welcome-sequence')).toBe(true);
+    });
+
+    it('should retrieve and inject knowledge base context', async () => {
+        // Arrange
+        const userMessage = "What is the compliance policy?";
         
-        // Checking code: traces end, then return?
-        // Actually, looking at the code I viewed earlier:
-        // It checks `isSearchRequest`, `isDispensarySearch`, `isHttpRequest`, `isBrowserAction`.
-        // If none of these match... the function ends without returning?
-        // No, TS would complain. 
-        // Ah, I need to check the end of `runAgentChat`.
+        const { searchKnowledgeBaseAction, getKnowledgeBasesAction } = require('@/server/actions/knowledge-base');
         
-        // For this test, let's assume valid search intent to pass.
+        getKnowledgeBasesAction.mockResolvedValue([{ id: 'kb1' }]);
+        searchKnowledgeBaseAction.mockResolvedValue([{ 
+            title: 'Policy', 
+            content: 'Must use child-proof bags', 
+            similarity: 0.9 
+        }]);
+
+        // Act
+        await runAgentChat(userMessage, 'deebo');
+
+        // Assert
+        expect(searchKnowledgeBaseAction).toHaveBeenCalled();
+        
+        // Verify AI generation was called with knowledge context
+        // We can inspect the calls to ai.generate
+        const aiCalls = (ai.generate as jest.Mock).mock.calls;
+        const lastCall = aiCalls[aiCalls.length - 1][0]; // last call args
+        expect(lastCall.prompt).toContain('[KNOWLEDGE BASE CONTEXT]');
+        expect(lastCall.prompt).toContain('Must use child-proof bags');
     });
 });
