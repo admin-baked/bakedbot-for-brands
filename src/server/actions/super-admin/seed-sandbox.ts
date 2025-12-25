@@ -57,10 +57,14 @@ export async function seedSandboxData(tenantId: string = 'sandbox-demo-brand') {
             orderId: `ORD-${orderId.substring(0, 8).toUpperCase()}`,
             brandId: tenantId,
             status: getRandomStatus(),
-            customer: {
-                name: i === 0 && user.email ? (user.decodedToken.name || 'Team Tester') : `Customer ${Math.floor(Math.random() * 100)}`,
-                email: i === 0 && user.email ? user.email : `customer${Math.floor(Math.random() * 20)}@example.com`
-            },
+            customer: (() => {
+                if (i === 0 && user.email) return { name: user.decodedToken.name || 'Team Tester', email: user.email };
+                if (i === 1) return { name: 'Martez & Co', email: 'martezandco@gmail.com' };
+                return {
+                    name: `Customer ${Math.floor(Math.random() * 100)}`,
+                    email: `customer${Math.floor(Math.random() * 20)}@example.com`
+                };
+            })(),
             items: orderItems,
             total,
             createdAt: date,
