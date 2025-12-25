@@ -82,3 +82,23 @@ const generateSocialMediaImageFlow = ai.defineFlow(
     return output;
   }
 );
+
+/**
+ * Simple wrapper for chat-based image generation.
+ * Takes a simple prompt and returns the image URL.
+ */
+export async function generateImageFromPrompt(
+    promptText: string, 
+    options?: { aspectRatio?: string; brandName?: string }
+): Promise<string> {
+    // Create a simple logo placeholder for chat use
+    const logoPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    
+    const result = await generateSocialMediaImage({
+        productName: promptText,
+        features: promptText,
+        brandVoice: 'Professional',
+        logoDataUri: logoPlaceholder,
+    });
+    return result.imageUrl;
+}
