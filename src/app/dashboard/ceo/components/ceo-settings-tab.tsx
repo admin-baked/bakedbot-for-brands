@@ -35,24 +35,36 @@ export default function CeoSettingsTab() {
 
     return (
         <div className="space-y-6 p-4 border border-blue-500 rounded">
-            <h2 className="text-2xl font-bold tracking-tight text-blue-500">RadioGroup + Card Test</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-blue-500">Icons + Card Test</h2>
             
-            {/* Testing Card Wrapper */}
+            {/* Testing Icons */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Test Card</CardTitle>
+                    <div className="flex items-center gap-2">
+                        <Mail className="h-5 w-5 text-primary" />
+                        <CardTitle>Test Card with Icons</CardTitle>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <RadioGroup value="test">
                         <div className="flex items-center space-x-2">
                             <RadioGroupItem value="test" id="r1" />
-                            <Label htmlFor="r1">Radio Group Inside Card</Label>
+                            <Label htmlFor="r1">Radio Group</Label>
                         </div>
                     </RadioGroup>
                 </CardContent>
             </Card>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <Video className="h-5 w-5 text-primary" />
+                        <CardTitle>Video Icon Test</CardTitle>
+                    </div>
+                </CardHeader>
+            </Card>
             
-            <p>If you see this, Card is safe. The crash must be Lucide Icons or Button or Data execution.</p>
+            <p>If you see this, Icons are safe. The crash MUST be the Button component.</p>
         </div>
     );
 }
