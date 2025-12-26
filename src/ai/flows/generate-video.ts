@@ -37,25 +37,14 @@ export async function generateMarketingVideo(input: GenerateVideoInput): Promise
 const videoPrompt = ai.definePrompt({
     name: 'generateMarketingVideoPrompt',
     input: { schema: GenerateVideoInputSchema },
-    output: { format: 'media' }, // Expect media output, not JSON
     prompt: `You are a specialized AI assistant for creating product-focused marketing videos.
     Your task is to generate a compelling, eye-catching short video for a cannabis brand.
-    The video should be vibrant, modern, and suitable for social media platforms.
-
-    **IMPORTANT RULES:**
-    - You MUST ONLY generate videos that are directly related to the product concept provided.
-    - You MUST refuse any request to generate videos of unrelated subjects, harmful content, or medical claims.
-    - Keep the video professional and compliant with cannabis advertising guidelines.
-
-    Video Request:
-    - Prompt: {{{prompt}}}
-    - Duration: {{{duration}}} seconds
-    - Aspect Ratio: {{{aspectRatio}}}
-    {{#if brandName}}
-    - Brand: {{{brandName}}}
-    {{/if}}
-
-    Generate a video that captures attention in the first 2 seconds and maintains engagement throughout.
+    
+    Request: {{{prompt}}}
+    Duration: {{{duration}}} seconds
+    Aspect Ratio: {{{aspectRatio}}}
+    
+    Generate the video now.
     `,
     model: 'googleai/veo-3.1-generate-preview',
 });
