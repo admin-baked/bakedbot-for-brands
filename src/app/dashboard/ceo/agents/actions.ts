@@ -335,7 +335,21 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
     // 2. Generate Job ID
     const jobId = crypto.randomUUID();
 
-    // 3. Dispatch
+    // 3. Create Job Document (Synchronous to avoid race condition with polling)
+    const { getFirestore, FieldValue } = await import('firebase-admin/firestore');
+    const db = getFirestore();
+    await db.collection('jobs').doc(jobId).set({
+        status: 'pending',
+        userId: user.uid,
+        userInput: userMessage,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        persona: personaId || 'puff',
+        brandId: user.brandId || null,
+        thoughts: [] // Initialize empty thoughts
+    });
+
+    // 4. Dispatch
     const { dispatchAgentJob } = await import('@/server/jobs/dispatch');
     const payload = {
         userId: user.uid,
@@ -354,6 +368,13 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
 
     if (!dispatch.success) {
         console.error('Dispatch failed:', dispatch.error);
+        // Mark as failed in DB
+        await db.collection('jobs').doc(jobId).update({
+            status: 'failed',
+            error: dispatch.error,
+            updatedAt: FieldValue.serverTimestamp()
+        });
+
         return {
             content: `**Error**: Failed to start agent job. ${dispatch.error}`,
             toolCalls: [],
