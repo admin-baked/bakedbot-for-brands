@@ -134,6 +134,14 @@ export function ChatMediaPreview({
                             )}
                         </Badge>
                     </div>
+
+                    {/* Watermark */}
+                    <img 
+                        src="/images/watermark.png" 
+                        alt="Watermark" 
+                        className="absolute bottom-2 right-2 w-12 h-auto opacity-90 pointer-events-none drop-shadow-md"
+                        data-testid="watermark"
+                    />
                 </div>
 
                 {/* Caption / Prompt */}
