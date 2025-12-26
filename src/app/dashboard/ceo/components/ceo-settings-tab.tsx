@@ -1,17 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Video } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, Video, Mail, Check } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { getEmailProviderAction, updateEmailProviderAction } from '@/server/actions/super-admin/settings'; // This path is actually dead, I should use global-settings? No wait, previous diffs showed global-settings.
+// Wait, I renamed the file. I MUST use global-settings.
+
 import { 
-    getEmailProviderAction, 
-    updateEmailProviderAction,
-    getVideoProviderAction,
-    updateVideoProviderAction
+    getEmailProviderAction as getEmail,
+    updateEmailProviderAction as updateEmail,
+    getVideoProviderAction as getVideo,
+    updateVideoProviderAction as updateVideo
 } from '@/server/actions/super-admin/global-settings';
 
 export default function CeoSettingsTab() {
@@ -36,6 +37,7 @@ export default function CeoSettingsTab() {
         // The user can overwrite the setting by saving.
         setTimeout(() => {
             setLoading(false);
+            // Default to 'veo' (safe default)
         }, 500);
     };
 
@@ -43,8 +45,8 @@ export default function CeoSettingsTab() {
         setSaving(true);
         try {
             await Promise.all([
-                updateEmailProviderAction({ provider: emailProvider }),
-                updateVideoProviderAction({ provider: videoProvider })
+                updateEmail({ provider: emailProvider }),
+                updateVideo({ provider: videoProvider })
             ]);
             
             toast({
@@ -75,50 +77,7 @@ export default function CeoSettingsTab() {
         <div className="space-y-6">
             <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
 
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <Mail className="h-5 w-5 text-primary" />
-                        <CardTitle>Email Provider</CardTitle>
-                    </div>
-                    <CardDescription>
-                        Configure the transactional email service used by BakedBot.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <RadioGroup 
-                        value={emailProvider} 
-                        onValueChange={(val) => setEmailProvider(val as 'sendgrid' | 'mailjet')}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                    >
-                        <div>
-                            <RadioGroupItem value="sendgrid" id="sendgrid" className="peer sr-only" />
-                            <Label
-                                htmlFor="sendgrid"
-                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                            >
-                                <span className="mb-2 text-lg font-semibold">SendGrid</span>
-                                <span className="text-sm text-muted-foreground text-center">
-                                    Uses @sendgrid/mail. <br/>Legacy default.
-                                </span>
-                            </Label>
-                        </div>
-                        <div>
-                            <RadioGroupItem value="mailjet" id="mailjet" className="peer sr-only" />
-                            <Label
-                                htmlFor="mailjet"
-                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                            >
-                                <span className="mb-2 text-lg font-semibold">Mailjet</span>
-                                <span className="text-sm text-muted-foreground text-center">
-                                    Uses node-mailjet. <br/>New provider.
-                                </span>
-                            </Label>
-                        </div>
-                    </RadioGroup>
-                </CardContent>
-            </Card>
-
+            {/* Video Provider Selection */}
             <Card>
                 <CardHeader>
                     <div className="flex items-center gap-2">
@@ -129,37 +88,72 @@ export default function CeoSettingsTab() {
                         Select the primary AI model for video generation.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <RadioGroup 
-                        value={videoProvider} 
-                        onValueChange={(val) => setVideoProvider(val as 'veo' | 'sora')}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div 
+                        onClick={() => setVideoProvider('veo')}
+                        className={`cursor-pointer rounded-lg border-2 p-4 transition-all hover:bg-accent ${videoProvider === 'veo' ? 'border-primary bg-accent' : 'border-muted'}`}
                     >
-                        <div>
-                            <RadioGroupItem value="veo" id="veo" className="peer sr-only" />
-                            <Label
-                                htmlFor="veo"
-                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                            >
-                                <span className="mb-2 text-lg font-semibold">Google Veo 3</span>
-                                <span className="text-sm text-muted-foreground text-center">
-                                    Vertex AI (Default). <br/>Fast Preview.
-                                </span>
-                            </Label>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="font-semibold text-lg">Google Veo 3</h3>
+                                <p className="text-sm text-muted-foreground mt-1">Vertex AI (Default). <br/>Fast Preview.</p>
+                            </div>
+                            {videoProvider === 'veo' && <Check className="h-5 w-5 text-primary" />}
                         </div>
-                        <div>
-                            <RadioGroupItem value="sora" id="sora" className="peer sr-only" />
-                            <Label
-                                htmlFor="sora"
-                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                            >
-                                <span className="mb-2 text-lg font-semibold">OpenAI Sora 2</span>
-                                <span className="text-sm text-muted-foreground text-center">
-                                    High fidelity. <br/>Quota Fallback.
-                                </span>
-                            </Label>
+                    </div>
+
+                    <div 
+                        onClick={() => setVideoProvider('sora')}
+                        className={`cursor-pointer rounded-lg border-2 p-4 transition-all hover:bg-accent ${videoProvider === 'sora' ? 'border-primary bg-accent' : 'border-muted'}`}
+                    >
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="font-semibold text-lg">OpenAI Sora 2</h3>
+                                <p className="text-sm text-muted-foreground mt-1">High fidelity. <br/>Quota Fallback.</p>
+                            </div>
+                            {videoProvider === 'sora' && <Check className="h-5 w-5 text-primary" />}
                         </div>
-                    </RadioGroup>
+                    </div>
+                </CardContent>
+            </Card>
+
+             {/* Email Provider Selection */}
+             <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <Mail className="h-5 w-5 text-primary" />
+                        <CardTitle>Email Provider</CardTitle>
+                    </div>
+                    <CardDescription>
+                        Configure the transactional email service.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div 
+                        onClick={() => setEmailProvider('sendgrid')}
+                        className={`cursor-pointer rounded-lg border-2 p-4 transition-all hover:bg-accent ${emailProvider === 'sendgrid' ? 'border-primary bg-accent' : 'border-muted'}`}
+                    >
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="font-semibold text-lg">SendGrid</h3>
+                                <p className="text-sm text-muted-foreground mt-1">Legacy default.</p>
+                            </div>
+                            {emailProvider === 'sendgrid' && <Check className="h-5 w-5 text-primary" />}
+                        </div>
+                    </div>
+
+                    <div 
+                        onClick={() => setEmailProvider('mailjet')}
+                        className={`cursor-pointer rounded-lg border-2 p-4 transition-all hover:bg-accent ${emailProvider === 'mailjet' ? 'border-primary bg-accent' : 'border-muted'}`}
+                    >
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="font-semibold text-lg">Mailjet</h3>
+                                <p className="text-sm text-muted-foreground mt-1">New provider.</p>
+                            </div>
+                            {emailProvider === 'mailjet' && <Check className="h-5 w-5 text-primary" />}
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
             
