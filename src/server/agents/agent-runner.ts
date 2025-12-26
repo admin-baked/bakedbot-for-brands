@@ -40,6 +40,11 @@ export interface AgentResult {
         agentName?: string;
         role?: string;
         jobId?: string; // Added to metadata
+        media?: {
+            type: string;
+            url: string;
+            prompt?: string;
+        };
     };
     logs?: string[];
 }
