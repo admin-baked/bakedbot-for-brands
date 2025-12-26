@@ -35,19 +35,24 @@ export default function CeoSettingsTab() {
 
     return (
         <div className="space-y-6 p-4 border border-blue-500 rounded">
-            <h2 className="text-2xl font-bold tracking-tight text-blue-500">RadioGroup Isolation Test</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-blue-500">RadioGroup + Card Test</h2>
             
-            {/* Testing RadioGroup Isolation */}
-            <div className="p-4 border border-gray-200 rounded">
-                <RadioGroup value="test">
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="test" id="r1" />
-                        <Label htmlFor="r1">Radio Group is Working</Label>
-                    </div>
-                </RadioGroup>
-            </div>
+            {/* Testing Card Wrapper */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Test Card</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <RadioGroup value="test">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="test" id="r1" />
+                            <Label htmlFor="r1">Radio Group Inside Card</Label>
+                        </div>
+                    </RadioGroup>
+                </CardContent>
+            </Card>
             
-            <p>If you see this, RadioGroup is safe. The crash is likely in Card or Icons.</p>
+            <p>If you see this, Card is safe. The crash must be Lucide Icons or Button or Data execution.</p>
         </div>
     );
 }
