@@ -38,7 +38,8 @@ export async function dispatchAgentJob(payload: AgentJobPayload) {
             body: Buffer.from(JSON.stringify(payload)).toString('base64'),
             // Add OIDC token for security (requires Service Account with permissions)
             oidcToken: {
-                // serviceAccountEmail: '...' // Optional if using App Engine/Cloud Run default identity
+                // Use env var or default to the standard App Hosting SA
+                serviceAccountEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || 'firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com'
             }
         }
     };
