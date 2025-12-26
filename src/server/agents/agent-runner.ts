@@ -356,9 +356,19 @@ export async function runAgentCore(
 
         // Fallback Generation
         await emitThought(jobId, 'Generating Response', 'Formulating final answer...');
+        
+        let prompt: any = `${activePersona.systemPrompt}\nUser: ${userMessage}\nContext: ${knowledgeContext}`;
+        
+        if (extraOptions?.audioInput) {
+            prompt = [
+                { text: `${activePersona.systemPrompt}\nUser: ${userMessage}\nContext: ${knowledgeContext}` },
+                { media: { url: extraOptions.audioInput } }
+            ];
+        }
+
         const response = await ai.generate({
             ...getGenerateOptions(extraOptions?.modelLevel),
-            prompt: `${activePersona.systemPrompt}\nUser: ${userMessage}\nContext: ${knowledgeContext}`,
+            prompt,
         });
 
         await emitThought(jobId, 'Complete', 'Task finished.');
