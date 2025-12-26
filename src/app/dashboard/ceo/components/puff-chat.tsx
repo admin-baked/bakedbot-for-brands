@@ -48,6 +48,8 @@ import {
     Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { runAgentChat, cancelAgentJob } from '../agents/actions';
 import { saveChatSession, getChatSessions } from '@/server/actions/chat-persistence'; // Import server actions
 import { AgentPersona } from '../agents/personas';
@@ -966,8 +968,23 @@ export function PuffChat({
                                                     </Card>
                                                 )}
 
-                                                <div className="prose prose-sm max-w-none group relative">
-                                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                                <div className="prose prose-sm max-w-none group relative text-sm leading-relaxed space-y-2">
+                                                    <ReactMarkdown 
+                                                        remarkPlugins={[remarkGfm]}
+                                                        components={{
+                                                            p: ({node, ...props}) => <div {...props} />, // Use div to avoid p nesting issues if markdown has blocks
+                                                            ul: ({node, ...props}) => <ul className="list-disc list-inside my-2" {...props} />,
+                                                            ol: ({node, ...props}) => <ol className="list-decimal list-inside my-2" {...props} />,
+                                                            li: ({node, ...props}) => <li className="my-1" {...props} />,
+                                                            h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-4 mb-2" {...props} />,
+                                                            h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
+                                                            h3: ({node, ...props}) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
+                                                            blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
+                                                            code: ({node, ...props}) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props} />,
+                                                        }}
+                                                    >
+                                                        {message.content}
+                                                    </ReactMarkdown>
                                                     <button
                                                         onClick={() => {
                                                             navigator.clipboard.writeText(message.content);
