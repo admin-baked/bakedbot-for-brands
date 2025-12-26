@@ -52,4 +52,47 @@ export async function updateEmailProviderAction(input: z.infer<typeof UpdateEmai
         logger.error('[settings] Failed to update email provider:', error instanceof Error ? { message: error.message } : { error });
         throw new Error('Failed to update email settings. Check server logs.');
     }
+
+const UpdateVideoProviderSchema = z.object({
+    provider: z.enum(['veo', 'sora']),
+});
+
+export async function getVideoProviderAction() {
+    try {
+        await requireUser();
+        if (!await isSuperUser()) {
+            throw new Error('Unauthorized');
+        }
+
+        const firestore = getAdminFirestore();
+        const doc = await firestore.collection('settings').doc('system').get();
+        if (!doc.exists) return 'veo'; // Default
+        
+        return doc.data()?.videoProvider || 'veo';
+    } catch (error: unknown) {
+        logger.error('[settings] Failed to get video provider:', error instanceof Error ? { message: error.message } : { error });
+        // Default to veo if error to keep system running
+        return 'veo';
+    }
+}
+
+export async function updateVideoProviderAction(input: z.infer<typeof UpdateVideoProviderSchema>) {
+    try {
+        await requireUser();
+        if (!await isSuperUser()) {
+            throw new Error('Unauthorized');
+        }
+
+        const firestore = getAdminFirestore();
+        await firestore.collection('settings').doc('system').set({
+            videoProvider: input.provider,
+            updatedAt: new Date()
+        }, { merge: true });
+
+        revalidatePath('/dashboard/ceo/settings');
+        return { success: true };
+    } catch (error: unknown) {
+        logger.error('[settings] Failed to update video provider:', error instanceof Error ? { message: error.message } : { error });
+        throw new Error('Failed to update video settings.');
+    }
 }

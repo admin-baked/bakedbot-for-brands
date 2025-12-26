@@ -10,22 +10,15 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
-const GenerateVideoInputSchema = z.object({
-    prompt: z.string().describe('A detailed description of the video to generate.'),
-    duration: z.enum(['5', '10']).optional().default('5').describe('Video duration in seconds (5 or 10).'),
-    aspectRatio: z.enum(['16:9', '9:16', '1:1']).optional().default('16:9').describe('Video aspect ratio.'),
-    brandName: z.string().optional().describe('Brand name for watermark/context.'),
-});
+import { z } from 'zod';
+import { 
+    GenerateVideoInputSchema, 
+    GenerateVideoInput, 
+    GenerateVideoOutputSchema, 
+    GenerateVideoOutput 
+} from '@/ai/video-types';
 
-export type GenerateVideoInput = z.infer<typeof GenerateVideoInputSchema>;
-
-const GenerateVideoOutputSchema = z.object({
-    videoUrl: z.string().describe('URL of the generated video.'),
-    thumbnailUrl: z.string().optional().describe('URL of the video thumbnail.'),
-    duration: z.number().describe('Actual duration in seconds.'),
-});
-
-export type GenerateVideoOutput = z.infer<typeof GenerateVideoOutputSchema>;
+export { GenerateVideoInput, GenerateVideoOutput };
 
 /**
  * Generates a marketing video using Veo 3.1.
@@ -51,6 +44,10 @@ const videoPrompt = ai.definePrompt({
 
 const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
 
+// ... imports
+import { generateSoraVideo } from '../generators/sora';
+import { getVideoProviderAction } from '@/server/actions/super-admin/settings';
+
 const generateVideoFlow = ai.defineFlow(
     {
         name: 'generateMarketingVideoFlow',
@@ -58,40 +55,72 @@ const generateVideoFlow = ai.defineFlow(
         outputSchema: GenerateVideoOutputSchema,
     },
     async (input) => {
+        let provider = 'veo';
         try {
-            console.log('[generateVideoFlow] Prompting model with:', JSON.stringify(input));
-            const response = await videoPrompt(input);
-            console.log('[generateVideoFlow] Raw Response:', JSON.stringify(response));
-
-            const video = response.media;
-            
-            if (!video || !video.url) {
-                console.warn('[generateVideoFlow] Model failed to return media. Using Fallback.');
-                if (response.text) console.warn('[generateVideoFlow] Model Text:', response.text);
-                
-                return {
-                    videoUrl: FALLBACK_VIDEO_URL,
-                    thumbnailUrl: undefined, 
-                    duration: parseInt(input.duration || '5', 10),
-                };
-            }
-            
-            return {
-                videoUrl: video.url,
-                thumbnailUrl: undefined, 
-                duration: parseInt(input.duration || '5', 10),
-            };
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            console.error('[generateVideoFlow] Error:', errorMessage);
-            console.warn('[generateVideoFlow] switching to fallback video due to error.');
-            
-            return {
-                videoUrl: FALLBACK_VIDEO_URL,
-                thumbnailUrl: undefined,
-                duration: parseInt(input.duration || '5', 10),
-            };
+            provider = await getVideoProviderAction();
+        } catch (e) {
+            console.warn('[generateVideoFlow] Failed to fetch provider setting, defaulting to Veo.');
         }
+
+        console.log(`[generateVideoFlow] Primary Provider: ${provider.toUpperCase()}`);
+
+        if (provider === 'sora') {
+            // Priority: Sora -> Veo -> Fallback
+            try {
+                console.log('[generateVideoFlow] Attempting Sora 2...');
+                return await generateSoraVideo(input);
+            } catch (soraError: unknown) {
+                console.error('[generateVideoFlow] Sora Failed:', (soraError as Error).message);
+                
+                try {
+                    console.log('[generateVideoFlow] Fallback to Veo 3.0...');
+                    const response = await videoPrompt(input);
+                    const video = response.media;
+                    if (video && video.url) {
+                        return {
+                            videoUrl: video.url,
+                            thumbnailUrl: undefined,
+                            duration: parseInt(input.duration || '5', 10),
+                        };
+                    }
+                } catch (veoError: unknown) {
+                    console.error('[generateVideoFlow] Veo 3.0 Fallback Failed:', (veoError as Error).message);
+                }
+            }
+        } else {
+            // Priority: Veo -> Sora -> Fallback (Default)
+            try {
+                console.log('[generateVideoFlow] Attempting Veo 3.0...');
+                const response = await videoPrompt(input);
+                const video = response.media;
+
+                if (video && video.url) {
+                    return {
+                        videoUrl: video.url,
+                        thumbnailUrl: undefined,
+                        duration: parseInt(input.duration || '5', 10),
+                    };
+                }
+                console.warn('[generateVideoFlow] Veo returned no URL.');
+            } catch (veoError: unknown) {
+                console.error('[generateVideoFlow] Veo 3.0 Failed:', (veoError as Error).message);
+            }
+
+            try {
+                console.log('[generateVideoFlow] Fallback to Sora 2...');
+                return await generateSoraVideo(input);
+            } catch (soraError: unknown) {
+                console.error('[generateVideoFlow] Sora Fallback Failed:', (soraError as Error).message);
+            }
+        }
+
+        // Ultimate Fallback
+        console.warn('[generateVideoFlow] All providers failed. Using Fallback Demo.');
+        return {
+            videoUrl: FALLBACK_VIDEO_URL,
+            thumbnailUrl: undefined,
+            duration: parseInt(input.duration || '5', 10),
+        };
     }
 );
 
