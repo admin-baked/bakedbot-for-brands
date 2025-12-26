@@ -201,6 +201,22 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // --- Agent Jobs & Thoughts (Async Agents) ---
+    match /jobs/{jobId} {
+       // Users can read status of their own jobs
+       allow read: if resource.data.userId == request.auth.uid || isRole('owner');
+       
+       // Writes (create/update) handled by Server Actions (Admin SDK)
+       allow write: if false;
+
+       // Thoughts subcollection (streaming tokens/steps)
+       match /thoughts/{thoughtId} {
+          // Check parent job ownership
+          allow read: if get(/databases/$(database)/documents/jobs/$(jobId)).data.userId == request.auth.uid || isRole('owner');
+          allow write: if false;
+       }
+    }
+
     // --- Pricing Recommendations Collection ---
     match /pricing_recommendations/{recId} {
       // Brand managers can read pricing recommendations.
