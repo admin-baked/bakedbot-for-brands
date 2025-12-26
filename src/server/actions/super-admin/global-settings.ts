@@ -4,10 +4,10 @@ import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
-// Hardcoded to avoid circular dependencies with auth.ts/config.ts
-const SUPER_ADMINS = ['martez@bakedbot.ai', 'jack@bakedbot.ai', 'owner@bakedbot.ai'];
-
 async function verifySuperAdmin() {
+    // Moved constant inside function scope to prevent initialization errors
+    const SUPER_ADMINS = ['martez@bakedbot.ai', 'jack@bakedbot.ai', 'owner@bakedbot.ai'];
+
     const cookieStore = await cookies();
     const session = cookieStore.get('__session')?.value;
     if (!session) throw new Error('Unauthorized: No session');
@@ -39,8 +39,9 @@ export async function getEmailProviderAction() {
         if (!doc.exists) return 'sendgrid'; 
         return doc.data()?.emailProvider || 'sendgrid';
     } catch (error: unknown) {
-        console.error('[settings] Failed to get email provider:', error instanceof Error ? error.message : String(error));
-        throw error;
+        console.error('[global-settings] Failed to get email provider:', error instanceof Error ? error.message : String(error));
+        // Return default safe value to prevent client crash
+        return 'sendgrid';
     }
 }
 
@@ -56,7 +57,7 @@ export async function updateEmailProviderAction(input: UpdateEmailProviderInput)
         revalidatePath('/dashboard/ceo/settings');
         return { success: true };
     } catch (error: unknown) {
-        console.error('[settings] Failed to update email provider:', error instanceof Error ? error.message : String(error));
+        console.error('[global-settings] Failed to update email provider:', error instanceof Error ? error.message : String(error));
         throw new Error('Failed to update email settings.');
     }
 }
@@ -75,7 +76,7 @@ export async function getVideoProviderAction() {
         if (!doc.exists) return 'veo';
         return doc.data()?.videoProvider || 'veo';
     } catch (error: unknown) {
-        console.error('[settings] Failed to get video provider:', error instanceof Error ? error.message : String(error));
+        console.error('[global-settings] Failed to get video provider:', error instanceof Error ? error.message : String(error));
         return 'veo';
     }
 }
@@ -92,7 +93,7 @@ export async function updateVideoProviderAction(input: UpdateVideoProviderInput)
         revalidatePath('/dashboard/ceo/settings');
         return { success: true };
     } catch (error: unknown) {
-        console.error('[settings] Failed to update video provider:', error instanceof Error ? error.message : String(error));
+        console.error('[global-settings] Failed to update video provider:', error instanceof Error ? error.message : String(error));
         throw new Error('Failed to update video settings.');
     }
 }
