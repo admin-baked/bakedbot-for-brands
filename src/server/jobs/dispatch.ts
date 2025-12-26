@@ -52,6 +52,6 @@ export async function dispatchAgentJob(payload: AgentJobPayload) {
         return { success: true, taskId: response.data.name };
     } catch (error: any) {
         console.error('Failed to dispatch agent job:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: `${error.message} (Path: ${parent})` };
     }
 }
