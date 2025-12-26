@@ -1,6 +1,5 @@
 'use server';
 
-import { z } from 'zod';
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser, isSuperUser } from '@/server/auth/auth';
 import { revalidatePath } from 'next/cache';
@@ -8,9 +7,9 @@ import { logger } from '@/lib/logger';
 
 // --- Email Provider ---
 
-const UpdateEmailProviderSchema = z.object({
-    provider: z.enum(['sendgrid', 'mailjet']),
-});
+interface UpdateEmailProviderInput {
+    provider: 'sendgrid' | 'mailjet';
+}
 
 export async function getEmailProviderAction() {
     try {
@@ -30,7 +29,7 @@ export async function getEmailProviderAction() {
     }
 }
 
-export async function updateEmailProviderAction(input: z.infer<typeof UpdateEmailProviderSchema>) {
+export async function updateEmailProviderAction(input: UpdateEmailProviderInput) {
     try {
         await requireUser();
         if (!await isSuperUser()) {
@@ -53,9 +52,9 @@ export async function updateEmailProviderAction(input: z.infer<typeof UpdateEmai
 
 // --- Video Provider ---
 
-const UpdateVideoProviderSchema = z.object({
-    provider: z.enum(['veo', 'sora']),
-});
+interface UpdateVideoProviderInput {
+    provider: 'veo' | 'sora';
+}
 
 export async function getVideoProviderAction() {
     try {
@@ -75,7 +74,7 @@ export async function getVideoProviderAction() {
     }
 }
 
-export async function updateVideoProviderAction(input: z.infer<typeof UpdateVideoProviderSchema>) {
+export async function updateVideoProviderAction(input: UpdateVideoProviderInput) {
     try {
         await requireUser();
         if (!await isSuperUser()) {
