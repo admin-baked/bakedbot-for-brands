@@ -48,13 +48,14 @@ import {
     Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { runAgentChat } from '../../ceo/agents/actions';
+import { runAgentChat, cancelAgentJob } from '../../ceo/agents/actions';
 import { AgentPersona } from '../../ceo/agents/personas';
 import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useUserRole } from '@/hooks/use-user-role';
 import { useUser } from '@/firebase/auth/use-user';
 import { AudioRecorder } from '@/components/ui/audio-recorder';
 import { ModelSelector, ThinkingLevel } from '../../ceo/components/model-selector';
+import { useJobPoller } from '@/hooks/use-job-poller';
 
 // ============ Types ============
 
@@ -449,6 +450,65 @@ export function AgentChat({
     const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
     const [persona, setPersona] = useState<AgentPersona>('puff');
 
+    // Async Job Polling (Added for Stop Button support)
+    const [activeJob, setActiveJob] = useState<{ jobId: string, messageId: string } | null>(null);
+    const { job, thoughts, isComplete, error: jobError } = useJobPoller(activeJob?.jobId);
+
+    // Sync Async Job to UI Store
+    useEffect(() => {
+        if (!activeJob) return;
+
+        // 1. Update Thinking Steps from Thoughts
+        if (thoughts.length > 0) {
+            updateMessage(activeJob.messageId, {
+                thinking: {
+                    isThinking: !isComplete,
+                    steps: thoughts.map(t => ({
+                        id: t.id,
+                        toolName: t.title,
+                        description: t.detail || '',
+                        status: 'completed',
+                        durationMs: 0
+                    })),
+                    plan: []
+                }
+            });
+        }
+
+        // 2. Handle Completion
+        if (isComplete && job?.result) {
+            const result = job.result; // AgentResult object
+            updateMessage(activeJob.messageId, {
+                content: result.content || '**Task Completed** (No content returned)',
+                metadata: result.metadata,
+                thinking: {
+                    isThinking: false,
+                    steps: thoughts.map(t => ({
+                        id: t.id,
+                        toolName: t.title,
+                        description: t.detail || '',
+                        status: 'completed',
+                    })),
+                    plan: []
+                }
+            });
+            setActiveJob(null); // Stop polling
+            setIsProcessing(false);
+            setIsTranscribing(false);
+        }
+
+        // 3. Handle Failure
+        if (job?.status === 'failed') {
+             updateMessage(activeJob.messageId, {
+                content: `**Task Failed**: ${job.error || 'Unknown error'}`,
+                thinking: { isThinking: false, steps: [], plan: [] }
+            });
+            setActiveJob(null);
+            setIsProcessing(false);
+            setIsTranscribing(false);
+        }
+    }, [job, thoughts, isComplete, activeJob, updateMessage]);
+
     // Tool Selection State
     const [toolMode, setToolMode] = useState<ToolMode>('auto');
     const [selectedTools, setSelectedTools] = useState<AvailableTool[]>([]);
@@ -554,6 +614,18 @@ export function AgentChat({
             );
 
             clearInterval(durationInterval);
+
+            // Handle Async Job Response (Async Mode)
+            if (response.metadata?.jobId) {
+                setActiveJob({ jobId: response.metadata.jobId, messageId: thinkingId });
+                // We rely on useJobPoller (if used) or just wait for user to stop.
+                // Note: AgentChat currently relies on 'updateMessage' from polling in separate hook? 
+                // Checks: This file uses 'useJobPoller'?
+                // NO. It seems I didn't import useJobPoller here yet!
+                // PuffChat has useJobPoller. AgentChat doesn't seem to have it?
+                // Let's check imports.
+                return;
+            }
 
             // Determine tools based on mode
             const responseText = response.content.toLowerCase();
@@ -668,6 +740,23 @@ export function AgentChat({
         workDuration: 0
     }));
 
+    const handleStop = async () => {
+        // Since AgentChat doesn't persist activeJob state explicitly in this file (it relies on store),
+        // we might not have the jobId readily available unless we update state to track it.
+        // However, looking at the code, it calls runAgentChat but doesn't store the result!
+        // Wait, submitMessage DOES NOT store jobId in local state!
+        // PuffChat does: setActiveJob(...)
+        // AgentChat must be updated to track activeJob to support cancellation.
+        // I will add activeJob state first.
+        
+        if (activeJob) {
+            await cancelAgentJob(activeJob.jobId);
+            setActiveJob(null);
+        }
+        setIsProcessing(false);
+        setIsTranscribing(false);
+    };
+
     const hasMessages = displayMessages.length > 0;
 
     // Input component (reusable for both positions)
@@ -745,14 +834,26 @@ export function AgentChat({
                             onRecordingComplete={handleAudioComplete} 
                             isProcessing={isTranscribing}
                         />
-                        <Button
-                            size="icon"
-                            className={cn("h-8 w-8 rounded-full transition-all", input.trim() || attachments.length > 0 ? "bg-primary" : "bg-muted text-muted-foreground")}
-                            disabled={(!input.trim() && attachments.length === 0) || isProcessing}
-                            onClick={handleSubmit}
-                        >
-                            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                        </Button>
+                        {isProcessing ? (
+                            <Button
+                                size="icon"
+                                variant="destructive"
+                                className="h-8 w-8 rounded-full transition-all animate-in fade-in zoom-in"
+                                onClick={handleStop}
+                                title="Stop Generation"
+                            >
+                                <div className="h-3 w-3 bg-white rounded-[2px]" />
+                            </Button>
+                        ) : (
+                             <Button
+                                size="icon"
+                                className={cn("h-8 w-8 rounded-full transition-all", input.trim() || attachments.length > 0 ? "bg-primary" : "bg-muted text-muted-foreground")}
+                                disabled={(!input.trim() && attachments.length === 0)}
+                                onClick={handleSubmit}
+                            >
+                                <Sparkles className="h-4 w-4" />
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>
