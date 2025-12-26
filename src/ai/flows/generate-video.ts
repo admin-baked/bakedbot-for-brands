@@ -57,9 +57,6 @@ const videoPrompt = ai.definePrompt({
 
     Generate a video that captures attention in the first 2 seconds and maintains engagement throughout.
     `,
-    config: {
-        responseModalities: ['VIDEO'], // Only expect video
-    },
     model: 'googleai/veo-3.1-generate-preview',
 });
 
