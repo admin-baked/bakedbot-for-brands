@@ -83,6 +83,10 @@ env:
     secret: SERPER_API_KEY@3
     availability:
       - RUNTIME
+  - variable: OPENAI_VIDEO_API_KEY
+    secret: OPENAI_VIDEO_API_KEY
+    availability:
+      - RUNTIME
   # Google OAuth
   - variable: GOOGLE_CLIENT_ID
     secret: GOOGLE_CLIENT_ID
