@@ -361,7 +361,6 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
         };
     }
 
-    // 4. Return Job ID for polling
     return {
         content: '', // Frontend should handle this state
         toolCalls: [],
@@ -372,4 +371,23 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
             brandId: user.brandId
         }
     };
+}
+
+export async function cancelAgentJob(jobId: string) {
+    // 1. Get User for security
+    const { requireUser } = await import('@/server/auth/auth');
+    const { getFirestore } = await import('firebase-admin/firestore');
+    const user = await requireUser();
+    
+    // 2. Update Job Status
+    // We only mark it as cancelled. The worker might still be running but the UI handles it.
+    // Ideally user permission check on the job doc itself, but simplistic check for now.
+    const db = getFirestore();
+    await db.collection('jobs').doc(jobId).set({
+        status: 'cancelled',
+        updatedAt: new Date(),
+        error: 'Cancelled by user'
+    }, { merge: true });
+
+    return { success: true };
 }

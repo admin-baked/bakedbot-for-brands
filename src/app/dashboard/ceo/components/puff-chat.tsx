@@ -48,7 +48,7 @@ import {
     Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { runAgentChat } from '../agents/actions';
+import { runAgentChat, cancelAgentJob } from '../agents/actions';
 import { saveChatSession, getChatSessions } from '@/server/actions/chat-persistence'; // Import server actions
 import { AgentPersona } from '../agents/personas';
 import { useAgentChatStore } from '@/lib/store/agent-chat-store';
@@ -709,6 +709,16 @@ export function PuffChat({
         }));
     };
 
+    const handleStop = async () => {
+        if (activeJob) {
+            await cancelAgentJob(activeJob.jobId);
+            setActiveJob(null);
+        }
+        setIsProcessing(false);
+        // Add a system message indicating cancellation?
+        // Maybe update the thinking message to say "Cancelled"
+    };
+
     const hasMessages = displayMessages.length > 0;
 
     // Input component (reusable for both positions)
@@ -800,19 +810,31 @@ export function PuffChat({
                     <div className="flex items-center gap-2">
                         <AudioRecorder 
                             onRecordingComplete={handleAudioComplete} 
-                            isProcessing={isProcessing}
+                            isProcessing={false} // Managed by button loading state typically
                         />
-
-                        <Button
-                            size="icon"
-                            className={cn("h-8 w-8 rounded-full transition-all", input.trim() || attachments.length > 0 ? "bg-primary" : "bg-muted text-muted-foreground")}
-                            disabled={(!input.trim() && attachments.length === 0) || isProcessing}
-                            onClick={handleSubmit}
-                            data-testid="send-button"
-                        >
-                            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                        </Button>
+                        {isProcessing ? (
+                            <Button
+                                size="icon"
+                                variant="destructive"
+                                className="h-8 w-8 rounded-full transition-all animate-in fade-in zoom-in"
+                                onClick={handleStop}
+                                title="Stop Generation"
+                            >
+                                <div className="h-3 w-3 bg-white rounded-[2px]" />
+                            </Button>
+                        ) : (
+                            <Button
+                                size="icon"
+                                className={cn("h-8 w-8 rounded-full transition-all", input.trim() || attachments.length > 0 ? "bg-primary" : "bg-muted text-muted-foreground")}
+                                disabled={(!input.trim() && attachments.length === 0)}
+                                onClick={handleSubmit}
+                            >
+                                <Sparkles className="h-4 w-4" />
+                            </Button>
+                        )}
                     </div>
+
+
                 </div>
             </div>
             {!hasMessages && (
