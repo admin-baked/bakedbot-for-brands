@@ -78,6 +78,10 @@ export function ChatMediaPreview({
                         <video
                             src={url}
                             controls
+                            playsInline
+                            loop
+                            preload="metadata"
+                            crossOrigin="anonymous"
                             className="w-full max-h-[400px] object-contain"
                             data-testid="video-player"
                         >
