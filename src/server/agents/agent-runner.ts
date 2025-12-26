@@ -354,6 +354,48 @@ export async function runAgentCore(
             }
         }
 
+        // 5. Image Generation
+        if (lowerMessage.includes('generate image') || lowerMessage.includes('create an image') || lowerMessage.includes('picture of') || (lowerMessage.includes('image') && lowerMessage.includes('generate'))) {
+            await emitThought(jobId, 'Tool Detected', 'Image Generation triggered');
+            executedTools.push({ id: `img-${Date.now()}`, name: 'Generate Image', status: 'running', result: 'Generating...' });
+
+            try {
+                const { generateImageFromPrompt } = await import('@/ai/flows/generate-social-image');
+                
+                // Extract prompt (simple heuristic for now, or use LLM to extract)
+                // Using the full message as prompt usually works well for these simplified flows
+                await emitThought(jobId, 'Generating', 'Creating image assets...');
+                const imageUrl = await generateImageFromPrompt(userMessage);
+                
+                executedTools[executedTools.length - 1].status = 'success';
+                executedTools[executedTools.length - 1].result = 'Image generated successfully';
+
+                // Return with metadata for UI rendering
+                return {
+                    content: `Here is the image you requested: "${userMessage}"`,
+                    toolCalls: executedTools,
+                    metadata: {
+                        ...metadata,
+                        jobId,
+                        media: {
+                            type: 'image',
+                            url: imageUrl,
+                            prompt: userMessage
+                        }
+                    }
+                };
+            } catch (e: any) {
+                 executedTools[executedTools.length - 1].status = 'error';
+                 executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+                 // Fallthrough to normal generation if image fails? Or return error?
+                 // Return error to be safe
+                 return {
+                     content: `**Image Generation Failed**: ${e.message}`,
+                     toolCalls: executedTools
+                 };
+            }
+        }
+
         // Fallback Generation
         await emitThought(jobId, 'Generating Response', 'Formulating final answer...');
         
