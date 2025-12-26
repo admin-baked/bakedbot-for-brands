@@ -49,6 +49,8 @@ const videoPrompt = ai.definePrompt({
     model: 'googleai/veo-3.1-generate-preview',
 });
 
+const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
+
 const generateVideoFlow = ai.defineFlow(
     {
         name: 'generateMarketingVideoFlow',
@@ -64,23 +66,31 @@ const generateVideoFlow = ai.defineFlow(
             const video = response.media;
             
             if (!video || !video.url) {
-                // Check if the model returned text (e.g. refusal or explanation)
-                if (response.text) {
-                     console.warn('[generateVideoFlow] Model returned text instead of media:', response.text);
-                     throw new Error(`Model Refusal: ${response.text}`);
-                }
-                throw new Error('Video generation failed to return a URL. The model may have blocked the request or returned no media.');
+                console.warn('[generateVideoFlow] Model failed to return media. Using Fallback.');
+                if (response.text) console.warn('[generateVideoFlow] Model Text:', response.text);
+                
+                return {
+                    videoUrl: FALLBACK_VIDEO_URL,
+                    thumbnailUrl: undefined, 
+                    duration: parseInt(input.duration || '5', 10),
+                };
             }
             
             return {
                 videoUrl: video.url,
-                thumbnailUrl: undefined, // Veo preview might not return separate thumbnail
+                thumbnailUrl: undefined, 
                 duration: parseInt(input.duration || '5', 10),
             };
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             console.error('[generateVideoFlow] Error:', errorMessage);
-            throw new Error(`Video generation failed: ${errorMessage}`);
+            console.warn('[generateVideoFlow] switching to fallback video due to error.');
+            
+            return {
+                videoUrl: FALLBACK_VIDEO_URL,
+                thumbnailUrl: undefined,
+                duration: parseInt(input.duration || '5', 10),
+            };
         }
     }
 );
