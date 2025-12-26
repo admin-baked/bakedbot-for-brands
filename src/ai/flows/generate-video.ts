@@ -68,11 +68,19 @@ const generateVideoFlow = ai.defineFlow(
     },
     async (input) => {
         try {
+            console.log('[generateVideoFlow] Prompting model with:', JSON.stringify(input));
             const response = await videoPrompt(input);
+            console.log('[generateVideoFlow] Raw Response:', JSON.stringify(response));
+
             const video = response.media;
             
             if (!video || !video.url) {
-                throw new Error('Video generation failed to return a URL. This may be due to content safety policies or a temporary model issue.');
+                // Check if the model returned text (e.g. refusal or explanation)
+                if (response.text) {
+                     console.warn('[generateVideoFlow] Model returned text instead of media:', response.text);
+                     throw new Error(`Model Refusal: ${response.text}`);
+                }
+                throw new Error('Video generation failed to return a URL. The model may have blocked the request or returned no media.');
             }
             
             return {
