@@ -10,7 +10,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
-import { z } from 'zod';
 import { 
     GenerateVideoInputSchema, 
     GenerateVideoInput, 
@@ -18,7 +17,7 @@ import {
     GenerateVideoOutput 
 } from '@/ai/video-types';
 
-export { GenerateVideoInput, GenerateVideoOutput };
+export type { GenerateVideoInput, GenerateVideoOutput };
 
 /**
  * Generates a marketing video using Veo 3.1.
