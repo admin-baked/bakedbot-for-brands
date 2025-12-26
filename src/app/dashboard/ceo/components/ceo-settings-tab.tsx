@@ -35,7 +35,7 @@ export default function CeoSettingsTab() {
 
     return (
         <div className="space-y-6 p-4 border border-blue-500 rounded">
-            <h2 className="text-2xl font-bold tracking-tight text-blue-500">Icons + Card Test</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-blue-500">Button + Icons Test</h2>
             
             {/* Testing Icons */}
             <Card>
@@ -64,7 +64,14 @@ export default function CeoSettingsTab() {
                 </CardHeader>
             </Card>
             
-            <p>If you see this, Icons are safe. The crash MUST be the Button component.</p>
+            <div className="flex justify-end sticky bottom-4">
+                <Button onClick={handleSave} disabled={false} size="lg" className="shadow-lg">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Test Button (Save)
+                </Button>
+            </div>
+            
+            <p>If you see the Button and it doesn't crash, the UI IS SAFE. The crash is definitely loadSettings().</p>
         </div>
     );
 }
