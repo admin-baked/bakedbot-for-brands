@@ -12,11 +12,11 @@ import {
     updateEmailProviderAction,
     getVideoProviderAction,
     updateVideoProviderAction
-} from '@/server/actions/super-admin/settings';
+} from '@/server/actions/super-admin/global-settings';
 
 export default function CeoSettingsTab() {
     const { toast } = useToast();
-    const [loading, setLoading] = useState(false); // Default to false for debug
+    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [emailProvider, setEmailProvider] = useState<'sendgrid' | 'mailjet'>('sendgrid');
     const [videoProvider, setVideoProvider] = useState<'veo' | 'sora'>('veo');
@@ -24,7 +24,7 @@ export default function CeoSettingsTab() {
 
     useEffect(() => {
         setMounted(true);
-        // loadSettings(); // DEBUG: DISABLED TO ISOLATE CRASH
+        loadSettings();
     }, []);
 
     if (!mounted) {
@@ -85,10 +85,6 @@ export default function CeoSettingsTab() {
 
     return (
         <div className="space-y-6">
-            <div className="p-4 border border-yellow-500 bg-yellow-50 rounded-lg text-yellow-800">
-                <strong>Debug Mode:</strong> UI Restored. Data Loading Disabled. Using Defaults.
-            </div>
-
             <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
 
             <Card>
