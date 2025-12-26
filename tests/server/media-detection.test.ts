@@ -8,6 +8,8 @@ describe('Media Detection Logic', () => {
         expect(detectMediaRequest('Generate a video of a running leaf')).toBe('video');
         expect(detectMediaRequest('Create a video for marketing')).toBe('video');
         expect(detectMediaRequest('Make a video about cats')).toBe('video');
+        // New user reported case
+        expect(detectMediaRequest('create video of man running')).toBe('video');
     });
 
     test('detects split keywords for video', () => {
