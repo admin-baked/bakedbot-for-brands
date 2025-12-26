@@ -3,7 +3,6 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser, isSuperUser } from '@/server/auth/auth';
 import { revalidatePath } from 'next/cache';
-import { logger } from '@/lib/logger';
 
 // --- Email Provider ---
 
@@ -24,7 +23,7 @@ export async function getEmailProviderAction() {
         
         return doc.data()?.emailProvider || 'sendgrid';
     } catch (error: unknown) {
-        logger.error('[settings] Failed to get email provider:', error instanceof Error ? { message: error.message } : { error });
+        console.error('[settings] Failed to get email provider:', error instanceof Error ? { message: error.message } : { error });
         throw error;
     }
 }
@@ -45,7 +44,7 @@ export async function updateEmailProviderAction(input: UpdateEmailProviderInput)
         revalidatePath('/dashboard/ceo/settings');
         return { success: true };
     } catch (error: unknown) {
-        logger.error('[settings] Failed to update email provider:', error instanceof Error ? { message: error.message } : { error });
+        console.error('[settings] Failed to update email provider:', error instanceof Error ? { message: error.message } : { error });
         throw new Error('Failed to update email settings. Check server logs.');
     }
 }
@@ -69,7 +68,7 @@ export async function getVideoProviderAction() {
         
         return doc.data()?.videoProvider || 'veo';
     } catch (error: unknown) {
-        logger.error('[settings] Failed to get video provider:', error instanceof Error ? { message: error.message } : { error });
+        console.error('[settings] Failed to get video provider:', error instanceof Error ? { message: error.message } : { error });
         return 'veo';
     }
 }
@@ -90,7 +89,7 @@ export async function updateVideoProviderAction(input: UpdateVideoProviderInput)
         revalidatePath('/dashboard/ceo/settings');
         return { success: true };
     } catch (error: unknown) {
-        logger.error('[settings] Failed to update video provider:', error instanceof Error ? { message: error.message } : { error });
+        console.error('[settings] Failed to update video provider:', error instanceof Error ? { message: error.message } : { error });
         throw new Error('Failed to update video settings.');
     }
 }
