@@ -46,7 +46,7 @@ const videoPrompt = ai.definePrompt({
     
     Generate the video now.
     `,
-    model: 'googleai/veo-3.1-generate-preview',
+    model: 'googleai/veo-2.0-generate-preview-001',
 });
 
 const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
