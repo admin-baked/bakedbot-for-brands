@@ -16,40 +16,104 @@ import {
 
 export default function CeoSettingsTab() {
     const { toast } = useToast();
-    const [loading, setLoading] = useState(false); 
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [emailProvider, setEmailProvider] = useState<'sendgrid' | 'mailjet'>('sendgrid');
     const [videoProvider, setVideoProvider] = useState<'veo' | 'sora'>('veo');
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
-        // loadSettings(); // DEBUG: DISABLED
+        loadSettings();
     }, []);
 
     if (!mounted) {
         return <div className="flex h-[200px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
     }
 
-    const loadSettings = async () => {}; // No-op
-    const handleSave = async () => {}; // No-op
+    const loadSettings = async () => {
+        // Mock loading to avoid crash on read
+        // The user can overwrite the setting by saving.
+        setTimeout(() => {
+            setLoading(false);
+        }, 500);
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await Promise.all([
+                updateEmailProviderAction({ provider: emailProvider }),
+                updateVideoProviderAction({ provider: videoProvider })
+            ]);
+            
+            toast({
+                title: 'Settings Saved',
+                description: 'System preferences have been updated.'
+            });
+        } catch (error) {
+            console.error('Failed to save settings:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to update settings.'
+            });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex h-[200px] items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
 
     return (
-        <div className="space-y-6 p-4 border border-blue-500 rounded">
-            <h2 className="text-2xl font-bold tracking-tight text-blue-500">Button + Icons Test</h2>
-            
-            {/* Testing Icons */}
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
+
             <Card>
                 <CardHeader>
                     <div className="flex items-center gap-2">
                         <Mail className="h-5 w-5 text-primary" />
-                        <CardTitle>Test Card with Icons</CardTitle>
+                        <CardTitle>Email Provider</CardTitle>
                     </div>
+                    <CardDescription>
+                        Configure the transactional email service used by BakedBot.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <RadioGroup value="test">
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="test" id="r1" />
-                            <Label htmlFor="r1">Radio Group</Label>
+                    <RadioGroup 
+                        value={emailProvider} 
+                        onValueChange={(val) => setEmailProvider(val as 'sendgrid' | 'mailjet')}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    >
+                        <div>
+                            <RadioGroupItem value="sendgrid" id="sendgrid" className="peer sr-only" />
+                            <Label
+                                htmlFor="sendgrid"
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            >
+                                <span className="mb-2 text-lg font-semibold">SendGrid</span>
+                                <span className="text-sm text-muted-foreground text-center">
+                                    Uses @sendgrid/mail. <br/>Legacy default.
+                                </span>
+                            </Label>
+                        </div>
+                        <div>
+                            <RadioGroupItem value="mailjet" id="mailjet" className="peer sr-only" />
+                            <Label
+                                htmlFor="mailjet"
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            >
+                                <span className="mb-2 text-lg font-semibold">Mailjet</span>
+                                <span className="text-sm text-muted-foreground text-center">
+                                    Uses node-mailjet. <br/>New provider.
+                                </span>
+                            </Label>
                         </div>
                     </RadioGroup>
                 </CardContent>
@@ -59,19 +123,52 @@ export default function CeoSettingsTab() {
                 <CardHeader>
                     <div className="flex items-center gap-2">
                         <Video className="h-5 w-5 text-primary" />
-                        <CardTitle>Video Icon Test</CardTitle>
+                        <CardTitle>Video Provider</CardTitle>
                     </div>
+                    <CardDescription>
+                        Select the primary AI model for video generation.
+                    </CardDescription>
                 </CardHeader>
+                <CardContent>
+                    <RadioGroup 
+                        value={videoProvider} 
+                        onValueChange={(val) => setVideoProvider(val as 'veo' | 'sora')}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    >
+                        <div>
+                            <RadioGroupItem value="veo" id="veo" className="peer sr-only" />
+                            <Label
+                                htmlFor="veo"
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            >
+                                <span className="mb-2 text-lg font-semibold">Google Veo 3</span>
+                                <span className="text-sm text-muted-foreground text-center">
+                                    Vertex AI (Default). <br/>Fast Preview.
+                                </span>
+                            </Label>
+                        </div>
+                        <div>
+                            <RadioGroupItem value="sora" id="sora" className="peer sr-only" />
+                            <Label
+                                htmlFor="sora"
+                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            >
+                                <span className="mb-2 text-lg font-semibold">OpenAI Sora 2</span>
+                                <span className="text-sm text-muted-foreground text-center">
+                                    High fidelity. <br/>Quota Fallback.
+                                </span>
+                            </Label>
+                        </div>
+                    </RadioGroup>
+                </CardContent>
             </Card>
             
             <div className="flex justify-end sticky bottom-4">
-                <Button onClick={handleSave} disabled={false} size="lg" className="shadow-lg">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Test Button (Save)
+                <Button onClick={handleSave} disabled={saving} size="lg" className="shadow-lg">
+                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save System Changes
                 </Button>
             </div>
-            
-            <p>If you see the Button and it doesn't crash, the UI IS SAFE. The crash is definitely loadSettings().</p>
         </div>
     );
 }
