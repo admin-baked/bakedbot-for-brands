@@ -45,7 +45,7 @@ const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-
 
 // ... imports
 import { generateSoraVideo } from '../generators/sora';
-import { getVideoProviderAction } from '@/server/actions/super-admin/settings';
+import { getVideoProviderAction } from '@/server/actions/super-admin/global-settings';
 
 const generateVideoFlow = ai.defineFlow(
     {
