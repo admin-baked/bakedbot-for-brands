@@ -507,7 +507,18 @@ export function AgentChat({
             setIsProcessing(false);
             setIsTranscribing(false);
         }
-    }, [job, thoughts, isComplete, activeJob, updateMessage]);
+
+        // 4. Handle Polling Error (e.g. Permissions)
+        if (jobError) {
+             updateMessage(activeJob.messageId, {
+                content: `**System Error**: ${jobError}. (Please verify Firestore Rules or Network)`,
+                thinking: { isThinking: false, steps: [], plan: [] }
+            });
+            setActiveJob(null);
+            setIsProcessing(false);
+            setIsTranscribing(false);
+        }
+    }, [job, thoughts, isComplete, activeJob, updateMessage, jobError]);
 
     // Tool Selection State
     const [toolMode, setToolMode] = useState<ToolMode>('auto');
