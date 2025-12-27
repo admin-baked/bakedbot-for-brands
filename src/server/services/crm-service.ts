@@ -278,6 +278,7 @@ export async function getCRMStats(): Promise<{
     totalBrands: number;
     nationalBrands: number;
     claimedBrands: number;
+    totalDispensaries: number;
     claimedDispensaries: number;
     totalPlatformLeads: number;
 }> {
