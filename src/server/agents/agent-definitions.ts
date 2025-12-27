@@ -18,8 +18,8 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         id: 'craig',
         name: 'Craig',
         specialty: 'Content & Campaigns',
-        keywords: ['sms', 'email', 'copy', 'campaign', 'message', 'content', 'write', 'draft', 'newsletter', 'promotional'],
-        description: 'Generates marketing copy, SMS campaigns, and email content with compliance checking.'
+        keywords: ['sms', 'email', 'copy', 'campaign', 'message', 'content', 'write', 'draft', 'newsletter', 'promotional', 'video', 'image', 'create', 'generate', 'animation', 'cartoon', 'visual', 'creative', 'ad', 'commercial', 'promo'],
+        description: 'Generates marketing copy, videos, images, SMS campaigns, and email content with compliance checking.'
     },
     {
         id: 'pops',
