@@ -840,6 +840,19 @@
             "area": "frontend"
         },
         {
+            "id": "refactor_smokey_chat",
+            "title": "Smokey Chat Refactor & Rename",
+            "status": "passing",
+            "description": "Unified Agent Playground UI into 'Smokey Chat', moved to hero center, and renamed 'Ask Baked HQ' globally.",
+            "acceptance_tests": [
+                "test_puff_chat_placeholder"
+            ],
+            "completed_at": "2025-12-27T14:30:00Z",
+            "owner": "antigravity",
+            "dependencies": ["feat_agent_playground"],
+            "area": "frontend"
+        },
+        {
             "id": "feat_editable_playbooks",
             "title": "Editable Playbooks System (n8n/Zapier Style)",
             "status": "passing",
