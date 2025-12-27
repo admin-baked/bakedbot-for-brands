@@ -347,8 +347,8 @@ export function PlaybookEditor({ playbook, onSave, onCancel, isNew = false }: Pl
                                     key={step.id}
                                     step={step}
                                     index={idx}
-                                    onUpdate={(updates) => handleUpdateStep(step.id, updates)}
-                                    onRemove={() => handleRemoveStep(step.id)}
+                                    onUpdate={(updates) => handleUpdateStep(step.id || '', updates)}
+                                    onRemove={() => handleRemoveStep(step.id || '')}
                                     onMoveUp={idx > 0 ? () => handleReorderStep(idx, idx - 1) : undefined}
                                     onMoveDown={idx < steps.length - 1 ? () => handleReorderStep(idx, idx + 1) : undefined}
                                 />
