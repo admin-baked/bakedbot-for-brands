@@ -241,7 +241,49 @@ export async function runAgentCore(
         // ... Tool Detection Logic ...
         const lowerMessage = userMessage.toLowerCase();
 
-        // 1. Playbooks
+        // 0. Playbook Creation Detection - "create a playbook that..." or "build an automation..."
+        const playbookCreationPatterns = [
+            /create\s+(?:a\s+)?playbook/i,
+            /build\s+(?:a\s+)?(?:playbook|automation|workflow)/i,
+            /set\s+up\s+(?:a\s+)?(?:playbook|automation|workflow)/i,
+            /make\s+(?:a\s+)?playbook/i,
+            /new\s+playbook\s+(?:that|to|for)/i,
+        ];
+        
+        if (playbookCreationPatterns.some(p => p.test(userMessage))) {
+            await emitThought(jobId, 'Playbook Creation', 'Parsing your request into a playbook configuration...');
+            executedTools.push({ id: `pb-create-${Date.now()}`, name: 'Create Playbook', status: 'running', result: 'Parsing...' });
+            
+            try {
+                const { createPlaybookFromNaturalLanguage } = await import('@/server/actions/playbooks');
+                const result = await createPlaybookFromNaturalLanguage(metadata.brandId || 'demo', userMessage);
+                
+                if (result.success && result.playbook) {
+                    executedTools[executedTools.length - 1].status = 'success';
+                    executedTools[executedTools.length - 1].result = `Created playbook: ${result.playbook.name}`;
+                    await emitThought(jobId, 'Playbook Created', `"${result.playbook.name}" is ready! You can edit it in the Playbooks tab.`);
+                    
+                    return {
+                        content: `I've created a playbook called "${result.playbook.name}":\n\n**Description:** ${result.playbook.description}\n**Agent:** ${result.playbook.agent}\n**Category:** ${result.playbook.category}\n**Steps:** ${result.playbook.steps.length}\n\nYou can view and edit it in the Playbooks tab.`,
+                        toolCalls: executedTools,
+                        metadata: { ...metadata, jobId }
+                    };
+                } else {
+                    throw new Error(result.error || 'Failed to create playbook');
+                }
+            } catch (e: any) {
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = e.message;
+                await emitThought(jobId, 'Error', `Failed to create playbook: ${e.message}`);
+                return {
+                    content: `I tried to create a playbook but encountered an error: ${e.message}. Try describing your workflow again or create it manually in the Playbooks tab.`,
+                    toolCalls: executedTools,
+                    metadata: { ...metadata, jobId }
+                };
+            }
+        }
+
+        // 1. Playbooks (Execution)
         if (lowerMessage.includes('welcome-sequence')) {
             await emitThought(jobId, 'Executing Playbook', 'Running "Welcome Sequence" workflow...');
             const res = await executePlaybook('welcome-sequence');

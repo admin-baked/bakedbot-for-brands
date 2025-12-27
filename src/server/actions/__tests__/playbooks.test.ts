@@ -163,3 +163,47 @@ describe('Playbook Actions', () => {
     });
 });
 
+// Tests for natural language parsing patterns (pure logic, no AI mock needed)
+describe('Playbook Creation Detection Patterns', () => {
+    const playbookCreationPatterns = [
+        /create\s+(?:a\s+)?playbook/i,
+        /build\s+(?:a\s+)?(?:playbook|automation|workflow)/i,
+        /set\s+up\s+(?:a\s+)?(?:playbook|automation|workflow)/i,
+        /make\s+(?:a\s+)?playbook/i,
+        /new\s+playbook\s+(?:that|to|for)/i,
+    ];
+
+    const shouldMatch = [
+        'Create a playbook that sends weekly reports',
+        'create playbook for competitor monitoring',
+        'build an automation to notify me of low stock',
+        'Build a workflow for lead follow-up',
+        'set up a playbook for daily intel',
+        'Set up an automation that runs every morning',
+        'make a playbook that emails me competitor prices',
+        'new playbook that monitors reviews',
+        'New playbook to track inventory',
+    ];
+
+    const shouldNotMatch = [
+        'tell me about playbooks',
+        'how do I edit a playbook',
+        'list my playbooks',
+        'what playbooks are available',
+        'run the competitor playbook',
+    ];
+
+    shouldMatch.forEach(input => {
+        it(`should match: "${input}"`, () => {
+            const matches = playbookCreationPatterns.some(p => p.test(input));
+            expect(matches).toBe(true);
+        });
+    });
+
+    shouldNotMatch.forEach(input => {
+        it(`should NOT match: "${input}"`, () => {
+            const matches = playbookCreationPatterns.some(p => p.test(input));
+            expect(matches).toBe(false);
+        });
+    });
+});
