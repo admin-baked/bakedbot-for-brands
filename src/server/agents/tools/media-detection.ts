@@ -23,7 +23,7 @@ export function detectMediaRequest(userMessage: string): MediaType {
     }
 
     // Image Detection - expanded patterns
-    const imageKeywords = ['image', 'picture', 'photo', 'poster', 'banner', 'graphic'];
+    const imageKeywords = ['image', 'picture', 'photo', 'poster', 'banner', 'graphic', 'infographic'];
     const hasImageWord = imageKeywords.some(kw => lowerMessage.includes(kw));
     
     if ((hasImageWord && hasActionWord) || lowerMessage.includes('show me an image')) {
