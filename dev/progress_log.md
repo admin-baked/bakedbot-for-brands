@@ -1,6 +1,35 @@
 # Progress Log
 
+
+## Session: 2025-12-27 (Smokey Chat & Homepage Refactor)
+### Task ID
+smokey-chat-refactor-001
+
+### Summary
+Refactored the Agent Playground into a unified "Smokey Chat" interface (formerly "Ask Baked HQ") and moved it to the center of the homepage hero section. Renamed "Ask Baked HQ" to "Smokey Chat" globally across the dashboard and internal configurations.
+
+### Key Changes
+*   **UI Refactor** (`src/components/landing/agent-playground.tsx`):
+    - Converted from tabbed interface to unified chat UI ("Ask Smokey (Brand)").
+    - Added smart chips for agent routing (Pops, Ezal, Craig).
+    - Added visual tool toggles (Puff, Standard, Auto Tools).
+*   **Hero Layout** (`src/app/page.tsx`):
+    - Moved Agent Playground immediately below the main headline.
+*   **Global Renaming**:
+    - "Ask Baked HQ" -> "Smokey Chat" in:
+        - `widget-registry.ts`
+        - `super-admin-playbooks-tab.tsx`
+        - `puff-chat.tsx`
+        - `agent-chat.tsx`
+        - `super-admin-smokey-config.ts`
+
+### Tests Updated
+*   `puff-chat.test.tsx`: Updated assertions to look for "Ask Smokey anything..." placeholder.
+
+### Result: ✅ Live (v1.6.1)
+
 ---
+
 
 ## Session: 2025-12-27 (Platform Leads CRM Integration)
 ### Task ID

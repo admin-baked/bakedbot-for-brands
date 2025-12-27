@@ -2,6 +2,12 @@
 
 All updates should be incremented by .1 for minor fixes and .2 or greater for major features.
 
+## [1.6.1] - 2025-12-27
+### Changed
+- **Renaming**: "Ask Baked HQ" is now **"Smokey Chat"** globally (Dashboard, Homepage, Configuration).
+- **Homepage**: Agent Playground refactored to unified "Smokey Chat" interface and moved to center stage in hero section.
+- **UI**: Added chip-based agent routing and enhanced input controls to the public demo.
+
 ## [1.6.0] - 2025-12-27
 ### Added
 - **Agent Playground (Homepage)**: Interactive AI demo in hero section as lead magnet
