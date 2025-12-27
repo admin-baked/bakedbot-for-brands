@@ -17,7 +17,7 @@ interface SoraJobResponse {
 }
 
 // Constants
-const SORA_API_BASE = 'https://api.openai.com/v1/video/generations';
+const SORA_API_BASE = 'https://api.openai.com/v1/videos';
 const DEFAULT_MAX_POLL_ATTEMPTS = 60; // 5 minutes with 5s intervals
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
