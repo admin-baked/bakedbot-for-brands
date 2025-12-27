@@ -2,6 +2,35 @@
 
 All updates should be incremented by .1 for minor fixes and .2 or greater for major features.
 
+## [1.6.0] - 2025-12-27
+### Added
+- **Agent Playground (Homepage)**: Interactive AI demo in hero section as lead magnet
+  - Tabbed interface: Smokey, Craig, Pops, Ezal
+  - Rate limiting: 5 free demos/day per IP
+  - Result gating: 3 shown, 10 locked behind email
+  - Lead capture modal with Mailjet welcome email
+  - Media rules: Images free, video requires login
+  - 15 unit tests covering demo flow
+
+- **Natural Language Playbook Creation**: AI-powered playbook generation from natural language
+  - Detection patterns in agent-runner for "create a playbook that..."
+  - `parseNaturalLanguage` function for AI conversion
+  - Integration with existing playbook CRUD
+
+- **Editable Playbooks System**: n8n/Zapier-style playbook editing
+  - Ownership model with `ownerId`, `ownerName`, `isCustom`
+  - Smart approval detection for customer-facing emails
+  - Visual step builder UI (`playbook-editor.tsx`)
+  - Create from scratch, template, or AI modes
+
+- **Enhanced Craig Responses**: Smart content creation detection
+  - Multi-variation outputs (Professional, Casual, Educational)
+  - Hashtags, posting times, compliance notes
+
+### Fixed
+- Build error: Made `detectApprovalRequired` async for Turbopack compatibility
+- Type errors in playbook editor, default playbooks, craig agent
+
 ## [1.5.5] - 2025-12-23
 ### Added
 - **Knowledge Base Training System**: Multi-tier knowledge base with Firestore Vector Search support
