@@ -97,6 +97,24 @@ export const POST = withProtection(
                 return NextResponse.json({ ok: true, message: ezalResponse, products: [], sessionId: currentSessionId });
             }
 
+            // 2.55️⃣ Handle Platform Questions (Smokey Demo Mode)
+            // Intercepts questions about the tool itself for the homepage demo
+            const lowerQuery = query.toLowerCase();
+            if (lowerQuery.includes('how does bakedbot work') || lowerQuery.includes('what can the agent squad do') || lowerQuery.includes('explain the pricing') || lowerQuery.includes('pricing model')) {
+                let response = "";
+                if (lowerQuery.includes('pricing')) {
+                    response = "BakedBot offers three main tiers:\n\n1. **Starter ($99/mo)**: great for getting live updates with 1 menu and basic chat.\n2. **Growth ($249/mo)**: adds more locations, traffic, and marketing tools.\n3. **Scale ($699/mo)**: for multi-location operators with advanced compliance needs.\n\nAll plans include the core Headless Menu + Smokey AI.";
+                } else if (lowerQuery.includes('work') || lowerQuery.includes('do')) {
+                    response = "BakedBot is an Agentic Commerce OS. I'm Smokey, checking your inventory and recommending products. My squad includes:\n\n- **Craig**: Marketing automation (Email/SMS)\n- **Pops**: Analytics & Forecasting\n- **Ezal**: Competitive Intelligence\n- **Deebo**: Compliance & Guardrails\n\nWe all work together to grow your business!";
+                }
+                
+                if (userId && currentSessionId) {
+                    await addMessageToSession(userId, currentSessionId, { role: 'user', content: query });
+                    await addMessageToSession(userId, currentSessionId, { role: 'assistant', content: response });
+                }
+                return NextResponse.json({ ok: true, message: response, products: [], sessionId: currentSessionId });
+            }
+
             // 2.6️⃣ Handle Marketing Requests (Craig)
             if (analysis.searchType === 'marketing') {
                 await UsageService.increment(brandId, 'agent_calls');

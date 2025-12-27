@@ -110,16 +110,60 @@ const ChatWindow = ({
             <div className="p-4 h-full flex flex-col justify-center">
               <div className="text-center mb-6">
                 <h2 className="text-lg font-semibold">Hi, I'm Smokey.</h2>
-                <p className="text-muted-foreground text-sm mt-1">How can I help you?</p>
+                <p className="text-muted-foreground text-sm mt-1">
+                  {pathname === '/' ? "I'm the AI agent powering this platform. Ask me anything!" : "How can I help you?"}
+                </p>
               </div>
-              <div className="w-full space-y-2">
-                <Button className="w-full" onClick={startOnboarding}>
-                  <HelpCircle className="mr-2" /> Find product recommendations
-                </Button>
-                <Button variant="ghost" className="w-full text-muted-foreground" onClick={startFreeChat}>
-                  Just ask me a question <ChevronRight className="ml-1" />
-                </Button>
-              </div>
+              
+              {pathname === '/' ? (
+                /* Platform Demo / Homepage Zero State */
+                <div className="w-full space-y-2">
+                   <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left h-auto py-3 px-4 border-emerald-100 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                    onClick={() => {
+                        setHasStartedChat(true);
+                        setIsOnboarding(false);
+                        const msg = "How does BakedBot work?";
+                        setMessages([{ id: Date.now(), text: msg, sender: 'user' }]);
+                        setIsBotTyping(true);
+                        // Trigger API call via state change effect or separate handler? 
+                        // Using a direct simulated delayed response or calling handleSendMessage would be better.
+                        // I'll reuse handleSendMessage logic manually or trigger a "suggested question/chip" flow.
+                        // For now, I'll allow the user to see the question sent, then I need to ensure the API answers it.
+                        // I will define a helper `askQuestion(text)`
+                        handleQuickQuestion(msg);
+                    }}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4 text-emerald-500" /> 
+                    <span>How does BakedBot work?</span>
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left h-auto py-3 px-4 border-emerald-100 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                    onClick={() => handleQuickQuestion("What are the pricing plans?")}
+                  >
+                    <span className="mr-2">💰</span>
+                    <span>Explain the pricing models</span>
+                  </Button>
+
+                  <Button className="w-full mt-2" onClick={startOnboarding}>
+                     Try the Product Demo
+                  </Button>
+                </div>
+              ) : (
+                /* Standard Retail Zero State */
+                <div className="w-full space-y-2">
+                  <Button className="w-full" onClick={startOnboarding}>
+                    <HelpCircle className="mr-2" /> Find product recommendations
+                  </Button>
+                  <Button variant="ghost" className="w-full text-muted-foreground" onClick={startFreeChat}>
+                    Just ask me a question <ChevronRight className="ml-1" />
+                  </Button>
+                </div>
+              )}
+
               <Collapsible className="mt-4">
                 <CollapsibleTrigger asChild>
                   <Button variant="link" className="text-xs text-muted-foreground">Discover Products</Button>
@@ -500,6 +544,86 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
     };
     setMessages([botMessage]);
   }
+
+  const handleQuickQuestion = (text: string) => {
+      setHasStartedChat(true);
+      setIsOnboarding(false);
+      const userMessage: Message = { id: Date.now(), text, sender: 'user' };
+      setMessages(prev => [...prev, userMessage]);
+      setInputValue(text); // Set input so handleSendMessage picks it up? No, handleClick calls handleSendMessage directly usually, or we simulate it.
+                           // Actually handleSendMessage takes an event. 
+                           // I should refactor handleSendMessage or just invoke the API call logic.
+                           // Since handleSendMessage resets input and is complex, let's just use a dedicated effect
+                           // OR simpler: setInputValue(text) and then trigger a submit? 
+                           // Or better: Re-use the API call logic.
+                           
+      // Trigger the search
+      setIsBotTyping(true);
+      // We need to call the API. I'll break out the API call into a function 'processQuery(text)' 
+      // but for now, to avoid big refactor, I will just replicate the API call here 
+      // or modify handleSendMessage to accept text optional.
+      // Modifying handleSendMessage to be cleaner is better but 'multireplace' is risky if I duplicate code.
+      // I will just invoke the logical equivalent here.
+      
+      (async () => {
+        try {
+            const payload: any = {
+                query: text,
+                userId,
+                sessionId,
+                brandId: effectiveDispensaryId || effectiveBrandId || undefined,
+                entityName: effectiveEntityName,
+                state: 'Illinois',
+            };
+    
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+    
+            const data = await response.json();
+    
+            if (data.sessionId) setSessionId(data.sessionId);
+    
+            if (data.ok && data.products && data.products.length > 0) {
+                 const productSuggestions = data.products.map((p: any) => ({
+                    id: p.id,
+                    name: p.name,
+                    category: p.category,
+                    price: p.price,
+                    imageUrl: p.imageUrl,
+                    description: p.description,
+                    thcPercent: p.thcPercent,
+                    cbdPercent: p.cbdPercent,
+                    url: p.url,
+                    reasoning: p.reasoning
+                  }));
+                  setMessages(prev => [...prev, {
+                      id: Date.now() + 1,
+                      text: data.message,
+                      sender: 'bot',
+                      productSuggestions
+                  }]);
+            } else {
+                 setMessages(prev => [...prev, {
+                      id: Date.now() + 1,
+                      text: data.message || "I couldn't process that request.",
+                      sender: 'bot'
+                 }]);
+            }
+        } catch (error) {
+             console.error(error);
+             setMessages(prev => [...prev, {
+                  id: Date.now() + 1,
+                  text: "Sorry, I'm having trouble connecting.",
+                  sender: 'bot'
+             }]);
+        } finally {
+            setIsBotTyping(false);
+        }
+      })();
+  };
   const { addToCart, selectedRetailerId } = useStore();
 
   const handleAddToCart = useCallback((product: Product) => {

@@ -43,12 +43,13 @@ const AGENT_MAP = {
 };
 
 // Unified example prompts (mixed agents)
+// Unified example prompts (mixed agents)
+// Updated for Demo Mode: Focus on explaining the tool/platform
 const EXAMPLE_PROMPTS = [
-    { text: "Where are we losing velocity?", agentId: 'pops' },
-    { text: "Which retailers are underpricing us?", agentId: 'ezal' },
-    { text: "Create an image of a futuristic dispensary", agentId: 'midjourney' },
-    { text: "Create a promo video for 4/20", agentId: 'sora' },
-    { text: "Draft a compliant launch campaign", agentId: 'craig' },
+    { text: "How does BakedBot work?", agentId: 'hq' },
+    { text: "What can the Agent Squad do?", agentId: 'hq' },
+    { text: "Show me a demo of product search", agentId: 'smokey' },
+    { text: "Explain the pricing model", agentId: 'hq' },
 ];
 
 // Demo result types
@@ -308,10 +309,44 @@ export function AgentPlayground() {
                             </div>
                         )}
 
-                        {/* Suggestion Chips (Only show if no result to keep clean, or always show at top?) 
-                            The screenshot shows them above the input. I'll place them just above the input container.
-                        */}
                     </div>
+
+                    {/* Zero State / Demo Intro */}
+                    {!result && !isLoading && !isThinking && (
+                        <div className="absolute inset-0 z-0 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Hi, I'm Smokey.</h2>
+                            <p className="text-emerald-600 font-medium mb-8">How can I help you?</p>
+                            
+                            <div className="w-full max-w-sm space-y-4">
+                                <Button 
+                                    size="lg" 
+                                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-200/50 rounded-full h-12 text-base font-medium"
+                                    onClick={() => runDemo('Find product recommendations for relaxing at home', 'smokey')}
+                                >
+                                    <div className="bg-white/20 p-1 rounded-full mr-2">
+                                        <Sparkles className="w-4 h-4 text-white" />
+                                    </div>
+                                    Find product recommendations
+                                </Button>
+
+                                <button 
+                                    onClick={() => {
+                                        // Focus input or show specific prompts
+                                        const input = document.querySelector('input[name="chat-input"]') as HTMLInputElement;
+                                        if (input) input.focus();
+                                    }}
+                                    className="flex items-center justify-center gap-1 text-emerald-600 font-medium hover:text-emerald-700 hover:underline transition-all mx-auto text-sm"
+                                >
+                                    Just ask me a question 
+                                    <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
+                                </button>
+                                
+                                {/* Secondary Actions / Discovery could go here if needed, 
+                                    but for now keeping it clean as per screenshot 
+                                */}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Input Container */}
                     <div className="z-10 mt-auto space-y-4">
@@ -336,7 +371,8 @@ export function AgentPlayground() {
                                 <Input
                                     value={prompt}
                                     onChange={(e) => setPrompt(e.target.value)}
-                                    placeholder="Ask Smokey anything..."
+                                    placeholder="Ask about BakedBot..."
+                                    name="chat-input"
                                     className="pr-12 pt-4 pb-12 text-base shadow-sm border-gray-200 focus-visible:ring-emerald-500 bg-white"
                                     disabled={isLoading}
                                 />
