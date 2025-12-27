@@ -118,8 +118,13 @@ export function DashboardSidebar() {
             <SharedSidebarHistory />
             <SidebarMenu>
               {navLinks.filter(link => !link.hidden).map((link) => {
-                const iconKey = (link.icon ?? 'Folder') as keyof typeof LucideIcons;
-                const Icon = (LucideIcons as any)[iconKey] || LucideIcons.Folder as ElementType;
+                // Convert kebab-case to PascalCase for Lucide icons (e.g. 'message-circle' -> 'MessageCircle')
+                const iconName = (link.icon ?? 'Folder')
+                  .split('-')
+                  .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+                  .join('');
+                
+                const Icon = (LucideIcons as any)[iconName] || LucideIcons.Folder as ElementType;
 
                 const isComingSoon = link.badge === 'coming-soon';
                 // If badge is 'locked', hide it completely for non-owners
