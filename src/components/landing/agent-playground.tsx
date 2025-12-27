@@ -215,7 +215,6 @@ export function AgentPlayground() {
         <div className="w-full max-w-4xl mx-auto">
             <Card className="border-emerald-500/20 bg-white shadow-xl rounded-2xl overflow-hidden relative">
                 {/* Header Section */}
-                {/* Header Section */}
                 <div className="p-4 sm:p-6 pb-2 border-b border-gray-100 flex items-center gap-3">
                      <div className="bg-emerald-100 p-2 rounded-lg">
                         <img 
