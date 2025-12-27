@@ -34,4 +34,14 @@ describe('AgentPlayground', () => {
     expect(screen.getByText('How does BakedBot work?')).toBeInTheDocument();
     expect(screen.getByText('Explain the pricing model')).toBeInTheDocument();
   });
+
+  it('renders the chat input and send button', () => {
+    render(<AgentPlayground />);
+    const input = screen.getByPlaceholderText('Ask about BakedBot...');
+    expect(input).toBeInTheDocument();
+    
+    // Check for "Puff" / "Standard" chips based on text
+    expect(screen.getByText('Puff')).toBeInTheDocument();
+    expect(screen.getByText('Standard')).toBeInTheDocument();
+  });
 });
