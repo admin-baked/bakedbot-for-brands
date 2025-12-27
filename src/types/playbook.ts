@@ -7,11 +7,23 @@ import { AgentTrigger } from './agent-config';
 
 export type PlaybookStatus = 'draft' | 'active' | 'paused' | 'archived';
 
+export type PlaybookCategory = 'intel' | 'marketing' | 'ops' | 'seo' | 'reporting' | 'compliance' | 'custom';
+export type TriggerType = 'manual' | 'schedule' | 'event';
+
+export interface PlaybookTrigger {
+    type: TriggerType;
+    cron?: string;           // For schedule type
+    timezone?: string;       // For schedule type
+    eventName?: string;      // For event type (e.g., 'lead.created', 'page.claimed')
+}
+
 export interface PlaybookStep {
+    id: string;              // Unique step ID for ordering
     action: string;
     params: Record<string, unknown>;
-    agent?: string; // For delegation
-    condition?: string; // Optional if condition
+    agent?: string;          // For delegation
+    condition?: string;      // Optional if condition
+    label?: string;          // Human-readable step name
 }
 
 export interface Playbook {
@@ -20,12 +32,26 @@ export interface Playbook {
     description: string;
     status: PlaybookStatus;
 
-    // YAML source
-    yaml: string;
+    // Agent & Category
+    agent: string;           // Responsible agent (smokey, craig, pops, etc.)
+    category: PlaybookCategory;
+    icon?: string;           // Lucide icon name
+
+    // YAML source (optional - for advanced users)
+    yaml?: string;
 
     // Parsed structure
-    triggers: AgentTrigger[];
+    triggers: PlaybookTrigger[];
     steps: PlaybookStep[];
+
+    // Ownership & Access
+    ownerId: string;         // User who owns this playbook
+    ownerName?: string;      // Display name for owner
+    isCustom: boolean;       // true = user-created, false = system template
+    templateId?: string;     // If cloned from a template
+
+    // Approval
+    requiresApproval: boolean; // Auto-detected based on customer-facing email steps
 
     // Execution stats
     lastRunAt?: Date;
@@ -36,7 +62,7 @@ export interface Playbook {
     // Metadata
     createdAt: Date;
     updatedAt: Date;
-    createdBy: string;
+    createdBy: string;       // Original creator (may differ from owner)
     orgId: string;
 
     // Version control
