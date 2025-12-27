@@ -107,6 +107,25 @@ export const POST = withProtection(
                     response = `📧 **Drafting Email: ${params.topic || 'Campaign'}**\n\nSubject: Exclusive: ${params.topic}\n\nHey there,\n\nWe saw you haven't stopped by in a while, and we wanted to treat you to something special... [Draft continued]\n\n(Would you like me to send this to the '${params.audience || 'All Users'}' segment?)`;
                 } else if (params.action === 'create_campaign') {
                     response = `🚀 **Campaign Created: ${params.topic}**\n\nTargeting: ${params.audience || 'General Audience'}\nChannels: Email, SMS\nStatus: Draft\n\nYou can view and edit this in my dashboard. shall I launch a test send?`;
+                } else if (params.action === 'create_video') {
+                     // NEW: Handle Video Generation
+                     try {
+                        const { generateMarketingVideo } = await import('@/ai/flows/generate-video');
+                        const videoResult = await generateMarketingVideo({
+                            prompt: params.topic || 'A creative cannabis brand video',
+                            duration: '5',
+                            aspectRatio: '16:9'
+                        });
+
+                        if (videoResult.videoUrl) {
+                             response = `🎥 **Video Generated: ${params.topic}**\n\nI've created a video based on your request using our AI video engine.\n\n![Generated Video](${videoResult.videoUrl})\n\n(Asset saved to media library)`;
+                        } else {
+                            response = "I tried to generate a video, but the AI engine didn't return a valid URL. Please try again.";
+                        }
+                     } catch (err) {
+                         logger.error('Video Generation Error', err);
+                         response = "I encountered an error generating the video. Please check the logs.";
+                     }
                 }
 
                 if (userId && currentSessionId) {
