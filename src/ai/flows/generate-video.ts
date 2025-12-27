@@ -61,7 +61,10 @@ const generateVideoFlow = ai.defineFlow(
             console.warn('[generateVideoFlow] Failed to fetch provider setting, defaulting to Veo.');
         }
 
+        console.log(`[generateVideoFlow] ========================================`);
         console.log(`[generateVideoFlow] Primary Provider: ${provider.toUpperCase()}`);
+        console.log(`[generateVideoFlow] Input: ${JSON.stringify(input)}`);
+        console.log(`[generateVideoFlow] ========================================`);
 
         if (provider === 'sora' || provider === 'sora-pro') {
             const isPro = provider === 'sora-pro';
@@ -72,7 +75,9 @@ const generateVideoFlow = ai.defineFlow(
                 console.log(`[generateVideoFlow] Attempting Sora (${isPro ? 'Pro' : 'Standard'})...`);
                 return await generateSoraVideo(input, { model: modelId });
             } catch (soraError: unknown) {
-                console.error('[generateVideoFlow] Sora Failed:', (soraError as Error).message);
+                const err = soraError as Error;
+                console.error('[generateVideoFlow] Sora Failed:', err.message);
+                console.error('[generateVideoFlow] Sora Error Details:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
                 
                 try {
                     console.log('[generateVideoFlow] Fallback to Veo 3.0...');
