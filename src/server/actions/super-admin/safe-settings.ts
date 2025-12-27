@@ -40,12 +40,15 @@ interface UpdateVideoProviderInput {
 
 export async function getSafeVideoProviderAction() {
     try {
-        await verifySafeSuperAdmin();
+        // Allow public/internal read access for AI generation
+        // await verifySafeSuperAdmin(); 
         const { getAdminFirestore } = await getFirebase();
         const firestore = getAdminFirestore();
         const doc = await firestore.collection('settings').doc('system').get();
-        if (!doc.exists) return 'veo';
-        return doc.data()?.videoProvider || 'veo';
+        const provider = doc.exists ? (doc.data()?.videoProvider || 'veo') : 'veo';
+        
+        console.log(`[safe-settings] getSafeVideoProviderAction: ${provider}`);
+        return provider;
     } catch (error: unknown) {
         console.error('[safe-settings] Failed to get video provider:', error instanceof Error ? error.message : String(error));
         return 'veo';
@@ -78,12 +81,15 @@ interface UpdateEmailProviderInput {
 
 export async function getSafeEmailProviderAction() {
     try {
-        await verifySafeSuperAdmin();
+        // Allow public/internal read access
+        // await verifySafeSuperAdmin();
         const { getAdminFirestore } = await getFirebase();
         const firestore = getAdminFirestore();
         const doc = await firestore.collection('settings').doc('system').get();
-        if (!doc.exists) return 'sendgrid'; 
-        return doc.data()?.emailProvider || 'sendgrid';
+        const provider = doc.exists ? (doc.data()?.emailProvider || 'sendgrid') : 'sendgrid';
+        
+        console.log(`[safe-settings] getSafeEmailProviderAction: ${provider}`);
+        return provider;
     } catch (error: unknown) {
         console.error('[safe-settings] Failed to get email provider:', error instanceof Error ? error.message : String(error));
         return 'sendgrid';
