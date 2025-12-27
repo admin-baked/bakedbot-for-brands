@@ -123,7 +123,7 @@ export const POST = withProtection(
                             response = "I tried to generate a video, but the AI engine didn't return a valid URL. Please try again.";
                         }
                      } catch (err) {
-                         logger.error('Video Generation Error', err);
+                         logger.error('Video Generation Error', err instanceof Error ? err : new Error(String(err)));
                          response = "I encountered an error generating the video. Please check the logs.";
                      }
                 }
