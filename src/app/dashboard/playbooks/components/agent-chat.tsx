@@ -802,7 +802,7 @@ export function AgentChat({
                 <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder={hasMessages ? "Reply, or use microphone..." : "Ask Baked HQ anything..."}
+                    placeholder={hasMessages ? "Reply, or use microphone..." : "Ask Smokey anything..."}
                     className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base"
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {

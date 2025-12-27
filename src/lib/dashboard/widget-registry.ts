@@ -315,7 +315,7 @@ const WIDGET_DEFINITIONS: WidgetConfig[] = [
     {
         id: 'brand-chat',
         type: 'brand-chat',
-        title: 'Ask Baked HQ',
+        title: 'Smokey Chat',
         description: 'AI assistant for brand operations',
         component: 'BrandChatWidgetWrapper',
         minWidth: 4,

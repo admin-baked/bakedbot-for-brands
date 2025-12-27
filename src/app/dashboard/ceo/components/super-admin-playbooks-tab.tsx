@@ -297,7 +297,7 @@ export default function SuperAdminPlaybooksTab() {
                     <div className="bg-muted/30 p-4 border-b">
                         <h3 className="font-semibold text-sm flex items-center gap-2">
                             <Sparkles className="h-4 w-4 text-primary" />
-                            Ask Baked HQ
+                            Smokey Chat
                         </h3>
                     </div>
                     <div className="h-[400px]">
