@@ -21,10 +21,10 @@ export async function generateSoraVideo(input: GenerateVideoInput): Promise<Gene
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: 'sora-1.0-turbo',
+                model: 'sora-2', // Updated to latest model
                 prompt: input.prompt,
                 size: input.aspectRatio === '16:9' ? '1920x1080' : '1080x1920',
-                quality: 'standard',
+                seconds: input.duration === '10' ? 8 : 4, // Map 5/10 to valid 4/8 seconds
             })
         });
 
