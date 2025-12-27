@@ -43,11 +43,10 @@ const AGENT_MAP = {
 };
 
 // Unified example prompts (mixed agents)
-// Unified example prompts (mixed agents)
 // Updated for Demo Mode: Focus on explaining the tool/platform
 const EXAMPLE_PROMPTS = [
     { text: "How does BakedBot work?", agentId: 'hq' },
-    { text: "What can the Agent Squad do?", agentId: 'hq' },
+    { text: "Create an image of a futuristic dispensary", agentId: 'hq' },
     { text: "Show me a demo of product search", agentId: 'smokey' },
     { text: "Explain the pricing model", agentId: 'hq' },
 ];
@@ -150,8 +149,8 @@ export function AgentPlayground() {
 
         // Determine thought pattern based on intent
         let steps = THOUGHT_PRESETS.default;
-        if (demoPrompt.toLowerCase().includes('image') || agentId === 'midjourney') steps = THOUGHT_PRESETS.image;
-        else if (demoPrompt.toLowerCase().includes('video') || agentId === 'sora') steps = THOUGHT_PRESETS.video;
+        if (demoPrompt.toLowerCase().includes('image')) steps = THOUGHT_PRESETS.image;
+        else if (demoPrompt.toLowerCase().includes('video')) steps = THOUGHT_PRESETS.video;
         
         setThoughtSteps(steps);
         setIsThinking(true); // Start visualization
@@ -318,32 +317,7 @@ export function AgentPlayground() {
                             <p className="text-emerald-600 font-medium mb-8">How can I help you?</p>
                             
                             <div className="w-full max-w-sm space-y-4">
-                                <Button 
-                                    size="lg" 
-                                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-200/50 rounded-full h-12 text-base font-medium"
-                                    onClick={() => runDemo('Find product recommendations for relaxing at home', 'smokey')}
-                                >
-                                    <div className="bg-white/20 p-1 rounded-full mr-2">
-                                        <Sparkles className="w-4 h-4 text-white" />
-                                    </div>
-                                    Find product recommendations
-                                </Button>
-
-                                <button 
-                                    onClick={() => {
-                                        // Focus input or show specific prompts
-                                        const input = document.querySelector('input[name="chat-input"]') as HTMLInputElement;
-                                        if (input) input.focus();
-                                    }}
-                                    className="flex items-center justify-center gap-1 text-emerald-600 font-medium hover:text-emerald-700 hover:underline transition-all mx-auto text-sm"
-                                >
-                                    Just ask me a question 
-                                    <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
-                                </button>
-                                
-                                {/* Secondary Actions / Discovery could go here if needed, 
-                                    but for now keeping it clean as per screenshot 
-                                */}
+                                {/* Removed retail-specific buttons to prevent UI regression */}
                             </div>
                         </div>
                     )}
