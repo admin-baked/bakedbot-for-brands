@@ -6,18 +6,31 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ChatMediaPreview, extractMediaFromToolResponse } from '@/components/chat/chat-media-preview';
+
+// Mock useToast
+jest.mock('@/hooks/use-toast', () => ({
+    useToast: () => ({
+        toast: jest.fn(),
+    }),
+}));
 
 // Mock window.open and URL methods
 const mockOpen = jest.fn();
 const mockCreateObjectURL = jest.fn(() => 'blob:test-url');
 const mockRevokeObjectURL = jest.fn();
+const mockClipboardWriteText = jest.fn().mockResolvedValue(undefined);
 
 beforeAll(() => {
     global.window.open = mockOpen;
     global.URL.createObjectURL = mockCreateObjectURL;
     global.URL.revokeObjectURL = mockRevokeObjectURL;
+    Object.assign(navigator, {
+        clipboard: {
+            writeText: mockClipboardWriteText,
+        },
+    });
 });
 
 afterEach(() => {
@@ -62,6 +75,18 @@ describe('ChatMediaPreview', () => {
             
             expect(screen.getByText('Image')).toBeInTheDocument();
         });
+
+        it('should render in square aspect ratio container', () => {
+            render(
+                <ChatMediaPreview 
+                    type="image" 
+                    url="https://example.com/image.png" 
+                />
+            );
+            
+            const container = screen.getByTestId('image-preview').parentElement;
+            expect(container).toHaveClass('aspect-square');
+        });
     });
 
     describe('Video Preview', () => {
@@ -101,6 +126,18 @@ describe('ChatMediaPreview', () => {
             const video = screen.getByTestId('video-player');
             expect(video).toHaveAttribute('controls');
         });
+
+        it('should render video in square aspect ratio container', () => {
+            render(
+                <ChatMediaPreview 
+                    type="video" 
+                    url="https://example.com/video.mp4" 
+                />
+            );
+            
+            const container = screen.getByTestId('video-player').parentElement;
+            expect(container).toHaveClass('aspect-square');
+        });
     });
 
     describe('Loading State', () => {
@@ -127,7 +164,58 @@ describe('ChatMediaPreview', () => {
                 />
             );
             
-            expect(screen.getByText('"A product showcase video"')).toBeInTheDocument();
+            expect(screen.getByText('A product showcase video')).toBeInTheDocument();
+        });
+
+        it('should show progress bar when progress prop is provided', () => {
+            render(
+                <ChatMediaPreview 
+                    type="video" 
+                    url="" 
+                    isLoading={true}
+                    progress={45}
+                />
+            );
+            
+            expect(screen.getByTestId('progress-bar')).toBeInTheDocument();
+        });
+
+        it('should display progress percentage', () => {
+            render(
+                <ChatMediaPreview 
+                    type="video" 
+                    url="" 
+                    isLoading={true}
+                    progress={75}
+                />
+            );
+            
+            expect(screen.getByTestId('progress-percentage')).toHaveTextContent('75%');
+        });
+
+        it('should display a Friday quote while loading', () => {
+            render(
+                <ChatMediaPreview 
+                    type="video" 
+                    url="" 
+                    isLoading={true}
+                />
+            );
+            
+            expect(screen.getByTestId('friday-quote')).toBeInTheDocument();
+        });
+
+        it('should render loading in square aspect ratio container', () => {
+            render(
+                <ChatMediaPreview 
+                    type="video" 
+                    url="" 
+                    isLoading={true}
+                />
+            );
+            
+            const container = screen.getByTestId('media-preview-loading').querySelector('.aspect-square');
+            expect(container).toBeInTheDocument();
         });
     });
 
@@ -154,6 +242,17 @@ describe('ChatMediaPreview', () => {
             expect(screen.getByTestId('open-button')).toBeInTheDocument();
         });
 
+        it('should have share button', () => {
+            render(
+                <ChatMediaPreview 
+                    type="video" 
+                    url="https://example.com/video.mp4" 
+                />
+            );
+            
+            expect(screen.getByTestId('share-button')).toBeInTheDocument();
+        });
+
         it('should open URL in new tab when open button clicked', () => {
             render(
                 <ChatMediaPreview 
@@ -164,6 +263,21 @@ describe('ChatMediaPreview', () => {
             
             fireEvent.click(screen.getByTestId('open-button'));
             expect(mockOpen).toHaveBeenCalledWith('https://example.com/image.png', '_blank');
+        });
+
+        it('should copy URL to clipboard when share button clicked (desktop fallback)', async () => {
+            render(
+                <ChatMediaPreview 
+                    type="video" 
+                    url="https://example.com/video.mp4" 
+                />
+            );
+            
+            fireEvent.click(screen.getByTestId('share-button'));
+            
+            await waitFor(() => {
+                expect(mockClipboardWriteText).toHaveBeenCalledWith('https://example.com/video.mp4');
+            });
         });
     });
 
@@ -261,5 +375,6 @@ describe('Accessibility', () => {
         expect(screen.getByTestId('image-preview')).toBeInTheDocument();
         expect(screen.getByTestId('download-button')).toBeInTheDocument();
         expect(screen.getByTestId('open-button')).toBeInTheDocument();
+        expect(screen.getByTestId('share-button')).toBeInTheDocument();
     });
 });
