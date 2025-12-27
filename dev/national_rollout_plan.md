@@ -211,6 +211,22 @@ When page traffic crosses thresholds:
 
 ---
 
+## CRM Definitions (Clarification)
+
+### 1. Platform CRM (Super Admin)
+**Target:** Brands & Dispensaries (B2B Leads).
+**Sources:** Agent Playground (Homepage), Claim Flow, Contact Forms.
+**Goal:** Convert Leads → Paid Subscribers (Claim Pro/Growth).
+**Stored in:** `leads` collection, `foot_traffic/crm/brands` & `dispensaries`.
+
+### 2. Tenant CRM (Brand/Dispensary Dashboard)
+**Target:** Cannabis Shoppers (B2C Customers).
+**Sources:** Menu Orders, Smokey Chat, POS Connectors.
+**Goal:** Convert Shoppers → Repeat Buyers.
+**Stored in:** `tenants/{tenantId}/customers`.
+
+---
+
 ## Decision Summary
 
 * **Claim should be subscription-based** (default $99/mo) to fund ongoing value.

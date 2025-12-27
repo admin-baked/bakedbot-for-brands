@@ -2,6 +2,24 @@
 
 ---
 
+## Session: 2025-12-27 (Platform Leads CRM Integration)
+### Task ID
+crm-lite-leads-001
+
+### Summary
+Integrated "Platform Leads" from Agent Playground into Super Admin CRM dashboard. Distinct from Tenant CRM (shoppers).
+
+### Key Changes
+*   **Service Layer** (`src/server/services/crm-service.ts`):
+    - Added `getPlatformLeads()` to fetch from global `leads` collection.
+    - Updated `getCRMStats()` to include total lead count.
+
+*   **Dashboard UI** (`src/app/dashboard/ceo/components/crm-tab.tsx`):
+    - Added "Inbound Leads" tab.
+    - Added searchable table for B2B prospects.
+
+### Result: ✅ Live (v1.6.0)
+
 ## Session: 2025-12-27 (Agent Playground Homepage Feature)
 ### Task ID
 agent-playground-001

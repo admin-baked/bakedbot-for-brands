@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Building2, Store, Search, Globe, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Building2, Store, Search, Globe, CheckCircle, XCircle, Inbox } from 'lucide-react';
 import {
     Table,
     TableBody,
@@ -23,7 +23,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getBrands, getDispensaries, getCRMStats, type CRMBrand, type CRMDispensary, type CRMFilters } from '@/server/services/crm-service';
+import { getBrands, getDispensaries, getPlatformLeads, getCRMStats, type CRMBrand, type CRMDispensary, type CRMLead, type CRMFilters } from '@/server/services/crm-service';
 
 const US_STATES = [
     'All States',
@@ -41,7 +41,7 @@ export default function CRMTab() {
     const { toast } = useToast();
 
     // Stats
-    const [stats, setStats] = useState<{ totalBrands: number; totalDispensaries: number; claimedBrands: number; claimedDispensaries: number } | null>(null);
+    const [stats, setStats] = useState<{ totalBrands: number; totalDispensaries: number; claimedBrands: number; claimedDispensaries: number; totalPlatformLeads: number } | null>(null);
 
     // Brands
     const [brands, setBrands] = useState<CRMBrand[]>([]);
@@ -55,10 +55,16 @@ export default function CRMTab() {
     const [dispSearch, setDispSearch] = useState('');
     const [dispState, setDispState] = useState('All States');
 
+    // Leads (Platform)
+    const [leads, setLeads] = useState<CRMLead[]>([]);
+    const [leadsLoading, setLeadsLoading] = useState(true);
+    const [leadSearch, setLeadSearch] = useState(''); // Search by email/company
+
     useEffect(() => {
         loadStats();
         loadBrands();
         loadDispensaries();
+        loadLeads();
     }, []);
 
     const loadStats = async () => {
@@ -100,12 +106,30 @@ export default function CRMTab() {
         }
     };
 
+    const loadLeads = async () => {
+        setLeadsLoading(true);
+        try {
+            const filters: CRMFilters = {};
+            if (leadSearch) filters.search = leadSearch;
+            const data = await getPlatformLeads(filters);
+            setLeads(data);
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        } finally {
+            setLeadsLoading(false);
+        }
+    };
+
     const handleBrandSearch = () => {
         loadBrands();
     };
 
     const handleDispSearch = () => {
         loadDispensaries();
+    };
+
+    const handleLeadSearch = () => {
+        loadLeads();
     };
 
     return (
@@ -143,6 +167,12 @@ export default function CRMTab() {
                             <CardTitle className="text-3xl text-green-600">{stats.claimedDispensaries}</CardTitle>
                         </CardHeader>
                     </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardDescription>Inbound Leads</CardDescription>
+                            <CardTitle className="text-3xl text-blue-600">{stats.totalPlatformLeads}</CardTitle>
+                        </CardHeader>
+                    </Card>
                 </div>
             )}
 
@@ -156,6 +186,10 @@ export default function CRMTab() {
                     <TabsTrigger value="dispensaries" className="gap-2">
                         <Store className="h-4 w-4" />
                         Dispensaries
+                    </TabsTrigger>
+                    <TabsTrigger value="leads" className="gap-2">
+                        <Inbox className="h-4 w-4" />
+                        Inbound Leads
                     </TabsTrigger>
                 </TabsList>
 
@@ -329,6 +363,73 @@ export default function CRMTab() {
                                                             Unclaimed
                                                         </Badge>
                                                     )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+
+                {/* Leads Tab */}
+                <TabsContent value="leads" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Inbound Platform Leads</CardTitle>
+                            <CardDescription>
+                                B2B prospects captured via Agent Playground and claim flows.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* Filters */}
+                            <div className="flex gap-2">
+                                <Input
+                                    placeholder="Search by email or company..."
+                                    value={leadSearch}
+                                    onChange={(e) => setLeadSearch(e.target.value)}
+                                    className="max-w-xs"
+                                />
+                                <Button onClick={handleLeadSearch}>
+                                    <Search className="h-4 w-4" />
+                                </Button>
+                            </div>
+
+                            {/* Table */}
+                            {leadsLoading ? (
+                                <div className="flex justify-center py-8">
+                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                </div>
+                            ) : leads.length === 0 ? (
+                                <p className="text-center text-muted-foreground py-8">
+                                    No leads found. Check Agent Playground activity.
+                                </p>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Company</TableHead>
+                                            <TableHead>Source</TableHead>
+                                            <TableHead>Demos</TableHead>
+                                            <TableHead>Captured</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {leads.slice(0, 50).map((lead) => (
+                                            <TableRow key={lead.id}>
+                                                <TableCell className="font-medium">
+                                                    <div>{lead.email}</div>
+                                                </TableCell>
+                                                <TableCell>{lead.company}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">{lead.source}</Badge>
+                                                </TableCell>
+                                                <TableCell>{lead.demoCount}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">
+                                                    {new Date(lead.createdAt).toLocaleDateString()}
                                                 </TableCell>
                                             </TableRow>
                                         ))}

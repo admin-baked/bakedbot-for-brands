@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 
 import { LiveStats } from "@/components/landing/live-stats";
+import { AgentPlayground } from "@/components/landing/agent-playground";
 import { PLATFORM_PLANS, ADDONS, OVERAGES } from "@/lib/config/pricing";
 import { useUser } from "@/hooks/use-user";
 
@@ -446,7 +447,7 @@ export default function HomePage() {
 
         <div className="mx-auto max-w-6xl px-4 pt-16 pb-10">
           <div className="mx-auto max-w-3xl text-center">
-            <Badge className="mb-4">Autonomous Cannabis Commerce OS</Badge>
+            <Badge className="mb-4">Try it right now — no signup required</Badge>
             <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">
               Get found on Google. Convert shoppers. Stay compliant.
               <span className="block text-2xl md:text-3xl mt-2 text-muted-foreground font-normal">(For Brands & Dispensaries)</span>
@@ -470,12 +471,9 @@ export default function HomePage() {
               </Button>
             </div>
 
-            <div className="mt-10 relative rounded-xl overflow-hidden shadow-2xl border border-border">
-              <img
-                src="https://bakedbot.ai/demo-menu-hero.png"
-                alt="BakedBot AI Demo Menu"
-                className="w-full h-auto"
-              />
+            {/* Agent Playground - Interactive Demo */}
+            <div className="mt-10">
+              <AgentPlayground />
             </div>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
