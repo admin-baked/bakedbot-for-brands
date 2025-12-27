@@ -4,11 +4,19 @@ import { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
 // OpenAI Sora API job states - includes all observed statuses
 type SoraJobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'queued' | 'in_progress';
 
-// OpenAI Sora API response structure - handles multiple possible formats
+// OpenAI Sora API response structure - based on actual observed response
 interface SoraJobResponse {
     id: string;
     object?: string;
     status: SoraJobStatus;
+    created_at?: number;
+    completed_at?: number;
+    expires_at?: number;
+    model?: string;
+    progress?: number;
+    prompt?: string;
+    seconds?: string | number;
+    size?: string;
     // Multiple possible locations for video URL
     output?: {
         video_url?: string;
@@ -26,7 +34,7 @@ interface SoraJobResponse {
     error?: {
         message: string;
         code?: string;
-    };
+    } | null;
 }
 
 // Constants
@@ -167,25 +175,57 @@ async function pollForCompletion(
                 // Log full response for debugging
                 console.log(`[SoraGenerator] Full completed response: ${JSON.stringify(job)}`);
                 
-                // Try multiple possible locations for video URL
-                const videoUrl = 
-                    job.output?.video_url || 
-                    job.output?.url || 
-                    job.output?.video ||
-                    job.video_url ||
-                    job.url ||
-                    job.video ||
-                    job.download_urls?.[0] ||
-                    job.downloads?.[0]?.url;
-                    
-                if (!videoUrl) {
-                    console.error('[SoraGenerator] Response structure:', Object.keys(job));
-                    throw new Error('[SoraGenerator] Job completed but no video URL in response');
+                // OpenAI Sora requires fetching video from the /content endpoint
+                const videoId = job.id;
+                const contentUrl = `${SORA_API_BASE}/${videoId}/content`;
+                
+                console.log(`[SoraGenerator] Downloading video from: ${contentUrl}`);
+                
+                // Download the video from OpenAI
+                const videoResponse = await fetch(contentUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                    },
+                });
+                
+                if (!videoResponse.ok) {
+                    const errorText = await videoResponse.text();
+                    console.error(`[SoraGenerator] Video download failed: ${videoResponse.status} - ${errorText}`);
+                    throw new Error(`[SoraGenerator] Failed to download video: ${videoResponse.status}`);
                 }
+                
+                // Get the video as a blob/buffer
+                const videoBuffer = await videoResponse.arrayBuffer();
+                console.log(`[SoraGenerator] Downloaded video, size: ${videoBuffer.byteLength} bytes`);
+                
+                // Upload to Firebase Storage for public access
+                const { getStorage } = await import('firebase-admin/storage');
+                const storage = getStorage();
+                const bucket = storage.bucket();
+                const fileName = `generated-videos/${videoId}.mp4`;
+                const file = bucket.file(fileName);
+                
+                await file.save(Buffer.from(videoBuffer), {
+                    contentType: 'video/mp4',
+                    metadata: {
+                        metadata: {
+                            generatedBy: 'sora-2',
+                            prompt: job.prompt,
+                        }
+                    }
+                });
+                
+                // Make the file publicly accessible
+                await file.makePublic();
+                const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+                
+                console.log(`[SoraGenerator] Video uploaded to: ${publicUrl}`);
+                
                 return {
-                    videoUrl,
+                    videoUrl: publicUrl,
                     thumbnailUrl: undefined,
-                    duration: 5,
+                    duration: parseInt(job.seconds as string || '5', 10) || 5,
                 };
 
             case 'failed':
