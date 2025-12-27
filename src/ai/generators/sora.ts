@@ -202,8 +202,8 @@ async function pollForCompletion(
                 // Upload to Firebase Storage for public access
                 const { getStorage } = await import('firebase-admin/storage');
                 const storage = getStorage();
-                // Specify bucket name explicitly - required for App Hosting
-                const bucketName = process.env.FIREBASE_STORAGE_BUCKET || 'studio-567050101-bc6e8.firebasestorage.app';
+                // Use the existing bakedbot-global-assets bucket (already configured for public access)
+                const bucketName = process.env.FIREBASE_STORAGE_BUCKET || 'bakedbot-global-assets';
                 const bucket = storage.bucket(bucketName);
                 const fileName = `generated-videos/${videoId}.mp4`;
                 const file = bucket.file(fileName);
