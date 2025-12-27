@@ -2,6 +2,35 @@
 
 ---
 
+## Session: 2025-12-27 (Sora Video Generator Fix)
+### Task ID
+sora-video-fix-001
+
+### Summary
+Fixed the Sora video generator which was using an incorrect API implementation. Rewrote the generator to use OpenAI's async job-based API flow with proper polling.
+
+### Root Cause
+- **Wrong endpoint**: Code was calling `https://api.openai.com/v1/videos` but should be `https://api.openai.com/v1/video/generations`
+- **Synchronous assumption**: Code expected immediate video URL, but Sora uses async job workflow
+- **Missing polling**: No logic to wait for job completion
+
+### Key Changes
+*   **MOD**: `src/ai/generators/sora.ts` - Complete rewrite with async job flow:
+    - `createVideoJob()` - POSTs to create generation job
+    - `pollForCompletion()` - Polls until completed/failed
+    - Configurable poll interval for testing
+*   **MOD**: `src/ai/flows/generate-video.ts` - Enhanced error logging
+*   **MOD**: `tests/ai/sora-generator.test.ts` - Updated tests for async flow (8 tests)
+
+### Tests Run
+*   `npm test -- tests/ai/sora-generator.test.ts` (8/8 Passed ✅)
+
+### Notes
+*   The Sora API may still be in limited preview - if 403/404 occurs, error will now be clearly logged instead of silently falling back
+*   Veo (Google) may also need verification once API access is confirmed
+
+---
+
 ## Session: Async Infrastructure (Cloud Tasks)
 ### Task ID
 async-infra-001
