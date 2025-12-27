@@ -29,7 +29,7 @@ export async function generateSoraVideo(
                 model: modelObj, 
                 prompt: input.prompt,
                 size: input.aspectRatio === '16:9' ? '1920x1080' : '1080x1920',
-                seconds: input.duration === '10' ? 8 : 4, // Map 5/10 to valid 4/8 seconds
+                seconds: input.duration === '10' ? '8' : '4', // API requires string enum '4'|'8'|'12'
             })
         });
 
