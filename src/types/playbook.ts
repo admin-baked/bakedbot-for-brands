@@ -8,17 +8,22 @@ import { AgentTrigger } from './agent-config';
 export type PlaybookStatus = 'draft' | 'active' | 'paused' | 'archived';
 
 export type PlaybookCategory = 'intel' | 'marketing' | 'ops' | 'seo' | 'reporting' | 'compliance' | 'custom';
-export type TriggerType = 'manual' | 'schedule' | 'event';
+export type TriggerType = 'manual' | 'schedule' | 'event' | 'calendar';
 
 export interface PlaybookTrigger {
     type: TriggerType;
     cron?: string;           // For schedule type
     timezone?: string;       // For schedule type
     eventName?: string;      // For event type (e.g., 'lead.created', 'page.claimed')
+    // Legacy support fields
+    id?: string;
+    name?: string;
+    config?: Record<string, unknown>;
+    enabled?: boolean;
 }
 
 export interface PlaybookStep {
-    id: string;              // Unique step ID for ordering
+    id?: string;             // Unique step ID for ordering (auto-generated if missing)
     action: string;
     params: Record<string, unknown>;
     agent?: string;          // For delegation

@@ -77,7 +77,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
       // Generate a helpful marketing-focused response using the LLM
       const response = await tools.generateCopy(
         `You are Craig, a marketing and content expert for cannabis brands. Answer this question helpfully: "${stimulus}"`,
-        { brandName: brandMemory.brandName, constraints: brandMemory.constraints }
+        { brandName: (brandMemory as any).brandName || 'Brand', constraints: brandMemory.constraints }
       );
       
       return {

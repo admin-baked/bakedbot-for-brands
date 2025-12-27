@@ -5,7 +5,7 @@
 
 import { Playbook } from '@/types/playbook';
 
-export const DEFAULT_PLAYBOOKS: Omit<Playbook, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'orgId'>[] = [
+export const DEFAULT_PLAYBOOKS: Omit<Playbook, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'orgId' | 'agent' | 'category' | 'ownerId' | 'ownerName' | 'isCustom' | 'requiresApproval'>[] = [
   // 1. Competitive Alerts
   {
     name: 'Competitive Price Watch',

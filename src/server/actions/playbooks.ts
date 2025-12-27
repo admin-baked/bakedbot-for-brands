@@ -338,3 +338,86 @@ export async function runPlaybookTest(brandId: string, playbookId: string) {
     return { success: true, message: 'Test run initiated successfully.' };
 }
 
+/**
+ * Parse natural language into playbook configuration using AI
+ */
+export async function parseNaturalLanguage(prompt: string): Promise<{
+    success: boolean;
+    config?: {
+        name: string;
+        description: string;
+        agent: string;
+        category: PlaybookCategory;
+        triggers: PlaybookTrigger[];
+        steps: PlaybookStep[];
+    };
+    error?: string;
+}> {
+    try {
+        // Dynamic import to avoid SSR issues
+        const { ai } = await import('@/ai/genkit');
+        
+        const systemPrompt = `You are a playbook configuration generator. Given a natural language description of an automation workflow, extract a structured playbook configuration.
+
+Available agents: smokey (products/recommendations), craig (marketing/content), pops (analytics/reporting), ezal (competitor intel), money_mike (pricing/finance), deebo (compliance), mrs_parker (loyalty/retention)
+
+Available actions: delegate, gmail.send, query, analyze, generate, deebo.check_content, notify, parallel
+
+Available trigger types: manual, schedule (with cron), event (lead.created, page.claimed, order.completed, review.received, inventory.low)
+
+Return ONLY valid JSON with this exact structure:
+{
+  "name": "string",
+  "description": "string", 
+  "agent": "string (agent id)",
+  "category": "intel|marketing|ops|seo|reporting|compliance|custom",
+  "triggers": [{"type": "manual|schedule|event", "cron?": "string", "eventName?": "string"}],
+  "steps": [{"id": "uuid", "action": "string", "params": {}, "agent?": "string", "label": "string"}]
+}`;
+
+        const result = await ai.generate({
+            prompt: `${systemPrompt}\n\nUser request: "${prompt}"`,
+        });
+
+        const text = result.text.trim();
+        
+        // Extract JSON from response (handle markdown code blocks)
+        let jsonStr = text;
+        const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) {
+            jsonStr = jsonMatch[1].trim();
+        }
+        
+        const config = JSON.parse(jsonStr);
+
+        // Generate IDs for steps if missing
+        if (config.steps) {
+            config.steps = config.steps.map((step: any, idx: number) => ({
+                ...step,
+                id: step.id || crypto.randomUUID(),
+                label: step.label || `Step ${idx + 1}`
+            }));
+        }
+
+        return { success: true, config };
+    } catch (error: any) {
+        console.error('[Playbooks] parseNaturalLanguage failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Create playbook from natural language description
+ */
+export async function createPlaybookFromNaturalLanguage(
+    brandId: string,
+    prompt: string
+): Promise<{ success: boolean; playbook?: Playbook; error?: string }> {
+    const parseResult = await parseNaturalLanguage(prompt);
+    
+    if (!parseResult.success || !parseResult.config) {
+        return { success: false, error: parseResult.error || 'Failed to parse prompt' };
+    }
+    
+    return createPlaybook(brandId, parseResult.config);
+}
