@@ -13,7 +13,8 @@ export async function generateSoraVideo(input: GenerateVideoInput): Promise<Gene
     }
 
     try {
-        const response = await fetch('https://api.openai.com/v1/video/generations', {
+        // Attempting primary endpoint based on beta documentation
+        const response = await fetch('https://api.openai.com/v1/videos', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
