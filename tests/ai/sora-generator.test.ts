@@ -8,6 +8,19 @@ const TEST_OPTIONS: SoraGeneratorOptions = {
     maxPollAttempts: 10,
 };
 
+// Mock Firebase Admin Storage
+jest.mock('firebase-admin/storage', () => ({
+    getStorage: jest.fn(() => ({
+        bucket: jest.fn(() => ({
+            file: jest.fn(() => ({
+                save: jest.fn().mockResolvedValue(undefined),
+                makePublic: jest.fn().mockResolvedValue(undefined),
+            })),
+            name: 'studio-567050101-bc6e8.firebasestorage.app',
+        })),
+    })),
+}));
+
 describe('Sora Generator', () => {
     const originalFetch = global.fetch;
     const mockFetch = jest.fn();
@@ -15,49 +28,68 @@ describe('Sora Generator', () => {
     beforeAll(() => {
         global.fetch = mockFetch;
         process.env.OPENAI_VIDEO_API_KEY = 'test-key';
+        process.env.FIREBASE_STORAGE_BUCKET = 'test-bucket.firebasestorage.app';
     });
 
     afterAll(() => {
         global.fetch = originalFetch;
         delete process.env.OPENAI_VIDEO_API_KEY;
+        delete process.env.FIREBASE_STORAGE_BUCKET;
     });
 
     beforeEach(() => {
         mockFetch.mockReset();
     });
 
-    test('successfully generates video url via async job flow', async () => {
+    // Helper to create standard mock responses
+    const mockJobCreation = (jobId: string) => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ id: jobId })
+        });
+    };
+
+    const mockPollResponse = (jobId: string, status: string, extra = {}) => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ 
+                id: jobId, 
+                status,
+                seconds: '4',
+                prompt: 'test prompt',
+                ...extra 
+            })
+        });
+    };
+
+    const mockVideoDownload = (size = 1000) => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            arrayBuffer: async () => new ArrayBuffer(size)
+        });
+    };
+
+    test('successfully generates video via async job flow with download and upload', async () => {
         const input: GenerateVideoInput = { prompt: 'Test Prompt', duration: '5' };
         
-        // Mock job creation response
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ id: 'job-123' })
-        });
+        // Mock job creation
+        mockJobCreation('video-123');
 
         // Mock first poll: pending
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ 
-                id: 'job-123', 
-                status: 'pending' 
-            })
-        });
+        mockPollResponse('video-123', 'pending');
 
-        // Mock second poll: completed with video URL
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ 
-                id: 'job-123', 
-                status: 'completed',
-                output: { video_url: 'https://sora.openai.com/video.mp4' }
-            })
-        });
+        // Mock second poll: completed
+        mockPollResponse('video-123', 'completed');
+
+        // Mock video download from /content endpoint
+        mockVideoDownload(1500000); // 1.5MB
 
         const result = await generateSoraVideo(input, TEST_OPTIONS);
         
-        expect(result.videoUrl).toBe('https://sora.openai.com/video.mp4');
-        expect(mockFetch).toHaveBeenCalledTimes(3);
+        // Video should be uploaded to Firebase Storage with public URL
+        expect(result.videoUrl).toContain('storage.googleapis.com');
+        expect(result.videoUrl).toContain('video-123.mp4');
+        expect(mockFetch).toHaveBeenCalledTimes(4);
         
         // Verify job creation request
         expect(mockFetch).toHaveBeenNthCalledWith(1, 
@@ -70,34 +102,35 @@ describe('Sora Generator', () => {
 
         // Verify poll request
         expect(mockFetch).toHaveBeenNthCalledWith(2, 
-            'https://api.openai.com/v1/videos/job-123',
+            'https://api.openai.com/v1/videos/video-123',
             expect.objectContaining({ method: 'GET' })
+        );
+
+        // Verify content download request
+        expect(mockFetch).toHaveBeenNthCalledWith(4, 
+            'https://api.openai.com/v1/videos/video-123/content',
+            expect.objectContaining({ 
+                method: 'GET',
+                headers: expect.objectContaining({
+                    'Authorization': 'Bearer test-key'
+                })
+            })
         );
     });
 
     test('uses sora-2-pro model when specified', async () => {
         const input: GenerateVideoInput = { prompt: 'Pro video test' };
         
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ id: 'job-pro' })
-        });
-
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ 
-                id: 'job-pro', 
-                status: 'completed',
-                output: { video_url: 'https://sora.openai.com/pro-video.mp4' }
-            })
-        });
+        mockJobCreation('job-pro');
+        mockPollResponse('job-pro', 'completed');
+        mockVideoDownload();
 
         const result = await generateSoraVideo(input, { 
             model: 'sora-2-pro',
             ...TEST_OPTIONS 
         });
         
-        expect(result.videoUrl).toBe('https://sora.openai.com/pro-video.mp4');
+        expect(result.videoUrl).toContain('storage.googleapis.com');
         expect(mockFetch).toHaveBeenNthCalledWith(1, 
             expect.any(String),
             expect.objectContaining({
@@ -118,11 +151,7 @@ describe('Sora Generator', () => {
     });
 
     test('throws error if job fails during processing', async () => {
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ id: 'job-fail' })
-        });
-
+        mockJobCreation('job-fail');
         mockFetch.mockResolvedValueOnce({
             ok: true,
             json: async () => ({ 
@@ -136,23 +165,34 @@ describe('Sora Generator', () => {
             .rejects.toThrow('Video generation failed: Content policy violation');
     });
 
-    test('throws error if no video URL in completed response', async () => {
+    test('throws error if video download fails', async () => {
+        mockJobCreation('job-download-fail');
+        mockPollResponse('job-download-fail', 'completed');
+        
+        // Mock failed download
         mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ id: 'job-empty' })
+            ok: false,
+            status: 403,
+            text: async () => 'Forbidden'
         });
 
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ 
-                id: 'job-empty', 
-                status: 'completed',
-                output: {} // Missing video_url
-            })
-        });
+        await expect(generateSoraVideo({ prompt: 'download fail' }, TEST_OPTIONS))
+            .rejects.toThrow('Failed to download video: 403');
+    });
 
-        await expect(generateSoraVideo({ prompt: 'empty' }, TEST_OPTIONS))
-            .rejects.toThrow('Job completed but no video URL in response');
+    test('handles queued and in_progress statuses correctly', async () => {
+        const input: GenerateVideoInput = { prompt: 'Queued video' };
+        
+        mockJobCreation('job-queued');
+        mockPollResponse('job-queued', 'queued');
+        mockPollResponse('job-queued', 'in_progress');
+        mockPollResponse('job-queued', 'completed');
+        mockVideoDownload();
+
+        const result = await generateSoraVideo(input, TEST_OPTIONS);
+        
+        expect(result.videoUrl).toContain('storage.googleapis.com');
+        expect(mockFetch).toHaveBeenCalledTimes(5); // create + 3 polls + download
     });
 
     test('maps aspect ratio correctly', async () => {
@@ -161,19 +201,9 @@ describe('Sora Generator', () => {
             aspectRatio: '9:16' 
         };
         
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ id: 'job-vertical' })
-        });
-
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ 
-                id: 'job-vertical', 
-                status: 'completed',
-                output: { video_url: 'https://sora.openai.com/vertical.mp4' }
-            })
-        });
+        mockJobCreation('job-vertical');
+        mockPollResponse('job-vertical', 'completed');
+        mockVideoDownload();
 
         await generateSoraVideo(input, TEST_OPTIONS);
         
@@ -197,23 +227,32 @@ describe('Sora Generator', () => {
     });
 
     test('times out after max poll attempts', async () => {
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ id: 'job-timeout' })
-        });
+        mockJobCreation('job-timeout');
 
         // All poll responses return pending
         for (let i = 0; i < 10; i++) {
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ 
-                    id: 'job-timeout', 
-                    status: 'pending'
-                })
-            });
+            mockPollResponse('job-timeout', 'pending');
         }
 
         await expect(generateSoraVideo({ prompt: 'timeout' }, TEST_OPTIONS))
             .rejects.toThrow('timed out');
+    });
+
+    test('extracts duration from job response', async () => {
+        mockJobCreation('job-duration');
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ 
+                id: 'job-duration', 
+                status: 'completed',
+                seconds: '8',
+                prompt: 'long video'
+            })
+        });
+        mockVideoDownload();
+
+        const result = await generateSoraVideo({ prompt: 'long', duration: '10' }, TEST_OPTIONS);
+        
+        expect(result.duration).toBe(8);
     });
 });
