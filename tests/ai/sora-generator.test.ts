@@ -16,7 +16,7 @@ jest.mock('firebase-admin/storage', () => ({
                 save: jest.fn().mockResolvedValue(undefined),
                 makePublic: jest.fn().mockResolvedValue(undefined),
             })),
-            name: 'studio-567050101-bc6e8.firebasestorage.app',
+            name: 'bakedbot-global-assets',
         })),
     })),
 }));
