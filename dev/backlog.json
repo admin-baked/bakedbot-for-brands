@@ -819,6 +819,41 @@
             ],
             "area": "full_stack",
             "created_at": "2025-12-18T04:15:00Z"
+        },
+        {
+            "id": "feat_agent_playground",
+            "title": "Agent Playground (Homepage Lead Magnet)",
+            "status": "passing",
+            "description": "Interactive AI agent demos in hero section. Tabbed interface (Smokey, Craig, Pops, Ezal), rate limiting (5/day), result gating (3 shown, 10 locked), email capture with Mailjet welcome email.",
+            "acceptance_tests": [
+                "test_demo_api_response",
+                "test_lead_capture_flow",
+                "test_rate_limiting_logic",
+                "test_result_gating"
+            ],
+            "test_results": {
+                "demo_api": "passed (15 tests)"
+            },
+            "completed_at": "2025-12-27T13:00:00Z",
+            "owner": "antigravity",
+            "dependencies": [],
+            "area": "frontend"
+        },
+        {
+            "id": "feat_editable_playbooks",
+            "title": "Editable Playbooks System (n8n/Zapier Style)",
+            "status": "passing",
+            "description": "Playbook editing with ownership model, smart approval detection, visual step builder, natural language creation via AI.",
+            "acceptance_tests": [
+                "test_playbook_crud",
+                "test_ownership_checks",
+                "test_approval_detection",
+                "test_natural_language_parsing"
+            ],
+            "completed_at": "2025-12-27T11:00:00Z",
+            "owner": "antigravity",
+            "dependencies": [],
+            "area": "full_stack"
         }
     ]
 }
