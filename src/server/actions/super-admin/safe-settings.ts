@@ -1,9 +1,14 @@
 'use server';
 
 import 'server-only';
-import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+
+// Helper to lazy load admin to avoid circular deps or client leakage
+async function getFirebase() {
+    const { getAdminAuth, getAdminFirestore } = await import('@/firebase/admin');
+    return { getAdminAuth, getAdminFirestore };
+}
 
 async function verifySafeSuperAdmin() {
     // Hardcoded for safety in this specific file
@@ -14,6 +19,7 @@ async function verifySafeSuperAdmin() {
     if (!session) throw new Error('Unauthorized: No session');
     
     try {
+        const { getAdminAuth } = await getFirebase();
         const decoded = await getAdminAuth().verifySessionCookie(session, true);
         const email = decoded.email?.toLowerCase() || '';
         const role = decoded.role || '';
@@ -35,6 +41,7 @@ interface UpdateVideoProviderInput {
 export async function getSafeVideoProviderAction() {
     try {
         await verifySafeSuperAdmin();
+        const { getAdminFirestore } = await getFirebase();
         const firestore = getAdminFirestore();
         const doc = await firestore.collection('settings').doc('system').get();
         if (!doc.exists) return 'veo';
@@ -48,6 +55,7 @@ export async function getSafeVideoProviderAction() {
 export async function updateSafeVideoProviderAction(input: UpdateVideoProviderInput) {
     try {
         await verifySafeSuperAdmin();
+        const { getAdminFirestore } = await getFirebase();
         const firestore = getAdminFirestore();
         await firestore.collection('settings').doc('system').set({
             videoProvider: input.provider,
@@ -71,6 +79,7 @@ interface UpdateEmailProviderInput {
 export async function getSafeEmailProviderAction() {
     try {
         await verifySafeSuperAdmin();
+        const { getAdminFirestore } = await getFirebase();
         const firestore = getAdminFirestore();
         const doc = await firestore.collection('settings').doc('system').get();
         if (!doc.exists) return 'sendgrid'; 
@@ -84,6 +93,7 @@ export async function getSafeEmailProviderAction() {
 export async function updateSafeEmailProviderAction(input: UpdateEmailProviderInput) {
     try {
         await verifySafeSuperAdmin();
+        const { getAdminFirestore } = await getFirebase();
         const firestore = getAdminFirestore();
         await firestore.collection('settings').doc('system').set({
             emailProvider: input.provider,
