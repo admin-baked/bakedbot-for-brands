@@ -192,7 +192,8 @@ export function AgentPlayground() {
         <div className="w-full max-w-4xl mx-auto">
             <Card className="border-emerald-500/20 bg-white shadow-xl rounded-2xl overflow-hidden relative">
                 {/* Header Section */}
-                <div className="p-6 pb-2 border-b border-gray-100 flex items-center gap-3">
+                {/* Header Section */}
+                <div className="p-4 sm:p-6 pb-2 border-b border-gray-100 flex items-center gap-3">
                      <div className="bg-emerald-100 p-2 rounded-lg">
                         <Bot className="w-5 h-5 text-emerald-700" />
                      </div>
@@ -206,7 +207,7 @@ export function AgentPlayground() {
                      </div>
                 </div>
 
-                <CardContent className="p-6 pt-6 min-h-[300px] flex flex-col justify-between bg-white relative">
+                <CardContent className="p-4 sm:p-6 pt-6 min-h-[300px] flex flex-col justify-between bg-white relative">
                     {/* Background decoration or 'empty state' if no result */}
                     {!result && !isLoading && (
                         <div className="absolute inset-0 bg-white z-0" />
@@ -281,7 +282,7 @@ export function AgentPlayground() {
                                     value={prompt}
                                     onChange={(e) => setPrompt(e.target.value)}
                                     placeholder="Ask Smokey anything..."
-                                    className="pr-12 py-6 text-base shadow-sm border-gray-200 focus-visible:ring-emerald-500 bg-white"
+                                    className="pr-12 pt-4 pb-12 text-base shadow-sm border-gray-200 focus-visible:ring-emerald-500 bg-white"
                                     disabled={isLoading}
                                 />
                                 {/* Bottom Toolbar in Input */}
@@ -292,21 +293,21 @@ export function AgentPlayground() {
                                     
                                     <div className="h-4 w-px bg-gray-200 mx-1" />
 
-                                    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
+                                    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 px-2 sm:px-3">
                                         <Sparkles className="h-3 w-3" />
-                                        <span className="text-xs font-medium">Puff</span>
+                                        <span className="text-xs font-medium hidden sm:inline">Puff</span>
                                         <ChevronDown className="h-3 w-3 opacity-50" />
                                     </Button>
 
-                                    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-gray-500 hover:text-gray-700">
+                                    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-gray-500 hover:text-gray-700 px-2 sm:px-3">
                                         <Zap className="h-3 w-3" />
-                                        <span className="text-xs font-medium">Standard</span>
+                                        <span className="text-xs font-medium hidden sm:inline">Standard</span>
                                         <ChevronDown className="h-3 w-3 opacity-50" />
                                     </Button>
 
-                                    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-gray-500 hover:text-gray-700">
+                                    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-gray-500 hover:text-gray-700 px-2 sm:px-3">
                                         <Wrench className="h-3 w-3" />
-                                        <span className="text-xs font-medium">Auto Tools</span>
+                                        <span className="text-xs font-medium hidden sm:inline">Auto Tools</span>
                                         <ChevronDown className="h-3 w-3 opacity-50" />
                                     </Button>
                                 </div>

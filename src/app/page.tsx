@@ -448,9 +448,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-4 pt-16 pb-10">
           <div className="mx-auto max-w-3xl text-center">
             <Badge className="mb-4">Try it right now — no signup required</Badge>
-            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight">
               Get found on Google. Convert shoppers. Stay compliant.
-              <span className="block text-2xl md:text-3xl mt-2 text-muted-foreground font-normal">(For Brands & Dispensaries)</span>
+              <span className="block text-xl sm:text-2xl md:text-3xl mt-2 text-muted-foreground font-normal">(For Brands & Dispensaries)</span>
             </h1>
 
             {/* Agent Playground - Interactive Demo */}
