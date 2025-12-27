@@ -1,6 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { 
+    getSafeEmailProviderAction as getEmail,
+    updateSafeEmailProviderAction as updateEmail,
+    getSafeVideoProviderAction as getVideo,
+    updateSafeVideoProviderAction as updateVideo
+} from '@/server/actions/super-admin/safe-settings';
 
 export default function CeoSettingsTab() {
     const [loading, setLoading] = useState(true);
@@ -11,31 +17,41 @@ export default function CeoSettingsTab() {
 
     useEffect(() => {
         setMounted(true);
-        // Load Settings (Mock) - Using Promise chain, NO async/await
-        const timer = setTimeout(() => {
+        // Load Settings using Promise Chains (No async/await)
+        Promise.all([
+            getEmail(),
+            getVideo()
+        ])
+        .then(([emailRes, videoRes]) => {
+            if (emailRes) setEmailProvider(emailRes as 'sendgrid' | 'mailjet');
+            if (videoRes) setVideoProvider(videoRes as 'veo' | 'sora');
+        })
+        .catch(err => {
+            console.error('Failed to load settings:', err);
+        })
+        .finally(() => {
             setLoading(false);
-        }, 500);
-        return () => clearTimeout(timer);
+        });
     }, []);
 
     if (!mounted) {
-        return <div style={{ padding: 20 }}>Loading Promise Mode...</div>;
+        return <div style={{ padding: 20 }}>Loading System Settings...</div>;
     }
 
     const handleSave = () => {
-        // NO async keyword here
         setSaving(true);
         
-        // Use Promise constructor and chains
-        new Promise<void>((resolve) => {
-            setTimeout(() => resolve(), 500);
-        })
+        // Save Settings using Promise Chains (No async/await)
+        Promise.all([
+            updateEmail({ provider: emailProvider }),
+            updateVideo({ provider: videoProvider })
+        ])
         .then(() => {
-            alert('Settings Saved (Promise Mode)');
+            alert('Settings Saved Successfully');
         })
         .catch((error) => {
             console.error('Failed to save settings:', error);
-            alert('Error saving settings');
+            alert('Error saving settings. Check console.');
         })
         .finally(() => {
             setSaving(false);
@@ -52,8 +68,7 @@ export default function CeoSettingsTab() {
 
     return (
         <div style={{ padding: 20, fontFamily: 'system-ui, sans-serif' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>System Settings (Promise Mode)</h2>
-            <p className="mb-4 text-green-600 font-mono text-sm">Async/Await removed to bypass compiler bug.</p>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>System Settings</h2>
 
             {/* Video Provider Selection */}
             <div style={{ border: '1px solid #ccc', padding: 20, borderRadius: 8, marginBottom: 20 }}>
