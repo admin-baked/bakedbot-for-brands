@@ -74,11 +74,54 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
   async act(brandMemory, agentMemory, targetId, tools: CraigTools, stimulus?: string) {
     // Handle chat/conversational requests
     if (targetId === 'chat_response' && stimulus) {
-      // Generate a helpful marketing-focused response using the LLM
-      const response = await tools.generateCopy(
-        `You are Craig, a marketing and content expert for cannabis brands. Answer this question helpfully: "${stimulus}"`,
-        { brandName: (brandMemory as any).brandName || 'Brand', constraints: brandMemory.constraints }
-      );
+      const lowerStimulus = stimulus.toLowerCase();
+      const brandName = (brandMemory as any).brandName || 'your brand';
+      
+      // Detect content creation requests for enhanced prompting
+      const isContentCreation = 
+        lowerStimulus.includes('social media') ||
+        lowerStimulus.includes('post') ||
+        lowerStimulus.includes('announcement') ||
+        lowerStimulus.includes('content') ||
+        lowerStimulus.includes('copy') ||
+        lowerStimulus.includes('write') ||
+        lowerStimulus.includes('draft') ||
+        lowerStimulus.includes('campaign');
+      
+      let systemPrompt: string;
+      
+      if (isContentCreation) {
+        systemPrompt = `You are Craig, a premium marketing and content strategist for cannabis brands. The user is asking about creating content.
+
+Your style:
+- Professional yet engaging
+- High-energy and confident
+- You provide MULTIPLE variations when asked for content
+- You ask clarifying questions when needed (platform, tone, audience)
+- You understand cannabis industry compliance
+
+For social media posts, ALWAYS provide:
+1. At least 2-3 different variations (Professional, Casual/Hype, Educational)
+2. Suggested hashtags relevant to cannabis marketing
+3. Best times to post if relevant
+4. Any compliance notes for cannabis content
+
+Brand context: ${brandName}
+
+User request: "${stimulus}"
+
+Generate a helpful, actionable response with concrete content options.`;
+      } else {
+        systemPrompt = `You are Craig, a marketing and content expert for cannabis brands. Answer this question helpfully and provide actionable advice.
+
+Brand context: ${brandName}
+User question: "${stimulus}"`;
+      }
+      
+      const response = await tools.generateCopy(systemPrompt, { 
+        brandName, 
+        constraints: brandMemory.constraints 
+      });
       
       return {
         updatedMemory: agentMemory,
@@ -86,7 +129,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
           action: 'chat_response',
           result: response,
           next_step: 'await_user_input',
-          metadata: { stimulus }
+          metadata: { stimulus, isContentCreation }
         }
       };
     }
