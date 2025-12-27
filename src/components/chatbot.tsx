@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent, useTransition, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { Bot, MessageSquare, Send, X, ThumbsUp, ThumbsDown, Wand2, Sparkles, HelpCircle, ChevronRight, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -59,6 +60,11 @@ const ChatWindow = ({
   startClassName,
   isSuperAdmin = false,
   onClose,
+  handleQuickQuestion,
+  setHasStartedChat,
+  setIsOnboarding,
+  setMessages,
+  setIsBotTyping,
 }: {
   products: Product[];
   onAskSmokey: (product: Product) => void;
@@ -82,8 +88,14 @@ const ChatWindow = ({
   startClassName?: string;
   isSuperAdmin?: boolean;
   onClose?: () => void;
+  handleQuickQuestion: (text: string) => void;
+  setHasStartedChat: (value: boolean) => void;
+  setIsOnboarding: (value: boolean) => void;
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  setIsBotTyping: (value: boolean) => void;
 }) => {
   const { chatExperience } = useStore();
+  const pathname = usePathname();
 
   return (
     <div data-testid="chat-window" className={cn(
@@ -677,6 +689,11 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
           strategy={positionStrategy}
           startClassName={windowClassName}
           onClose={() => setIsOpen(false)}
+          handleQuickQuestion={handleQuickQuestion}
+          setHasStartedChat={setHasStartedChat}
+          setIsOnboarding={setIsOnboarding}
+          setMessages={setMessages}
+          setIsBotTyping={setIsBotTyping}
         />
       )}
     </>
