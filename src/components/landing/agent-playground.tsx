@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EmailCaptureModal } from './email-capture-modal';
+import { ThoughtProcess, THOUGHT_PRESETS } from './thought-process';
 
 // Mapped agents for backend routing
 const AGENT_MAP = {
@@ -43,11 +44,11 @@ const AGENT_MAP = {
 
 // Unified example prompts (mixed agents)
 const EXAMPLE_PROMPTS = [
-    { text: "Where are we losing velocity and why?", agentId: 'pops' },
+    { text: "Where are we losing velocity?", agentId: 'pops' },
     { text: "Which retailers are underpricing us?", agentId: 'ezal' },
-    { text: "Draft a compliant launch campaign for Gummies", agentId: 'craig' },
-    { text: "Find 20 new dispensaries that match our buyers", agentId: 'ezal' },
-    { text: "Summarize this week: wins, risks, next actions", agentId: 'pops' }
+    { text: "Create an image of a futuristic dispensary", agentId: 'midjourney' },
+    { text: "Create a promo video for 4/20", agentId: 'sora' },
+    { text: "Draft a compliant launch campaign", agentId: 'craig' },
 ];
 
 // Demo result types
@@ -60,6 +61,10 @@ interface DemoResult {
         meta?: string;
     }[];
     totalCount: number;
+    generatedMedia?: {
+        type: 'image' | 'video';
+        url: string;
+    };
 }
 
 // Storage keys
@@ -78,6 +83,8 @@ export function AgentPlayground() {
     const [error, setError] = useState<string | null>(null);
     const [geoData, setGeoData] = useState<LandingGeoData | null>(null);
     const [isGeoLoading, setIsGeoLoading] = useState(false);
+    const [isThinking, setIsThinking] = useState(false);
+    const [thoughtSteps, setThoughtSteps] = useState(THOUGHT_PRESETS.default);
 
     // Load demo count from storage
     useEffect(() => {
@@ -140,6 +147,14 @@ export function AgentPlayground() {
         setResult(null); // Clear previous result
         setActiveAgentId(agentId);
 
+        // Determine thought pattern based on intent
+        let steps = THOUGHT_PRESETS.default;
+        if (demoPrompt.toLowerCase().includes('image') || agentId === 'midjourney') steps = THOUGHT_PRESETS.image;
+        else if (demoPrompt.toLowerCase().includes('video') || agentId === 'sora') steps = THOUGHT_PRESETS.video;
+        
+        setThoughtSteps(steps);
+        setIsThinking(true); // Start visualization
+
         try {
             const response = await fetch('/api/demo/agent', {
                 method: 'POST',
@@ -170,9 +185,17 @@ export function AgentPlayground() {
         } catch (err: any) {
             setError(err.message || 'Something went wrong');
         } finally {
-            setIsLoading(false);
+            // Note: We don't set isLoading(false) here because ThoughtProcess handles the "completion" flow visually.
+            // We'll let the onComplete callback from ThoughtProcess trigger the display of results if we want perfect sync,
+            // OR we just wait for the thought process to finish effectively.
+            // However, for simplicity, we keep isLoading true until thinking is done.
         }
     }, [demoCount, canRunDemo]);
+
+    const handleThoughtComplete = () => {
+        setIsThinking(false);
+        setIsLoading(false);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -215,11 +238,40 @@ export function AgentPlayground() {
 
                     {/* Content Area */}
                     <div className="z-10 flex-1">
-                        {/* Loading State */}
-                        {isLoading && (
-                            <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-lg animate-pulse mb-4">
-                                <Sparkles className="w-5 h-5 text-emerald-600 animate-spin" />
-                                <span className="text-emerald-800 font-medium">Smokey is thinking...</span>
+                        {/* Loading State / Thought Process */}
+                        {isThinking && (
+                            <div className="mb-6">
+                                <ThoughtProcess 
+                                    steps={thoughtSteps} 
+                                    onComplete={handleThoughtComplete} 
+                                />
+                            </div>
+                        )}
+
+                        {/* Generated Media Result */}
+                        {result?.generatedMedia && (
+                            <div className="mb-6 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                                {result.generatedMedia.type === 'image' ? (
+                                    <img 
+                                        src={result.generatedMedia.url} 
+                                        alt="Generated content" 
+                                        className="w-full h-auto object-cover max-h-[400px]"
+                                    />
+                                ) : (
+                                    <video 
+                                        src={result.generatedMedia.url} 
+                                        controls 
+                                        className="w-full h-auto max-h-[400px] bg-black"
+                                    />
+                                )}
+                                <div className="p-3 bg-gray-50 border-t border-gray-100">
+                                    <p className="text-sm font-medium text-gray-900">
+                                        {result.generatedMedia.type === 'image' ? 'Generated Image' : 'Generated Video'}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                        Asset created successfully based on your prompt.
+                                    </p>
+                                </div>
                             </div>
                         )}
 
@@ -261,7 +313,7 @@ export function AgentPlayground() {
                     {/* Input Container */}
                     <div className="z-10 mt-auto space-y-4">
                          {/* Chips */}
-                         {!result && !isLoading && (
+                         {!result && !isThinking && !isLoading && (
                             <div className="flex flex-wrap gap-2 mb-2">
                                 {EXAMPLE_PROMPTS.map((ex, i) => (
                                     <button
