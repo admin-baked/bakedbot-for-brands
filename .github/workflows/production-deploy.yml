@@ -21,6 +21,11 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Run Unit Tests
+        run: npm test
+        env:
+           CI: true
+
       - name: Create Runtime Config
         run: |
           echo "{\"SERPER_API_KEY\": \"$SERPER_API_KEY\"}" > env-config.json
