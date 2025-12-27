@@ -136,32 +136,45 @@ const DEMO_RESPONSES: Record<string, {
 
 export async function POST(request: NextRequest) {
     try {
-        const { agent, prompt } = await request.json();
+        // Context injection (Live Data)
+        const { context } = await request.json();
+        let items = [...demoResponse.items]; // Clone items to modify
 
-        if (!agent || !prompt) {
-            return NextResponse.json(
-                { error: 'Agent and prompt are required' },
-                { status: 400 }
-            );
+        // Inject Real Dispensaries for Ezal (Competitor Output)
+        if (agent === 'ezal' && context?.retailers?.length > 0) {
+            items = items.map((item, idx) => {
+                const retailer = context.retailers[idx];
+                if (retailer && item.title.includes('Competitor #')) {
+                    return {
+                        ...item,
+                        title: `Competitor #${idx+1}: ${retailer.name}`,
+                        description: item.description.replace('Green Leaf Dispensary', retailer.name),
+                        meta: item.meta?.replace('2.3 miles', `${retailer.distance.toFixed(1)} miles`)
+                    };
+                }
+                return item;
+            });
         }
 
-        // Get demo response for the agent
-        const demoResponse = DEMO_RESPONSES[agent];
-        
-        if (!demoResponse) {
-            return NextResponse.json(
-                { error: 'Unknown agent' },
-                { status: 400 }
-            );
+        // Inject Real Brands for Smokey (Product Output)
+        if (agent === 'smokey' && context?.brands?.length > 0) {
+            // Add a "Local Brand Spotlight" item at the top
+            const topBrand = context.brands[0];
+            if (topBrand) {
+                items.unshift({
+                    title: `🔥 Trending Local: ${topBrand.name}`,
+                    description: `Popular in ${context.location?.city || 'your area'}. Found in ${topBrand.productCount} nearby menus. High engagement this week.`,
+                    meta: "Velocity: High | In stock: Yes"
+                });
+                // Remove last item to keep count consistent
+                items.pop();
+            }
         }
-
-        // Simulate processing delay for realism
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
 
         return NextResponse.json({
             agent,
             prompt,
-            items: demoResponse.items,
+            items: items,
             totalCount: demoResponse.totalCount,
             hasImage: true,
             hasVideo: true

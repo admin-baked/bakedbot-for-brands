@@ -3,9 +3,11 @@
 /**
  * Agent Playground - Interactive AI Demo for Homepage Hero
  * Updated to match "Ask Baked HQ" unified chat UI
+ * Now supports live geolocation context (dispensaries/brands)
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { getLandingGeoData, type LandingGeoData } from '@/server/actions/landing-geo';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,6 +76,8 @@ export function AgentPlayground() {
     const [showEmailCapture, setShowEmailCapture] = useState(false);
     const [hasEmailCaptured, setHasEmailCaptured] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [geoData, setGeoData] = useState<LandingGeoData | null>(null);
+    const [isGeoLoading, setIsGeoLoading] = useState(false);
 
     // Load demo count from storage
     useEffect(() => {
@@ -91,6 +95,32 @@ export function AgentPlayground() {
 
         const email = localStorage.getItem('bakedbot_lead_email');
         if (email) setHasEmailCaptured(true);
+    }, []);
+
+    // Fetch user location and nearby data on mount
+    useEffect(() => {
+        if (!navigator.geolocation) return;
+
+        setIsGeoLoading(true);
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                try {
+                    const data = await getLandingGeoData(
+                        position.coords.latitude,
+                        position.coords.longitude
+                    );
+                    setGeoData(data);
+                } catch (err) {
+                    console.error('Failed to fetch geo data', err);
+                } finally {
+                    setIsGeoLoading(false);
+                }
+            },
+            (err) => {
+                console.warn('Geolocation denied or failed', err);
+                setIsGeoLoading(false);
+            }
+        );
     }, []);
 
     const canRunDemo = useCallback(() => {
@@ -116,7 +146,8 @@ export function AgentPlayground() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     agent: agentId,
-                    prompt: demoPrompt
+                    prompt: demoPrompt,
+                    context: geoData // Pass live context to API
                 })
             });
 
@@ -161,11 +192,17 @@ export function AgentPlayground() {
         <div className="w-full max-w-4xl mx-auto">
             <Card className="border-emerald-500/20 bg-white shadow-xl rounded-2xl overflow-hidden relative">
                 {/* Header Section */}
-                <div className="p-6 pb-2 border-b border-gray-100 flex items-center gap-3">
                      <div className="bg-emerald-100 p-2 rounded-lg">
                         <Bot className="w-5 h-5 text-emerald-700" />
                      </div>
-                     <span className="font-semibold text-gray-900 text-lg">Smokey Chat (Brand)</span>
+                     <div className="flex flex-col">
+                        <span className="font-semibold text-gray-900 text-lg">Smokey Chat</span>
+                        {geoData?.location && (
+                            <span className="text-xs text-emerald-600 font-medium flex items-center gap-1 animate-in fade-in">
+                                📍 Found {geoData.retailers.length} dispensaries & {geoData.brands.length} brands near {geoData.location.city}
+                            </span>
+                        )}
+                     </div>
                 </div>
 
                 <CardContent className="p-6 pt-6 min-h-[300px] flex flex-col justify-between bg-white relative">
