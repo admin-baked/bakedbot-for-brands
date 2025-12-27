@@ -278,8 +278,8 @@ export async function getCRMStats(): Promise<{
     totalBrands: number;
     nationalBrands: number;
     claimedBrands: number;
-    totalDispensaries: number;
     claimedDispensaries: number;
+    totalPlatformLeads: number;
 }> {
     const firestore = getAdminFirestore();
 
@@ -295,6 +295,10 @@ export async function getCRMStats(): Promise<{
         .collection('dispensaries')
         .get();
 
+    const leadsSnap = await firestore
+        .collection('leads')
+        .get();
+
     const brands = brandsSnap.docs.map(d => d.data());
     const dispensaries = dispensariesSnap.docs.map(d => d.data());
 
@@ -304,5 +308,58 @@ export async function getCRMStats(): Promise<{
         claimedBrands: brands.filter(b => b.claimStatus === 'claimed').length,
         totalDispensaries: dispensaries.length,
         claimedDispensaries: dispensaries.filter(d => d.claimStatus === 'claimed').length,
+        totalPlatformLeads: leadsSnap.size,
     };
+}
+
+export interface CRMLead {
+    id: string;
+    email: string;
+    company: string;
+    source: string;
+    status: string;
+    demoCount: number;
+    createdAt: Date;
+}
+
+/**
+ * Get platform leads (inbound B2B)
+ */
+export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLead[]> {
+    const firestore = getAdminFirestore();
+    let query = firestore
+        .collection('leads')
+        .orderBy('createdAt', 'desc');
+
+    if (filters.limit) {
+        query = query.limit(filters.limit);
+    } else {
+        query = query.limit(100);
+    }
+
+    const snapshot = await query.get();
+
+    let leads = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            email: data.email,
+            company: data.company,
+            source: data.source || 'unknown',
+            status: data.status || 'new',
+            demoCount: data.demoCount || 0,
+            createdAt: data.createdAt?.toDate?.() || new Date(),
+        } as CRMLead;
+    });
+
+    // Filter by search (client-side)
+    if (filters.search) {
+        const search = filters.search.toLowerCase();
+        leads = leads.filter(l => 
+            l.email.toLowerCase().includes(search) || 
+            l.company.toLowerCase().includes(search)
+        );
+    }
+
+    return leads;
 }
