@@ -218,7 +218,11 @@ export function AgentPlayground() {
                 {/* Header Section */}
                 <div className="p-4 sm:p-6 pb-2 border-b border-gray-100 flex items-center gap-3">
                      <div className="bg-emerald-100 p-2 rounded-lg">
-                        <Bot className="w-5 h-5 text-emerald-700" />
+                        <img 
+                            src="/assets/agents/smokey-main.png" 
+                            alt="Smokey Agent" 
+                            className="w-8 h-8 object-contain"
+                        />
                      </div>
                      <div className="flex flex-col">
                         <span className="font-semibold text-gray-900 text-lg">Smokey Chat</span>
