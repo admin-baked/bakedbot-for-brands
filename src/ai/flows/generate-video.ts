@@ -70,8 +70,16 @@ const generateVideoFlow = ai.defineFlow(
                 return await generateSoraVideo(input);
             } catch (soraError: unknown) {
                 console.error('[generateVideoFlow] Sora Failed:', (soraError as Error).message);
+                // DEBUG: Re-throw to see error in UI
+                throw new Error(`Sora API Failed: ${(soraError as Error).message}`);
                 
+                /* Fallback disabled for debugging
                 try {
+                    console.log('[generateVideoFlow] Fallback to Veo 3.0...');
+                    const response = await videoPrompt(input);
+                    // ...
+                */
+            }
                     console.log('[generateVideoFlow] Fallback to Veo 3.0...');
                     const response = await videoPrompt(input);
                     const video = response.media;
