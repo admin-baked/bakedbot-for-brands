@@ -1,5 +1,6 @@
 'use server';
 
+import 'server-only';
 import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
