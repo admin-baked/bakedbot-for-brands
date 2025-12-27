@@ -9,29 +9,24 @@ export type MediaType = 'image' | 'video' | null;
 export function detectMediaRequest(userMessage: string): MediaType {
     const lowerMessage = userMessage.toLowerCase();
 
-    // Video Detection
-    // Matches: "generate video", "create video", "create a video", "make a video", "make video"
-    if (
-        lowerMessage.includes('generate video') || 
-        lowerMessage.includes('create video') || 
-        lowerMessage.includes('create a video') || 
-        lowerMessage.includes('make a video') || 
-        lowerMessage.includes('make video') ||
-        (lowerMessage.includes('video') && lowerMessage.includes('generate'))
-    ) {
+    // Video Detection - expanded patterns
+    // Matches: "generate video", "create a X video", "make a video", "cartoon video", etc.
+    const videoKeywords = ['video', 'animation', 'clip', 'commercial', 'ad'];
+    const actionKeywords = ['create', 'generate', 'make', 'produce', 'build'];
+    
+    const hasVideoWord = videoKeywords.some(kw => lowerMessage.includes(kw));
+    const hasActionWord = actionKeywords.some(kw => lowerMessage.includes(kw));
+    
+    // If both video-like word AND action word exist, it's a video request
+    if (hasVideoWord && hasActionWord) {
         return 'video';
     }
 
-    // Image Detection
-    // Matches: "generate image", "create image", "create an image", "picture of"
-    if (
-        lowerMessage.includes('generate image') || 
-        lowerMessage.includes('create image') || 
-        lowerMessage.includes('create an image') || 
-        lowerMessage.includes('picture of') || 
-        lowerMessage.includes('show me an image') ||
-        (lowerMessage.includes('image') && lowerMessage.includes('generate'))
-    ) {
+    // Image Detection - expanded patterns
+    const imageKeywords = ['image', 'picture', 'photo', 'poster', 'banner', 'graphic'];
+    const hasImageWord = imageKeywords.some(kw => lowerMessage.includes(kw));
+    
+    if ((hasImageWord && hasActionWord) || lowerMessage.includes('show me an image')) {
         return 'image';
     }
 
