@@ -2,6 +2,46 @@
 
 ---
 
+## Session: 2025-12-27 (Agent Playground Homepage Feature)
+### Task ID
+agent-playground-001
+
+### Summary
+Implemented interactive Agent Playground in hero section for homepage lead capture. Features tabbed AI agent demos with rate limiting and partial result gating.
+
+### Key Changes
+*   **New Components** (`src/components/landing/`):
+    - `agent-playground.tsx` - Tabbed interface with Smokey, Craig, Pops, Ezal agents
+    - `email-capture-modal.tsx` - Lead capture modal for unlocking full results
+
+*   **API Routes** (`src/app/api/demo/`):
+    - `agent/route.ts` - Demo execution API with pre-generated responses
+    - `lead/route.ts` - Lead capture API with Mailjet welcome email
+
+*   **Hero Integration** (`src/components/landing/hero-section.tsx`):
+    - Replaced static hero with interactive AI demo playground
+    - Updated messaging: "Try it right now — no signup required"
+
+### Features Implemented
+- 5 free demos/day per IP (rate limiting)
+- 3 results shown, 10 locked (result gating)
+- Email capture unlocks unlimited demos
+- Welcome email via Mailjet autoresponder
+- Images allowed free, video requires login
+
+### Tests Added
+- `tests/api/demo.test.ts` - 15 tests covering:
+  - Demo API response structure
+  - Email validation
+  - Rate limiting logic
+  - Result gating
+  - Media generation rules
+
+### Result: ✅ Passing
+All 15 unit tests pass. Type check passes.
+
+---
+
 ## Session: 2025-12-27 (Editable Playbooks System)
 ### Task ID
 editable-playbooks-001
