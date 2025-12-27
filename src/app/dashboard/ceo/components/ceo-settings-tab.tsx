@@ -5,9 +5,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Loader2, Video, Mail, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getEmailProviderAction, updateEmailProviderAction } from '@/server/actions/super-admin/settings'; // This path is actually dead, I should use global-settings? No wait, previous diffs showed global-settings.
-// Wait, I renamed the file. I MUST use global-settings.
-
 import { 
     getEmailProviderAction as getEmail,
     updateEmailProviderAction as updateEmail,
