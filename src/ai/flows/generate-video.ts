@@ -63,11 +63,14 @@ const generateVideoFlow = ai.defineFlow(
 
         console.log(`[generateVideoFlow] Primary Provider: ${provider.toUpperCase()}`);
 
-        if (provider === 'sora') {
-            // Priority: Sora -> Veo -> Fallback
+        if (provider === 'sora' || provider === 'sora-pro') {
+            const isPro = provider === 'sora-pro';
+            const modelId = isPro ? 'sora-2-pro' : 'sora-2';
+
+            // Priority: Sora (Standard or Pro) -> Veo -> Fallback
             try {
-                console.log('[generateVideoFlow] Attempting Sora 2...');
-                return await generateSoraVideo(input);
+                console.log(`[generateVideoFlow] Attempting Sora (${isPro ? 'Pro' : 'Standard'})...`);
+                return await generateSoraVideo(input, { model: modelId });
             } catch (soraError: unknown) {
                 console.error('[generateVideoFlow] Sora Failed:', (soraError as Error).message);
                 
@@ -107,7 +110,7 @@ const generateVideoFlow = ai.defineFlow(
 
             try {
                 console.log('[generateVideoFlow] Fallback to Sora 2...');
-                return await generateSoraVideo(input);
+                return await generateSoraVideo(input, { model: 'sora-2' });
             } catch (soraError: unknown) {
                 console.error('[generateVideoFlow] Sora Fallback Failed:', (soraError as Error).message);
             }

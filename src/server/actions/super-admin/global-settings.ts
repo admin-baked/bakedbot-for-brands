@@ -66,7 +66,7 @@ export async function updateEmailProviderAction(input: UpdateEmailProviderInput)
 // --- Video Provider ---
 
 interface UpdateVideoProviderInput {
-    provider: 'veo' | 'sora';
+    provider: 'veo' | 'sora' | 'sora-pro';
 }
 
 export async function getVideoProviderAction() {
