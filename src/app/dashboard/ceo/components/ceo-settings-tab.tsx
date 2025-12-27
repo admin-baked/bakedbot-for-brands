@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Loader2, Video, Mail, Check } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+// import { useToast } from '@/hooks/use-toast';
+// import { Button } from '@/components/ui/button';
+// import { Loader2, Video, Mail, Check } from 'lucide-react';
+// import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
     getSafeEmailProviderAction as getEmail,
     updateSafeEmailProviderAction as updateEmail,
@@ -13,7 +13,7 @@ import {
 } from '@/server/actions/super-admin/safe-settings';
 
 export default function CeoSettingsTab() {
-    const { toast } = useToast();
+    // const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [emailProvider, setEmailProvider] = useState<'sendgrid' | 'mailjet'>('sendgrid');
@@ -26,15 +26,13 @@ export default function CeoSettingsTab() {
     }, []);
 
     if (!mounted) {
-        return <div className="flex h-[200px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+        return <div style={{ padding: 20 }}>Loading Safe Mode...</div>;
     }
 
     const loadSettings = async () => {
         // Mock loading to avoid crash on read
-        // The user can overwrite the setting by saving.
         setTimeout(() => {
             setLoading(false);
-            // Default to 'veo' (safe default)
         }, 500);
     };
 
@@ -46,17 +44,10 @@ export default function CeoSettingsTab() {
                 updateVideo({ provider: videoProvider })
             ]);
             
-            toast({
-                title: 'Settings Saved',
-                description: 'System preferences have been updated.'
-            });
+            alert('Settings Saved (Safe Mode)');
         } catch (error) {
             console.error('Failed to save settings:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to update settings.'
-            });
+            alert('Error saving settings');
         } finally {
             setSaving(false);
         }
@@ -64,101 +55,104 @@ export default function CeoSettingsTab() {
 
     if (loading) {
         return (
-            <div className="flex h-[200px] items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div style={{ padding: 20 }}>
+                Loading Settings...
             </div>
         );
     }
 
     return (
-        <div className="space-y-6">
-            <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
+        <div style={{ padding: 20, fontFamily: 'system-ui, sans-serif' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>System Settings (Safe Mode)</h2>
 
             {/* Video Provider Selection */}
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <Video className="h-5 w-5 text-primary" />
-                        <CardTitle>Video Provider</CardTitle>
-                    </div>
-                    <CardDescription>
-                        Select the primary AI model for video generation.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div style={{ border: '1px solid #ccc', padding: 20, borderRadius: 8, marginBottom: 20 }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Video Provider</h3>
+                <p style={{ color: '#666', marginBottom: 10 }}>Select the primary AI model for video generation.</p>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
                     <div 
                         onClick={() => setVideoProvider('veo')}
-                        className={`cursor-pointer rounded-lg border-2 p-4 transition-all hover:bg-accent ${videoProvider === 'veo' ? 'border-primary bg-accent' : 'border-muted'}`}
+                        style={{ 
+                            cursor: 'pointer', 
+                            border: videoProvider === 'veo' ? '2px solid blue' : '2px solid #ddd',
+                            padding: 15,
+                            borderRadius: 6,
+                            backgroundColor: videoProvider === 'veo' ? '#f0f9ff' : 'white'
+                        }}
                     >
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="font-semibold text-lg">Google Veo 3</h3>
-                                <p className="text-sm text-muted-foreground mt-1">Vertex AI (Default). <br/>Fast Preview.</p>
-                            </div>
-                            {videoProvider === 'veo' && <Check className="h-5 w-5 text-primary" />}
-                        </div>
+                        <strong>Google Veo 3</strong>
+                        <p>Vertex AI (Default)</p>
                     </div>
 
                     <div 
                         onClick={() => setVideoProvider('sora')}
-                        className={`cursor-pointer rounded-lg border-2 p-4 transition-all hover:bg-accent ${videoProvider === 'sora' ? 'border-primary bg-accent' : 'border-muted'}`}
+                        style={{ 
+                            cursor: 'pointer', 
+                            border: videoProvider === 'sora' ? '2px solid blue' : '2px solid #ddd',
+                            padding: 15,
+                            borderRadius: 6,
+                            backgroundColor: videoProvider === 'sora' ? '#f0f9ff' : 'white'
+                        }}
                     >
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="font-semibold text-lg">OpenAI Sora 2</h3>
-                                <p className="text-sm text-muted-foreground mt-1">High fidelity. <br/>Quota Fallback.</p>
-                            </div>
-                            {videoProvider === 'sora' && <Check className="h-5 w-5 text-primary" />}
-                        </div>
+                        <strong>OpenAI Sora 2</strong>
+                        <p>High Fidelity Fallback</p>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
              {/* Email Provider Selection */}
-             <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <Mail className="h-5 w-5 text-primary" />
-                        <CardTitle>Email Provider</CardTitle>
-                    </div>
-                    <CardDescription>
-                        Configure the transactional email service.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div style={{ border: '1px solid #ccc', padding: 20, borderRadius: 8, marginBottom: 20 }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Email Provider</h3>
+                <p style={{ color: '#666', marginBottom: 10 }}>Configure transactional email service.</p>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
                     <div 
                         onClick={() => setEmailProvider('sendgrid')}
-                        className={`cursor-pointer rounded-lg border-2 p-4 transition-all hover:bg-accent ${emailProvider === 'sendgrid' ? 'border-primary bg-accent' : 'border-muted'}`}
+                        style={{ 
+                            cursor: 'pointer', 
+                            border: emailProvider === 'sendgrid' ? '2px solid blue' : '2px solid #ddd',
+                            padding: 15,
+                            borderRadius: 6,
+                            backgroundColor: emailProvider === 'sendgrid' ? '#f0f9ff' : 'white'
+                        }}
                     >
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="font-semibold text-lg">SendGrid</h3>
-                                <p className="text-sm text-muted-foreground mt-1">Legacy default.</p>
-                            </div>
-                            {emailProvider === 'sendgrid' && <Check className="h-5 w-5 text-primary" />}
-                        </div>
+                        <strong>SendGrid</strong>
+                        <p>Legacy Default</p>
                     </div>
 
                     <div 
                         onClick={() => setEmailProvider('mailjet')}
-                        className={`cursor-pointer rounded-lg border-2 p-4 transition-all hover:bg-accent ${emailProvider === 'mailjet' ? 'border-primary bg-accent' : 'border-muted'}`}
+                        style={{ 
+                            cursor: 'pointer', 
+                            border: emailProvider === 'mailjet' ? '2px solid blue' : '2px solid #ddd',
+                            padding: 15,
+                            borderRadius: 6,
+                            backgroundColor: emailProvider === 'mailjet' ? '#f0f9ff' : 'white'
+                        }}
                     >
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="font-semibold text-lg">Mailjet</h3>
-                                <p className="text-sm text-muted-foreground mt-1">New provider.</p>
-                            </div>
-                            {emailProvider === 'mailjet' && <Check className="h-5 w-5 text-primary" />}
-                        </div>
+                        <strong>Mailjet</strong>
+                        <p>New Provider</p>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
             
-            <div className="flex justify-end sticky bottom-4">
-                <Button onClick={handleSave} disabled={saving} size="lg" className="shadow-lg">
-                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save System Changes
-                </Button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', position: 'sticky', bottom: 20 }}>
+                <button 
+                    onClick={handleSave} 
+                    disabled={saving} 
+                    style={{
+                        padding: '10px 20px',
+                        backgroundColor: 'black',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 6,
+                        opacity: saving ? 0.7 : 1,
+                        cursor: saving ? 'not-allowed' : 'pointer'
+                    }}
+                >
+                    {saving ? 'Saving...' : 'Save System Changes'}
+                </button>
             </div>
         </div>
     );
