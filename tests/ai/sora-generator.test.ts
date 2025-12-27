@@ -61,7 +61,7 @@ describe('Sora Generator', () => {
         
         // Verify job creation request
         expect(mockFetch).toHaveBeenNthCalledWith(1, 
-            'https://api.openai.com/v1/video/generations',
+            'https://api.openai.com/v1/videos',
             expect.objectContaining({
                 method: 'POST',
                 body: expect.stringContaining('"model":"sora-2"'),
@@ -70,7 +70,7 @@ describe('Sora Generator', () => {
 
         // Verify poll request
         expect(mockFetch).toHaveBeenNthCalledWith(2, 
-            'https://api.openai.com/v1/video/generations/job-123',
+            'https://api.openai.com/v1/videos/job-123',
             expect.objectContaining({ method: 'GET' })
         );
     });
