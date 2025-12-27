@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Video, Mail, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-    getEmailProviderAction as getEmail,
-    updateEmailProviderAction as updateEmail,
-    getVideoProviderAction as getVideo,
-    updateVideoProviderAction as updateVideo
-} from '@/server/actions/super-admin/global-settings';
+    getSafeEmailProviderAction as getEmail,
+    updateSafeEmailProviderAction as updateEmail,
+    getSafeVideoProviderAction as getVideo,
+    updateSafeVideoProviderAction as updateVideo
+} from '@/server/actions/super-admin/safe-settings';
 
 export default function CeoSettingsTab() {
     const { toast } = useToast();
