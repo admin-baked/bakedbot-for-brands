@@ -1,15 +1,28 @@
 
 import { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
 
-// OpenAI Sora API job states
-type SoraJobStatus = 'pending' | 'running' | 'completed' | 'failed';
+// OpenAI Sora API job states - includes all observed statuses
+type SoraJobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'queued' | 'in_progress';
 
+// OpenAI Sora API response structure - handles multiple possible formats
 interface SoraJobResponse {
     id: string;
+    object?: string;
     status: SoraJobStatus;
+    // Multiple possible locations for video URL
     output?: {
         video_url?: string;
+        url?: string;
+        video?: string;
     };
+    // Direct URL fields
+    video_url?: string;
+    url?: string;
+    video?: string;
+    // Download URLs array
+    download_urls?: string[];
+    downloads?: Array<{ url: string }>;
+    // Error info
     error?: {
         message: string;
         code?: string;
@@ -151,14 +164,28 @@ async function pollForCompletion(
 
         switch (job.status) {
             case 'completed':
-                const videoUrl = job.output?.video_url;
+                // Log full response for debugging
+                console.log(`[SoraGenerator] Full completed response: ${JSON.stringify(job)}`);
+                
+                // Try multiple possible locations for video URL
+                const videoUrl = 
+                    job.output?.video_url || 
+                    job.output?.url || 
+                    job.output?.video ||
+                    job.video_url ||
+                    job.url ||
+                    job.video ||
+                    job.download_urls?.[0] ||
+                    job.downloads?.[0]?.url;
+                    
                 if (!videoUrl) {
+                    console.error('[SoraGenerator] Response structure:', Object.keys(job));
                     throw new Error('[SoraGenerator] Job completed but no video URL in response');
                 }
                 return {
                     videoUrl,
                     thumbnailUrl: undefined,
-                    duration: parseInt(job.output?.video_url?.includes('8s') ? '8' : '5', 10) || 5,
+                    duration: 5,
                 };
 
             case 'failed':
@@ -168,7 +195,9 @@ async function pollForCompletion(
 
             case 'pending':
             case 'running':
-                // Continue polling
+            case 'queued':
+            case 'in_progress':
+                // Continue polling - these are all valid in-progress statuses
                 break;
 
             default:
