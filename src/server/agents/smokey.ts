@@ -60,7 +60,21 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
         return null; // Nothing urgent
     },
 
-    async act(brandMemory, agentMemory, targetId, tools: SmokeyTools) {
+    async act(brandMemory, agentMemory, targetId, tools: SmokeyTools, stimulus?: string) {
+        // Handle chat/conversational requests
+        if (targetId === 'chat_response' && stimulus) {
+            // Smokey handles product recommendations and menu questions
+            return {
+                updatedMemory: agentMemory,
+                logEntry: {
+                    action: 'chat_response',
+                    result: `I'm Smokey, your budtender AI! I can help you with product recommendations, menu optimization, and customer experience. What would you like to know about?`,
+                    next_step: 'await_user_input',
+                    metadata: { stimulus }
+                }
+            };
+        }
+
         let resultMessage = '';
 
         // Check if target is Experiment
@@ -157,7 +171,16 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             };
         }
 
-        throw new Error(`Target ${targetId} not found in memory`);
+        // Fallback for unknown targets
+        return {
+            updatedMemory: agentMemory,
+            logEntry: {
+                action: 'no_action',
+                result: 'No matching work target found. Try asking about product recommendations or menu optimization!',
+                next_step: 'await_user_input',
+                metadata: { targetId }
+            }
+        };
     }
 };
 
