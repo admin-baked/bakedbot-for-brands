@@ -12,7 +12,7 @@ const CUSTOMER_EMAIL_ACTIONS = ['gmail.send', 'gmail.send_batch', 'email.send', 
 /**
  * Detect if a playbook requires approval based on customer-facing email steps
  */
-export function detectApprovalRequired(steps: PlaybookStep[]): boolean {
+export async function detectApprovalRequired(steps: PlaybookStep[]): Promise<boolean> {
     return steps.some(step => {
         // Check if action is customer-facing email
         if (CUSTOMER_EMAIL_ACTIONS.includes(step.action)) {
@@ -79,7 +79,7 @@ export async function listBrandPlaybooks(brandId: string): Promise<Playbook[]> {
             const batch = firestore.batch();
             const seededPlaybooks: Playbook[] = [];
 
-            DEFAULT_PLAYBOOKS.forEach(pb => {
+            for (const pb of DEFAULT_PLAYBOOKS) {
                 const newDocRef = collectionRef.doc();
                 const timestamp = new Date();
 
@@ -92,7 +92,7 @@ export async function listBrandPlaybooks(brandId: string): Promise<Playbook[]> {
                     ownerId: 'system',
                     ownerName: 'BakedBot',
                     isCustom: false,
-                    requiresApproval: detectApprovalRequired(pb.steps || []),
+                    requiresApproval: await detectApprovalRequired(pb.steps || []),
                     createdAt: timestamp,
                     updatedAt: timestamp,
                     createdBy: 'system',
@@ -103,7 +103,7 @@ export async function listBrandPlaybooks(brandId: string): Promise<Playbook[]> {
 
                 batch.set(newDocRef, playbookData);
                 seededPlaybooks.push(playbookData as unknown as Playbook);
-            });
+            }
 
             await batch.commit();
             console.log(`[Playbooks] Successfully seeded ${seededPlaybooks.length} playbooks`);
@@ -154,7 +154,7 @@ export async function createPlaybook(
             ownerName: user.name || user.email || 'Unknown',
             isCustom: true,
             templateId: data.templateId,
-            requiresApproval: detectApprovalRequired(data.steps),
+            requiresApproval: await detectApprovalRequired(data.steps),
             createdAt: timestamp,
             updatedAt: timestamp,
             createdBy: user.uid,
@@ -201,7 +201,7 @@ export async function updatePlaybook(
 
         // Recalculate approval if steps changed
         const requiresApproval = updates.steps 
-            ? detectApprovalRequired(updates.steps) 
+            ? await detectApprovalRequired(updates.steps) 
             : playbook.requiresApproval;
 
         await docRef.update({
