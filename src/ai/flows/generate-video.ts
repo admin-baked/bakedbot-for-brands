@@ -74,25 +74,17 @@ const generateVideoFlow = ai.defineFlow(
                 throw new Error(`Sora API Failed: ${(soraError as Error).message}`);
                 
                 /* Fallback disabled for debugging
-                try {
-                    console.log('[generateVideoFlow] Fallback to Veo 3.0...');
-                    const response = await videoPrompt(input);
-                    // ...
-                */
-            }
-                    console.log('[generateVideoFlow] Fallback to Veo 3.0...');
-                    const response = await videoPrompt(input);
-                    const video = response.media;
-                    if (video && video.url) {
-                        return {
-                            videoUrl: video.url,
-                            thumbnailUrl: undefined,
-                            duration: parseInt(input.duration || '5', 10),
-                        };
-                    }
-                } catch (veoError: unknown) {
-                    console.error('[generateVideoFlow] Veo 3.0 Fallback Failed:', (veoError as Error).message);
+                console.log('[generateVideoFlow] Fallback to Veo 3.0...');
+                const response = await videoPrompt(input);
+                const video = response.media;
+                if (video && video.url) {
+                    return {
+                        videoUrl: video.url,
+                        thumbnailUrl: undefined,
+                        duration: parseInt(input.duration || '5', 10),
+                    };
                 }
+                */
             }
         } else {
             // Priority: Veo -> Sora -> Fallback (Default)
