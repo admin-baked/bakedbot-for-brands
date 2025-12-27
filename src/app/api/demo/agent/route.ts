@@ -136,8 +136,29 @@ const DEMO_RESPONSES: Record<string, {
 
 export async function POST(request: NextRequest) {
     try {
+        const { agent, prompt, context } = await request.json();
+
+        if (!agent || !prompt) {
+            return NextResponse.json(
+                { error: 'Agent and prompt are required' },
+                { status: 400 }
+            );
+        }
+
+        // Get demo response for the agent
+        const demoResponse = DEMO_RESPONSES[agent as keyof typeof DEMO_RESPONSES];
+        
+        if (!demoResponse) {
+            return NextResponse.json(
+                { error: 'Unknown agent' },
+                { status: 400 }
+            );
+        }
+
+        // Simulate processing delay for realism
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+
         // Context injection (Live Data)
-        const { context } = await request.json();
         let items = [...demoResponse.items]; // Clone items to modify
 
         // Inject Real Dispensaries for Ezal (Competitor Output)
