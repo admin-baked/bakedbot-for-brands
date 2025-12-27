@@ -856,7 +856,7 @@ export function PuffChat({
     );
 
     return (
-        <div className={cn("flex flex-col h-full bg-background border rounded-lg", className)}>
+        <div className={cn("flex flex-col bg-background border rounded-lg", hasMessages ? "h-full" : "", className)}>
             {/* Header - only show if we have messages and not hidden */}
             {hasMessages && !hideHeader && (
                 <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-violet-50 to-purple-50">
