@@ -251,7 +251,69 @@ export async function runAgentCore(
         }
         // ... (Other playbooks) ...
 
-        // 2. Specialized Agents
+        // 2. Media Generation (Image/Video) - Check BEFORE agent handoff
+        const { detectMediaRequest } = await import('@/server/agents/tools/media-detection');
+        const mediaRequestType = detectMediaRequest(userMessage);
+
+        if (mediaRequestType === 'image') {
+            await emitThought(jobId, 'Tool Detected', 'Image Generation triggered');
+            executedTools.push({ id: `img-${Date.now()}`, name: 'Generate Image', status: 'running', result: 'Generating...' });
+
+            try {
+                const { generateImageFromPrompt } = await import('@/ai/flows/generate-social-image');
+                
+                await emitThought(jobId, 'Generating', 'Creating image assets...');
+                const imageUrl = await generateImageFromPrompt(userMessage);
+                
+                executedTools[executedTools.length - 1].status = 'success';
+                executedTools[executedTools.length - 1].result = 'Image generated successfully';
+
+                return {
+                    content: `Here is the image you requested: "${userMessage}"`,
+                    toolCalls: executedTools,
+                    metadata: {
+                        ...metadata,
+                        jobId,
+                        media: { type: 'image', url: imageUrl, prompt: userMessage }
+                    }
+                };
+            } catch (e: any) {
+                 executedTools[executedTools.length - 1].status = 'error';
+                 executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+                 return { content: `**Image Generation Failed**: ${e.message}`, toolCalls: executedTools };
+            }
+        }
+
+        if (mediaRequestType === 'video') {
+            await emitThought(jobId, 'Tool Detected', 'Video Generation triggered');
+            executedTools.push({ id: `vid-${Date.now()}`, name: 'Generate Video', status: 'running', result: 'Generating...' });
+
+            try {
+                const { generateVideoFromPrompt } = await import('@/ai/flows/generate-video');
+                
+                await emitThought(jobId, 'Generating', 'Creating video assets (this may take a moment)...');
+                const videoUrl = await generateVideoFromPrompt(userMessage);
+                
+                executedTools[executedTools.length - 1].status = 'success';
+                executedTools[executedTools.length - 1].result = 'Video generated successfully';
+
+                return {
+                    content: `Here is the video you requested: "${userMessage}"`,
+                    toolCalls: executedTools,
+                    metadata: {
+                        ...metadata,
+                        jobId,
+                        media: { type: 'video', url: videoUrl, prompt: userMessage }
+                    }
+                };
+            } catch (e: any) {
+                 executedTools[executedTools.length - 1].status = 'error';
+                 executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+                 return { content: `**Video Generation Failed**: ${e.message}`, toolCalls: executedTools };
+            }
+        }
+
+        // 3. Specialized Agents (only for non-media requests)
         if (agentInfo && routing.confidence > 0.6 && agentInfo.id !== 'general' && agentInfo.id !== 'puff') {
             try {
                 await emitThought(jobId, 'Handing off', `Transferring control to specialized agent: ${agentInfo.name}`);
@@ -359,67 +421,8 @@ export async function runAgentCore(
             }
         }
 
-        // 5. Media Generation (Image/Video)
-        const { detectMediaRequest } = await import('@/server/agents/tools/media-detection');
-        const mediaRequestType = detectMediaRequest(userMessage);
 
-        if (mediaRequestType === 'image') {
-            await emitThought(jobId, 'Tool Detected', 'Image Generation triggered');
-            executedTools.push({ id: `img-${Date.now()}`, name: 'Generate Image', status: 'running', result: 'Generating...' });
-
-            try {
-                const { generateImageFromPrompt } = await import('@/ai/flows/generate-social-image');
-                
-                await emitThought(jobId, 'Generating', 'Creating image assets...');
-                const imageUrl = await generateImageFromPrompt(userMessage);
-                
-                executedTools[executedTools.length - 1].status = 'success';
-                executedTools[executedTools.length - 1].result = 'Image generated successfully';
-
-                return {
-                    content: `Here is the image you requested: "${userMessage}"`,
-                    toolCalls: executedTools,
-                    metadata: {
-                        ...metadata,
-                        jobId,
-                        media: { type: 'image', url: imageUrl, prompt: userMessage }
-                    }
-                };
-            } catch (e: any) {
-                 executedTools[executedTools.length - 1].status = 'error';
-                 executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
-                 return { content: `**Image Generation Failed**: ${e.message}`, toolCalls: executedTools };
-            }
-        }
-
-        if (mediaRequestType === 'video') {
-            await emitThought(jobId, 'Tool Detected', 'Video Generation triggered');
-            executedTools.push({ id: `vid-${Date.now()}`, name: 'Generate Video', status: 'running', result: 'Generating...' });
-
-            try {
-                const { generateVideoFromPrompt } = await import('@/ai/flows/generate-video');
-                
-                await emitThought(jobId, 'Generating', 'Creating video assets (this may take a moment)...');
-                const videoUrl = await generateVideoFromPrompt(userMessage);
-                
-                executedTools[executedTools.length - 1].status = 'success';
-                executedTools[executedTools.length - 1].result = 'Video generated successfully';
-
-                return {
-                    content: `Here is the video you requested: "${userMessage}"`,
-                    toolCalls: executedTools,
-                    metadata: {
-                        ...metadata,
-                        jobId,
-                        media: { type: 'video', url: videoUrl, prompt: userMessage }
-                    }
-                };
-            } catch (e: any) {
-                 executedTools[executedTools.length - 1].status = 'error';
-                 executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
-                 return { content: `**Video Generation Failed**: ${e.message}`, toolCalls: executedTools };
-            }
-        }
+        // Media generation is now handled earlier in step 2
 
         // Fallback Generation
         await emitThought(jobId, 'Generating Response', 'Formulating final answer...');
