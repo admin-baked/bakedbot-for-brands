@@ -2,6 +2,45 @@
 
 ---
 
+## Session: 2025-12-27 (Editable Playbooks System)
+### Task ID
+editable-playbooks-001
+
+### Summary
+Implemented n8n/Zapier-style editable playbooks with ownership model, smart approval detection, and visual step builder UI.
+
+### Key Changes
+*   **Schema Updates** (`src/types/playbook.ts`):
+    - Added `agent`, `category`, `ownerId`, `ownerName`, `isCustom`, `requiresApproval` fields
+    - Added `PlaybookTrigger` interface with manual/schedule/event types
+    - Added `PlaybookCategory` type (intel, marketing, ops, seo, reporting, compliance, custom)
+
+*   **Server Actions** (`src/server/actions/playbooks.ts`):
+    - `createPlaybook()` - Create with owner info
+    - `updatePlaybook()` - With ownership check
+    - `deletePlaybook()` - Soft delete with permissions
+    - `clonePlaybook()` - Clone from template
+    - `detectApprovalRequired()` - Auto-detect customer email steps
+
+*   **UI Components** (new):
+    - `playbook-editor.tsx` - Visual step builder with triggers
+    - `playbook-step-card.tsx` - Draggable step configuration
+    - `create-playbook-dialog.tsx` - Template/scratch/AI creation modes
+
+### Agent Fixes (Earlier in Session)
+*   Fixed Craig/Smokey to handle `chat_response` gracefully
+*   Moved media detection before agent handoff in `agent-runner.ts`
+*   Fixed extra whitespace in chat layout
+
+### Tests Updated
+*   `playbooks.test.ts` - Added detectApprovalRequired, createPlaybook, ownership tests
+
+### Commits
+*   `11e49c2d`: fix(agents): enable Craig/Smokey to handle chat queries gracefully
+*   `6751ac65`: fix(widgets): add touch-action pan-y to prevent scroll triggering drag
+
+---
+
 ## Session: 2025-12-27 (Sora Video Generator Fix)
 ### Task ID
 sora-video-fix-001
@@ -24,6 +63,19 @@ Fixed the Sora video generator which was using an incorrect API implementation. 
 
 ### Tests Run
 *   `npm test -- tests/ai/sora-generator.test.ts` (8/8 Passed ✅)
+
+### Additional Fixes (Same Session)
+*   **MOD**: Updated Veo model from deprecated `veo-3.0-generate-001` to `veo-3.1-generate-preview`
+*   Commit: `6e9a7ead` - "fix(video): update Veo model to veo-3.1-generate-preview (3.0 deprecated)"
+
+### Sora Video Pipeline Complete Rewrite (Session 2)
+*   **Root Cause Discovery**: OpenAI Sora API requires 3-step flow: Create job → Poll → Download from `/content` endpoint
+*   **Fix 1**: Corrected endpoint from `/v1/video/generations` to `/v1/videos`
+*   **Fix 2**: Added `queued` and `in_progress` as valid polling statuses  
+*   **Fix 3**: Implemented video download from `/v1/videos/{id}/content` endpoint
+*   **Fix 4**: Upload to Firebase Storage with explicit bucket name
+*   **Tests**: 10 comprehensive unit tests covering full flow
+*   Commits: `e3dbe715`, `57f04ee1`, `c43846cf`, `f2490c71`, `326ece62`
 
 ### Notes
 *   The Sora API may still be in limited preview - if 403/404 occurs, error will now be clearly logged instead of silently falling back
