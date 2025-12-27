@@ -12,7 +12,7 @@ export default function CeoSettingsTab() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [emailProvider, setEmailProvider] = useState<'sendgrid' | 'mailjet'>('sendgrid');
-    const [videoProvider, setVideoProvider] = useState<'veo' | 'sora'>('veo');
+    const [videoProvider, setVideoProvider] = useState<'veo' | 'sora' | 'sora-pro'>('veo');
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -24,7 +24,7 @@ export default function CeoSettingsTab() {
         ])
         .then(([emailRes, videoRes]) => {
             if (emailRes) setEmailProvider(emailRes as 'sendgrid' | 'mailjet');
-            if (videoRes) setVideoProvider(videoRes as 'veo' | 'sora');
+            if (videoRes) setVideoProvider(videoRes as 'veo' | 'sora' | 'sora-pro');
         })
         .catch(err => {
             console.error('Failed to load settings:', err);
@@ -75,7 +75,7 @@ export default function CeoSettingsTab() {
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Video Provider</h3>
                 <p style={{ color: '#666', marginBottom: 10 }}>Select the primary AI model for video generation.</p>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20 }}>
                     <div 
                         onClick={() => setVideoProvider('veo')}
                         style={{ 
@@ -101,7 +101,21 @@ export default function CeoSettingsTab() {
                         }}
                     >
                         <strong>OpenAI Sora 2</strong>
-                        <p>High Fidelity Fallback</p>
+                        <p>Social Media (Fast)</p>
+                    </div>
+
+                    <div 
+                        onClick={() => setVideoProvider('sora-pro')}
+                        style={{ 
+                            cursor: 'pointer', 
+                            border: videoProvider === 'sora-pro' ? '2px solid blue' : '2px solid #ddd',
+                            padding: 15,
+                            borderRadius: 6,
+                            backgroundColor: videoProvider === 'sora-pro' ? '#f0f9ff' : 'white'
+                        }}
+                    >
+                        <strong>OpenAI Sora 2 Pro</strong>
+                        <p>Marketing Quality</p>
                     </div>
                 </div>
             </div>

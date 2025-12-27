@@ -4,13 +4,18 @@ import OpenAI from 'openai';import { GenerateVideoInput, GenerateVideoOutput } f
 /**
  * Generates a video using OpenAI's Sora (or compatible) model.
  */
-export async function generateSoraVideo(input: GenerateVideoInput): Promise<GenerateVideoOutput> {
+export async function generateSoraVideo(
+    input: GenerateVideoInput, 
+    options?: { model?: string }
+): Promise<GenerateVideoOutput> {
     console.log('[SoraGenerator] Generating video with input:', JSON.stringify(input));
 
     const apiKey = process.env.OPENAI_VIDEO_API_KEY || process.env.OPENAI_API_KEY;
     if (!apiKey) {
         throw new Error('Missing OpenAI API Key for Video Generation');
     }
+
+    const modelObj = options?.model || 'sora-2';
 
     try {
         // Attempting primary endpoint based on beta documentation
@@ -21,7 +26,7 @@ export async function generateSoraVideo(input: GenerateVideoInput): Promise<Gene
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: 'sora-2', // Updated to latest model
+                model: modelObj, 
                 prompt: input.prompt,
                 size: input.aspectRatio === '16:9' ? '1920x1080' : '1080x1920',
                 seconds: input.duration === '10' ? 8 : 4, // Map 5/10 to valid 4/8 seconds
