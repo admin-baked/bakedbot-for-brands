@@ -81,7 +81,7 @@ export function WidgetWrapper({
                     </DropdownMenu>
                 )}
             </CardHeader>
-            <CardContent className="flex-1 overflow-auto px-3 pb-3 no-drag">
+            <CardContent className="flex-1 overflow-auto px-3 pb-3 no-drag" style={{ touchAction: 'pan-y' }}>
                 {children}
             </CardContent>
         </Card>
