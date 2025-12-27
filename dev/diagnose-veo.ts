@@ -39,13 +39,13 @@ async function testVeoStandalone() {
         name: 'testVeo',
         input: { schema: GenerateVideoInputSchema },
         prompt: `Generate a video. Request: {{{prompt}}}`,
-        model: 'googleai/veo-3.0-generate-001', // Target Model
+        model: 'googleai/veo-3.1-generate-preview', // Target Model
     });
 
     try {
         const promptText = "A cinematic drone shot of a cannabis farm at sunset, 4k resolution";
         console.log(`\n🚀 Sending Prompt: "${promptText}"`);
-        console.log('Model: googleai/veo-3.0-generate-001');
+        console.log('Model: googleai/veo-3.1-generate-preview');
         
         const response = await videoPrompt({
             prompt: promptText,
