@@ -42,7 +42,52 @@ describe('PuffChat Component', () => {
 
     it('renders the chat interface', () => {
         render(<PuffChat />);
-        expect(screen.getByPlaceholderText('Ask Baked HQ anything...')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Ask Smokey anything...')).toBeInTheDocument();
+        
+        // Check for quick starter chips
+        expect(screen.getByText('What can you do?')).toBeInTheDocument();
+        expect(screen.getByText('Analyze my revenue')).toBeInTheDocument();
+    });
+
+    it('sends a message when typed and submitted', async () => {
+        const user = userEvent.setup();
+        const onSendMessage = jest.fn();
+        
+        render(<PuffChat onSendMessage={onSendMessage} />);
+        
+        const input = screen.getByPlaceholderText('Ask Smokey anything...');
+        await user.type(input, 'Hello Smokey');
+        
+        const sendButton = screen.getByRole('button', { name: /send/i });
+        await user.click(sendButton);
+        
+        expect(onSendMessage).toHaveBeenCalledWith('Hello Smokey');
+        expect(input).toHaveValue(''); // Should clear after sending
+    });
+
+    it('handles quick starter clicks', async () => {
+        const user = userEvent.setup();
+        const onSendMessage = jest.fn();
+        
+        render(<PuffChat onSendMessage={onSendMessage} />);
+        
+        const chip = screen.getByText('Analyze my revenue');
+        await user.click(chip);
+        
+        expect(onSendMessage).toHaveBeenCalledWith('Analyze my revenue');
+    });
+
+    it('disables input while processing', () => {
+        render(<PuffChat isProcessing={true} />);
+        
+        const input = screen.getByPlaceholderText('Ask Smokey anything...');
+        fireEvent.change(input, { target: { value: 'Send email' } });
+
+        const submitBtn = screen.getByTestId('send-button');
+        fireEvent.click(submitBtn);
+
+        expect(input).toBeDisabled();
+        expect(submitBtn).toBeDisabled();
     });
 
     it('handles user input and shows response', async () => {
@@ -56,7 +101,7 @@ describe('PuffChat Component', () => {
 
         render(<PuffChat />);
 
-        const input = screen.getByPlaceholderText('Ask Baked HQ anything...');
+        const input = screen.getByPlaceholderText('Ask Smokey anything...');
         fireEvent.change(input, { target: { value: 'Send an email to team' } });
 
         const submitBtn = screen.getByTestId('send-button');
@@ -81,7 +126,7 @@ describe('PuffChat Component', () => {
 
         render(<PuffChat />);
 
-        const input = screen.getByPlaceholderText('Ask Baked HQ anything...');
+        const input = screen.getByPlaceholderText('Ask Smokey anything...');
         fireEvent.change(input, { target: { value: 'Send email' } });
 
         const submitBtn = screen.getByTestId('send-button');

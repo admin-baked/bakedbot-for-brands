@@ -452,6 +452,12 @@ export default function HomePage() {
               Get found on Google. Convert shoppers. Stay compliant.
               <span className="block text-2xl md:text-3xl mt-2 text-muted-foreground font-normal">(For Brands & Dispensaries)</span>
             </h1>
+
+            {/* Agent Playground - Interactive Demo */}
+            <div className="mt-8 mb-8 text-left">
+              <AgentPlayground />
+            </div>
+
             <p className="mt-4 text-base md:text-lg text-muted-foreground">
               BakedBot AI combines an SEO-first headless menu + Smokey AI budtender, with optional marketing, analytics,
               competitive intel, and compliance guardrails. Start simple. Add power when you’re ready.
@@ -469,11 +475,6 @@ export default function HomePage() {
               <Button size="lg" variant="outline" asChild href="/shop/demo">
                 See Live Demo
               </Button>
-            </div>
-
-            {/* Agent Playground - Interactive Demo */}
-            <div className="mt-10">
-              <AgentPlayground />
             </div>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">

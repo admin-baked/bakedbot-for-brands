@@ -1,7 +1,7 @@
 // src/config/super-admin-smokey-config.ts
 /**
  * Super Admin Smokey Configuration
- * Internal "Baked HQ" persona for the BakedBot team
+ * Internal "Smokey Chat" persona for the BakedBot team
  */
 
 export const SUPER_ADMIN_SMOKEY = {
