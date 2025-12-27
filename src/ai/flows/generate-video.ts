@@ -45,7 +45,7 @@ const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-
 
 // ... imports
 import { generateSoraVideo } from '../generators/sora';
-import { getVideoProviderAction } from '@/server/actions/super-admin/global-settings';
+import { getSafeVideoProviderAction } from '@/server/actions/super-admin/safe-settings';
 
 const generateVideoFlow = ai.defineFlow(
     {
@@ -56,7 +56,7 @@ const generateVideoFlow = ai.defineFlow(
     async (input) => {
         let provider = 'veo';
         try {
-            provider = await getVideoProviderAction();
+            provider = await getSafeVideoProviderAction();
         } catch (e) {
             console.warn('[generateVideoFlow] Failed to fetch provider setting, defaulting to Veo.');
         }
