@@ -71,11 +71,39 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
     return candidates.length > 0 ? candidates[0].id : null;
   },
 
-  async act(brandMemory, agentMemory, targetId, tools: CraigTools) {
+  async act(brandMemory, agentMemory, targetId, tools: CraigTools, stimulus?: string) {
+    // Handle chat/conversational requests
+    if (targetId === 'chat_response' && stimulus) {
+      // Generate a helpful marketing-focused response using the LLM
+      const response = await tools.generateCopy(
+        `You are Craig, a marketing and content expert for cannabis brands. Answer this question helpfully: "${stimulus}"`,
+        { brandName: brandMemory.brandName, constraints: brandMemory.constraints }
+      );
+      
+      return {
+        updatedMemory: agentMemory,
+        logEntry: {
+          action: 'chat_response',
+          result: response,
+          next_step: 'await_user_input',
+          metadata: { stimulus }
+        }
+      };
+    }
+
     const campaignIndex = agentMemory.campaigns.findIndex(c => c.id === targetId);
 
     if (campaignIndex === -1) {
-      throw new Error(`Target campaign ${targetId} not found`);
+      // If no campaign found and no stimulus, return a helpful message
+      return {
+        updatedMemory: agentMemory,
+        logEntry: {
+          action: 'no_action',
+          result: 'No active campaigns to manage right now. Ask me about marketing strategy, content creation, or campaign planning!',
+          next_step: 'await_user_input',
+          metadata: {}
+        }
+      };
     }
 
     const campaign = agentMemory.campaigns[campaignIndex];
