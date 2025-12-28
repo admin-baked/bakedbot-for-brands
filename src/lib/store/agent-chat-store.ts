@@ -36,6 +36,7 @@ export interface ChatSession {
     timestamp: Date;
     messages: ChatMessage[];
     role?: string; // e.g. 'brand', 'dispensary', 'owner'
+    projectId?: string; // Optional project context
 }
 
 interface AgentChatState {
@@ -43,9 +44,11 @@ interface AgentChatState {
     activeSessionId: string | null;
     currentMessages: ChatMessage[];
     currentRole: string | null;
+    currentProjectId: string | null; // Active project context
 
     // Actions
     setCurrentRole: (role: string) => void;
+    setCurrentProject: (projectId: string | null) => void;
     createSession: (firstMessage?: ChatMessage, role?: string) => void;
     setActiveSession: (sessionId: string) => void;
     addMessage: (message: ChatMessage) => void;
@@ -61,8 +64,10 @@ export const useAgentChatStore = create<AgentChatState>()(
             activeSessionId: null,
             currentMessages: [],
             currentRole: null,
+            currentProjectId: null,
 
             setCurrentRole: (role) => set({ currentRole: role }),
+            setCurrentProject: (projectId) => set({ currentProjectId: projectId }),
 
             addMessage: (message) => {
                 set((state) => {
@@ -185,7 +190,8 @@ export const useAgentChatStore = create<AgentChatState>()(
                 sessions: state.sessions,
                 activeSessionId: state.activeSessionId,
                 currentMessages: state.currentMessages,
-                currentRole: state.currentRole
+                currentRole: state.currentRole,
+                currentProjectId: state.currentProjectId,
             }),
         }
     )
