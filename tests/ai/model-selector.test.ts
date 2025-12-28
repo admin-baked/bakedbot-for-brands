@@ -14,13 +14,19 @@ import {
 
 describe('Model Selector', () => {
     describe('MODEL_CONFIGS', () => {
-        it('should define all four intelligence levels', () => {
-            const levels: ThinkingLevel[] = ['standard', 'advanced', 'expert', 'genius'];
+        it('should define all intelligence levels including lite', () => {
+            const levels: ThinkingLevel[] = ['lite', 'standard', 'advanced', 'expert', 'genius'];
             levels.forEach(level => {
                 expect(MODEL_CONFIGS[level]).toBeDefined();
                 expect(MODEL_CONFIGS[level].model).toBeTruthy();
                 expect(MODEL_CONFIGS[level].description).toBeTruthy();
             });
+        });
+
+        it('should use Flash Lite for lite tier (most cost-efficient)', () => {
+            expect(MODEL_CONFIGS.lite.model).toBe('googleai/gemini-2.5-flash-lite');
+            expect(MODEL_CONFIGS.lite.thinkingLevel).toBeUndefined();
+            expect(MODEL_CONFIGS.lite.tier).toBe('free');
         });
 
         it('should use Flash for standard (cost-efficient)', () => {
@@ -52,10 +58,10 @@ describe('Model Selector', () => {
             expect(getModelConfig('genius').thinkingLevel).toBe('max');
         });
 
-        it('should fallback to standard for invalid level', () => {
-            expect(getModelConfig('invalid')).toEqual(MODEL_CONFIGS.standard);
-            expect(getModelConfig(undefined)).toEqual(MODEL_CONFIGS.standard);
-            expect(getModelConfig('')).toEqual(MODEL_CONFIGS.standard);
+        it('should fallback to lite for invalid level', () => {
+            expect(getModelConfig('invalid')).toEqual(MODEL_CONFIGS.lite);
+            expect(getModelConfig(undefined)).toEqual(MODEL_CONFIGS.lite);
+            expect(getModelConfig('')).toEqual(MODEL_CONFIGS.lite);
         });
     });
 
