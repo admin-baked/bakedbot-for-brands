@@ -39,6 +39,14 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     group: 'core',
   },
   {
+    key: 'research',
+    label: 'Deep Research',
+    href: '/dashboard/research',
+    icon: 'globe',
+    group: 'core',
+    badge: 'beta',
+  },
+  {
     key: 'growth-engine',
     label: 'Smokey Growth Engine',
     href: '/dashboard/growth',
