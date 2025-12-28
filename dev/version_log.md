@@ -2,6 +2,29 @@
 
 All updates should be incremented by .1 for minor fixes and .2 or greater for major features.
 
+## [1.6.2] - 2025-12-28
+### Added
+- **Smart Model Routing**: Tiered AI model configuration
+  - Free tier defaults to Gemini 2.5 Flash Lite (cost-effective)
+  - Agentic tasks (playbooks, research) always use Gemini 3 Pro
+  - New `AGENTIC_MODEL` constant for complex workflows
+- **Free Tier Usage Limits**: Weekly limits for premium features
+  - 1 playbook/week, 1 deep research/week, 5 images/week
+  - Usage tracking service (`usage-tracking.ts`)
+- **Tiered Image Generation**: Nano Banana for free, Nano Banana Pro for paid
+- **Deep Research Link**: Added to sidebar for all roles (brand, dispensary, owner)
+- **Model Documentation**: Created `dev/ai-models.md` with complete reference
+
+### Changed
+- Default GenKit model updated to `gemini-2.5-flash-lite`
+- Playbook flow now uses `AGENTIC_MODEL` explicitly
+- Model selector dropdown includes new `lite` tier option
+
+### Fixed
+- Homepage demo chat now displays responses correctly
+- Research service Firebase Admin initialization (lazy-loading)
+- Routing order for platform questions (HQ first)
+
 ## [1.6.1] - 2025-12-27
 ### Changed
 - **Renaming**: "Ask Baked HQ" is now **"Smokey Chat"** globally (Dashboard, Homepage, Configuration).
