@@ -58,6 +58,9 @@ import { useUser } from '@/firebase/auth/use-user';
 import { AudioRecorder } from '@/components/ui/audio-recorder';
 import { ModelSelector, ThinkingLevel } from '../../ceo/components/model-selector';
 import { useJobPoller } from '@/hooks/use-job-poller';
+import { ProjectSelector } from '@/components/dashboard/project-selector';
+import type { Project } from '@/types/project';
+import { AttachmentPreviewList, AttachmentItem } from '@/components/ui/attachment-preview';
 
 // ============ Types ============
 
@@ -415,9 +418,12 @@ export function AgentChat({
     pageContext
 }: AgentChatProps) {
     // Global Store State
-    const { currentMessages, addMessage, updateMessage, setCurrentRole } = useAgentChatStore();
+    const { currentMessages, addMessage, updateMessage, setCurrentRole, currentProjectId, setCurrentProject } = useAgentChatStore();
     const { role } = useUserRole();
     const { user } = useUser(); // Get authenticated user
+    
+    // Project context state
+    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
     // Ensure store knows current role
     useEffect(() => {
@@ -527,7 +533,7 @@ export function AgentChat({
     const [selectedTools, setSelectedTools] = useState<AvailableTool[]>([]);
 
     // Multi-modal State
-    const [attachments, setAttachments] = useState<{ id: string, file: File, preview?: string, type: 'image' | 'file' }[]>([]);
+    const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     const handleToggleTool = (tool: AvailableTool) => {
@@ -553,6 +559,74 @@ export function AgentChat({
         setAttachments(prev => prev.filter(a => a.id !== id));
     };
 
+    // Detect large pasted content and convert to attachment card (Claude-style)
+    const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        const pastedText = e.clipboardData.getData('text');
+        const pastedFiles = Array.from(e.clipboardData.files || []);
+        
+        // Handle pasted files (images, PDFs, etc.)
+        if (pastedFiles.length > 0) {
+            e.preventDefault();
+            const newAttachments = pastedFiles.map(file => ({
+                id: Math.random().toString(36).substr(2, 9),
+                file,
+                type: file.type.startsWith('image/') ? 'image' as const : 'file' as const,
+                preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+                name: file.name
+            }));
+            setAttachments(prev => [...prev, ...newAttachments]);
+            return;
+        }
+        
+        // For large text content (> 200 chars), convert to attachment card
+        if (pastedText && pastedText.length > 200) {
+            e.preventDefault();
+            const attachment: AttachmentItem = {
+                id: Math.random().toString(36).substr(2, 9),
+                type: 'pasted',
+                content: pastedText,
+                name: detectPastedContentName(pastedText)
+            };
+            setAttachments(prev => [...prev, attachment]);
+        }
+    };
+
+    // Detect content type from pasted text
+    const detectPastedContentName = (text: string): string => {
+        const trimmed = text.trim();
+        
+        // Check for CSV format
+        if (trimmed.includes(',') && trimmed.split('\n').length > 1) {
+            const lines = trimmed.split('\n');
+            const avgCommas = lines.slice(0, 5).map(l => (l.match(/,/g) || []).length);
+            if (avgCommas.length > 0 && avgCommas.every(c => c > 0 && c === avgCommas[0])) {
+                return 'Pasted CSV Data';
+            }
+        }
+        
+        // Check for JSON
+        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+            (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+            try {
+                JSON.parse(trimmed);
+                return 'Pasted JSON Data';
+            } catch { /* not valid JSON */ }
+        }
+        
+        // Check for code-like content
+        if (trimmed.includes('function ') || trimmed.includes('const ') || 
+            trimmed.includes('import ') || trimmed.includes('class ')) {
+            return 'Pasted Code';
+        }
+        
+        // Check for markdown
+        if (trimmed.includes('# ') || trimmed.includes('## ') || trimmed.includes('```')) {
+            return 'Pasted Markdown';
+        }
+        
+        return 'Pasted Content';
+    };
+
     const handleAudioComplete = async (audioBlob: Blob) => {
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
@@ -564,13 +638,27 @@ export function AgentChat({
 
     const convertAttachments = async () => {
         return Promise.all(attachments.map(async (a) => {
+            // Handle pasted text content
+            if (a.type === 'pasted' && a.content) {
+                return {
+                    name: a.name || 'pasted-content.txt',
+                    type: 'text/plain',
+                    base64: `data:text/plain;base64,${btoa(a.content)}`
+                };
+            }
+            
+            // Handle file attachments
+            if (!a.file) {
+                return { name: 'unknown', type: 'unknown', base64: '' };
+            }
+            
             return new Promise<{ name: string, type: string, base64: string }>((resolve) => {
                 const reader = new FileReader();
-                reader.readAsDataURL(a.file);
+                reader.readAsDataURL(a.file!);
                 reader.onloadend = () => {
                     resolve({
-                        name: a.file.name,
-                        type: a.file.type,
+                        name: a.file!.name,
+                        type: a.file!.type,
                         base64: reader.result as string
                     });
                 };
@@ -775,26 +863,13 @@ export function AgentChat({
     // Input component (reusable for both positions)
     const InputArea = (
         <div className={cn("p-4", hasMessages ? "border-t" : "border-b")}>
-             {/* Attachment Previews */}
+             {/* Attachment Previews - Claude-style cards */}
              {attachments.length > 0 && (
-                <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
-                    {attachments.map(att => (
-                        <div key={att.id} className="relative group shrink-0">
-                            <div className="border rounded-lg overflow-hidden w-16 h-16 flex items-center justify-center bg-muted">
-                                {att.type === 'image' ? (
-                                    <img src={att.preview} alt="preview" className="w-full h-full object-cover" />
-                                ) : (
-                                    <FileText className="w-8 h-8 text-muted-foreground" />
-                                )}
-                            </div>
-                            <button 
-                                onClick={() => removeAttachment(att.id)}
-                                className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
-                            >
-                                <X className="w-3 h-3" />
-                            </button>
-                        </div>
-                    ))}
+                <div className="mb-3 max-w-3xl mx-auto">
+                    <AttachmentPreviewList 
+                        attachments={attachments} 
+                        onRemove={removeAttachment} 
+                    />
                 </div>
             )}
 
@@ -802,6 +877,7 @@ export function AgentChat({
                 <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
+                    onPaste={handlePaste}
                     placeholder={hasMessages ? "Reply, or use microphone..." : "Ask Smokey anything..."}
                     className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base"
                     onKeyDown={(e) => {
