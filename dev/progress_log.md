@@ -1,6 +1,72 @@
 # Progress Log
 
 
+## Session: 2025-12-28 (AI Model Configuration & Smart Routing)
+### Task ID
+ai-model-routing-001
+
+### Summary
+Implemented tiered AI model configuration with smart routing. Free users default to Gemini 2.5 Flash Lite for cost efficiency, while agentic tasks (playbooks, research) always use Gemini 3 Pro for maximum capabilities.
+
+### Key Changes
+*   **Model Selector** (`src/ai/model-selector.ts`):
+    - Added `lite` tier using `gemini-2.5-flash-lite` as free tier default
+    - Added `AGENTIC_MODEL` constant for playbooks/tools (`gemini-3-pro-preview`)
+    - Added `FREE_TIER_LIMITS`: 1 playbook/week, 1 research/week, 5 images/week
+    - Added `getAgenticModelOptions()` for agentic task configuration
+
+*   **Image Generation** (`src/ai/flows/generate-social-image.ts`):
+    - Tiered image gen: Free = Nano Banana (2.5 Flash Image), Paid = Nano Banana Pro (3 Pro Image)
+
+*   **Playbook Flow** (`src/ai/flows/suggest-playbook.ts`):
+    - Now explicitly uses `AGENTIC_MODEL` for thought signatures and tool calling
+
+*   **Usage Tracking** (`src/server/services/usage-tracking.ts`):
+    - New service for tracking weekly usage limits for free tier
+    - Functions: `checkUsage()`, `incrementUsage()`, `getRemainingUsage()`
+
+*   **Research Service** (`src/server/services/research-service.ts`):
+    - Fixed Firebase Admin lazy initialization to prevent 404 errors
+
+*   **Navigation** (`src/hooks/use-dashboard-config.ts`):
+    - Added Deep Research link for all roles (brand, dispensary, owner)
+
+*   **UI Dropdown** (`src/app/dashboard/ceo/components/model-selector.tsx`):
+    - Added `lite` option with Leaf icon
+    - Updated tier-based locking for model access
+
+### Documentation
+*   Created `dev/ai-models.md` with complete model reference
+*   Added Agentic Model Routing section
+*   Added Free Tier Usage Limits section
+
+### Tests Updated
+*   `src/ai/__tests__/model-selector.test.ts`: New comprehensive test suite
+*   `tests/ai/model-selector.test.ts`: Updated for lite tier fallback
+
+### Result: ✅ Deployed
+
+---
+
+## Session: 2025-12-28 (Homepage Chat Fix)
+### Task ID
+homepage-chat-fix-001
+
+### Summary
+Fixed homepage demo chat not displaying output after running. Added missing agent responses and fixed routing logic.
+
+### Key Changes
+*   **Demo API Route** (`src/app/api/demo/agent/route.ts`):
+    - Added `hq` response for platform questions
+    - Added `deebo` response for compliance queries
+    - Added `FALLBACK_RESPONSE` to prevent empty results
+    - Fixed routing order to check HQ first
+
+### Result: ✅ Deployed
+
+---
+
+
 ## Session: 2025-12-27 (Smokey Chat & Homepage Refactor)
 ### Task ID
 smokey-chat-refactor-001
