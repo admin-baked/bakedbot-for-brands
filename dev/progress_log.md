@@ -1126,4 +1126,22 @@ Fixed a confusing UI issue where "Transcribing..." was displayed during text-bas
 *   **FIX**: `src/app/dashboard/playbooks/components/agent-chat.tsx` - Added `isTranscribing` state to ensuring `AudioRecorder` only shows transcription status for actual audio inputs.
 
 
+## Session: 2025-12-27 (Homepage Agents & Deep Research UI)
+### Task ID
+homepage-research-ui-001
 
+### Summary
+Unified the Homepage "Agent Playground" to use real routing logic (Craig/Smokey/Ezal) instead of hardcoded demo responses. Fixed a critical UI regression where retail buttons overlapped with the new agent chat. Implemented the frontend foundation for "Smokey Deep Research" (Sidebar, Page, Dropdown).
+
+### Key Changes
+*   **FEAT**: `src/app/api/demo/agent/route.ts` - Refactored to use `analyzeQuery` for intelligent routing.
+*   **FIX**: `src/components/landing/agent-playground.tsx` - Removed overlapping retail buttons.
+*   **FEAT**: `src/app/dashboard/research/page.tsx` - Created Research Dashboard page shell.
+*   **FEAT**: `src/lib/dashboard-nav.ts` - Added "Research" link to Sidebar.
+*   **FEAT**: `src/app/dashboard/ceo/components/model-selector.tsx` - Added "Deep Research" option.
+*   **FIX**: `src/components/chatbot.tsx` - Resolved `TS2304` build errors.
+
+### Tests
+*   `src/app/api/demo/agent/__tests__/unified-route.test.ts`: Passed
+*   `src/components/landing/__tests__/agent-playground.test.tsx`: Passed
+*   `npm run check:types`: Passed
