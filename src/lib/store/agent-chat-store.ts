@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { Artifact } from '@/types/artifact';
 
 export interface ChatMessage {
     id: string;
     type: 'user' | 'agent';
     content: string;
     timestamp: Date;
+    artifacts?: Artifact[]; // Artifacts generated in this message
 
     thinking?: {
         isThinking: boolean;
@@ -37,6 +39,7 @@ export interface ChatSession {
     messages: ChatMessage[];
     role?: string; // e.g. 'brand', 'dispensary', 'owner'
     projectId?: string; // Optional project context
+    artifacts?: Artifact[]; // All artifacts in this session
 }
 
 interface AgentChatState {
@@ -45,6 +48,7 @@ interface AgentChatState {
     currentMessages: ChatMessage[];
     currentRole: string | null;
     currentProjectId: string | null; // Active project context
+    currentArtifacts: Artifact[]; // Artifacts in current session
 
     // Actions
     setCurrentRole: (role: string) => void;
@@ -55,6 +59,11 @@ interface AgentChatState {
     updateMessage: (id: string, updates: Partial<ChatMessage>) => void;
     clearCurrentSession: () => void;
     hydrateSessions: (sessions: ChatSession[]) => void;
+    
+    // Artifact Actions
+    addArtifact: (artifact: Artifact) => void;
+    updateArtifact: (id: string, updates: Partial<Artifact>) => void;
+    removeArtifact: (id: string) => void;
 }
 
 export const useAgentChatStore = create<AgentChatState>()(
@@ -65,9 +74,31 @@ export const useAgentChatStore = create<AgentChatState>()(
             currentMessages: [],
             currentRole: null,
             currentProjectId: null,
+            currentArtifacts: [],
 
             setCurrentRole: (role) => set({ currentRole: role }),
             setCurrentProject: (projectId) => set({ currentProjectId: projectId }),
+
+            // Artifact Actions
+            addArtifact: (artifact) => {
+                set((state) => ({
+                    currentArtifacts: [...state.currentArtifacts, artifact]
+                }));
+            },
+
+            updateArtifact: (id, updates) => {
+                set((state) => ({
+                    currentArtifacts: state.currentArtifacts.map(a => 
+                        a.id === id ? { ...a, ...updates, updatedAt: new Date() } : a
+                    )
+                }));
+            },
+
+            removeArtifact: (id) => {
+                set((state) => ({
+                    currentArtifacts: state.currentArtifacts.filter(a => a.id !== id)
+                }));
+            },
 
             addMessage: (message) => {
                 set((state) => {
@@ -176,7 +207,8 @@ export const useAgentChatStore = create<AgentChatState>()(
                 // Reset for new chat
                 set({
                     activeSessionId: null,
-                    currentMessages: []
+                    currentMessages: [],
+                    currentArtifacts: []
                 });
             },
 
@@ -192,6 +224,7 @@ export const useAgentChatStore = create<AgentChatState>()(
                 currentMessages: state.currentMessages,
                 currentRole: state.currentRole,
                 currentProjectId: state.currentProjectId,
+                currentArtifacts: state.currentArtifacts,
             }),
         }
     )
