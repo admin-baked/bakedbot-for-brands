@@ -62,7 +62,8 @@ import { ProjectSelector } from '@/components/dashboard/project-selector';
 import type { Project } from '@/types/project';
 import { AttachmentPreviewList, AttachmentItem } from '@/components/ui/attachment-preview';
 import { ArtifactPanel, ArtifactCard } from '@/components/artifacts';
-import { Artifact, parseArtifactsFromContent } from '@/types/artifact';
+import { Artifact, parseArtifactsFromContent, createArtifactId } from '@/types/artifact';
+import { shareArtifact } from '@/server/actions/artifacts';
 
 // ============ Types ============
 
@@ -501,8 +502,33 @@ export function AgentChat({
         // 2. Handle Completion
         if (isComplete && job?.result) {
             const result = job.result; // AgentResult object
+            const content = result.content || '**Task Completed** (No content returned)';
+            
+            // Parse artifacts from agent response
+            const { artifacts: parsedArtifacts, cleanedContent } = parseArtifactsFromContent(content);
+            
+            // Add any parsed artifacts to the store
+            parsedArtifacts.forEach(a => {
+                const fullArtifact: Artifact = {
+                    id: a.id || createArtifactId(),
+                    type: a.type!,
+                    title: a.title!,
+                    content: a.content!,
+                    language: a.language,
+                    metadata: a.metadata,
+                    createdAt: a.createdAt || new Date(),
+                    updatedAt: a.updatedAt || new Date(),
+                };
+                addArtifact(fullArtifact);
+            });
+            
+            // If we found artifacts, open the panel
+            if (parsedArtifacts.length > 0) {
+                setShowArtifactPanel(true);
+            }
+            
             updateMessage(activeJob.messageId, {
-                content: result.content || '**Task Completed** (No content returned)',
+                content: parsedArtifacts.length > 0 ? cleanedContent : content,
                 metadata: result.metadata,
                 thinking: {
                     isThinking: false,
@@ -1208,6 +1234,24 @@ export function AgentChat({
             onClose={() => {
                 setShowArtifactPanel(false);
                 setSelectedArtifact(null);
+            }}
+            onShare={async (artifact) => {
+                try {
+                    const result = await shareArtifact(
+                        artifact.id,
+                        artifact.title,
+                        artifact.content,
+                        artifact.type,
+                        artifact.metadata
+                    );
+                    if (result.success && result.shareUrl) {
+                        // Copy share URL to clipboard
+                        await navigator.clipboard.writeText(result.shareUrl);
+                        alert(`Share link copied to clipboard:\n${result.shareUrl}`);
+                    }
+                } catch (error) {
+                    console.error('Failed to share artifact:', error);
+                }
             }}
             isOpen={showArtifactPanel}
         />
