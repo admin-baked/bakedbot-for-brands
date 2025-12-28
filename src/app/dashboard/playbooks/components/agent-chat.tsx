@@ -61,6 +61,8 @@ import { useJobPoller } from '@/hooks/use-job-poller';
 import { ProjectSelector } from '@/components/dashboard/project-selector';
 import type { Project } from '@/types/project';
 import { AttachmentPreviewList, AttachmentItem } from '@/components/ui/attachment-preview';
+import { ArtifactPanel, ArtifactCard } from '@/components/artifacts';
+import { Artifact, parseArtifactsFromContent } from '@/types/artifact';
 
 // ============ Types ============
 
@@ -418,12 +420,25 @@ export function AgentChat({
     pageContext
 }: AgentChatProps) {
     // Global Store State
-    const { currentMessages, addMessage, updateMessage, setCurrentRole, currentProjectId, setCurrentProject } = useAgentChatStore();
+    const { 
+        currentMessages, 
+        addMessage, 
+        updateMessage, 
+        setCurrentRole, 
+        currentProjectId, 
+        setCurrentProject,
+        currentArtifacts,
+        addArtifact 
+    } = useAgentChatStore();
     const { role } = useUserRole();
     const { user } = useUser(); // Get authenticated user
     
     // Project context state
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+    
+    // Artifact panel state
+    const [showArtifactPanel, setShowArtifactPanel] = useState(false);
+    const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null);
 
     // Ensure store knows current role
     useEffect(() => {
@@ -995,6 +1010,7 @@ export function AgentChat({
     );
 
     return (
+        <>
         <div className="flex flex-col h-full bg-background border rounded-lg">
             {/* Header - only show if we have messages */}
             {hasMessages && (
@@ -1008,6 +1024,18 @@ export function AgentChat({
                         <h2 className="font-semibold">{state.title}</h2>
                     </div>
                     <div className="flex items-center gap-2">
+                        {/* Artifacts Toggle Button */}
+                        {currentArtifacts.length > 0 && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowArtifactPanel(!showArtifactPanel)}
+                                className="gap-1.5 bg-white"
+                            >
+                                <Sparkles className="h-3.5 w-3.5" />
+                                <span className="text-xs">{currentArtifacts.length}</span>
+                            </Button>
+                        )}
                         {state.isConnected && (
                             <Badge variant="outline" className="bg-white">
                                 <span className="text-xs">Connected</span>
@@ -1168,5 +1196,21 @@ export function AgentChat({
             {/* Input at BOTTOM when we have messages */}
             {hasMessages && InputArea}
         </div>
+
+        {/* Artifact Panel */}
+        <ArtifactPanel
+            artifacts={currentArtifacts}
+            selectedArtifact={selectedArtifact}
+            onSelect={(artifact) => {
+                setSelectedArtifact(artifact);
+                if (artifact) setShowArtifactPanel(true);
+            }}
+            onClose={() => {
+                setShowArtifactPanel(false);
+                setSelectedArtifact(null);
+            }}
+            isOpen={showArtifactPanel}
+        />
+        </>
     );
 }
