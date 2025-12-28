@@ -1,10 +1,25 @@
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { getFirestore, Timestamp, Firestore } from 'firebase-admin/firestore';
 import { ResearchTask, ResearchTaskStatus } from '@/types/research';
+import { initializeAdminApp } from '@/firebase/admin';
 
 export class ResearchService {
-  private db = getFirestore();
-  private tasksCollection = this.db.collection('research_tasks');
-  private reportsCollection = this.db.collection('research_reports');
+  private _db: Firestore | null = null;
+  
+  private get db(): Firestore {
+    if (!this._db) {
+      initializeAdminApp();
+      this._db = getFirestore();
+    }
+    return this._db;
+  }
+  
+  private get tasksCollection() {
+    return this.db.collection('research_tasks');
+  }
+  
+  private get reportsCollection() {
+    return this.db.collection('research_reports');
+  }
 
   /**
    * Creates a new research task to be picked up by the Python Sidecar

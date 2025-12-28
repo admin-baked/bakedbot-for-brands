@@ -35,12 +35,52 @@ This document describes the AI models used by BakedBot and their tier-based acce
 
 ---
 
+## Agentic Model Routing
+
+For complex tasks requiring tool calling, playbook creation, and thought signatures, BakedBot **always uses Gemini 3 Pro** regardless of user tier.
+
+| Task Type | Model Used | Reason |
+|-----------|-----------|--------|
+| Simple Q&A | `gemini-2.5-flash-lite` | Cost-effective, fast |
+| Product Search | `gemini-2.5-flash-lite` | High volume, low complexity |
+| Playbook Creation | `gemini-3-pro-preview` | Agentic features, thought signatures |
+| Deep Research | `gemini-3-pro-preview` | Complex reasoning, tool calling |
+| Image Generation | Tier-based | See Image Models section |
+
+### Why Gemini 3 Pro for Agentic Tasks?
+Reference: [Building AI Agents with Gemini 3](https://developers.googleblog.com/building-ai-agents-with-google-gemini-3-and-open-source-frameworks/)
+
+- **Thought Signatures:** Structured reasoning traces
+- **Tool Calling:** Native function calling for complex workflows
+- **Long Context:** 2M token window for comprehensive analysis
+
+---
+
+## Free Tier Usage Limits
+
+Free users have weekly limits on premium features:
+
+| Feature | Weekly Limit | Resets |
+|---------|-------------|--------|
+| Playbook Creations | 1 | Every Sunday UTC |
+| Deep Research Tasks | 1 | Every Sunday UTC |
+| Image Generations | 5 | Every Sunday UTC |
+
+### Tracking Implementation
+- **Service:** `src/server/services/usage-tracking.ts`
+- **Collection:** `user_usage` in Firestore
+- **Functions:** `checkUsage()`, `incrementUsage()`, `getRemainingUsage()`
+
+---
+
 ## Configuration Files
 
 ### Primary Configuration
-- **`src/ai/model-selector.ts`** - Model tier definitions, thinking levels, helper functions
+- **`src/ai/model-selector.ts`** - Model tier definitions, agentic model, usage limits
 - **`src/ai/genkit.ts`** - Default model (free tier)
 - **`src/ai/flows/generate-social-image.ts`** - Image generation with tier support
+- **`src/ai/flows/suggest-playbook.ts`** - Playbook generation (uses AGENTIC_MODEL)
+- **`src/server/services/usage-tracking.ts`** - Free tier usage limits
 
 ### UI Components
 - **`src/app/dashboard/ceo/components/model-selector.tsx`** - Intelligence dropdown

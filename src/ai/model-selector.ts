@@ -5,11 +5,15 @@
  * Used by runAgentChat to select the appropriate model based on user selection.
  * 
  * Model Tiers:
- * - Lite: Gemini 2.5 Flash Lite - Ultra cost-effective, default for free users
+ * - Lite: Gemini 2.5 Flash Lite - Ultra cost-effective, default for free users (simple queries)
  * - Standard: Gemini 3 Flash - Fast & capable
  * - Advanced: Gemini 3 Pro - Complex reasoning
  * - Expert: Gemini 3 Pro + High Thinking - Deep reasoning
  * - Genius: Gemini 3 Pro + Max Thinking - Maximum intelligence
+ * 
+ * AGENTIC TASKS (Playbooks, Tools, Research):
+ * - Always use Gemini 3 Pro for agentic features (thought signatures, tool calling)
+ * - Reference: https://developers.googleblog.com/building-ai-agents-with-google-gemini-3-and-open-source-frameworks/
  */
 
 export type ThinkingLevel = 'lite' | 'standard' | 'advanced' | 'expert' | 'genius';
@@ -67,6 +71,29 @@ export const MODEL_CONFIGS: Record<ThinkingLevel, ModelConfig> = {
 };
 
 /**
+ * Agentic Model - Used for complex tasks requiring tool calling,
+ * playbook creation, and thought signatures.
+ * Always uses Gemini 3 Pro for best agentic performance.
+ */
+export const AGENTIC_MODEL = 'googleai/gemini-3-pro-preview';
+
+/**
+ * Simple Query Model - Used for basic questions that don't require
+ * advanced reasoning or tool calling. Cost-effective for high volume.
+ */
+export const SIMPLE_QUERY_MODEL = 'googleai/gemini-2.5-flash-lite';
+
+/**
+ * Weekly usage limits for free tier users.
+ * These reset every 7 days from the user's first usage.
+ */
+export const FREE_TIER_LIMITS = {
+    playbooksPerWeek: 1,
+    deepResearchPerWeek: 1,
+    imagesPerWeek: 5,
+};
+
+/**
  * Default model for each user tier
  */
 export const DEFAULT_MODEL_BY_TIER = {
@@ -113,6 +140,28 @@ export function getGenerateOptions(level?: string): { model: string; config?: Re
         options.config = {
             thinkingConfig: {
                 thinkingLevel: config.thinkingLevel,
+            },
+        };
+    }
+    
+    return options;
+}
+
+/**
+ * Get Genkit options for agentic tasks (playbooks, tools, research).
+ * Always uses Gemini 3 Pro for best agentic capabilities.
+ * 
+ * @param useThinking - Enable thinking mode for complex reasoning (default: true)
+ */
+export function getAgenticModelOptions(useThinking: boolean = true): { model: string; config?: Record<string, any> } {
+    const options: { model: string; config?: Record<string, any> } = {
+        model: AGENTIC_MODEL,
+    };
+    
+    if (useThinking) {
+        options.config = {
+            thinkingConfig: {
+                thinkingLevel: 'high', // High thinking for agentic tasks
             },
         };
     }
