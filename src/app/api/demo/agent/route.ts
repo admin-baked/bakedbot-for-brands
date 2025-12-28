@@ -130,7 +130,11 @@ export async function POST(request: NextRequest) {
         let targetAgent = requestedAgent || 'smokey'; // Use requested agent as default
 
         // 2. Intelligent Routing based on Analysis (override if specific intent detected)
-        if (analysis.searchType === 'marketing') {
+        // Check platform/HQ questions FIRST (before product search fallback)
+        if (requestedAgent === 'hq' || prompt.toLowerCase().includes('bakedbot') || prompt.toLowerCase().includes('how does') || prompt.toLowerCase().includes('pricing')) {
+            // General questions about the platform
+            targetAgent = 'hq';
+        } else if (analysis.searchType === 'marketing') {
             targetAgent = 'craig';
         } else if (analysis.searchType === 'competitive') {
             targetAgent = 'ezal';
@@ -138,12 +142,9 @@ export async function POST(request: NextRequest) {
             targetAgent = 'pops';
         } else if (analysis.searchType === 'compliance') {
             targetAgent = 'deebo'; 
-        } else if (analysis.searchType === 'semantic' || analysis.searchType === 'keyword') {
-            // For product-related queries, use Smokey
+        } else {
+            // Default to Smokey for product-related queries
             targetAgent = 'smokey';
-        } else if (requestedAgent === 'hq' || prompt.toLowerCase().includes('bakedbot') || prompt.toLowerCase().includes('how does')) {
-            // General questions about the platform
-            targetAgent = 'hq';
         }
 
         // 3. Executing Creative Actions (Real Tools)
