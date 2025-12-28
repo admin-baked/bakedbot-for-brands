@@ -310,9 +310,17 @@ export function AgentPlayground() {
 
                     </div>
 
+
+                    {/* Error State */}
+                    {error && (
+                         <div className="absolute top-4 left-4 right-4 z-20 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                            <span className="font-bold">Error:</span> {error}
+                         </div>
+                    )}
+
                     {/* Zero State / Demo Intro */}
                     {!result && !isLoading && !isThinking && (
-                        <div className="absolute inset-0 z-0 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+                        <div className="absolute inset-0 z-0 flex flex-col items-center justify-start pt-12 p-6 text-center animate-in fade-in duration-500">
                             <h2 className="text-2xl font-bold text-gray-900 mb-2">Hi, I'm Smokey.</h2>
                             <p className="text-emerald-600 font-medium mb-8">How can I help you?</p>
                             
