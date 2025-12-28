@@ -19,5 +19,6 @@ export const ai = genkit({
   plugins: [
     googleAI({ apiKey }),
   ],
-  model: 'googleai/gemini-3-flash-preview',
+  // Default to most cost-effective model (free tier)
+  model: 'googleai/gemini-2.5-flash-lite',
 });

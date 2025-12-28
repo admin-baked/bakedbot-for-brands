@@ -17,29 +17,33 @@ import {
     Zap,
     Rocket,
     CheckCircle2,
-    Globe
+    Globe,
+    Leaf
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ThinkingLevel type for intelligence selector
-export type ThinkingLevel = 'standard' | 'advanced' | 'expert' | 'genius' | 'deep_research';
+// NOTE: Keep in sync with src/ai/model-selector.ts
+export type ThinkingLevel = 'lite' | 'standard' | 'advanced' | 'expert' | 'genius' | 'deep_research';
 
 export interface ModelSelectorProps {
     value: ThinkingLevel;
     onChange: (v: ThinkingLevel) => void;
     userPlan?: string;
     unlockResearch?: boolean; // Super User / Global unlock override
+    isSuperUser?: boolean; // Super user gets access to all models
 }
 
-export function ModelSelector({ value, onChange, userPlan = 'free', unlockResearch = false }: ModelSelectorProps) {
-    const isPaid = userPlan !== 'free'; // Simple check, refine based on exact plan IDs if needed
+export function ModelSelector({ value, onChange, userPlan = 'free', unlockResearch = false, isSuperUser = false }: ModelSelectorProps) {
+    const isPaid = userPlan !== 'free' || isSuperUser;
 
     const options: Record<ThinkingLevel, { label: string, desc: string, icon: any, locked?: boolean }> = {
-        standard: { label: 'Standard', desc: 'Fast & cost-effective (Flash)', icon: Zap },
-        advanced: { label: 'Advanced', desc: 'Complex logic (Pro)', icon: Brain },
-        expert: { label: 'Reasoning', desc: 'Deep thought (o1-like)', icon: Sparkles, locked: !isPaid },
-        genius: { label: 'Genius', desc: 'Maximum intelligence (Gemini 3)', icon: Rocket, locked: !isPaid },
-        deep_research: { label: 'Deep Research', desc: 'Comprehensive web analysis (Owl)', icon: Globe, locked: !isPaid && !unlockResearch },
+        lite: { label: 'Lite', desc: 'Ultra-efficient (2.5 Flash Lite)', icon: Leaf },
+        standard: { label: 'Standard', desc: 'Fast & capable (Gemini 3 Flash)', icon: Zap, locked: !isPaid },
+        advanced: { label: 'Advanced', desc: 'Complex logic (Gemini 3 Pro)', icon: Brain, locked: !isPaid },
+        expert: { label: 'Reasoning', desc: 'Deep thought (Pro + Thinking)', icon: Sparkles, locked: !isSuperUser },
+        genius: { label: 'Genius', desc: 'Maximum intelligence (Pro + Max Thinking)', icon: Rocket, locked: !isSuperUser },
+        deep_research: { label: 'Deep Research', desc: 'Comprehensive web analysis (Owl)', icon: Globe, locked: !isSuperUser && !unlockResearch },
     };
 
     const SelectedIcon = options[value].icon;
@@ -76,7 +80,7 @@ export function ModelSelector({ value, onChange, userPlan = 'free', unlockResear
                 ))}
                 {!isPaid && (
                      <div className="p-2 bg-muted/30 text-[10px] text-muted-foreground text-center border-t mt-1">
-                        Upgrade plan to unlock Reasoning & Genius models.
+                        Upgrade plan to unlock Standard, Advanced & higher models.
                      </div>
                 )}
             </DropdownMenuContent>
