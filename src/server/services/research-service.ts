@@ -1,14 +1,13 @@
-import { getFirestore, Timestamp, Firestore } from 'firebase-admin/firestore';
+import { Timestamp, Firestore } from 'firebase-admin/firestore';
 import { ResearchTask, ResearchTaskStatus } from '@/types/research';
-import { initializeAdminApp } from '@/firebase/admin';
+import { getAdminFirestore } from '@/firebase/admin';
 
 export class ResearchService {
   private _db: Firestore | null = null;
   
   private get db(): Firestore {
     if (!this._db) {
-      initializeAdminApp();
-      this._db = getFirestore();
+      this._db = getAdminFirestore();
     }
     return this._db;
   }

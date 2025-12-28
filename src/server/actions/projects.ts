@@ -7,8 +7,8 @@
  * system instructions and chat history.
  */
 
-import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
-import { initializeAdminApp } from '@/firebase/admin';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { 
     Project, 
     ProjectChat,
@@ -26,8 +26,7 @@ import { revalidatePath } from 'next/cache';
 // --- Firestore Helpers ---
 
 function getDb() {
-    initializeAdminApp();
-    return getFirestore();
+    return getAdminFirestore();
 }
 
 const PROJECTS_COLLECTION = 'projects';
