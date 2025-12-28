@@ -16,20 +16,22 @@ import {
     Brain,
     Zap,
     Rocket,
-    CheckCircle2
+    CheckCircle2,
+    Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ThinkingLevel type for intelligence selector
-export type ThinkingLevel = 'standard' | 'advanced' | 'expert' | 'genius';
+export type ThinkingLevel = 'standard' | 'advanced' | 'expert' | 'genius' | 'deep_research';
 
 export interface ModelSelectorProps {
     value: ThinkingLevel;
     onChange: (v: ThinkingLevel) => void;
     userPlan?: string;
+    unlockResearch?: boolean; // Super User / Global unlock override
 }
 
-export function ModelSelector({ value, onChange, userPlan = 'free' }: ModelSelectorProps) {
+export function ModelSelector({ value, onChange, userPlan = 'free', unlockResearch = false }: ModelSelectorProps) {
     const isPaid = userPlan !== 'free'; // Simple check, refine based on exact plan IDs if needed
 
     const options: Record<ThinkingLevel, { label: string, desc: string, icon: any, locked?: boolean }> = {
@@ -37,6 +39,7 @@ export function ModelSelector({ value, onChange, userPlan = 'free' }: ModelSelec
         advanced: { label: 'Advanced', desc: 'Complex logic (Pro)', icon: Brain },
         expert: { label: 'Reasoning', desc: 'Deep thought (o1-like)', icon: Sparkles, locked: !isPaid },
         genius: { label: 'Genius', desc: 'Maximum intelligence (Gemini 3)', icon: Rocket, locked: !isPaid },
+        deep_research: { label: 'Deep Research', desc: 'Comprehensive web analysis (Owl)', icon: Globe, locked: !isPaid && !unlockResearch },
     };
 
     const SelectedIcon = options[value].icon;

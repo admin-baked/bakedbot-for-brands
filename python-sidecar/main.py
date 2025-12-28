@@ -1,38 +1,52 @@
 import os
-import time
+import threading
+import uvicorn
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
 import firebase_admin
 from firebase_admin import credentials, firestore
-from dotenv import load_dotenv
 from src.firestore_listener import listen_for_tasks
+from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
+# Initialize Firebase
 def initialize_firebase():
-    """Initializes Firebase Admin SDK."""
     try:
-        # Use Application Default Credentials (Cloud Run) or local key
-        if os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY"):
-            cred = credentials.Certificate(os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY"))
-            firebase_admin.initialize_app(cred)
-        else:
-            # Default for Cloud Run (uses metadata server)
-            firebase_admin.initialize_app()
-        
-        print("✅ [Main] Firebase initialized successfully.")
+        if not firebase_admin._apps:
+            if os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY"):
+                cred = credentials.Certificate(os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY"))
+                firebase_admin.initialize_app(cred)
+            else:
+                firebase_admin.initialize_app()
         return firestore.client()
     except Exception as e:
-        print(f"❌ [Main] Firebase initialization failed: {e}")
-        raise e
+        print(f"❌ Firebase Init Error: {e}")
+        return None
 
-def main():
-    print("🚀 [Main] Starting Smokey Deep Research Sidecar...")
+db_client = initialize_firebase()
+
+# Lifecycle Manager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Launch Listener in Background Thread
+    if db_client:
+        print("🚀 Starting Firestore Listener Thread...")
+        t = threading.Thread(target=listen_for_tasks, args=(db_client,), daemon=True)
+        t.start()
+    else:
+        print("⚠️ DB Client not ready, listener skipped.")
     
-    db = initialize_firebase()
-    
-    # Start the listener loop
-    # In production, this might be a webhook handler or a more robust queue consumer
-    listen_for_tasks(db)
+    yield
+    # Shutdown logic (if any)
+
+app = FastAPI(lifespan=lifespan)
+
+@app.get("/")
+def health_check():
+    """Cloud Run Health Check"""
+    return {"status": "running", "service": "smokey-research-sidecar"}
 
 if __name__ == "__main__":
-    main()
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)
