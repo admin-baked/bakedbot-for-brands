@@ -25,22 +25,22 @@ export const MODEL_CONFIGS: Record<ThinkingLevel, ModelConfig> = {
     standard: {
         model: 'googleai/gemini-3-flash-preview',
         thinkingLevel: undefined, // No thinking for fast responses
-        description: 'Fast & cost-effective (Flash)',
+        description: 'Fast & cost-effective (Gemini 3 Flash)',
     },
     advanced: {
         model: 'googleai/gemini-3-pro-preview',
         thinkingLevel: undefined, // Pro without thinking for complex but quick
-        description: 'Complex logic (Pro)',
+        description: 'Complex logic (Gemini 3 Pro)',
     },
     expert: {
         model: 'googleai/gemini-3-pro-preview',
         thinkingLevel: 'high',
-        description: 'Deep reasoning (Pro + High Thinking)',
+        description: 'Deep reasoning (Gemini 3 Pro + Thinking)',
     },
     genius: {
         model: 'googleai/gemini-3-pro-preview',
         thinkingLevel: 'max',
-        description: 'Maximum intelligence (Pro + Max Thinking)',
+        description: 'Maximum intelligence (Gemini 3 Pro + Max Thinking)',
     },
 };
 
