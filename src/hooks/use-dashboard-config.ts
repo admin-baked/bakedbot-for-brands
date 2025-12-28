@@ -45,6 +45,13 @@ export function useDashboardConfig() {
         roles: ['brand', 'dispensary', 'owner'],
       },
       {
+        label: 'Projects',
+        href: '/dashboard/projects',
+        icon: 'FolderKanban',
+        description: 'Organize chats with dedicated context and instructions.',
+        roles: ['brand', 'dispensary', 'owner'],
+      },
+      {
         label: 'Agents',
         href: '/dashboard/agents',
         icon: 'Bot',

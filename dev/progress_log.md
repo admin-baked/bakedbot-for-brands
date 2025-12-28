@@ -1,6 +1,41 @@
 # Progress Log
 
 
+## Session: 2025-12-28 (Projects Feature)
+### Task ID
+projects-feature-001
+
+### Summary
+Introduced Projects feature modeled after ChatGPT/Claude. Projects provide dedicated knowledge bases, system instructions, and chat history that can be accessed from agent chat.
+
+### Key Changes
+*   **Types** (`src/types/project.ts`):
+    - `Project`, `ProjectChat`, `ProjectDocument` interfaces
+    - Zod schemas for validation
+    - `PROJECT_LIMITS` for plan-based quotas
+    - `PROJECT_COLORS` and `PROJECT_ICONS` for UI
+
+*   **Server Actions** (`src/server/actions/projects.ts`):
+    - CRUD: `createProject`, `getProjects`, `getProject`, `updateProject`, `deleteProject`
+    - Chat: `createProjectChat`, `getProjectChats`, `updateProjectChatTitle`
+    - Usage: `canCreateProject`, `getProjectCount`
+
+*   **UI** (`src/app/dashboard/projects/`):
+    - List page with search and grid view
+    - `NewProjectButton` with creation dialog
+    - Detail page with chat history sidebar, main chat area, files panel
+
+*   **Navigation** (`src/hooks/use-dashboard-config.ts`):
+    - Added Projects link for brand, dispensary, owner roles
+
+### Tests Updated
+*   `tests/types/project.test.ts`: 15 tests covering schemas, limits, constants
+
+### Result: ✅ Implemented
+
+---
+
+
 ## Session: 2025-12-28 (AI Model Configuration & Smart Routing)
 ### Task ID
 ai-model-routing-001
