@@ -1,0 +1,9 @@
+camel-ai
+firebase-admin
+playwright
+python-dotenv
+google-cloud-firestore
+google-cloud-storage
+beautifulsoup4
+requests
+html2text
