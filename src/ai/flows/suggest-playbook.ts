@@ -8,20 +8,24 @@
  * This file should only export the main function `suggestPlaybook`.
  * Schemas and types are defined in the calling Server Action module
  * to comply with 'use server' module constraints.
+ * 
+ * Uses Gemini 3 Pro for agentic capabilities (thought signatures, tool calling).
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { PlaybookDraft, SuggestPlaybookInput } from '@/app/dashboard/playbooks/schemas';
 import { PlaybookDraftSchema, SuggestPlaybookInputSchema } from '@/app/dashboard/playbooks/schemas';
+import { AGENTIC_MODEL } from '@/ai/model-selector';
 
 
 // The AI prompt to guide the LLM in its analysis.
-// It now infers its input/output schema from the imported Zod schemas.
+// Uses Gemini 3 Pro for best agentic performance with tool calling and thought signatures.
 const suggestPlaybookPrompt = ai.definePrompt({
   name: 'suggestPlaybookPrompt',
   input: { schema: SuggestPlaybookInputSchema },
   output: { schema: PlaybookDraftSchema },
+  model: AGENTIC_MODEL, // Gemini 3 Pro for agentic tasks
   prompt: `You are a helpful AI systems analyst for BakedBot, an Agentic Commerce OS for cannabis.
 Your task is to receive a natural language command from an operator and translate it into a structured 'PlaybookDraft' object.
 
