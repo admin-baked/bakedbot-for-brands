@@ -228,6 +228,14 @@ export function useDashboardConfig() {
         roles: ['owner'],
       },
       {
+        label: 'Deep Research',
+        href: '/dashboard/research',
+        icon: 'Globe',
+        description: 'AI-powered comprehensive web research and analysis.',
+        roles: ['brand', 'dispensary', 'owner'],
+        badge: 'beta',
+      },
+      {
         label: 'Settings',
         href: '/dashboard/settings',
         icon: 'Settings',
