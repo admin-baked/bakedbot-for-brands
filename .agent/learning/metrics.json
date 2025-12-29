@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "updated_at": null,
   "skills": {
     "fix-failing-test": {
@@ -8,7 +8,13 @@
       "failures": 0,
       "success_rate": 0,
       "avg_attempts": 0,
+      "avg_time_seconds": 0,
       "common_patterns": []
+    },
+    "optimize-workflow": {
+      "total_runs": 0,
+      "optimizations_applied": 0,
+      "rollbacks": 0
     }
   },
   "workflows": {
@@ -30,6 +36,25 @@
       "rollbacks": 0,
       "avg_duration_seconds": 0
     }
+  },
+  "self_healing": {
+    "total_detections": 0,
+    "successful_heals": 0,
+    "failed_heals": 0,
+    "escalations": 0,
+    "heal_success_rate": 0,
+    "patterns": {
+      "test_failure": { "count": 0, "healed": 0 },
+      "type_error": { "count": 0, "healed": 0 },
+      "build_failure": { "count": 0, "healed": 0 }
+    }
+  },
+  "health": {
+    "last_check": null,
+    "score": 100,
+    "types_pass": true,
+    "failing_tests": 0,
+    "git_clean": true
   },
   "agents": {
     "lite": {
