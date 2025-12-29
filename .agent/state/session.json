@@ -1,0 +1,17 @@
+{
+  "session_id": null,
+  "started_at": null,
+  "primary_agent": "antigravity",
+  "current_task": {
+    "id": null,
+    "started_at": null,
+    "status": "idle"
+  },
+  "validation": {
+    "types_pass": null,
+    "tests_pass": null,
+    "last_check": null
+  },
+  "commits_this_session": [],
+  "notes": []
+}
