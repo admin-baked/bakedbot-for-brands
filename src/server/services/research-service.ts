@@ -65,23 +65,29 @@ export class ResearchService {
 
   /**
    * Lists tasks for a specific brand
+   * Note: Sorting done client-side to avoid needing a composite index
    */
   async getTasksByBrand(brandId: string, limit = 10): Promise<ResearchTask[]> {
+    // Simple query without orderBy to avoid requiring composite index
     const snapshot = await this.tasksCollection
       .where('brandId', '==', brandId)
-      .orderBy('createdAt', 'desc')
-      .limit(limit)
+      .limit(limit * 2) // Fetch more to allow for sorting
       .get();
 
-    return snapshot.docs.map(doc => {
+    const tasks = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
             id: doc.id,
             ...data,
-            createdAt: (data?.createdAt as Timestamp).toDate(),
-            updatedAt: (data?.updatedAt as Timestamp).toDate(),
+            createdAt: (data?.createdAt as Timestamp)?.toDate() || new Date(),
+            updatedAt: (data?.updatedAt as Timestamp)?.toDate() || new Date(),
         } as ResearchTask;
     });
+
+    // Sort client-side by createdAt descending and limit
+    return tasks
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
   }
 }
 
