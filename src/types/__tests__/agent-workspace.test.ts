@@ -6,11 +6,11 @@ import type { UserRole, SetupHealth, SetupHealthStatus, Task, QuickStartCard } f
 
 describe('UserRole Type', () => {
     it('should accept all valid role values', () => {
-        const validRoles: UserRole[] = ['brand', 'dispensary', 'owner', 'customer'];
+        const validRoles: UserRole[] = ['brand', 'dispensary', 'owner', 'customer', 'super_admin'];
         
         validRoles.forEach(role => {
             const testRole: UserRole = role;
-            expect(['brand', 'dispensary', 'owner', 'customer']).toContain(testRole);
+            expect(['brand', 'dispensary', 'owner', 'customer', 'super_admin']).toContain(testRole);
         });
     });
 
