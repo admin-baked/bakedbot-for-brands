@@ -1,13 +1,24 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Globe } from "lucide-react";
+import { Sparkles, Globe, AlertCircle } from "lucide-react";
 import { researchService } from "@/server/services/research-service";
 import { requireUser } from "@/server/auth/auth";
 import { ResearchTaskList } from "./components/research-task-list";
+import { ResearchTask } from "@/types/research";
 
 export default async function ResearchPage() {
   const user = await requireUser();
-  const tasks = await researchService.getTasksByBrand(user.brandId || 'demo');
+  
+  // Fetch tasks with error handling for missing Firestore index
+  let tasks: ResearchTask[] = [];
+  let error: string | null = null;
+  
+  try {
+    tasks = await researchService.getTasksByBrand(user.brandId || 'demo');
+  } catch (e: any) {
+    console.error('[ResearchPage] Failed to fetch tasks:', e);
+    error = e.message || 'Failed to load research tasks';
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -21,6 +32,24 @@ export default async function ResearchPage() {
           New Research Task
         </Button>
       </div>
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-700 dark:text-red-400">
+              Unable to load research tasks
+            </p>
+            <p className="text-xs text-red-600 dark:text-red-500 mt-1">
+              {error.includes('index') 
+                ? 'A database index is being created. Please try again in a few minutes.'
+                : error
+              }
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* New Task Card */}
@@ -37,7 +66,7 @@ export default async function ResearchPage() {
         </Card>
 
         {/* Task List - Client Component to avoid hydration issues with dates */}
-        <ResearchTaskList tasks={tasks} />
+        {!error && <ResearchTaskList tasks={tasks} />}
       </div>
     </div>
   );
