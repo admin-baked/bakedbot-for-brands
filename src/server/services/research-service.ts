@@ -96,6 +96,31 @@ export class ResearchService {
   }
 
   /**
+   * Lists tasks for a specific user (used for users without a brandId like super_admin)
+   * Note: Sorting done client-side to avoid needing a composite index
+   */
+  async getTasksByUser(userId: string, limit = 10): Promise<ResearchTask[]> {
+    const snapshot = await this.tasksCollection
+      .where('userId', '==', userId)
+      .limit(limit * 2)
+      .get();
+
+    const tasks = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            createdAt: (data?.createdAt as Timestamp)?.toDate() || new Date(),
+            updatedAt: (data?.updatedAt as Timestamp)?.toDate() || new Date(),
+        } as ResearchTask;
+    });
+
+    return tasks
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+  }
+
+  /**
    * Update task progress (called by worker/sidecar)
    */
   async updateTaskProgress(
