@@ -239,7 +239,7 @@ export function useDashboardConfig() {
         href: '/dashboard/research',
         icon: 'Globe',
         description: 'AI-powered comprehensive web research and analysis.',
-        roles: ['brand', 'dispensary', 'owner'],
+        roles: ['brand', 'dispensary', 'owner', 'super_admin'],
         badge: 'beta',
       },
       {
