@@ -1,5 +1,5 @@
 import { Timestamp, Firestore } from 'firebase-admin/firestore';
-import { ResearchTask, ResearchTaskStatus } from '@/types/research';
+import { ResearchTask, ResearchTaskStatus, ResearchReport, ResearchTaskProgress } from '@/types/research';
 import { getAdminFirestore } from '@/firebase/admin';
 
 export class ResearchService {
@@ -34,6 +34,11 @@ export class ResearchService {
       status: 'pending',
       createdAt: new Date(),
       updatedAt: new Date(),
+      progress: {
+        currentStep: 'Queued',
+        stepsCompleted: 0,
+        totalSteps: 5,
+      }
     };
 
     // Firebase Admin uses Timestamp, but our type uses Date. 
@@ -88,6 +93,75 @@ export class ResearchService {
     return tasks
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, limit);
+  }
+
+  /**
+   * Update task progress (called by worker/sidecar)
+   */
+  async updateTaskProgress(
+    taskId: string, 
+    status: ResearchTaskStatus, 
+    progress?: Partial<ResearchTaskProgress>,
+    error?: string
+  ): Promise<void> {
+    const updateData: Record<string, any> = {
+      status,
+      updatedAt: Timestamp.now(),
+    };
+    
+    if (progress) {
+      updateData.progress = progress;
+    }
+    
+    if (error) {
+      updateData.error = error;
+    }
+    
+    await this.tasksCollection.doc(taskId).update(updateData);
+  }
+
+  /**
+   * Mark task as complete with report ID
+   */
+  async completeTask(taskId: string, reportId: string): Promise<void> {
+    await this.tasksCollection.doc(taskId).update({
+      status: 'completed' as ResearchTaskStatus,
+      resultReportId: reportId,
+      updatedAt: Timestamp.now(),
+      progress: {
+        currentStep: 'Complete',
+        stepsCompleted: 5,
+        totalSteps: 5,
+        lastUpdate: new Date().toISOString()
+      }
+    });
+  }
+
+  /**
+   * Retrieves a research report by ID
+   */
+  async getReport(reportId: string): Promise<ResearchReport | null> {
+    const doc = await this.reportsCollection.doc(reportId).get();
+    if (!doc.exists) return null;
+    
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: (data?.createdAt as Timestamp)?.toDate() || new Date(),
+    } as ResearchReport;
+  }
+
+  /**
+   * Create a research report
+   */
+  async createReport(report: Omit<ResearchReport, 'id'>): Promise<string> {
+    const reportRef = this.reportsCollection.doc();
+    await reportRef.set({
+      ...report,
+      createdAt: Timestamp.now()
+    });
+    return reportRef.id;
   }
 }
 

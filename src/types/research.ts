@@ -1,5 +1,13 @@
 export type ResearchTaskStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
+export interface ResearchTaskProgress {
+  currentStep: string;
+  stepsCompleted: number;
+  totalSteps: number;
+  sourcesFound?: number;
+  lastUpdate?: string;
+}
+
 export interface ResearchTask {
   id: string;
   userId: string;
@@ -12,6 +20,8 @@ export interface ResearchTask {
   updatedAt: Date;
   metadata?: Record<string, any>;
   resultReportId?: string; // ID of the generated report
+  progress?: ResearchTaskProgress; // Real-time progress tracking
+  error?: string; // Error message if failed
 }
 
 export interface ResearchReport {

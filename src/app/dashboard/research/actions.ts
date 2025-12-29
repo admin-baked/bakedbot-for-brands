@@ -23,3 +23,41 @@ export async function getResearchTasksAction(brandId: string) {
         return { success: false, error: error.message };
     }
 }
+
+/**
+ * Get the status of a specific research task for real-time polling
+ */
+export async function getResearchTaskStatusAction(taskId: string) {
+    try {
+        const task = await researchService.getTask(taskId);
+        if (!task) {
+            return { success: false, error: 'Task not found' };
+        }
+        return { 
+            success: true, 
+            status: task.status,
+            progress: task.progress,
+            resultReportId: task.resultReportId,
+            error: task.error
+        };
+    } catch (error: any) {
+        console.error("Failed to fetch research task status:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Get a completed research report
+ */
+export async function getResearchReportAction(reportId: string) {
+    try {
+        const report = await researchService.getReport(reportId);
+        if (!report) {
+            return { success: false, error: 'Report not found' };
+        }
+        return { success: true, report };
+    } catch (error: any) {
+        console.error("Failed to fetch research report:", error);
+        return { success: false, error: error.message };
+    }
+}
