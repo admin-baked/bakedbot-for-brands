@@ -1,5 +1,5 @@
 {
-  "version": "2.0",
+  "version": "3.0",
   "updated_at": null,
   "skills": {
     "fix-failing-test": {
@@ -15,6 +15,16 @@
       "total_runs": 0,
       "optimizations_applied": 0,
       "rollbacks": 0
+    },
+    "generate-skill": {
+      "total_runs": 0,
+      "skills_created": 0,
+      "skills_validated": 0
+    },
+    "manage-backlog": {
+      "tasks_created": 0,
+      "tasks_prioritized": 0,
+      "tasks_completed": 0
     }
   },
   "workflows": {
@@ -48,6 +58,18 @@
       "type_error": { "count": 0, "healed": 0 },
       "build_failure": { "count": 0, "healed": 0 }
     }
+  },
+  "autonomy": {
+    "level": 1,
+    "level_name": "assisted",
+    "trust_score": 50,
+    "tasks_completed_by_agent": 0,
+    "tasks_completed_by_human": 0,
+    "autonomy_rate": 0,
+    "human_interventions": 0,
+    "consecutive_successes": 0,
+    "consecutive_failures": 0,
+    "last_escalation": null
   },
   "health": {
     "last_check": null,
@@ -89,3 +111,4 @@
     }
   }
 }
+
