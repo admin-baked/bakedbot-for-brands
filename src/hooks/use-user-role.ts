@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import type { DomainUserProfile } from '@/types/domain';
 
-export type Role = 'brand' | 'dispensary' | 'customer' | 'owner';
+export type Role = 'brand' | 'dispensary' | 'customer' | 'owner' | 'super_admin';
 
 /**
  * Hook for accessing user role and checking permissions.
