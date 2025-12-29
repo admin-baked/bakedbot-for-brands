@@ -1,6 +1,57 @@
 # Progress Log
 
 
+## Session: 2025-12-28 (Deep Research Unit Tests)
+### Task ID
+deep-research-tests-001
+
+### Summary
+Added comprehensive unit tests for the Deep Research feature including model-selector updates, research types, server actions, and the polling hook.
+
+### Test Files Created/Updated
+*   **UPD**: `src/ai/__tests__/model-selector.test.ts`:
+    - Added `deep_research` to expected thinking levels
+    - Added test for deep_research tier and thinking config
+    - Added test for super users accessing deep_research
+
+*   **NEW**: `src/types/__tests__/research.test.ts`:
+    - Tests for ResearchTaskStatus values
+    - Tests for ResearchTaskProgress interface
+    - Tests for ResearchTask optional fields (progress, error, resultReportId)
+    - Tests for ResearchReport with sources and metadata
+    - Tests for ResearchSource interface
+
+*   **NEW**: `src/app/dashboard/research/__tests__/actions.test.ts`:
+    - Tests for createResearchTaskAction (success + error)
+    - Tests for getResearchTasksAction (success + error)
+    - Tests for getResearchTaskStatusAction (processing, completed, failed, not found)
+    - Tests for getResearchReportAction (success + not found)
+
+*   **NEW**: `src/hooks/__tests__/use-research-task-status.test.ts`:
+    - Tests for initial null state
+    - Tests for fetch on mount
+    - Tests for disabled polling
+    - Tests for polling at interval
+    - Tests for auto-stop on completion/failure
+    - Tests for API error handling
+    - Tests for manual refetch
+
+### Test Results
+*   Model selector tests: 17 passed ✅  
+*   Research type tests: 12 passed ✅
+*   Research actions tests: 10 passed ✅
+*   Polling hook tests: 8 passed ✅
+*   **Total: 47 tests passed** ✅
+
+### Commits
+*   `37acf3db`: test(research): Add comprehensive unit tests for Deep Research feature
+
+### Result: ✅ Complete
+All Deep Research features now have unit test coverage.
+
+---
+
+
 ## Session: 2025-12-28 (Deep Research Real-Time Status Polling)
 ### Task ID
 deep-research-polling-001
