@@ -1,6 +1,46 @@
 # Progress Log
 
 
+## Session: 2025-12-28 (Deep Research Agent Wiring Fix)
+### Task ID
+deep-research-routing-001
+
+### Summary
+Fixed Deep Research agent routing in Agent Chat. When user selects "Deep Research" intelligence level from the model selector, it now properly routes to the Research Service instead of falling back to regular chat.
+
+### Root Cause
+1. `ThinkingLevel` type in `model-selector.ts` didn't include `'deep_research'`
+2. `MODEL_CONFIGS` had no entry for `deep_research` 
+3. `agent-runner.ts` had no routing logic to detect `deep_research` model level
+
+### Key Changes
+*   **MOD**: `src/ai/model-selector.ts`:
+    - Added `'deep_research'` to `ThinkingLevel` type
+    - Added `deep_research` config to `MODEL_CONFIGS` (uses Gemini 3 Pro + Max Thinking)
+*   **MOD**: `src/server/agents/agent-runner.ts`:
+    - Added Deep Research routing check in `runAgentCore()`
+    - Routes to `createResearchTaskAction()` when `modelLevel === 'deep_research'`
+    - Creates research task and returns user-friendly confirmation with task ID
+
+### Flow
+1. User selects "Deep Research" from model dropdown in Agent Chat
+2. `runAgentChat()` dispatches job with `modelLevel: 'deep_research'`
+3. `runAgentCore()` detects deep_research mode and routes to Research Service
+4. Creates research task in Firestore `research_tasks` collection
+5. Returns confirmation with task ID and link to Research Dashboard
+
+### Tests Run
+*   `npm run check:types` (Passed ✅)
+
+### Commits
+*   `ea00a91b`: fix(research): Wire Deep Research model level to Research Service
+
+### Result: ✅ Complete
+Deep Research now routes correctly from Agent Chat.
+
+---
+
+
 ## Session: 2025-12-28 (TypeScript Build Fix - super_admin Type)
 ### Task ID
 ts-build-fix-super-admin-001
