@@ -63,10 +63,21 @@ For complex multi-step tasks, read `.agent/orchestrator.md` for:
 | Review | `/review` | Validate all changes before commit |
 | Type Check | `/types` | Run `npm run check:types` |
 | Deploy | `/deploy` | Execute deployment workflow |
+| Optimize | `/optimize` | Improve workflows based on metrics |
+| Generate Skill | `/generate-skill` | Create new skill from gap |
+| Manage Backlog | `/backlog` | Prioritize and manage tasks |
 
 ---
 
-## 📁 Key File Locations
+## 🤖 Autonomous Mode
+
+Check `.agent/protocols/autonomous-mode.md` for:
+- Autonomy levels (0-4)
+- Trust score calculation
+- Human oversight triggers
+- Kill switch
+
+**Current Level**: Check `metrics.json` → `autonomy.level`
 
 | Purpose | Path |
 |---------|------|
