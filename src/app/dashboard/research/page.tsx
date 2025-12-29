@@ -14,7 +14,12 @@ export default async function ResearchPage() {
   let error: string | null = null;
   
   try {
-    tasks = await researchService.getTasksByBrand(user.brandId || 'demo');
+    // For users without a brandId (like super_admin), query by userId instead
+    if (user.brandId) {
+      tasks = await researchService.getTasksByBrand(user.brandId);
+    } else {
+      tasks = await researchService.getTasksByUser(user.uid);
+    }
   } catch (e: any) {
     console.error('[ResearchPage] Failed to fetch tasks:', e);
     error = e.message || 'Failed to load research tasks';
