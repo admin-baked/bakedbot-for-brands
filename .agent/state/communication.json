@@ -1,0 +1,31 @@
+{
+  "protocol_version": "1.0",
+  "messages": {
+    "pending": [],
+    "in_progress": [],
+    "completed": []
+  },
+  "message_types": {
+    "task_assignment": {
+      "from": "orchestrator",
+      "to": "builder",
+      "fields": ["task_id", "priority", "instructions", "workflow", "deadline"]
+    },
+    "task_complete": {
+      "from": "builder",
+      "to": "orchestrator",
+      "fields": ["task_id", "status", "changes", "tests_passed", "notes"]
+    },
+    "request_help": {
+      "from": "builder",
+      "to": "orchestrator",
+      "fields": ["task_id", "issue", "attempted_solutions", "suggested_level"]
+    },
+    "status_update": {
+      "from": "builder",
+      "to": "orchestrator",
+      "fields": ["task_id", "progress_percent", "current_step", "blockers"]
+    }
+  },
+  "last_updated": null
+}

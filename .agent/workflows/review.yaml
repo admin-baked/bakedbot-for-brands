@@ -1,0 +1,99 @@
+# Code Review Workflow
+# Pre-commit validation with auto-fix
+
+name: code-review
+description: Validate all changes before commit
+trigger: manual OR pre_commit
+
+# Validation Gates (ALL must pass)
+gates:
+  - types_pass: true
+  - affected_tests_pass: true
+  - no_secrets: true
+  - swarm_rules_compliant: true
+
+steps:
+  - id: check_git_status
+    description: Identify staged changes
+    command: git status --porcelain
+    capture: staged_files
+
+  - id: type_check
+    description: Run TypeScript validation
+    command: npm run check:types
+    on_success: continue
+    on_failure: goto fix_types
+
+  - id: fix_types
+    description: Auto-fix type errors
+    max_retries: 2
+    thinking_level: advanced
+    actions:
+      - analyze: type_errors
+      - fix: identified_issues
+      - goto: type_check
+
+  - id: identify_tests
+    description: Find affected tests
+    actions:
+      - read: dev/test_matrix.json
+      - match: staged_files to test files
+    output: affected_tests
+
+  - id: run_tests
+    description: Execute affected tests
+    command: npm test -- {{affected_tests}}
+    on_success: goto security_check
+    on_failure: goto fix_tests
+
+  - id: fix_tests
+    description: Use fix-test skill
+    max_retries: 3
+    workflow: fix-test.yaml
+    on_success: goto run_tests
+    on_failure: goto escalate
+
+  - id: security_check
+    description: Scan for exposed secrets
+    actions:
+      - grep: staged_files for secret patterns
+      - patterns:
+          - "API_KEY"
+          - "SECRET"
+          - "password"
+          - "private_key"
+    on_found: goto escalate_security
+
+  - id: escalate_security
+    description: Block commit - security issue
+    actions:
+      - notify: "SECURITY: Potential secret in staged files"
+      - abort: workflow
+
+  - id: generate_commit
+    description: Create conventional commit message
+    thinking_level: standard
+    input: staged_files
+    output: commit_message
+    format: |
+      <type>(<scope>): <description>
+      
+      <body>
+
+  - id: commit
+    description: Execute git commit
+    command: git commit -m "{{commit_message}}"
+    on_success: goto complete
+
+  - id: escalate
+    description: Cannot auto-fix
+    actions:
+      - notify: "Review failed - manual intervention needed"
+      - list: remaining_issues
+
+  - id: complete
+    description: Review passed
+    actions:
+      - update: .agent/state/session.json
+      - append: dev/progress_log.md
+    message: "✓ Review passed. Committed: {{commit_hash}}"
