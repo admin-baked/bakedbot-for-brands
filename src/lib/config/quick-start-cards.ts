@@ -162,6 +162,13 @@ export const PROMPT_CHIPS = {
         "Show me deals nearby",
         "Find high-CBD strains",
         "Get product recommendations"
+    ],
+    super_admin: [
+        "Show me platform analytics",
+        "Manage system settings",
+        "Review all accounts",
+        "Configure global compliance",
+        "Generate system report"
     ]
 };
 
@@ -175,5 +182,7 @@ export const WELCOME_MESSAGES = {
 
     owner: "Welcome to Baked HQ. I can help you manage the platform, review analytics, configure compliance, or generate reports. What would you like to focus on?",
 
-    customer: "Welcome! I'm Smokey, your AI budtender. I can help you find products, get recommendations, discover deals nearby, and learn about strains. What are you looking for today?"
+    customer: "Welcome! I'm Smokey, your AI budtender. I can help you find products, get recommendations, discover deals nearby, and learn about strains. What are you looking for today?",
+
+    super_admin: "Welcome to Super Admin mode. You have full platform access including system configuration, user management, compliance settings, and analytics across all tenants."
 };

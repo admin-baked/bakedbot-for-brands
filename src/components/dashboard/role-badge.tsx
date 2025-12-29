@@ -6,7 +6,7 @@
  */
 
 import { Badge } from '@/components/ui/badge';
-import { Building2, Store, User } from 'lucide-react';
+import { Building2, Store, User, Shield } from 'lucide-react';
 import type { UserRole } from '@/types/agent-workspace';
 
 const ROLE_CONFIG = {
@@ -29,6 +29,11 @@ const ROLE_CONFIG = {
         label: 'Customer',
         icon: User,
         color: 'bg-gray-500'
+    },
+    super_admin: {
+        label: 'Super Admin',
+        icon: Shield,
+        color: 'bg-red-500'
     }
 };
 
