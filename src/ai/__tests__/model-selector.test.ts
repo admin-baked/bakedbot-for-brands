@@ -16,7 +16,7 @@ import {
 describe('Model Selector', () => {
     describe('MODEL_CONFIGS', () => {
         it('should have all expected thinking levels', () => {
-            const expectedLevels: ThinkingLevel[] = ['lite', 'standard', 'advanced', 'expert', 'genius'];
+            const expectedLevels: ThinkingLevel[] = ['lite', 'standard', 'advanced', 'expert', 'genius', 'deep_research'];
             expectedLevels.forEach(level => {
                 expect(MODEL_CONFIGS[level]).toBeDefined();
             });
@@ -40,6 +40,13 @@ describe('Model Selector', () => {
         it('should have thinking levels configured for expert and genius', () => {
             expect(MODEL_CONFIGS.expert.thinkingLevel).toBe('high');
             expect(MODEL_CONFIGS.genius.thinkingLevel).toBe('max');
+        });
+
+        it('should have deep_research configured as super tier with max thinking', () => {
+            expect(MODEL_CONFIGS.deep_research).toBeDefined();
+            expect(MODEL_CONFIGS.deep_research.tier).toBe('super');
+            expect(MODEL_CONFIGS.deep_research.thinkingLevel).toBe('max');
+            expect(MODEL_CONFIGS.deep_research.model).toBe('googleai/gemini-3-pro-preview');
         });
 
         it('should not have thinking levels for lite, standard, advanced', () => {
@@ -105,6 +112,7 @@ describe('Model Selector', () => {
             expect(models).toContain('advanced');
             expect(models).toContain('expert');
             expect(models).toContain('genius');
+            expect(models).toContain('deep_research');
         });
     });
 
@@ -130,6 +138,13 @@ describe('Model Selector', () => {
 
         it('should include max thinking config for genius', () => {
             const options = getGenerateOptions('genius');
+            expect(options.model).toBe('googleai/gemini-3-pro-preview');
+            expect(options.config).toBeDefined();
+            expect(options.config?.thinkingConfig?.thinkingLevel).toBe('max');
+        });
+
+        it('should include max thinking config for deep_research', () => {
+            const options = getGenerateOptions('deep_research');
             expect(options.model).toBe('googleai/gemini-3-pro-preview');
             expect(options.config).toBeDefined();
             expect(options.config?.thinkingConfig?.thinkingLevel).toBe('max');
