@@ -144,3 +144,31 @@ Messages stored in `.agent/state/communication.json`:
 | `.agent/state/session.json` | Current state |
 | `.agent/state/communication.json` | Agent messages |
 | `.agent/workflows/*.yaml` | Workflow definitions |
+
+---
+
+## Self-Healing Integration
+
+### At Session Start
+1. Read `.agent/monitors/health-check.md`
+2. Run health checks
+3. Update `.agent/learning/metrics.json` health section
+4. If health score < 70: trigger auto-heal
+
+### Auto-Heal Loop
+```
+When issue detected:
+  1. Read .agent/protocols/self-healing.md
+  2. Classify issue by severity
+  3. Execute appropriate workflow
+  4. Validate fix
+  5. Update metrics
+```
+
+### Monitor References
+- `.agent/monitors/health-check.md` - Overall health
+- `.agent/monitors/test-monitor.md` - Test failures
+- `.agent/monitors/type-monitor.md` - Type errors
+
+### Optimization
+Weekly run `.agent/skills/optimize-workflow/skill.md` to improve performance.
