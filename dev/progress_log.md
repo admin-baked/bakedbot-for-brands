@@ -1,6 +1,35 @@
 # Progress Log
 
 
+## Session: 2025-12-28 (Homepage Mobile & Chat Response Fixes)
+### Task ID
+homepage-mobile-chat-fix-001
+
+### Summary
+Fixed mobile layout issues on the homepage and implemented Claude/ChatGPT-style streaming typewriter effect for chat responses.
+
+### Key Changes
+*   **NEW**: `src/components/landing/typewriter-text.tsx` - Typewriter component with blinking cursor animation
+*   **MOD**: `src/components/landing/agent-playground.tsx`:
+    - Changed zero state from `absolute` to `relative` positioning (fixes mobile overlap)
+    - Reduced `min-h-[300px]` to mobile-responsive `min-h-[280px] sm:min-h-[320px]`
+    - Added streaming text display with TypewriterText component
+    - Cards now appear after streaming completes
+    - Added state reset on new demo runs
+*   **MOD**: `src/app/page.tsx`:
+    - Added extra top padding on mobile (`pt-20 sm:pt-16`) to prevent hero cutoff
+*   **NEW**: `tests/components/landing/typewriter-text.test.tsx` - 7 unit tests
+
+### Tests Run
+*   `npm run check:types` (Passed ✅)
+*   `npm test -- navbar.test.tsx` (3/3 Passed ✅)
+*   `npm test -- typewriter-text.test.tsx` (7/7 Passed ✅)
+
+### Result: ✅ Complete
+Mobile layout overlap fixed. Streaming chat responses implemented.
+
+---
+
 ## Session: 2025-12-28 (Projects Feature)
 ### Task ID
 projects-feature-001

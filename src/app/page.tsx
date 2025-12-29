@@ -445,7 +445,7 @@ export default function HomePage() {
           <div className="absolute top-40 right-10 h-[360px] w-[360px] rounded-full bg-sky-500/10 blur-3xl" />
         </div>
 
-        <div className="mx-auto max-w-6xl px-4 pt-16 pb-10">
+        <div className="mx-auto max-w-6xl px-4 pt-20 sm:pt-16 pb-10">
           <div className="mx-auto max-w-3xl text-center">
             <Badge className="mb-4">Try it right now — no signup required</Badge>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight">

@@ -32,6 +32,7 @@ import {
 import { cn } from '@/lib/utils';
 import { EmailCaptureModal } from './email-capture-modal';
 import { ThoughtProcess, THOUGHT_PRESETS } from './thought-process';
+import { TypewriterText } from './typewriter-text';
 
 // Mapped agents for backend routing
 const AGENT_MAP = {
@@ -85,6 +86,8 @@ export function AgentPlayground() {
     const [isGeoLoading, setIsGeoLoading] = useState(false);
     const [isThinking, setIsThinking] = useState(false);
     const [thoughtSteps, setThoughtSteps] = useState(THOUGHT_PRESETS.default);
+    const [streamingText, setStreamingText] = useState<string | null>(null);
+    const [showCards, setShowCards] = useState(false);
 
     // Load demo count from storage
     useEffect(() => {
@@ -145,6 +148,8 @@ export function AgentPlayground() {
         setError(null);
         setPrompt(demoPrompt);
         setResult(null); // Clear previous result
+        setStreamingText(null); // Reset streaming
+        setShowCards(false); // Reset cards
         setActiveAgentId(agentId);
 
         // Determine thought pattern based on intent
@@ -197,6 +202,18 @@ export function AgentPlayground() {
         setIsLoading(false);
     };
 
+    // Trigger streaming when result arrives and thinking is done
+    useEffect(() => {
+        if (result && result.items.length > 0 && !isThinking && !isLoading && !streamingText) {
+            const mainResponse = result.items[0].description;
+            setStreamingText(mainResponse);
+        }
+    }, [result, isThinking, isLoading, streamingText]);
+
+    const handleStreamingComplete = () => {
+        setShowCards(true);
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (prompt.trim()) {
@@ -233,7 +250,7 @@ export function AgentPlayground() {
                      </div>
                 </div>
 
-                <CardContent className="p-4 sm:p-6 pt-6 min-h-[300px] flex flex-col justify-between bg-white relative">
+                <CardContent className="p-4 sm:p-6 pt-4 sm:pt-6 min-h-[280px] sm:min-h-[320px] flex flex-col bg-white relative">
                     {/* Background decoration or 'empty state' if no result */}
                     {!result && !isLoading && (
                         <div className="absolute inset-0 bg-white z-0" />
@@ -278,18 +295,32 @@ export function AgentPlayground() {
                             </div>
                         )}
 
-                        {/* Results */}
-                        {result && !isLoading && (
-                            <div className="space-y-4 mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div className="flex items-center gap-2 text-sm text-emerald-700 font-medium mb-2">
-                                     <Bot className="w-4 h-4" />
-                                     {AGENT_MAP[activeAgentId as keyof typeof AGENT_MAP]?.name || 'BakedBot'}
+                        {/* Streaming Text Response */}
+                        {result && !isLoading && streamingText && (
+                            <div className="mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="flex items-center gap-2 text-sm text-emerald-700 font-medium mb-3">
+                                    <Bot className="w-4 h-4" />
+                                    {AGENT_MAP[activeAgentId as keyof typeof AGENT_MAP]?.name || 'BakedBot'}
                                 </div>
+                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                    <TypewriterText 
+                                        text={streamingText} 
+                                        speed={15} 
+                                        onComplete={handleStreamingComplete}
+                                        className="text-gray-700 text-sm leading-relaxed"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Results Cards (appear after streaming) */}
+                        {result && !isLoading && showCards && (
+                            <div className="space-y-3 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div className="grid gap-3">
-                                    {result.items.slice(0, 3).map((item, idx) => (
+                                    {result.items.slice(1, 4).map((item, idx) => (
                                         <div key={idx} className="p-3 rounded-lg border border-gray-100 bg-gray-50 shadow-sm hover:shadow-md transition-shadow">
-                                            <h4 className="font-medium text-gray-900">{item.title}</h4>
-                                            <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                                            <h4 className="font-medium text-gray-900 text-sm">{item.title}</h4>
+                                            <p className="text-xs text-gray-600 mt-1">{item.description}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -298,7 +329,7 @@ export function AgentPlayground() {
                                 {result.totalCount > 3 && (
                                     <Button 
                                         variant="outline" 
-                                        className="w-full border-dashed text-muted-foreground gap-2"
+                                        className="w-full border-dashed text-muted-foreground gap-2 text-sm"
                                         onClick={() => setShowEmailCapture(true)}
                                     >
                                         <Lock className="w-4 h-4" />
@@ -320,13 +351,9 @@ export function AgentPlayground() {
 
                     {/* Zero State / Demo Intro */}
                     {!result && !isLoading && !isThinking && (
-                        <div className="absolute inset-0 z-0 flex flex-col items-center justify-start pt-12 p-6 text-center animate-in fade-in duration-500">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Hi, I'm Smokey.</h2>
-                            <p className="text-emerald-600 font-medium mb-8">How can I help you?</p>
-                            
-                            <div className="w-full max-w-sm space-y-4">
-                                {/* Removed retail-specific buttons to prevent UI regression */}
-                            </div>
+                        <div className="relative z-0 flex flex-col items-center justify-center py-6 sm:py-8 px-4 text-center animate-in fade-in duration-500 flex-1">
+                            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">Hi, I'm Smokey.</h2>
+                            <p className="text-emerald-600 font-medium text-sm sm:text-base">How can I help you?</p>
                         </div>
                     )}
 
