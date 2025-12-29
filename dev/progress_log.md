@@ -1,6 +1,53 @@
 # Progress Log
 
 
+## Session: 2025-12-28 (Deep Research Real-Time Status Polling)
+### Task ID
+deep-research-polling-001
+
+### Summary
+Added real-time status polling for Deep Research tasks. The Research Dashboard now shows live progress updates with a progress bar, current step indicator, and sources found count.
+
+### Key Changes
+*   **NEW**: `src/hooks/use-research-task-status.ts`:
+    - Custom React hook for polling research task status
+    - Polls every 2 seconds while task is pending/processing
+    - Auto-stops polling when task completes or fails
+    - Returns status, progress, resultReportId, error, and isPolling state
+
+*   **NEW**: `src/types/research.ts`:
+    - Added `ResearchTaskProgress` interface (currentStep, stepsCompleted, totalSteps, sourcesFound, lastUpdate)
+    - Added `progress` and `error` fields to `ResearchTask` interface
+
+*   **MOD**: `src/server/services/research-service.ts`:
+    - Added `updateTaskProgress()` method for workers to update progress
+    - Added `completeTask()` method to mark task complete with report ID
+    - Added `getReport()` and `createReport()` methods for report management
+    - Task creation now initializes with default progress (0/5 steps, "Queued")
+
+*   **MOD**: `src/app/dashboard/research/actions.ts`:
+    - Added `getResearchTaskStatusAction()` for polling
+    - Added `getResearchReportAction()` for retrieving completed reports
+
+*   **MOD**: `src/app/dashboard/research/components/research-task-list.tsx`:
+    - Refactored to individual `ResearchTaskCard` components with polling
+    - Added `ProgressDisplay` component with animated progress bar
+    - Shows step icons (📋 Queued, 🔍 Searching, 🌐 Browsing, 📊 Analyzing, etc.)
+    - Cards have subtle ring highlight while polling
+    - Dark mode support for status badges
+
+### Tests Run
+*   `npm run check:types` (Passed ✅)
+
+### Commits
+*   `ded7f2b2`: feat(research): Add real-time status polling for Deep Research tasks
+
+### Result: ✅ Complete
+Research Dashboard now shows live progress updates for pending/processing tasks.
+
+---
+
+
 ## Session: 2025-12-28 (Deep Research Agent Wiring Fix)
 ### Task ID
 deep-research-routing-001
