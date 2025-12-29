@@ -1,0 +1,85 @@
+# Deploy Workflow
+# End-to-end deployment with validation gates
+
+name: deploy-to-production
+description: Autonomous deployment with safety gates
+trigger: main_branch_updated OR manual
+
+# Safety Gates (ALL required)
+gates:
+  - all_tests_pass: true
+  - type_check_pass: true
+  - no_security_issues: true
+  - build_succeeds: true
+
+steps:
+  - id: pre_flight
+    description: Verify deployment readiness
+    actions:
+      - command: git status
+        expect: "nothing to commit, working tree clean"
+      - command: npm run check:types
+        expect: exit_code 0
+      - command: npm test
+        expect: exit_code 0
+
+  - id: build
+    description: Create production build
+    command: npm run build
+    on_success: continue
+    on_failure: goto fix_build
+
+  - id: fix_build
+    description: Attempt to fix build errors
+    max_retries: 2
+    thinking_level: expert
+    actions:
+      - analyze: build_errors
+      - fix: identified_issues
+      - goto: build
+
+  - id: deploy_staging
+    description: Deploy to staging (if available)
+    command: firebase deploy --only hosting:staging
+    optional: true
+    on_failure: continue  # Skip if no staging
+
+  - id: smoke_test
+    description: Basic functionality verification
+    tests:
+      - homepage_loads: "curl -s {{staging_url}} | grep 'BakedBot'"
+      - no_console_errors: true
+    on_failure: goto rollback_staging
+
+  - id: deploy_production
+    description: Deploy to production
+    command: git push origin main
+    # Firebase App Hosting auto-deploys on push
+
+  - id: monitor
+    description: Watch production for 5 minutes
+    duration: 300  # seconds
+    checks:
+      - firebase_console: no_errors
+      - response_time: < 500ms
+    on_alert: goto auto_rollback
+
+  - id: auto_rollback
+    description: Revert on failure
+    actions:
+      - command: git revert HEAD --no-commit
+      - command: git commit -m "chore: auto-rollback due to production issue"
+      - command: git push origin main
+      - notify: "⚠️ Auto-rollback executed"
+
+  - id: rollback_staging
+    description: Rollback staging only
+    optional: true
+    command: firebase hosting:rollback --only staging
+
+  - id: complete
+    description: Deployment successful
+    actions:
+      - update: .agent/state/session.json
+      - append: dev/progress_log.md
+      - notify: "✅ Deployed to production successfully"

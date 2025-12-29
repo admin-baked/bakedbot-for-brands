@@ -39,6 +39,22 @@ git pull origin main --rebase
 
 ---
 
+## 🎛️ Orchestrator Mode
+
+For complex multi-step tasks, read `.agent/orchestrator.md` for:
+- Task prioritization logic
+- Workflow chain execution
+- Agent coordination protocols
+
+### Available Workflows (`.agent/workflows/`)
+| Workflow | Trigger | Description |
+|----------|---------|-------------|
+| `fix-test.yaml` | Test failing | Diagnose → Fix → Validate |
+| `review.yaml` | Pre-commit | Types → Tests → Commit |
+| `deploy.yaml` | Main updated | Build → Stage → Prod |
+
+---
+
 ## 🛠️ Available Skills
 
 | Skill | Command | Description |
@@ -46,6 +62,7 @@ git pull origin main --rebase
 | Fix Test | `/fix <task_id>` | Auto-diagnose and fix failing test |
 | Review | `/review` | Validate all changes before commit |
 | Type Check | `/types` | Run `npm run check:types` |
+| Deploy | `/deploy` | Execute deployment workflow |
 
 ---
 
@@ -58,6 +75,8 @@ git pull origin main --rebase
 | Progress Log | `dev/progress_log.md` |
 | Swarm Rules | `dev/SWARM_RULES.md` |
 | Session State | `.agent/state/session.json` |
+| Communication | `.agent/state/communication.json` |
+| Metrics | `.agent/learning/metrics.json` |
 
 ---
 
@@ -90,3 +109,4 @@ Before EVERY commit:
 - Assume file contents
 - Leave `console.log` in production code
 - Mark task "passing" without running test
+

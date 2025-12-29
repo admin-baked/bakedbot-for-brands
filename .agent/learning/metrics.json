@@ -1,0 +1,66 @@
+{
+  "version": "1.0",
+  "updated_at": null,
+  "skills": {
+    "fix-failing-test": {
+      "total_runs": 0,
+      "successes": 0,
+      "failures": 0,
+      "success_rate": 0,
+      "avg_attempts": 0,
+      "common_patterns": []
+    }
+  },
+  "workflows": {
+    "fix-test": {
+      "total_runs": 0,
+      "completed": 0,
+      "escalated": 0,
+      "avg_duration_seconds": 0
+    },
+    "review": {
+      "total_runs": 0,
+      "completed": 0,
+      "escalated": 0,
+      "avg_duration_seconds": 0
+    },
+    "deploy": {
+      "total_runs": 0,
+      "completed": 0,
+      "rollbacks": 0,
+      "avg_duration_seconds": 0
+    }
+  },
+  "agents": {
+    "lite": {
+      "tasks_completed": 0,
+      "best_at": ["simple_formatting", "quick_checks"],
+      "success_rate": 0
+    },
+    "standard": {
+      "tasks_completed": 0,
+      "best_at": ["balanced_tasks", "test_execution"],
+      "success_rate": 0
+    },
+    "advanced": {
+      "tasks_completed": 0,
+      "best_at": ["bug_fixes", "refactoring"],
+      "success_rate": 0
+    },
+    "expert": {
+      "tasks_completed": 0,
+      "best_at": ["complex_debugging", "investigation"],
+      "success_rate": 0
+    },
+    "genius": {
+      "tasks_completed": 0,
+      "best_at": ["architecture", "deep_reasoning"],
+      "success_rate": 0
+    },
+    "deep_research": {
+      "tasks_completed": 0,
+      "best_at": ["market_research", "comprehensive_analysis"],
+      "success_rate": 0
+    }
+  }
+}

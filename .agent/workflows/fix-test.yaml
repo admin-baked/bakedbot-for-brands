@@ -1,0 +1,84 @@
+# Fix Test Workflow
+# Automated test failure diagnosis and repair
+
+name: fix-failing-test
+description: Diagnose and fix failing tests from backlog
+trigger: task.status == "failing" AND task.type == "test"
+
+# Workflow Steps
+steps:
+  - id: read_context
+    description: Load task and test information
+    actions:
+      - read: dev/backlog.json
+      - read: dev/test_matrix.json
+      - find: test_command for task_id
+
+  - id: run_test
+    description: Execute test to capture current failure
+    command: npm test -- {{test_file}}
+    capture: error_output
+    on_failure: continue  # Expected to fail initially
+
+  - id: diagnose
+    description: Analyze failure and identify root cause
+    thinking_level: expert
+    skill: fix-failing-test
+    input:
+      error: "{{error_output}}"
+      test_file: "{{test_file}}"
+    output: diagnosis
+
+  - id: investigate
+    description: Read related files
+    actions:
+      - view_file: "{{diagnosis.implementation_file}}"
+      - view_file: "{{test_file}}"
+      - grep_search: "{{diagnosis.search_pattern}}"
+
+  - id: implement_fix
+    description: Apply the fix
+    thinking_level: advanced
+    input: "{{diagnosis}}"
+    output: changes
+
+  - id: validate
+    description: Run test to verify fix
+    command: npm test -- {{test_file}}
+    on_success: goto update_backlog
+    on_failure: goto retry_logic
+
+  - id: retry_logic
+    description: Retry fix up to 3 times
+    max_retries: 3
+    on_max_retries: goto escalate
+    actions:
+      - analyze: new_error_output
+      - goto: implement_fix
+
+  - id: escalate
+    description: Mark for human review
+    actions:
+      - update_backlog:
+          status: needs_human
+          notes: "Failed after 3 attempts: {{last_error}}"
+      - notify: "Task {{task_id}} requires human intervention"
+
+  - id: update_backlog
+    description: Mark task complete
+    actions:
+      - update: dev/backlog.json
+        set:
+          status: passing
+          last_touched_by: "agent:antigravity"
+          last_touched_at: "{{now}}"
+      - append: dev/progress_log.md
+        content: |
+          ## Fix: {{task_id}}
+          - Test: {{test_file}}
+          - Status: PASSING ✅
+          - Changes: {{changes}}
+
+  - id: complete
+    description: Workflow finished
+    message: "Test fixed: {{task_id}}"
