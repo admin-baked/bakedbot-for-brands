@@ -949,7 +949,9 @@ export function AgentChat({
                             <ModelSelector 
                                 value={thinkingLevel} 
                                 onChange={setThinkingLevel} 
-                                userPlan={(user as any)?.planId || 'free'} 
+                                userPlan={(user as any)?.planId || 'free'}
+                                isSuperUser={role === 'owner' || role === 'super_admin'}
+                                unlockResearch={role === 'brand' || role === 'dispensary'}
                             />
                             <ToolSelector
                                 mode={toolMode}
