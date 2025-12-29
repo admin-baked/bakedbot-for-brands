@@ -191,6 +191,66 @@ export async function runAgentCore(
         const userBrandId = (user?.brandId as string) || (role === 'brand' ? 'demo-brand-123' : 'general');
         const userBrandName = role === 'brand' ? 'Your Brand' : 'BakedBot';
 
+        // === DEEP RESEARCH ROUTING ===
+        // When user selects "Deep Research" model level, route to Research Service
+        if (extraOptions?.modelLevel === 'deep_research') {
+            await emitThought(jobId, 'Deep Research Mode', 'Initiating comprehensive web research pipeline...');
+            executedTools.push({ id: `research-${Date.now()}`, name: 'Deep Research', status: 'running', result: 'Starting research task...' });
+            
+            try {
+                const { researchService } = await import('@/server/services/research-service');
+                const { createResearchTaskAction } = await import('@/app/dashboard/research/actions');
+                
+                await emitThought(jobId, 'Creating Task', 'Queueing research task for processing...');
+                
+                // Create the research task
+                const result = await createResearchTaskAction(
+                    user?.uid || 'anonymous',
+                    userBrandId,
+                    userMessage
+                );
+                
+                if (result.success && result.taskId) {
+                    executedTools[executedTools.length - 1].status = 'success';
+                    executedTools[executedTools.length - 1].result = `Task created: ${result.taskId}`;
+                    
+                    await emitThought(jobId, 'Research Queued', 'Your research task has been created and is processing in the background.');
+                    
+                    return {
+                        content: `**🔬 Deep Research Task Created**\n\nYour research query has been queued for comprehensive analysis:\n\n> "${userMessage}"\n\n**Task ID:** \`${result.taskId}\`\n\nThe research agent is now:\n1. Searching multiple web sources\n2. Analyzing and cross-referencing data\n3. Compiling a comprehensive report\n\n📊 **View progress:** [Deep Research Dashboard](/dashboard/research)\n\nYou'll be notified when the report is ready. Complex queries may take 2-5 minutes.`,
+                        toolCalls: executedTools,
+                        metadata: {
+                            brandId: userBrandId,
+                            brandName: userBrandName,
+                            agentName: 'Deep Research',
+                            role,
+                            jobId,
+                            type: 'session_context' as const,
+                            data: { researchTaskId: result.taskId }
+                        }
+                    };
+                } else {
+                    throw new Error(result.error || 'Failed to create research task');
+                }
+            } catch (e: any) {
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = e.message;
+                await emitThought(jobId, 'Error', `Research task creation failed: ${e.message}`);
+                
+                return {
+                    content: `**❌ Deep Research Failed**\n\n${e.message}\n\nPlease try again or use the [Deep Research page](/dashboard/research) directly.`,
+                    toolCalls: executedTools,
+                    metadata: {
+                        brandId: userBrandId,
+                        brandName: userBrandName,
+                        agentName: 'Deep Research',
+                        role,
+                        jobId
+                    }
+                };
+            }
+        }
+
         // Lazy load for performance
         const { routeToAgent } = await import('@/server/agents/agent-router');
         const { AGENT_CAPABILITIES } = await import('@/server/agents/agent-definitions');

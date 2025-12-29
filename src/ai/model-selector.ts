@@ -16,7 +16,7 @@
  * - Reference: https://developers.googleblog.com/building-ai-agents-with-google-gemini-3-and-open-source-frameworks/
  */
 
-export type ThinkingLevel = 'lite' | 'standard' | 'advanced' | 'expert' | 'genius';
+export type ThinkingLevel = 'lite' | 'standard' | 'advanced' | 'expert' | 'genius' | 'deep_research';
 
 export interface ModelConfig {
     model: string;
@@ -66,6 +66,12 @@ export const MODEL_CONFIGS: Record<ThinkingLevel, ModelConfig> = {
         model: 'googleai/gemini-3-pro-preview',
         thinkingLevel: 'max',
         description: 'Maximum intelligence (Gemini 3 Pro + Max Thinking)',
+        tier: 'super',
+    },
+    deep_research: {
+        model: 'googleai/gemini-3-pro-preview',
+        thinkingLevel: 'max',
+        description: 'Comprehensive web research (Deep Research Agent)',
         tier: 'super',
     },
 };
