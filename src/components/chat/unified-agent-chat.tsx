@@ -36,7 +36,14 @@ export interface UnifiedAgentChatProps {
     /** User's plan for unlocking models */
     userPlan?: string;
     /** Is Super User? */
+    /** Is Super User? */
     isSuperUser?: boolean;
+    /** Location context to display in header */
+    locationInfo?: {
+        dispensaryCount: number;
+        brandCount: number;
+        city: string;
+    } | null;
 }
 
 // Icon mapping
@@ -115,6 +122,7 @@ export function UnifiedAgentChat({
     isAuthenticated = false,
     userPlan = 'free',
     isSuperUser = false,
+    locationInfo
 }: UnifiedAgentChatProps) {
     // Get role config (use public config if role is 'public')
     const config = role === 'public' ? PUBLIC_CONFIG : getChatConfigForRole(role);
@@ -140,12 +148,19 @@ export function UnifiedAgentChat({
                             <Icon className={cn("h-4 w-4", theme.icon)} />
                             {config.title}
                         </h3>
-                        <Badge
-                            variant="outline"
-                            className={cn("text-xs", theme.text, theme.border)}
-                        >
-                            {role === 'public' ? 'Demo' : `${config.role.charAt(0).toUpperCase() + config.role.slice(1)} Mode`}
-                        </Badge>
+                        {/* Location Badge or Role Badge */}
+                        {locationInfo ? (
+                             <span className="text-xs text-emerald-600 font-medium flex items-center gap-1 animate-in fade-in">
+                                📍 Found {locationInfo.dispensaryCount} dispensaries & {locationInfo.brandCount} brands near {locationInfo.city}
+                            </span>
+                        ) : (
+                            <Badge
+                                variant="outline"
+                                className={cn("text-xs", theme.text, theme.border)}
+                            >
+                                {role === 'public' ? 'Demo' : `${config.role.replace('_', ' ').split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')} Mode`}
+                            </Badge>
+                        )}
                     </div>
                     <p className="text-xs text-muted-foreground">{config.subtitle}</p>
                 </div>
@@ -165,6 +180,7 @@ export function UnifiedAgentChat({
                     initialTitle={config.title}
                     promptSuggestions={suggestions}
                     hideHeader={showHeader} // Hide PuffChat's internal header if we show our own
+                    isAuthenticated={isAuthenticated}
                     className="h-full"
                 />
             </div>
