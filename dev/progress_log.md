@@ -1,6 +1,37 @@
 # Progress Log
 
 
+## Session: 2025-12-29 (Production Readiness Audit - Brand Dashboard)
+### Task ID
+feat_production_readiness_audit (Phase 2)
+
+### Summary
+Audited Brand Dashboard for production readiness. Fixed hardcoded mock values and cleaned up misleading comments.
+
+### Key Changes
+*   **FIX**: `src/app/dashboard/brand/dashboard-client.tsx`:
+    - Replaced hardcoded "Active Retailers: 42" with `liveData?.coverage?.value ?? '—'`
+*   **CLEANUP**: `src/app/dashboard/brand/components/brand-kpi-grid.tsx`:
+    - Removed misleading `// STUB` comment (component correctly uses `data` props)
+
+### Findings (Positive)
+*   `actions.ts` properly uses real Firestore, CannMenus, and Leafly connectors
+*   `brand-kpi-grid.tsx` correctly consumes data props with safe fallbacks
+*   Unit tests exist for `getBrandDashboardData` (2 tests)
+
+### Tests Run
+*   `npm run check:types` (Passed ✅)
+*   Brand dashboard tests: 6 passed ✅
+
+### Commits
+*   `48ec6b57`: feat(claim): add thank-you page and claim page updates
+*   `dd2ed07d`: fix(brand): replace hardcoded retailer count with live data, remove STUB comment
+
+### Result: ✅ Complete
+Brand Dashboard Phase 2 audit complete. No further hardcoded mock data found.
+
+---
+
 ## Session: 2025-12-28 (Deep Research Unit Tests)
 ### Task ID
 deep-research-tests-001
