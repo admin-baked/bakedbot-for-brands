@@ -162,6 +162,6 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     href: '/dashboard/treasury',
     icon: 'wallet',
     group: 'core',
-    badge: 'locked', // Hidden for non-owners via role check
+    // badge: 'locked', // Unlock for Super Users
   },
 ];

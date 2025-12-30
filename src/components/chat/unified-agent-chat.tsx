@@ -201,6 +201,7 @@ export function UnifiedAgentChat({
                     promptSuggestions={suggestions}
                     hideHeader={showHeader} // Hide PuffChat's internal header if we show our own
                     isAuthenticated={isAuthenticated}
+                    isSuperUser={isSuperUser}
                     className="h-full"
                 />
             </div>
