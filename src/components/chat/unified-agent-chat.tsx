@@ -117,7 +117,7 @@ const PUBLIC_CONFIG: RoleChatConfig = {
 export function UnifiedAgentChat({
     role = 'public',
     showHeader = true,
-    height = 'h-[500px]',
+    height = 'min-h-[400px] h-full', // Flexible default
     className,
     promptSuggestions,
     compact = false,
