@@ -32,9 +32,10 @@ export interface ModelSelectorProps {
     userPlan?: string;
     unlockResearch?: boolean; // Super User / Global unlock override
     isSuperUser?: boolean; // Super user gets access to all models
+    isPublic?: boolean; // Public user (not logged in)
 }
 
-export function ModelSelector({ value, onChange, userPlan = 'free', unlockResearch = false, isSuperUser = false }: ModelSelectorProps) {
+export function ModelSelector({ value, onChange, userPlan = 'free', unlockResearch = false, isSuperUser = false, isPublic = false }: ModelSelectorProps) {
     const isPaid = userPlan !== 'free' || isSuperUser;
 
     const options: Record<ThinkingLevel, { label: string, desc: string, icon: any, locked?: boolean }> = {
@@ -47,6 +48,7 @@ export function ModelSelector({ value, onChange, userPlan = 'free', unlockResear
     };
 
     const SelectedIcon = options[value].icon;
+    const lockedMessage = isPublic ? 'Login to access this model' : 'Upgrade to access this model';
 
     return (
         <DropdownMenu>
@@ -74,11 +76,16 @@ export function ModelSelector({ value, onChange, userPlan = 'free', unlockResear
                             {!opt.locked && value === key && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
                         </div>
                         <span className="text-xs text-muted-foreground ml-6">
-                            {opt.locked ? 'Upgrade to access this model' : opt.desc}
+                            {opt.locked ? lockedMessage : opt.desc}
                         </span>
                     </DropdownMenuItem>
                 ))}
-                {!isPaid && (
+                {isPublic && (
+                     <div className="p-2 bg-muted/30 text-[10px] text-muted-foreground text-center border-t mt-1">
+                        <a href="/login" className="underline">Login</a> or <a href="/signup" className="underline">Sign up</a> for full access.
+                     </div>
+                )}
+                {!isPaid && !isPublic && (
                      <div className="p-2 bg-muted/30 text-[10px] text-muted-foreground text-center border-t mt-1">
                         Upgrade plan to unlock Standard, Advanced & higher models.
                      </div>
@@ -87,3 +94,4 @@ export function ModelSelector({ value, onChange, userPlan = 'free', unlockResear
         </DropdownMenu>
     );
 }
+

@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { EmailCaptureModal } from './email-capture-modal';
 import { ThoughtProcess, THOUGHT_PRESETS } from './thought-process';
 import { TypewriterText } from './typewriter-text';
+import { ModelSelector, type ThinkingLevel } from '@/app/dashboard/ceo/components/model-selector';
 
 // Mapped agents for backend routing
 const AGENT_MAP = {
@@ -88,6 +89,7 @@ export function AgentPlayground() {
     const [thoughtSteps, setThoughtSteps] = useState(THOUGHT_PRESETS.default);
     const [streamingText, setStreamingText] = useState<string | null>(null);
     const [showCards, setShowCards] = useState(false);
+    const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('lite');
 
     // Load demo count from storage
     useEffect(() => {
@@ -161,27 +163,58 @@ export function AgentPlayground() {
         setIsThinking(true); // Start visualization
 
         try {
-            const response = await fetch('/api/demo/agent', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    agent: agentId,
-                    prompt: demoPrompt,
-                    context: geoData // Pass live context to API
-                })
-            });
+            // Use real backend via server action
+            const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
+            
+            // Map agent IDs to personas
+            const personaMap: Record<string, string> = {
+                'smokey': 'puff',
+                'hq': 'puff',
+                'craig': 'sales_scout',
+                'pops': 'wholesale_analyst',
+                'ezal': 'menu_watchdog'
+            };
+            
+            const response = await runAgentChat(
+                demoPrompt, 
+                (personaMap[agentId] || 'puff') as any, 
+                { modelLevel: thinkingLevel } // Use selected thinking level
+            );
 
-            if (!response.ok) {
-                const data = await response.json();
-                if (data.requiresEmail) {
-                    setShowEmailCapture(true);
-                    return;
-                }
-                throw new Error(data.error || 'Demo failed');
+            if (response.error) {
+                throw new Error(response.error || 'Agent error');
             }
 
-            const data = await response.json();
-            setResult(data);
+            // Transform to DemoResult format
+            const demoResult: DemoResult = {
+                agent: agentId,
+                prompt: demoPrompt,
+                items: [{
+                    title: 'Response',
+                    description: response.content || 'No response generated',
+                }],
+                totalCount: 1,
+            };
+
+            // Check for media in tool calls
+            if (response.toolCalls) {
+                for (const tc of response.toolCalls) {
+                    try {
+                        const resultData = typeof tc.result === 'string' && tc.result.startsWith('{') 
+                            ? JSON.parse(tc.result) 
+                            : tc.result;
+                        if (resultData?.url) {
+                            demoResult.generatedMedia = {
+                                type: resultData.type || (resultData.url.includes('.mp4') ? 'video' : 'image'),
+                                url: resultData.url
+                            };
+                            break;
+                        }
+                    } catch (e) { /* ignore parse errors */ }
+                }
+            }
+
+            setResult(demoResult);
 
             const newCount = demoCount + 1;
             setDemoCount(newCount);
@@ -189,11 +222,8 @@ export function AgentPlayground() {
 
         } catch (err: any) {
             setError(err.message || 'Something went wrong');
-        } finally {
-            // Note: We don't set isLoading(false) here because ThoughtProcess handles the "completion" flow visually.
-            // We'll let the onComplete callback from ThoughtProcess trigger the display of results if we want perfect sync,
-            // OR we just wait for the thought process to finish effectively.
-            // However, for simplicity, we keep isLoading true until thinking is done.
+            setIsThinking(false);
+            setIsLoading(false);
         }
     }, [demoCount, canRunDemo]);
 
@@ -399,11 +429,11 @@ export function AgentPlayground() {
                                         <ChevronDown className="h-3 w-3 opacity-50" />
                                     </Button>
 
-                                    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-gray-500 hover:text-gray-700 px-2 sm:px-3">
-                                        <Zap className="h-3 w-3" />
-                                        <span className="text-xs font-medium hidden sm:inline">Standard</span>
-                                        <ChevronDown className="h-3 w-3 opacity-50" />
-                                    </Button>
+                                    <ModelSelector 
+                                        value={thinkingLevel} 
+                                        onChange={setThinkingLevel} 
+                                        isPublic={true}
+                                    />
 
                                     <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-gray-500 hover:text-gray-700 px-2 sm:px-3">
                                         <Wrench className="h-3 w-3" />
