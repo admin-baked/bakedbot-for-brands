@@ -7,25 +7,34 @@ import { quickSetupCompetitor } from '@/server/services/ezal/competitor-manager'
 import { getDefaultPlaybook } from '@/config/default-playbooks';
 import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/logger';
-import { parse } from 'node-html-parser';
+import { getZipCodeCoordinates } from '@/server/services/geo-discovery';
 
 export async function searchLocalCompetitors(zip: string) {
     await requireUser();
     const service = new CannMenusService();
-    // CannMenus "search retailers" API might need geo-coords or state. 
-    // Assuming service.searchRetailers takes { address: zip } or similar.
-    // If not, we might need to geocode first. 
-    // Looking at CannMenusService (inferred), let's assume it has `searchRetailers({ near: zip })`.
     
     try {
-        const results = await service.searchRetailers({ near: zip, limit: 10 });
+        // First geocode the ZIP code
+        const coords = await getZipCodeCoordinates(zip);
+        if (!coords) {
+            console.error("Could not geocode ZIP:", zip);
+            return [];
+        }
+        
+        // Use findRetailers with lat/lng
+        const results = await service.findRetailers({ 
+            lat: coords.lat, 
+            lng: coords.lng, 
+            limit: 10 
+        });
+        
         return results.map((r: any) => ({
             name: r.name,
             address: r.address,
-            city: r.city,
-            state: r.state,
-            zip: r.zip,
-            menuUrl: r.menu_url || r.url, // Ensure we have a URL to scrape
+            city: r.city || coords.city,
+            state: r.state || coords.state,
+            zip: r.postalCode || zip,
+            menuUrl: r.website || r.url,
             logo: r.logo_url
         }));
     } catch (e) {

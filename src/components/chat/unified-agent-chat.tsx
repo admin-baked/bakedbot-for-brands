@@ -87,13 +87,22 @@ const PUBLIC_CONFIG: RoleChatConfig = {
     role: 'customer',
     title: 'Smokey Chat',
     subtitle: 'Ask me anything about cannabis, products, or our platform',
+    welcomeMessage: 'Welcome! Ask me anything about BakedBot or cannabis products.',
+    placeholder: 'Ask about BakedBot...',
     iconName: 'sparkles',
     themeColor: 'emerald',
+    agentPersona: 'smokey',
     promptSuggestions: [
         'How does BakedBot work?',
         'Find dispensaries near me',
         'Explain the pricing model',
     ],
+    enabledFeatures: {
+        modelSelector: false,
+        personaSelector: false,
+        triggers: false,
+        permissions: false
+    }
 };
 
 export function UnifiedAgentChat({
