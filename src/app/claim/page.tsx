@@ -22,6 +22,7 @@ interface ClaimFormData {
     role: string;
     // Step 2: Plan Selection
     planId: PlanId;
+    orgId?: string;
 }
 
 interface PaymentFormData {
@@ -78,9 +79,29 @@ function ClaimWizard() {
 
     useEffect(() => {
         const name = searchParams?.get('name');
-        if (name) {
-            setFormData(prev => ({ ...prev, businessName: name }));
+        const orgId = searchParams?.get('orgId');
+        
+        async function loadOrg() {
+             if (orgId) {
+                 try {
+                     const { getOrganizationForClaim } = await import('@/server/actions/createClaimSubscription');
+                     const org = await getOrganizationForClaim(orgId);
+                     if (org) {
+                         setFormData(prev => ({ 
+                             ...prev, 
+                             businessName: org.name,
+                             businessAddress: org.address || prev.businessAddress,
+                             orgId: org.id
+                         }));
+                     }
+                 } catch (e) {
+                     console.error("Failed to load org", e);
+                 }
+             } else if (name) {
+                 setFormData(prev => ({ ...prev, businessName: name }));
+             }
         }
+        loadOrg();
     }, [searchParams]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,6 +135,7 @@ function ClaimWizard() {
     };
 
     const validatePayment = () => {
+        if (formData.planId === 'free') return true;
         const expiry = parseExpirationDate(paymentData.expiry);
         return (
             paymentData.cardNumber.replace(/\s/g, '').length >= 15 &&
@@ -145,19 +167,23 @@ function ClaimWizard() {
         setError(null);
 
         try {
-            // Parse expiration date
-            const expiry = parseExpirationDate(paymentData.expiry);
-            if (!expiry) {
-                throw new Error('Invalid expiration date');
-            }
+            let opaqueData = undefined;
 
-            // Tokenize card with Accept.js
-            const opaqueData = await tokenizeCard({
-                cardNumber: paymentData.cardNumber,
-                expirationMonth: expiry.month,
-                expirationYear: expiry.year,
-                cvv: paymentData.cvv
-            });
+            if (formData.planId !== 'free') {
+                // Parse expiration date
+                const expiry = parseExpirationDate(paymentData.expiry);
+                if (!expiry) {
+                    throw new Error('Invalid expiration date');
+                }
+
+                // Tokenize card with Accept.js
+                opaqueData = await tokenizeCard({
+                    cardNumber: paymentData.cardNumber,
+                    expirationMonth: expiry.month,
+                    expirationYear: expiry.year,
+                    cvv: paymentData.cvv
+                });
+            }
 
             // Call the server action to create the claim with subscription
             const { createClaimWithSubscription } = await import('@/server/actions/createClaimSubscription');
@@ -237,6 +263,7 @@ function ClaimWizard() {
                                             value={formData.businessName}
                                             onChange={handleChange}
                                             required
+                                            disabled={!!formData.orgId}
                                         />
                                     </div>
                                 </div>
@@ -356,9 +383,11 @@ function ClaimWizard() {
                 {step === 3 && (
                     <>
                         <CardHeader>
-                            <CardTitle>Complete Your Subscription</CardTitle>
+                            <CardTitle>{formData.planId === 'free' ? 'Confirm Free Listing' : 'Complete Your Subscription'}</CardTitle>
                             <CardDescription>
-                                Enter your payment details to activate your {formData.planId === 'founders_claim' ? 'Founders Claim' : 'Claim Pro'} subscription.
+                                {formData.planId === 'free' 
+                                    ? 'Confirm your details to create your free listing.' 
+                                    : `Enter your payment details to activate your ${formData.planId === 'founders_claim' ? 'Founders Claim' : 'Claim Pro'} subscription.`}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
@@ -368,74 +397,78 @@ function ClaimWizard() {
                                     <div>
                                         <p className="font-medium">{formData.businessName}</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {formData.planId === 'founders_claim' ? 'Founders Claim' : 'Claim Pro'} Subscription
+                                            {formData.planId === 'free' ? 'Free Listing' : (formData.planId === 'founders_claim' ? 'Founders Claim' : 'Claim Pro')} Subscription
                                         </p>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-2xl font-bold">
-                                            ${formData.planId === 'founders_claim' ? '79' : '99'}
+                                            {formData.planId === 'free' ? '$0' : (formData.planId === 'founders_claim' ? '$79' : '$99')}
                                         </p>
                                         <p className="text-sm text-muted-foreground">/month</p>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Secure Payment Badge */}
-                            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                                <Lock className="h-4 w-4" />
-                                <span>Secured by Authorize.Net</span>
-                            </div>
+                            {formData.planId !== 'free' && (
+                            <>
+                                {/* Secure Payment Badge */}
+                                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                                    <Lock className="h-4 w-4" />
+                                    <span>Secured by Authorize.Net</span>
+                                </div>
 
-                            {/* Payment Form */}
-                            <div className="space-y-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="cardNumber">Card Number</Label>
-                                    <div className="relative">
-                                        <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            id="cardNumber"
-                                            className="pl-9"
-                                            placeholder="4111 1111 1111 1111"
-                                            value={paymentData.cardNumber}
-                                            onChange={handlePaymentChange}
-                                            maxLength={19}
-                                        />
+                                {/* Payment Form */}
+                                <div className="space-y-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="cardNumber">Card Number</Label>
+                                        <div className="relative">
+                                            <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                id="cardNumber"
+                                                className="pl-9"
+                                                placeholder="4111 1111 1111 1111"
+                                                value={paymentData.cardNumber}
+                                                onChange={handlePaymentChange}
+                                                maxLength={19}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid gap-4 sm:grid-cols-3">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="expiry">Expiration</Label>
+                                            <Input
+                                                id="expiry"
+                                                placeholder="MM/YY"
+                                                value={paymentData.expiry}
+                                                onChange={handlePaymentChange}
+                                                maxLength={5}
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="cvv">CVV</Label>
+                                            <Input
+                                                id="cvv"
+                                                placeholder="123"
+                                                type="password"
+                                                value={paymentData.cvv}
+                                                onChange={handlePaymentChange}
+                                                maxLength={4}
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="zip">Billing ZIP</Label>
+                                            <Input
+                                                id="zip"
+                                                placeholder="12345"
+                                                value={paymentData.zip}
+                                                onChange={handlePaymentChange}
+                                                maxLength={5}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="grid gap-4 sm:grid-cols-3">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="expiry">Expiration</Label>
-                                        <Input
-                                            id="expiry"
-                                            placeholder="MM/YY"
-                                            value={paymentData.expiry}
-                                            onChange={handlePaymentChange}
-                                            maxLength={5}
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="cvv">CVV</Label>
-                                        <Input
-                                            id="cvv"
-                                            placeholder="123"
-                                            type="password"
-                                            value={paymentData.cvv}
-                                            onChange={handlePaymentChange}
-                                            maxLength={4}
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="zip">Billing ZIP</Label>
-                                        <Input
-                                            id="zip"
-                                            placeholder="12345"
-                                            value={paymentData.zip}
-                                            onChange={handlePaymentChange}
-                                            maxLength={5}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+                            </>
+                            )}
 
                             {error && (
                                 <div className="rounded-lg bg-red-50 border border-red-200 p-3">
@@ -450,18 +483,18 @@ function ClaimWizard() {
                                 </Button>
                                 <Button
                                     onClick={handleSubmit}
-                                    disabled={loading || tokenizing || !acceptLoaded || !validatePayment()}
+                                    disabled={loading || (formData.planId !== 'free' && (tokenizing || !acceptLoaded || !validatePayment()))}
                                     className="min-w-[200px]"
                                 >
-                                    {loading || tokenizing ? (
+                                    {loading || (formData.planId !== 'free' && tokenizing) ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             {tokenizing ? 'Securing...' : 'Processing...'}
                                         </>
                                     ) : (
                                         <>
-                                            <Lock className="mr-2 h-4 w-4" />
-                                            Pay ${formData.planId === 'founders_claim' ? '79' : '99'}/mo
+                                            {formData.planId === 'free' ? <CheckCircle className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-4 w-4" />}
+                                            {formData.planId === 'free' ? 'Confirm Free Listing' : `Pay ${formData.planId === 'founders_claim' ? '$79' : '$99'}/mo`}
                                         </>
                                     )}
                                 </Button>
