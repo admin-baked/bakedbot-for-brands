@@ -9,8 +9,10 @@ import { LayoutDashboard, Zap, MapPin, TrendingUp, Search, Loader2, Plus, Trash2
 import { useUserRole } from '@/hooks/use-user-role';
 import { EzalSnapshotCard } from '@/components/dashboard/ezal-snapshot-card';
 import { useToast } from '@/hooks/use-toast';
-import { getCompetitors, autoDiscoverCompetitors, addManualCompetitor, removeCompetitor } from './actions';
+import { getCompetitors, autoDiscoverCompetitors, addManualCompetitor, removeCompetitor, fetchCompetitiveReport } from './actions';
 import type { CompetitorEntry, CompetitorSnapshot } from './actions';
+import { CompetitorSetupWizard } from '../intelligence/components/competitor-setup-wizard';
+import { FileText } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 
 export default function CompetitiveIntelPage() {
@@ -19,6 +21,7 @@ export default function CompetitiveIntelPage() {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [snapshot, setSnapshot] = useState<CompetitorSnapshot | null>(null);
+    const [reportMarkdown, setReportMarkdown] = useState<string | null>(null);
     const [refreshing, setRefreshing] = useState(false);
 
     // Add competitor form
@@ -32,8 +35,12 @@ export default function CompetitiveIntelPage() {
     const loadCompetitors = useCallback(async () => {
         if (!orgId) return;
         try {
-            const data = await getCompetitors(orgId);
+            const [data, report] = await Promise.all([
+                getCompetitors(orgId),
+                fetchCompetitiveReport(orgId)
+            ]);
             setSnapshot(data);
+            setReportMarkdown(report);
         } catch (error) {
             console.error('Failed to load competitors:', error);
         } finally {
@@ -134,9 +141,10 @@ export default function CompetitiveIntelPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <CompetitorSetupWizard hasCompetitors={(snapshot?.competitors.length || 0) > 0} />
                     <Button variant="outline" size="sm" onClick={() => setShowAddForm(!showAddForm)}>
                         <Plus className="h-4 w-4 mr-2" />
-                        Add Competitor
+                        Add Manual
                     </Button>
                     <Button
                         size="sm"
@@ -204,6 +212,39 @@ export default function CompetitiveIntelPage() {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Daily Intelligence Report */}
+            <Card className="border-indigo-100 dark:border-indigo-900 bg-gradient-to-br from-white to-indigo-50/20 dark:from-background dark:to-indigo-950/10">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                            <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+                                <FileText className="h-5 w-5" /> Daily Strategic Intelligence
+                            </CardTitle>
+                            <CardDescription>
+                                AI-generated analysis of pricing, stockouts, and margin opportunities.
+                            </CardDescription>
+                        </div>
+                        {reportMarkdown && <Badge variant="outline" className="text-xs">Updated Today</Badge>}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {reportMarkdown ? (
+                        <div className="prose prose-sm max-w-none dark:prose-invert bg-white/50 dark:bg-black/20 p-6 rounded-lg whitespace-pre-wrap font-mono text-sm leading-relaxed border shadow-sm">
+                            {reportMarkdown}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <p className="text-muted-foreground mb-4">
+                                {(snapshot?.competitors.length || 0) > 0 
+                                    ? "Report generating... Check back after the next scheduled scan." 
+                                    : "Configure competitors to generate your first strategic report."}
+                            </p>
+                            {(snapshot?.competitors.length || 0) === 0 && <CompetitorSetupWizard hasCompetitors={false} />}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Content Area */}

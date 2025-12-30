@@ -290,3 +290,14 @@ export async function getNearbyCompetitors(lat: number, lng: number, limit: numb
         return [];
     }
 }
+
+export async function fetchCompetitiveReport(orgId: string): Promise<string | null> {
+    await requireUser();
+    const { generateCompetitorReport } = await import('@/server/services/ezal/report-generator');
+    try {
+        return await generateCompetitorReport(orgId);
+    } catch (error) {
+        console.error("Failed to generate report", error);
+        return null;
+    }
+}
