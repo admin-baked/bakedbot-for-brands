@@ -183,6 +183,18 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'read', // External read
         requiredPermission: 'read:analytics', // Strategic intel usually falls under analytics/management
     },
+    'intel.generateCompetitiveReport': {
+        name: 'intel.generateCompetitiveReport',
+        description: 'Generates a detailed markdown report comparing competitor pricing, stock, and trends against our catalog.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                period: { type: 'string', enum: ['24h', '7d'], default: '24h' }
+            }
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
 
     // ===================================
     // 6. Compliance Tools (Deebo)

@@ -793,6 +793,55 @@ steps:
     successCount: 0,
     failureCount: 0,
     version: 1
+  },
+  
+  // 10. Daily Competitive Intelligence
+  {
+    name: 'Daily Competitive Intelligence',
+    description: 'Daily analysis of competitor menus and pricing. Generates a strategic report on opportunities and risks.',
+    status: 'draft',
+    yaml: `name: Daily Competitive Intelligence
+description: Daily competitor scan and strategic report generation
+
+triggers:
+  - type: schedule
+    cron: "0 8 * * *"  # Daily at 8 AM
+  - type: manual
+    name: Run Analysis
+
+steps:
+  - action: tool
+    tool: intel.scanCompetitors
+    agent: ezal
+    task: Scan all active competitors for latest menu data
+    
+  - action: tool
+    tool: intel.generateCompetitiveReport
+    agent: ezal
+    task: Analyze market data and generate strategic markdown report
+    output: report_markdown
+    
+  - action: notify
+    channels:
+      - dashboard
+      - email
+    to: "{{user.email}}"
+    subject: "📊 Daily Competitive Intelligence Report"
+    body: "{{ezal.report_markdown}}"
+`,
+    triggers: [
+        { id: 'trigger-1', type: 'schedule', name: 'Daily Analysis', config: { cron: '0 8 * * *' }, enabled: true },
+        { id: 'trigger-2', type: 'manual', name: 'Manual Run', config: {}, enabled: true }
+    ],
+    steps: [
+        { action: 'tool', params: { tool: 'intel.scanCompetitors' } },
+        { action: 'tool', params: { tool: 'intel.generateCompetitiveReport' } },
+        { action: 'notify', params: { channels: ['dashboard', 'email'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
   }
 ];
 

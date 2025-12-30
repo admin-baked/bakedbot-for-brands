@@ -284,6 +284,19 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         };
     }
 
+    if (def.name === 'intel.generateCompetitiveReport') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        const { generateCompetitorReport } = await import('@/server/services/ezal/report-generator');
+        const report = await generateCompetitorReport(request.tenantId);
+        return {
+            status: 'success',
+            data: {
+                reportMarkdown: report,
+                generatedAt: new Date().toISOString()
+            }
+        };
+    }
+
     // Sandbox & Experimental Tools
     if (def.name === 'web.search') {
         const { searchWeb } = await import('@/server/tools/web-search');
