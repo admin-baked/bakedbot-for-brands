@@ -9,13 +9,34 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-export function CustomerKPIs() {
-    // STUB: Real data would come from user context
+interface CustomerKPIData {
+    rewards?: { points: number; discount: string; label: string };
+    deals?: { count: number; label: string };
+    favorites?: { inStock: number; total: number; label: string };
+    activeOrder?: { status: string | null; eta: string | null; active: boolean } | null;
+}
+
+export function CustomerKPIs({ data }: { data?: CustomerKPIData }) {
     const stats = {
-        rewards: { points: 420, discount: '$8 off', label: 'Available now' },
-        deals: { count: 6, label: 'New matches for you' },
-        favorites: { inStock: 12, total: 15, label: 'Items available' },
-        order: { status: 'Ready for Pickup', eta: 'Review details', active: true }
+        rewards: { 
+            points: data?.rewards?.points ?? 0, 
+            discount: data?.rewards?.discount || '—', 
+            label: data?.rewards?.label || 'Start earning' 
+        },
+        deals: { 
+            count: data?.deals?.count ?? 0, 
+            label: data?.deals?.label || 'Check back soon' 
+        },
+        favorites: { 
+            inStock: data?.favorites?.inStock ?? 0, 
+            total: data?.favorites?.total ?? 0, 
+            label: data?.favorites?.label || 'Add favorites' 
+        },
+        order: { 
+            status: data?.activeOrder?.status || 'No active order', 
+            eta: data?.activeOrder?.eta || 'Place an order', 
+            active: data?.activeOrder?.active ?? false 
+        }
     };
 
     return (

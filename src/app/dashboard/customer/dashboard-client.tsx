@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { InvitationsList } from '@/components/invitations/invitations-list';
 
 import { CustomerKPIs } from './components/customer-kpi-grid';
@@ -16,8 +17,25 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import { getCustomerDashboardData, type CustomerDashboardData } from './actions';
 
 export default function CustomerDashboardClient() {
+    const [liveData, setLiveData] = useState<CustomerDashboardData | null>(null);
+
+    // Fetch data on mount
+    useEffect(() => {
+        async function loadData() {
+            const data = await getCustomerDashboardData();
+            if (data) setLiveData(data);
+        }
+        loadData();
+    }, []);
+
+    // Use live data or fallbacks
+    const dispensaryName = liveData?.profile?.preferredDispensary || 'Select Dispensary';
+    const fulfillmentType = liveData?.profile?.fulfillmentType || 'Pickup';
+    const zipCode = liveData?.profile?.zipCode || '—';
+
     return (
         <div className="space-y-6 pb-24">
             {/* 1. Header (Concierge Style) */}
@@ -36,28 +54,32 @@ export default function CustomerDashboardClient() {
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="sm" className="gap-2">
                                 <MapPin className="h-4 w-4" />
-                                California Cannabis
+                                {dispensaryName}
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Switch Dispensary</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>California Cannabis</DropdownMenuItem>
-                            <DropdownMenuItem>Green Dragon</DropdownMenuItem>
+                            <DropdownMenuItem>{dispensaryName}</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
 
                     <Button variant="outline" size="sm" className="gap-2">
-                        Pickup
+                        {fulfillmentType === 'delivery' ? 'Delivery' : 'Pickup'}
                     </Button>
                     <Button variant="outline" size="sm" className="gap-2">
-                        90210
+                        {zipCode}
                     </Button>
                 </div>
             </div>
 
             {/* 2. KPI Row */}
-            <CustomerKPIs />
+            <CustomerKPIs data={{
+                rewards: liveData?.rewards,
+                deals: liveData?.deals,
+                favorites: liveData?.favorites,
+                activeOrder: liveData?.activeOrder
+            }} />
 
             <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
                 {/* Main Column */}
@@ -98,13 +120,15 @@ export default function CustomerDashboardClient() {
                 <div className="container flex items-center justify-between max-w-7xl mx-auto">
                     <div className="flex items-center gap-4">
                         <div className="flex flex-col">
-                            <span className="text-xs text-muted-foreground">Total (3 items)</span>
-                            <span className="font-bold text-lg">$48.50</span>
+                            <span className="text-xs text-muted-foreground">Total ({liveData?.cart?.itemCount ?? 0} items)</span>
+                            <span className="font-bold text-lg">${(liveData?.cart?.total ?? 0).toFixed(2)}</span>
                         </div>
+                        {liveData?.cart?.hasDealApplied && (
                         <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 gap-1 hidden sm:flex">
                             <CheckCircle className="h-3 w-3" />
                             Best deal applied
                         </Badge>
+                        )}
                     </div>
                     <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-md">
                         <ShoppingCart className="h-4 w-4" />
