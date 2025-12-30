@@ -164,6 +164,11 @@ export type CannMenusProduct = {
   effects?: string[];
   medical: boolean;
   recreational: boolean;
+  // Retailer info (sometimes populated by search)
+  retailer_id?: number | string;
+  retailer_name?: string;
+  state?: string;
+  city?: string;
 };
 
 /**
