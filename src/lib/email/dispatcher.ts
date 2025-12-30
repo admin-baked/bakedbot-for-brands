@@ -38,3 +38,20 @@ export async function sendOrderConfirmationEmail(data: any): Promise<boolean> {
         return sendSG(data);
     }
 }
+
+export async function sendGenericEmail(data: { to: string, name?: string, subject: string, htmlBody: string, textBody?: string }): Promise<boolean> {
+    const provider = await getProvider();
+    
+    // For now, only Mailjet supports generic email in this codebase based on my previous step.
+    // SendGrid implementation would be similar but we stick to Mailjet as requested.
+    
+    if (provider === 'mailjet') {
+        const { sendGenericEmail: sendMJGeneric } = await import('./mailjet');
+        return sendMJGeneric(data);
+    } else {
+        // Fallback or implementation for SendGrid if needed later
+        console.warn('Generic email not implemented for SendGrid yet, falling back to Mailjet');
+        const { sendGenericEmail: sendMJGeneric } = await import('./mailjet');
+        return sendMJGeneric(data);
+    }
+}
