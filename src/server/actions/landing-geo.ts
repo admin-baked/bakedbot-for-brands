@@ -1,6 +1,7 @@
 'use server';
 
 import { searchNearbyRetailers, getRetailerProducts } from '@/lib/cannmenus-api';
+import { LEGAL_US_STATES } from '@/lib/constants/legal-states';
 
 export type LandingGeoData = {
     retailers: {
@@ -26,21 +27,31 @@ export type LandingGeoData = {
  */
 export async function getLandingGeoData(lat: number, lng: number): Promise<LandingGeoData> {
     try {
-        // 1. Search for nearby retailers (limit to 5 to be fast)
-        const retailers = await searchNearbyRetailers(lat, lng, 5);
+        // 1. Search for nearby retailers (limit to 10 to allow for filtering)
+        const rawRetailers = await searchNearbyRetailers(lat, lng, 10);
+        
+        // 2. Filter by Legal States and Distance
+        const retailers = rawRetailers.filter(r => {
+            // Must be in a legal state
+            const isLegalState = LEGAL_US_STATES.includes(r.state.toUpperCase());
+            // Must be within 50 miles (otherwise it's not "near")
+            const isNearby = (r.distance || 0) <= 50;
+
+            return isLegalState && isNearby;
+        }).slice(0, 5); // Take top 5 after filtering
         
         if (retailers.length === 0) {
             return { retailers: [], brands: [], location: null };
         }
 
-        // 2. Derive location name from the closest retailer
+        // 3. Derive location name from the closest retailer
         const closest = retailers[0];
         const locationName = {
             city: closest.city,
             state: closest.state
         };
 
-        // 3. Fetch products from the top 3 retailers to discover local brands
+        // 4. Fetch products from the top 3 retailers to discover local brands
         const topRetailers = retailers.slice(0, 3);
         const brandMap = new Map<string, { id: string; name: string; count: number }>();
 
