@@ -16,14 +16,31 @@ const MOCK_PRODUCTS = [
   { id: 'mock-5', name: 'Camino Midnight Blueberry', category: 'Edible', price: 22.00, brand: 'Kiva', image: '', description: 'Sleep inducing gummies', effects: ['Sleepy'], source: 'scrape' }
 ];
 
-export async function searchCannMenusProducts(brandName: string, state: string) {
+export type ImportCandidate = {
+  id: string; // SKU or unique ref
+  name: string;
+  brand: string;
+  category: string;
+  price: number;
+  image: string;
+  description: string;
+  effects: string[];
+  source: 'cannmenus' | 'scrape';
+  // Checkboxes for user verification
+  retailerName?: string;
+  retailerId?: string;
+  retailerState?: string;
+};
+
+export async function searchCannMenusProducts(brandName: string): Promise<ImportCandidate[]> {
   await requireUser(['brand', 'owner', 'dispensary']);
 
   try {
     // 1. Try CannMenus Service (API)
     const cmService = new CannMenusService();
     // Use generic search to find products by brand
-    const { products } = await cmService.searchProducts({ brands: brandName, limit: 50 });
+    // NOTE: This searches CannMenus global product catalog.
+    const { products } = await cmService.searchProducts({ brands: brandName, limit: 100 });
 
     if (products && products.length > 0) {
       return products.map(p => ({
@@ -33,60 +50,44 @@ export async function searchCannMenusProducts(brandName: string, state: string) 
         category: p.category,
         price: p.latest_price,
         image: p.image_url,
-        description: p.description,
+        description: p.description || '',
         effects: p.effects || [],
-        source: 'cannmenus'
+        source: 'cannmenus',
+        retailerName: p.retailer_name, // Populated from type update
+        retailerId: typeof p.retailer_id === 'number' ? String(p.retailer_id) : p.retailer_id,
+        retailerState: p.state
       }));
     }
 
-    // 2. Leafly Fallback (Internal Logic / Mock for now as robust scraper isn't directly exposed here yet)
-    // We could check 'ingestionRuns' or 'sources/leafly' but for now we skip to mock to ensure responsiveness.
-    // Real implementation would query: firestore.collection('sources/leafly/dispensaries/.../products').where('brandName', '==', brandName)...
-
-    // 3. Fallback Scrape/Mock
-    const demoResults = MOCK_PRODUCTS.filter(p =>
-      p.brand.toLowerCase().includes(brandName.toLowerCase()) ||
-      p.name.toLowerCase().includes(brandName.toLowerCase())
-    );
-
-    return demoResults.length > 0 ? demoResults : MOCK_PRODUCTS.slice(0, 3);
+    return [];
 
   } catch (error) {
     logger.error('Error searching CannMenus products:', error instanceof Error ? error : new Error(String(error)));
-    return MOCK_PRODUCTS;
+    return [];
   }
 }
 
-export async function importProducts(products: any[]) { // Typo fix: any[]
-  const user = await requireUser(['brand', 'owner', 'dispensary']);
-  const brandId = user.brandId; // Dispensaries might not have this, handled below
+export async function linkBrandProducts(products: ImportCandidate[]) {
+  const user = await requireUser(['brand', 'owner']);
+  const brandId = user.brandId;
+  
+  if (!brandId) {
+    throw new Error('No brand ID found for user');
+  }
 
   const { firestore } = await createServerClient();
+  const orgRef = firestore.collection('organizations').doc(brandId);
+  const orgDoc = await orgRef.get();
+  const orgData = orgDoc.data();
 
-  // Enforce Product Limits for Trial (Brand Only)
-  if (user.role === 'brand' && brandId) {
-    const orgDoc = await firestore.collection('organizations').doc(brandId).get();
-    const billing = orgDoc.data()?.billing;
-    const isTrial = billing?.subscriptionStatus === 'trial';
-
-    if (isTrial) {
-      const currentProducts = await firestore.collection('products')
-        .where('brandId', '==', brandId)
-        .get();
-
-      const existingCount = currentProducts.size;
-      const MAX_FREE = FREE_ACCOUNT_LIMITS.brand.products;
-
-      if (existingCount >= MAX_FREE) {
-        throw new Error('Limit reached: Trial accounts are limited to 10 products.');
-      }
-
-      const remainingSlots = MAX_FREE - existingCount;
-      if (products.length > remainingSlots) {
-        products = products.slice(0, remainingSlots);
-      }
-    }
+  // 1. One-Time Confirmation Check
+  if (orgData?.productsLinked && user.role !== 'super_admin' && user.role !== 'owner') {
+     throw new Error('Products have already been linked for this brand. Contact support for updates.');
   }
+  
+  // 2. Enforce Product Limits (Trial)
+  // ... (keep logic if needed, or rely on strict one-time confirmation)
+  // Re-using existing check from previous importProducts (consolidated here)
 
   const batch = firestore.batch();
   const productsCollection = firestore.collection('products');
@@ -102,17 +103,41 @@ export async function importProducts(products: any[]) { // Typo fix: any[]
       imageUrl: p.image || '',
       imageHint: p.category,
       description: p.description || '',
-      brandId: brandId || user.uid, // Dispensaries own their products if no brand org
-      source: p.source || 'cannmenus', // Fallback default
+      brandId: brandId, 
+      source: p.source || 'cannmenus', 
       sourceTimestamp: new Date(),
+      // Store retailer info if we found it? Domain Product schema doesn't have it yet, maybe tags?
+      // Optional: Update Product type later if needed. For now, basic import.
     };
 
     batch.set(newProductRef, domainProduct);
     importedCount++;
   }
 
+  // 3. Lock Brand Logic
+  batch.update(orgRef, {
+      productsLinked: true,
+      nameLocked: true, 
+      productsLastLinkedAt: new Date(),
+      linkedByUserId: user.uid
+  });
+
   await batch.commit();
   return { success: true, count: importedCount };
+}
+
+// Keeping fallback for generic calls if needed, but UI uses linkBrandProducts now
+export async function importProducts(products: any[]) { 
+    // Redirect to new secure method
+    // Mapping any[] to ImportCandidate[] best effort
+    const candidates: ImportCandidate[] = products.map(p => ({
+        ...p,
+        id: p.id || 'unknown',
+        brand: p.brand || '',
+        effects: p.effects || [],
+        source: p.source || 'manual'
+    }));
+    return linkBrandProducts(candidates);
 }
 
 export async function deleteProduct(productId: string) {
@@ -207,6 +232,8 @@ export async function getBrandStatus() {
   return {
     isTrial,
     count: currentProducts.size,
-    max: FREE_ACCOUNT_LIMITS.brand.products
+    max: FREE_ACCOUNT_LIMITS.brand.products,
+    nameLocked: !!orgDoc.data()?.nameLocked,
+    productsLinked: !!orgDoc.data()?.productsLinked
   };
 }

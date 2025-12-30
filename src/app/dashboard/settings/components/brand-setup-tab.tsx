@@ -1,19 +1,23 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { setupBrandAndCompetitors } from '@/server/actions/brand-setup';
-import { Loader2, Store, Target, MapPin, CheckCircle2 } from 'lucide-react';
+import { getBrandStatus } from '@/app/dashboard/products/actions';
+import { Loader2, Store, Target, MapPin, CheckCircle2, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function BrandSetupTab() {
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
+    const [status, setStatus] = useState<any>(null);
     const { toast } = useToast();
+
+    useEffect(() => {
+        getBrandStatus().then(setStatus);
+    }, []);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -104,15 +108,27 @@ export default function BrandSetupTab() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <Label htmlFor="brandName">Brand Name</Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="brandName">Brand Name</Label>
+                                {status?.nameLocked && (
+                                    <Badge variant="secondary" className="h-5 text-[10px] gap-1 bg-amber-50 text-amber-700 hover:bg-amber-50">
+                                        <Lock className="h-3 w-3" />
+                                        Locked
+                                    </Badge>
+                                )}
+                            </div>
                             <Input
                                 id="brandName"
                                 name="brandName"
                                 placeholder="e.g. Wyld, Kiva, Cresco"
                                 required
+                                disabled={status?.nameLocked}
+                                defaultValue={status?.brandName} 
                             />
                             <p className="text-[10px] text-muted-foreground">
-                                Use your official brand name as it appears in retailer menus.
+                                {status?.nameLocked 
+                                    ? "Brand name is locked because products have been linked. Contact Admin to change." 
+                                    : "Use your official brand name as it appears in retailer menus."}
                             </p>
                         </div>
                         <div className="space-y-2">
