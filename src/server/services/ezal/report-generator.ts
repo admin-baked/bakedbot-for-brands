@@ -44,7 +44,7 @@ export async function generateCompetitorReport(tenantId: string): Promise<string
     md += `### :moneybag: Top 3 Margin Opportunities:\n`;
     if (riskOpportunities.length > 0) {
         riskOpportunities.forEach(g => {
-            md += `- **${g.category || 'Product'}**: ${g.competitorName} offers ${g.productName} ($${g.competitorPrice.toFixed(2)}) vs our $${g.ourPrice.toFixed(2)} - **RISK:** Undercut on price\n`;
+            md += `- **${g.brandName || 'Product'}**: ${g.competitorName} offers ${g.productName} ($${g.competitorPrice.toFixed(2)}) vs our $${g.ourPrice.toFixed(2)} - **RISK:** Undercut on price\n`;
         });
     } else {
         md += `- No significant price undercutting detected today.\n`;
@@ -52,7 +52,7 @@ export async function generateCompetitorReport(tenantId: string): Promise<string
     
     if (segmentationOpportunities.length > 0) {
          segmentationOpportunities.forEach(g => {
-            md += `- **${g.category || 'Product'}**: We are priced lower on ${g.productName} ($${g.ourPrice.toFixed(2)}) vs ${g.competitorPrice.toFixed(2)} - **Opportunity:** Check margins or advertise value.\n`;
+            md += `- **${g.brandName || 'Product'}**: We are priced lower on ${g.productName} ($${g.ourPrice.toFixed(2)}) vs ${g.competitorPrice.toFixed(2)} - **Opportunity:** Check margins or advertise value.\n`;
         });
     }
     md += `\n`;
@@ -86,15 +86,15 @@ export async function generateCompetitorReport(tenantId: string): Promise<string
 
     // --- Category Performance (Simplified) ---
     md += `### :clipboard: Category Insights:\n`;
-    const categories = new Set(priceGaps.map(g => g.category || 'General'));
-    categories.forEach(cat => {
-         const catGaps = priceGaps.filter(g => (g.category || 'General') === cat);
-         const ourAvg = catGaps.reduce((sum, g) => sum + g.ourPrice, 0) / (catGaps.length || 1);
-         const themAvg = catGaps.reduce((sum, g) => sum + g.competitorPrice, 0) / (catGaps.length || 1);
+    const brands = new Set(priceGaps.map(g => g.brandName || 'General'));
+    brands.forEach(brand => {
+         const brandGaps = priceGaps.filter(g => (g.brandName || 'General') === brand);
+         const ourAvg = brandGaps.reduce((sum, g) => sum + g.ourPrice, 0) / (brandGaps.length || 1);
+         const themAvg = brandGaps.reduce((sum, g) => sum + g.competitorPrice, 0) / (brandGaps.length || 1);
          const winning = ourAvg < themAvg ? "We are competitive" : "Competitor leading on price";
-         md += `- **${cat}**: ${winning} (Avg Gap: $${Math.abs(ourAvg - themAvg).toFixed(2)})\n`;
+         md += `- **${brand}**: ${winning} (Avg Gap: $${Math.abs(ourAvg - themAvg).toFixed(2)})\n`;
     });
-    if (categories.size === 0) md += `- Insufficient data for category analysis.\n`;
+    if (brands.size === 0) md += `- Insufficient data for category analysis.\n`;
 
     md += `\n### :link: Next Steps:\n`;
     md += `- [View Full Report on Dashboard](/dashboard/intelligence)\n`;

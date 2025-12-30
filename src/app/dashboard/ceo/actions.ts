@@ -30,6 +30,7 @@ export async function searchCannMenusRetailers(query: string): Promise<CannMenus
 
 import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
+import { getAdminFirestore } from '@/firebase/admin';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { updateProductEmbeddings } from '@/ai/flows/update-product-embeddings';
 
@@ -222,7 +223,7 @@ export async function clearAllData(prevState: ActionResult, formData?: FormData)
   return { message: 'Data cleared (Mock)' };
 }
 
-import { getAdminFirestore } from '@/firebase/admin';
+// getAdminFirestore imported at top
 import type { Brand } from '@/types/domain';
 import type { Coupon } from '@/firebase/converters';
 
@@ -615,15 +616,15 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
                 orgBatch.set(orgRef, {
                     id: orgId,
                     name: retailer.name,
-                    slug: retailer.slug || retailer.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+                    slug: retailer.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
                     address: retailer.address || '',
                     city: retailer.city || '',
                     state: retailer.state || '',
-                    zip: retailer.zip || zipCode,
+                    zip: retailer.postalCode || zipCode,
                     type: 'dispensary',
                     claimStatus: 'unclaimed', // New field for CRM
                     source: 'auto_discovery',
-                    menuUrl: retailer.menu_url || null,
+                    menuUrl: retailer.website || null,
                     phone: retailer.phone || null,
                     active: true,
                     description: `Dispensary in ${retailer.city}, ${retailer.state}`,
@@ -765,7 +766,7 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
     };
 
     // 7. Save to Firestore (Split Model)
-    const firestore = getAdminFirestore();
+    // firestore already initialized above
     const batch = firestore.batch();
 
     // A. Snapshot

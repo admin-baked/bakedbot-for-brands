@@ -43,7 +43,7 @@ export function CompetitorSetupWizard({ hasCompetitors }: { hasCompetitors: bool
             next.delete(menuUrl);
         } else {
             if (next.size >= 3) {
-                toast({ title: "Limit Reached", description: "You can select up to 3 competitors for the pilot.", variant: "warning" });
+                toast({ title: "Limit Reached", description: "You can select up to 3 competitors for the pilot." });
                 return;
             }
             next.add(menuUrl);

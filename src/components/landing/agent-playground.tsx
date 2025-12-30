@@ -181,8 +181,9 @@ export function AgentPlayground() {
                 { modelLevel: thinkingLevel } // Use selected thinking level
             );
 
-            if (response.error) {
-                throw new Error(response.error || 'Agent error');
+            // Check for dispatch failure (jobId would be undefined if dispatch failed)
+            if (!response.metadata?.jobId && !response.content) {
+                throw new Error('Failed to start agent');
             }
 
             // Transform to DemoResult format
