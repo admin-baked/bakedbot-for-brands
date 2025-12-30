@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Search, Book, Trash2, Link as LinkIcon, FileText, Database, Upload, Globe, RefreshCw, CheckCircle } from 'lucide-react';
 
 import { createKnowledgeBaseAction, getKnowledgeBasesAction, addDocumentAction, getDocumentsAction, deleteDocumentAction, scrapeUrlAction } from '@/server/actions/knowledge-base';
+import { searchComplianceData, queueComplianceDiscovery } from '@/server/actions/compliance-discovery';
 import { AGENT_CAPABILITIES } from '@/server/agents/agent-definitions';
 import { KnowledgeBase, KnowledgeDocument } from '@/types/knowledge-base';
 import React from 'react';
@@ -44,6 +45,48 @@ export default function AgentKnowledgePage() {
     const [newDocType, setNewDocType] = useState('text');
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+
+    // Compliance Search State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+
+    const handleComplianceSearch = async (query: string, state?: string) => {
+        setIsSearching(true);
+        try {
+            const result = await searchComplianceData(query, state);
+            if (result.success && result.results) {
+                setSearchResults(result.results);
+                toast({ title: 'Search Complete', description: `Found ${result.results.length} relevant sources.` });
+            } else {
+                toast({ title: 'No Results', description: 'Try adjusting your search terms.', variant: 'destructive' });
+            }
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to search compliance data', variant: 'destructive' });
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleAddToQueue = async (result: any) => {
+        if (!selectedKb) return;
+        try {
+            const queueResult = await queueComplianceDiscovery({
+                title: result.title,
+                content: result.snippet, // Initially just the snippet, full scrape would happen on approval or via button
+                summary: result.snippet,
+                source: result.source,
+                sourceUrl: result.url,
+                state: 'General' // Could be parsed
+            });
+            
+            if (queueResult.success) {
+                toast({ title: 'Queued', description: 'Added to review queue.' });
+            }
+        } catch (error) {
+             toast({ title: 'Error', description: 'Failed to queue item', variant: 'destructive' });
+        }
+    };
 
     // Fetch KBs when agent changes
     useEffect(() => {
@@ -506,37 +549,69 @@ export default function AgentKnowledgePage() {
                                     <Input 
                                         placeholder="e.g. Illinois cannabis advertising rules 2024"
                                         className="flex-1 bg-white"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleComplianceSearch(searchQuery)}
                                     />
-                                    <Button variant="outline" className="bg-white hover:bg-emerald-50 border-emerald-300 text-emerald-700">
-                                        <Search className="w-4 h-4 mr-2" />
+                                    <Button 
+                                        variant="outline" 
+                                        className="bg-white hover:bg-emerald-50 border-emerald-300 text-emerald-700"
+                                        onClick={() => handleComplianceSearch(searchQuery)}
+                                        disabled={isSearching || !searchQuery}
+                                    >
+                                        {isSearching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
                                         Search
                                     </Button>
                                 </div>
                                 
                                 <div className="grid grid-cols-3 gap-3">
-                                    <Button variant="outline" size="sm" className="bg-white text-xs hover:bg-emerald-50">
+                                    <Button variant="outline" size="sm" className="bg-white text-xs hover:bg-emerald-50" onClick={() => handleComplianceSearch("Illinois cannabis licensing rules", "IL")}>
                                         🌿 IL Licensing Rules
                                     </Button>
-                                    <Button variant="outline" size="sm" className="bg-white text-xs hover:bg-emerald-50">
+                                    <Button variant="outline" size="sm" className="bg-white text-xs hover:bg-emerald-50" onClick={() => handleComplianceSearch("California cannabis advertising guidelines", "CA")}>
                                         🌿 CA Ad Guidelines
                                     </Button>
-                                    <Button variant="outline" size="sm" className="bg-white text-xs hover:bg-emerald-50">
+                                    <Button variant="outline" size="sm" className="bg-white text-xs hover:bg-emerald-50" onClick={() => handleComplianceSearch("Michigan cannabis testing requirements", "MI")}>
                                         🌿 MI Lab Testing Reqs
                                     </Button>
                                 </div>
 
-                                <div className="bg-white/60 p-3 rounded-md border border-emerald-100">
-                                    <div className="flex items-center gap-2 text-xs text-emerald-700 font-medium mb-2">
-                                        <CheckCircle className="w-4 h-4" />
-                                        Agent Discovery Queue
+                                {searchResults.length > 0 ? (
+                                    <div className="space-y-3 mt-4">
+                                        <h4 className="text-sm font-medium text-emerald-800">Search Results</h4>
+                                        <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2">
+                                            {searchResults.map((result, i) => (
+                                                <div key={i} className="bg-white p-3 rounded-md border border-emerald-100 shadow-sm">
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <div>
+                                                            <h5 className="font-medium text-sm text-slate-800">{result.title}</h5>
+                                                            <a href={result.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-1">
+                                                                <Globe className="w-3 h-3" /> {result.source}
+                                                            </a>
+                                                            <p className="text-xs text-slate-600 mt-2 line-clamp-2">{result.snippet}</p>
+                                                        </div>
+                                                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => handleAddToQueue(result)}>
+                                                            <Plus className="w-4 h-4 text-emerald-600" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-slate-500">
-                                        Deebo will periodically search for updated compliance information and surface it here for your approval before indexing.
-                                    </p>
-                                    <p className="text-[10px] text-slate-400 mt-2">
-                                        Coming soon: Automatic weekly compliance scans across all operating states.
-                                    </p>
-                                </div>
+                                ) : (
+                                    <div className="bg-white/60 p-3 rounded-md border border-emerald-100">
+                                        <div className="flex items-center gap-2 text-xs text-emerald-700 font-medium mb-2">
+                                            <CheckCircle className="w-4 h-4" />
+                                            Agent Discovery Queue
+                                        </div>
+                                        <p className="text-xs text-slate-500">
+                                            Deebo will periodically search for updated compliance information and surface it here for your approval before indexing.
+                                        </p>
+                                        <p className="text-[10px] text-slate-400 mt-2">
+                                            Coming soon: Automatic weekly compliance scans across all operating states.
+                                        </p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </>
