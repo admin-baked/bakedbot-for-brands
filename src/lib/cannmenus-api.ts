@@ -67,7 +67,8 @@ export async function searchNearbyRetailers(
     longitude: number,
     limit: number = 3,
     state?: string,
-    cityName?: string
+    cityName?: string,
+    search?: string
 ): Promise<RetailerLocation[]> {
     try {
         const params = new URLSearchParams({
@@ -84,6 +85,11 @@ export async function searchNearbyRetailers(
         // If we have a city name, search by name as a fallback for broken geo-search
         if (cityName) {
             params.append('name', cityName);
+        }
+
+        // Add optional search term (e.g., 'hemp', 'smoke')
+        if (search) {
+            params.append('name', search); // The v1 API uses 'name' for text search on retailer name
         }
 
         const response = await fetch(
@@ -364,6 +370,38 @@ export async function geocodeZipCode(zipCode: string): Promise<{ lat: number; ln
         return null;
     } catch (error) {
         logger.error('Error geocoding ZIP code:', error instanceof Error ? error : new Error(String(error)));
+        return null;
+    }
+}
+
+/**
+ * Reverse geocode coordinates to get City/State
+ */
+export async function reverseGeocode(lat: number, lng: number): Promise<{ city: string; state: string; stateCode?: string } | null> {
+    try {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+            {
+                headers: {
+                    'User-Agent': 'BakedBot-Headless-Menu',
+                },
+            }
+        );
+
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        const address = data.address || {};
+
+        const city = address.city || address.town || address.village || address.hamlet || (address.county ? address.county.replace(' County', '') : undefined);
+        
+        return {
+            city: city || 'Unknown',
+            state: address.state || '',
+            stateCode: address['ISO3166-2-lvl4']?.split('-')[1] || ''
+        };
+    } catch (error) {
+        logger.error('Error reverse geocoding:', error instanceof Error ? error : new Error(String(error)));
         return null;
     }
 }

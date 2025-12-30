@@ -116,3 +116,51 @@ export async function formatSearchResults(response: SearchResponse): Promise<str
 
     return markdown;
 }
+
+/**
+ * Search for places using Serper (structured local data)
+ */
+export async function searchPlaces(query: string, location?: string): Promise<SearchResponse> {
+    const apiKey = process.env.SERPER_API_KEY;
+    
+    if (!apiKey) {
+        console.warn('[searchPlaces] SERPER_API_KEY not configured');
+        return { success: false, query, results: [], error: 'Configuration missing' };
+    }
+
+    try {
+        const payload: any = { q: query };
+        if (location) payload.location = location;
+
+        const response = await fetch('https://google.serper.dev/places', {
+            method: 'POST',
+            headers: {
+                'X-API-KEY': apiKey,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            return { success: false, query, results: [], error: `API Error: ${response.status}` };
+        }
+
+        const data = await response.json();
+        
+        // Transform places to SearchResult format (standardizing)
+        const results: SearchResult[] = (data.places || []).slice(0, 5).map((p: any, i: number) => ({
+            title: p.title,
+            link: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.title + ' ' + p.address)}`, // Fallback link
+            snippet: `${p.address} | Rating: ${p.rating || 'N/A'}`,
+            position: i + 1,
+            // Add extra metadata in snippet or we could extend the type
+            // For now, snippet holds address
+        }));
+
+        return { success: true, query, results };
+    } catch (error: any) {
+         console.error('[searchPlaces] Exception:', error);
+         return { success: false, query, results: [], error: error.message };
+    }
+}
