@@ -1,6 +1,41 @@
 # Progress Log
 
 
+## Session: 2025-12-30 (Claude Tool-Calling Integration)
+### Task ID
+feat_claude_tool_calling
+
+### Summary
+Integrated Claude (Anthropic) as the dedicated model for tool calling in the BakedBot agent system. Super Users now get Claude-powered tool execution for tool-heavy requests, with automatic fallback to Gemini.
+
+### Key Changes
+*   **NEW**: `src/ai/claude.ts` - Claude service singleton with `executeWithTools()` agentic loop
+*   **NEW**: `src/server/agents/tools/claude-tools.ts` - Tool conversion layer for BakedBot-to-Claude format
+*   **MOD**: `src/ai/model-selector.ts` - Added `CLAUDE_TOOL_MODEL` and `isClaudePreferred()` helper
+*   **MOD**: `src/server/agents/agent-runner.ts` - Added Claude routing branch for Super Users
+
+### Features
+- Claude Sonnet 4 (`claude-sonnet-4-20250514`) for tool calling
+- Agentic loop with automatic tool iteration until completion
+- `shouldUseClaudeTools()` detection for action/integration patterns
+- Automatic fallback to Gemini if Claude unavailable
+
+### Tests
+*   `tests/ai/claude.test.ts` - 7 passing unit tests
+
+### Commits
+*   `3de46a32`: feat(claude): integrate Claude for tool calling
+
+### Next Steps
+*   User needs to add `CLAUDE_API_KEY` to Firebase secrets:
+    ```bash
+    firebase apphosting:secrets:set CLAUDE_API_KEY
+    ```
+
+### Result: ✅ Complete
+
+---
+
 ## Session: 2025-12-29 (Production Readiness Audit - Super User Dashboard)
 ### Task ID
 feat_production_readiness_audit (Phase 6)
