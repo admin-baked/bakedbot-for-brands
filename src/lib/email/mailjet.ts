@@ -118,3 +118,48 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
         return false;
     }
 }
+
+export type GenericEmailData = {
+    to: string;
+    name?: string;
+    subject: string;
+    htmlBody: string;
+    textBody?: string;
+};
+
+export async function sendGenericEmail(data: GenericEmailData): Promise<boolean> {
+    if (!mailjetClient) {
+        logger.warn('Mailjet client not initialized');
+        return false;
+    }
+
+    try {
+        const result = await mailjetClient
+            .post("send", { 'version': 'v3.1' })
+            .request({
+                "Messages": [
+                    {
+                        "From": {
+                            "Email": FROM_EMAIL,
+                            "Name": FROM_NAME
+                        },
+                        "To": [
+                            {
+                                "Email": data.to,
+                                "Name": data.name || data.to
+                            }
+                        ],
+                        "Subject": data.subject,
+                        "HTMLPart": data.htmlBody,
+                        "TextPart": data.textBody || '',
+                    }
+                ]
+            });
+
+        logger.info('Generic email sent (Mailjet)', { to: data.to, subject: data.subject });
+        return true;
+    } catch (error: any) {
+        logger.error('Failed to send generic email (Mailjet)', { error: error.message, statusCode: error.statusCode });
+        return false;
+    }
+}

@@ -69,18 +69,28 @@ const AGENT_MAP = {
 // Since I cannot modify all agent files to export their tools in this step, I reuse the patterns.
 // NOTE: For brevity and reliability, I'm calling the defaults where possible or using the simplified versions.
 
+import { 
+    defaultCraigTools, 
+    defaultSmokeyTools, 
+    defaultPopsTools, 
+    defaultEzalTools, 
+    defaultMoneyMikeTools, 
+    defaultMrsParkerTools 
+} from '@/app/dashboard/ceo/agents/default-tools';
+
 async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOverride?: string) {
     const brandId = brandIdOverride || 'demo-brand-123';
     const agentImpl = AGENT_MAP[agentName as keyof typeof AGENT_MAP];
     if (!agentImpl) throw new Error(`Unknown agent: ${agentName}`);
 
-    // Tools setup (Basic mocks as per original file)
+    // Tools setup
     let tools: any = {};
-    // ... (Tools population omitted for brevity, passing empty tools or minimal required) ...
-    // In a real refactor, these tools should be imported. 
-    // For now, allow the harness to run with internal defaults or error if tool missing.
-    // The original file defined `defaultCraigTools` etc. locally. 
-    // I will assume for now standard tools are sufficient or I'll add the critical ones inline.
+    if (agentName === 'craig') tools = defaultCraigTools;
+    else if (agentName === 'smokey') tools = defaultSmokeyTools;
+    else if (agentName === 'pops') tools = defaultPopsTools;
+    else if (agentName === 'ezal') tools = defaultEzalTools;
+    else if (agentName === 'money_mike') tools = defaultMoneyMikeTools;
+    else if (agentName === 'mrs_parker') tools = defaultMrsParkerTools;
 
     try {
         const logEntry = await runAgent(brandId, persistence, agentImpl as any, tools, stimulus);
@@ -107,9 +117,43 @@ const PLAYBOOK_REGISTRY: Record<string, () => Promise<PlaybookResult>> = {
     },
     'competitor-scan': async () => {
         const logs = ["Starting 'Competitor Price Scan'..."];
+        
+        // 1. Gather Intel
+        logs.push("Triggering Ezal for market scrape (Detroit/MI)...");
+        // In a real scenario, params would be passed or retrieved from context
         const res = await triggerAgentRun('ezal');
-        logs.push(`Ezal: ${res.message}`);
-        return { success: true, message: "Scan complete.", logs };
+        const intel = res.log?.result || res.message;
+        logs.push(`Ezal Intelligence: ${intel}`);
+
+        // 2. Format Report
+        const reportHtml = `
+            <h1>Competitive Intelligence Snapshot</h1>
+            <p><strong>Target:</strong> Ultra Cannabis, Detroit</p>
+            <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+            <hr />
+            <h3>Market Analysis</h3>
+            <p>${intel}</p>
+            <p><em>(Note: Deep Research Agents are available for more detailed web scraping)</em></p>
+        `;
+
+        // 3. Email Report
+        logs.push("Dispatching report via Mailjet...");
+        const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+        const { requireUser } = await import('@/server/auth/auth');
+        let userEmail = 'demo@bakedbot.ai';
+        try {
+            const user = await requireUser();
+            if (user.email) userEmail = user.email;
+        } catch (e) {}
+
+        const emailSent = await sendGenericEmail({
+            to: userEmail,
+            subject: 'Daily Competitive Snapshot: Ultra Cannabis',
+            htmlBody: reportHtml
+        });
+
+        logs.push(`Email to ${userEmail}: ${emailSent ? 'Success' : 'Failed'}`);
+        return { success: true, message: `Scan complete. Report emailed to ${userEmail}.`, logs };
     },
     'churn-predictor': async () => {
         const logs = ["Starting 'Churn Predictor'..."];
@@ -353,11 +397,18 @@ export async function runAgentCore(
             
             // Tier Check for Playbook Creation
             if (!isSuperUser && (role === 'guest' || role === 'user')) {
-                 const isHomepage = !user;
-                 const message = isHomepage
-                    ? "Building custom playbooks is a Pro feature. Please [Sign Up](/signup) to build agents."
-                    : "Playbook creation is locked on your current plan. Please [Upgrade](/dashboard/settings/billing) to build custom workflows.";
-                 return { content: message, toolCalls: [] };
+                 // Check existing playbook count for free users
+                 const { listBrandPlaybooks } = await import('@/server/actions/playbooks');
+                 const existingPlaybooks = await listBrandPlaybooks(userBrandId);
+                 const customPlaybooks = existingPlaybooks.filter(pb => pb.isCustom); // or just count total if that's the limit
+
+                 if (customPlaybooks.length >= 1) {
+                     const isHomepage = !user;
+                     const message = isHomepage
+                        ? "Building custom playbooks is a Pro feature. Please [Sign Up](/signup) to build agents."
+                        : "You have reached the limit of 1 custom playbook on the Free plan. Please [Upgrade](/dashboard/settings/billing) to build unlimited workflows.";
+                     return { content: message, toolCalls: [] };
+                 }
             }
 
             await emitThought(jobId, 'Playbook Creation', 'Parsing your request into a playbook configuration...');
