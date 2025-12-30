@@ -27,7 +27,11 @@ import { getIntuitionSummary } from '@/server/algorithms/intuition-engine';
 import { deebo } from '@/server/agents/deebo';
 import { emitThought } from '@/server/jobs/thought-stream';
 
-// Interfaces
+// Claude Tool Calling Integration
+import { executeWithTools, isClaudeAvailable } from '@/ai/claude';
+import { getUniversalClaudeTools, createToolExecutor, shouldUseClaudeTools } from '@/server/agents/tools/claude-tools';
+
+
 export interface AgentResult {
     content: string;
     toolCalls?: { id: string; name: string; status: 'success' | 'error' | 'running'; result: string }[];
@@ -629,7 +633,52 @@ export async function runAgentCore(
 
         // Media generation is now handled earlier in step 2
 
-        // Fallback Generation
+        // === CLAUDE TOOL CALLING ===
+        // Route tool-heavy requests to Claude for superior tool execution
+        if (isClaudeAvailable() && shouldUseClaudeTools(userMessage) && isSuperUser) {
+            await emitThought(jobId, 'Claude Mode', 'Routing to Claude for enhanced tool calling...');
+            
+            try {
+                const tools = getUniversalClaudeTools((role as any) || 'guest');
+                const executor = createToolExecutor({
+                    userId: user?.uid,
+                    brandId: userBrandId,
+                    role,
+                    email: user?.email,
+                });
+                
+                const claudeResult = await executeWithTools(
+                    `${activePersona.systemPrompt}\n\nUser Request: ${userMessage}${knowledgeContext}`,
+                    tools,
+                    executor
+                );
+                
+                // Convert Claude tool executions to our format
+                for (const exec of claudeResult.toolExecutions) {
+                    executedTools.push({
+                        id: exec.id,
+                        name: exec.name,
+                        status: exec.status,
+                        result: typeof exec.output === 'string' ? exec.output : JSON.stringify(exec.output),
+                    });
+                }
+                
+                await emitThought(jobId, 'Complete', `Claude executed ${claudeResult.toolExecutions.length} tool(s).`);
+                
+                return {
+                    content: claudeResult.content || 'Task completed.',
+                    toolCalls: executedTools,
+                    metadata: { ...metadata, jobId }
+                };
+            } catch (claudeError: any) {
+                // Log error but fall through to Gemini fallback
+                console.warn('Claude tool execution failed, falling back to Gemini:', claudeError.message);
+                await emitThought(jobId, 'Fallback', 'Using Gemini for response generation...');
+            }
+        }
+
+        // Fallback Generation (Gemini)
+
         await emitThought(jobId, 'Generating Response', 'Formulating final answer...');
         
         // Construct Multimodal Prompt

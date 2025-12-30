@@ -14,9 +14,27 @@
  * AGENTIC TASKS (Playbooks, Tools, Research):
  * - Always use Gemini 3 Pro for agentic features (thought signatures, tool calling)
  * - Reference: https://developers.googleblog.com/building-ai-agents-with-google-gemini-3-and-open-source-frameworks/
+ * 
+ * TOOL CALLING (Claude):
+ * - Claude Sonnet 4 is the preferred model for tool-heavy agentic tasks
+ * - Use `isClaudePreferred()` to determine when to route to Claude
  */
 
+/**
+ * Claude Model Configuration
+ * Claude Sonnet 4 is optimized for agentic tool-use workflows
+ */
+export const CLAUDE_TOOL_MODEL = 'claude-sonnet-4-20250514';
+
+/**
+ * Check if Claude should be preferred for a given task type
+ */
+export function isClaudePreferred(taskType: 'tool_calling' | 'chat' | 'research' | 'playbook'): boolean {
+    return taskType === 'tool_calling' || taskType === 'playbook';
+}
+
 export type ThinkingLevel = 'lite' | 'standard' | 'advanced' | 'expert' | 'genius' | 'deep_research';
+
 
 export interface ModelConfig {
     model: string;
