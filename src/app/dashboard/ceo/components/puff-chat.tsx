@@ -552,11 +552,12 @@ export function PuffChat({
         }));
     };
 
+// ... keep existing code until submitMessage ...
+
     const submitMessage = async (textInput: string, audioBase64?: string) => {
         if ((!textInput.trim() && !audioBase64 && attachments.length === 0) || isProcessing) return;
 
         const userInput = textInput;
-        // If audio, we might show "Audio Message" or wait for transscript
         const displayContent = audioBase64 ? '🎤 Voice Message' : (userInput || (attachments.length > 0 ? `Sent ${attachments.length} attachment(s)` : ''));
 
         const userMsgId = `user-${Date.now()}`;
@@ -565,11 +566,10 @@ export function PuffChat({
             type: 'user',
             content: displayContent,
             timestamp: new Date(),
-            // Store attachment metadata if needed in future
         });
 
         setInput('');
-        setAttachments([]); // Clear attachments after send
+        setAttachments([]);
         setIsProcessing(true);
 
         const thinkingId = `thinking-${Date.now()}`;
@@ -581,34 +581,72 @@ export function PuffChat({
             thinking: { isThinking: true, steps: [], plan: [] }
         });
 
-        const durationInterval = setInterval(() => {
-            // duration update logic
-        }, 1000);
+        // Clear any previous streaming state
+        setStreamingMessageId(null);
 
         try {
-            // Prepare payload
             const processedAttachments = await convertAttachments();
             
-            // Call the real AI backend
-            const response = await runAgentChat(
-                userInput, 
-                persona, 
-                { 
-                    modelLevel: thinkingLevel,
-                    audioInput: audioBase64,
-                    attachments: processedAttachments 
+            let response: any; // Type: AgentResult
+
+            // Public Demo Mode (Unauthenticated)
+            if (!isAuthenticated) {
+                // Call public API endpoint instead of server action
+                const res = await fetch('/api/demo/agent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        agent: persona, 
+                        prompt: userInput,
+                        context: {} 
+                    })
+                });
+
+                if (!res.ok) throw new Error('Demo service unavailable');
+                
+                const data = await res.json();
+                
+                // Map API response to AgentResult format
+                let content = '';
+                
+                // If items returned (standard demo response)
+                if (data.items && data.items.length > 0) {
+                     content = `Here is what I found for you:\n\n`;
+                     data.items.forEach((item: any) => {
+                         content += `### ${item.title}\n${item.description}\n\n`;
+                         if (item.meta) content += `> *${item.meta}*\n\n`;
+                     });
+                } else {
+                    content = "I couldn't find any specific results for that query in the demo database.";
                 }
-            );
 
-            clearInterval(durationInterval);
+                // Construct AgentResult
+                response = {
+                    content: content,
+                    toolCalls: [],
+                    metadata: {
+                        agentName: data.agent,
+                        media: data.generatedMedia // { type, url }
+                    }
+                };
+            
+            } else {
+                // Authenticated Mode (Server Action)
+                response = await runAgentChat(
+                    userInput, 
+                    persona, 
+                    { 
+                        modelLevel: thinkingLevel,
+                        audioInput: audioBase64,
+                        attachments: processedAttachments 
+                    }
+                );
+            }
 
-            // Handle Async Job Response
+            // Handle Async Job Response (Async Mode - Auth Only)
             if (response.metadata?.jobId) {
-                // Determine tools based on mode (optimistic update while pending)
-                // We'll let the poller handle the final result, 
-                // but we can start tracking the job now.
                 setActiveJob({ jobId: response.metadata.jobId, messageId: thinkingId });
-                return; // Exit and let poller handle the rest
+                return; 
             }
 
             // Fallback for Synchronous response (if applicable, or legacy)
@@ -656,18 +694,18 @@ export function PuffChat({
                 content: response.content,
                 metadata: {
                     ...response.metadata,
-                    media: response.toolCalls?.map(tc => {
+                    media: response.metadata?.media || response.toolCalls?.map((tc: any) => {
                         try {
                             const resultData = typeof tc.result === 'string' && (tc.result.startsWith('{') || tc.result.includes('"url"')) 
                                 ? JSON.parse(tc.result) 
                                 : tc.result;
                             return extractMediaFromToolResponse(resultData);
                         } catch (e) { return null; }
-                    }).find(m => m !== null)
+                    }).find((m: any) => m !== null)
                 },
                 thinking: {
                     isThinking: false,
-                    steps: response.toolCalls?.map(tc => ({
+                    steps: response.toolCalls?.map((tc: any) => ({
                         id: tc.id,
                         toolName: tc.name,
                         description: tc.result,
@@ -679,7 +717,6 @@ export function PuffChat({
             });
 
         } catch (error: any) {
-            clearInterval(durationInterval);
             console.error(error);
             updateMessage(thinkingId, {
                 content: `I ran into an issue. Please try again. ${error.message}`,
@@ -691,7 +728,6 @@ export function PuffChat({
         setIsProcessing(false);
 
         if (onSubmit) {
-            // Callback primarily for outside hooks, if needed
             await onSubmit(userInput);
         }
     };
@@ -699,15 +735,9 @@ export function PuffChat({
     const handleSubmit = () => submitMessage(input);
 
     const handleGrantPermission = (permissionId: string) => {
-        // In a real app, this would trigger an OAuth flow
-        // For now, we simulate the connection with a verified check
         const permission = state.permissions.find(p => p.id === permissionId);
 
         if (permission?.id === 'gmail') {
-            // Trigger OAuth flow
-            // Open in a new window or redirect
-            // For better UX during "chat", a popup is often used, but redirect is simpler for MVP.
-            // Let's use redirect for robustness.
             window.location.href = '/api/auth/google';
             return;
         }
@@ -726,15 +756,13 @@ export function PuffChat({
             setActiveJob(null);
         }
         setIsProcessing(false);
-        // Add a system message indicating cancellation?
-        // Maybe update the thinking message to say "Cancelled"
     };
 
     const hasMessages = displayMessages.length > 0;
 
     // Input component (reusable for both positions)
     const InputArea = (
-        <div className={cn("p-4", hasMessages ? "border-t" : "border-b", hideHeader && "p-2 border-0")}>
+        <div className={cn("p-2", hasMessages ? "border-t" : "border-b", hideHeader && "p-2 border-0")}>
             {/* Attachment Previews */}
             {attachments.length > 0 && (
                 <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
@@ -758,7 +786,7 @@ export function PuffChat({
                 </div>
             )}
             
-            <div className={cn("mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-3 space-y-3 shadow-inner", hideHeader ? "w-full" : "max-w-3xl")}>
+            <div className={cn("mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-2 space-y-2 shadow-inner", hideHeader ? "w-full" : "max-w-3xl")}>
                 {promptSuggestions.length > 0 && !hasMessages && (
                     <div className="flex flex-wrap gap-2 mb-2">
                         {promptSuggestions.map((suggestion, i) => (
@@ -780,7 +808,7 @@ export function PuffChat({
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder={hasMessages ? "Reply, or use microphone..." : "Ask Smokey anything..."}
-                        className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base flex-1"
+                        className="min-h-[40px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base flex-1"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
@@ -839,9 +867,11 @@ export function PuffChat({
                                 className={cn("h-8 w-8 rounded-full transition-all", input.trim() || attachments.length > 0 ? "bg-primary" : "bg-muted text-muted-foreground")}
                                 disabled={(!input.trim() && attachments.length === 0)}
                                 onClick={handleSubmit}
+                                data-testid="submit-button"
                             >
                                 <Sparkles className="h-4 w-4" />
                             </Button>
+
                         )}
                     </div>
 
