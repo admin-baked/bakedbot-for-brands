@@ -15,7 +15,9 @@
 import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
 import { getChatConfigForRole, type UserRoleForChat, type RoleChatConfig } from '@/lib/chat/role-chat-config';
 import { cn } from '@/lib/utils';
-import { Sparkles, Briefcase, Store, ShoppingCart, Shield, type LucideIcon } from 'lucide-react';
+import { useAgentChatStore } from '@/lib/store/agent-chat-store';
+import { Sparkles, Briefcase, Store, ShoppingCart, Shield, MessageSquarePlus, type LucideIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export interface UnifiedAgentChatProps {
@@ -148,19 +150,37 @@ export function UnifiedAgentChat({
                             <Icon className={cn("h-4 w-4", theme.icon)} />
                             {config.title}
                         </h3>
-                        {/* Location Badge or Role Badge */}
-                        {locationInfo ? (
-                             <span className="text-xs text-emerald-600 font-medium flex items-center gap-1 animate-in fade-in">
-                                📍 Found {locationInfo.dispensaryCount} dispensaries & {locationInfo.brandCount} brands near {locationInfo.city}
-                            </span>
-                        ) : (
-                            <Badge
-                                variant="outline"
-                                className={cn("text-xs", theme.text, theme.border)}
+                        
+                        <div className="flex items-center gap-2">
+                             {/* New Chat Button (Public/Demo/All Roles) */}
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                                onClick={() => {
+                                    useAgentChatStore.getState().clearCurrentSession();
+                                    // Optional: Trigger a toast or visual feedback
+                                }}
                             >
-                                {role === 'public' ? 'Demo' : `${config.role.replace('_', ' ').split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')} Mode`}
-                            </Badge>
-                        )}
+                                <MessageSquarePlus className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">New Chat</span>
+                            </Button>
+
+                            {/* Location Badge or Role Badge */}
+                            {/* Location Badge or Role Badge */}
+                            {locationInfo ? (
+                                <span className="text-xs text-emerald-600 font-medium flex items-center gap-1 animate-in fade-in">
+                                    📍 Found {locationInfo.dispensaryCount} dispensaries & {locationInfo.brandCount} brands near {locationInfo.city}
+                                </span>
+                            ) : (
+                                <Badge
+                                    variant="outline"
+                                    className={cn("text-xs", theme.text, theme.border)}
+                                >
+                                    {role === 'public' ? 'Demo' : `${config.role.replace('_', ' ').split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')} Mode`}
+                                </Badge>
+                            )}
+                        </div>
                     </div>
                     <p className="text-xs text-muted-foreground">{config.subtitle}</p>
                 </div>
