@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,9 +33,9 @@ interface PaymentFormData {
 
 function ClaimWizard() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [foundersRemaining, setFoundersRemaining] = useState<number>(247);
 
@@ -169,7 +169,13 @@ function ClaimWizard() {
             });
 
             if (result.success) {
-                setSuccess(true);
+                // Redirect to thank you page for Google Ads conversion tracking
+                const thankYouParams = new URLSearchParams({
+                    plan: formData.planId,
+                    name: formData.businessName
+                });
+                router.push(`/thank-you?${thankYouParams.toString()}`);
+                return;
             } else {
                 setError(result.error || 'Failed to submit claim');
             }
@@ -179,37 +185,6 @@ function ClaimWizard() {
             setLoading(false);
         }
     };
-
-    if (success) {
-        return (
-            <div className="container flex min-h-screen flex-col items-center justify-center py-12">
-                <Card className="w-full max-w-md animate-in fade-in zoom-in duration-300">
-                    <CardHeader className="text-center">
-                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                            <CheckCircle className="h-8 w-8 text-green-600" />
-                        </div>
-                        <CardTitle className="text-2xl">Claim Submitted!</CardTitle>
-                        <CardDescription>
-                            We've received your claim request for <strong>{formData.businessName}</strong>.
-                            {formData.planId === 'founders_claim' && (
-                                <span className="block mt-2 text-orange-600 font-medium">
-                                    🔥 Your Founders Claim rate is locked in!
-                                </span>
-                            )}
-                            <span className="block mt-2">
-                                Our team will verify your ownership within 24-48 hours.
-                            </span>
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex justify-center">
-                        <Button asChild>
-                            <a href="/">Return Home</a>
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
 
     return (
         <div className="container max-w-3xl py-12">
