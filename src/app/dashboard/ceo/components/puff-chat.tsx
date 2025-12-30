@@ -58,6 +58,7 @@ import { useUser } from '@/firebase/auth/use-user';
 import { ModelSelector, ThinkingLevel } from './model-selector';
 import { ChatMediaPreview, extractMediaFromToolResponse } from '@/components/chat/chat-media-preview';
 import { useJobPoller } from '@/hooks/use-job-poller';
+import { TypewriterText } from '@/components/landing/typewriter-text';
 
 // ============ Types ============
 
@@ -377,6 +378,8 @@ export function PuffChat({
 
     // Async Job Polling
     const [activeJob, setActiveJob] = useState<{ jobId: string, messageId: string } | null>(null);
+    // Typewriter Streaming
+    const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
     const { job, thoughts, isComplete, error: jobError } = useJobPoller(activeJob?.jobId);
 
     // Sync Async Job to UI Store
@@ -643,6 +646,9 @@ export function PuffChat({
             }));
             if (newPermissions.length > 0) setShowPermissions(true);
 
+            // Set streaming for typewriter effect
+            setStreamingMessageId(thinkingId);
+            
             updateMessage(thinkingId, {
                 content: response.content,
                 metadata: {
@@ -969,22 +975,31 @@ export function PuffChat({
                                                 )}
 
                                                 <div className="prose prose-sm max-w-none group relative text-sm leading-relaxed space-y-2">
-                                                    <ReactMarkdown 
-                                                        remarkPlugins={[remarkGfm]}
-                                                        components={{
-                                                            p: ({node, ...props}) => <div {...props} />, // Use div to avoid p nesting issues if markdown has blocks
-                                                            ul: ({node, ...props}) => <ul className="list-disc list-inside my-2" {...props} />,
-                                                            ol: ({node, ...props}) => <ol className="list-decimal list-inside my-2" {...props} />,
-                                                            li: ({node, ...props}) => <li className="my-1" {...props} />,
-                                                            h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-4 mb-2" {...props} />,
-                                                            h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
-                                                            h3: ({node, ...props}) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
-                                                            blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
-                                                            code: ({node, ...props}) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props} />,
-                                                        }}
-                                                    >
-                                                        {message.content}
-                                                    </ReactMarkdown>
+                                                    {streamingMessageId === message.id ? (
+                                                        <TypewriterText 
+                                                            text={message.content}
+                                                            speed={15}
+                                                            onComplete={() => setStreamingMessageId(null)}
+                                                            className="whitespace-pre-wrap"
+                                                        />
+                                                    ) : (
+                                                        <ReactMarkdown 
+                                                            remarkPlugins={[remarkGfm]}
+                                                            components={{
+                                                                p: ({node, ...props}) => <div {...props} />,
+                                                                ul: ({node, ...props}) => <ul className="list-disc list-inside my-2" {...props} />,
+                                                                ol: ({node, ...props}) => <ol className="list-decimal list-inside my-2" {...props} />,
+                                                                li: ({node, ...props}) => <li className="my-1" {...props} />,
+                                                                h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-4 mb-2" {...props} />,
+                                                                h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
+                                                                h3: ({node, ...props}) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
+                                                                blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
+                                                                code: ({node, ...props}) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props} />,
+                                                            }}
+                                                        >
+                                                            {message.content}
+                                                        </ReactMarkdown>
+                                                    )}
                                                     <button
                                                         onClick={() => {
                                                             navigator.clipboard.writeText(message.content);
