@@ -77,6 +77,31 @@ For complex multi-step tasks, read `.agent/orchestrator.md` for:
 
 ---
 
+## 🚀 Deployment
+
+**This project uses Firebase App Hosting**, which deploys automatically via **git push**, NOT `firebase deploy`.
+
+### How to Deploy:
+```bash
+git push origin main
+```
+
+### What `firebase deploy` Does (Limited):
+- Deploys Firestore security rules
+- Deploys legacy Cloud Functions (if any)
+- Does **NOT** deploy the Next.js application
+
+### What `git push` Does (Full Deploy):
+- Triggers Firebase App Hosting rollout
+- Builds the Next.js app in Google Cloud Build
+- Deploys to production CDN
+- Takes ~5-10 minutes
+
+### Monitor Deployment:
+- [Firebase Console → App Hosting](https://console.firebase.google.com/project/studio-567050101-bc6e8/apphosting)
+- Production URL: `https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app`
+
+
 ## 🤖 Autonomous Mode
 
 Check `.agent/protocols/autonomous-mode.md` for:
