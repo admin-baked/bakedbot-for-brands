@@ -5,10 +5,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Search, Play, Clock, Activity } from 'lucide-react';
+import { Search, Play, Clock, Activity, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { listBrandPlaybooks, togglePlaybookStatus, runPlaybookTest } from '@/server/actions/playbooks';
+import { listBrandPlaybooks, togglePlaybookStatus, runPlaybookTest, updatePlaybook } from '@/server/actions/playbooks';
 import { Playbook } from '@/types/playbook';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { PlaybookEditor } from '../../playbooks/components/playbook-editor';
 
 export function BrandPlaybooksList({ brandId }: { brandId: string }) {
     const { toast } = useToast();
@@ -16,6 +23,7 @@ export function BrandPlaybooksList({ brandId }: { brandId: string }) {
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
     const [loading, setLoading] = useState(true);
+    const [editingPlaybook, setEditingPlaybook] = useState<Playbook | null>(null);
 
     useEffect(() => {
         async function load() {
@@ -73,6 +81,33 @@ export function BrandPlaybooksList({ brandId }: { brandId: string }) {
             ));
         } catch (error) {
             toast({ variant: "destructive", description: "Failed to execute test run." });
+        }
+    };
+
+    const handleSavePlaybook = async (data: Partial<Playbook>) => {
+        if (!editingPlaybook) return;
+        try {
+            const result = await updatePlaybook(brandId, editingPlaybook.id, {
+                name: data.name,
+                description: data.description,
+                agent: data.agent,
+                category: data.category,
+                triggers: data.triggers,
+                steps: data.steps,
+                status: data.status,
+            });
+            if (result.success) {
+                toast({ title: "Playbook Updated", description: "Your changes have been saved." });
+                // Update local state
+                setPlaybooks(prev => prev.map(pb =>
+                    pb.id === editingPlaybook.id ? { ...pb, ...data, updatedAt: new Date() } : pb
+                ));
+                setEditingPlaybook(null);
+            } else {
+                toast({ variant: "destructive", title: "Error", description: result.error || "Failed to save" });
+            }
+        } catch (error) {
+            toast({ variant: "destructive", description: "Failed to save playbook." });
         }
     };
 
@@ -150,12 +185,31 @@ export function BrandPlaybooksList({ brandId }: { brandId: string }) {
                                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0 hover:bg-green-50 hover:text-green-600" onClick={() => runPlaybook(pb.id, pb.name)}>
                                         <Play className="h-3 w-3" />
                                     </Button>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 hover:bg-blue-50 hover:text-blue-600" onClick={() => setEditingPlaybook(pb)}>
+                                        <Pencil className="h-3 w-3" />
+                                    </Button>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
                 ))}
             </div>
+
+            {/* Edit Playbook Dialog */}
+            <Dialog open={!!editingPlaybook} onOpenChange={(open) => !open && setEditingPlaybook(null)}>
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Edit Playbook</DialogTitle>
+                    </DialogHeader>
+                    {editingPlaybook && (
+                        <PlaybookEditor
+                            playbook={editingPlaybook}
+                            onSave={handleSavePlaybook}
+                            onCancel={() => setEditingPlaybook(null)}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

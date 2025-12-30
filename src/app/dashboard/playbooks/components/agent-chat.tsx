@@ -1181,6 +1181,28 @@ export function AgentChat({
                                                         {message.content}
                                                     </ReactMarkdown>
                                                 </div>
+                                                
+                                                {/* Save as Playbook CTA - appears after non-empty completed agent messages */}
+                                                {message.content && message.content.length > 100 && !message.isThinking && (
+                                                    <div className="mt-3 pt-3 border-t border-muted flex items-center gap-2">
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm" 
+                                                            className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-primary"
+                                                            onClick={() => {
+                                                                // Extract task summary for playbook
+                                                                const taskSummary = message.content.slice(0, 200);
+                                                                submitMessage(`Save this as a playbook: ${taskSummary}...`);
+                                                            }}
+                                                        >
+                                                            <Sparkles className="h-3 w-3" />
+                                                            Save as Playbook
+                                                        </Button>
+                                                        <span className="text-[10px] text-muted-foreground">
+                                                            Turn this task into a reusable automation
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </>
                                         )}
                                     </div>
