@@ -705,6 +705,94 @@ steps:
     successCount: 0,
     failureCount: 0,
     version: 1
+  },
+
+  // 9. Deebo Compliance Scanner - Proactive Compliance Data Discovery
+  {
+    name: 'Deebo Compliance Scanner',
+    description: 'Automatically scan state cannabis regulatory websites for compliance updates. Surfaces new rules for review before indexing.',
+    status: 'draft',
+    yaml: `name: Deebo Compliance Scanner
+description: Proactively search for state compliance updates and queue for approval
+
+triggers:
+  - type: schedule
+    cron: "0 6 * * 1"  # Weekly on Monday at 6 AM
+  - type: manual
+    name: Run Now
+
+config:
+  states:
+    - IL
+    - CA
+    - MI
+    - CO
+    - NY
+    - NJ
+
+steps:
+  - action: parallel
+    tasks:
+      - agent: deebo
+        task: Search for Illinois cannabis advertising compliance updates
+        sources:
+          - https://www.idfpr.com/profs/cannabis.asp
+          - https://www.dph.illinois.gov/cannabis
+          
+      - agent: deebo
+        task: Search for California cannabis advertising rules
+        sources:
+          - https://cannabis.ca.gov/cannabis-laws/
+          
+      - agent: deebo
+        task: Search for Michigan cannabis compliance updates
+        sources:
+          - https://www.michigan.gov/cra
+          
+  - action: analyze
+    agent: deebo
+    task: Compare discovered content against existing knowledge base
+    output: new_content_diff
+    
+  - condition: "{{deebo.has_new_content}}"
+    action: queue_discovery
+    data:
+      content: "{{deebo.new_content}}"
+      sources: "{{deebo.sources}}"
+      summary: "{{deebo.summary}}"
+      state: "{{deebo.state}}"
+    status: pending_review
+    
+  - action: notify
+    channels:
+      - dashboard
+      - email
+    to: "{{admin.email}}"
+    subject: "🔍 New Compliance Data Discovered"
+    body: |
+      Deebo found {{deebo.discovered_count}} potential compliance updates:
+      
+      {{#each deebo.discoveries}}
+      **{{this.state}}**: {{this.title}}
+      Source: {{this.source}}
+      {{/each}}
+      
+      Review and approve in the Agent Knowledge dashboard.
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Weekly Scan', config: { cron: '0 6 * * 1' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Manual Run', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'parallel', params: { agents: ['deebo'], tasks: ['scan_compliance'] } },
+      { action: 'analyze', params: { agent: 'deebo', task: 'diff_knowledge' } },
+      { action: 'queue_discovery', params: { status: 'pending_review' } },
+      { action: 'notify', params: { channels: ['dashboard', 'email'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
   }
 ];
 
