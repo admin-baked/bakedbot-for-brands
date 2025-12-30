@@ -20,11 +20,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Search, Book, Trash2, Link as LinkIcon, FileText, Database } from 'lucide-react';
+import { Loader2, Plus, Search, Book, Trash2, Link as LinkIcon, FileText, Database, Upload, Globe, RefreshCw, CheckCircle } from 'lucide-react';
 
-import { createKnowledgeBaseAction, getKnowledgeBasesAction, addDocumentAction, getDocumentsAction, deleteDocumentAction } from '@/server/actions/knowledge-base';
+import { createKnowledgeBaseAction, getKnowledgeBasesAction, addDocumentAction, getDocumentsAction, deleteDocumentAction, scrapeUrlAction } from '@/server/actions/knowledge-base';
 import { AGENT_CAPABILITIES } from '@/server/agents/agent-definitions';
 import { KnowledgeBase, KnowledgeDocument } from '@/types/knowledge-base';
+import React from 'react';
 
 export default function AgentKnowledgePage() {
     const { toast } = useToast();
@@ -41,6 +42,8 @@ export default function AgentKnowledgePage() {
     const [newDocTitle, setNewDocTitle] = useState('');
     const [newDocContent, setNewDocContent] = useState('');
     const [newDocType, setNewDocType] = useState('text');
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
     // Fetch KBs when agent changes
     useEffect(() => {
@@ -155,6 +158,60 @@ export default function AgentKnowledgePage() {
         }
     };
 
+    // File upload handler - reads text from file
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        
+        setUploadedFile(file);
+        
+        // Read file content
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target?.result as string;
+            setNewDocContent(text);
+            setNewDocTitle(file.name.replace(/\.[^/.]+$/, '')); // Remove extension for title
+        };
+        
+        if (file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+            reader.readAsText(file);
+        } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
+            reader.readAsText(file);
+        } else {
+            // For other files, just set the name
+            setNewDocTitle(file.name);
+            toast({ title: 'Note', description: 'Only text/JSON files auto-extract. For PDFs, paste the content.', variant: 'destructive' });
+        }
+    };
+
+    // Scrape URL handler for compliance websites
+    const handleScrapeUrl = async () => {
+        if (!selectedKb || !newDocContent) return;
+        
+        setLoading(true);
+        try {
+            const result = await scrapeUrlAction({
+                knowledgeBaseId: selectedKb,
+                url: newDocContent,
+                title: newDocTitle || 'Scraped Content'
+            });
+            
+            if (result.success) {
+                toast({ title: 'Success', description: 'URL scraped and indexed.' });
+                setIsAddDocOpen(false);
+                setNewDocTitle('');
+                setNewDocContent('');
+                loadDocuments(selectedKb);
+            } else {
+                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+            }
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to scrape URL', variant: 'destructive' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -246,6 +303,7 @@ export default function AgentKnowledgePage() {
 
                     {/* DOCUMENTS LIST */}
                     {selectedKb ? (
+                        <>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <div>
@@ -262,14 +320,21 @@ export default function AgentKnowledgePage() {
                                         <DialogHeader>
                                             <DialogTitle>Add Training Data</DialogTitle>
                                             <DialogDescription>
-                                                Add text or links. The content will be vectorized for semantic search.
+                                                Add text, upload files, or scrape URLs. Content will be vectorized for semantic search.
                                             </DialogDescription>
                                         </DialogHeader>
                                         <div className="space-y-4 py-4">
                                             <Tabs defaultValue="text" onValueChange={setNewDocType}>
-                                                <TabsList>
-                                                    <TabsTrigger value="text">Text / Paste</TabsTrigger>
-                                                    <TabsTrigger value="link">URL Link</TabsTrigger>
+                                                <TabsList className="grid w-full grid-cols-3">
+                                                    <TabsTrigger value="text" className="flex items-center gap-2">
+                                                        <FileText className="w-4 h-4" /> Paste Text
+                                                    </TabsTrigger>
+                                                    <TabsTrigger value="file" className="flex items-center gap-2">
+                                                        <Upload className="w-4 h-4" /> Upload File
+                                                    </TabsTrigger>
+                                                    <TabsTrigger value="link" className="flex items-center gap-2">
+                                                        <Globe className="w-4 h-4" /> Scrape URL
+                                                    </TabsTrigger>
                                                 </TabsList>
 
                                                 <div className="space-y-4 pt-4">
@@ -278,35 +343,97 @@ export default function AgentKnowledgePage() {
                                                         <Input
                                                             value={newDocTitle}
                                                             onChange={e => setNewDocTitle(e.target.value)}
-                                                            placeholder="e.g. Q4 Competitor Analysis"
+                                                            placeholder="e.g. Illinois Cannabis Compliance Guide"
                                                         />
                                                     </div>
 
-                                                    <div className="space-y-2">
-                                                        <Label>{newDocType === 'link' ? 'URL' : 'Content'}</Label>
-                                                        {newDocType === 'link' ? (
-                                                            <Input
-                                                                value={newDocContent}
-                                                                onChange={e => setNewDocContent(e.target.value)}
-                                                                placeholder="https://..."
-                                                            />
-                                                        ) : (
+                                                    <TabsContent value="text" className="mt-0">
+                                                        <div className="space-y-2">
+                                                            <Label>Content</Label>
                                                             <Textarea
                                                                 value={newDocContent}
                                                                 onChange={e => setNewDocContent(e.target.value)}
                                                                 className="min-h-[200px]"
-                                                                placeholder="Paste relevant context, SOPs, or documentation here..."
+                                                                placeholder="Paste compliance rules, SOPs, regulations, or any training content here..."
                                                             />
-                                                        )}
-                                                    </div>
+                                                        </div>
+                                                    </TabsContent>
+
+                                                    <TabsContent value="file" className="mt-0">
+                                                        <div className="space-y-4">
+                                                            <div className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+                                                                <Upload className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                                                                <p className="text-sm text-slate-600 mb-2">
+                                                                    {uploadedFile ? uploadedFile.name : 'Click to upload or drag & drop'}
+                                                                </p>
+                                                                <p className="text-xs text-slate-400">
+                                                                    Supports .txt, .md, .json files
+                                                                </p>
+                                                                <input
+                                                                    ref={fileInputRef}
+                                                                    type="file"
+                                                                    accept=".txt,.md,.json"
+                                                                    onChange={handleFileUpload}
+                                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                                    style={{ position: 'absolute', left: 0, top: 0 }}
+                                                                />
+                                                                <Button 
+                                                                    variant="outline" 
+                                                                    size="sm" 
+                                                                    className="mt-3"
+                                                                    onClick={() => fileInputRef.current?.click()}
+                                                                >
+                                                                    Select File
+                                                                </Button>
+                                                            </div>
+                                                            {newDocContent && (
+                                                                <div className="bg-slate-50 p-3 rounded-md">
+                                                                    <Label className="text-xs text-slate-500">Preview ({newDocContent.length} chars)</Label>
+                                                                    <p className="text-xs text-slate-600 truncate mt-1">{newDocContent.slice(0, 200)}...</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </TabsContent>
+
+                                                    <TabsContent value="link" className="mt-0">
+                                                        <div className="space-y-4">
+                                                            <div className="space-y-2">
+                                                                <Label>URL to Scrape</Label>
+                                                                <Input
+                                                                    value={newDocContent}
+                                                                    onChange={e => setNewDocContent(e.target.value)}
+                                                                    placeholder="https://www.idfpr.com/profs/cannabis.asp"
+                                                                />
+                                                                <p className="text-xs text-slate-500">
+                                                                    Paste a state compliance website URL. The content will be extracted and indexed.
+                                                                </p>
+                                                            </div>
+                                                            <div className="bg-blue-50 p-3 rounded-md">
+                                                                <p className="text-xs text-blue-700 font-medium">💡 Recommended Compliance Sources:</p>
+                                                                <ul className="text-xs text-blue-600 mt-2 space-y-1">
+                                                                    <li>• State Cannabis Control Boards</li>
+                                                                    <li>• Department of Health Cannabis Divisions</li>
+                                                                    <li>• Official state cannabis licensing portals</li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </TabsContent>
                                                 </div>
                                             </Tabs>
                                         </div>
-                                        <DialogFooter>
-                                            <Button onClick={handleAddDocument} disabled={loading}>
-                                                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                                Index Document
-                                            </Button>
+                                        <DialogFooter className="flex gap-2">
+                                            {newDocType === 'link' ? (
+                                                <Button onClick={handleScrapeUrl} disabled={loading || !newDocContent}>
+                                                    {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                                    <Globe className="w-4 h-4 mr-2" />
+                                                    Scrape & Index
+                                                </Button>
+                                            ) : (
+                                                <Button onClick={handleAddDocument} disabled={loading || !newDocContent}>
+                                                    {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                                    Index Document
+                                                </Button>
+                                            )}
                                         </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
@@ -358,6 +485,61 @@ export default function AgentKnowledgePage() {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {/* Compliance Discovery - Proactive Agent Search */}
+                        <Card className="bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2 text-emerald-800">
+                                            <RefreshCw className="w-5 h-5" />
+                                            Compliance Discovery
+                                        </CardTitle>
+                                        <CardDescription className="text-emerald-600">
+                                            Let Deebo proactively search for new compliance data
+                                        </CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center gap-4">
+                                    <Input 
+                                        placeholder="e.g. Illinois cannabis advertising rules 2024"
+                                        className="flex-1 bg-white"
+                                    />
+                                    <Button variant="outline" className="bg-white hover:bg-emerald-50 border-emerald-300 text-emerald-700">
+                                        <Search className="w-4 h-4 mr-2" />
+                                        Search
+                                    </Button>
+                                </div>
+                                
+                                <div className="grid grid-cols-3 gap-3">
+                                    <Button variant="outline" size="sm" className="bg-white text-xs hover:bg-emerald-50">
+                                        🌿 IL Licensing Rules
+                                    </Button>
+                                    <Button variant="outline" size="sm" className="bg-white text-xs hover:bg-emerald-50">
+                                        🌿 CA Ad Guidelines
+                                    </Button>
+                                    <Button variant="outline" size="sm" className="bg-white text-xs hover:bg-emerald-50">
+                                        🌿 MI Lab Testing Reqs
+                                    </Button>
+                                </div>
+
+                                <div className="bg-white/60 p-3 rounded-md border border-emerald-100">
+                                    <div className="flex items-center gap-2 text-xs text-emerald-700 font-medium mb-2">
+                                        <CheckCircle className="w-4 h-4" />
+                                        Agent Discovery Queue
+                                    </div>
+                                    <p className="text-xs text-slate-500">
+                                        Deebo will periodically search for updated compliance information and surface it here for your approval before indexing.
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 mt-2">
+                                        Coming soon: Automatic weekly compliance scans across all operating states.
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </>
                     ) : (
                         <div className="text-center py-20 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                             <h3 className="text-lg font-medium text-slate-900">Select or Create a Knowledge Base</h3>
