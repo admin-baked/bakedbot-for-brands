@@ -11,13 +11,35 @@ import {
     Clock
 } from 'lucide-react';
 
-export function DispensaryKPIs() {
-    // STUB: Real data would come from context or query
+interface DispensaryKPIData {
+    ordersToday?: { value: number; trend: string; label: string };
+    revenueToday?: { value: string; trend: string; label: string };
+    conversion?: { value: string; trend: string; label: string };
+    compliance?: { status: 'ok' | 'warning' | 'critical'; warnings: number; lastScan: string };
+}
+
+export function DispensaryKPIs({ data }: { data?: DispensaryKPIData }) {
     const stats = {
-        orders: { value: 42, trend: '+12%', label: 'vs. yesterday' },
-        revenue: { value: '$3,240', trend: '+5%', label: 'Gross Sales' },
-        conversion: { value: '4.2%', trend: '-0.5%', label: 'Menu to Checkout' },
-        compliance: { status: 'warning', critical: 0, warnings: 3, lastScan: '2 hours ago' }
+        orders: { 
+            value: data?.ordersToday?.value ?? 0, 
+            trend: data?.ordersToday?.trend || '—', 
+            label: data?.ordersToday?.label || 'vs. yesterday' 
+        },
+        revenue: { 
+            value: data?.revenueToday?.value || '$0', 
+            trend: data?.revenueToday?.trend || '—', 
+            label: data?.revenueToday?.label || 'Gross Sales' 
+        },
+        conversion: { 
+            value: data?.conversion?.value || '—', 
+            trend: data?.conversion?.trend || '—', 
+            label: data?.conversion?.label || 'Menu to Checkout' 
+        },
+        compliance: { 
+            status: data?.compliance?.status || 'ok', 
+            warnings: data?.compliance?.warnings ?? 0, 
+            lastScan: data?.compliance?.lastScan || 'Never' 
+        }
     };
 
     return (

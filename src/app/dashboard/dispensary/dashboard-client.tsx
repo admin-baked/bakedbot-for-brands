@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { DispensaryKPIs } from './components/dispensary-kpi-grid';
 import { DispensaryChatWidget } from './components/dispensary-chat-widget';
 import { DispensaryRightRail } from './components/dispensary-right-sidebar';
@@ -17,11 +18,22 @@ import { DropdownMenu,
 
 import { ManagedPagesList } from '@/components/dashboard/managed-pages-list';
 import { SetupChecklist } from '@/components/dashboard/setup-checklist';
+import { getDispensaryDashboardData, type DispensaryDashboardData } from './actions';
 
 export default function DispensaryDashboardClient({ brandId }: { brandId: string }) {
+    const [liveData, setLiveData] = useState<DispensaryDashboardData | null>(null);
 
-    // Stub location
-    const locationName = "Downtown • Delivery Hub";
+    // Fetch data for widgets
+    useEffect(() => {
+        async function loadData() {
+            const data = await getDispensaryDashboardData(brandId);
+            if (data) setLiveData(data);
+        }
+        loadData();
+    }, [brandId]);
+
+    // Use live data or fallback
+    const locationName = liveData?.location?.name || "Loading...";
 
     return (
         <div className="space-y-6 pb-20"> {/* pb-20 availability for sticky footer */}
@@ -65,7 +77,7 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
             <SetupChecklist />
 
             {/* 2. KPI Row */}
-            <DispensaryKPIs />
+            <DispensaryKPIs data={liveData?.stats} />
 
             <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
                 {/* Main Column */}
@@ -96,16 +108,16 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
                 <div className="container flex items-center justify-between max-w-7xl mx-auto">
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                            <span className="text-sm font-medium">3 critical alerts</span>
+                            <div className={`h-2 w-2 rounded-full ${(liveData?.operations?.criticalAlerts ?? 0) > 0 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
+                            <span className="text-sm font-medium">{liveData?.operations?.criticalAlerts ?? 0} critical alerts</span>
                         </div>
                         <div className="h-4 w-px bg-border" />
                         <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">12 open orders</span>
+                            <span className="text-sm font-medium">{liveData?.operations?.openOrders ?? 0} open orders</span>
                         </div>
                         <div className="h-4 w-px bg-border" />
                         <div className="flex items-center gap-2 text-muted-foreground">
-                            <span className="text-sm">Avg 18m fulfillment</span>
+                            <span className="text-sm">Avg {liveData?.operations?.avgFulfillmentMinutes ?? '—'}m fulfillment</span>
                         </div>
                     </div>
                     <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
