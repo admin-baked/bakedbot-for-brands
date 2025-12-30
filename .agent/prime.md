@@ -16,6 +16,14 @@ You are working on **BakedBot AI**, a multi-agent cannabis commerce platform.
 | Testing | Jest + Playwright |
 | Styling | Tailwind CSS, ShadCN UI |
 
+### Key Abilities (New)
+| Capability | Implementation |
+|------------|----------------|
+| **Task Decomposition** | `TaskManager` (Camel-style Evolve/Decompose) |
+| **Multimodal Inputs** | Native Genkit (`agent-runner.ts` handles PDF/Images) |
+| **Knowledge Base** | Vector RAG (Firestore `findNearest`) |
+| **Deep Research** | Owl Sidecar (`research.deep` tool) |
+
 ---
 
 ## 📋 Critical Protocols
