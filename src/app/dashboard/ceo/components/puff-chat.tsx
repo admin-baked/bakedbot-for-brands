@@ -767,7 +767,7 @@ export function PuffChat({
                                 variant="outline"
                                 size="sm"
                                 className="h-6 text-xs bg-background/50 hover:bg-background"
-                                onClick={() => setInput(suggestion)}
+                                onClick={() => submitMessage(suggestion)}
                             >
                                 {suggestion}
                             </Button>
