@@ -155,3 +155,17 @@ Before EVERY commit:
 - Leave `console.log` in production code
 - Mark task "passing" without running test
 
+---
+
+## 6. Super User Protocol
+- **Absolute Access**: The Super User (Owner) MUST have access to EVERYTHING. No features, tools, intelligence levels, or UI elements should ever be locked or hidden for the Super User.
+- **Projects**: Projects are a core feature built around the knowledge base and must be accessible to the Super User.
+
+---
+
+## 7. National Rollout Strategy
+- **Objective**: Mass release of SEO-friendly Location and Brand pages into new markets (National Discovery Layer).
+- **Mechanism**: Pages are generated to gain search traffic. Owners discover their pages and "Claim" them.
+- **Super User Exemption**: Super Users do NOT need a "Claim Pack" or subscription. They have unrestricted access to manage, debug, and oversee this infrastructure.
+
+

@@ -339,6 +339,7 @@ export interface PuffChatProps {
     hideHeader?: boolean;
     className?: string;
     isAuthenticated?: boolean; // For public demos
+    isSuperUser?: boolean; // Super User unlock
 }
 
 export function PuffChat({
@@ -348,7 +349,8 @@ export function PuffChat({
     promptSuggestions = [],
     hideHeader = false,
     className = '',
-    isAuthenticated = true // Default to true for backward compatibility
+    isAuthenticated = true, // Default to true for backward compatibility
+    isSuperUser = false
 }: PuffChatProps) {
     // Global Store State
     const { currentMessages, addMessage, updateMessage, createSession } = useAgentChatStore();
@@ -836,7 +838,13 @@ export function PuffChat({
 
                         <div className="flex items-center gap-1">
                             <PersonaSelector value={persona} onChange={setPersona} />
-                            <ModelSelector value={thinkingLevel} onChange={setThinkingLevel} userPlan="pro" unlockResearch={true} />
+                            <ModelSelector 
+                                value={thinkingLevel} 
+                                onChange={setThinkingLevel} 
+                                userPlan="pro" 
+                                unlockResearch={true} 
+                                isSuperUser={isSuperUser}
+                            />
                             <ToolSelector
                                 mode={toolMode}
                                 selectedTools={selectedTools}

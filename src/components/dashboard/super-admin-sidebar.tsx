@@ -32,7 +32,9 @@ import {
     ChevronRight,
     MoreHorizontal,
     Settings,
-    Globe
+    Globe,
+    Wallet,
+    FolderKanban
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -130,6 +132,14 @@ export function SuperAdminSidebar() {
                 <SidebarGroupLabel>Operations</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("projects")}>
+                                <Link href="/dashboard/projects">
+                                    <FolderKanban />
+                                    <span>Projects</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("playbooks")}>
                                 <Link href="/dashboard/ceo?tab=playbooks">
@@ -305,6 +315,14 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/ceo?tab=settings">
                                     <Settings />
                                     <span>System Settings</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("treasury") || pathname?.startsWith('/dashboard/treasury')}>
+                                <Link href="/dashboard/treasury">
+                                    <Wallet />
+                                    <span>Treasury</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
