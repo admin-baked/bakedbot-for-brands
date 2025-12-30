@@ -21,77 +21,77 @@ interface AgentRouterVisualizationProps {
     onAnimationComplete?: () => void;
 }
 
-export function AgentRouterVisualization({ steps, isComplete, onAnimationComplete }: AgentRouterVisualizationProps) {
-    const [shouldRender, setShouldRender] = useState(true);
+    export function AgentRouterVisualization({ steps, isComplete, onAnimationComplete }: AgentRouterVisualizationProps) {
+    const [visible, setVisible] = useState(true);
+
+    // Filter to find the single most relevant step to show
+    // Priority:
+    // 1. In-progress step
+    // 2. Last completed step (if nothing in progress)
+    // 3. First step (if nothing started)
+    const activeStep = steps.find(s => s.status === 'in-progress') 
+        || steps.toReversed().find(s => s.status === 'completed') // Use slice().reverse() if toReversed not avail
+        || steps[0];
 
     useEffect(() => {
         if (isComplete) {
-            // Wait for fade out animation before hiding from DOM entirely if needed
-            // But we keep it in DOM for layout stability initially, then collapse
+            // Wait briefly to show "Complete" then hide
             const timer = setTimeout(() => {
-                setShouldRender(false);
+                setVisible(false);
                 onAnimationComplete?.();
-            }, 2000); // Keep visible for a moment then fade
+            }, 1500);
             return () => clearTimeout(timer);
         } else {
-            setShouldRender(true);
+            setVisible(true);
         }
     }, [isComplete, onAnimationComplete]);
 
-    if (!shouldRender && isComplete) return null;
+    if (!visible || !activeStep) return null;
 
     return (
-        <AnimatePresence>
-            {shouldRender && (
+        <AnimatePresence mode="wait">
+            {visible && (
                 <motion.div
+                    key="container"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="w-full max-w-md mx-auto my-4 space-y-2 font-mono text-sm"
+                    transition={{ duration: 0.3 }}
+                    className="w-full max-w-md mx-auto my-2"
                 >
-                    {steps.map((step, index) => (
-                        <motion.div
-                            key={step.id || index}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className={cn(
-                                "flex items-start gap-3 p-3 rounded-lg border bg-card/50 backdrop-blur-sm transition-colors",
-                                step.status === 'in-progress' && "border-primary/50 bg-primary/5 shadow-sm",
-                                step.status === 'completed' && "border-green-200 bg-green-50/50 text-muted-foreground"
+                    <motion.div
+                        key={activeStep ? activeStep.id : 'loading'}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.2 }}
+                        className={cn(
+                            "flex items-center gap-3 p-2 rounded-lg border bg-card/50 backdrop-blur-sm text-xs text-muted-foreground",
+                            activeStep.status === 'in-progress' && "border-primary/20 bg-primary/5",
+                            activeStep.status === 'completed' && "border-green-200 bg-green-50/50"
+                        )}
+                    >
+                        <div className="shrink-0">
+                            {activeStep.status === 'in-progress' ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                            ) : activeStep.status === 'completed' ? (
+                                <Check className="h-3.5 w-3.5 text-green-500" />
+                            ) : (
+                                <div className="h-3.5 w-3.5 rounded-full border-2 border-muted" />
                             )}
-                        >
-                            <div className="mt-0.5 shrink-0">
-                                {step.status === 'in-progress' && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
-                                {step.status === 'completed' && <Check className="h-4 w-4 text-green-500" />}
-                                {step.status === 'pending' && <div className="h-4 w-4 rounded-full border-2 border-muted" />}
-                                {step.status === 'failed' && <div className="h-4 w-4 rounded-full bg-red-500" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="font-medium leading-none mb-1 text-sm">
-                                    {formatStepTitle(step.toolName)}
-                                </div>
-                                <div className="text-xs text-muted-foreground truncate">
-                                    {step.description}
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
-                    
-                    {isComplete && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="flex items-center gap-2 p-3 rounded-lg border border-green-200 bg-green-50 text-green-700"
-                        >
-                            <Check className="h-4 w-4" />
-                            <div className="flex-1">
-                                <div className="font-medium text-sm">Complete</div>
-                                <div className="text-xs opacity-90">Task finished.</div>
-                            </div>
-                        </motion.div>
-                    )}
+                        </div>
+                        
+                        <div className="flex-1 min-w-0 flex items-center gap-2">
+                             <span className="font-medium text-foreground">
+                                {formatStepTitle(activeStep.toolName)}
+                             </span>
+                             {activeStep.description && (
+                                <span className="truncate opacity-75 hidden sm:inline">
+                                    - {activeStep.description}
+                                </span>
+                             )}
+                        </div>
+                    </motion.div>
                 </motion.div>
             )}
         </AnimatePresence>
