@@ -583,6 +583,7 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
 
   try {
     const { zipCode, featuredDispensaryName } = data;
+    const firestore = getAdminFirestore(); // Initialize here
 
     if (!zipCode) {
       return { message: 'Zip Code is required', error: true };
@@ -654,44 +655,36 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
       }
     }
 
-    // 4. Discover products with adaptive radius to handle sparse areas
-    let discoveryResult = await discoverNearbyProducts({
-      lat: coords.lat,
-      lng: coords.lng,
-      cityName: coords.city,
-      state: coords.state,
-      radiusMiles: 15,
-      limit: 50,
-      sortBy: 'score',
-    });
+    // 4. Discover products (Try/Catch wrapper to prevent failure)
+    let discoveryResult: { products: any[], totalProducts: number } = { products: [], totalProducts: 0 };
+    
+    try {
+        discoveryResult = await discoverNearbyProducts({
+          lat: coords.lat,
+          lng: coords.lng,
+          cityName: coords.city,
+          state: coords.state,
+          radiusMiles: 15,
+          limit: 50,
+          sortBy: 'score',
+        });
 
-
-    // If no products found within 15 miles, try expanding radius
-    if (discoveryResult.products.length === 0) {
-      console.log(`[SeedSEO] No products found within 15 miles of ${zipCode}. Expanding search to 50 miles...`);
-      discoveryResult = await discoverNearbyProducts({
-        lat: coords.lat,
-        lng: coords.lng,
-        cityName: coords.city,
-        state: coords.state,
-        radiusMiles: 50,
-        limit: 50,
-        sortBy: 'score',
-      });
-    }
-
-    // If still no products, try 100 miles
-    if (discoveryResult.products.length === 0) {
-      console.log(`[SeedSEO] No products found within 50 miles of ${zipCode}. Expanding search to 100 miles...`);
-      discoveryResult = await discoverNearbyProducts({
-        lat: coords.lat,
-        lng: coords.lng,
-        cityName: coords.city,
-        state: coords.state,
-        radiusMiles: 100,
-        limit: 50,
-        sortBy: 'score',
-      });
+        // If no products found within 15 miles, try expanding radius
+        if (discoveryResult.products.length === 0) {
+          console.log(`[SeedSEO] No products found within 15 miles of ${zipCode}. Expanding to 50 miles...`);
+          discoveryResult = await discoverNearbyProducts({
+            lat: coords.lat,
+            lng: coords.lng,
+            cityName: coords.city,
+            state: coords.state,
+            radiusMiles: 50,
+            limit: 50,
+            sortBy: 'score',
+          });
+        }
+    } catch (err: any) {
+        console.error(`[SeedSEO] Product discovery failed for ${zipCode}:`, err);
+        // Continue with empty products - do not fail the page generation
     }
 
     // 5. Generate content

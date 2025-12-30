@@ -33,6 +33,7 @@ const AccountManagementTab = dynamic(() => import("@/components/admin/account-ma
 const SystemKnowledgeBase = dynamic(() => import("./components/system-knowledge-base").then(mod => mod.SystemKnowledgeBase), { loading: TabLoader, ssr: false });
 const CeoSettingsTab = dynamic(() => import("./components/ceo-settings-tab"), { loading: TabLoader });
 const AgentSandbox = dynamic(() => import("./components/agent-sandbox").then(mod => mod.AgentSandbox), { loading: TabLoader, ssr: false });
+const ResearchTab = dynamic(() => import("./components/research-tab"), { loading: TabLoader });
 
 
 import { useSuperAdmin } from '@/hooks/use-super-admin';
@@ -101,6 +102,7 @@ function CeoDashboardContent() {
             case 'account-management': return <AccountManagementTab />;
             case 'knowledge-base': return <SystemKnowledgeBase />;
             case 'settings': return <CeoSettingsTab />;
+            case 'research': return <ResearchTab />;
             case 'sandbox': return <AgentSandbox />;
             case 'invites': return (
                 <div className="space-y-4">

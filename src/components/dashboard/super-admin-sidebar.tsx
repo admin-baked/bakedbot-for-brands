@@ -31,7 +31,8 @@ import {
     Trash2,
     ChevronRight,
     MoreHorizontal,
-    Settings
+    Settings,
+    Globe
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -215,6 +216,14 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/ceo?tab=competitor-intel">
                                     <Search />
                                     <span>Competitor Intel</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("research")}>
+                                <Link href="/dashboard/ceo?tab=research">
+                                    <Globe />
+                                    <span>Deep Research</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
