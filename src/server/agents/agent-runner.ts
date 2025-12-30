@@ -581,14 +581,37 @@ export async function runAgentCore(
         // Fallback Generation
         await emitThought(jobId, 'Generating Response', 'Formulating final answer...');
         
-        let prompt: any = `${activePersona.systemPrompt}\nUser: ${userMessage}\nContext: ${knowledgeContext}`;
-        
+        // Construct Multimodal Prompt
+        let promptParts: any[] = [
+            { text: `${activePersona.systemPrompt}\nUser: ${userMessage}\nContext: ${knowledgeContext}` }
+        ];
+
+        // 1. Audio Input
         if (extraOptions?.audioInput) {
-            prompt = [
-                { text: `${activePersona.systemPrompt}\nUser: ${userMessage}\nContext: ${knowledgeContext}` },
-                { media: { url: extraOptions.audioInput } }
-            ];
+            promptParts.push({ media: { url: extraOptions.audioInput } });
         }
+
+        // 2. Attachments (Multimodal)
+        if (extraOptions?.attachments?.length) {
+            for (const file of extraOptions.attachments) {
+                // If text/json/code, we text-inlined it above (lines 158-163), so skip unless we want duplicate?
+                // Actually, the previous code MODIFIED `finalMessage`. 
+                // So text files are already in `userMessage`.
+                // We only need to handle NON-text files (Images, PDFs, Videos) here.
+                
+                const isText = file.type.includes('text') || file.type.includes('json') || file.type.includes('javascript') || file.type.includes('xml');
+                
+                if (!isText) {
+                    // Convert to Data URI for Genkit
+                    const dataUri = `data:${file.type};base64,${file.base64}`;
+                    promptParts.push({ media: { url: dataUri } });
+                    // Add label
+                    promptParts.push({ text: `\n[Attachment: ${file.name}]\n` });
+                }
+            }
+        }
+
+        const prompt = promptParts.length === 1 ? promptParts[0].text : promptParts;
 
         const response = await ai.generate({
             ...getGenerateOptions(effectiveModelLevel),
