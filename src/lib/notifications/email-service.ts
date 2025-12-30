@@ -91,21 +91,20 @@ export class EmailService {
     /**
      * Send an invitation email to a new user
      */
+    /**
+     * Send an invitation email to a new user
+     */
     async sendInvitationEmail(to: string, link: string, role: string, businessName?: string) {
-        const subject = `Welcome to BakedBot! Invitation to join as ${role}`;
-        const html = `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                <h1>You've been invited!</h1>
-                <p>You have been invited to join BakedBot as a <strong>${role}</strong>${businessName ? ` for <strong>${businessName}</strong>` : ''}.</p>
-                <p>Click the link below to set your password and access your dashboard:</p>
-                <p style="margin: 20px 0;">
-                    <a href="${link}" style="background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Accept Invitation</a>
-                </p>
-                <p>Or copy this link: <br/>${link}</p>
-                <p>If you didn't expect this invitation, you can ignore this email.</p>
-            </div>
-        `;
-        return this.sendEmail({ to, subject, html });
+        // Use Mailjet for Invites
+        try {
+            // Dynamically import to separate server vs client concerns if needed, though this file logic seems shared
+            const mailjet = await import('@/lib/email/mailjet') as any;
+            return await mailjet.sendInvitationEmail({ to, link, role, businessName });
+        } catch (error) {
+            logger.error('Failed to route invitation via Mailjet, falling back to legacy/log', { error });
+             // Fallback logic or just return false
+             return false;
+        }
     }
 }
 

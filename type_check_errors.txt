@@ -1,0 +1,6 @@
+﻿
+> nextn@0.1.0 check:types
+> node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit
+
+src/app/dashboard/ceo/actions.ts(587,11): error TS2451: Cannot redeclare block-scoped variable 'firestore'.
+src/app/dashboard/ceo/actions.ts(769,11): error TS2451: Cannot redeclare block-scoped variable 'firestore'.
