@@ -1,6 +1,40 @@
 # Progress Log
 
 
+## Session: 2025-12-29 (Production Readiness Audit - Customer Experience)
+### Task ID
+feat_production_readiness_audit (Phase 4)
+
+### Summary
+Audited Customer Dashboard for production readiness. Replaced extensive hardcoded mock data with real Firestore queries.
+
+### Key Changes
+*   **NEW**: `src/app/dashboard/customer/actions.ts`:
+    - Created `getCustomerDashboardData()` function
+    - Fetches: profile, rewards, deals, favorites, active orders, cart
+    - Returns typed `CustomerDashboardData` interface
+*   **FIX**: `src/app/dashboard/customer/dashboard-client.tsx`:
+    - Added useEffect to fetch live data on mount
+    - Replaced "California Cannabis" → `liveData?.profile?.preferredDispensary`
+    - Replaced "Pickup" → `liveData?.profile?.fulfillmentType`
+    - Replaced "90210" → `liveData?.profile?.zipCode`
+    - Replaced "3 items" / "$48.50" → `liveData?.cart` values
+*   **FIX**: `src/app/dashboard/customer/components/customer-kpi-grid.tsx`:
+    - Removed `// STUB` comment and hardcoded data
+    - Now accepts typed `data` prop
+    - Uses safe fallbacks when data unavailable
+
+### Tests Run
+*   `npm run check:types` (Passed ✅)
+
+### Commits
+*   `e1cd8a2c`: fix(customer): replace hardcoded data with live Firestore queries
+
+### Result: ✅ Complete
+Customer Experience Phase 4 audit complete. Dashboard now uses real user/cart/rewards data.
+
+---
+
 ## Session: 2025-12-29 (Production Readiness Audit - Dispensary Dashboard)
 ### Task ID
 feat_production_readiness_audit (Phase 3)
