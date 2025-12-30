@@ -229,6 +229,7 @@ export function getAllChatConfigs(): Record<UserRoleForChat, RoleChatConfig> {
         brand: BRAND_CHAT_CONFIG,
         dispensary: DISPENSARY_CHAT_CONFIG,
         editor: EDITOR_CHAT_CONFIG,
-        customer: CUSTOMER_CHAT_CONFIG
+        customer: CUSTOMER_CHAT_CONFIG,
+        super_admin: SUPER_ADMIN_CHAT_CONFIG
     };
 }
