@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/tooltip";
 
 export function BrandKPIs({ data }: { data?: any }) {
-    // STUB: Real data would come from context or query
     const stats = {
         coverage: {
             value: data?.coverage?.value ?? 0,
