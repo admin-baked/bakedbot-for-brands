@@ -121,14 +121,33 @@ export async function getProjects(): Promise<Project[]> {
     const user = await requireUser();
     const db = getDb();
     
-    const snapshot = await db.collection(PROJECTS_COLLECTION)
-        .where('ownerId', '==', user.uid)
-        .orderBy('updatedAt', 'desc')
-        .get();
-    
-    return snapshot.docs
-        .map(doc => projectFromFirestore(doc))
-        .filter((p): p is Project => p !== null);
+    try {
+        const snapshot = await db.collection(PROJECTS_COLLECTION)
+            .where('ownerId', '==', user.uid)
+            .orderBy('updatedAt', 'desc')
+            .get();
+        
+        return snapshot.docs
+            .map(doc => projectFromFirestore(doc))
+            .filter((p): p is Project => p !== null);
+    } catch (error: any) {
+        // Handle missing composite index by falling back to unordered query
+        if (error?.code === 9 || error?.message?.includes('index')) {
+            console.error('Projects index missing, falling back to unordered query:', error.message);
+            const snapshot = await db.collection(PROJECTS_COLLECTION)
+                .where('ownerId', '==', user.uid)
+                .get();
+            
+            const projects = snapshot.docs
+                .map(doc => projectFromFirestore(doc))
+                .filter((p): p is Project => p !== null);
+            
+            // Sort in memory
+            return projects.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+        }
+        console.error('Failed to get projects:', error);
+        return [];
+    }
 }
 
 /**

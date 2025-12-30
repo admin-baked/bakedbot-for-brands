@@ -47,6 +47,13 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
     badge: 'beta',
   },
   {
+    key: 'projects',
+    label: 'Projects',
+    href: '/dashboard/projects',
+    icon: 'folder-kanban',
+    group: 'core',
+  },
+  {
     key: 'growth-engine',
     label: 'Smokey Growth Engine',
     href: '/dashboard/growth',
