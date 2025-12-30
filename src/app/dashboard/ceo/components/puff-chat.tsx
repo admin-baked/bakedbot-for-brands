@@ -337,6 +337,7 @@ export interface PuffChatProps {
     promptSuggestions?: string[];
     hideHeader?: boolean;
     className?: string;
+    isAuthenticated?: boolean; // For public demos
 }
 
 export function PuffChat({
@@ -345,7 +346,8 @@ export function PuffChat({
     onSubmit,
     promptSuggestions = [],
     hideHeader = false,
-    className = ''
+    className = '',
+    isAuthenticated = true // Default to true for backward compatibility
 }: PuffChatProps) {
     // Global Store State
     const { currentMessages, addMessage, updateMessage, createSession } = useAgentChatStore();

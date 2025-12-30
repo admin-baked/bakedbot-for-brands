@@ -4,7 +4,7 @@
  * Tailored prompts and suggestions for each user role.
  */
 
-export type UserRoleForChat = 'owner' | 'admin' | 'brand' | 'dispensary' | 'editor' | 'customer';
+export type UserRoleForChat = 'owner' | 'admin' | 'brand' | 'dispensary' | 'editor' | 'customer' | 'super_admin';
 
 export interface RoleChatConfig {
     role: UserRoleForChat;
@@ -13,7 +13,7 @@ export interface RoleChatConfig {
     welcomeMessage: string;
     placeholder: string;
     promptSuggestions: string[];
-    agentPersona: 'smokey' | 'craig' | 'deebo' | 'mrs_parker' | 'pops' | 'money_mike';
+    agentPersona: 'smokey' | 'craig' | 'deebo' | 'mrs_parker' | 'pops' | 'money_mike' | 'puff';
     themeColor: string;
     iconName: 'sparkles' | 'briefcase' | 'store' | 'edit' | 'shopping-cart' | 'shield';
     restrictedTools?: string[];
@@ -173,6 +173,31 @@ export const OWNER_CHAT_CONFIG: RoleChatConfig = {
 };
 
 /**
+ * Super Admin role configuration
+ */
+export const SUPER_ADMIN_CHAT_CONFIG: RoleChatConfig = {
+    role: 'super_admin',
+    title: 'Super Admin HQ',
+    subtitle: 'Platform-wide control and intelligence',
+    welcomeMessage: 'Command center active. All systems nominal.',
+    placeholder: 'Query system stats or manage tenants...',
+    iconName: 'shield',
+    themeColor: 'purple',
+    agentPersona: 'puff',
+    promptSuggestions: [
+        'Show platform health',
+        'List pending verifications',
+        'Generate system report'
+    ],
+    enabledFeatures: {
+        modelSelector: true,
+        personaSelector: true,
+        triggers: true,
+        permissions: true
+    }
+};
+
+/**
  * Get chat configuration for a role
  */
 export function getChatConfigForRole(role: UserRoleForChat): RoleChatConfig {
@@ -185,6 +210,8 @@ export function getChatConfigForRole(role: UserRoleForChat): RoleChatConfig {
             return BRAND_CHAT_CONFIG;
         case 'dispensary':
             return DISPENSARY_CHAT_CONFIG;
+        case 'super_admin':
+            return SUPER_ADMIN_CHAT_CONFIG;
         case 'owner':
         case 'admin':
         default:
