@@ -59,6 +59,7 @@ import { ModelSelector, ThinkingLevel } from './model-selector';
 import { ChatMediaPreview, extractMediaFromToolResponse } from '@/components/chat/chat-media-preview';
 import { useJobPoller } from '@/hooks/use-job-poller';
 import { TypewriterText } from '@/components/landing/typewriter-text';
+import { AgentRouterVisualization } from '@/components/chat/agent-router-visualization';
 
 // ============ Types ============
 
@@ -915,12 +916,21 @@ export function PuffChat({
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
+                                        {/* Router / Thinking Process Visualization */}
                                         {message.steps && message.steps.length > 0 && (
-                                            <StepsList steps={message.steps} />
+                                            <AgentRouterVisualization 
+                                                steps={message.steps} 
+                                                isComplete={!message.isThinking}
+                                            />
                                         )}
-                                        {message.isThinking ? (
+                                        
+                                        {/* Fallback Thinking Indicator if no steps but still thinking */}
+                                        {message.isThinking && (!message.steps || message.steps.length === 0) && (
                                             <ThinkingIndicator duration={message.workDuration} />
-                                        ) : (
+                                        )}
+
+                                        {/* Content - Only show when not thinking (or handling streaming transition) */}
+                                        {!message.isThinking && (
                                             <>
                                                 {/* Rich Metadata Rendering */}
                                                 {message.metadata?.type === 'compliance_report' && (
@@ -981,6 +991,7 @@ export function PuffChat({
                                                         <TypewriterText 
                                                             text={message.content}
                                                             speed={15}
+                                                            delay={1000} // Delay typewriter to allow router fade to start/finish
                                                             onComplete={() => setStreamingMessageId(null)}
                                                             className="whitespace-pre-wrap"
                                                         />
