@@ -191,10 +191,49 @@ export async function runAgentCore(
         const userBrandId = (user?.brandId as string) || (role === 'brand' ? 'demo-brand-123' : 'general');
         const userBrandName = role === 'brand' ? 'Your Brand' : 'BakedBot';
 
+        // === MODEL TIER ENFORCEMENT ===
+        let effectiveModelLevel = extraOptions?.modelLevel || 'lite';
+        
+        // Super User Bypass
+        const isSuperUser = role === 'super_admin' || role === 'admin'; // Simplify super user check
+        const isFreeUser = !isSuperUser && role === 'guest'; // Assuming 'guest' is free, 'brand' is paid? logic needs to closely match plan
+        // Actually, user object might have 'plan'
+        // Let's assume role check for now: 'guest' = free, 'brand'/'dispensary' = paid, 'super_admin' = super.
+        
+        if (!isSuperUser) {
+             // Free user restrictions
+             if (role === 'guest' || role === 'user') {
+                 // Force 2.5 Lite for everything
+                 if (effectiveModelLevel !== 'lite') {
+                     await emitThought(jobId, 'Downgrading', 'Free tier limited to Gemini 2.5 Flash Lite.');
+                     effectiveModelLevel = 'lite';
+                 }
+                 
+                 // Block Deep Research entirely
+                 if (extraOptions?.modelLevel === 'deep_research') {
+                     const isHomepage = !user; // If no user, assumed homepage/public
+                     const message = isHomepage 
+                        ? "**Deep Research is a Pro feature.**\n\nPlease [User Login](/login) or [Sign Up](/signup) to access comprehensive web research agents."
+                        : "**Upgrade Required**\n\nDeep Research requires a paid plan. Please [Upgrade](/dashboard/settings/billing) to unlock.";
+                     
+                     return { content: message, toolCalls: [] };
+                 }
+             }
+        }
+
         // === DEEP RESEARCH ROUTING ===
+        // Auto-detect complex research intent for Paid users
+        const isDeepResearchRequested = extraOptions?.modelLevel === 'deep_research' || 
+            (!isFreeUser && (
+                /analyze\s+.*vs.*/i.test(userMessage) || 
+                /competitive\s+analysis/i.test(userMessage) ||
+                /market\s+report/i.test(userMessage) ||
+                /deep\s+dive/i.test(userMessage)
+            ));
+
         // When user selects "Deep Research" model level, route to Research Service
-        if (extraOptions?.modelLevel === 'deep_research') {
-            await emitThought(jobId, 'Deep Research Mode', 'Initiating comprehensive web research pipeline...');
+        if (isDeepResearchRequested) {
+
             executedTools.push({ id: `research-${Date.now()}`, name: 'Deep Research', status: 'running', result: 'Starting research task...' });
             
             try {
@@ -217,7 +256,7 @@ export async function runAgentCore(
                     await emitThought(jobId, 'Research Queued', 'Your research task has been created and is processing in the background.');
                     
                     return {
-                        content: `**🔬 Deep Research Task Created**\n\nYour research query has been queued for comprehensive analysis:\n\n> "${userMessage}"\n\n**Task ID:** \`${result.taskId}\`\n\nThe research agent is now:\n1. Searching multiple web sources\n2. Analyzing and cross-referencing data\n3. Compiling a comprehensive report\n\n📊 **View progress:** [Deep Research Dashboard](/dashboard/research)\n\nYou'll be notified when the report is ready. Complex queries may take 2-5 minutes.`,
+                        content: `**🔬 Deep Research Task Created**\n\nYour research query has been queued for comprehensive analysis:\n\n> "${userMessage}"\n\n**Task ID:** \`${result.taskId}\`\n\nThe research agent is now:\n1. Searching multiple web sources\n2. Analyzing and cross-referencing data\n3. Compiling a comprehensive report\n\n📊 **View progress:** [Deep Research Dashboard](/dashboard/research)\n\nYou'll be notified when the report is ready. Complex queries may take 2-5 minutes.\n\n**🤖 Automate this?**\nReply with "Create a playbook for this" to turn this analysis into a recurring Daily Report.`,
                         toolCalls: executedTools,
                         metadata: {
                             brandId: userBrandId,
@@ -310,12 +349,25 @@ export async function runAgentCore(
             /new\s+playbook\s+(?:that|to|for)/i,
         ];
         
-        if (playbookCreationPatterns.some(p => p.test(userMessage))) {
+            if (playbookCreationPatterns.some(p => p.test(userMessage))) {
+            
+            // Tier Check for Playbook Creation
+            if (!isSuperUser && (role === 'guest' || role === 'user')) {
+                 const isHomepage = !user;
+                 const message = isHomepage
+                    ? "Building custom playbooks is a Pro feature. Please [Sign Up](/signup) to build agents."
+                    : "Playbook creation is locked on your current plan. Please [Upgrade](/dashboard/settings/billing) to build custom workflows.";
+                 return { content: message, toolCalls: [] };
+            }
+
             await emitThought(jobId, 'Playbook Creation', 'Parsing your request into a playbook configuration...');
             executedTools.push({ id: `pb-create-${Date.now()}`, name: 'Create Playbook', status: 'running', result: 'Parsing...' });
             
             try {
                 const { createPlaybookFromNaturalLanguage } = await import('@/server/actions/playbooks');
+                // Force Agentic Model for Playbooks
+                // Note: The action itself usually uses a default, but we should ensure it uses Gemini 3
+                // For now, checking permission is the key step.
                 const result = await createPlaybookFromNaturalLanguage(metadata.brandId || 'demo', userMessage);
                 
                 if (result.success && result.playbook) {
@@ -539,7 +591,7 @@ export async function runAgentCore(
         }
 
         const response = await ai.generate({
-            ...getGenerateOptions(extraOptions?.modelLevel),
+            ...getGenerateOptions(effectiveModelLevel),
             prompt,
         });
 

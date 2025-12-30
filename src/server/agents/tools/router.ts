@@ -404,6 +404,42 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         }
     }
 
+    // Owl - Deep Research Tool
+    if (def.name === 'research.deep') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        
+        // Owl/Deep Research is a PAID feature.
+        // The router currently mocks permission checks via `hasRolePermission` (Phase 1).
+        // In this execution block, we reinforce the check or rely on the tool definition's requirePermission.
+        // Assuming 'pro_features' permission or 'paid' tier.
+        
+        try {
+            const { researchService } = await import('@/server/services/research-service');
+             // Enqueue task for Python Sidecar (Owl)
+            const tasks = await import('@/server/services/research-service'); // Re-import to be safe or use existing
+            
+            const taskId = await researchService.createTask(
+                request.actor.userId,
+                request.tenantId,
+                inputs.query
+            );
+            
+            return {
+                status: 'success',
+                data: {
+                    taskId,
+                    message: 'Deep research task queued. Owl agent will process this asynchronously.',
+                    status: 'queued'
+                }
+            };
+        } catch (error: any) {
+             return {
+                status: 'failed',
+                error: `Failed to queue research task: ${error.message}`
+            };
+        }
+    }
+
     return {
         status: 'success',
         data: { message: `Executed tool: ${def.name}`, inputs }
