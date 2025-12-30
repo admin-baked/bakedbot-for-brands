@@ -106,6 +106,7 @@ Update session state after each significant action.
 
 Before EVERY commit:
 - [ ] `npm run check:types` passes
+- [ ] Added unit tests
 - [ ] Affected tests pass
 - [ ] Updated `dev/progress_log.md`
 - [ ] Updated `dev/backlog.json` status

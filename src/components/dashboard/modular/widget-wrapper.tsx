@@ -36,14 +36,15 @@ export function WidgetWrapper({
 }: WidgetWrapperProps) {
     return (
         <Card className={`h-full flex flex-col ${className}`}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-3 touch-none">
                 <div className="flex items-center gap-2">
-                    {/* Drag Handle */}
+                    {/* Drag Handle - Larger touch target */}
                     <div
-                        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded drag-handle"
+                        className="cursor-move active:cursor-grabbing p-2 -ml-2 hover:bg-muted/50 rounded-md drag-handle touch-none"
                         title="Drag to rearrange"
+                        style={{ touchAction: 'none' }}
                     >
-                        <GripVertical className="h-4 w-4 text-muted-foreground" />
+                        <GripVertical className="h-5 w-5 text-muted-foreground/50 hover:text-foreground transition-colors" />
                     </div>
 
                     {icon && <span className="text-muted-foreground">{icon}</span>}
@@ -81,7 +82,10 @@ export function WidgetWrapper({
                     </DropdownMenu>
                 )}
             </CardHeader>
-            <CardContent className="flex-1 overflow-auto px-3 pb-3 no-drag" style={{ touchAction: 'pan-y' }}>
+            <CardContent
+                className="flex-1 overflow-auto px-3 pb-3 no-drag scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-muted/50 hover:scrollbar-thumb-muted"
+                style={{ touchAction: 'pan-y' }}
+            >
                 {children}
             </CardContent>
         </Card>

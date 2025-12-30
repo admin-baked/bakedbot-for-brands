@@ -239,6 +239,10 @@ export function ModularDashboard({
     // Get existing widget types
     const existingWidgetTypes = widgets.map(w => w.widgetType);
 
+    // Mobile detection
+    const isMobile = containerWidth < 768;
+    const activeCols = isMobile ? 1 : cols;
+
     // Render grid - using ReactGridLayout directly with measured container width
     const renderGrid = () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -247,7 +251,7 @@ export function ModularDashboard({
             <GridComponent
                 className={`layout ${!isEditable ? 'pointer-events-none-if-needed' : ''}`}
                 layout={layout}
-                cols={cols}
+                cols={activeCols}
                 rowHeight={rowHeight}
                 width={containerWidth}
                 onLayoutChange={handleLayoutChange}
@@ -255,16 +259,22 @@ export function ModularDashboard({
                 draggableCancel=".no-drag"
                 compactType="vertical"
                 preventCollision={false}
-                isResizable={isEditable}
-                isDraggable={isEditable}
+                isResizable={isEditable && !isMobile} // Disable resize on mobile
+                isDraggable={isEditable} // Keep draggable, but handle is strict
                 margin={[10, 10]}
+                containerPadding={isMobile ? [10, 10] : [0, 0]}
             >
                 {widgets.map(widget => {
                     const Component = getWidgetComponent(widget.widgetType);
                     if (!Component) return null;
 
+                    // On mobile, force widgets to be full width
+                    const gridItemProps = isMobile ? {
+                        'data-grid': { ...widget, w: 1, x: 0 } // force 1 col width
+                    } : {};
+
                     return (
-                        <div key={widget.id}>
+                        <div key={widget.id} {...gridItemProps} className="touch-manipulation">
                             <Component
                                 onRemove={isEditable ? () => handleRemoveWidget(widget.id) : undefined}
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
