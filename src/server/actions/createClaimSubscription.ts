@@ -33,10 +33,13 @@ interface ClaimSubscriptionInput {
         dataValue: string;
     };
     // Fallback for testing
+    // Fallback for testing
     cardNumber?: string;
     expirationDate?: string;
     cvv?: string;
     zip?: string;
+    // Linking
+    orgId?: string;
 }
 
 interface ClaimSubscriptionResult {
@@ -83,6 +86,17 @@ export async function createClaimWithSubscription(
             return { success: false, error: 'Invalid plan selected.' };
         }
 
+        // 1b. Validate Existing Org (if claiming specific entity)
+        if (input.orgId) {
+            const orgDoc = await firestore.collection('organizations').doc(input.orgId).get();
+            if (!orgDoc.exists) {
+                return { success: false, error: 'Organization not found.' };
+            }
+            if (orgDoc.data()?.claimStatus === 'claimed') {
+                return { success: false, error: 'This organization has already been claimed.' };
+            }
+        }
+
         // 2. Check Founders Claim availability
         if (input.planId === 'founders_claim') {
             const currentCount = await getFoundersClaimCount();
@@ -103,6 +117,7 @@ export async function createClaimWithSubscription(
             .doc('data')
             .collection('claims')
             .add({
+                orgId: input.orgId || null, // Link to existing org
                 businessName: input.businessName,
                 businessAddress: input.businessAddress,
                 contactName: input.contactName,
@@ -127,6 +142,15 @@ export async function createClaimWithSubscription(
                 subscriptionId: null,
                 updatedAt: FieldValue.serverTimestamp()
             });
+
+            if (input.orgId) {
+                await firestore.collection('organizations').doc(input.orgId).update({
+                    claimStatus: 'pending_verification',
+                    claimId: claimId,
+                    updatedAt: FieldValue.serverTimestamp()
+                });
+            }
+
             return { success: true, claimId };
         }
 
@@ -270,6 +294,15 @@ export async function createClaimWithSubscription(
             updatedAt: FieldValue.serverTimestamp()
         });
 
+        // 7. Update Organization status if linked
+        if (input.orgId) {
+            await firestore.collection('organizations').doc(input.orgId).update({
+                claimStatus: 'pending_verification',
+                claimId: claimId,
+                updatedAt: FieldValue.serverTimestamp()
+            });
+        }
+
         logger.info('Claim subscription created successfully', {
             claimId,
             subscriptionId,
@@ -289,5 +322,31 @@ export async function createClaimWithSubscription(
             success: false,
             error: 'An unexpected error occurred. Please try again.'
         };
+    }
+}
+
+/**
+ * Fetch organization details to pre-fill claim form
+ */
+export async function getOrganizationForClaim(orgId: string): Promise<{ 
+    id: string; 
+    name: string; 
+    address?: string; 
+    claimStatus?: string 
+} | null> {
+    try {
+        const { firestore } = await createServerClient();
+        const doc = await firestore.collection('organizations').doc(orgId).get();
+        if (!doc.exists) return null;
+        const data = doc.data();
+        return {
+            id: doc.id,
+            name: data?.name || '',
+            address: data?.address || '',
+            claimStatus: data?.claimStatus || 'unclaimed'
+        };
+    } catch (e) {
+        console.error("Error fetching org for claim", e);
+        return null;
     }
 }

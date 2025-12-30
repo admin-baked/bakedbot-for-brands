@@ -16,6 +16,7 @@ import { fetchDispensaryPageData } from '@/lib/dispensary-data';
 import { PageViewTracker } from '@/components/analytics/PageViewTracker';
 import { ChatbotPageContext } from '@/components/chatbot-page-context';
 import { Button } from '@/components/ui/button';
+import { LeadCaptureForm } from '@/components/leads/lead-capture-form';
 
 // Common categories for SEO
 const CATEGORIES = ['Flower', 'Vapes', 'Edibles', 'Concentrates', 'Pre-Rolls', 'Topicals'];
@@ -257,11 +258,21 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                             Verify your business to remove ads, update store photos, and respond to your {dispensary.city} customers.
                         </p>
                         <Button className="w-full bg-white text-indigo-600 font-black py-4 rounded-xl shadow-lg hover:bg-indigo-50 transition-all uppercase tracking-tight text-sm" asChild>
-                            <Link href={`/brands/claim?name=${encodeURIComponent(dispensary.name)}&type=dispensary`}>
+                            <Link href={`/brands/claim?name=${encodeURIComponent(dispensary.name)}&type=dispensary&orgId=${dispensary.id.startsWith('disp_') ? dispensary.id : 'disp_' + dispensary.id}`}>
                                 Claim This Page Free
                             </Link>
                         </Button>
                     </div>
+
+                    <div id="contact">
+                        <LeadCaptureForm 
+                            orgId={dispensary.id.startsWith('disp_') ? dispensary.id : `disp_${dispensary.id}`}
+                            orgName={dispensary.name}
+                            orgType="dispensary"
+                            variant="sidebar"
+                        />
+                    </div>
+
                 </aside>
 
             </main>

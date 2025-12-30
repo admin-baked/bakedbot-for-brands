@@ -597,6 +597,52 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
     // 2. Fetch retailers
     const retailers = await getRetailersByZipCode(zipCode, 20);
 
+    // --- CRM SYNC: Add discovered dispensaries to Organizations ---
+    try {
+        const orgBatch = firestore.batch();
+        let opsCount = 0;
+        
+        for (const retailer of retailers) {
+            // Use a deterministic ID based on CannMenus ID
+            const orgId = `disp_${(retailer.id || '').replace(/[^a-zA-Z0-9]/g, '')}`; 
+            if (!retailer.id) continue;
+
+            const orgRef = firestore.collection('organizations').doc(orgId);
+            const orgDoc = await orgRef.get();
+
+            if (!orgDoc.exists) {
+                orgBatch.set(orgRef, {
+                    id: orgId,
+                    name: retailer.name,
+                    slug: retailer.slug || retailer.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+                    address: retailer.address || '',
+                    city: retailer.city || '',
+                    state: retailer.state || '',
+                    zip: retailer.zip || zipCode,
+                    type: 'dispensary',
+                    claimStatus: 'unclaimed', // New field for CRM
+                    source: 'auto_discovery',
+                    menuUrl: retailer.menu_url || null,
+                    phone: retailer.phone || null,
+                    active: true,
+                    description: `Dispensary in ${retailer.city}, ${retailer.state}`,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                });
+                opsCount++;
+            }
+        }
+        
+        if (opsCount > 0) {
+            await orgBatch.commit();
+            console.log(`[CRM] Synced ${opsCount} new dispensaries to CRM.`);
+        }
+    } catch (crmError) {
+        console.error('Error syncing retailers to CRM:', crmError);
+        // Don't fail the whole seeding process
+    }
+    // -------------------------------------------------------------
+
     // 3. Find featured dispensary
     let featuredDispensaryId: string | null = null;
     if (featuredDispensaryName) {

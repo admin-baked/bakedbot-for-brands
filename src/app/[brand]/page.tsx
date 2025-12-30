@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import DispensaryLocator from '@/components/dispensary-locator';
 import { DispensaryHeader } from '@/components/dispensary/dispensary-header';
+import { LeadCaptureForm } from '@/components/leads/lead-capture-form';
 
 export default async function BrandPage({ params }: { params: Promise<{ brand: string }> }) {
     const { brand: brandParam } = await params;
@@ -58,6 +59,19 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
                 <section className="mb-16">
                     <h2 className="text-2xl font-bold mb-6">Where to Buy</h2>
                     <DispensaryLocator locations={retailers} />
+                </section>
+
+                <section className="max-w-xl mx-auto mt-20">
+                    <div className="text-center mb-8">
+                        <h2 className="text-2xl font-bold">Connect with {brand.name}</h2>
+                        <p className="text-slate-500">Have questions about our products? Send us a message.</p>
+                    </div>
+                    <LeadCaptureForm 
+                        orgId={brand.id} 
+                        orgName={brand.name} 
+                        orgType="brand" 
+                        variant="inline" 
+                    />
                 </section>
             </div>
 
