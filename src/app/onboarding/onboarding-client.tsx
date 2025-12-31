@@ -13,7 +13,7 @@ import { SubmitButton } from './components/submit-button';
 import { logger } from '@/lib/logger';
 import { searchCannMenusRetailers } from '@/server/actions/cannmenus';
 import { useFirebase } from '@/firebase/provider';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, User } from 'firebase/auth';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -228,7 +228,16 @@ export default function OnboardingPage() {
     setAuthLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      
+      // Create server session
+      const idToken = await result.user.getIdToken();
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+
       // Success! Close modal and submit form
       setShowSignUpModal(false);
       formRef.current?.requestSubmit();
@@ -245,7 +254,16 @@ export default function OnboardingPage() {
     if (!auth) return;
     setAuthLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Create server session
+      const idToken = await result.user.getIdToken();
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+
       // Success! Close modal and submit form
       setShowSignUpModal(false);
       formRef.current?.requestSubmit();
