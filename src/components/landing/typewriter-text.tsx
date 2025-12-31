@@ -33,15 +33,24 @@ export function TypewriterText({
     const [isComplete, setIsComplete] = useState(false);
     const [hasStarted, setHasStarted] = useState(false);
 
+    // Null safety: handle undefined/null text
+    const safeText = text ?? '';
+
     useEffect(() => {
         // Reset when text changes
         setDisplayedText('');
         setCurrentIndex(0);
         setIsComplete(false);
         setHasStarted(false);
-    }, [text]);
+    }, [safeText]);
 
     useEffect(() => {
+        // Skip if no text
+        if (!safeText) {
+            onComplete?.();
+            return;
+        }
+
         let timeout: NodeJS.Timeout;
 
         if (!hasStarted) {
@@ -49,17 +58,17 @@ export function TypewriterText({
             return () => clearTimeout(timeout);
         }
 
-        if (currentIndex < text.length) {
+        if (currentIndex < safeText.length) {
             timeout = setTimeout(() => {
-                setDisplayedText(prev => prev + text[currentIndex]);
+                setDisplayedText(prev => prev + safeText[currentIndex]);
                 setCurrentIndex(prev => prev + 1);
             }, speed);
             return () => clearTimeout(timeout);
-        } else if (!isComplete && text.length > 0) {
+        } else if (!isComplete && safeText.length > 0) {
             setIsComplete(true);
             onComplete?.();
         }
-    }, [currentIndex, text, speed, onComplete, isComplete, hasStarted, delay]);
+    }, [currentIndex, safeText, speed, onComplete, isComplete, hasStarted, delay]);
 
     // Markdown component configuration (same as puff-chat.tsx)
     const markdownComponents = {
@@ -73,6 +82,11 @@ export function TypewriterText({
         blockquote: ({node, ...props}: any) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
         code: ({node, ...props}: any) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props} />,
     };
+
+    // Handle empty content case
+    if (!safeText) {
+        return <div className={className}></div>;
+    }
 
     return (
         <div className={className}>
@@ -88,7 +102,7 @@ export function TypewriterText({
             ) : (
                 <span className="whitespace-pre-wrap">{displayedText}</span>
             )}
-            {currentIndex < text.length && (
+            {currentIndex < safeText.length && (
                 <motion.span 
                     animate={{ opacity: [1, 0] }}
                     transition={{ repeat: Infinity, duration: 0.5 }}
@@ -99,4 +113,3 @@ export function TypewriterText({
         </div>
     );
 }
-
