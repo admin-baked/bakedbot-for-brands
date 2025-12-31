@@ -34,7 +34,8 @@ import {
     Settings,
     Globe,
     Wallet,
-    FolderKanban
+    FolderKanban,
+    Compass
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -165,10 +166,10 @@ export function SuperAdminSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive("operations")}>
-                                <Link href="/dashboard/ceo?tab=operations">
-                                    <Factory />
-                                    <span>Page Generator</span>
+                            <SidebarMenuButton asChild isActive={isActive("foot-traffic")}>
+                                <Link href="/dashboard/ceo?tab=foot-traffic">
+                                    <Compass />
+                                    <span>Discovery Hub</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -205,14 +206,7 @@ export function SuperAdminSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive("foot-traffic")}>
-                                <Link href="/dashboard/ceo?tab=foot-traffic">
-                                    <Footprints />
-                                    <span>Foot Traffic</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
+
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("ezal")}>
                                 <Link href="/dashboard/ceo?tab=ezal">

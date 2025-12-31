@@ -222,9 +222,9 @@ export default function FootTrafficTab() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Foot Traffic Control Center</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">Discovery Hub</h2>
                     <p className="text-muted-foreground">
-                        Manage automated SEO pages for Brands and Locations.
+                        Generate and manage SEO pages for Brands, Dispensaries, and Locations.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
