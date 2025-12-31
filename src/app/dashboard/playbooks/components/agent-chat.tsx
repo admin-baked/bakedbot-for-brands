@@ -830,7 +830,7 @@ export function AgentChat({
                     steps: response.toolCalls?.map(tc => ({
                         id: tc.id,
                         toolName: tc.name, // Mapping 'name' to 'toolName'
-                        description: tc.result, // Using result as description or status
+                        description: typeof tc.result === 'object' ? JSON.stringify(tc.result) : String(tc.result || ''),
                         status: tc.status === 'success' ? 'completed' : tc.status === 'error' ? 'failed' : 'pending',
                         durationMs: 0
                     })) || [],

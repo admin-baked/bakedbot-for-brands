@@ -235,11 +235,13 @@ export function SuperAdminSidebar() {
                 </SidebarGroupContent>
             </SidebarGroup>
 
+
             {/* Admin Group */}
             <SidebarGroup>
                 <SidebarGroupLabel>Admin</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
+                         {/* ... existing items ... */}
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("tickets")}>
                                 <Link href="/dashboard/ceo?tab=tickets">
@@ -296,6 +298,8 @@ export function SuperAdminSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        
+                        {/* User Management Section */}
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("account-management")}>
                                 <Link href="/dashboard/ceo?tab=account-management">
@@ -304,6 +308,20 @@ export function SuperAdminSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+
+                         {/* Invite User Dialog Trigger */}
+                         <SidebarMenuItem>
+                            <InviteUserDialog 
+                                allowedRoles={['super_admin']} 
+                                trigger={
+                                    <SidebarMenuButton className="text-primary hover:text-primary/90">
+                                        <Users className="text-primary" />
+                                        <span>Invite Team Member</span>
+                                    </SidebarMenuButton>
+                                }
+                            />
+                        </SidebarMenuItem>
+
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("settings")}>
                                 <Link href="/dashboard/ceo?tab=settings">
@@ -339,3 +357,4 @@ export function SuperAdminSidebar() {
 // If they are missing, I'll use standard list items.
 // Based on typical shadcn sidebar, we need:
 import { SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
+import { InviteUserDialog } from "@/components/invitations/invite-user-dialog";

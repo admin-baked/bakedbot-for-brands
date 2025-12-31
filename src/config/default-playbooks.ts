@@ -987,14 +987,12 @@ steps:
     steps: [
       {
         id: 'scan',
-        name: 'Scan Website',
-        tool: 'discovery.scan',
+        action: 'discovery.scan',
         params: { url: '{{config.target_urls}}' }
       },
       {
         id: 'submit',
-        name: 'Submit to Tracker',
-        tool: 'tracker.submit',
+        action: 'tracker.submit',
         params: { orgs: '{{scan.data}}' }
       }
     ],
