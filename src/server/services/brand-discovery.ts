@@ -34,21 +34,75 @@ export class BrandDiscoveryService {
     /**
      * Discover cannabis brands for a given city/state
      */
+    /**
+     * Discover cannabis brands by finding "best of" lists and extracting brand names.
+     */
     async discoverBrands(city: string, state: string): Promise<{ name: string; url: string }[]> {
-        const query = `top cannabis brands ${city} ${state}`;
-        console.log(`[BrandDiscovery] Searching for: ${query}`);
+        const query = `best cannabis brands available in ${city} ${state} list 2024`;
+        console.log(`[BrandDiscovery] Searching for listicles: ${query}`);
         
         try {
+            // 1. Search for listicles
             const results = await this.firecrawl.search(query);
             const typedResults = results as any[];
             
-            return typedResults
-                .filter((r: any) => r.url && !r.url.includes('leafly') && !r.url.includes('weedmaps'))
-                .map((r: any) => ({
-                    name: r.title || 'Unknown Brand',
-                    url: r.url
-                }))
-                .slice(0, 10); // Limit for pilot
+            // Filter for likely content pages (blogs, news, magazines)
+            // We WANT Leafly, Weedmaps, GreenState etc. as they have the lists
+            const listicles = typedResults
+                .slice(0, 3) // Top 3 results
+                .map((r: any) => r.url);
+
+            console.log(`[BrandDiscovery] Found listicles:`, listicles);
+
+            // 2. Extract brands from each listicle
+            const allBrands: { name: string; url: string }[] = [];
+            
+            // Define schema for extraction
+            const extractionSchema = z.object({
+                brands: z.array(z.object({
+                    name: z.string().describe("The name of the cannabis brand"),
+                    website: z.string().optional().describe("The official website of the brand if mentioned")
+                })).describe("List of cannabis brands mentioned in the article")
+            });
+
+            for (const url of listicles) {
+                console.log(`[BrandDiscovery] Extracting brands from ${url}...`);
+                try {
+                    const data = await this.firecrawl.extractData(url, extractionSchema);
+                    if (data && data.brands && Array.isArray(data.brands)) {
+                        data.brands.forEach((brand: any) => {
+                            // Basic filtering to avoid junk
+                            if (brand.name && 
+                                !brand.name.toLowerCase().includes('best') && 
+                                !brand.name.toLowerCase().includes('top') && 
+                                brand.name.length < 50) {
+                                allBrands.push({
+                                    name: brand.name,
+                                    url: brand.website || ''
+                                });
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error(`[BrandDiscovery] Failed to extract from ${url}:`, e);
+                }
+            }
+
+            // 3. Deduplicate
+            const uniqueBrands = new Map<string, { name: string; url: string }>();
+            allBrands.forEach(b => {
+                // Normalize name to deduplicate
+                const normalizedKey = b.name.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                // Avoid empty names or weird short ones
+                if (normalizedKey.length > 2 && !uniqueBrands.has(normalizedKey)) {
+                    uniqueBrands.set(normalizedKey, b);
+                }
+            });
+
+            const finalList = Array.from(uniqueBrands.values()).slice(0, 20);
+            console.log(`[BrandDiscovery] Extracted ${finalList.length} unique brands`);
+            
+            return finalList;
         } catch (error) {
             console.error('[BrandDiscovery] Search failed:', error);
             throw error;
