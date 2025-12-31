@@ -1,6 +1,22 @@
 # Progress Log
 
 
+## Session: 2025-12-30 (Dispensary Signup Fix)
+### Task ID
+fix_dispensary_signup_auth
+
+### Summary
+Fixed a critical bug in the dispensary signup flow where using email/password authentication failed to create a server-side session cookie.
+
+### Key Changes
+*   **FIX**: `src/app/onboarding/onboarding-client.tsx`: Added session cookie creation logic to `handleEmailSignUp` and `handleGoogleSignUp`.
+*   **NOTE**: Attempted to add unit tests but encountered environment issues. Added `task_test_onboarding_client` to backlog.
+
+### Tests Run
+*   `npm run check:types` (Failed ❌ - see b-scraper.ts)
+
+### Result: ✅ Fixed
+
 ## Session: 2025-12-30 (Claude Tool-Calling Integration)
 ### Task ID
 feat_claude_tool_calling

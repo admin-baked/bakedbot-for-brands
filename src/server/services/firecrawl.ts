@@ -1,3 +1,4 @@
+
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { z } from 'zod';
 
@@ -12,16 +13,23 @@ import { z } from 'zod';
  * 
  * Note: Uses FIRECRAWL_API_KEY from env (set via Firebase Secrets)
  */
-class FirecrawlService {
+export class FirecrawlService {
     private app: FirecrawlApp | null = null;
     private static instance: FirecrawlService;
 
     private constructor() {
+        // DEBUG: Logging to see if env is loaded
         const apiKey = process.env.FIRECRAWL_API_KEY;
+        console.log('[FirecrawlService] Initializing...');
+        console.log('[FirecrawlService] Env Key Exists:', !!apiKey);
+        if (apiKey) console.log('[FirecrawlService] Key Length:', apiKey.length);
+        
         if (apiKey) {
             this.app = new FirecrawlApp({ apiKey });
+            console.log('[FirecrawlService] App Initialized Successfully');
         } else {
             console.warn('[Firecrawl] API Key not found. Service will be disabled.');
+            console.warn('[Firecrawl] Checked process.env.FIRECRAWL_API_KEY');
         }
     }
 
@@ -43,7 +51,7 @@ class FirecrawlService {
         if (!this.app) throw new Error('Firecrawl not configured');
 
         try {
-            const response = await this.app.scrapeUrl(url, {
+            const response = await this.app.scrape(url, {
                 formats: formats
             });
 
@@ -65,11 +73,9 @@ class FirecrawlService {
     public async scrapeWithActions(url: string, actions: any[]) {
         if (!this.app) throw new Error('Firecrawl not configured');
         
-        // Note: The SDK might not expose actions directly in 'scrapeUrl' depending on version,
-        // but the API supports it. Passing in the options object.
         try {
-             // @ts-ignore - Actions are supported in API but strictly typed in some SDK versions
-            const response = await this.app.scrapeUrl(url, {
+            // @ts-ignore - Actions are supported in API but strictly typed in some SDK versions
+            const response = await this.app.scrape(url, {
                 formats: ['markdown'],
                 actions: actions
             });
@@ -93,12 +99,17 @@ class FirecrawlService {
 
         try {
             const response = await this.app.search(query);
+            console.log('[FirecrawlService] Search Raw Response:', JSON.stringify(response, null, 2));
             
-            if (!response.success) {
-                 throw new Error(`Firecrawl search failed: ${response.error}`);
+            // Handle different SDK response shapes
+            const data = response.data || response.web || (response.success ? response : null);
+
+            if (!data && !response.success) {
+                 const errMsg = response.error || JSON.stringify(response);
+                 throw new Error(`Firecrawl search failed: ${errMsg}`);
             }
 
-            return response;
+            return data || [];
         } catch (error: any) {
             console.error('[Firecrawl] Search error:', error);
             throw error;
@@ -122,6 +133,34 @@ class FirecrawlService {
         } catch (error: any) {
             console.error('[Firecrawl] Map error:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Extract structured data from a URL using LLM
+     */
+    public async extractData(url: string, schema: z.ZodSchema<any>) {
+        if (!this.app) throw new Error('Firecrawl not configured');
+
+        try {
+            // Updated to use JSON Mode as 'extract' is deprecated/unrecognized
+            const response = await this.app.scrape(url, {
+                formats: ['json'],
+                jsonOptions: {
+                    schema: schema
+                }
+            });
+
+            if (!response.success) {
+                 const errMsg = response.error || JSON.stringify(response);
+                 throw new Error(`Firecrawl extraction failed: ${errMsg}`);
+            }
+
+            // Return the parsed JSON from the response
+            return response.json || response.data?.json || response.data;
+        } catch (error: any) {
+            console.error('[Firecrawl] Extract error:', error);
+            throw error; 
         }
     }
 }
