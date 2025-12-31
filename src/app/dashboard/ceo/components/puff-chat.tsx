@@ -720,7 +720,7 @@ export function PuffChat({
                 response = {
                     ...serverResponse,
                     // Merge simulated steps with any real tool calls
-                    toolCalls: serverResponse.toolCalls?.length > 0 
+                    toolCalls: (serverResponse.toolCalls?.length ?? 0) > 0 
                         ? serverResponse.toolCalls 
                         : simulatedSteps.map(s => ({
                             id: s.id,
