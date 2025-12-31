@@ -305,6 +305,9 @@ export default function SuperAdminPlaybooksTab() {
                             key={chatKey}
                             initialTitle={activeSessionId ? "Chat Session" : "New Chat"}
                             onBack={() => createSession()}
+                            hideHeader={true}
+                            className="h-full border-0 shadow-none rounded-none"
+                            isSuperUser={true}
                         />
                     </div>
                 </div>
