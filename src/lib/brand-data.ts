@@ -45,6 +45,22 @@ export async function fetchBrandPageData(brandParam: string) {
     }
 
     if (!brand) {
+        // Fallback: Check seo_pages_brand for discovered pages
+        const seoQuery = await firestore.collection('seo_pages_brand').where('brandSlug', '==', brandParam).limit(1).get();
+        if (!seoQuery.empty) {
+            const seoData = seoQuery.docs[0].data();
+            brand = {
+                id: seoData.brandId || seoData.id,
+                name: seoData.brandName,
+                slug: seoData.brandSlug,
+                description: seoData.seoTags?.metaDescription,
+                logoUrl: seoData.logoUrl,
+                verificationStatus: 'unverified'
+            } as Brand;
+        }
+    }
+
+    if (!brand) {
         return { brand: null, products: [] };
     }
 
@@ -111,6 +127,26 @@ export async function fetchBrandPageData(brandParam: string) {
     }
 
     return { brand, products, retailers };
+}
+
+/**
+ * Fetch all scraped Brand SEO pages for listing/index pages
+ */
+export async function fetchScrapedBrandPages(limit = 50) {
+    try {
+        const { firestore } = await createServerClient();
+        
+        const snapshot = await firestore
+            .collection('seo_pages_brand')
+            .orderBy('createdAt', 'desc')
+            .limit(limit)
+            .get();
+        
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+    } catch (error) {
+        console.error('[fetchScrapedBrandPages] Error:', error);
+        return [];
+    }
 }
 
 export async function fetchCollectionData(brandParam: string, collectionSlug: string) {
