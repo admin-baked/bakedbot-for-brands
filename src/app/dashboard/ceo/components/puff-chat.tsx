@@ -514,12 +514,30 @@ export function PuffChat({
         }
     }, [user]);
 
-    // Save active session on change (debounced)
+    // Track sessions for persistence
+    const sessions = useAgentChatStore(state => state.sessions);
+    const prevSessionCountRef = useRef(sessions.length);
+
+    // Save when new session is created (detects session array growth)
     useEffect(() => {
-        const { activeSessionId, sessions } = useAgentChatStore.getState();
+        if (user?.uid && sessions.length > prevSessionCountRef.current) {
+            // New session was added - save it immediately
+            const newestSession = sessions[0]; // Sessions are prepended
+            if (newestSession) {
+                saveChatSession(newestSession).catch(err => 
+                    console.error("Failed to save new session:", err)
+                );
+            }
+        }
+        prevSessionCountRef.current = sessions.length;
+    }, [sessions.length, user]);
+
+    // Save active session on message change (debounced)
+    useEffect(() => {
+        const { activeSessionId, sessions: storeSessions } = useAgentChatStore.getState();
         if (activeSessionId && user?.uid) {
-            const session = sessions.find(s => s.id === activeSessionId);
-            if (session) {
+            const session = storeSessions.find(s => s.id === activeSessionId);
+            if (session && session.messages.length > 0) {
                 const timeoutId = setTimeout(() => {
                     saveChatSession(session).catch(err => console.error("Failed to save session:", err));
                 }, 2000); // 2s debounce
@@ -527,6 +545,7 @@ export function PuffChat({
             }
         }
     }, [currentMessages, user]); // Trigger save when messages change
+
 
     // Effect to scroll to bottom on new messages
     // ... (omitted for brevity, scroll logic is usually handled by ScrollArea or separate ref)

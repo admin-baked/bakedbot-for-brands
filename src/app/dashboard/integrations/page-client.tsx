@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { saveIntegrationConfig, testConnection, syncMenu } from './actions';
+import { saveIntegrationConfig, testConnection, syncMenu, enableApp } from './actions';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,7 @@ const APPS = [
         category: 'Marketing',
         description: 'Authorize agents to draft and send emails via your account.',
         icon: '📧',
-        status: 'coming_soon',
+        status: 'available',
         featured: true,
     },
     {
@@ -48,7 +48,7 @@ const APPS = [
         category: 'POS',
         description: 'Integrate with Treez for full inventory and order management.',
         icon: '🌲',
-        status: 'coming_soon',
+        status: 'available', // Unlocked
         featured: true,
     },
     {
@@ -57,7 +57,7 @@ const APPS = [
         category: 'POS',
         description: 'Sync products and inventory from Blaze POS.',
         icon: '🔥',
-        status: 'coming_soon',
+        status: 'available', // Unlocked
     },
     {
         id: 'flowhub',
@@ -65,7 +65,7 @@ const APPS = [
         category: 'POS',
         description: 'Connect Flowhub for compliance-ready inventory sync.',
         icon: '📦',
-        status: 'coming_soon',
+        status: 'available', // Unlocked
     },
     {
         id: 'mailchimp',
@@ -73,7 +73,7 @@ const APPS = [
         category: 'Marketing',
         description: 'Sync customer segments for email campaigns.',
         icon: '📧',
-        status: 'coming_soon',
+        status: 'available', // Unlocked
     },
     {
         id: 'klaviyo',
@@ -81,7 +81,7 @@ const APPS = [
         category: 'Marketing',
         description: 'Advanced email automation for cannabis brands.',
         icon: '💌',
-        status: 'coming_soon',
+        status: 'available', // Unlocked
     },
     {
         id: 'springbig',
@@ -89,7 +89,7 @@ const APPS = [
         category: 'Loyalty',
         description: 'Loyalty program integration for dispensaries.',
         icon: '⭐',
-        status: 'coming_soon',
+        status: 'available', // Unlocked
     },
 ];
 
@@ -140,6 +140,19 @@ export default function AppStorePage() {
             } else {
                 toast({ variant: 'destructive', title: 'Sync Failed', description: result.error });
             }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleConnect = async (appId: string) => {
+        setLoading(true);
+        try {
+            await enableApp(appId);
+            toast({ title: 'App Connected', description: `Permission granted for ${appId}.` });
+            // Ideally refresh local state to show "Installed"
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Connection Failed' });
         } finally {
             setLoading(false);
         }
@@ -214,7 +227,7 @@ export default function AppStorePage() {
                                     </CardContent>
                                     <CardFooter>
                                         {app.status === 'available' ? (
-                                            <Button className="w-full" size="sm">
+                                        <Button className="w-full" size="sm" onClick={() => handleConnect(app.id)}>
                                                 <Check className="h-4 w-4 mr-2" /> Connect
                                             </Button>
                                         ) : (
@@ -243,7 +256,7 @@ export default function AppStorePage() {
                                     </div>
                                     <p className="text-xs text-muted-foreground mb-3">{app.description}</p>
                                     {app.status === 'available' ? (
-                                        <Button size="sm" variant="outline" className="w-full">Connect</Button>
+                                        <Button size="sm" variant="outline" className="w-full" onClick={() => handleConnect(app.id)}>Connect</Button>
                                     ) : (
                                         <Button size="sm" variant="ghost" className="w-full" disabled>Coming Soon</Button>
                                     )}
@@ -287,8 +300,8 @@ export default function AppStorePage() {
                                     <SelectContent>
                                         <SelectItem value="dutchie">Dutchie</SelectItem>
                                         <SelectItem value="jane">iHeartJane</SelectItem>
-                                        <SelectItem value="treez" disabled>Treez (Coming Soon)</SelectItem>
-                                        <SelectItem value="manual" disabled>Manual (CSV)</SelectItem>
+                                        <SelectItem value="treez">Treez</SelectItem>
+                                        <SelectItem value="manual">Manual (CSV)</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

@@ -61,18 +61,20 @@ export async function getApps(): Promise<AppDefinition[]> {
         {
             id: 'klaviyo',
             name: 'Klaviyo',
-            description: 'Email marketing automation (Coming Soon).',
+            description: 'Email marketing automation.',
             category: 'marketing',
             icon: 'Mail',
-            installed: false
+            installed: false, // Default to false, but available to install
+            status: 'active'
         },
         {
             id: 'metrc',
             name: 'Metrc',
-            description: 'Compliance tracking (Coming Soon).',
+            description: 'Compliance tracking.',
             category: 'compliance',
             icon: 'FileCheck',
-            installed: false
+            installed: false,
+            status: 'active'
         }
     ];
 }
