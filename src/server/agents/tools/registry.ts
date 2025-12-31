@@ -331,7 +331,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
             required: ['title']
         },
         category: 'write',
-        requiredPermission: 'write:campaigns',
+        requiredPermission: 'manage:campaigns',
     },
     'drive.uploadFile': {
         name: 'drive.uploadFile',
@@ -347,7 +347,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
             required: ['name', 'content']
         },
         category: 'write',
-        requiredPermission: 'write:campaigns',
+        requiredPermission: 'manage:campaigns',
     },
     'slack.postMessage': {
         name: 'slack.postMessage',
@@ -362,7 +362,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
             required: ['channel', 'text']
         },
         category: 'write',
-        requiredPermission: 'write:campaigns',
+        requiredPermission: 'manage:campaigns',
     }
 };
 

@@ -2,11 +2,77 @@
 
 **Loaded automatically on agent startup**
 
+> "We're not just building agents. We're building agents that build themselves. That's the future of retail—and it starts with cannabis."
+
+---
+
+## 🏥 Codebase Health Status (Live)
+| Metric | Status | Last Verified | Notes |
+|--------|--------|---------------|-------|
+| **Build** | 🟢 Passing | 2025-12-31 | `npm run check:types` passing locally. |
+| **Tests** | 🟡 Partial | 2025-12-31 | Core logic passing. JSDOM async issues skipping some UI integration tests. |
+| **Deploy** | 🟢 Stable | 2025-12-31 | Production successfully deployed via `git push`. |
+
+### Critical Watchlist
+- **Firestore**: `ignoreUndefinedProperties: true` enabled globally (watch for silent data loss).
+- **Mobile UI**: Homepage hero fixed, check other pages on mobile.
+- **Deep Research**: Polling hook stable, check for long-running task timeouts.
+
+---
+
+## 🌟 Strategic North Star: Autonomous Cannabis Commerce
+**Target (Q4 2026):**
+- Every agent runs on 50+ versioned, battle-tested tools.
+- Tools improve via feedback loops (learning agents).
+- **Core Metric**: Speed of learning = durability of moat.
+
+### The Rebel-Sage Synthesis
+We are applying **Tasklet.ai Principles** to cannabis. Every agent action (recommendation, campaign, compliance check) is a measurable product. We do not ship static features; we ship learning systems.
+
+---
+
+## 🕵️ The Agent Squad & Tooling
+The platform logic is personified by specialized AI agents.
+
+| Agent | Role | Domain | Primary Tools (Current Gaps) |
+|-------|------|--------|------------------------------|
+| **Smokey** | Budtender | Product Search & Recs | Chemotype matching (needs terpene vectors), Headless Menus |
+| **Craig** | Marketer | Campaigns & Lifecycle | Email/SMS (Twilio/SendGrid), Automations (needs send-time opt) |
+| **Pops** | Analyst | Revenue & Funnel | Transaction Analysis, Demand Forecasting (needs real-time adaptation) |
+| **Ezal** | Lookout | Competitive Intel | Web Scrapers (Firecrawl/Apify), Price Monitoring (needs sentiment analysis) |
+| **Money Mike** | Banker | Pricing & Margins | Elasticity Models, Billing, ROI Calc (needs forecast integration) |
+| **Mrs. Parker** | Hostess | Loyalty & VIP | Segmentation (needs ML clustering), Win-back flows |
+| **Deebo** | Enforcer | Compliance & Regs | CTIA/State Rule Engine (needs proactive risk scoring) |
+
+---
+
+## 📈 Tool Evolution Protocol (The Tasklet.ai Playbook)
+We systematically improve tools in 5 layers. **"Measure. Version. Learn."**
+
+### Layer 1: Instrumentation
+- **Telemetry**: Log `(agent, tool, input, output, latency, context, outcome)`.
+- **Metrics**: CTR (Smokey), Open Rate (Craig), False Positives (Deebo).
+
+### Layer 2: Versioning & A/B Testing
+- **Rule**: Never replace a tool; version it (v1.0 -> v1.1).
+- **Test**: Run A/B tests in production (e.g., Keyword Match vs. Terpene Vector).
+- **Promote**: Only promote the winner based on revenue/engagement lift.
+
+### Layer 3: Composition
+- **Workflow**: Agents chain tools.
+  - *Example*: Smokey (Recs) -> Money Mike (Margin Check) -> Ezal (Competitor Stock Check).
+
+### Layer 4: Feedback Loops
+- **Self-Improvement**: Tools learn from outcomes without manual code changes.
+- **Mechanism**: Bandit algorithms for recs; retraining compliance models on delivery logs.
+
+### Layer 5: Meta-Learning
+- **Discovery**: Agents analyze failure modes and request new tools.
+  - *Example*: "Smokey failed to answer 'anxiety effects' 20% of time -> Request `AnxietyProfiler` tool."
+
 ---
 
 ## 🎯 Codebase Context
-
-You are working on **BakedBot AI**, a multi-agent cannabis commerce platform.
 
 | Component | Technology |
 |-----------|------------|
@@ -16,7 +82,7 @@ You are working on **BakedBot AI**, a multi-agent cannabis commerce platform.
 | Testing | Jest + Playwright |
 | Styling | Tailwind CSS, ShadCN UI |
 
-### Key Abilities (New)
+### Key Abilities
 | Capability | Implementation |
 |------------|----------------|
 | **Task Decomposition** | `TaskManager` (Camel-style Evolve/Decompose) |
@@ -44,15 +110,13 @@ git pull origin main --rebase
 2. Run test (`npm test -- <file>.test.ts`)
 3. If fail → analyze + retry (max 3x)
 4. If pass → update backlog + commit
+5. Log progress in `dev/progress_log.md`
 
 ---
 
 ## 🎛️ Orchestrator Mode
 
-For complex multi-step tasks, read `.agent/orchestrator.md` for:
-- Task prioritization logic
-- Workflow chain execution
-- Agent coordination protocols
+For complex multi-step tasks, read `.agent/orchestrator.md`.
 
 ### Available Workflows (`.agent/workflows/`)
 | Workflow | Trigger | Description |
@@ -77,40 +141,23 @@ For complex multi-step tasks, read `.agent/orchestrator.md` for:
 
 ---
 
-## 🚀 Deployment
+## 🚀 Deployment (App Hosting)
 
-**This project uses Firebase App Hosting**, which deploys automatically via **git push**, NOT `firebase deploy`.
+**Uses `git push` ONLY.** Do not use `firebase deploy` for the Next.js app.
 
 ### How to Deploy:
 ```bash
 git push origin main
 ```
 
-### What `firebase deploy` Does (Limited):
-- Deploys Firestore security rules
-- Deploys legacy Cloud Functions (if any)
-- Does **NOT** deploy the Next.js application
+### Secrets Management:
+After ANY change to `apphosting.yaml` secrets, you MUST grant access permissions using the commands in `dev/SWARM_RULES.md`.
 
-### What `git push` Does (Full Deploy):
-- Triggers Firebase App Hosting rollout
-- Builds the Next.js app in Google Cloud Build
-- Deploys to production CDN
-- Takes ~5-10 minutes
+---
 
-### Monitor Deployment:
-- [Firebase Console → App Hosting](https://console.firebase.google.com/project/studio-567050101-bc6e8/apphosting)
-- Production URL: `https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app`
-
-
-## 🤖 Autonomous Mode
-
-Check `.agent/protocols/autonomous-mode.md` for:
-- Autonomy levels (0-4)
-- Trust score calculation
-- Human oversight triggers
-- Kill switch
-
-**Current Level**: Check `metrics.json` → `autonomy.level`
+## 🤖 Autonomous Mode & Learning
+Check `.agent/protocols/autonomous-mode.md`.
+**System State**: `metrics.json` → `autonomy.level`
 
 | Purpose | Path |
 |---------|------|
@@ -119,102 +166,66 @@ Check `.agent/protocols/autonomous-mode.md` for:
 | Progress Log | `dev/progress_log.md` |
 | Swarm Rules | `dev/SWARM_RULES.md` |
 | Session State | `.agent/state/session.json` |
-| Communication | `.agent/state/communication.json` |
-| Metrics | `.agent/learning/metrics.json` |
 
 ---
 
-## 🔄 Session State
+## 🇺🇸 National Rollout Strategy (Discovery Layer)
+**Objective**: Mass release of SEO-friendly Location and Brand pages ("The Claim Model").
+**Monetization**:
+1.  **Unclaimed Page** ($0): SEO presence, driving traffic.
+2.  **Claim Pro** ($99/mo): Verified badge, edits, analytics, lead capture.
+3.  **Founders Claim**: Scarcity-driven lifetime offer.
+4.  **Coverage Packs**: Upsell for multi-zip visibility.
 
-Check `.agent/state/session.json` for:
-- Current task being worked on
-- Tests that have been run
-- Validation status
-
-Update session state after each significant action.
-
----
-
-## ✅ Pre-Commit Checklist
-
-Before EVERY commit:
-- [ ] `npm run check:types` passes
-- [ ] Added unit tests
-- [ ] Affected tests pass
-- [ ] Updated `dev/progress_log.md`
-- [ ] Updated `dev/backlog.json` status
-- [ ] Conventional commit message
+**Rollout**:
+- **Track 1**: Legal Cannabis (using ZIP dataset + CannMenus hydration).
+- **Super User Exemption**: Super Users have full access without subscription.
 
 ---
 
-## 🚫 Never Do
-
-- Skip Exploration Sequence
-- Commit without running tests
-- Assume file contents
-- Leave `console.log` in production code
-- Mark task "passing" without running test
+## 📊 Competitive Intelligence
+When a user requests a "Competitive Snapshot" or "Market Analysis", use the structured format:
+- **Pricing Insights**: Price gaps, margin opportunities.
+- **Top Movers**: High sell-through signals.
+- **Competitor Vulnerabilities**: Out-of-stocks, low ratings.
 
 ---
 
 ## 6. Super User Protocol
-- **Absolute Access**: The Super User (Owner) MUST have access to EVERYTHING. No features, tools, intelligence levels, or UI elements should ever be locked or hidden for the Super User.
-- **Projects**: Projects are a core feature built around the knowledge base and must be accessible to the Super User.
+- **Absolute Access**: Super User (Owner) has unrestricted access.
+- **Playbooks**: Belong to tenant but Super User manages all.
+- **Scrapers**: Free users = basic; Paid users = Firecrawl/BakedBot Discovery.
 
 ---
 
-## 7. National Rollout Strategy
-- **Objective**: Mass release of SEO-friendly Location and Brand pages into new markets (National Discovery Layer).
-- **Mechanism**: Pages are generated to gain search traffic. Owners discover their pages and "Claim" them.
-- **Super User Exemption**: Super Users do NOT need a "Claim Pack" or subscription. They have unrestricted access to manage, debug, and oversee this infrastructure.
+## 🧩 Front-End Composability (2026 Philosophy)
+> "Front-end engineering is dead. Long live front-end composability."
+
+We are shifting from **static, hand-coded UIs** to **agent-composed, workflow-driven experiences**.
+
+### Core Principles
+| Old Model | New Model |
+|-----------|-----------|
+| Hand-code every page | Design composable primitives (ShadCN, widgets) |
+| Static dashboards | Schema-driven, role-adaptive views |
+| Human-only consumers | **AI agents as first-class UI consumers** |
+| Page-per-feature | Workflow recipes (Playbooks) |
+| RBAC on frontend | Policy-driven access at API layer |
+
+### Implementation in BakedBot
+| Concept | BakedBot Component |
+|---------|-------------------|
+| **Primitives** | `widget-registry.ts`, ShadCN components |
+| **Recipes** | Playbooks (reusable automations) |
+| **AI as Consumer** | Smokey (menu queries), Ezal (competitor scraping), Craig (campaigns) |
+| **Dynamic Composition** | Agent Chat generates context-aware responses |
+| **Auditability** | Tool telemetry (Layer 1), `dev/progress_log.md` |
+
+### Builder Guidelines
+1. **Think screens, not schemas**: Build for the range of views, not one static page.
+2. **Brand as promise**: Ensure brand consistency across composed UIs.
+3. **Workflow-first**: Design for recipes (e.g., "Cancel Subscription" = one invokable flow).
+4. **Agent-aware RBAC**: Agents inherit user permissions at lower scope.
+5. **Auditability by default**: Log composed views and agent actions.
 
 ---
-
-## 8. Competitive Intelligence & Snapshot Reports
-
-Agents must prioritize structured, actionable intelligence. When a user requests a "Competitive Snapshot" or "Market Analysis", use the following format:
-
-### Example: :fire: Cannabis Menu Intelligence - Store A vs Store B
-:bar_chart: COMPETITIVE ANALYSIS - [Date]
--------------------------
-:moneybag: KEY PRICING INSIGHTS:
-- [Finding 1] (e.g., Competitor undercuts us by 20% on bulk flower)
-- [Finding 2] (e.g., We have a $10 premium on extracts)
-
--------------------------
-:chart_with_upwards_trend: TOP MOVERS (HIGH SELL-THROUGH SIGNALS):
-- [Product 1] - Featured heavily, high inventory turnover
-- [Product 2] - Price leader position
-
--------------------------
-:dart: MARGIN OPPORTUNITY - PRICE INCREASE CANDIDATES:
-- [Item 1] - We have exclusivity or brand equity → Raise $5
-- [Item 2] - Competitor out-of-stock → Raise $3
-
--------------------------
-:rotating_light: COMPETITOR VULNERABILITIES - MARKET SHARE OPPORTUNITIES:
-- [Issue 1] - Competitor overstocked on low-margin items
-- [Issue 2] - Customer satisfaction gap (reviews/service)
-
--------------------------
-:trophy: LINKEDIN/MARKET INSIGHT:
-"Short summary for social/leadership: Competitor X is winning on price, but we are capturing the premium partnership market. Opportunity to expand exclusivity on Brand Y."
-
--------------------------
-:bar_chart: NEXT STEPS:
-- [Action 1]
-- [Action 2]
-
----
-
-## 9. Playbooks & Automation
-- **Playbooks are reusable**: They are meant to be ongoing (e.g., "Send a daily competitive snapshot").
-- **Ownership**: Playbooks belong to the tenant (Brand/Dispensary) but Super Users can manage all.
-- **Permission Checks**: ALWAYS request permission from the user before using integrations like Gmail, Calendar, or Sheets if not already authorized in the current session.
-
-## 10. Super User Context
-- **Competitors**: For Super Users, "competitors" often refers to platform-level players like **AIQ**, **Terpli**, **Dutchie**, or **Springbig**.
-- **Business Development**: Focus on platform growth, revenue optimization, and cross-tenant analytics.
-- **Codebase Access**: Super Users may request to "see the codebase" or "read a file" for technical context. Use the `dev.readCodebase` tool for this.
-
-
