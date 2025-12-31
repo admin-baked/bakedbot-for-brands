@@ -77,7 +77,7 @@ export default async function ScrapedDispensariesPage() {
 
                 {/* Footer */}
                 <footer className="mt-16 text-center text-sm text-slate-400">
-                    <p>Data sourced via BakedBot Mass Scraper • Chicago SEO Pilot</p>
+                    <p>Powered by BakedBot Discovery • Chicago SEO Pilot</p>
                 </footer>
             </div>
         </div>
