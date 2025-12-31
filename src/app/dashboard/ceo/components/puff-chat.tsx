@@ -634,6 +634,7 @@ export function PuffChat({
                     }
                 });
             }
+            return currentSteps;
         };
 
         try {
@@ -662,7 +663,7 @@ export function PuffChat({
 
                 // Wait for BOTH to finish. This ensures users see the "episodic thinking" animation
                 // even if the API is fast.
-                const [_, data] = await Promise.all([simulationPromise, fetchPromise]);
+                const [simulationSteps, data] = await Promise.all([simulationPromise, fetchPromise]);
                 
                 // Map API response to AgentResult format
                 let content = '';
@@ -678,10 +679,15 @@ export function PuffChat({
                     content = "I couldn't find any specific results for that query in the demo database.";
                 }
 
-                // Construct AgentResult
+                // Construct AgentResult with preserved steps
                 response = {
                     content: content,
-                    toolCalls: [],
+                    toolCalls: simulationSteps.map(s => ({
+                        id: s.id,
+                        name: s.toolName,
+                        result: s.description,
+                        status: 'success'
+                    })),
                     metadata: {
                         agentName: data.agent,
                         media: data.generatedMedia // { type, url }
@@ -821,9 +827,8 @@ export function PuffChat({
 
     const hasMessages = displayMessages.length > 0;
 
-    // Input component (reusable for both positions)
     const InputArea = (
-        <div className={cn("p-2", hasMessages ? "border-t" : "border-b", hideHeader && "p-2 border-0")}>
+        <div className={cn("p-2 border-t", hideHeader && "border-0")}>
             {/* Attachment Previews */}
             {attachments.length > 0 && (
                 <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
@@ -848,21 +853,7 @@ export function PuffChat({
             )}
             
             <div className={cn("mx-auto bg-muted/20 rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring focus-within:border-ring transition-all p-2 space-y-2 shadow-inner", hideHeader ? "w-full" : "max-w-3xl")}>
-                {promptSuggestions.length > 0 && !hasMessages && (
-                    <div className="flex flex-wrap gap-2 mb-2">
-                        {promptSuggestions.map((suggestion, i) => (
-                            <Button
-                                key={i}
-                                variant="outline"
-                                size="sm"
-                                className="h-6 text-xs bg-background/50 hover:bg-background"
-                                onClick={() => submitMessage(suggestion)}
-                            >
-                                {suggestion}
-                            </Button>
-                        ))}
-                    </div>
-                )}
+            {/* Suggestions removed from InputArea - moved to Empty State */}
                 
                 <div className="flex gap-2">
                      <textarea
@@ -973,10 +964,10 @@ export function PuffChat({
     );
 
     return (
-        <div className={cn("flex flex-col bg-background border rounded-lg", hasMessages ? "h-full" : "", className)}>
-            {/* Header - only show if we have messages and not hidden */}
-            {hasMessages && !hideHeader && (
-                <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-violet-50 to-purple-50">
+        <div className={cn("flex flex-col bg-background border rounded-lg h-full overflow-hidden", className)}>
+            {/* Header */}
+            {!hideHeader && (
+                <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-violet-50 to-purple-50 shrink-0">
                     <div className="flex items-center gap-3">
                         {onBack && (
                             <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
@@ -996,190 +987,218 @@ export function PuffChat({
                 </div>
             )}
 
-            {/* Input at TOP when no messages */}
-            {!hasMessages && InputArea}
-
-            {/* Content Area - only show if we have messages */}
-            {hasMessages && (
-                <ScrollArea className="flex-1">
-                    <div className="p-4 space-y-4">
-
-                        {/* Messages */}
-                        {displayMessages.map(message => (
-                            <div key={message.id}>
-                                {message.role === 'user' ? (
-                                    <div className="flex justify-end group items-start gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity mt-2"
-                                            onClick={() => navigator.clipboard.writeText(message.content)}
-                                            title="Copy prompt"
-                                        >
-                                            <Copy className="h-3 w-3 text-muted-foreground" />
-                                        </Button>
-                                        <div className="bg-primary text-primary-foreground rounded-lg px-4 py-2 max-w-[80%]">
-                                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {/* Router / Thinking Process Visualization */}
-                                        {message.steps && message.steps.length > 0 && (
-                                            <AgentRouterVisualization 
-                                                steps={message.steps} 
-                                                isComplete={!message.isThinking}
-                                            />
-                                        )}
-                                        
-                                        {/* Fallback Thinking Indicator if no steps but still thinking */}
-                                        {message.isThinking && (!message.steps || message.steps.length === 0) && (
-                                            <ThinkingIndicator duration={message.workDuration} />
-                                        )}
-
-                                        {/* Content - Only show when not thinking (or handling streaming transition) */}
-                                        {!message.isThinking && (
-                                            <>
-                                                {/* Rich Metadata Rendering */}
-                                                {message.metadata?.type === 'compliance_report' && (
-                                                    <Card className="border-red-200 bg-red-50 mb-2">
-                                                        <CardContent className="p-3">
-                                                            <div className="flex items-center gap-2 text-red-700 font-semibold mb-2">
-                                                                <ShieldCheck className="h-4 w-4" />
-                                                                <span>Compliance Violation Detected</span>
-                                                            </div>
-                                                            <ul className="list-disc list-inside text-xs text-red-600 space-y-1">
-                                                                {message.metadata.data.violations.map((v: string, i: number) => (
-                                                                    <li key={i}>{v}</li>
-                                                                ))}
-                                                            </ul>
-                                                        </CardContent>
-                                                    </Card>
-                                                )}
-
-                                                {/* Media Preview (Video/Image) */}
-                                                {message.metadata?.media && (
-                                                    <div className="mb-4">
-                                                        <ChatMediaPreview
-                                                            type={message.metadata.media.type}
-                                                            url={message.metadata.media.url}
-                                                            prompt={message.metadata.media.prompt}
-                                                            duration={message.metadata.media.duration}
-                                                            model={message.metadata.media.model}
-                                                        />
-                                                    </div>
-                                                )}
-
-                                                {message.metadata?.type === 'product_rec' && (
-                                                    <Card className="border-emerald-200 bg-emerald-50 mb-2">
-                                                        <CardContent className="p-3">
-                                                            <div className="flex items-center gap-2 text-emerald-700 font-semibold mb-2">
-                                                                <ShoppingCart className="h-4 w-4" />
-                                                                <span>Smokey's Picks</span>
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                {message.metadata.data.products.map((p: any, i: number) => (
-                                                                    <div key={i} className="flex justify-between items-center bg-white p-2 rounded border border-emerald-100">
-                                                                        <div>
-                                                                            <p className="text-sm font-medium">{p.name}</p>
-                                                                            <p className="text-[10px] text-muted-foreground">{p.reason}</p>
-                                                                        </div>
-                                                                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
-                                                                            {Math.round(p.score * 100)}% Match
-                                                                        </Badge>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </CardContent>
-                                                    </Card>
-                                                )}
-
-                                                <div className="prose prose-sm max-w-none group relative text-sm leading-relaxed space-y-2">
-                                                    {streamingMessageId === message.id ? (
-                                                        <TypewriterText 
-                                                            text={message.content}
-                                                            speed={15}
-                                                            delay={1000} // Delay typewriter to allow router fade to start/finish
-                                                            onComplete={() => setStreamingMessageId(null)}
-                                                            className="whitespace-pre-wrap"
-                                                        />
-                                                    ) : (
-                                                        <ReactMarkdown 
-                                                            remarkPlugins={[remarkGfm]}
-                                                            components={{
-                                                                p: ({node, ...props}) => <div {...props} />,
-                                                                ul: ({node, ...props}) => <ul className="list-disc list-inside my-2" {...props} />,
-                                                                ol: ({node, ...props}) => <ol className="list-decimal list-inside my-2" {...props} />,
-                                                                li: ({node, ...props}) => <li className="my-1" {...props} />,
-                                                                h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-4 mb-2" {...props} />,
-                                                                h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
-                                                                h3: ({node, ...props}) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
-                                                                blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
-                                                                code: ({node, ...props}) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props} />,
-                                                            }}
-                                                        >
-                                                            {message.content}
-                                                        </ReactMarkdown>
-                                                    )}
-                                                    <button
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText(message.content);
-                                                            // Show brief visual feedback
-                                                            const btn = document.getElementById(`copy-btn-${message.id}`);
-                                                            if (btn) {
-                                                                btn.classList.add('text-emerald-500');
-                                                                setTimeout(() => btn.classList.remove('text-emerald-500'), 1500);
-                                                            }
-                                                        }}
-                                                        id={`copy-btn-${message.id}`}
-                                                        className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                                                        title="Copy to clipboard"
-                                                    >
-                                                        <Copy className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
+            {/* Scrollable Content Area */}
+            <ScrollArea className="flex-1 w-full bg-slate-50/30">
+                <div className="p-4 space-y-4 min-h-full">
+                    {/* Empty State */}
+                    {!hasMessages && (
+                        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-6 mt-10">
+                            <div className="bg-white p-4 rounded-full shadow-sm ring-1 ring-slate-100">
+                                <Sparkles className="h-8 w-8 text-primary" />
                             </div>
-                        ))}
-
-                        {/* Permissions Panel */}
-                        {state.permissions.length > 0 && showPermissions && (
-                            <Card className="mt-4">
-                                <CardContent className="p-0">
-                                    <div className="p-3 border-b">
-                                        <h3 className="font-medium text-sm">Grant permissions to agent?</h3>
-                                        <p className="text-xs text-muted-foreground">
-                                            The agent wants the ability to use tools from your connections
-                                        </p>
-                                    </div>
-                                    {state.permissions.map(permission => (
-                                        <PermissionCard
-                                            key={permission.id}
-                                            permission={permission}
-                                            onGrant={() => handleGrantPermission(permission.id)}
-                                        />
+                            <div className="space-y-2">
+                                <h3 className="text-xl font-semibold tracking-tight">How can I help you?</h3>
+                                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                                    I can help you analyze data, draft content, or manage your operations.
+                                </p>
+                            </div>
+                            
+                            {promptSuggestions.length > 0 && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl w-full px-4 pt-4">
+                                    {promptSuggestions.map((suggestion, i) => (
+                                        <Button
+                                            key={i}
+                                            variant="outline"
+                                            className="h-auto py-3 px-4 text-xs justify-start text-left whitespace-normal bg-white hover:bg-slate-50 border-slate-200 hover:border-primary/30 transition-all shadow-sm"
+                                            onClick={() => submitMessage(suggestion)}
+                                        >
+                                            {suggestion}
+                                        </Button>
                                     ))}
-                                </CardContent>
-                            </Card>
-                        )}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
-                        {/* Triggers */}
-                        {state.triggers.length > 0 && (
-                            <TriggerIndicator
-                                triggers={state.triggers}
-                                expanded={showTriggers}
-                                onToggle={() => setShowTriggers(!showTriggers)}
-                            />
-                        )}
-                    </div>
-                </ScrollArea>
-            )}
+                    {/* Messages */}
+                    {hasMessages && displayMessages.map(message => (
+                        <div key={message.id}>
+                            {message.role === 'user' ? (
+                                <div className="flex justify-end group items-start gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity mt-2"
+                                        onClick={() => navigator.clipboard.writeText(message.content)}
+                                        title="Copy prompt"
+                                    >
+                                        <Copy className="h-3 w-3 text-muted-foreground" />
+                                    </Button>
+                                    <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-5 py-3 max-w-[85%] shadow-sm">
+                                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 max-w-[90%]">
+                                    {/* Router / Thinking Process Visualization */}
+                                    {message.steps && message.steps.length > 0 && (
+                                        <AgentRouterVisualization 
+                                            steps={message.steps} 
+                                            isComplete={!message.isThinking}
+                                        />
+                                    )}
+                                    
+                                    {/* Fallback Thinking Indicator if no steps but still thinking */}
+                                    {message.isThinking && (!message.steps || message.steps.length === 0) && (
+                                        <ThinkingIndicator duration={message.workDuration} />
+                                    )}
 
-            {/* Input at BOTTOM when we have messages */}
-            {hasMessages && InputArea}
+                                    {/* Content - Only show when not thinking (or handling streaming transition) */}
+                                    {!message.isThinking && (
+                                        <div className="bg-white rounded-2xl rounded-tl-sm border px-6 py-5 shadow-sm">
+                                            {/* Rich Metadata Rendering */}
+                                            {message.metadata?.type === 'compliance_report' && (
+                                                <Card className="border-red-200 bg-red-50 mb-4">
+                                                    <CardContent className="p-3">
+                                                        <div className="flex items-center gap-2 text-red-700 font-semibold mb-2">
+                                                            <ShieldCheck className="h-4 w-4" />
+                                                            <span>Compliance Violation Detected</span>
+                                                        </div>
+                                                        <ul className="list-disc list-inside text-xs text-red-600 space-y-1">
+                                                            {message.metadata.data.violations.map((v: string, i: number) => (
+                                                                <li key={i}>{v}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </CardContent>
+                                                </Card>
+                                            )}
+
+                                            {/* Media Preview (Video/Image) */}
+                                            {message.metadata?.media && (
+                                                <div className="mb-4">
+                                                    <ChatMediaPreview
+                                                        type={message.metadata.media.type}
+                                                        url={message.metadata.media.url}
+                                                        prompt={message.metadata.media.prompt}
+                                                        duration={message.metadata.media.duration}
+                                                        model={message.metadata.media.model}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {message.metadata?.type === 'product_rec' && (
+                                                <Card className="border-emerald-200 bg-emerald-50 mb-4">
+                                                    <CardContent className="p-3">
+                                                        <div className="flex items-center gap-2 text-emerald-700 font-semibold mb-2">
+                                                            <ShoppingCart className="h-4 w-4" />
+                                                            <span>Smokey's Picks</span>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            {message.metadata.data.products.map((p: any, i: number) => (
+                                                                <div key={i} className="flex justify-between items-center bg-white p-2 rounded border border-emerald-100">
+                                                                    <div>
+                                                                        <p className="text-sm font-medium">{p.name}</p>
+                                                                        <p className="text-[10px] text-muted-foreground">{p.reason}</p>
+                                                                    </div>
+                                                                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
+                                                                        {Math.round(p.score * 100)}% Match
+                                                                    </Badge>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            )}
+
+                                            <div className="prose prose-sm max-w-none group relative text-sm leading-relaxed space-y-2">
+                                                {streamingMessageId === message.id ? (
+                                                    <TypewriterText 
+                                                        text={message.content}
+                                                        speed={15}
+                                                        delay={500}
+                                                        onComplete={() => setStreamingMessageId(null)}
+                                                        className="whitespace-pre-wrap"
+                                                    />
+                                                ) : (
+                                                    <ReactMarkdown 
+                                                        remarkPlugins={[remarkGfm]}
+                                                        components={{
+                                                            p: ({node, ...props}) => <div {...props} />,
+                                                            ul: ({node, ...props}) => <ul className="list-disc list-inside my-2" {...props} />,
+                                                            ol: ({node, ...props}) => <ol className="list-decimal list-inside my-2" {...props} />,
+                                                            li: ({node, ...props}) => <li className="my-1" {...props} />,
+                                                            h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-4 mb-2" {...props} />,
+                                                            h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
+                                                            h3: ({node, ...props}) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
+                                                            blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
+                                                            code: ({node, ...props}) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props} />,
+                                                        }}
+                                                    >
+                                                        {message.content}
+                                                    </ReactMarkdown>
+                                                )}
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(message.content);
+                                                        const btn = document.getElementById(`copy-btn-${message.id}`);
+                                                        if (btn) {
+                                                            btn.classList.add('text-emerald-500');
+                                                            setTimeout(() => btn.classList.remove('text-emerald-500'), 1500);
+                                                        }
+                                                    }}
+                                                    id={`copy-btn-${message.id}`}
+                                                    className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                                    title="Copy to clipboard"
+                                                >
+                                                    <Copy className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+
+                    {/* Permissions Panel */}
+                    {state.permissions.length > 0 && showPermissions && (
+                        <Card className="mt-4">
+                            <CardContent className="p-0">
+                                <div className="p-3 border-b">
+                                    <h3 className="font-medium text-sm">Grant permissions to agent?</h3>
+                                    <p className="text-xs text-muted-foreground">
+                                        The agent wants the ability to use tools from your connections
+                                    </p>
+                                </div>
+                                {state.permissions.map(permission => (
+                                    <PermissionCard
+                                        key={permission.id}
+                                        permission={permission}
+                                        onGrant={() => handleGrantPermission(permission.id)}
+                                    />
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Triggers */}
+                    {state.triggers.length > 0 && (
+                        <TriggerIndicator
+                            triggers={state.triggers}
+                            expanded={showTriggers}
+                            onToggle={() => setShowTriggers(!showTriggers)}
+                        />
+                    )}
+                    
+                    {/* Spacer for bottom input */}
+                    <div className="h-4" />
+                </div>
+            </ScrollArea>
+
+            {/* Input at BOTTOM */}
+            <div className="shrink-0 z-10 bg-background/80 backdrop-blur-sm pt-2">
+                {InputArea}
+            </div>
         </div>
     );
 }

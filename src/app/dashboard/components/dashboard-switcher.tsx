@@ -8,9 +8,11 @@ import DashboardPageComponent from '../page-client';
 import DispensaryDashboardClient from '../dispensary/dashboard-client';
 import BrandDashboardClient from '../brand/dashboard-client';
 import CustomerDashboardClient from '../customer/dashboard-client';
+import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 export default function DashboardSwitcher() {
+    const router = useRouter(); // Initialize router
     const { role, user, isLoading: isRoleLoading } = useUserRole();
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [checkComplete, setCheckComplete] = useState(false);
@@ -36,28 +38,35 @@ export default function DashboardSwitcher() {
         );
     }
 
-    // 1. Brand / Owner View
+    // 1. Super Admin View - PRIORITY override
+    // If we have a super admin session, always go to CEO dashboard, regardless of role
+    if (isSuperAdmin) {
+        router.replace('/dashboard/ceo');
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Redirecting to HQ...</span>
+            </div>
+        );
+    }
+
+    // 2. Brand / Owner View
     if (role === 'brand' || role === 'owner') {
         const brandId = (user as any)?.brandId || user?.uid || 'unknown-brand';
         return <BrandDashboardClient brandId={brandId} />;
     }
 
-    // 2. Dispensary View
+    // 3. Dispensary View
     if (role === 'dispensary') {
         const brandId = (user as any)?.brandId || user?.uid || 'unknown-dispensary';
         return <DispensaryDashboardClient brandId={brandId} />;
     }
 
-    // 3. Customer View
+    // 4. Customer View
     if (role === 'customer') {
         return <CustomerDashboardClient />;
     }
 
-    // 4. Super Admin View (Big Worm HQ)
-    if (isSuperAdmin) {
-        return <AgentInterface />;
-    }
-
-    // 4. Default Fallback
+    // 5. Default Fallback
     return <DashboardPageComponent brandId={(user as any)?.brandId || user?.uid || 'guest'} />;
 }

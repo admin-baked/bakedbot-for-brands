@@ -10,7 +10,7 @@ export default function AgentInterface() {
         <div className="flex flex-col h-[calc(100vh-100px)] max-w-6xl mx-auto w-full p-4 space-y-6">
             <Tabs defaultValue="chat" className="w-full h-full flex flex-col">
                 <div className="flex items-center justify-between mb-4">
-                    <h1 className="text-xl font-black tracking-tight uppercase">Big Worm HQ</h1>
+                    <h1 className="text-xl font-black tracking-tight uppercase">HQ Chat</h1>
                     <TabsList>
                         <TabsTrigger value="chat" className="gap-2">
                             <MessageSquare className="h-4 w-4" />
