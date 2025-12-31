@@ -421,7 +421,7 @@ export function ManagedPagesWidget({ onRemove }: { onRemove?: () => void }) {
 
 export function BrandChatWidgetWrapper({ onRemove }: { onRemove?: () => void }) {
     return (
-        <WidgetWrapper title="Smokey Chat (Brand)" icon={<MessageSquare className="h-4 w-4" />} onRemove={onRemove}>
+        <WidgetWrapper title="Smokey Chat (Brand)" icon={<MessageSquare className="h-4 w-4" />} onRemove={onRemove} isStatic>
             <div className="h-full overflow-hidden">
                 <BrandChatWidget />
             </div>

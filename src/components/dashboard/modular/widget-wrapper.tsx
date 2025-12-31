@@ -23,6 +23,8 @@ interface WidgetWrapperProps {
     onSettings?: () => void;
     onExpand?: () => void;
     className?: string;
+    /** If true, widget cannot be dragged (fixed position) */
+    isStatic?: boolean;
 }
 
 export function WidgetWrapper({
@@ -32,20 +34,23 @@ export function WidgetWrapper({
     onRemove,
     onSettings,
     onExpand,
-    className = ''
+    className = '',
+    isStatic = false
 }: WidgetWrapperProps) {
     return (
-        <Card className={`h-full flex flex-col ${className}`}>
+        <Card className={`h-full flex flex-col ${isStatic ? 'no-drag' : ''} ${className}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-3 touch-none">
                 <div className="flex items-center gap-2">
-                    {/* Drag Handle - Larger touch target */}
-                    <div
-                        className="cursor-move active:cursor-grabbing p-2 -ml-2 hover:bg-muted/50 rounded-md drag-handle touch-none"
-                        title="Drag to rearrange"
-                        style={{ touchAction: 'none' }}
-                    >
-                        <GripVertical className="h-5 w-5 text-muted-foreground/50 hover:text-foreground transition-colors" />
-                    </div>
+                    {/* Drag Handle - Only show if not static */}
+                    {!isStatic && (
+                        <div
+                            className="cursor-move active:cursor-grabbing p-2 -ml-2 hover:bg-muted/50 rounded-md drag-handle touch-none"
+                            title="Drag to rearrange"
+                            style={{ touchAction: 'none' }}
+                        >
+                            <GripVertical className="h-5 w-5 text-muted-foreground/50 hover:text-foreground transition-colors" />
+                        </div>
+                    )}
 
                     {icon && <span className="text-muted-foreground">{icon}</span>}
                     <CardTitle className="text-sm font-medium">{title}</CardTitle>
