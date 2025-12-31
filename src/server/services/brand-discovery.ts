@@ -35,50 +35,60 @@ export class BrandDiscoveryService {
      * Discover cannabis brands for a given city/state
      */
     /**
-     * Discover cannabis brands by finding "best of" lists and extracting brand names.
+     * Discover cannabis brands by scraping dispensary "Brand" pages.
+     * This ensures we find brands that are actually in stock locally.
      */
     async discoverBrands(city: string, state: string): Promise<{ name: string; url: string }[]> {
-        const query = `best cannabis brands available in ${city} ${state} list 2024`;
-        console.log(`[BrandDiscovery] Searching for listicles: ${query}`);
+        // Query to find dispensary brand lists, e.g. "Sunnyside Chicago brands", "Curaleaf brands", etc.
+        const query = `dispensary in ${city} ${state} "brands" page`;
+        console.log(`[BrandDiscovery] Searching for dispensary menus: ${query}`);
         
         try {
-            // 1. Search for listicles
+            // 1. Search for dispensary brand pages
             const results = await this.firecrawl.search(query);
             const typedResults = results as any[];
             
-            // Filter for likely content pages (blogs, news, magazines)
-            // We WANT Leafly, Weedmaps, GreenState etc. as they have the lists
-            const listicles = typedResults
-                .slice(0, 3) // Top 3 results
+            // Filter for likely brand menu pages
+            const menuPages = typedResults
+                .filter((r: any) => r.url && (
+                    r.url.includes('/brands') || 
+                    r.url.includes('/menu') || 
+                    r.url.includes('Shop') ||
+                    r.title.toLowerCase().includes('brands')
+                ))
+                .slice(0, 3) // Take top 3 dispensary brand lists
                 .map((r: any) => r.url);
 
-            console.log(`[BrandDiscovery] Found listicles:`, listicles);
+            console.log(`[BrandDiscovery] Found dispensary pages:`, menuPages);
 
-            // 2. Extract brands from each listicle
+            // 2. Extract brands from each dispensary page
             const allBrands: { name: string; url: string }[] = [];
             
-            // Define schema for extraction
+            // Schema: Look for a list of brand names/links
             const extractionSchema = z.object({
                 brands: z.array(z.object({
-                    name: z.string().describe("The name of the cannabis brand"),
-                    website: z.string().optional().describe("The official website of the brand if mentioned")
-                })).describe("List of cannabis brands mentioned in the article")
+                    name: z.string().describe("Name of the cannabis brand sold at this dispensary"),
+                    url: z.string().optional().describe("Link to the brand's collection page")
+                })).describe("List of cannabis brands carried by this dispensary")
             });
 
-            for (const url of listicles) {
-                console.log(`[BrandDiscovery] Extracting brands from ${url}...`);
+            for (const url of menuPages) {
+                console.log(`[BrandDiscovery] Scaping brands from ${url}...`);
                 try {
                     const data = await this.firecrawl.extractData(url, extractionSchema);
                     if (data && data.brands && Array.isArray(data.brands)) {
                         data.brands.forEach((brand: any) => {
-                            // Basic filtering to avoid junk
+                            // Filter out navigation links or generic terms
                             if (brand.name && 
-                                !brand.name.toLowerCase().includes('best') && 
-                                !brand.name.toLowerCase().includes('top') && 
-                                brand.name.length < 50) {
+                                brand.name.length > 2 &&
+                                brand.name.length < 50 &&
+                                !brand.name.toLowerCase().includes('menu') &&
+                                !brand.name.toLowerCase().includes('login') &&
+                                !brand.name.toLowerCase().includes('cart')) {
+                                
                                 allBrands.push({
                                     name: brand.name,
-                                    url: brand.website || ''
+                                    url: brand.url || '' // This might be a relative link on the dispensary site, which is fine for now
                                 });
                             }
                         });
@@ -91,16 +101,14 @@ export class BrandDiscoveryService {
             // 3. Deduplicate
             const uniqueBrands = new Map<string, { name: string; url: string }>();
             allBrands.forEach(b => {
-                // Normalize name to deduplicate
                 const normalizedKey = b.name.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-                // Avoid empty names or weird short ones
-                if (normalizedKey.length > 2 && !uniqueBrands.has(normalizedKey)) {
+                if (!uniqueBrands.has(normalizedKey)) {
                     uniqueBrands.set(normalizedKey, b);
                 }
             });
 
-            const finalList = Array.from(uniqueBrands.values()).slice(0, 20);
-            console.log(`[BrandDiscovery] Extracted ${finalList.length} unique brands`);
+            const finalList = Array.from(uniqueBrands.values()).slice(0, 30); // Higher limit (30) as menus have many brands
+            console.log(`[BrandDiscovery] Extracted ${finalList.length} unique brands from dispensary menus`);
             
             return finalList;
         } catch (error) {
