@@ -204,16 +204,17 @@ export async function POST(request: NextRequest) {
                     const { firecrawl } = await import('@/server/services/firecrawl');
                     if (firecrawl.isConfigured()) {
                          const scrapeResult = await firecrawl.scrapeUrl(urlMatch[0], ['markdown']);
-                         if (scrapeResult.success) {
+                         const resultData = (scrapeResult as any);
+                         if (resultData.success) {
                              items = [{
-                                 title: scrapeResult.data.metadata?.title || 'Scraped Content',
-                                 description: (scrapeResult.data.markdown || '').substring(0, 300) + '...',
+                                 title: resultData.metadata?.title || 'Scraped Content',
+                                 description: (resultData.markdown || '').substring(0, 300) + '...',
                                  meta: '🔥 Live Firecrawl Extraction'
                              }];
                              // Add a second item for stats if available
                              items.push({
                                  title: 'Extraction Stats',
-                                 description: `Status: ${scrapeResult.success ? 'Success' : 'Failed'} | Format: Markdown`,
+                                 description: `Status: ${resultData.success ? 'Success' : 'Failed'} | Format: Markdown`,
                                  meta: 'CONFIDENTIAL INTEL'
                              });
                          }
