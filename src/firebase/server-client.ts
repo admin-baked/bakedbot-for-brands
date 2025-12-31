@@ -105,6 +105,7 @@ export async function createServerClient() {
 
   const auth = getAuth(app);
   const firestore = getFirestore(app);
+  firestore.settings({ ignoreUndefinedProperties: true });
   return { auth, firestore };
 }
 

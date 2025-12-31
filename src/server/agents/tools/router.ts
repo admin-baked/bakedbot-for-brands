@@ -408,15 +408,8 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
     if (def.name === 'research.deep') {
         if (!request.tenantId) throw new Error('Tool requires tenant context.');
         
-        // Owl/Deep Research is a PAID feature.
-        // The router currently mocks permission checks via `hasRolePermission` (Phase 1).
-        // In this execution block, we reinforce the check or rely on the tool definition's requirePermission.
-        // Assuming 'pro_features' permission or 'paid' tier.
-        
         try {
             const { researchService } = await import('@/server/services/research-service');
-             // Enqueue task for Python Sidecar (Owl)
-            const tasks = await import('@/server/services/research-service'); // Re-import to be safe or use existing
             
             const taskId = await researchService.createTask(
                 request.actor.userId,
@@ -436,6 +429,49 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
              return {
                 status: 'failed',
                 error: `Failed to queue research task: ${error.message}`
+            };
+        }
+    }
+
+    // Dev Tools - Read Codebase (Super User only)
+    if (def.name === 'dev.readCodebase') {
+        try {
+            const fs = await import('fs/promises');
+            const path = await import('path');
+            const rootDir = process.cwd();
+            const targetPath = path.resolve(rootDir, inputs.path);
+
+            // Security check: Only allow reading within project root
+            if (!targetPath.startsWith(rootDir)) {
+                throw new Error('Access denied: Cannot read outside of project root.');
+            }
+
+            const stats = await fs.stat(targetPath);
+            if (stats.isDirectory()) {
+                const files = await fs.readdir(targetPath);
+                return {
+                    status: 'success',
+                    data: {
+                        path: inputs.path,
+                        type: 'directory',
+                        files
+                    }
+                };
+            } else {
+                const content = await fs.readFile(targetPath, 'utf-8');
+                return {
+                    status: 'success',
+                    data: {
+                        path: inputs.path,
+                        type: 'file',
+                        content: content.length > 10000 ? content.substring(0, 10000) + '\n\n... (truncated)' : content
+                    }
+                };
+            }
+        } catch (error: any) {
+            return {
+                status: 'failed',
+                error: `Failed to read codebase: ${error.message}`
             };
         }
     }
