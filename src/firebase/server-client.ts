@@ -105,7 +105,11 @@ export async function createServerClient() {
 
   const auth = getAuth(app);
   const firestore = getFirestore(app);
-  firestore.settings({ ignoreUndefinedProperties: true });
+  try {
+    firestore.settings({ ignoreUndefinedProperties: true });
+  } catch (e) {
+    // Ignore "already initialized" error if app was reused
+  }
   return { auth, firestore };
 }
 
