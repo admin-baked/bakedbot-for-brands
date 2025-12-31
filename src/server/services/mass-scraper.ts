@@ -91,7 +91,7 @@ export class MassScraperService {
                 city: data.city,
                 state: data.state,
                 featured: false,
-                published: false, // Draft mode for pilot
+                published: true, // Live mode for pilot
                 seoTags: {
                     metaTitle: `${data.dispensaryName} - Cannabis Dispensary in ${zipCode}`,
                     metaDescription: data.aboutText?.slice(0, 160)
