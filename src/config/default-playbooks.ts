@@ -979,6 +979,10 @@ steps:
       spreadsheetId: "{{config.spreadsheet_id}}"
       values: "{{scan_loop.formatted_rows}}"
 `,
+    triggers: [
+      { type: 'schedule', cron: '0 10 * * 1' },
+      { type: 'manual' }
+    ],
     icon: 'bot',
     steps: [
       {
