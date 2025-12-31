@@ -473,6 +473,56 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         }
     }
 
+    // Google Sheets - Append Rows (for Price Tracker and data logging)
+    if (def.name === 'sheets.append') {
+        try {
+            await checkAndEnforcePermission('sheets');
+            const { sheetsAction } = await import('@/server/tools/sheets');
+            const result = await sheetsAction({
+                action: 'append',
+                spreadsheetId: inputs.spreadsheetId,
+                range: inputs.range || 'Sheet1!A1',
+                values: inputs.values
+            });
+            return {
+                status: result.success ? 'success' : 'failed',
+                data: result.data,
+                error: result.error
+            };
+        } catch (error: any) {
+            return { status: 'failed', error: error.message };
+        }
+    }
+
+    // Weedmaps - Scrape Dispensary Menu (for Price Tracker)
+    if (def.name === 'weedmaps.scrape') {
+        try {
+            const { scrapeMultipleDispensaries, formatProductsForSheets } = await import('@/server/tools/scrapers/weedmaps');
+            
+            // Handle single URL or array of URLs
+            const urls = Array.isArray(inputs.urls) ? inputs.urls : [inputs.url];
+            
+            const result = await scrapeMultipleDispensaries(urls);
+            
+            // Optionally format for sheets if requested
+            const allProducts = result.results.flatMap(r => r.products);
+            const sheetsData = inputs.formatForSheets ? formatProductsForSheets(allProducts) : null;
+            
+            return {
+                status: result.success ? 'success' : 'failed',
+                data: {
+                    totalProducts: result.totalProducts,
+                    dispensariesScanned: result.results.length,
+                    products: allProducts,
+                    sheetsFormatted: sheetsData,
+                    results: result.results
+                }
+            };
+        } catch (error: any) {
+            return { status: 'failed', error: error.message };
+        }
+    }
+
     // Google Drive - Upload File
     if (def.name === 'drive.uploadFile') {
         try {
