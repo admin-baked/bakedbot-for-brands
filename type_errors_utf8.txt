@@ -1,0 +1,71 @@
+﻿
+> nextn@0.1.0 check:types
+> node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit
+
+src/app/dashboard/ceo/components/crm-tab.tsx(302,64): error TS2304: Cannot find name 'toggleBrandSort'.
+src/app/dashboard/ceo/components/crm-tab.tsx(306,54): error TS2304: Cannot find name 'SortIcon'.
+src/app/dashboard/ceo/components/crm-tab.tsx(312,64): error TS2304: Cannot find name 'toggleBrandSort'.
+src/app/dashboard/ceo/components/crm-tab.tsx(316,54): error TS2304: Cannot find name 'SortIcon'.
+src/app/dashboard/ceo/components/crm-tab.tsx(321,64): error TS2304: Cannot find name 'toggleBrandSort'.
+src/app/dashboard/ceo/components/crm-tab.tsx(325,54): error TS2304: Cannot find name 'SortIcon'.
+src/app/dashboard/ceo/components/crm-tab.tsx(330,64): error TS2304: Cannot find name 'toggleBrandSort'.
+src/app/dashboard/ceo/components/crm-tab.tsx(334,54): error TS2304: Cannot find name 'SortIcon'.
+src/app/dashboard/ceo/components/crm-tab.tsx(339,64): error TS2304: Cannot find name 'toggleBrandSort'.
+src/app/dashboard/ceo/components/crm-tab.tsx(343,54): error TS2304: Cannot find name 'SortIcon'.
+src/app/dashboard/ceo/components/crm-tab.tsx(407,76): error TS2304: Cannot find name 'handleInvite'.
+src/app/dashboard/ceo/components/crm-tab.tsx(409,62): error TS2304: Cannot find name 'Send'.
+src/app/dashboard/ceo/components/crm-tab.tsx(482,64): error TS2304: Cannot find name 'toggleDispSort'.
+src/app/dashboard/ceo/components/crm-tab.tsx(486,54): error TS2304: Cannot find name 'SortIcon'.
+src/app/dashboard/ceo/components/crm-tab.tsx(491,64): error TS2304: Cannot find name 'toggleDispSort'.
+src/app/dashboard/ceo/components/crm-tab.tsx(495,54): error TS2304: Cannot find name 'SortIcon'.
+src/app/dashboard/ceo/components/crm-tab.tsx(500,64): error TS2304: Cannot find name 'toggleDispSort'.
+src/app/dashboard/ceo/components/crm-tab.tsx(504,54): error TS2304: Cannot find name 'SortIcon'.
+src/app/dashboard/ceo/components/crm-tab.tsx(509,64): error TS2304: Cannot find name 'toggleDispSort'.
+src/app/dashboard/ceo/components/crm-tab.tsx(513,54): error TS2304: Cannot find name 'SortIcon'.
+src/app/dashboard/ceo/components/crm-tab.tsx(518,64): error TS2304: Cannot find name 'toggleDispSort'.
+src/app/dashboard/ceo/components/crm-tab.tsx(522,54): error TS2304: Cannot find name 'SortIcon'.
+src/app/dashboard/ceo/components/crm-tab.tsx(527,64): error TS2304: Cannot find name 'toggleDispSort'.
+src/app/dashboard/ceo/components/crm-tab.tsx(531,54): error TS2304: Cannot find name 'SortIcon'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(131,11): error TS2451: Cannot redeclare block-scoped variable 'filteredPages'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(131,27): error TS2304: Cannot find name 'useMemo'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(148,24): error TS2304: Cannot find name 'useMemo'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(165,30): error TS2304: Cannot find name 'useMemo'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(176,35): error TS2304: Cannot find name 'useMemo'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(286,11): error TS2451: Cannot redeclare block-scoped variable 'filteredPages'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(303,56): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(481,56): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(484,80): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(485,94): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(489,79): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(489,92): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(490,107): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(493,50): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(501,82): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(504,54): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(508,50): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(508,80): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(511,113): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(579,56): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(580,81): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(582,50): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(582,63): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(584,54): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(584,83): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(591,97): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(591,107): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(593,54): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(601,113): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(695,56): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(698,54): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(700,66): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(701,66): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(706,63): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(708,62): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(715,54): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(715,67): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(719,75): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(725,102): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(725,112): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(727,54): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(736,63): error TS18046: 'page' is of type 'unknown'.
+src/app/dashboard/ceo/components/foot-traffic-tab.tsx(743,95): error TS18046: 'page' is of type 'unknown'.

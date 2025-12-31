@@ -227,3 +227,68 @@ function getCustomerWelcomeTemplate(data: WelcomeEmailData): EmailTemplate {
         `.trim()
     };
 }
+// ============================================
+// CLAIM INVITE TEMPLATE
+// ============================================
+
+export interface ClaimInviteEmailData {
+    recipientEmail: string;
+    entityName: string;
+    entityType: 'brand' | 'dispensary';
+    claimUrl: string;
+}
+
+export function getClaimInviteEmailTemplate(data: ClaimInviteEmailData): EmailTemplate {
+    const isBrand = data.entityType === 'brand';
+    const color = isBrand ? '#10b981' : '#8b5cf6';
+    
+    return {
+        subject: `Claim Your ${isBrand ? 'Brand' : 'Dispensary'} Page on BakedBot 🌿`,
+        preheader: `Your ${data.entityName} page is getting discovered. Claim it to take control.`,
+        htmlContent: `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Your Page</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, ${color} 0%, ${isBrand ? '#059669' : '#7c3aed'} 100%); padding: 40px 20px; text-align: center; border-radius: 12px 12px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">Claim Your Page! 🌿</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Control Your Presence on BakedBot</p>
+    </div>
+    
+    <div style="background: #f9fafb; padding: 30px 20px; border-radius: 0 0 12px 12px;">
+        <p>Hello,</p>
+        
+        <p>We've created a discovery page for <strong>${data.entityName}</strong> on BakedBot AI – the leading Agentic Commerce OS for the cannabis industry.</p>
+        
+        <p>Your page is currently being discovered by customers in your area. By claiming your page, you can:</p>
+        
+        <ul style="padding-left: 20px;">
+            <li><strong>Update Your Profile</strong> – Add logos, about us, and social links</li>
+            <li><strong>Manage Your Catalog</strong> – Ensure your products and prices are accurate</li>
+            <li><strong>Access Analytics</strong> – See how many people are viewing your page</li>
+            <li><strong>Drive More Sales</strong> – Convert discovery traffic into loyal customers</li>
+        </ul>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="${data.claimUrl}" style="background: ${color}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">Claim Your Page Now →</a>
+        </div>
+        
+        <p style="color: #666; font-size: 14px;">Join hundreds of other ${isBrand ? 'brands' : 'dispensaries'} already growing with BakedBot AI.</p>
+        
+        <p>Let's grow together 🌿</p>
+        <p><strong>– The BakedBot Team</strong></p>
+    </div>
+    
+    <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+        <p>BakedBot AI · Agentic Commerce OS</p>
+        <p><a href="https://bakedbot.ai" style="color: ${color};">bakedbot.ai</a></p>
+    </div>
+</body>
+</html>
+        `.trim()
+    };
+}

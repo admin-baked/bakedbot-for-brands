@@ -1,0 +1,4 @@
+﻿
+> nextn@0.1.0 check:types
+> node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit
+

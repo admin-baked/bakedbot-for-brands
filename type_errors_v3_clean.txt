@@ -1,0 +1,20 @@
+﻿
+> nextn@0.1.0 check:types
+> node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit
+
+src/app/dashboard/ceo/components/crm-tab.tsx(208,18): error TS2339: Property 'email' does not exist on type 'CRMBrand | CRMDispensary'.
+  Property 'email' does not exist on type 'CRMBrand'.
+src/app/dashboard/ceo/components/crm-tab.tsx(214,34): error TS2554: Expected 2 arguments, but got 1.
+src/app/dashboard/ceo/components/crm-tab.tsx(215,28): error TS2339: Property 'email' does not exist on type 'CRMBrand | CRMDispensary'.
+  Property 'email' does not exist on type 'CRMBrand'.
+src/app/dashboard/ceo/components/crm-tab.tsx(221,24): error TS2339: Property 'success' does not exist on type 'ActionResult'.
+src/app/dashboard/ceo/components/crm-tab.tsx(222,78): error TS2339: Property 'email' does not exist on type 'CRMBrand | CRMDispensary'.
+  Property 'email' does not exist on type 'CRMBrand'.
+src/app/dashboard/ceo/components/crm-tab.tsx(227,33): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(message?: string | undefined, options?: ErrorOptions | undefined): Error', gave the following error.
+    Argument of type 'boolean | undefined' is not assignable to parameter of type 'string | undefined'.
+      Type 'boolean' is not assignable to type 'string'.
+  Overload 2 of 2, '(message?: string | undefined): Error', gave the following error.
+    Argument of type 'boolean | undefined' is not assignable to parameter of type 'string | undefined'.
+      Type 'boolean' is not assignable to type 'string'.
+src/app/dashboard/ceo/components/crm-tab.tsx(455,89): error TS2345: Argument of type 'string' is not assignable to parameter of type '"brand" | "dispensary"'.

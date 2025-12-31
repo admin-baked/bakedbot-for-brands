@@ -4,7 +4,7 @@ import { requireUser } from '@/server/auth/auth';
 import { searchCannMenusRetailers as searchShared, CannMenusResult } from '@/server/actions/cannmenus';
 import { runChicagoPilotJob } from '@/server/jobs/seo-generator';
 import { runBrandPilotJob } from '@/server/jobs/brand-discovery-job';
-import type { FootTrafficMetrics, BrandCTAType, CSVPreview, CSVRowError, BulkImportResult } from '@/types/foot-traffic';
+import type { FootTrafficMetrics, BrandCTAType, CSVPreview, CSVRowError, BulkImportResult, DispensarySEOPage } from '@/types/foot-traffic';
 
 export type { CannMenusResult };
 
@@ -1554,6 +1554,151 @@ export async function bulkPublishDispensaryPagesAction(published: boolean): Prom
   } catch (error: any) {
     console.error('[bulkPublishDispensaryPagesAction] Error:', error);
     return { message: `Failed to bulk update: ${error.message}`, error: true };
+  }
+}
+
+/**
+ * Get all dispensary SEO pages from the seo_pages_dispensary collection
+ * These are pages discovered via mass scraping
+ */
+export async function getDispensaryPagesAction(): Promise<DispensarySEOPage[]> {
+  try {
+    const firestore = getAdminFirestore();
+    const snapshot = await firestore
+      .collection('seo_pages_dispensary')
+      .orderBy('createdAt', 'desc')
+      .limit(100) // Limit for now, pagination will be added in Phase 3
+      .get();
+
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+      } as DispensarySEOPage;
+    });
+  } catch (error) {
+    console.error('[getDispensaryPagesAction] Error:', error);
+    return [];
+  }
+}
+
+/**
+ * Delete a dispensary SEO page
+ */
+export async function deleteDispensaryPageAction(id: string): Promise<ActionResult> {
+  await requireUser(['owner']);
+
+  try {
+    const firestore = getAdminFirestore();
+    await firestore.collection('seo_pages_dispensary').doc(id).delete();
+
+    return { message: 'Dispensary page deleted successfully.' };
+  } catch (error: any) {
+    console.error('[deleteDispensaryPageAction] Error:', error);
+    return { message: `Failed to delete dispensary page: ${error.message}`, error: true };
+  }
+}
+
+/**
+ * Toggle publish status of a dispensary SEO page
+ */
+export async function toggleDispensaryPagePublishAction(id: string, published: boolean): Promise<ActionResult> {
+  await requireUser(['owner']);
+
+  try {
+    const firestore = getAdminFirestore();
+    const ref = firestore.collection('seo_pages_dispensary').doc(id);
+
+    await ref.update({
+      published,
+      updatedAt: new Date()
+    });
+
+    return { message: `Dispensary page ${published ? 'published' : 'unpublished'} successfully.` };
+  } catch (error: any) {
+    console.error('[toggleDispensaryPagePublishAction] Error:', error);
+    return { message: `Failed to update publish status: ${error.message}`, error: true };
+  }
+}
+
+import { revalidatePath } from 'next/cache';
+
+export async function inviteToClaimAction(id: string, type: 'brand' | 'dispensary'): Promise<ActionResult> {
+  try {
+    await requireUser(['owner']);
+    const firestore = getAdminFirestore();
+    const collection = type === 'brand' ? 'crm_brands' : 'crm_dispensaries';
+    const docRef = firestore.collection(collection).doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return { message: `${type} not found in CRM`, error: true };
+    }
+
+    const data = doc.data();
+    if (!data?.website && !data?.email) {
+      return { message: 'No contact information available (email or website needed)', error: true };
+    }
+
+    // Determine recipient email
+    let recipientEmail = data.email;
+    if (!recipientEmail && data.website) {
+      try {
+        const urlString = data.website.startsWith('http') ? data.website : `https://${data.website}`;
+        const url = new URL(urlString);
+        recipientEmail = `info@${url.hostname.replace('www.', '')}`;
+      } catch (e) {
+        return { message: 'Invalid website URL for contact lookup', error: true };
+      }
+    }
+
+    if (!recipientEmail) {
+      return { message: 'Could not determine recipient email address', error: true };
+    }
+
+    // Create claim URL - targeting the /claim wizard
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot-for-brands.web.app';
+    const claimUrl = `${appUrl}/claim?name=${encodeURIComponent(data.name)}&orgId=${data.seoPageId || ''}`;
+
+    // Get template
+    const { getClaimInviteEmailTemplate } = await import('@/lib/email/autoresponder-templates');
+    const template = getClaimInviteEmailTemplate({
+      recipientEmail,
+      entityName: data.name,
+      entityType: type,
+      claimUrl
+    });
+
+    // Send email via dispatcher
+    const { sendOrderConfirmationEmail } = await import('@/lib/email/dispatcher');
+    const sent = await sendOrderConfirmationEmail({
+      orderId: `INVITE-${id.substring(0, 8)}`,
+      customerEmail: recipientEmail,
+      customerName: data.name,
+      total: 0,
+      items: [{ name: `Claim Your ${type === 'brand' ? 'Brand' : 'Dispensary'} Page`, qty: 1, price: 0 }],
+      retailerName: 'BakedBot AI',
+      pickupAddress: template.htmlContent // Content carrier
+    });
+
+    if (!sent) {
+      return { message: 'Email dispatch failed. Check provider settings.', error: true };
+    }
+
+    // Update status
+    await docRef.update({
+      claimStatus: 'invited',
+      invitationSentAt: new Date()
+    });
+
+    revalidatePath('/dashboard/ceo');
+    return { message: `Invitation successfully sent to ${recipientEmail}` };
+  } catch (error: any) {
+    console.error('[inviteToClaimAction] Error:', error);
+    return { message: `Failed to send invitation: ${error.message}`, error: true };
   }
 }
 

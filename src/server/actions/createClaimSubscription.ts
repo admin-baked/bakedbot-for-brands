@@ -135,6 +135,35 @@ export async function createClaimWithSubscription(
 
         const claimId = claimRef.id;
 
+        // 3b. Update CRM Record if linked
+        if (input.orgId) {
+            // Try to update in both CRM collections
+            // First try by ID (if it's a CRM ID) then by seoPageId (if it's a page ID)
+            const collections = ['crm_brands', 'crm_dispensaries'];
+            for (const coll of collections) {
+                // Try direct ID
+                const docRef = firestore.collection(coll).doc(input.orgId);
+                const doc = await docRef.get();
+                if (doc.exists) {
+                    await docRef.update({ 
+                        claimStatus: 'claimed', 
+                        updatedAt: FieldValue.serverTimestamp() 
+                    });
+                    break;
+                }
+                
+                // Try seoPageId query
+                const snap = await firestore.collection(coll).where('seoPageId', '==', input.orgId).limit(1).get();
+                if (!snap.empty) {
+                    await snap.docs[0].ref.update({ 
+                        claimStatus: 'claimed', 
+                        updatedAt: FieldValue.serverTimestamp() 
+                    });
+                    break;
+                }
+            }
+        }
+
         // 4. If free plan (shouldn't happen for claim plans, but handle it)
         if (price === 0) {
             await claimRef.update({
@@ -337,14 +366,45 @@ export async function getOrganizationForClaim(orgId: string): Promise<{
     try {
         const { firestore } = await createServerClient();
         const doc = await firestore.collection('organizations').doc(orgId).get();
-        if (!doc.exists) return null;
-        const data = doc.data();
-        return {
-            id: doc.id,
-            name: data?.name || '',
-            address: data?.address || '',
-            claimStatus: data?.claimStatus || 'unclaimed'
-        };
+        if (doc.exists) {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                name: data?.name || '',
+                address: data?.address || '',
+                claimStatus: data?.claimStatus || 'unclaimed'
+            };
+        }
+
+        // Search CRM collections if not found in organizations
+        const collections = ['crm_brands', 'crm_dispensaries'];
+        for (const coll of collections) {
+            // Check by ID
+            const crmDoc = await firestore.collection(coll).doc(orgId).get();
+            if (crmDoc.exists) {
+                const data = crmDoc.data();
+                return {
+                    id: crmDoc.id,
+                    name: data?.name || '',
+                    address: data?.address || '',
+                    claimStatus: data?.claimStatus || 'unclaimed'
+                };
+            }
+
+            // Check by seoPageId
+            const snap = await firestore.collection(coll).where('seoPageId', '==', orgId).limit(1).get();
+            if (!snap.empty) {
+                const data = snap.docs[0].data();
+                return {
+                    id: snap.docs[0].id,
+                    name: data?.name || '',
+                    address: data?.address || '',
+                    claimStatus: data?.claimStatus || 'unclaimed'
+                };
+            }
+        }
+
+        return null;
     } catch (e) {
         console.error("Error fetching org for claim", e);
         return null;
