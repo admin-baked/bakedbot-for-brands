@@ -473,6 +473,45 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         }
     }
 
+    // AI Adoption Tracker - Submit to WordPress API
+    if (def.name === 'tracker.submit') {
+        // Restricted to Super User (Owner) only
+        if (request.actor.role !== 'owner') {
+            return { status: 'failed', error: 'Unauthorized: Tool restricted to Super Users' };
+        }
+
+        try {
+            const { submitToTracker } = await import('@/server/tools/integrations/wordpress');
+            const result = await submitToTracker(inputs.orgs);
+            return {
+                status: result.success ? 'success' : 'failed',
+                data: result.data,
+                error: result.error
+            };
+        } catch (error: any) {
+            return { status: 'failed', error: error.message };
+        }
+    }
+
+    // AI Signal Scanner - Discovery Tool
+    if (def.name === 'discovery.scan') {
+        // Restricted to Super User (Owner) only
+        if (request.actor.role !== 'owner') {
+            return { status: 'failed', error: 'Unauthorized: Tool restricted to Super Users' };
+        }
+
+        try {
+            const { scanForAiSignals } = await import('@/server/tools/discovery/ai-scanner');
+            const result = await scanForAiSignals(inputs.url);
+            return {
+                status: 'success',
+                data: result
+            };
+        } catch (error: any) {
+            return { status: 'failed', error: error.message };
+        }
+    }
+
     // Google Sheets - Append Rows (for Price Tracker and data logging)
     if (def.name === 'sheets.append') {
         try {
