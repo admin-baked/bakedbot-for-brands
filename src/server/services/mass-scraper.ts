@@ -3,6 +3,7 @@ import { FirecrawlService } from './firecrawl';
 import { getAdminFirestore } from '@/firebase/admin'; // Firebase admin SDK for background jobs
 import { DispensarySEOPage } from '../../types/foot-traffic';
 import { z } from 'zod';
+import { upsertDispensary, upsertBrand } from './crm-service';
 
 /**
  * Service to discover and scrape dispensaries for SEO page generation.
@@ -55,7 +56,7 @@ export class MassScraperService {
     /**
      * Scrape a dispensary website to extract structured SEO data.
      */
-    async scrapeDispensary(url: string, zipCode: string): Promise<Partial<DispensarySEOPage> | null> {
+    async scrapeDispensary(url: string, zipCode: string): Promise<Partial<DispensarySEOPage> & { extra?: any } | null> {
         console.log(`[MassScraper] Scraping ${url}...`);
 
         // Schema for LLM extraction
@@ -67,6 +68,7 @@ export class MassScraperService {
             phone: z.string().optional(),
             aboutText: z.string().describe("A brief description of the dispensary for SEO"),
             logo: z.string().optional().describe("URL of the dispensary's main logo or storefront image"),
+            brands: z.array(z.string()).optional().describe("List of top 10 cannabis brands carried by this dispensary"),
             socials: z.object({
                 instagram: z.string().optional(),
                 facebook: z.string().optional(),
@@ -105,8 +107,13 @@ export class MassScraperService {
                 metrics: {
                     pageViews: 0,
                     ctaClicks: 0
+                },
+                extra: {
+                    brands: data.brands || [],
+                    address: data.address,
+                    phone: data.phone || null
                 }
-            };
+            } as any;
         } catch (error: any) {
             console.error(`[MassScraper] Failed to scrape ${url}:`, error);
             // Return error object so we can debug via API
@@ -117,10 +124,48 @@ export class MassScraperService {
     /**
      * Save the generated page to Firestore.
      */
-    async savePage(page: Partial<DispensarySEOPage>): Promise<void> {
+    async savePage(page: Partial<DispensarySEOPage> & { extra?: any }): Promise<void> {
         if (!page.id) throw new Error('Page ID missing');
         const db = getAdminFirestore();
-        await db.collection('seo_pages_dispensary').doc(page.id).set(page, { merge: true });
+        
+        // Remove extra before saving to SEO collection
+        const { extra, ...seoData } = page;
+        
+        await db.collection('seo_pages_dispensary').doc(page.id).set(seoData, { merge: true });
         console.log(`[MassScraper] Saved page ${page.id} for ${page.dispensaryName}`);
+
+        // Sync to CRM
+        try {
+            const dispId = await upsertDispensary(
+                page.dispensaryName || '',
+                page.state || '',
+                page.city || '',
+                {
+                    address: extra?.address || '',
+                    zip: page.zipCode || '',
+                    phone: extra?.phone || null,
+                    source: 'discovery',
+                    seoPageId: page.id
+                }
+            );
+            console.log(`[MassScraper] Synced ${page.dispensaryName} to CRM (ID: ${dispId})`);
+
+            // Sync found brands to CRM
+            if (extra?.brands && Array.isArray(extra.brands)) {
+                for (const brandName of extra.brands) {
+                    await upsertBrand(
+                        brandName,
+                        page.state || '',
+                        {
+                            source: 'discovery',
+                            discoveredFrom: [dispId]
+                        }
+                    );
+                }
+                console.log(`[MassScraper] Synced ${extra.brands.length} brands from ${page.dispensaryName} to CRM`);
+            }
+        } catch (crmError) {
+            console.error(`[MassScraper] CRM Sync failed for ${page.dispensaryName}:`, crmError);
+        }
     }
 }

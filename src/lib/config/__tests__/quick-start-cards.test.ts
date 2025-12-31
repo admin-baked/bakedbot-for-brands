@@ -1,8 +1,5 @@
-/**
- * Unit tests for customer role configurations
- */
-
-import { PROMPT_CHIPS, WELCOME_MESSAGES } from '../quick-start-cards';
+// No explicit imports for Jest globals
+import { PROMPT_CHIPS, WELCOME_MESSAGES, getRandomPromptsForRole } from '../quick-start-cards';
 
 describe('Customer Role - PROMPT_CHIPS', () => {
     it('should have customer prompt chips defined', () => {
@@ -30,6 +27,55 @@ describe('Customer Role - PROMPT_CHIPS', () => {
         expect(PROMPT_CHIPS.dispensary).toBeDefined();
         expect(PROMPT_CHIPS.owner).toBeDefined();
         expect(PROMPT_CHIPS.customer).toBeDefined();
+        expect(PROMPT_CHIPS.super_admin).toBeDefined();
+    });
+});
+
+describe('Super Admin Role', () => {
+    it('should have super_admin prompt chips defined', () => {
+        expect(PROMPT_CHIPS.super_admin).toBeDefined();
+        expect(PROMPT_CHIPS.super_admin.length).toBeGreaterThanOrEqual(5);
+    });
+
+    it('should have platform-level prompts', () => {
+        const suPrompts = PROMPT_CHIPS.super_admin;
+        const hasPlatformPrompts = suPrompts.some(p => 
+            p.toLowerCase().includes('platform') || 
+            p.toLowerCase().includes('codebase') ||
+            p.toLowerCase().includes('dutchie')
+        );
+        expect(hasPlatformPrompts).toBe(true);
+    });
+
+    it('should have a super_admin welcome message', () => {
+        expect(WELCOME_MESSAGES.super_admin).toBeDefined();
+        expect(WELCOME_MESSAGES.super_admin.toLowerCase()).toContain('super admin');
+    });
+});
+
+describe('getRandomPromptsForRole', () => {
+    it('should return the requested number of prompts', () => {
+        const result = getRandomPromptsForRole('brand', 3);
+        expect(result.length).toBe(3);
+    });
+
+    it('should return prompts for the specific role', () => {
+        const result = getRandomPromptsForRole('dispensary', 2);
+        // All returned prompts should be in the dispensary pool
+        result.forEach(p => {
+            expect(PROMPT_CHIPS.dispensary).toContain(p);
+        });
+    });
+
+    it('should return empty array for invalid role', () => {
+        const result = getRandomPromptsForRole('non_existent_role' as any);
+        expect(result).toEqual([]);
+    });
+
+    it('should not return more prompts than available', () => {
+        const total = PROMPT_CHIPS.customer.length;
+        const result = getRandomPromptsForRole('customer', total + 5);
+        expect(result.length).toBe(total);
     });
 });
 

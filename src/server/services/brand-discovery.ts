@@ -1,8 +1,8 @@
-
 import { FirecrawlService } from './firecrawl';
 import { getAdminFirestore } from '@/firebase/admin';
 import { BrandSEOPage } from '@/types/foot-traffic';
 import { z } from 'zod';
+import { upsertBrand } from './crm-service';
 
 // Schema for brand data extraction
 const BrandDataSchema = z.object({
@@ -207,6 +207,23 @@ export class BrandDiscoveryService {
         const db = getAdminFirestore();
         await db.collection('seo_pages_brand').doc(page.id).set(page, { merge: true });
         console.log(`[BrandDiscovery] Saved page ${page.id} for ${page.brandName}`);
+
+        // Sync to CRM
+        try {
+            await upsertBrand(
+                page.brandName || '',
+                page.state || '',
+                {
+                    logoUrl: page.logoUrl || null,
+                    description: page.about || null,
+                    source: 'discovery',
+                    seoPageId: page.id
+                }
+            );
+            console.log(`[BrandDiscovery] Synced ${page.brandName} to CRM`);
+        } catch (crmError) {
+            console.error(`[BrandDiscovery] CRM Sync failed for ${page.brandName}:`, crmError);
+        }
     }
 }
 
