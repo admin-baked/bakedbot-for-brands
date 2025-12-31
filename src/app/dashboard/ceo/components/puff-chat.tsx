@@ -643,11 +643,11 @@ export function PuffChat({
 
             // Public Demo Mode (Unauthenticated)
             if (!isAuthenticated) {
-                // Start simulation in background
-                simulateDemoSteps(thinkingId, persona);
+                // Return promise that resolves after animation sequence
+                const simulationPromise = simulateDemoSteps(thinkingId, persona);
 
-                // Call public API endpoint instead of server action
-                const res = await fetch('/api/demo/agent', {
+                // Call public API endpoint concurrently
+                const fetchPromise = fetch('/api/demo/agent', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -655,11 +655,14 @@ export function PuffChat({
                         prompt: userInput,
                         context: {} 
                     })
+                }).then(async res => {
+                    if (!res.ok) throw new Error('Demo service unavailable');
+                    return res.json();
                 });
 
-                if (!res.ok) throw new Error('Demo service unavailable');
-                
-                const data = await res.json();
+                // Wait for BOTH to finish. This ensures users see the "episodic thinking" animation
+                // even if the API is fast.
+                const [_, data] = await Promise.all([simulationPromise, fetchPromise]);
                 
                 // Map API response to AgentResult format
                 let content = '';
