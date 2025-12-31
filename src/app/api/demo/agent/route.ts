@@ -195,19 +195,48 @@ export async function POST(request: NextRequest) {
         }
 
         // Inject Real Data context if applicable (e.g. Ezal)
-        if (targetAgent === 'ezal' && context?.retailers?.length > 0) {
-             items = items.map((item, idx) => {
-                const retailer = context.retailers[idx];
-                if (retailer && item.title.includes('Competitor #')) {
-                    return {
-                        ...item,
-                        title: `Competitor #${idx+1}: ${retailer.name}`,
-                        description: item.description.replace('Green Leaf Dispensary', retailer.name),
-                        meta: item.meta?.replace('2.3 miles', `${retailer.distance.toFixed(1)} miles`)
-                    };
+        if (targetAgent === 'ezal') {
+            const urlMatch = prompt.match(/https?:\/\/[^\s]+/);
+            
+            // 1. Live Firecrawl Demo (if URL present)
+            if (urlMatch) {
+                try {
+                    const { firecrawl } = await import('@/server/services/firecrawl');
+                    if (firecrawl.isConfigured()) {
+                         const scrapeResult = await firecrawl.scrapeUrl(urlMatch[0], ['markdown']);
+                         if (scrapeResult.success) {
+                             items = [{
+                                 title: scrapeResult.data.metadata?.title || 'Scraped Content',
+                                 description: (scrapeResult.data.markdown || '').substring(0, 300) + '...',
+                                 meta: '🔥 Live Firecrawl Extraction'
+                             }];
+                             // Add a second item for stats if available
+                             items.push({
+                                 title: 'Extraction Stats',
+                                 description: `Status: ${scrapeResult.success ? 'Success' : 'Failed'} | Format: Markdown`,
+                                 meta: 'CONFIDENTIAL INTEL'
+                             });
+                         }
+                    }
+                } catch (e) {
+                    console.error('Demo scrape failed', e);
                 }
-                return item;
-            });
+            } 
+            // 2. Mock Context Injection (fallback)
+            else if (context?.retailers?.length > 0) {
+                 items = items.map((item, idx) => {
+                    const retailer = context.retailers[idx];
+                    if (retailer && item.title.includes('Competitor #')) {
+                        return {
+                            ...item,
+                            title: `Competitor #${idx+1}: ${retailer.name}`,
+                            description: item.description.replace('Green Leaf Dispensary', retailer.name),
+                            meta: item.meta?.replace('2.3 miles', `${retailer.distance.toFixed(1)} miles`)
+                        };
+                    }
+                    return item;
+                });
+            }
         }
 
         return NextResponse.json({

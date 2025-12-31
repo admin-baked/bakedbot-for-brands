@@ -5,7 +5,7 @@ env:
   # Build-time memory allocation for Node.js processes (including Next.js workers)
   - variable: NODE_OPTIONS
     value: "--max-old-space-size=8192"
-    availability: [BUILD, RUNTIME]
+    availability: [ BUILD, RUNTIME ]
   # Firebase
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY
     secret: FIREBASE_SERVICE_ACCOUNT_KEY@8
@@ -162,6 +162,8 @@ env:
     value: "false"
   - variable: TREASURY_USE_FIRESTORE
     value: "true"
+  - variable: FIRECRAWL_API_KEY
+    secret: FIRECRAWL_API_KEY
 
 build:
   installCommand: npm install --legacy-peer-deps
