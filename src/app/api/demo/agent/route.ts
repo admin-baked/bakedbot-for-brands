@@ -93,7 +93,7 @@ const DEMO_RESPONSES: Record<string, {
             {
                 title: "How BakedBot Works",
                 description: "BakedBot is an AI-powered platform that helps cannabis brands and dispensaries automate marketing, product recommendations, compliance, and analytics. Our specialized agents handle everything from customer engagement to competitive intelligence.",
-                meta: "Powered by Gemini 3 Pro"
+                meta: "AI-Powered | Cannabis-Native | 24/7"
             },
             {
                 title: "Meet the Agent Squad",
