@@ -60,6 +60,7 @@ import { ChatMediaPreview, extractMediaFromToolResponse } from '@/components/cha
 import { useJobPoller } from '@/hooks/use-job-poller';
 import { TypewriterText } from '@/components/landing/typewriter-text';
 import { AgentRouterVisualization } from '@/components/chat/agent-router-visualization';
+import { ProjectSelector } from '@/components/chat/project-selector';
 
 // ============ Types ============
 
@@ -376,6 +377,9 @@ export function PuffChat({
     // Tool Selection State
     const [toolMode, setToolMode] = useState<ToolMode>('auto');
     const [selectedTools, setSelectedTools] = useState<AvailableTool[]>([]);
+    
+    // Project Context State
+    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
     // Multi-modal State
     const [attachments, setAttachments] = useState<{ id: string, file: File, preview?: string, type: 'image' | 'file' }[]>([]);
@@ -929,6 +933,12 @@ export function PuffChat({
                                 onModeChange={setToolMode}
                                 onToggleTool={handleToggleTool}
                             />
+                            {isAuthenticated && (
+                                <ProjectSelector
+                                    value={selectedProjectId}
+                                    onChange={setSelectedProjectId}
+                                />
+                            )}
                         </div>
                     </div>
                     
