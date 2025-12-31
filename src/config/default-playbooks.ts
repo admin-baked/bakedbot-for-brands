@@ -979,11 +979,7 @@ steps:
       spreadsheetId: "{{config.spreadsheet_id}}"
       values: "{{scan_loop.formatted_rows}}"
 `,
-    thumbnail: 'ai-tracker',
-    category: 'Market Intelligence',
-    tags: ['discovery', 'ai', 'tracker'],
-    author: 'BakedBot',
-    lastUpdated: new Date().toISOString(),
+    icon: 'bot',
     steps: [
       {
         id: 'scan',
