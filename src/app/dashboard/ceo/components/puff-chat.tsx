@@ -427,6 +427,7 @@ export function PuffChat({
             });
             setActiveJob(null); // Stop polling
             setIsProcessing(false);
+            setStreamingMessageId(activeJob.messageId); // Trigger typewriter
         }
 
         // 3. Handle Failure
@@ -586,6 +587,55 @@ export function PuffChat({
         // Clear any previous streaming state
         setStreamingMessageId(null);
 
+        // Helper for simulated steps
+        const simulateDemoSteps = async (msgId: string, currentPersona: string) => {
+            const stepsSequence = [
+                { name: 'Analyzing Request', desc: 'Parsing intent and context...' },
+                { name: 'Agent Routing', desc: `Routing task to ${currentPersona}...` },
+                { name: 'Knowledge Lookup', desc: 'Searching database for matches...' },
+                { name: 'Formulating Response', desc: 'Generating final answer...' }
+            ];
+
+            let currentSteps: ToolCallStep[] = [];
+
+            for (const step of stepsSequence) {
+                // Check if message is still in thinking mode
+                const currentMsg = useAgentChatStore.getState().currentMessages.find(m => m.id === msgId);
+                if (!currentMsg || !currentMsg.thinking?.isThinking) break;
+
+                // Add new step as pending
+                const stepId = Math.random().toString(36).substr(2, 9);
+                const newStep: ToolCallStep = {
+                    id: stepId,
+                    toolName: step.name,
+                    description: step.desc,
+                    status: 'in-progress',
+                    durationMs: 0
+                };
+                currentSteps.push(newStep);
+
+                updateMessage(msgId, {
+                    thinking: {
+                        isThinking: true,
+                        steps: [...currentSteps], // Create copy
+                        plan: []
+                    }
+                });
+
+                await new Promise(r => setTimeout(r, 800)); // Wait
+
+                // Mark previous step complete
+                currentSteps = currentSteps.map(s => s.id === stepId ? { ...s, status: 'completed' } : s);
+                 updateMessage(msgId, {
+                    thinking: {
+                        isThinking: true,
+                        steps: [...currentSteps],
+                        plan: []
+                    }
+                });
+            }
+        };
+
         try {
             const processedAttachments = await convertAttachments();
             
@@ -593,6 +643,9 @@ export function PuffChat({
 
             // Public Demo Mode (Unauthenticated)
             if (!isAuthenticated) {
+                // Start simulation in background
+                simulateDemoSteps(thinkingId, persona);
+
                 // Call public API endpoint instead of server action
                 const res = await fetch('/api/demo/agent', {
                     method: 'POST',
@@ -631,6 +684,9 @@ export function PuffChat({
                         media: data.generatedMedia // { type, url }
                     }
                 };
+
+                // Typewriter effect trigger for demo
+                setStreamingMessageId(thinkingId);
             
             } else {
                 // Authenticated Mode (Server Action)
@@ -806,17 +862,28 @@ export function PuffChat({
                 )}
                 
                 <div className="flex gap-2">
-                     <Textarea
+                     <textarea
+                        ref={(el) => {
+                            if (el) {
+                                el.style.height = 'auto';
+                                el.style.height = el.scrollHeight + 'px';
+                            }
+                        }}
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
+                        onChange={(e) => {
+                            setInput(e.target.value);
+                            e.target.style.height = 'auto';
+                            e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
                         placeholder={hasMessages ? "Reply, or use microphone..." : "Ask Smokey anything..."}
-                        className="min-h-[40px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base flex-1"
+                        className="min-h-[40px] max-h-[200px] w-full border-0 bg-transparent resize-none p-0 focus:outline-none focus:ring-0 shadow-none text-base flex-1 overflow-y-auto"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
                                 handleSubmit();
                             }
                         }}
+                        rows={1}
                     />
                 </div>
 

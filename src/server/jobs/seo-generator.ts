@@ -10,21 +10,29 @@ const CHICAGO_PILOT_ZIPS = [
 ];
 
 /**
- * Job to run the mass scraping pilot for Chicago.
+ * Job to run the mass scraping pilot for dispensaries.
  * Can be triggered via a server action or API route.
  */
-export async function runChicagoPilotJob() {
-    console.log('[SeoPageGenerator] Starting Chicago Pilot...');
+export async function runChicagoPilotJob(
+    city = 'Chicago',
+    state = 'IL',
+    zipCodes = CHICAGO_PILOT_ZIPS
+) {
+    console.log(`[SeoPageGenerator] Starting Pilot for ${city}, ${state}...`);
     const scraper = MassScraperService.getInstance();
     
     const results: any[] = [];
 
-    for (const zip of CHICAGO_PILOT_ZIPS) {
+    // If no zips provided, run one wide search (or handle differently, but here we expect zips)
+    // If zips are empty, maybe default to just the city search?
+    const targets = zipCodes.length > 0 ? zipCodes : [''];
+
+    for (const zip of targets) {
         console.log(`[SeoPageGenerator] Processing ZIP: ${zip}`);
         
         // 1. Discover
         // Refined query for better precision
-        const locationQuery = `${zip} Chicago, IL`;
+        const locationQuery = zip ? `${zip} ${city}, ${state}` : `dispensaries in ${city}, ${state}`;
         const candidates = await scraper.discoverDispensaries(locationQuery);
         
         console.log(`[SeoPageGenerator] Found ${candidates.length} candidates in ${zip}`);
