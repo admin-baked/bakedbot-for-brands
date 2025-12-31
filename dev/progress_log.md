@@ -8,6 +8,7 @@ Fixed a build error where `thumbnail` property was used in `default-playbooks.ts
 ### Key Changes
 *   **FIX**: `src/config/default-playbooks.ts` - Replaced `thumbnail: 'ai-tracker'` with `icon: 'bot'`.
 *   **FIX**: `src/config/default-playbooks.ts` - Removed invalid fields `category`, `tags`, `author`, `lastUpdated` to comply with strict TypeScript type.
+*   **FIX**: `src/config/default-playbooks.ts` - Added missing `triggers` array to "Weekly AI Adoption Tracker" playbook to resolve `TS2741`.
 
 ### Tests Run
 *   `npm run check:types` (Passed ✅)
