@@ -73,13 +73,19 @@ export async function fetchDispensaryPageData(slug: string) {
  * Fetch all scraped SEO pages for listing/index pages
  */
 export async function fetchScrapedDispensaryPages(limit = 50) {
-    const { firestore } = await createServerClient();
-    
-    const snapshot = await firestore
-        .collection('seo_pages_dispensary')
-        .orderBy('createdAt', 'desc')
-        .limit(limit)
-        .get();
-    
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DispensarySEOPage));
+    try {
+        const { firestore } = await createServerClient();
+        
+        const snapshot = await firestore
+            .collection('seo_pages_dispensary')
+            .orderBy('createdAt', 'desc')
+            .limit(limit)
+            .get();
+        
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DispensarySEOPage));
+    } catch (error) {
+        console.error('[fetchScrapedDispensaryPages] Error:', error);
+        // Return empty array if Firestore fails (e.g., auth issues locally)
+        return [];
+    }
 }
