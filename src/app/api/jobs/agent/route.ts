@@ -37,6 +37,22 @@ export async function POST(req: NextRequest) {
 
         const userData = userDoc.data();
         
+        // 3a. Fetch Project Context (if projectId provided)
+        let projectContext = '';
+        if (options?.projectId) {
+            const projectDoc = await firestore.collection('users').doc(userId).collection('projects').doc(options.projectId).get();
+            if (projectDoc.exists) {
+                const projectData = projectDoc.data();
+                if (projectData?.systemInstructions) {
+                    projectContext = `[PROJECT CONTEXT: ${projectData.name || 'Project'}]\n${projectData.systemInstructions}\n\n---\n\n`;
+                    console.log(`[Job:${jobId}] Injecting project context: ${projectData.name}`);
+                }
+            }
+        }
+        
+        // Prepend project context to user input
+        const enhancedInput = projectContext ? `${projectContext}${userInput}` : userInput;
+        
         // Construct a mock DecodedIdToken to satisfy `runAgentCore` expectations
         const mockUserToken: DecodedIdToken = {
             uid: userId,
@@ -54,8 +70,8 @@ export async function POST(req: NextRequest) {
             firebase: { identities: {}, sign_in_provider: 'custom' }
         };
 
-        // 4. Execute Agent (Async)
-        const result = await runAgentCore(userInput, persona, options, mockUserToken, jobId);
+        // 4. Execute Agent (Async) with enhanced input
+        const result = await runAgentCore(enhancedInput, persona, options, mockUserToken, jobId);
 
         // 5. Handle Result
         // Since this is async, we can't return the result to the user directly within the chat request.
