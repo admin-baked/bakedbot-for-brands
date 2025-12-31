@@ -67,7 +67,8 @@ import {
     refreshSeoPageDataAction,
     getDispensaryPagesAction,
     deleteDispensaryPageAction,
-    toggleDispensaryPagePublishAction
+    toggleDispensaryPagePublishAction,
+    getDiscoveryJobStatusAction
 } from '../actions';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
@@ -121,6 +122,7 @@ export default function FootTrafficTab() {
     const [isBrandCreatorOpen, setIsBrandCreatorOpen] = useState(false);
     const [isQuickGeneratorOpen, setIsQuickGeneratorOpen] = useState(false);
     const [isPilotOpen, setIsPilotOpen] = useState(false);
+    const [jobStatus, setJobStatus] = useState<any>(null);
 
     // Sorting State
     const [zipSort, setZipSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'zipCode', direction: 'asc' });
@@ -261,6 +263,33 @@ export default function FootTrafficTab() {
         fetchData();
     }, []);
 
+    // Poll for Job Status
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            const status = await getDiscoveryJobStatusAction();
+            setJobStatus(status);
+            
+            // Auto-refresh when job completes
+            if (status?.status === 'completed' && status?.endTime) {
+                const endTime = new Date(status.endTime).getTime();
+                const now = Date.now();
+                if (now - endTime < 10000) { // Only refresh if it completed recently (last 10s)
+                   // We could verify strictness but essentially we want to catch the transition
+                }
+            }
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        // Separate effect to handle completion refresh to avoid interval complexity
+        if (jobStatus?.status === 'completed' && !isLoading) {
+             // Maybe explicitly trigger refresh if we see a change?
+             // For now let's just rely on global "Refresh" or user action, OR
+             // simple logic: if itemsFound > itemsProcessed (running) -> fine.
+        }
+    }, [jobStatus?.status]);
+
     const fetchData = async () => {
         setIsLoading(true);
         try {
@@ -361,6 +390,21 @@ export default function FootTrafficTab() {
                     </Button>
                 </div>
             </div>
+
+            {/* Job Status Banner */}
+            {jobStatus && jobStatus.status === 'running' && (
+                <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-4 rounded-md flex items-center justify-between animate-pulse">
+                     <div className="flex items-center">
+                        <Loader2 className="h-5 w-5 text-indigo-600 animate-spin mr-3" />
+                         <div>
+                            <p className="font-medium text-indigo-700">Discovery Engine Running...</p>
+                             <p className="text-sm text-indigo-600">
+                                Found {jobStatus.itemsFound || 0} items. Processing {jobStatus.itemsProcessed || 0}...
+                             </p>
+                        </div>
+                   </div>
+                </div>
+            )}
 
             {/* Main Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

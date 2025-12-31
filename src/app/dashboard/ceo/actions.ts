@@ -1093,9 +1093,9 @@ export async function setTop25PublishedAction(): Promise<ActionResult & { publis
 
   try {
     const firestore = getAdminFirestore();
-    const zipCollection = firestore.collection('foot_traffic').doc('config').collection('zip_pages');
+    const collection = firestore.collection('foot_traffic').doc('config').collection('zip_pages');
 
-    const snapshot = await zipCollection.get();
+    const snapshot = await collection.get();
 
     let publishedCount = 0;
     let draftCount = 0;
@@ -1344,6 +1344,7 @@ export async function createBrandPageAction(input: CreateBrandPageInput): Promis
     const createdIds: string[] = [];
 
     for (const zipCode of input.zipCodes) {
+      // Use consistent ID format matching discovery service
       const pageId = `${brandSlug}_${zipCode}`;
 
       // Build brand page object, using null for optional fields (Firestore doesn't accept undefined)
@@ -1381,7 +1382,9 @@ export async function createBrandPageAction(input: CreateBrandPageInput): Promis
       if (input.zoneName) brandPage.zoneName = input.zoneName;
       if (input.contentBlock) brandPage.contentBlock = input.contentBlock;
 
-      const ref = firestore.collection('foot_traffic').doc('config').collection('brand_pages').doc(pageId);
+      if (input.contentBlock) brandPage.contentBlock = input.contentBlock;
+
+      const ref = firestore.collection('seo_pages_brand').doc(pageId);
       batch.set(ref, brandPage);
       createdIds.push(pageId);
     }
@@ -1402,9 +1405,7 @@ export async function getBrandPagesAction(): Promise<BrandSEOPage[]> {
   try {
     const firestore = getAdminFirestore();
     const snapshot = await firestore
-      .collection('foot_traffic')
-      .doc('config')
-      .collection('brand_pages')
+      .collection('seo_pages_brand')
       .orderBy('createdAt', 'desc')
       .get();
 
@@ -1432,7 +1433,7 @@ export async function updateBrandPageAction(id: string, updates: Partial<CreateB
 
   try {
     const firestore = getAdminFirestore();
-    const ref = firestore.collection('foot_traffic').doc('config').collection('brand_pages').doc(id);
+    const ref = firestore.collection('seo_pages_brand').doc(id);
 
     const doc = await ref.get();
     if (!doc.exists) {
@@ -1459,7 +1460,7 @@ export async function deleteBrandPageAction(id: string): Promise<ActionResult> {
 
   try {
     const firestore = getAdminFirestore();
-    await firestore.collection('foot_traffic').doc('config').collection('brand_pages').doc(id).delete();
+    await firestore.collection('seo_pages_brand').doc(id).delete();
 
     return { message: 'Brand page deleted successfully.' };
   } catch (error: any) {
@@ -1476,7 +1477,7 @@ export async function toggleBrandPagePublishAction(id: string, published: boolea
 
   try {
     const firestore = getAdminFirestore();
-    const ref = firestore.collection('foot_traffic').doc('config').collection('brand_pages').doc(id);
+    const ref = firestore.collection('seo_pages_brand').doc(id);
 
     await ref.update({
       published,
@@ -1498,7 +1499,7 @@ export async function bulkPublishBrandPagesAction(published: boolean): Promise<A
 
   try {
     const firestore = getAdminFirestore();
-    const collection = firestore.collection('foot_traffic').doc('config').collection('brand_pages');
+    const collection = firestore.collection('seo_pages_brand');
 
     // Get all pages with opposite status
     const query = await collection.where('published', '==', !published).get();
@@ -1600,6 +1601,28 @@ export async function deleteDispensaryPageAction(id: string): Promise<ActionResu
     console.error('[deleteDispensaryPageAction] Error:', error);
     return { message: `Failed to delete dispensary page: ${error.message}`, error: true };
   }
+}
+
+/**
+ * Get status of the brand discovery job
+ */
+export async function getDiscoveryJobStatusAction(): Promise<any> {
+    try {
+        const firestore = getAdminFirestore();
+        const doc = await firestore.collection('foot_traffic').doc('status').collection('jobs').doc('brand_pilot').get();
+        if (doc.exists) {
+            return {
+                ...doc.data(),
+                startTime: doc.data()?.startTime?.toDate?.() || null,
+                endTime: doc.data()?.endTime?.toDate?.() || null,
+                lastUpdated: doc.data()?.lastUpdated?.toDate?.() || null
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching job status:', error);
+        return null;
+    }
 }
 
 /**
