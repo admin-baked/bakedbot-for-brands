@@ -5,13 +5,17 @@ import { requireUser } from '@/server/auth/auth';
 import { getPOSClient } from '@/lib/pos/factory';
 import type { POSProvider } from '@/lib/pos/types';
 
-export async function saveIntegrationConfig(provider: POSProvider, config: any) {
+export async function saveIntegrationConfig(provider: POSProvider | string, config: any) {
     const user = await requireUser(['dispensary', 'owner', 'brand']); // Brands might manage this for their retailer partners
     const { firestore } = await createServerClient();
+    const { grantPermission } = await import('@/server/services/permissions');
 
     // Determine target ID (dispensary ID or brand's reference to a retailer)
     // For simplicity, assuming user is a Dispensary Admin configuring their own store
     const targetId = user.uid; // Or user.dispensaryId if that existed
+
+    // Grant permission for this tool/provider
+    await grantPermission(user.uid, provider);
 
     // In a real app, strict validation of permissions here
     await firestore.collection('dispensaries').doc(targetId).set({
@@ -22,6 +26,13 @@ export async function saveIntegrationConfig(provider: POSProvider, config: any) 
         }
     }, { merge: true });
 
+    return { success: true };
+}
+
+export async function enableApp(appId: string) {
+    const user = await requireUser();
+    const { grantPermission } = await import('@/server/services/permissions');
+    await grantPermission(user.uid, appId);
     return { success: true };
 }
 

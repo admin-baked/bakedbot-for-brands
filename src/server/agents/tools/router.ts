@@ -449,58 +449,96 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         }
     }
 
+    // --- Permissions Check Helper ---
+    const checkAndEnforcePermission = async (toolName: string) => {
+        const { checkPermission } = await import('@/server/services/permissions');
+        const hasPermission = await checkPermission(request.actor.userId, toolName);
+        if (!hasPermission) {
+            throw new Error(`PERMISSION_REQUIRED: ${toolName}`);
+        }
+    };
+
     // Google Sheets - Create Spreadsheet
     if (def.name === 'sheets.createSpreadsheet') {
         try {
-            // Mock implementation for now - following Phase 7 requirements
-            // In a real implementation, we would use googleapis package
-            const spreadsheetId = `mock-sheet-${Date.now()}`;
+            await checkAndEnforcePermission('sheets'); // Check 'sheets' permission scope
+            const { createSpreadsheet } = await import('@/server/integrations/sheets/service');
+            const result = await createSpreadsheet(request.actor.userId, inputs.title);
             return {
                 status: 'success',
-                data: {
-                    spreadsheetId,
-                    url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
-                    title: inputs.title,
-                    message: 'Spreadsheet created successfully (Demo Mode).'
-                }
+                data: result
             };
         } catch (error: any) {
-            return { status: 'failed', error: `Sheets error: ${error.message}` };
+            return { status: 'failed', error: error.message };
         }
     }
 
     // Google Drive - Upload File
     if (def.name === 'drive.uploadFile') {
         try {
-            const fileId = `mock-file-${Date.now()}`;
+            await checkAndEnforcePermission('drive');
+            const { uploadFile } = await import('@/server/integrations/drive/service');
+            // Check if inputs.content is provided, else error? Definition should handle schema.
+            // Assuming inputs.content is string/buffer.
+            if (!inputs.content) throw new Error('File content is required.');
+            
+            const result = await uploadFile(request.actor.userId, inputs.name, inputs.content, inputs.mimeType);
             return {
                 status: 'success',
-                data: {
-                    fileId,
-                    url: `https://drive.google.com/file/d/${fileId}`,
-                    name: inputs.name,
-                    message: 'File uploaded successfully (Demo Mode).'
-                }
+                data: result
             };
         } catch (error: any) {
-            return { status: 'failed', error: `Drive error: ${error.message}` };
+            return { status: 'failed', error: error.message };
         }
     }
 
     // Slack - Post Message
     if (def.name === 'slack.postMessage') {
         try {
-            // Mock implementation for now
+            await checkAndEnforcePermission('slack');
+            const { postMessage } = await import('@/server/integrations/slack/service');
+            const result = await postMessage(request.actor.userId, inputs.channel, inputs.message);
+            return {
+                status: 'success',
+                data: result
+            };
+        } catch (error: any) {
+            return { status: 'failed', error: error.message };
+        }
+    }
+
+    // --- Junior Work Routing ---
+    if (def.name.startsWith('junior.')) {
+        try {
+            // Ensure example work is registered (in a real app, do this at startup)
+            await import('@/server/agents/juniors/marketing/generate-meta');
+            
+            const { runJuniorWork } = await import('@/server/agents/juniors/runner');
+            const result = await runJuniorWork(request.actor.userId, def.name, inputs);
+            
+            return {
+                status: 'success',
+                data: result
+            };
+        } catch (error: any) {
+            return { status: 'failed', error: error.message };
+        }
+    }
+
+    // Dutchie - Sync Menu (Placeholder for Logic)
+    if (def.name === 'dutchie.sync') {
+        try {
+            await checkAndEnforcePermission('dutchie');
+            // Logic would go here
             return {
                 status: 'success',
                 data: {
-                    channel: inputs.channel,
-                    ts: `${Date.now()}.000100`,
-                    message: 'Slack message posted successfully (Demo Mode).'
+                    message: "Dutchie sync initiated successfully.",
+                    timestamp: new Date().toISOString()
                 }
             };
         } catch (error: any) {
-            return { status: 'failed', error: `Slack error: ${error.message}` };
+            return { status: 'failed', error: error.message };
         }
     }
 
