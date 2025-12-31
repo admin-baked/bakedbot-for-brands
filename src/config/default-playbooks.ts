@@ -940,6 +940,68 @@ steps:
     successCount: 0,
     failureCount: 0,
     version: 1
+  },
+
+  // 12. Weekly AI Adoption Tracker (Agent Discovery)
+  {
+    name: 'Weekly AI Adoption Tracker',
+    description: 'Scan cannabis business websites for AI signals (chatbots, headless menus). Submit to BakedBot Tracker API and backup to Google Sheets.',
+    status: 'draft',
+    yaml: `name: Weekly AI Adoption Tracker
+description: Scan websites for AI tech stack and log adoption metrics
+
+triggers:
+  - type: schedule
+    cron: "0 10 * * 1"  # Weekly on Mondays at 10 AM
+  - type: manual
+    name: Run Discovery
+
+config:
+  target_urls: []  # List of websites to scan
+  spreadsheet_id: ""  # Backup Google Sheet ID
+
+steps:
+  - id: scan_loop
+    # Loop capability is conceptual in playbook v1, typically handled by agent logic
+    # Here we show the conceptual step calls
+    tool: discovery.scan
+    params:
+      url: "{{item}}" # Iterated in execution
+
+  - id: submit_api
+    tool: tracker.submit
+    params:
+      orgs: "{{scan_loop.results}}"
+
+  - id: backup_sheets
+    tool: sheets.append
+    params:
+      spreadsheetId: "{{config.spreadsheet_id}}"
+      values: "{{scan_loop.formatted_rows}}"
+`,
+    thumbnail: 'ai-tracker',
+    category: 'Market Intelligence',
+    tags: ['discovery', 'ai', 'tracker'],
+    author: 'BakedBot',
+    lastUpdated: new Date().toISOString(),
+    steps: [
+      {
+        id: 'scan',
+        name: 'Scan Website',
+        tool: 'discovery.scan',
+        params: { url: '{{config.target_urls}}' }
+      },
+      {
+        id: 'submit',
+        name: 'Submit to Tracker',
+        tool: 'tracker.submit',
+        params: { orgs: '{{scan.data}}' }
+      }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
   }
 ];
 
