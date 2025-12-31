@@ -207,6 +207,7 @@ interface ChatExtraOptions {
     modelLevel?: string;
     audioInput?: string; // base64
     attachments?: { name: string; type: string; base64: string }[];
+    projectId?: string; // Project context for system instructions
 }
 
 export async function runAgentChat(userMessage: string, personaId?: string, extraOptions?: ChatExtraOptions): Promise<AgentResult> {
@@ -243,7 +244,8 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
             modelLevel: (extraOptions?.modelLevel as any) || 'standard',
             audioInput: extraOptions?.audioInput,
             attachments: extraOptions?.attachments,
-            brandId: user.brandId
+            brandId: user.brandId,
+            projectId: extraOptions?.projectId // Pass project context
         },
         jobId
     };

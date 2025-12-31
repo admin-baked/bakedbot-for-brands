@@ -15,7 +15,8 @@ export interface AgentJobPayload {
         modelLevel: ThinkingLevel;
         audioInput?: string; // base64
         attachments?: any[];
-        brandId?: string; // Optional context
+        brandId?: string; // Optional brand context
+        projectId?: string; // Project context (system instructions)
     };
     jobId: string; // Used for tracking/polling
 }

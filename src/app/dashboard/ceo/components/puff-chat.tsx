@@ -730,7 +730,8 @@ export function PuffChat({
                     { 
                         modelLevel: thinkingLevel,
                         audioInput: audioBase64,
-                        attachments: processedAttachments 
+                        attachments: processedAttachments,
+                        projectId: selectedProjectId || undefined // Pass project context
                     }
                 );
                 
