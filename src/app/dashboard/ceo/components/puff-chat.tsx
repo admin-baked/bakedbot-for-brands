@@ -699,7 +699,9 @@ export function PuffChat({
             
             } else {
                 // Authenticated Mode (Server Action)
-                response = await runAgentChat(
+                // Run episodic thinking simulation concurrently with the server action
+                const simulationPromise = simulateDemoSteps(thinkingId, persona);
+                const serverPromise = runAgentChat(
                     userInput, 
                     persona, 
                     { 
@@ -708,6 +710,21 @@ export function PuffChat({
                         attachments: processedAttachments 
                     }
                 );
+                
+                // Wait for server response (simulation continues in background)
+                const [simulatedSteps, serverResponse] = await Promise.all([simulationPromise, serverPromise]);
+                response = {
+                    ...serverResponse,
+                    // Merge simulated steps with any real tool calls
+                    toolCalls: serverResponse.toolCalls?.length > 0 
+                        ? serverResponse.toolCalls 
+                        : simulatedSteps.map(s => ({
+                            id: s.id,
+                            name: s.toolName,
+                            result: s.description,
+                            status: 'success'
+                        }))
+                };
             }
 
             // Handle Async Job Response (Async Mode - Auth Only)
@@ -992,7 +1009,7 @@ export function PuffChat({
                 <div className="p-4 space-y-4 min-h-full">
                     {/* Empty State */}
                     {!hasMessages && (
-                        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-6 mt-10">
+                        <div className="flex flex-col items-center justify-center text-center space-y-4 py-8">
                             <div className="bg-white p-4 rounded-full shadow-sm ring-1 ring-slate-100">
                                 <Sparkles className="h-8 w-8 text-primary" />
                             </div>
