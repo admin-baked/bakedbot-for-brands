@@ -842,6 +842,104 @@ steps:
     successCount: 0,
     failureCount: 0,
     version: 1
+  },
+
+  // 11. Daily Price Tracker (40 Tons Pattern)
+  {
+    name: 'Daily Price Tracker',
+    description: 'Track product prices across multiple dispensaries. Scrapes Weedmaps menus and logs to Google Sheets for trend analysis.',
+    status: 'draft',
+    yaml: `name: Daily Price Tracker
+description: Scrape dispensary menus and track prices in Google Sheets
+
+triggers:
+  - type: schedule
+    cron: "0 9 * * *"  # Daily at 9 AM
+  - type: manual
+    name: Run Now
+
+config:
+  # Configure these when activating the playbook
+  spreadsheetId: ""  # Google Sheet ID for logging
+  brand: ""  # Brand name to filter (e.g., "40-tons")
+  dispensaryUrls:  # List of Weedmaps URLs to scrape
+    - "https://weedmaps.com/dispensaries/example?filter[brandSlugs][]=brand-name"
+
+steps:
+  # Step 1: Scrape All Dispensaries
+  - action: tool
+    tool: weedmaps.scrape
+    agent: ezal
+    task: Scrape product prices from all configured dispensary URLs
+    params:
+      urls: "{{config.dispensaryUrls}}"
+      brand: "{{config.brand}}"
+    
+  # Step 2: Format Data for Sheets
+  - action: transform
+    agent: ezal
+    input: "{{scrape_results}}"
+    task: Format scraped data into rows for Google Sheets
+    output:
+      columns:
+        - Date
+        - Dispensary
+        - Product
+        - Price
+        - Stock Status
+        - THC
+        - Category
+        
+  # Step 3: Append to Google Sheet
+  - action: tool
+    tool: sheets.append
+    params:
+      spreadsheetId: "{{config.spreadsheetId}}"
+      range: "Sheet1!A:G"
+      values: "{{ezal.formatted_rows}}"
+      
+  # Step 4: Generate Summary
+  - action: delegate
+    agent: pops
+    input: "{{scrape_results}}"
+    task: |
+      Analyze price data and generate insights:
+      1. Average price by product
+      2. Price changes from yesterday
+      3. Stock availability summary
+      4. Lowest/highest price locations
+      
+  # Step 5: Notify on Completion
+  - action: notify
+    channels:
+      - dashboard
+    to: "{{user.email}}"
+    subject: "📊 Daily Price Tracking Complete"
+    body: |
+      Price tracking completed for {{config.brand}}:
+      
+      ✅ {{ezal.products_found}} products scraped
+      📍 {{ezal.dispensaries_scanned}} dispensaries checked
+      📉 {{pops.price_drops}} price drops detected
+      📈 {{pops.price_increases}} price increases detected
+      
+      View full data in your Google Sheet.
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Daily at 9 AM', config: { cron: '0 9 * * *' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Manual Run', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'weedmaps.scrape', agent: 'ezal' } },
+      { action: 'transform', params: { agent: 'ezal' } },
+      { action: 'tool', params: { tool: 'sheets.append' } },
+      { action: 'delegate', params: { agent: 'pops' } },
+      { action: 'notify', params: { channels: ['dashboard'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
   }
 ];
 
