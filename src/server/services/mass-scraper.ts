@@ -84,7 +84,7 @@ export class MassScraperService {
 
             return {
                 id,
-                dispensaryId: undefined, // No CannMenus ID yet
+                // dispensaryId omitted - will be set when page is claimed
                 dispensaryName: data.dispensaryName,
                 dispensarySlug: slug,
                 zipCode, // Force the target ZIP
