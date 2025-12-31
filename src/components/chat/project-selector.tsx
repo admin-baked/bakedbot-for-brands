@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { FolderKanban, ChevronDown, X, Plus } from 'lucide-react';
 import { getProjects } from '@/server/actions/projects';
-import type { Project } from '@/server/actions/projects';
+import type { Project } from '@/types/project';
 import Link from 'next/link';
 
 interface ProjectSelectorProps {
