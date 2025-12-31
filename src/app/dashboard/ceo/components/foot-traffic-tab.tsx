@@ -90,10 +90,12 @@ import {
 import { BrandPageCreatorDialog } from './brand-page-creator-dialog';
 import { BulkImportSection } from './bulk-import-section';
 import { QuickGeneratorDialog } from './quick-generator-dialog';
+import { DiscoveryPilotDialog } from './discovery-pilot-dialog';
 
 // Types
 import type { LocalSEOPage, FootTrafficMetrics, BrandSEOPage, GeoZone, DropAlertConfig, LocalOffer } from '@/types/foot-traffic';
 import { useMockData } from '@/hooks/use-mock-data';
+import { Rocket } from 'lucide-react';
 
 export default function FootTrafficTab() {
     const { toast } = useToast();
@@ -119,6 +121,7 @@ export default function FootTrafficTab() {
     // Dialogs
     const [isBrandCreatorOpen, setIsBrandCreatorOpen] = useState(false);
     const [isQuickGeneratorOpen, setIsQuickGeneratorOpen] = useState(false);
+    const [isPilotOpen, setIsPilotOpen] = useState(false);
 
     // Filters & Selection
     const [searchQuery, setSearchQuery] = useState('');
@@ -236,12 +239,13 @@ export default function FootTrafficTab() {
                         <Plus className="h-4 w-4 mr-2" />
                         New Brand Page
                     </Button>
+                    {/* Discovery Pilot Button */}
                     <Button 
-                        onClick={() => setIsQuickGeneratorOpen(true)}
-                        className="bg-green-600 hover:bg-green-700 text-white shadow-md"
+                        onClick={() => setIsPilotOpen(true)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
                     >
-                        <Zap className="h-4 w-4 mr-2" />
-                        Quick Generate ZIPs
+                        <Rocket className="h-4 w-4 mr-2" />
+                        Run Discovery
                     </Button>
                 </div>
             </div>
@@ -293,7 +297,7 @@ export default function FootTrafficTab() {
                     ) : filteredPages.length === 0 ? (
                         <div className="py-20 text-center border rounded-lg border-dashed bg-muted/10">
                             <p className="text-muted-foreground mb-4">No pages found matching your filters.</p>
-                            <Button onClick={() => setIsQuickGeneratorOpen(true)}>Generate Your First Batch</Button>
+                            <Button onClick={() => setIsPilotOpen(true)}>Generate Your First Batch</Button>
                         </div>
                     ) : (
                         <div className="rounded-md border">
@@ -441,6 +445,12 @@ export default function FootTrafficTab() {
             <QuickGeneratorDialog 
                 open={isQuickGeneratorOpen} 
                 onOpenChange={setIsQuickGeneratorOpen}
+                onSuccess={fetchData}
+            />
+
+            <DiscoveryPilotDialog 
+                open={isPilotOpen} 
+                onOpenChange={setIsPilotOpen}
                 onSuccess={fetchData}
             />
         </div>

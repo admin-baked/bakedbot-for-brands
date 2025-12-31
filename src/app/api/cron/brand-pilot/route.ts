@@ -15,8 +15,11 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        console.log('[API] Starting Brand Pilot...');
-        const result = await runBrandPilotJob();
+        const city = searchParams.get('city') || 'Chicago';
+        const state = searchParams.get('state') || 'IL';
+        
+        console.log(`[API] Starting Brand Pilot for ${city}, ${state}...`);
+        const result = await runBrandPilotJob(city, state);
         return NextResponse.json(result);
     } catch (error: any) {
         console.error('[API] Brand Pilot Error:', error);

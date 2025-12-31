@@ -2,9 +2,34 @@
 
 import { requireUser } from '@/server/auth/auth';
 import { searchCannMenusRetailers as searchShared, CannMenusResult } from '@/server/actions/cannmenus';
+import { runChicagoPilotJob } from '@/server/jobs/seo-generator';
+import { runBrandPilotJob } from '@/server/jobs/brand-discovery-job';
 import type { FootTrafficMetrics, BrandCTAType, CSVPreview, CSVRowError, BulkImportResult } from '@/types/foot-traffic';
 
 export type { CannMenusResult };
+
+export async function runDispensaryPilotAction(city: string, state: string, zipCodes?: string[]): Promise<ActionResult> {
+  try {
+    await requireUser(['owner']);
+    // Run async - don't await full completion if it takes too long, but for now we await to see logs in dev
+    // If it takes > max duration, Vercel will kill it. Ideally use QStash/Inngest. 
+    // For now we just kick it off.
+    runChicagoPilotJob(city, state, zipCodes).catch(err => console.error('Dispensary Pilot Background Error:', err));
+    return { message: `Started Dispensary Discovery for ${city}, ${state}` };
+  } catch (error: any) {
+    return { message: error.message, error: true };
+  }
+}
+
+export async function runBrandPilotAction(city: string, state: string): Promise<ActionResult> {
+  try {
+    await requireUser(['owner']);
+    runBrandPilotJob(city, state).catch(err => console.error('Brand Pilot Background Error:', err));
+    return { message: `Started Brand Discovery for ${city}, ${state}` };
+  } catch (error: any) {
+    return { message: error.message, error: true };
+  }
+}
 
 export type ActionResult = {
   message: string;

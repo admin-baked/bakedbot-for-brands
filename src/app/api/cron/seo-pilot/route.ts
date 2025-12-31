@@ -15,9 +15,15 @@ export async function GET(request: Request) {
     }
 
     try {
-        console.log('[API] Triggering Chicago Pilot...');
+        const city = searchParams.get('city') || 'Chicago';
+        const state = searchParams.get('state') || 'IL';
+        const zipStr = searchParams.get('zips');
+        const zipCodes = zipStr ? zipStr.split(',').map(z => z.trim()) : undefined;
+
+        console.log(`[API] Triggering Pilot for ${city}, ${state}...`);
+        
         // Run the job (awaiting it here for the pilot so we see results in response)
-        const results = await runChicagoPilotJob();
+        const results = await runChicagoPilotJob(city, state, zipCodes);
         
         return NextResponse.json({
             success: true,
