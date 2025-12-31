@@ -47,7 +47,6 @@ export function AgentPlayground() {
         <div className="w-full max-w-4xl mx-auto">
             <UnifiedAgentChat 
                 role="public"
-                height="h-[480px]"
                 locationInfo={locationInfo}
                 promptSuggestions={[
                     "How does BakedBot work?",

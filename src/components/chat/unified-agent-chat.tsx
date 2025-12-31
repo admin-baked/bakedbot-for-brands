@@ -117,7 +117,7 @@ const PUBLIC_CONFIG: RoleChatConfig = {
 export function UnifiedAgentChat({
     role = 'public',
     showHeader = true,
-    height = 'min-h-[400px] h-full', // Flexible default
+    height = '', // No fixed height - auto-expand with content
     className,
     promptSuggestions,
     compact = false,
@@ -138,7 +138,7 @@ export function UnifiedAgentChat({
 
     return (
         <div className={cn(
-            "rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col",
+            "rounded-xl border bg-card shadow-sm flex flex-col",
             height,
             className
         )}>

@@ -991,7 +991,7 @@ export function PuffChat({
     );
 
     return (
-        <div className={cn("flex flex-col bg-background border rounded-lg h-full overflow-hidden", className)}>
+        <div className={cn("flex flex-col bg-background border rounded-lg", className)}>
             {/* Header */}
             {!hideHeader && (
                 <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-violet-50 to-purple-50 shrink-0">
@@ -1014,8 +1014,8 @@ export function PuffChat({
                 </div>
             )}
 
-            {/* Scrollable Content Area */}
-            <ScrollArea className="flex-1 w-full bg-slate-50/30">
+            {/* Content Area - Auto-expands with content */}
+            <div className="flex-1 w-full bg-slate-50/30">
                 <div className="p-4 space-y-4 min-h-full">
                     {/* Empty State */}
                     {!hasMessages && (
@@ -1220,7 +1220,7 @@ export function PuffChat({
                     {/* Spacer for bottom input */}
                     <div className="h-4" />
                 </div>
-            </ScrollArea>
+            </div>
 
             {/* Input at BOTTOM */}
             <div className="shrink-0 z-10 bg-background/80 backdrop-blur-sm pt-2">
