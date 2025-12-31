@@ -319,5 +319,9 @@ export async function registerBuiltInTools(): Promise<void> {
     // Register email tool
     registry.register(getEmailTool());
 
+    // Register web scraper tool
+    const { getWebScraperTool } = await import('./web-scraper');
+    registry.register(getWebScraperTool());
+
     logger.info('📦 Built-in tools registered:', { tools: registry.toString() });
 }

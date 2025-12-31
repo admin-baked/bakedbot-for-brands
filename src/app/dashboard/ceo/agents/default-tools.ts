@@ -68,8 +68,25 @@ export const defaultPopsTools = {
 };
 
 export const defaultEzalTools = {
-    scrapeMenu: async (url: string) => {
-        return { message: "Direct scraping is restricted. Use 'getCompetitiveIntel' to search via CannMenus API." };
+    scrapeMenu: async (url: string, context?: any) => {
+        try {
+            const { firecrawl } = await import('@/server/services/firecrawl');
+            
+            // Check if Firecrawl is configured
+            if (firecrawl.isConfigured()) {
+                const result = await firecrawl.scrapeUrl(url, ['markdown']);
+                return { 
+                    success: true, 
+                    data: result.data || result, 
+                    message: "Successfully scraped menu data." 
+                };
+            }
+            
+            return { message: "Scraping service unavailable. Please check configuration." };
+        } catch (e: any) {
+            console.error('Scrape failed:', e);
+            return { message: `Scraping failed: ${e.message}` };
+        }
     },
     comparePricing: async (myProducts: any[], competitorProducts: any[]) => {
         const myAvg = myProducts.reduce((acc, p) => acc + (p.price || 0), 0) / (myProducts.length || 1);
@@ -93,6 +110,15 @@ export const defaultEzalTools = {
         }
     },
     searchWeb: async (query: string) => {
+        // Use Firecrawl for search if available for Ezal (Advanced agent)
+        try {
+            const { firecrawl } = await import('@/server/services/firecrawl');
+            if (firecrawl.isConfigured()) {
+                const results = await firecrawl.search(query);
+                return results;
+            }
+        } catch (e) { console.warn('Firecrawl search failed, falling back to Serper'); }
+
         const results = await searchWeb(query);
         return formatSearchResults(results);
     }
