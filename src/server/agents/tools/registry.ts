@@ -318,6 +318,51 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         },
         category: 'read',
         requiredPermission: 'admin:all',
+    },
+    'sheets.createSpreadsheet': {
+        name: 'sheets.createSpreadsheet',
+        description: 'Creates a new Google Spreadsheet and optional sheets. Useful for exporting reports.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'Title of the spreadsheet' },
+                sheets: { type: 'array', items: { type: 'string' }, description: 'Names of sheets to create' }
+            },
+            required: ['title']
+        },
+        category: 'write',
+        requiredPermission: 'write:campaigns',
+    },
+    'drive.uploadFile': {
+        name: 'drive.uploadFile',
+        description: 'Uploads a file or document to Google Drive.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                name: { type: 'string', description: 'Name of the file' },
+                content: { type: 'string', description: 'Content of the file (text or base64)' },
+                mimeType: { type: 'string', description: 'Mime type of the file' },
+                folderId: { type: 'string', description: 'Optional folder ID to upload to' }
+            },
+            required: ['name', 'content']
+        },
+        category: 'write',
+        requiredPermission: 'write:campaigns',
+    },
+    'slack.postMessage': {
+        name: 'slack.postMessage',
+        description: 'Posts a message to a Slack channel or DM.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                channel: { type: 'string', description: 'Channel name or ID' },
+                text: { type: 'string', description: 'Message text' },
+                blocks: { type: 'array', items: { type: 'object', additionalProperties: true }, description: 'Framer/Slack blocks for rich content' }
+            },
+            required: ['channel', 'text']
+        },
+        category: 'write',
+        requiredPermission: 'write:campaigns',
     }
 };
 

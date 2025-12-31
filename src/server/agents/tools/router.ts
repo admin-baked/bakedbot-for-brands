@@ -476,6 +476,61 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         }
     }
 
+    // Google Sheets - Create Spreadsheet
+    if (def.name === 'sheets.createSpreadsheet') {
+        try {
+            // Mock implementation for now - following Phase 7 requirements
+            // In a real implementation, we would use googleapis package
+            const spreadsheetId = `mock-sheet-${Date.now()}`;
+            return {
+                status: 'success',
+                data: {
+                    spreadsheetId,
+                    url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
+                    title: inputs.title,
+                    message: 'Spreadsheet created successfully (Demo Mode).'
+                }
+            };
+        } catch (error: any) {
+            return { status: 'failed', error: `Sheets error: ${error.message}` };
+        }
+    }
+
+    // Google Drive - Upload File
+    if (def.name === 'drive.uploadFile') {
+        try {
+            const fileId = `mock-file-${Date.now()}`;
+            return {
+                status: 'success',
+                data: {
+                    fileId,
+                    url: `https://drive.google.com/file/d/${fileId}`,
+                    name: inputs.name,
+                    message: 'File uploaded successfully (Demo Mode).'
+                }
+            };
+        } catch (error: any) {
+            return { status: 'failed', error: `Drive error: ${error.message}` };
+        }
+    }
+
+    // Slack - Post Message
+    if (def.name === 'slack.postMessage') {
+        try {
+            // Mock implementation for now
+            return {
+                status: 'success',
+                data: {
+                    channel: inputs.channel,
+                    ts: `${Date.now()}.000100`,
+                    message: 'Slack message posted successfully (Demo Mode).'
+                }
+            };
+        } catch (error: any) {
+            return { status: 'failed', error: `Slack error: ${error.message}` };
+        }
+    }
+
     return {
         status: 'success',
         data: { message: `Executed tool: ${def.name}`, inputs }
