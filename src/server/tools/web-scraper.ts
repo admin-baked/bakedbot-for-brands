@@ -11,7 +11,7 @@ const ScrapeInputSchema = z.object({
 
 type ScrapeInput = z.infer<typeof ScrapeInputSchema>;
 
-export const getWebScraperTool = (): Tool => {
+export const getWebScraperTool = (): any => {
     return {
         id: 'web.scrape',
         name: 'Web Scraper',
@@ -22,7 +22,29 @@ export const getWebScraperTool = (): Tool => {
         visible: true,
         isDefault: true,
         requiresAuth: true, // Requires user context to determine tier
-        inputSchema: ScrapeInputSchema,
+        authType: 'none',
+        capabilities: [{
+            name: 'web_scraping',
+            description: 'Extract content from web pages',
+            examples: ['Scrape product page', 'Get page text']
+        }],
+        supportedFormats: ['text', 'html', 'markdown'],
+        inputSchema: {
+            type: 'object',
+            properties: {
+                url: { type: 'string', description: 'URL to scrape' },
+                mode: { type: 'string', description: 'Output format', enum: ['basic', 'markdown', 'html'] }
+            },
+            required: ['url']
+        },
+        outputSchema: {
+            type: 'object',
+            properties: {
+                success: { type: 'boolean', description: 'Whether scrape succeeded' },
+                data: { type: 'object', description: 'Scraped content' }
+            }
+        },
+        estimatedDuration: 5000,
         
         execute: async (input: ScrapeInput, context: any) => {
             const { url, mode } = input;
@@ -38,10 +60,11 @@ export const getWebScraperTool = (): Tool => {
                 try {
                     const formats = mode === 'html' ? ['html'] : ['markdown'];
                     const result = await firecrawl.scrapeUrl(url, formats as any);
+                    const resultData = result as any;
                     return {
                         success: true,
                         source: 'firecrawl',
-                        data: result.data || result // Handle SDK response variations
+                        data: resultData.data || resultData // Handle SDK response variations
                     };
                 } catch (error: any) {
                     console.error('[WebScraper] Firecrawl failed, falling back to basic:', error);

@@ -1,6 +1,6 @@
 
 import { FirecrawlService } from './firecrawl';
-import { db } from '../../lib/firebase/admin'; // Assuming admin SDK usage for background jobs
+import { getAdminFirestore } from '@/firebase/admin'; // Firebase admin SDK for background jobs
 import { DispensarySEOPage } from '../../types/foot-traffic';
 import { z } from 'zod';
 
@@ -38,9 +38,10 @@ export class MassScraperService {
             // Filter and map results to potential candidates
             // This is a naive implementation; in production we'd use stronger filtering
             // or an extraction schema to get exact names/addresses from the search snippets.
-            return results
-                .filter(r => !r.url.includes('leafly') && !r.url.includes('weedmaps') && !r.url.includes('yelp')) // Exclude directories
-                .map(r => ({
+            const typedResults = results as any[];
+            return typedResults
+                .filter((r: any) => !r.url?.includes('leafly') && !r.url?.includes('weedmaps') && !r.url?.includes('yelp')) // Exclude directories
+                .map((r: any) => ({
                     name: r.title || 'Unknown Dispensary',
                     url: r.url
                 }))
@@ -115,7 +116,8 @@ export class MassScraperService {
      */
     async savePage(page: Partial<DispensarySEOPage>): Promise<void> {
         if (!page.id) throw new Error('Page ID missing');
-        // await db.collection('seo_pages_dispensary').doc(page.id).set(page, { merge: true });
-        console.log(`[MassScraper] DRY RUN: Would save page ${page.id} for ${page.dispensaryName}`);
+        const db = getAdminFirestore();
+        await db.collection('seo_pages_dispensary').doc(page.id).set(page, { merge: true });
+        console.log(`[MassScraper] Saved page ${page.id} for ${page.dispensaryName}`);
     }
 }

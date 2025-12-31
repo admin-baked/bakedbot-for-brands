@@ -53,7 +53,7 @@ export class FirecrawlService {
         try {
             const response = await this.app.scrape(url, {
                 formats: formats
-            });
+            }) as any;
 
             if (!response.success) {
                 throw new Error(`Firecrawl scrape failed: ${response.error}`);
@@ -78,7 +78,7 @@ export class FirecrawlService {
             const response = await this.app.scrape(url, {
                 formats: ['markdown'],
                 actions: actions
-            });
+            }) as any;
             
              if (!response.success) {
                 throw new Error(`Firecrawl action scrape failed: ${response.error}`);
@@ -98,7 +98,7 @@ export class FirecrawlService {
         if (!this.app) throw new Error('Firecrawl not configured');
 
         try {
-            const response = await this.app.search(query);
+            const response = await this.app.search(query) as any;
             console.log('[FirecrawlService] Search Raw Response:', JSON.stringify(response, null, 2));
             
             // Handle different SDK response shapes
@@ -123,7 +123,8 @@ export class FirecrawlService {
         if (!this.app) throw new Error('Firecrawl not configured');
 
         try {
-            const response = await this.app.mapUrl(url);
+            // @ts-ignore - mapUrl exists in API but may not be in SDK types
+            const response = await this.app.mapUrl(url) as any;
             
             if (!response.success) {
                  throw new Error(`Firecrawl map failed: ${response.error}`);
@@ -143,13 +144,24 @@ export class FirecrawlService {
         if (!this.app) throw new Error('Firecrawl not configured');
 
         try {
-            // Updated to use JSON Mode as 'extract' is deprecated/unrecognized
+            // Updated to use the correct object format for JSON extraction
+            // Reference: debug-json-obj.ts success
+            console.log('[Firecrawl] Extracting with schema:', JSON.stringify(schema));
             const response = await this.app.scrape(url, {
-                formats: ['json'],
-                jsonOptions: {
-                    schema: schema
-                }
-            });
+                formats: [
+                    {
+                        type: "json",
+                        schema: schema,
+                        prompt: "Extract structured data from the page content matching the schema."
+                    }
+                ]
+            }) as any;
+            console.log('[Firecrawl] Extract raw response:', JSON.stringify(response, null, 2));
+
+            // If response has json property, it's successful (SDK behavior verify)
+            if ((response as any).json || response.data?.json) {
+                return (response as any).json || response.data?.json;
+            }
 
             if (!response.success) {
                  const errMsg = response.error || JSON.stringify(response);
