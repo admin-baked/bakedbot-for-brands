@@ -39,7 +39,7 @@ The platform logic is personified by specialized AI agents.
 | **Smokey** | Budtender | Product Search & Recs | Chemotype matching (needs terpene vectors), Headless Menus |
 | **Craig** | Marketer | Campaigns & Lifecycle | Email/SMS (Twilio/SendGrid), Automations (needs send-time opt) |
 | **Pops** | Analyst | Revenue & Funnel | Transaction Analysis, Demand Forecasting (needs real-time adaptation) |
-| **Ezal** | Lookout | Competitive Intel | Web Scrapers (Firecrawl/Apify), Price Monitoring (needs sentiment analysis) |
+| **Ezal** | Lookout | Competitive Intel | Agent Discovery (Firecrawl), Price Monitoring, Lead Discovery |
 | **Money Mike** | Banker | Pricing & Margins | Elasticity Models, Billing, ROI Calc (needs forecast integration) |
 | **Mrs. Parker** | Hostess | Loyalty & VIP | Segmentation (needs ML clustering), Win-back flows |
 | **Deebo** | Enforcer | Compliance & Regs | CTIA/State Rule Engine (needs proactive risk scoring) |
@@ -194,7 +194,7 @@ When a user requests a "Competitive Snapshot" or "Market Analysis", use the stru
 ## 6. Super User Protocol
 - **Absolute Access**: Super User (Owner) has unrestricted access.
 - **Playbooks**: Belong to tenant but Super User manages all.
-- **Scrapers**: Free users = basic; Paid users = Firecrawl/BakedBot Discovery.
+- **Agent Discovery**: Free users = basic; Paid users = Firecrawl/BakedBot Agent Discovery.
 
 ---
 

@@ -1,12 +1,14 @@
 # Playbook Prompting Patterns
 
-This document shows how to prompt agents to create automations like the 40 Tons price tracker.
+Best practices for creating automations based on the "40 Tons" daily tracker pattern and learnings from production campaigns.
 
 ---
 
-## Pattern 1: Daily Price Tracker
+## 🎯 Core Patterns
 
-### Prompt Template
+### Pattern 1: Daily Price Tracker (Agent Discovery)
+
+**Prompt Template:**
 ```
 Track [BRAND] prices across these dispensaries daily at 9 AM:
 - [URL 1]
@@ -17,88 +19,75 @@ Log results to Google Sheet [SHEET_ID] with columns:
 Date, Dispensary, Product, Price, Stock Status
 ```
 
-### Example (40 Tons)
+**Example:**
 ```
-Track 40 Tons prices across these dispensaries daily at 9 AM:
+Track 40 Tons prices daily at 9 AM at:
 - https://weedmaps.com/dispensaries/sunnyside-chicago?filter[brandSlugs][]=40-tons
 - https://weedmaps.com/dispensaries/rise-naperville?filter[brandSlugs][]=40-tons
-- https://weedmaps.com/dispensaries/zen-leaf-chicago?filter[brandSlugs][]=40-tons
 
-Log results to Google Sheet 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms
+Log to Sheet 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms
 ```
 
 ---
 
-## Pattern 2: Competitive Intelligence
+### Pattern 2: Lead Discovery Campaign
 
-### Prompt Template
+**Prompt Template:**
 ```
-Generate a competitive intelligence report for [MY_BRAND].
-Compare our pricing against [COMPETITOR_LIST].
-Focus on [CATEGORY] products in [MARKET/REGION].
+Discover [BUSINESS_TYPE] in [REGION] that have email addresses.
+Save to Google Sheet with columns: [COLUMN_LIST].
+Email [N] per day with message: [TEMPLATE].
+Verify emails before sending.
 ```
 
-### Example
+**Key Learnings (from production):**
+- ✅ **Pre-define column mapping** before running (Business=A, Email=B, etc.)
+- ✅ **Verify emails first** via QuickEmailVerification  
+- ✅ **Set bounce threshold** (pause at 10%)
+- ✅ **Add UTM tracking** to all links
+- ⚠️ **Large sheets (10k+ rows)** can hit API limits - paginate or filter
+
+---
+
+### Pattern 3: Weekly Self-Optimization
+
+**Prompt Template:**
 ```
-Generate a competitive intelligence report for 40 Tons.
-Compare our pricing against Verano, Cresco, and GTI.
-Focus on flower and vapes in the Chicago market.
+Every Friday at 4pm, analyze past 7 days:
+- Email open rates by segment
+- Bounce patterns by domain
+- Conversion funnel metrics
+Recommend top 3 optimizations. Wait for approval before changes.
 ```
 
 ---
 
-## Pattern 3: Scheduled Email Reports
-
-### Prompt Template
-```
-Every [SCHEDULE] send me an email with:
-- [DATA_SOURCE_1] summary
-- [DATA_SOURCE_2] changes
-- Top [N] recommendations
-```
-
-### Example
-```
-Every Monday at 9 AM send me an email with:
-- Weekly sales summary from Pops
-- Competitor price changes from Ezal
-- Top 5 product recommendations to stock
-```
-
----
-
-## Pattern 4: Inventory Alert
-
-### Prompt Template
-```
-Alert me when [PRODUCT_PATTERN] goes below [THRESHOLD] units.
-Check inventory every [INTERVAL].
-Notify via [CHANNEL].
-```
-
-### Example
-```
-Alert me when any 40 Tons SKU goes below 50 units.
-Check inventory every 4 hours.
-Notify via SMS and email.
-```
-
----
-
-## Tool Reference
+## 🔧 Tool Reference
 
 | Tool | Purpose | Example |
 |------|---------|---------|
-| `weedmaps.scrape` | Scrape Weedmaps dispensary menus | `{urls: [...], formatForSheets: true}` |
+| `weedmaps.scrape` | Agent Discovery - dispensary menus | `{urls: [...], formatForSheets: true}` |
 | `sheets.append` | Add rows to Google Sheet | `{spreadsheetId: "...", range: "Sheet1!A:G", values: [[...]]}` |
 | `sheets.createSpreadsheet` | Create new Google Sheet | `{title: "Price Tracker"}` |
 | `scheduler.create` | Create scheduled trigger | `{cron: "0 9 * * *", task: "..."}` |
 
 ---
 
-## Activation Tips
+## ⚠️ Failure Modes & Solutions
 
-1. **Connect Google Sheets** first in Settings > Integrations
-2. **Use Weedmaps URLs with brand filter** for cleaner data
-3. **Start with 3-5 dispensaries** then scale up
-4. **Check the Playbooks tab** for pre-built templates
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| "Column mapping needed" | Agent doesn't know sheet structure | Pre-define: "A=Business, B=Email, C=City" |
+| "Permission denied" | OAuth token expired | Reconnect in Settings > Integrations |
+| "Sheet too large" | >10k rows causes API limits | Add filters or paginate reads |
+| "Automation paused" | Bounce rate hit threshold | Review bounces, clean list, resume |
+
+---
+
+## 🚀 Activation Checklist
+
+1. ✅ Connect Google Sheets in Settings > Integrations
+2. ✅ Use Weedmaps URLs **with brand filter** for cleaner data
+3. ✅ Pre-define column mapping before large imports
+4. ✅ Set bounce thresholds and milestone alerts
+5. ✅ Add UTM parameters to all campaign links
