@@ -1,3 +1,22 @@
+## Session: 2025-12-31 (Build Fix - Playbook Thumbnail)
+### Task ID
+build_fix_playbook_thumbnail
+
+### Summary
+Fixed a build error where `thumbnail` property was used in `default-playbooks.ts` but not defined in the `Playbook` type. Renamed it to `icon: 'bot'`.
+
+### Key Changes
+*   **FIX**: `src/config/default-playbooks.ts` - Replaced `thumbnail: 'ai-tracker'` with `icon: 'bot'`.
+*   **FIX**: `src/config/default-playbooks.ts` - Removed invalid fields `category`, `tags`, `author`, `lastUpdated` to comply with strict TypeScript type.
+
+### Tests Run
+*   `npm run check:types` (Passed ✅)
+
+### Result: ✅ Fixed
+Build should now pass.
+
+---
+
 ## Session: 2025-12-31 (Invitation Feature & Build Fixes)
 ### Task ID
 invitation_feature_build_fixes
