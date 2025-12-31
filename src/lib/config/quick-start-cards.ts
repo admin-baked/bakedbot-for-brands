@@ -140,37 +140,64 @@ export const PROMPT_CHIPS = {
         "Install Smokey on my site",
         "Enable daily competitive intel",
         "Generate 25 SEO pages for Illinois",
-        "Draft a compliant text campaign"
+        "Draft a compliant text campaign",
+        "Run a pricing snapshot vs local competitors",
+        "Generate a loyalty win-back email template"
     ],
     brand: [
         "Launch my brand page + where-to-buy",
         "Run a footprint audit",
         "Find retailers that carry competitors, not us",
         "Enable daily brand snapshot",
-        "Draft compliant outreach emails"
+        "Draft compliant outreach emails",
+        "Analyze pricing trends across all retailers",
+        "Generate a social media image for our new drop"
     ],
     owner: [
         "Show me platform analytics",
         "Generate revenue report",
         "Review pending approvals",
         "Configure compliance settings",
-        "Manage team access"
+        "Manage team access",
+        "Analyze tenant growth trends",
+        "Draft a platform-wide announcement"
     ],
     customer: [
         "Find products near me",
         "Recommend products for sleep",
         "Show me deals nearby",
         "Find high-CBD strains",
-        "Get product recommendations"
+        "Get product recommendations",
+        "Where can I find [BRAND NAME]?",
+        "What are the best-rated dispensaries in [CITY]?"
     ],
     super_admin: [
-        "Show me platform analytics",
-        "Manage system settings",
-        "Review all accounts",
-        "Configure global compliance",
-        "Generate system report"
+        "Competitive snapshot: AIQ vs Terpli",
+        "Analyze Dutchie and Springbig integration opportunities",
+        "Generate platform-wide health report",
+        "Review cross-tenant revenue attribution",
+        "Draft BizDev outreach for National Rollout",
+        "Show me codebase for [FILE PATH]",
+        "Research competitor pricing models for 'Claim Pro'",
+        "Compare Springbig loyalty features vs Mrs. Parker",
+        "Analyze Dutchie's market share in Illinois",
+        "Generate a report on Terpli's recommendation accuracy"
     ]
 };
+
+/**
+ * Get a randomized subset of prompts for a specific role
+ */
+export function getRandomPromptsForRole(role: string, count: number = 3): string[] {
+    const roleKey = role as keyof typeof PROMPT_CHIPS;
+    const allPrompts = PROMPT_CHIPS[roleKey] || [];
+    if (allPrompts.length === 0) return [];
+    
+    // Simple shuffle
+    return [...allPrompts]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, count);
+}
 
 /**
  * First-login welcome messages by role

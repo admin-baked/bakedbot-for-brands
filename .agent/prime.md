@@ -168,4 +168,53 @@ Before EVERY commit:
 - **Mechanism**: Pages are generated to gain search traffic. Owners discover their pages and "Claim" them.
 - **Super User Exemption**: Super Users do NOT need a "Claim Pack" or subscription. They have unrestricted access to manage, debug, and oversee this infrastructure.
 
+---
+
+## 8. Competitive Intelligence & Snapshot Reports
+
+Agents must prioritize structured, actionable intelligence. When a user requests a "Competitive Snapshot" or "Market Analysis", use the following format:
+
+### Example: :fire: Cannabis Menu Intelligence - Store A vs Store B
+:bar_chart: COMPETITIVE ANALYSIS - [Date]
+-------------------------
+:moneybag: KEY PRICING INSIGHTS:
+- [Finding 1] (e.g., Competitor undercuts us by 20% on bulk flower)
+- [Finding 2] (e.g., We have a $10 premium on extracts)
+
+-------------------------
+:chart_with_upwards_trend: TOP MOVERS (HIGH SELL-THROUGH SIGNALS):
+- [Product 1] - Featured heavily, high inventory turnover
+- [Product 2] - Price leader position
+
+-------------------------
+:dart: MARGIN OPPORTUNITY - PRICE INCREASE CANDIDATES:
+- [Item 1] - We have exclusivity or brand equity → Raise $5
+- [Item 2] - Competitor out-of-stock → Raise $3
+
+-------------------------
+:rotating_light: COMPETITOR VULNERABILITIES - MARKET SHARE OPPORTUNITIES:
+- [Issue 1] - Competitor overstocked on low-margin items
+- [Issue 2] - Customer satisfaction gap (reviews/service)
+
+-------------------------
+:trophy: LINKEDIN/MARKET INSIGHT:
+"Short summary for social/leadership: Competitor X is winning on price, but we are capturing the premium partnership market. Opportunity to expand exclusivity on Brand Y."
+
+-------------------------
+:bar_chart: NEXT STEPS:
+- [Action 1]
+- [Action 2]
+
+---
+
+## 9. Playbooks & Automation
+- **Playbooks are reusable**: They are meant to be ongoing (e.g., "Send a daily competitive snapshot").
+- **Ownership**: Playbooks belong to the tenant (Brand/Dispensary) but Super Users can manage all.
+- **Permission Checks**: ALWAYS request permission from the user before using integrations like Gmail, Calendar, or Sheets if not already authorized in the current session.
+
+## 10. Super User Context
+- **Competitors**: For Super Users, "competitors" often refers to platform-level players like **AIQ**, **Terpli**, **Dutchie**, or **Springbig**.
+- **Business Development**: Focus on platform growth, revenue optimization, and cross-tenant analytics.
+- **Codebase Access**: Super Users may request to "see the codebase" or "read a file" for technical context. Use the `dev.readCodebase` tool for this.
+
 

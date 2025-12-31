@@ -7,34 +7,49 @@ export interface CRMBrand {
     id: string;
     name: string;
     slug: string;
-    states: string[];  // States where this brand is found
-    isNational: boolean;  // Found in 3+ states
-    claimStatus: 'unclaimed' | 'pending' | 'claimed';
-    claimedBy: string | null;
-    claimedAt: Date | null;
-    logoUrl: string | null;
-    website: string | null;
-    createdAt: Date;
+    email?: string | null;
+    website?: string | null;
+    logoUrl?: string | null;
+    description?: string | null;
+    source: 'discovery' | 'claim' | 'import' | 'system';
+    discoveredFrom?: string[]; // Array of dispensary IDs where found
+    states: string[];
+    isNational: boolean;
+    seoPageId?: string | null;
+    claimedOrgId?: string | null;
+    claimStatus: 'unclaimed' | 'invited' | 'pending' | 'claimed';
+    discoveredAt: Date;
     updatedAt: Date;
+    claimedBy?: string | null;
+    claimedAt?: Date | null;
 }
 
 export interface CRMDispensary {
     id: string;
     name: string;
     slug: string;
-    state: string;
+    email?: string | null;
+    address: string;
     city: string;
-    claimStatus: 'unclaimed' | 'pending' | 'claimed';
-    claimedBy: string | null;
-    claimedAt: Date | null;
-    retailerId: string | null;  // CannMenus retailer ID
-    createdAt: Date;
+    state: string;
+    zip: string;
+    website?: string | null;
+    phone?: string | null;
+    source: 'discovery' | 'claim' | 'import' | 'system';
+    seoPageId?: string | null;
+    claimedOrgId?: string | null;
+    claimStatus: 'unclaimed' | 'invited' | 'pending' | 'claimed';
+    invitationSentAt?: Date | null;
+    discoveredAt: Date;
     updatedAt: Date;
+    retailerId?: string | null;
+    claimedBy?: string | null;
+    claimedAt?: Date | null;
 }
 
 export interface CRMFilters {
     state?: string;
-    claimStatus?: 'unclaimed' | 'pending' | 'claimed';
+    claimStatus?: 'unclaimed' | 'invited' | 'pending' | 'claimed';
     isNational?: boolean;
     search?: string;
     limit?: number;
@@ -56,16 +71,16 @@ function createSlug(name: string): string {
 export async function upsertBrand(
     name: string,
     state: string,
-    data: Partial<Pick<CRMBrand, 'logoUrl' | 'website'>> = {}
+    data: Partial<Pick<CRMBrand, 'logoUrl' | 'website' | 'description' | 'source' | 'discoveredFrom' | 'seoPageId'>> = {}
 ): Promise<string> {
     const firestore = getAdminFirestore();
     const slug = createSlug(name);
 
+    // Use top-level collection as per approved plan
+    const collection = firestore.collection('crm_brands');
+
     // Check for existing brand by slug
-    const existingQuery = await firestore
-        .collection('foot_traffic')
-        .doc('crm')
-        .collection('brands')
+    const existingQuery = await collection
         .where('slug', '==', slug)
         .limit(1)
         .get();
@@ -73,44 +88,56 @@ export async function upsertBrand(
     if (!existingQuery.empty) {
         // Update existing brand - add state if not present
         const doc = existingQuery.docs[0];
-        const existing = doc.data();
+        const existing = doc.data() as CRMBrand;
         const states = existing.states || [];
 
         if (!states.includes(state)) {
             states.push(state);
         }
 
+        const discoveredFrom = existing.discoveredFrom || [];
+        if (data.discoveredFrom) {
+            data.discoveredFrom.forEach(id => {
+                if (!discoveredFrom.includes(id)) {
+                    discoveredFrom.push(id);
+                }
+            });
+        }
+
         await doc.ref.update({
             states,
+            discoveredFrom,
             isNational: states.length >= 3,
             updatedAt: new Date(),
             ...(data.logoUrl && { logoUrl: data.logoUrl }),
             ...(data.website && { website: data.website }),
+            ...(data.description && { description: data.description }),
+            ...(data.seoPageId && { seoPageId: data.seoPageId }),
         });
 
         return doc.id;
     } else {
         // Create new brand
-        const brandRef = firestore
-            .collection('foot_traffic')
-            .doc('crm')
-            .collection('brands')
-            .doc();
+        const brandRef = collection.doc();
 
-        await brandRef.set({
+        const brand: CRMBrand = {
             id: brandRef.id,
             name,
             slug,
             states: [state],
             isNational: false,
             claimStatus: 'unclaimed',
-            claimedBy: null,
-            claimedAt: null,
+            source: data.source || 'discovery',
             logoUrl: data.logoUrl || null,
             website: data.website || null,
-            createdAt: new Date(),
+            description: data.description || null,
+            discoveredFrom: data.discoveredFrom || [],
+            seoPageId: data.seoPageId || null,
+            discoveredAt: new Date(),
             updatedAt: new Date(),
-        });
+        };
+
+        await brandRef.set(brand);
 
         return brandRef.id;
     }
@@ -123,46 +150,49 @@ export async function upsertDispensary(
     name: string,
     state: string,
     city: string,
-    data: Partial<Pick<CRMDispensary, 'retailerId'>> = {}
+    data: Partial<Pick<CRMDispensary, 'address' | 'zip' | 'website' | 'phone' | 'retailerId' | 'source' | 'seoPageId'>> = {}
 ): Promise<string> {
     const firestore = getAdminFirestore();
     const slug = createSlug(name);
 
-    // Check for existing dispensary by slug + state (allow same name in different states)
-    const existingQuery = await firestore
-        .collection('foot_traffic')
-        .doc('crm')
-        .collection('dispensaries')
+    // Use top-level collection as per approved plan
+    const collection = firestore.collection('crm_dispensaries');
+
+    // Check for existing dispensary by slug + state + city (allow same name in different locations)
+    const existingQuery = await collection
         .where('slug', '==', slug)
         .where('state', '==', state)
+        .where('city', '==', city)
         .limit(1)
         .get();
 
     if (!existingQuery.empty) {
-        // Already exists for this state, just return the ID
+        // Already exists for this location, just return the ID
         const doc = existingQuery.docs[0];
         return doc.id;
     } else {
         // Create new dispensary
-        const dispRef = firestore
-            .collection('foot_traffic')
-            .doc('crm')
-            .collection('dispensaries')
-            .doc();
+        const dispRef = collection.doc();
 
-        await dispRef.set({
+        const dispensary: CRMDispensary = {
             id: dispRef.id,
             name,
             slug,
-            state,
+            address: data.address || '',
             city,
+            state,
+            zip: data.zip || '',
+            website: data.website || null,
+            phone: data.phone || null,
+            source: data.source || 'discovery',
             claimStatus: 'unclaimed',
-            claimedBy: null,
-            claimedAt: null,
             retailerId: data.retailerId || null,
-            createdAt: new Date(),
+            seoPageId: data.seoPageId || null,
+            discoveredAt: new Date(),
             updatedAt: new Date(),
-        });
+        };
+
+        await dispRef.set(dispensary);
 
         return dispRef.id;
     }
@@ -174,9 +204,7 @@ export async function upsertDispensary(
 export async function getBrands(filters: CRMFilters = {}): Promise<CRMBrand[]> {
     const firestore = getAdminFirestore();
     let query = firestore
-        .collection('foot_traffic')
-        .doc('crm')
-        .collection('brands')
+        .collection('crm_brands')
         .orderBy('name', 'asc');
 
     if (filters.claimStatus) {
@@ -192,18 +220,11 @@ export async function getBrands(filters: CRMFilters = {}): Promise<CRMBrand[]> {
     let brands = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
+            ...data,
             id: doc.id,
-            name: data.name,
-            slug: data.slug,
-            states: data.states || [],
-            isNational: data.isNational || false,
-            claimStatus: data.claimStatus || 'unclaimed',
-            claimedBy: data.claimedBy || null,
-            claimedAt: data.claimedAt?.toDate?.() || null,
-            logoUrl: data.logoUrl || null,
-            website: data.website || null,
-            createdAt: data.createdAt?.toDate?.() || new Date(),
+            discoveredAt: data.discoveredAt?.toDate?.() || new Date(),
             updatedAt: data.updatedAt?.toDate?.() || new Date(),
+            claimedAt: data.claimedAt?.toDate?.() || null,
         } as CRMBrand;
     });
 
@@ -227,9 +248,7 @@ export async function getBrands(filters: CRMFilters = {}): Promise<CRMBrand[]> {
 export async function getDispensaries(filters: CRMFilters = {}): Promise<CRMDispensary[]> {
     const firestore = getAdminFirestore();
     let query = firestore
-        .collection('foot_traffic')
-        .doc('crm')
-        .collection('dispensaries')
+        .collection('crm_dispensaries')
         .orderBy('name', 'asc');
 
     if (filters.state) {
@@ -245,17 +264,12 @@ export async function getDispensaries(filters: CRMFilters = {}): Promise<CRMDisp
     let dispensaries = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
+            ...data,
             id: doc.id,
-            name: data.name,
-            slug: data.slug,
-            state: data.state,
-            city: data.city,
-            claimStatus: data.claimStatus || 'unclaimed',
-            claimedBy: data.claimedBy || null,
-            claimedAt: data.claimedAt?.toDate?.() || null,
-            retailerId: data.retailerId || null,
-            createdAt: data.createdAt?.toDate?.() || new Date(),
+            discoveredAt: data.discoveredAt?.toDate?.() || new Date(),
             updatedAt: data.updatedAt?.toDate?.() || new Date(),
+            claimedAt: data.claimedAt?.toDate?.() || null,
+            invitationSentAt: data.invitationSentAt?.toDate?.() || null,
         } as CRMDispensary;
     });
 
@@ -285,15 +299,11 @@ export async function getCRMStats(): Promise<{
     const firestore = getAdminFirestore();
 
     const brandsSnap = await firestore
-        .collection('foot_traffic')
-        .doc('crm')
-        .collection('brands')
+        .collection('crm_brands')
         .get();
 
     const dispensariesSnap = await firestore
-        .collection('foot_traffic')
-        .doc('crm')
-        .collection('dispensaries')
+        .collection('crm_dispensaries')
         .get();
 
     const leadsSnap = await firestore

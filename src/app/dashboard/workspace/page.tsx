@@ -12,7 +12,7 @@ import { TaskFeed } from '@/components/dashboard/task-feed';
 import { RoleBadge } from '@/components/dashboard/role-badge';
 import { AgentChat } from '../playbooks/components/agent-chat';
 import { useUserRole } from '@/hooks/use-user-role';
-import { WELCOME_MESSAGES, PROMPT_CHIPS } from '@/lib/config/quick-start-cards';
+import { WELCOME_MESSAGES, getRandomPromptsForRole } from '@/lib/config/quick-start-cards';
 import { Button } from '@/components/ui/button';
 import { Layers, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -59,7 +59,7 @@ export default function AgentWorkspacePage() {
     };
 
     const welcomeMessage = role ? WELCOME_MESSAGES[role] : '';
-    const promptChips = role ? PROMPT_CHIPS[role] : [];
+    const promptChips = role ? getRandomPromptsForRole(role, 5) : [];
 
     return (
         <div className="container mx-auto p-4">

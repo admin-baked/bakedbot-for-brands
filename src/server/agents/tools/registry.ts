@@ -304,6 +304,20 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         },
         category: 'write',
         requiredPermission: 'read:analytics', // All roles can use this
+    },
+    'dev.readCodebase': {
+        name: 'dev.readCodebase',
+        description: 'Enables Super Users to inspect the application codebase for context or debugging.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                path: { type: 'string', description: 'Relative path to file or directory (e.g. "src/app/page.tsx")' },
+                mode: { type: 'string', enum: ['read', 'list'], default: 'read' }
+            },
+            required: ['path']
+        },
+        category: 'read',
+        requiredPermission: 'admin:all',
     }
 };
 

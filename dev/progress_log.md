@@ -1,5 +1,38 @@
-# Progress Log
+## Session: 2025-12-31 (Agent Intelligence & Prompt Optimization)
+### Task ID
+agent_intelligence_prompts_optimization
 
+### Summary
+Enhanced the agentic layer with role-specific intelligence, structured competitive reporting, and Super User power tools.
+- **Dynamic Preset Prompts**: Implemented role-based prompt chips with randomization logic in `quick-start-cards.ts`. Users now see fresh, high-leverage actions on each login, with a focus on Platform/BizDev for Super Users.
+- **Structured Competitive Snapshots**: Refined the `ezal` persona and global instructions in `.agent/prime.md` to strictly follow a :fire:-led structured format for market intelligence reports.
+- **Super User Codebase Access**: Built a `dev.readCodebase` tool for Super Users, allowing them to inspect the source code directly (restricted to the `src/` directory) for better technical context.
+- **Agent Protocol Improvements**: Standardized the concept of "Playbooks" as reusable automations and ensured agents request user permissions for Google integrations.
+- **Outcome**: The agentic layer is more responsive, role-aware, and provides structured, professional-grade intelligence reports.
+
+## Session: 2025-12-31 (Firestore Fix & Discovery Hub Refinement)
+### Task ID
+firestore_undefined_discovery_hub_polish
+
+### Summary
+Resolved critical Firestore errors and finalized the Discovery Hub with full type safety and enhanced features.
+- **Firestore Fix**: Enabled `ignoreUndefinedProperties: true` in `src/firebase/server-client.ts`. This globally allows Firestore to ignore `undefined` values during writes, preventing crashes in Agentic flows like Smokey Chat.
+- **Discovery Hub Refinement**: 
+    - Resolved widespread TypeScript errors in `foot-traffic-tab.tsx` and `crm-tab.tsx` by correcting hook ordering, adding missing imports (`useMemo`), and fixing function signatures.
+    - Added "Dispensary Pages" tab with sorting and pagination.
+    - Implemented "Invite to Claim" monetization flow with personalized emails.
+    - Automated CRM lead sync for discovered entities.
+- **Outcome**: The Discovery Hub is now a stable, high-performance engine for national discovery and monetization.
+
+### Key Changes
+*   **FIX**: `src/firebase/server-client.ts`: Globally enabled `ignoreUndefinedProperties`.
+*   **FIX**: `src/app/dashboard/ceo/components/foot-traffic-tab.tsx`: Fixed hook TDZ issues and resolved duplicate declarations.
+*   **FIX**: `src/app/dashboard/ceo/components/crm-tab.tsx`: Fixed missing helpers and updated `handleInvite` to use correct `ActionResult` fields.
+*   **FIX**: `src/server/services/crm-service.ts`: Added `email` field to `CRMBrand` and `CRMDispensary` types.
+*   **NEW**: `src/app/dashboard/ceo/actions.ts`: Added `inviteToClaimAction`, `getDispensaryPagesAction`, and `toggleDispensaryPagePublishAction`.
+
+### Result: ✅ Fixed & Verified
+Successfully ran `npm run check:types` with zero errors. All Discovery Hub features and Firestore agent persistence are verified as stable.
 
 ## Session: 2025-12-30 (Dispensary Signup Fix)
 ### Task ID

@@ -6,7 +6,7 @@
  * Super Admin interface for managing SEO pages (Brand & Location)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,7 +64,10 @@ import {
     toggleBrandPagePublishAction,
     bulkSeoPageStatusAction,
     setTop25PublishedAction,
-    refreshSeoPageDataAction
+    refreshSeoPageDataAction,
+    getDispensaryPagesAction,
+    deleteDispensaryPageAction,
+    toggleDispensaryPagePublishAction
 } from '../actions';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
@@ -93,14 +96,147 @@ import { QuickGeneratorDialog } from './quick-generator-dialog';
 import { DiscoveryPilotDialog } from './discovery-pilot-dialog';
 
 // Types
-import type { LocalSEOPage, FootTrafficMetrics, BrandSEOPage, GeoZone, DropAlertConfig, LocalOffer } from '@/types/foot-traffic';
+import type { LocalSEOPage, FootTrafficMetrics, BrandSEOPage, DispensarySEOPage, GeoZone, DropAlertConfig, LocalOffer } from '@/types/foot-traffic';
 import { useMockData } from '@/hooks/use-mock-data';
 import { Rocket } from 'lucide-react';
+import { Pagination, usePagination } from '@/components/ui/pagination';
 
 export default function FootTrafficTab() {
     const { toast } = useToast();
     const { isMock } = useMockData();
     const [activeTab, setActiveTab] = useState('pages');
+
+    // Page Data State
+    const [seoPages, setSeoPages] = useState<LocalSEOPage[]>([]);
+    const [brandPages, setBrandPages] = useState<BrandSEOPage[]>([]);
+    const [dispensaryPages, setDispensaryPages] = useState<DispensarySEOPage[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Filters & Selection
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
+    const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set());
+
+    // Dialogs
+    const [isBrandCreatorOpen, setIsBrandCreatorOpen] = useState(false);
+    const [isQuickGeneratorOpen, setIsQuickGeneratorOpen] = useState(false);
+    const [isPilotOpen, setIsPilotOpen] = useState(false);
+
+    // Sorting State
+    const [zipSort, setZipSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'zipCode', direction: 'asc' });
+    const [brandPSort, setBrandPSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'brandName', direction: 'asc' });
+    const [dispPSort, setDispPSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'dispensaryName', direction: 'asc' });
+
+    // Filter Logic (Moved up to be used in Sorted ZIPs)
+    const filteredPages = useMemo(() => {
+        return seoPages.filter(page => {
+            const matchesSearch = 
+                page.zipCode.includes(searchQuery) || 
+                (page.city || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (page.state || '').toLowerCase().includes(searchQuery.toLowerCase());
+            
+            const matchesStatus = 
+                statusFilter === 'all' || 
+                (statusFilter === 'published' && page.published) || 
+                (statusFilter === 'draft' && !page.published);
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [seoPages, searchQuery, statusFilter]);
+
+    // Sorted ZIPs
+    const sortedZips = useMemo(() => {
+        return [...filteredPages].sort((a, b) => {
+            let aVal: any, bVal: any;
+            if (zipSort.key === 'metrics.pageViews') {
+                aVal = a.metrics?.pageViews || 0;
+                bVal = b.metrics?.pageViews || 0;
+            } else {
+                aVal = String(a[zipSort.key as keyof LocalSEOPage] || '');
+                bVal = String(b[zipSort.key as keyof LocalSEOPage] || '');
+            }
+            if (aVal < bVal) return zipSort.direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return zipSort.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [filteredPages, zipSort]);
+
+    // Sorted Brand Pages
+    const sortedBrandPages = useMemo(() => {
+        return [...brandPages].sort((a, b) => {
+            const aVal = String(a[brandPSort.key as keyof BrandSEOPage] || '');
+            const bVal = String(b[brandPSort.key as keyof BrandSEOPage] || '');
+            if (aVal < bVal) return brandPSort.direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return brandPSort.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [brandPages, brandPSort]);
+
+    // Sorted Dispensary Pages
+    const sortedDispensaryPages = useMemo(() => {
+        return [...dispensaryPages].sort((a, b) => {
+            const aVal = String(a[dispPSort.key as keyof DispensarySEOPage] || '');
+            const bVal = String(b[dispPSort.key as keyof DispensarySEOPage] || '');
+            if (aVal < bVal) return dispPSort.direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return dispPSort.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [dispensaryPages, dispPSort]);
+
+    // Pagination for ZIP Pages
+    const {
+        currentPage: zipPage,
+        totalPages: zipTotalPages,
+        paginatedItems: paginatedZips,
+        setCurrentPage: setZipPage,
+        totalItems: totalZipItems
+    } = usePagination(sortedZips, 10);
+
+    // Pagination for Brand Pages
+    const {
+        currentPage: brandPPage,
+        totalPages: brandPTotalPages,
+        paginatedItems: paginatedBrandPages,
+        setCurrentPage: setBrandPPage,
+        totalItems: totalBrandPItems
+    } = usePagination(sortedBrandPages, 10);
+
+    // Pagination for Dispensary Pages
+    const {
+        currentPage: dispPPage,
+        totalPages: dispPTotalPages,
+        paginatedItems: paginatedDispensaryPages,
+        setCurrentPage: setDispPPage,
+        totalItems: totalDispPItems
+    } = usePagination(sortedDispensaryPages, 10);
+
+    const toggleZipSort = (key: string) => {
+        setZipSort(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
+
+    const toggleBrandPSort = (key: string) => {
+        setBrandPSort(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
+
+    const toggleDispPSort = (key: string) => {
+        setDispPSort(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
+
+    const SortIcon = ({ column, currentSort }: { column: string, currentSort: { key: string, direction: 'asc' | 'desc' } }) => {
+        if (currentSort.key !== column) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+        return currentSort.direction === 'asc' ? 
+            <TrendingUp className="ml-2 h-4 w-4 text-primary rotate-0" /> : 
+            <TrendingUp className="ml-2 h-4 w-4 text-primary rotate-180" />;
+    };
 
     // Metrics State
     const [metrics, setMetrics] = useState<FootTrafficMetrics>({
@@ -113,20 +249,8 @@ export default function FootTrafficTab() {
         discovery: { searchesPerformed: 0, productsViewed: 0, retailerClicks: 0 },
     });
 
-    // Page Data State
-    const [seoPages, setSeoPages] = useState<LocalSEOPage[]>([]);
-    const [brandPages, setBrandPages] = useState<BrandSEOPage[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-
-    // Dialogs
-    const [isBrandCreatorOpen, setIsBrandCreatorOpen] = useState(false);
-    const [isQuickGeneratorOpen, setIsQuickGeneratorOpen] = useState(false);
-    const [isPilotOpen, setIsPilotOpen] = useState(false);
-
-    // Filters & Selection
-    const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
-    const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set());
+    // Results & Indicators
+    const totalSelected = selectedPages.size;
     const [isAllSelected, setIsAllSelected] = useState(false);
     
     // Pagination (Simple)
@@ -140,13 +264,15 @@ export default function FootTrafficTab() {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [localPages, bPages, metricsData] = await Promise.all([
+            const [localPages, bPages, dPages, metricsData] = await Promise.all([
                 getSeoPagesAction(),
                 getBrandPagesAction(),
+                getDispensaryPagesAction(),
                 getFootTrafficMetrics()
             ]);
             setSeoPages(localPages);
             setBrandPages(bPages);
+            setDispensaryPages(dPages);
             setMetrics(metricsData);
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -156,20 +282,6 @@ export default function FootTrafficTab() {
         }
     };
 
-    // Filter Logic
-    const filteredPages = seoPages.filter(page => {
-        const matchesSearch = 
-            page.zipCode.includes(searchQuery) || 
-            (page.city || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (page.state || '').toLowerCase().includes(searchQuery.toLowerCase());
-        
-        const matchesStatus = 
-            statusFilter === 'all' || 
-            (statusFilter === 'published' && page.published) || 
-            (statusFilter === 'draft' && !page.published);
-
-        return matchesSearch && matchesStatus;
-    });
 
     // Selection Handlers
     const handleSelectAll = (checked: boolean) => {
@@ -254,6 +366,7 @@ export default function FootTrafficTab() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="pages">Location Pages (ZIPs)</TabsTrigger>
+                    <TabsTrigger value="dispensaries">Dispensary Pages</TabsTrigger>
                     <TabsTrigger value="brands">Brand Pages</TabsTrigger>
                     <TabsTrigger value="import">Bulk Import</TabsTrigger>
                 </TabsList>
@@ -310,15 +423,47 @@ export default function FootTrafficTab() {
                                                 onCheckedChange={handleSelectAll}
                                             />
                                         </TableHead>
-                                        <TableHead>Location</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Metrics</TableHead>
-                                        <TableHead>Last Updated</TableHead>
+                                        <TableHead 
+                                            className="cursor-pointer hover:text-primary transition-colors"
+                                            onClick={() => toggleZipSort('city')}
+                                        >
+                                            <div className="flex items-center">
+                                                Location
+                                                <SortIcon column="city" currentSort={zipSort} />
+                                            </div>
+                                        </TableHead>
+                                        <TableHead 
+                                            className="cursor-pointer hover:text-primary transition-colors"
+                                            onClick={() => toggleZipSort('published')}
+                                        >
+                                            <div className="flex items-center">
+                                                Status
+                                                <SortIcon column="published" currentSort={zipSort} />
+                                            </div>
+                                        </TableHead>
+                                        <TableHead 
+                                            className="cursor-pointer hover:text-primary transition-colors"
+                                            onClick={() => toggleZipSort('metrics.pageViews')}
+                                        >
+                                            <div className="flex items-center">
+                                                Metrics
+                                                <SortIcon column="metrics.pageViews" currentSort={zipSort} />
+                                            </div>
+                                        </TableHead>
+                                        <TableHead 
+                                            className="cursor-pointer hover:text-primary transition-colors"
+                                            onClick={() => toggleZipSort('lastRefreshed')}
+                                        >
+                                            <div className="flex items-center">
+                                                Last Updated
+                                                <SortIcon column="lastRefreshed" currentSort={zipSort} />
+                                            </div>
+                                        </TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredPages.slice(0, 50).map((page) => (
+                                    {paginatedZips.map((page) => (
                                         <TableRow key={page.id}>
                                             <TableCell>
                                                 <Checkbox 
@@ -357,10 +502,15 @@ export default function FootTrafficTab() {
                                     ))}
                                 </TableBody>
                             </Table>
-                            {filteredPages.length > 50 && (
-                                <div className="p-4 text-center text-sm text-muted-foreground border-t">
-                                    Showing first 50 results (Optimization needed for pagination)
-                                </div>
+                            {filteredPages.length > 0 && (
+                                <Pagination
+                                    currentPage={zipPage}
+                                    totalPages={zipTotalPages}
+                                    onPageChange={setZipPage}
+                                    itemsPerPage={10}
+                                    totalItems={totalZipItems}
+                                    className="p-4 border-t"
+                                />
                             )}
                         </div>
                     )}
@@ -380,14 +530,38 @@ export default function FootTrafficTab() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Brand Name</TableHead>
-                                        <TableHead>Target Area</TableHead>
-                                        <TableHead>Status</TableHead>
+                                        <TableHead 
+                                            className="cursor-pointer hover:text-primary transition-colors"
+                                            onClick={() => toggleBrandPSort('brandName')}
+                                        >
+                                            <div className="flex items-center">
+                                                Brand Name
+                                                <SortIcon column="brandName" currentSort={brandPSort} />
+                                            </div>
+                                        </TableHead>
+                                        <TableHead 
+                                            className="cursor-pointer hover:text-primary transition-colors"
+                                            onClick={() => toggleBrandPSort('city')}
+                                        >
+                                            <div className="flex items-center">
+                                                Target Area
+                                                <SortIcon column="city" currentSort={brandPSort} />
+                                            </div>
+                                        </TableHead>
+                                        <TableHead 
+                                            className="cursor-pointer hover:text-primary transition-colors"
+                                            onClick={() => toggleBrandPSort('published')}
+                                        >
+                                            <div className="flex items-center">
+                                                Status
+                                                <SortIcon column="published" currentSort={brandPSort} />
+                                            </div>
+                                        </TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {brandPages.map((page) => (
+                                    {paginatedBrandPages.map((page) => (
                                         <TableRow key={page.id}>
                                             <TableCell className="font-medium">{page.brandName}</TableCell>
                                             <TableCell>
@@ -425,6 +599,159 @@ export default function FootTrafficTab() {
                                     )}
                                 </TableBody>
                             </Table>
+                            {brandPages.length > 0 && (
+                                <Pagination
+                                    currentPage={brandPPage}
+                                    totalPages={brandPTotalPages}
+                                    onPageChange={setBrandPPage}
+                                    itemsPerPage={10}
+                                    totalItems={totalBrandPItems}
+                                    className="p-4 border-t"
+                                />
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Dispensary Pages Tab */}
+                <TabsContent value="dispensaries" className="space-y-4">
+                    <Card>
+                        <CardHeader className="py-3">
+                            <CardTitle className="text-sm font-medium flex items-center justify-between">
+                                <span>Discovered Dispensaries ({dispensaryPages.length})</span>
+                                <span className="text-xs text-muted-foreground">
+                                    Dispensaries found via Discovery. Brands are extracted from these.
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead 
+                                            className="cursor-pointer hover:text-primary transition-colors"
+                                            onClick={() => toggleDispPSort('dispensaryName')}
+                                        >
+                                            <div className="flex items-center">
+                                                Dispensary
+                                                <SortIcon column="dispensaryName" currentSort={dispPSort} />
+                                            </div>
+                                        </TableHead>
+                                        <TableHead 
+                                            className="cursor-pointer hover:text-primary transition-colors"
+                                            onClick={() => toggleDispPSort('city')}
+                                        >
+                                            <div className="flex items-center">
+                                                Location
+                                                <SortIcon column="city" currentSort={dispPSort} />
+                                            </div>
+                                        </TableHead>
+                                        <TableHead 
+                                            className="cursor-pointer hover:text-primary transition-colors"
+                                            onClick={() => toggleDispPSort('zipCode')}
+                                        >
+                                            <div className="flex items-center">
+                                                ZIP
+                                                <SortIcon column="zipCode" currentSort={dispPSort} />
+                                            </div>
+                                        </TableHead>
+                                        <TableHead 
+                                            className="cursor-pointer hover:text-primary transition-colors"
+                                            onClick={() => toggleDispPSort('published')}
+                                        >
+                                            <div className="flex items-center">
+                                                Status
+                                                <SortIcon column="published" currentSort={dispPSort} />
+                                            </div>
+                                        </TableHead>
+                                        <TableHead 
+                                            className="cursor-pointer hover:text-primary transition-colors"
+                                            onClick={() => toggleDispPSort('updatedAt')}
+                                        >
+                                            <div className="flex items-center">
+                                                Last Updated
+                                                <SortIcon column="updatedAt" currentSort={dispPSort} />
+                                            </div>
+                                        </TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {paginatedDispensaryPages.map(page => (
+                                        <TableRow key={page.id}>
+                                            <TableCell className="font-medium">
+                                                <div className="flex items-center gap-2">
+                                                    {page.logoUrl && (
+                                                        <img 
+                                                            src={page.logoUrl} 
+                                                            alt={page.dispensaryName} 
+                                                            className="h-8 w-8 rounded object-cover"
+                                                        />
+                                                    )}
+                                                    <div>
+                                                        <div>{page.dispensaryName}</div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            {page.dispensarySlug}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="text-sm">
+                                                    {page.city}, {page.state}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">{page.zipCode}</Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm"
+                                                    onClick={() => toggleDispensaryPagePublishAction(page.id, !page.published).then(fetchData)}
+                                                >
+                                                    {page.published ? (
+                                                        <Badge className="bg-green-100 text-green-700">Live</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline">Draft</Badge>
+                                                    )}
+                                                </Button>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-sm text-muted-foreground">
+                                                    {new Date(page.updatedAt).toLocaleDateString()}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    onClick={() => deleteDispensaryPageAction(page.id).then(fetchData)}
+                                                >
+                                                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {dispensaryPages.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                No dispensary pages discovered yet. Run Discovery to find dispensaries.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                            {dispensaryPages.length > 0 && (
+                                <Pagination
+                                    currentPage={dispPPage}
+                                    totalPages={dispPTotalPages}
+                                    onPageChange={setDispPPage}
+                                    itemsPerPage={10}
+                                    totalItems={totalDispPItems}
+                                    className="p-4 border-t"
+                                />
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
