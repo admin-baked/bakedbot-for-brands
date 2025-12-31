@@ -436,42 +436,15 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
     // Dev Tools - Read Codebase (Super User only)
     if (def.name === 'dev.readCodebase') {
         try {
-            const fs = await import('fs/promises');
-            const path = await import('path');
-            const rootDir = process.cwd();
-            const targetPath = path.resolve(rootDir, inputs.path);
-
-            // Security check: Only allow reading within project root
-            if (!targetPath.startsWith(rootDir)) {
-                throw new Error('Access denied: Cannot read outside of project root.');
-            }
-
-            const stats = await fs.stat(targetPath);
-            if (stats.isDirectory()) {
-                const files = await fs.readdir(targetPath);
-                return {
-                    status: 'success',
-                    data: {
-                        path: inputs.path,
-                        type: 'directory',
-                        files
-                    }
-                };
-            } else {
-                const content = await fs.readFile(targetPath, 'utf-8');
-                return {
-                    status: 'success',
-                    data: {
-                        path: inputs.path,
-                        type: 'file',
-                        content: content.length > 10000 ? content.substring(0, 10000) + '\n\n... (truncated)' : content
-                    }
-                };
-            }
+            const { readCodebase } = await import('@/server/tools/codebase');
+            const result = await readCodebase(inputs);
+            return result; // result already has status/data structure? No, function returns Result object?
+            // Wait, helper returned { status, data }. Let's check helper.
+            // Helper returned { status: 'success', data: ... } or threw.
         } catch (error: any) {
             return {
                 status: 'failed',
-                error: `Failed to read codebase: ${error.message}`
+                error: error.message
             };
         }
     }
