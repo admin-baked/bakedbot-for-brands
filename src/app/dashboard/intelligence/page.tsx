@@ -86,7 +86,7 @@ export default async function IntelligencePage() {
                         <CardTitle className="flex items-center gap-2">
                            <Store className="h-5 w-5" /> Competitors Tracked
                         </CardTitle>
-                        <CardDescription>Active Menu Scrapers</CardDescription>
+                        <CardDescription>Active Discovery Agents</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold">{competitors.length}</div>

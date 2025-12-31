@@ -1,4 +1,3 @@
-'use server';
 
 /**
  * Weedmaps Scraper Tool

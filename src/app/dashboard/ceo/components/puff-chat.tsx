@@ -816,7 +816,7 @@ export function PuffChat({
                     steps: response.toolCalls?.map((tc: any) => ({
                         id: tc.id,
                         toolName: tc.name,
-                        description: tc.result,
+                        description: typeof tc.result === 'object' ? JSON.stringify(tc.result) : String(tc.result || ''),
                         status: tc.status === 'success' ? 'completed' : tc.status === 'error' ? 'failed' : 'pending',
                         durationMs: 0
                     })) || [],
