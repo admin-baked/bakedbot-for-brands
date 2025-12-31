@@ -38,37 +38,48 @@ const PROJECT_DOCUMENTS_COLLECTION = 'project_documents';
 function projectFromFirestore(doc: FirebaseFirestore.DocumentSnapshot): Project | null {
     if (!doc.exists) return null;
     const data = doc.data()!;
+    
+    // Safety check for timestamps
+    const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
+    const updatedAt = data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date();
+    const lastChatAt = data.lastChatAt instanceof Timestamp ? data.lastChatAt.toDate() : undefined;
+
     return {
         id: doc.id,
         ownerId: data.ownerId,
-        name: data.name,
-        description: data.description,
+        name: data.name || 'Untitled Project',
+        description: data.description || '',
         systemInstructions: data.systemInstructions,
-        color: data.color,
-        icon: data.icon,
-        defaultModel: data.defaultModel,
+        color: data.color || PROJECT_COLORS[0],
+        icon: data.icon || 'Briefcase',
+        defaultModel: data.defaultModel || 'lite',
         documentCount: data.documentCount || 0,
         totalBytes: data.totalBytes || 0,
         chatCount: data.chatCount || 0,
-        createdAt: (data.createdAt as Timestamp).toDate(),
-        updatedAt: (data.updatedAt as Timestamp).toDate(),
-        lastChatAt: data.lastChatAt ? (data.lastChatAt as Timestamp).toDate() : undefined,
-        isShared: data.isShared,
-        sharedWith: data.sharedWith,
+        createdAt,
+        updatedAt,
+        lastChatAt,
+        isShared: data.isShared || false,
+        sharedWith: data.sharedWith || [],
     };
 }
 
 function chatFromFirestore(doc: FirebaseFirestore.DocumentSnapshot): ProjectChat | null {
     if (!doc.exists) return null;
     const data = doc.data()!;
+    
+    // Safety check for timestamps
+    const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
+    const updatedAt = data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date();
+
     return {
         id: doc.id,
         projectId: data.projectId,
         userId: data.userId,
-        title: data.title,
+        title: data.title || 'Untitled Chat',
         messageCount: data.messageCount || 0,
-        createdAt: (data.createdAt as Timestamp).toDate(),
-        updatedAt: (data.updatedAt as Timestamp).toDate(),
+        createdAt,
+        updatedAt,
     };
 }
 

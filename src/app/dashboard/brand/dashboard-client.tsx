@@ -126,8 +126,8 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
 
             {/* Content - Unified Dashboard */}
             {view === 'hq' ? (
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    <div className="lg:col-span-1 space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                    <div className="lg:col-span-1 space-y-4">
                         <SetupHealth />
                         <QuickStartCards />
                         <TaskFeed />

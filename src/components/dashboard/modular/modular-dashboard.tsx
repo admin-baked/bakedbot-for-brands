@@ -52,7 +52,7 @@ export function ModularDashboard({
     role,
     width = 1200,
     cols = 12,
-    rowHeight = 80,
+    rowHeight = 60,
     isEditable = true,
     dashboardData
 }: ModularDashboardProps) {

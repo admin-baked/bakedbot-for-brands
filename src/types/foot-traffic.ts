@@ -558,6 +558,7 @@ export interface BrandSEOPage {
     brandName: string;
     brandSlug: string;
     logoUrl?: string;
+    about?: string; // Rich text / Markdown description
 
     // Geographic targeting
     zipCodes: string[];
@@ -699,6 +700,7 @@ export interface DispensarySEOPage {
     dispensaryName: string;
     dispensarySlug: string;
     logoUrl?: string;
+    about?: string; // Rich text / Markdown
 
     // Geographic targeting
     zipCode: string;

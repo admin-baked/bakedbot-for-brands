@@ -42,12 +42,15 @@ export async function generateMetadata({ params }: { params: Promise<{ dispensar
 
 export default async function DispensaryPage({ params }: { params: Promise<{ dispensarySlug: string }> }) {
     const { dispensarySlug } = await params;
-    const { retailer: dispensary, products } = await fetchDispensaryPageData(dispensarySlug);
+    const { retailer: dispensary, products, seoPage } = await fetchDispensaryPageData(dispensarySlug);
 
     if (!dispensary) {
         notFound();
     }
-
+    
+    // Use scraped logo or fallback
+    const logoUrl = seoPage?.logoUrl;
+    const aboutText = seoPage?.about || seoPage?.seoTags?.metaDescription;
     // Freshness date
     const freshnessDate = dispensary.updatedAt
         ? new Date(dispensary.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -108,8 +111,15 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                 <div className="lg:col-span-2 space-y-8">
 
                     {/* HEADER: High Authority / Unclaimed Status */}
-                    <section className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                        <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                    <section className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm relative overflow-hidden">
+                        {/* Schema.org Logo */}
+                        {logoUrl && (
+                             <div className="absolute top-6 right-6 w-20 h-20 bg-slate-50 rounded-xl border border-slate-100 p-1 hidden sm:block">
+                                <img src={logoUrl} alt={`${dispensary.name} logo`} className="w-full h-full object-contain rounded-lg" />
+                             </div>
+                        )}
+
+                        <div className="flex flex-col md:flex-row justify-between items-start gap-4 pr-0 sm:pr-24">
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <h1 className="text-4xl font-black text-slate-900 tracking-tight">{dispensary.name}</h1>
@@ -124,12 +134,32 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                                     <MapPin className="w-4 h-4" /> {dispensary.city}, {dispensary.state} • <span className="text-green-600">Open Now</span>
                                 </p>
                             </div>
-                            <div className="flex items-center gap-1 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                           
+                             {/* Mobile Rating (Desktop uses absolute logo or rating, simpler to just hide rating on mobile if conflicting, but lets keep existing rating structure but specialized) */}
+                             {/* Existing Rating Block */}
+                             <div className="flex items-center gap-1 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
                                 <Star className="fill-amber-400 text-amber-400 w-4 h-4" />
                                 <span className="font-bold text-slate-700">4.8</span>
                                 <span className="text-slate-400 text-sm">({trafficViews} searches)</span>
                             </div>
                         </div>
+
+                        {/* ABOUT SECTION (New) */}
+                        {aboutText && (
+                            <div className="mt-6 pt-6 border-t border-slate-100">
+                                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                    <TrendingUp className="w-4 h-4 text-slate-400" /> About {dispensary.name}
+                                </h3>
+                                <div className="text-slate-600 text-sm leading-relaxed prose prose-sm max-w-none">
+                                    {aboutText.length > 300 ? (
+                                        <>
+                                            {aboutText.slice(0, 300)}... 
+                                            <span className="text-green-600 font-medium cursor-pointer hover:underline">Read more</span>
+                                        </>
+                                    ) : aboutText}
+                                </div>
+                            </div>
+                        )}
 
                         {/* SEO-KEYWORD TAGS */}
                         <div className="flex flex-wrap gap-2 mt-6">
