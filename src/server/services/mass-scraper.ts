@@ -66,6 +66,7 @@ export class MassScraperService {
             state: z.string(),
             phone: z.string().optional(),
             aboutText: z.string().describe("A brief description of the dispensary for SEO"),
+            logo: z.string().optional().describe("URL of the dispensary's main logo or storefront image"),
             socials: z.object({
                 instagram: z.string().optional(),
                 facebook: z.string().optional(),
@@ -87,6 +88,8 @@ export class MassScraperService {
                 // dispensaryId omitted - will be set when page is claimed
                 dispensaryName: data.dispensaryName,
                 dispensarySlug: slug,
+                logoUrl: data.logo, // Extracted logo
+                about: data.aboutText, // Extracted description
                 zipCode, // Force the target ZIP
                 city: data.city,
                 state: data.state,

@@ -134,17 +134,36 @@ export class BrandDiscoveryService {
             const slug = brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
             const id = `${slug}_${zipCodes[0]}`;
 
-            // Try to extract brand description from website
+            // Enhanced Extraction: Get logo and description
             let description = '';
+            let logoUrl = '';
+            
             try {
-                const scrapeResult = await this.firecrawl.scrapeUrl(url, ['markdown']);
-                const resultData = scrapeResult as any;
-                if (resultData.markdown) {
-                    // Extract first paragraph or so
-                    description = resultData.markdown.substring(0, 500);
+                // Use LLM extraction for better quality "About" and "Logo"
+                const extractSchema = z.object({
+                    about: z.string().optional().describe("A compelling description of the brand, its mission, or history. At least 2-3 sentences."),
+                    logo: z.string().optional().describe("URL of the brand's logo image")
+                });
+
+                const extractResult = await this.firecrawl.extractData(url, extractSchema);
+                
+                if (extractResult) {
+                    description = extractResult.about || '';
+                    logoUrl = extractResult.logo || '';
                 }
             } catch (e) {
-                console.log(`[BrandDiscovery] Could not scrape ${url}, using defaults`);
+                console.log(`[BrandDiscovery] Extraction failed for ${url}, falling back to defaults`, e);
+            }
+
+            // Fallback: If extraction failed or returned nothing, try basic scrape
+            if (!description) {
+                try {
+                     const scrapeResult = await this.firecrawl.scrapeUrl(url, ['markdown']);
+                     const resultData = scrapeResult as any;
+                     if (resultData.markdown) {
+                         description = resultData.markdown.substring(0, 500); // Truncate
+                     }
+                } catch(e) {}
             }
 
             return {
@@ -152,6 +171,8 @@ export class BrandDiscoveryService {
                 brandId: slug, // Use slug as ID until claimed
                 brandName,
                 brandSlug: slug,
+                logoUrl,
+                about: description,
                 zipCodes,
                 city,
                 state,

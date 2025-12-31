@@ -53,7 +53,7 @@ export async function fetchBrandPageData(brandParam: string) {
                 id: seoData.brandId || seoData.id,
                 name: seoData.brandName,
                 slug: seoData.brandSlug,
-                description: seoData.seoTags?.metaDescription,
+                description: seoData.about || seoData.seoTags?.metaDescription,
                 logoUrl: seoData.logoUrl,
                 verificationStatus: 'unverified'
             } as Brand;
@@ -248,6 +248,7 @@ export async function fetchLocalBrandPageData(brandParam: string, zipCode: strin
                         name: pageData.brandName || brandParam,
                         slug: pageData.brandSlug || brandParam,
                         logoUrl: pageData.logoUrl || undefined,
+                        description: pageData.about || pageData.seoTags?.metaDescription,
                         verificationStatus: 'unverified', // Default for dynamic pages
                         dispensaryCount: 0, // Will be populated dynamically
                     };
@@ -270,6 +271,7 @@ export async function fetchLocalBrandPageData(brandParam: string, zipCode: strin
                             name: pageData.brandName || brandParam,
                             slug: pageData.brandSlug || brandParam,
                             logoUrl: pageData.logoUrl || undefined,
+                            description: pageData.about || pageData.seoTags?.metaDescription,
                             verificationStatus: 'unverified',
                             dispensaryCount: 0,
                         };

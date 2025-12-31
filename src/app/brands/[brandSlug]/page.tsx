@@ -12,7 +12,8 @@ import {
     ArrowRight,
     Info,
     Lock,
-    AlertCircle
+    AlertCircle,
+    TrendingUp
 } from 'lucide-react';
 import { PageViewTracker } from '@/components/analytics/PageViewTracker';
 import { ChatbotPageContext } from '@/components/chatbot-page-context';
@@ -99,6 +100,22 @@ export default async function GlobalBrandPage({ params }: { params: Promise<{ br
                             </p>
                         </div>
                     </section>
+                    
+                    {/* ABOUT SECTION (New) */}
+                    {brand.description && (
+                         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <TrendingUp className="w-4 h-4 text-slate-400" /> About {brand.name}
+                            </h3>
+                            <div className="text-slate-600 text-sm leading-relaxed prose prose-sm max-w-none">
+                                {brand.description.length > 500 ? (
+                                    <>
+                                        {brand.description.slice(0, 500)}...
+                                    </>
+                                ) : brand.description}
+                            </div>
+                        </div>
+                    )}
 
                     {/* THE "MISSING DATA" MAP (SEO + B2B Pain Point) */}
                     <section className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
