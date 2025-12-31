@@ -54,7 +54,7 @@ export function TypewriterText({
             setIsComplete(true);
             onComplete?.();
         }
-    }, [currentIndex, text, speed, onComplete, isComplete]);
+    }, [currentIndex, text, speed, onComplete, isComplete, hasStarted, delay]);
 
     return (
         <div className={className}>
