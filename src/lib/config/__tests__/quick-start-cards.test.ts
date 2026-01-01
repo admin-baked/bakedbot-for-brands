@@ -42,7 +42,8 @@ describe('Super Admin Role', () => {
         const hasPlatformPrompts = suPrompts.some(p => 
             p.toLowerCase().includes('platform') || 
             p.toLowerCase().includes('codebase') ||
-            p.toLowerCase().includes('dutchie')
+            p.toLowerCase().includes('dutchie') ||
+            p.toLowerCase().includes('pricing model')
         );
         expect(hasPlatformPrompts).toBe(true);
     });

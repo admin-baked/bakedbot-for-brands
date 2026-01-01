@@ -10,6 +10,12 @@ Fixed a critical UI crash where the chat interface would go white when an agent 
 ### Key Changes
 *   **FIX**: `src/app/dashboard/ceo/components/puff-chat.tsx` - Added `typeof content === 'string'` checks in `TypewriterText` and `ReactMarkdown`.
 *   **UPDATE**: `src/app/dashboard/ceo/components/ezal-tab.tsx` - Text update.
+*   **NEW**: `src/app/api/demo/agent/route.ts` - Added 'Money Mike' agent with cached pricing model response and routing logic. Updated 'HQ' response with detailed Agentic Commerce OS explanation.
+*   **UPDATE**: `src/lib/config/quick-start-cards.ts` - Added "Explain the pricing model" prompt chip for Super Admin.
+*   **DOCS**: `.agent/prime.md` - Added "Hybrid Intelligence Protocol" (Cache -> API -> Scraper) defining JIT hydration and Structure vs. Vision logic.
+*   **FIX**: `src/app/api/demo/agent/route.ts` - Fixed logic to correctly prioritize "image" prompts over "video".
+*   **UI**: `src/app/dashboard/ceo/components/puff-chat.tsx` - Added `CreativeLoader` with "Smokey Spy" icon animation for media generation states.
+*   **TEST**: `src/app/api/demo/agent/__tests__/unified-route.test.ts` - Added passing unit tests for Money Mike routing and Image prioritization. Verified `src/lib/config/__tests__/quick-start-cards.test.ts` passes.
 
 ### Result: ✅ Fixed
 Chat is now stable even with raw JSON responses.
