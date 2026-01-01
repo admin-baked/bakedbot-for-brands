@@ -152,20 +152,55 @@ const DISPENSARY_CHECKLIST: ChecklistItem[] = [
     }
 ];
 
+/**
+ * Get linked dispensary status from Firestore
+ */
+async function getLinkedDispensaryStatus(): Promise<{ isLinked: boolean; dispensaryName?: string }> {
+    try {
+        const response = await fetch('/api/user/linked-dispensary');
+        if (response.ok) {
+            const data = await response.json();
+            return { isLinked: !!data.linkedDispensary, dispensaryName: data.linkedDispensary?.name };
+        }
+    } catch (error) {
+        console.error('Failed to check linked dispensary:', error);
+    }
+    return { isLinked: false };
+}
+
 export function SetupChecklist() {
     const { role } = useUserRole();
     const [isDismissed, setIsDismissed] = useState(false);
     const [items, setItems] = useState<ChecklistItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Load checklist based on role
+    // Load checklist based on role and check completion status
     useEffect(() => {
-        if (role === 'brand') {
-            setItems(BRAND_CHECKLIST);
-        } else if (role === 'dispensary') {
-            setItems(DISPENSARY_CHECKLIST);
+        async function loadChecklist() {
+            let baseItems: ChecklistItem[] = [];
+            
+            if (role === 'brand') {
+                baseItems = [...BRAND_CHECKLIST];
+            } else if (role === 'dispensary') {
+                baseItems = [...DISPENSARY_CHECKLIST];
+                
+                // Check if dispensary is linked
+                const { isLinked } = await getLinkedDispensaryStatus();
+                if (isLinked) {
+                    // Mark 'link-dispensary' as done
+                    baseItems = baseItems.map(item => 
+                        item.id === 'link-dispensary' 
+                            ? { ...item, status: 'done' as const }
+                            : item
+                    );
+                }
+            }
+            
+            setItems(baseItems);
+            setIsLoading(false);
         }
-        setIsLoading(false);
+        
+        loadChecklist();
 
         // Check if dismissed in localStorage
         const dismissed = localStorage.getItem('setup-checklist-dismissed');

@@ -22,6 +22,7 @@ import { getDispensaryDashboardData, type DispensaryDashboardData } from './acti
 
 export default function DispensaryDashboardClient({ brandId }: { brandId: string }) {
     const [liveData, setLiveData] = useState<DispensaryDashboardData | null>(null);
+    const [dispensaryName, setDispensaryName] = useState<string | null>(null);
 
     // Fetch data for widgets
     useEffect(() => {
@@ -32,8 +33,27 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
         loadData();
     }, [brandId]);
 
+    // Fetch linked dispensary name
+    useEffect(() => {
+        async function loadDispensaryName() {
+            try {
+                const response = await fetch('/api/user/linked-dispensary');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.linkedDispensary?.name) {
+                        setDispensaryName(data.linkedDispensary.name);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load dispensary name:', error);
+            }
+        }
+        loadDispensaryName();
+    }, []);
+
     // Use live data or fallback
-    const locationName = liveData?.location?.name || "Loading...";
+    const locationName = liveData?.location?.name || dispensaryName || "Loading...";
+    const displayName = dispensaryName || brandId;
 
     return (
         <div className="space-y-6 pb-20"> {/* pb-20 availability for sticky footer */}
@@ -43,7 +63,7 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl font-bold tracking-tight">Dispensary Console</h1>
                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                            Dispensary Mode • {brandId}
+                            {dispensaryName ? dispensaryName : `Dispensary Mode • ${brandId.slice(0, 8)}...`}
                         </Badge>
                     </div>
                     <p className="text-muted-foreground">Run daily ops, menu, marketing, and compliance.</p>
