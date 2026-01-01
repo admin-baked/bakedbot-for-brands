@@ -1933,3 +1933,57 @@ Implemented a new server action `testEmailDispatch` and created comprehensive un
 
 ### Result: âš ï¸ Implemented (Environment Blocked)
 Test suite created but cannot run locally without significant Jest config overhaul. Feature verification relies on manual tool.
+
+## Session: 2026-01-01 (Agent Skills Upgrade)
+### Task ID
+skills_foundation_v1
+
+### Summary
+Implemented the "Agent Skills" architecture (Phase 1). This moves the codebase from hardcoded tools to modular, portable "Skill" folders compatible with Anthropic/AgentSkills.io standards.
+
+### Key Changes
+*   **NEW**: `src/skills/` - Root directory for skills.
+*   **NEW**: `src/skills/types.ts` - `Skill` and `SkillTool` interfaces.
+*   **NEW**: `src/skills/loader.ts` - Dynamic loader for `SKILL.md` + `index.ts`.
+*   **NEW**: `src/skills/core/search` - First modular skill (Web Search).
+*   **UPDATE**: `src/server/agents/tools/router.ts` - Updated `web.search` dispatch to use the new `SkillLoader` (Proof of concept).
+
+### Tests Run
+*   `npx tsx dev/test-skill-loader.ts`
+    *   **Status**: Passed âœ…
+    *   **Result**: Correctly loaded metadata and implementation execution check.
+
+### Result: âœ… Skills Foundation Live
+The `web.search` tool is now powered by the modular Skills architecture. Future tools can be added as drop-in folders.
+
+### Phase 2: Domain Skills & Persona Integration
+*   **NEW**: `src/skills/domain/cannmenus` - Ported the massive CannMenus service into a modular skill.
+*   **UPDATE**: `personas.ts` - Added `skills: ['core/search', 'domain/cannmenus']` to Smokey.
+*   **UPDATE**: `agent-runner.ts` - Patched `triggerAgentRun` to dynamically load assigned skills, merge their instructions into the prompt, and register their tools.
+*   **RESULT**: Smokey now dynamically loads capabilities. Adding a new skill is as simple as adding a folder and a string to `personas.ts`.
+
+---
+
+## Session: 2026-01-01 (Chat Code Block & Copy/Paste Verification)
+### Task ID
+verify_chat_copy_paste_001
+
+### Summary
+Implemented and verified a standardized `CodeBlock` component for all chat interfaces (Dashboard, Homepage, Typewriter effects) to ensure consistent code rendering and working copy-to-clipboard functionality.
+
+### Key Changes
+*   **NEW**: `src/components/ui/code-block.tsx` - Reusable component with language label and copy button.
+*   **MOD**: `src/app/dashboard/ceo/components/puff-chat.tsx` - Integrated `CodeBlock` for bot messages.
+*   **MOD**: `src/components/chatbot/chat-messages.tsx` - Integrated `CodeBlock` and `ReactMarkdown` for proper rendering.
+*   **MOD**: `src/components/landing/typewriter-text.tsx` - Integrated `CodeBlock` for streaming text effect.
+
+### Tests Created
+*   `src/components/ui/code-block.test.tsx`: 3 tests (rendering, copy action).
+*   `src/components/chatbot/__tests__/chat-messages.test.tsx`: 2 tests (markdown rendering, code block delegation).
+
+### Results
+*   `CodeBlock` unit tests: **Passed** ✅
+*   `ChatMessages` unit tests: **Passed** ✅
+
+### Status: ✅ Verified
+Copy/paste functionality and code block rendering are now standardized and verified with unit tests.

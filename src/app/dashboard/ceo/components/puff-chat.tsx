@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { CodeBlock } from '@/components/ui/code-block';
 import { AudioRecorder } from '@/components/ui/audio-recorder';
 import {
     DropdownMenu,
@@ -1213,7 +1214,23 @@ export function PuffChat({
                                                             h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
                                                             h3: ({node, ...props}) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
                                                             blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
-                                                            code: ({node, ...props}) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props} />,
+                                                            code: ({node, inline, className, children, ...props}: any) => {
+                                                                const match = /language-(\w+)/.exec(className || '');
+                                                                if (!inline && match) {
+                                                                    return (
+                                                                        <CodeBlock 
+                                                                            language={match[1]} 
+                                                                            value={String(children).replace(/\n$/, '')} 
+                                                                            className="my-4"
+                                                                        />
+                                                                    );
+                                                                }
+                                                                return (
+                                                                    <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props}>
+                                                                        {children}
+                                                                    </code>
+                                                                );
+                                                            },
                                                         }}
                                                     >
                                                         {typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}

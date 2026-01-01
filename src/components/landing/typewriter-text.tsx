@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { CodeBlock } from '@/components/ui/code-block';
 
 interface TypewriterTextProps {
     text: string;
@@ -80,7 +81,23 @@ export function TypewriterText({
         h2: ({node, ...props}: any) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
         h3: ({node, ...props}: any) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
         blockquote: ({node, ...props}: any) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
-        code: ({node, ...props}: any) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props} />,
+        code: ({node, inline, className, children, ...props}: any) => {
+            const match = /language-(\w+)/.exec(className || '');
+            if (!inline && match) {
+                return (
+                    <CodeBlock 
+                        language={match[1]} 
+                        value={String(children).replace(/\n$/, '')} 
+                        className="my-4"
+                    />
+                );
+            }
+            return (
+                <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props}>
+                    {children}
+                </code>
+            );
+        },
     };
 
     // Handle empty content case
