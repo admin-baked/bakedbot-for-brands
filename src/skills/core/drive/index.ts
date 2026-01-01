@@ -17,7 +17,7 @@ const uploadFileDef: ToolDefinition = {
         required: ['filename', 'content']
     },
     category: 'write',
-    requiredPermission: 'write:drive'
+    requiredPermission: 'admin:all'
 };
 
 const uploadFileImpl = async (ctx: any, inputs: any) => {

@@ -17,7 +17,7 @@ const calendarListDef: ToolDefinition = {
         }
     },
     category: 'read',
-    requiredPermission: 'read:calendar'
+    requiredPermission: 'admin:all'
 };
 
 const calendarListImpl = async (ctx: any, inputs: any) => {
@@ -48,7 +48,7 @@ const calendarCreateDef: ToolDefinition = {
         required: ['summary', 'startTime', 'endTime']
     },
     category: 'write',
-    requiredPermission: 'write:calendar'
+    requiredPermission: 'admin:all'
 };
 
 const calendarCreateImpl = async (ctx: any, inputs: any) => {
@@ -79,7 +79,7 @@ const sheetsReadDef: ToolDefinition = {
         required: ['spreadsheetId', 'range']
     },
     category: 'read',
-    requiredPermission: 'read:sheets'
+    requiredPermission: 'admin:all'
 };
 
 const sheetsReadImpl = async (ctx: any, inputs: any) => {
@@ -113,7 +113,7 @@ const sheetsAppendDef: ToolDefinition = {
         required: ['spreadsheetId', 'range', 'values']
     },
     category: 'write',
-    requiredPermission: 'write:sheets'
+    requiredPermission: 'admin:all'
 };
 
 const sheetsAppendImpl = async (ctx: any, inputs: any) => {
@@ -142,7 +142,7 @@ const sheetsCreateDef: ToolDefinition = {
         }
     },
     category: 'write',
-    requiredPermission: 'write:sheets'
+    requiredPermission: 'admin:all'
 };
 
 const sheetsCreateImpl = async (ctx: any, inputs: any) => {
@@ -169,8 +169,8 @@ const scheduleTaskDef: ToolDefinition = {
         },
         required: ['task', 'cron']
     },
-    category: 'action',
-    requiredPermission: 'write:scheduler'
+    category: 'side-effect',
+    requiredPermission: 'admin:all'
 };
 
 const scheduleTaskImpl = async (ctx: any, inputs: any) => {

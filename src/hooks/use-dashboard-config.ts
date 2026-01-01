@@ -147,7 +147,7 @@ export function useDashboardConfig() {
         href: '/dashboard/apps',
         icon: 'LayoutGrid',
         description: 'Manage POS and marketing integrations.',
-        roles: ['brand', 'owner', 'dispensary', 'customer', 'admin'],
+        roles: ['brand', 'owner', 'dispensary', 'customer'],
       },
       // Shared Commerce & E-com
       {

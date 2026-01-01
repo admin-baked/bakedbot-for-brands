@@ -15,8 +15,8 @@ const evaluateJsDef: ToolDefinition = {
         },
         required: ['code']
     },
-    category: 'action', // 'analysis' category? using action for now
-    requiredPermission: 'read:analysis'
+    category: 'read', 
+    requiredPermission: 'read:analytics'
 };
 
 const evaluateJsImpl = async (ctx: any, inputs: any) => {

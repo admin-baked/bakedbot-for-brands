@@ -15,7 +15,7 @@ const gmailListDef: ToolDefinition = {
         }
     },
     category: 'read',
-    requiredPermission: 'read:communication'
+    requiredPermission: 'read:orders'
 };
 
 const gmailListImpl = async (ctx: any, inputs: any) => {
@@ -39,7 +39,7 @@ const gmailReadDef: ToolDefinition = {
         required: ['messageId']
     },
     category: 'read',
-    requiredPermission: 'read:communication'
+    requiredPermission: 'read:orders'
 };
 
 const gmailReadImpl = async (ctx: any, inputs: any) => {
@@ -64,8 +64,8 @@ const gmailSendDef: ToolDefinition = {
         },
         required: ['to', 'subject', 'body']
     },
-    category: 'communication',
-    requiredPermission: 'write:communication'
+    category: 'side-effect',
+    requiredPermission: 'manage:campaigns'
 };
 
 const gmailSendImpl = async (ctx: any, inputs: any) => {
@@ -95,8 +95,8 @@ const marketingSendDef: ToolDefinition = {
         },
         required: ['to', 'subject', 'htmlBody']
     },
-    category: 'communication',
-    requiredPermission: 'write:marketing'
+    category: 'side-effect',
+    requiredPermission: 'manage:campaigns'
 };
 
 import { checkContent } from '@/server/agents/deebo/policy-gate';

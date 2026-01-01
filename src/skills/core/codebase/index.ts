@@ -15,7 +15,7 @@ const readCodebaseDef: ToolDefinition = {
         required: ['path']
     },
     category: 'read',
-    requiredPermission: 'read:codebase' // Restricted permission
+    requiredPermission: 'admin:all' // Restricted permission
 };
 
 const readCodebaseImpl = async (ctx: any, inputs: any) => {
