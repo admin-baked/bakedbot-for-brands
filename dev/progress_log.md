@@ -1,3 +1,21 @@
+## Session: 2025-12-31 (White Screen Crash Fix)
+### Task ID
+white_screen_crash_fix
+
+### Summary
+Fixed a critical UI crash where the chat interface would go white when an agent returned a raw object (e.g., competitive intelligence snapshot) instead of a string.
+- **Defensive Rendering**: Updated `puff-chat.tsx` to safely stringify objects before rendering, preventing React error #31 ("Objects are not valid as a React child").
+- **Terminology Update**: Renamed "Active Scrapers" to "Active Sources" in `ezal-tab.tsx` to align with "Agent Discovery" branding.
+
+### Key Changes
+*   **FIX**: `src/app/dashboard/ceo/components/puff-chat.tsx` - Added `typeof content === 'string'` checks in `TypewriterText` and `ReactMarkdown`.
+*   **UPDATE**: `src/app/dashboard/ceo/components/ezal-tab.tsx` - Text update.
+
+### Result: ✅ Fixed
+Chat is now stable even with raw JSON responses.
+
+---
+
 ## Session: 2025-12-31 (Build Fix - Playbook Thumbnail)
 ### Task ID
 build_fix_playbook_thumbnail

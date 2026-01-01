@@ -416,7 +416,7 @@ export function PuffChat({
         if (isComplete && job?.result) {
             const result = job.result; // AgentResult object
             updateMessage(activeJob.messageId, {
-                content: result.content || '**Task Completed** (No content returned)',
+                content: (typeof result.content === 'string' ? result.content : JSON.stringify(result.content, null, 2)) || '**Task Completed** (No content returned)',
                 metadata: result.metadata,
                 thinking: {
                     isThinking: false,
@@ -799,7 +799,7 @@ export function PuffChat({
             setStreamingMessageId(thinkingId);
             
             updateMessage(thinkingId, {
-                content: response.content,
+                content: typeof response.content === 'string' ? response.content : JSON.stringify(response.content, null, 2),
                 metadata: {
                     ...response.metadata,
                     media: response.metadata?.media || response.toolCalls?.map((tc: any) => {
@@ -1160,7 +1160,7 @@ export function PuffChat({
                                             <div className="prose prose-sm max-w-none group relative text-sm leading-relaxed space-y-2">
                                                 {streamingMessageId === message.id ? (
                                                     <TypewriterText 
-                                                        text={message.content}
+                                                        text={typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}
                                                         speed={15}
                                                         delay={500}
                                                         onComplete={() => setStreamingMessageId(null)}
@@ -1181,7 +1181,7 @@ export function PuffChat({
                                                             code: ({node, ...props}) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props} />,
                                                         }}
                                                     >
-                                                        {message.content}
+                                                        {typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}
                                                     </ReactMarkdown>
                                                 )}
                                                 <button
