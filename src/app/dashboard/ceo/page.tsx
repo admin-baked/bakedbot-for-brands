@@ -34,6 +34,7 @@ const SystemKnowledgeBase = dynamic(() => import("./components/system-knowledge-
 const CeoSettingsTab = dynamic(() => import("./components/ceo-settings-tab"), { loading: TabLoader });
 const AgentSandbox = dynamic(() => import("./components/agent-sandbox").then(mod => mod.AgentSandbox), { loading: TabLoader, ssr: false });
 const ResearchTab = dynamic(() => import("./components/research-tab"), { loading: TabLoader });
+const EmailTesterTab = dynamic(() => import("./components/email-tester-tab"), { loading: TabLoader });
 
 
 import { useSuperAdmin } from '@/hooks/use-super-admin';
@@ -104,6 +105,7 @@ function CeoDashboardContent() {
             case 'settings': return <CeoSettingsTab />;
             case 'research': return <ResearchTab />;
             case 'sandbox': return <AgentSandbox />;
+            case 'email': return <EmailTesterTab />;
             case 'invites': return (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -138,6 +140,9 @@ function CeoDashboardContent() {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
+                    <Link href="?tab=email">
+                        <Button variant="ghost" size="sm">Email Tester</Button>
+                    </Link>
                     <DataImportDropdown />
                     <MockDataToggle />
                     <RoleSwitcher />

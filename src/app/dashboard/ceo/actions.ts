@@ -1,6 +1,7 @@
 'use server';
 
-import { requireUser } from '@/server/auth/auth';
+import { requireUser, isSuperUser } from '@/server/auth/auth';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { searchCannMenusRetailers as searchShared, CannMenusResult } from '@/server/actions/cannmenus';
 import { runChicagoPilotJob } from '@/server/jobs/seo-generator';
 import { runBrandPilotJob } from '@/server/jobs/brand-discovery-job';
@@ -2269,5 +2270,35 @@ export async function getCoverageStatusAction(): Promise<CoverageStatus> {
       packCount: 0,
       canGenerateMore: false
     };
+  }
+}
+
+export async function testEmailDispatch(data: { to: string, subject: string, body: string }): Promise<ActionResult> {
+  try {
+    const user = await requireUser();
+    const isSuper = await isSuperUser();
+    
+    if (!isSuper) {
+       return { message: 'Unauthorized: Super Admin access required.', error: true };
+    }
+
+    const htmlBody = data.body || '<p>This is a test email sent from the Super Admin Dashboard.</p>';
+
+    // Use dispatcher to send via configured provider (Mailjet)
+    const success = await sendGenericEmail({
+        to: data.to,
+        subject: data.subject,
+        htmlBody: htmlBody,
+        textBody: htmlBody.replace(/<[^>]*>?/gm, '')
+    });
+
+    if (success) {
+        return { message: `Email sent successfully to ${data.to}` };
+    } else {
+        return { message: 'Failed to dispatch email. Check logs.', error: true };
+    }
+  } catch (error: any) {
+    console.error('Test email dispatch error:', error);
+    return { message: error.message, error: true };
   }
 }
