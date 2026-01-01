@@ -203,13 +203,13 @@ const PLAYBOOK_REGISTRY: Record<string, () => Promise<PlaybookResult>> = {
             if (user.email) userEmail = user.email;
         } catch (e) {}
 
-        const emailSent = await sendGenericEmail({
+        const emailResult = await sendGenericEmail({
             to: userEmail,
             subject: 'Daily Competitive Snapshot: Ultra Cannabis',
             htmlBody: reportHtml
         });
 
-        logs.push(`Email to ${userEmail}: ${emailSent ? 'Success' : 'Failed'}`);
+        logs.push(`Email to ${userEmail}: ${emailResult.success ? 'Success' : `Failed (${emailResult.error})`}`);
         return { success: true, message: `Scan complete. Report emailed to ${userEmail}.`, logs };
     },
     'churn-predictor': async () => {

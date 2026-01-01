@@ -128,14 +128,15 @@ const marketingSendImpl = async (ctx: any, inputs: any) => {
     }
 
     // 2. Execute Send
-    const success = await sendGenericEmail({
+    const result = await sendGenericEmail({
         to: inputs.to,
         subject: inputs.subject,
         htmlBody: inputs.htmlBody
     });
     
     return { 
-        success, 
+        success: result.success, 
+        error: result.error,
         provider: 'system', 
         compliance: (isSelfSend || isInternal || isTest) ? 'skipped (internal/test)' : 'verified' 
     };

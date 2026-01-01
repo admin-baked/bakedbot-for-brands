@@ -39,7 +39,7 @@ export async function sendOrderConfirmationEmail(data: any): Promise<boolean> {
     }
 }
 
-export async function sendGenericEmail(data: { to: string, name?: string, subject: string, htmlBody: string, textBody?: string }): Promise<boolean> {
+export async function sendGenericEmail(data: { to: string, name?: string, subject: string, htmlBody: string, textBody?: string }): Promise<{ success: boolean; error?: string }> {
     const provider = await getProvider();
     
     // For now, only Mailjet supports generic email in this codebase based on my previous step.
