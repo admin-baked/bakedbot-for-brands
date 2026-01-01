@@ -106,9 +106,6 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
             const loadedSkills = await loadSkills(personaConfig.skills);
             
             // 1. Append Tools
-            // We assume 'tools' variable here is passed to runAgent, which expects a Tool Definitions array?
-            // Actually 'tools' above seems to be imported from 'default-tools.ts'.
-            // If they are arrays, we push.
             if (Array.isArray(tools)) {
                 const newTools = loadedSkills.flatMap(s => s.tools.map(t => t.definition));
                 tools = [...tools, ...newTools];
@@ -123,32 +120,41 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
     }
 
     try {
-        // We wrap the agentImpl to inject the skill instructions into the system prompt
-        // This relies on runAgent using agentImpl.systemPrompt or similar.
-        // Since we can't easily mutate the imported object safely, we might pass it as context if runAgent supports it.
-        // Checking runAgent signature: runAgent(brandId, persistence, agentImpl, tools, stimulus)
-        
-        // Hack: Append to stimulus if we can't change system prompt easily, 
-        // OR better: Create a proxy agent object if structure allows.
-        
-        const enhancedAgent = { 
-            ...agentImpl,
-            // Prepend skill instructions to system prompt if possible, or we trust runAgent to handle it?
-            // If agentImpl has a systemPrompt string/function, we wrap it.
-            // Assuming agentImpl IS the definition with a generate() method or systemPrompt property.
-            // Let's assume for now we pass it via stimulus or tool definitions carry the weight.
-            // But 'instructions' are critical using this architecture.
-        };
-
-        // For now, let's prepend to Stimulus effectively making it "System Context" for this run
-        // This is safer than modifying the singleton agent implementations.
         const enhancedStimulus = (stimulus || '') + (skillInstructions ? `\n\n=== ENABLED SKILLS ===\n${skillInstructions}` : '');
 
-        const logEntry = await runAgent(brandId, persistence, enhancedAgent as any, tools, enhancedStimulus);
+        const logEntry = await runAgent(brandId, persistence, agentImpl as any, tools, enhancedStimulus);
         return { success: true, message: `Ran ${agentName} successfully.`, log: logEntry };
     } catch (error: any) {
         return { success: false, message: error.message };
     }
+}
+
+/**
+ * Synthesizes a high-impact Markdown snapshot from raw data.
+ */
+async function synthesizeSnapshot(rawData: any, format: string, modelLevel: string = 'lite'): Promise<string> {
+    const prompt = `
+    You are BakedBot Intelligence. Convert the following raw data into a standardized, high-impact competitive snapshot.
+    
+    RAW DATA:
+    ${JSON.stringify(rawData, null, 2)}
+    
+    MANDATORY FORMAT:
+    ${format}
+    
+    Rules:
+    1. Use high-impact emojis.
+    2. Ensure sections are separated by horizontal lines (---).
+    3. Keep it brief and executive-level.
+    4. If data is missing for a section, omit the section or state "No updates".
+    `;
+
+    const response = await ai.generate({
+        ...getGenerateOptions(modelLevel),
+        prompt,
+    });
+
+    return response.text;
 }
 
 // Playbook Logic
@@ -599,6 +605,47 @@ export async function runAgentCore(
                  prompt: `User asked: ${userMessage}. Search Results: ${JSON.stringify(searchRes.results)}. Summarize.`
              });
              return { content: synthesis.text, toolCalls: executedTools };
+        }
+
+        // 5. Ezal Intelligence Detection
+        if (routing.primaryAgent === 'ezal' || lowerMessage.includes('competitor') || lowerMessage.includes('price match')) {
+            await emitThought(jobId, 'Intelligence Scan', 'Performing competitive analysis...');
+            const res = await triggerAgentRun('ezal', userMessage, userBrandId);
+            executedTools.push({ 
+                id: `ezal-${Date.now()}`, 
+                name: 'Ezal Intelligence', 
+                status: res.success ? 'success' : 'error', 
+                result: res.message 
+            });
+
+            if (res.success) {
+                await emitThought(jobId, 'Synthesizing', 'Formatting intelligence snapshot...');
+                const format = `
+                Cannabis Menu Intelligence - [Brand]
+                📊 COMPETITIVE ANALYSIS - ${new Date().toLocaleDateString()}
+                -------------------------
+                💰 KEY PRICING INSIGHTS:
+                ...
+                -------------------------
+                📈 TOP MOVERS:
+                ...
+                -------------------------
+                🎯 MARGIN OPPORTUNITY:
+                ...
+                -------------------------
+                🚨 COMPETITOR VULNERABILITIES:
+                ...
+                -------------------------
+                🏆 MARKET INSIGHT:
+                ...
+                -------------------------
+                📊 NEXT STEPS:
+                ...
+                `;
+                
+                const synthesized = await synthesizeSnapshot(res.log?.result || res.message, format, effectiveModelLevel);
+                return { content: synthesized, toolCalls: executedTools, metadata: { ...metadata, jobId } };
+            }
         }
 
         // 4. Integrations
