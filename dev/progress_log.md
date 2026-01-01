@@ -1894,3 +1894,23 @@ Refactored the CEO Dashboard tool for generating SEO pages to address user feedb
 
 ### Result: ✅ Complete
 The Control Center is now a focused "Page Factory" that allows reliable bulk generation.
+
+## Session: 2026-01-01 (Build Fix - Agent Personas)
+### Task ID
+build_fix_agent_personas
+
+### Summary
+Fixed TypeScript build errors caused by missing agent personas in `PersonaSelector` components. Added `smokey`, `craig`, `pops`, `money_mike`, `mrs_parker`, and `deebo` to the selector options.
+
+### Key Changes
+*   **FIX**: `src/app/dashboard/ceo/components/puff-chat.tsx` - Added missing personas to `options` object.
+*   **FIX**: `src/app/dashboard/playbooks/components/agent-chat.tsx` - Added missing personas to `options` object.
+*   **TEST**: `src/app/dashboard/ceo/agents/__tests__/personas.test.ts` - Updated to validate new agent squad members.
+*   **TEST**: `src/app/dashboard/ceo/components/__tests__/puff-chat.test.tsx` - Added test case for persona selector (currently skipped due to JSDOM/Radix UI env issues).
+
+### Tests Run
+*   `npm run check:types` (Passed âœ…)
+*   `npm test -- personas.test.ts puff-chat.test.tsx` (Passed âœ… - with 1 skipped UI test)
+
+### Result: âœ… Build Fixed
+Codebase is healthy and build passes.

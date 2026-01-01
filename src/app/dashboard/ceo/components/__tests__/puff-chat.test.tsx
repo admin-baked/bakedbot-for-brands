@@ -43,6 +43,25 @@ jest.mock('@/components/landing/typewriter-text', () => ({
     TypewriterText: ({ text, className }: any) => <div className={className}>{text}</div>
 }));
 
+// Mock lucide-react to avoid ESM/undefined component issues
+jest.mock('lucide-react', () => {
+    return new Proxy({}, {
+        get: (target, prop) => {
+            const Icon = (props: any) => <div data-testid={`icon-${String(prop)}`} {...props} />;
+            Icon.displayName = String(prop);
+            return Icon;
+        }
+    });
+});
+
+jest.mock('@/components/chat/agent-router-visualization', () => ({
+    AgentRouterVisualization: () => <div data-testid="router-viz">Router Visualization</div>
+}));
+
+jest.mock('@/components/chat/project-selector', () => ({
+    ProjectSelector: () => <div data-testid="project-selector">Project Selector</div>
+}));
+
 describe('PuffChat Component', () => {
     beforeEach(() => {
         useAgentChatStore.setState({
@@ -62,6 +81,23 @@ describe('PuffChat Component', () => {
     it('renders the chat interface', () => {
         render(<PuffChat />);
         expect(screen.getByPlaceholderText('Ask Smokey anything...')).toBeInTheDocument();
+    });
+
+    it.skip('renders all agent persona options', async () => {
+        render(<PuffChat />);
+        
+        // Find the trigger button (it displays "Puff" initially)
+        const trigger = screen.getByText('Puff');
+        fireEvent.click(trigger);
+
+        // Check for new squad members in dropdown
+        expect(await screen.findByText('Smokey')).toBeInTheDocument();
+        expect(screen.getByText('Craig')).toBeInTheDocument();
+        expect(screen.getByText('Pops')).toBeInTheDocument();
+        expect(screen.getByText('Ezal')).toBeInTheDocument();
+        expect(screen.getByText('Money Mike')).toBeInTheDocument();
+        expect(screen.getByText('Mrs. Parker')).toBeInTheDocument();
+        expect(screen.getByText('Deebo')).toBeInTheDocument();
     });
 
     it.skip('uses public demo API when not authenticated', async () => {
