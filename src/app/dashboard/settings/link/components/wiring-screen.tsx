@@ -24,7 +24,7 @@ interface WiringScreenProps {
     dispensaryName: string;
     role?: 'brand' | 'dispensary';
     onComplete: () => void;
-    checkStatus?: () => Promise<{ ready: boolean; percent: number }>;
+    checkStatus?: () => Promise<{ ready: boolean; percent: number; details?: { products: number; competitors: number } }>;
 }
 
 type WiringPhase = 'init' | 'smokey_crawl' | 'ezal_crawl' | 'building' | 'complete';
@@ -80,6 +80,7 @@ export function WiringScreen({ dispensaryName, role = 'dispensary', onComplete, 
     const [progress, setProgress] = useState(0);
     const [logs, setLogs] = useState<string[]>([]);
     const [isReady, setIsReady] = useState(false);
+    const [stats, setStats] = useState({ products: 0, competitors: 0 });
     
     // Auto-advance phases (Visual only fallback)
     useEffect(() => {
@@ -121,6 +122,11 @@ export function WiringScreen({ dispensaryName, role = 'dispensary', onComplete, 
                     setPhase('complete');
                     setIsReady(true);
                     clearInterval(interval);
+                }
+                
+                // Update granular stats if available
+                if (status.details) {
+                    setStats(status.details);
                 }
                 
                 // Ensure visual progress matches at least the real progress
@@ -229,6 +235,32 @@ export function WiringScreen({ dispensaryName, role = 'dispensary', onComplete, 
 
                     {/* Agent Cursors Layer */}
                     <AgentCursors phase={phase} />
+
+                    {/* Real-time Data Stream Overlay */}
+                    <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none">
+                        <AnimatePresence>
+                            {stats.products > 0 && (
+                                <motion.div 
+                                    initial={{ x: -20, opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    className="bg-emerald-500/90 text-white px-3 py-1.5 rounded-md shadow-lg backdrop-blur-md flex items-center gap-2 text-xs font-mono border border-emerald-400/50"
+                                >
+                                    <Leaf className="h-3 w-3" />
+                                    <span>Products Indexed: <span className="font-bold">{stats.products}</span></span>
+                                </motion.div>
+                            )}
+                            {stats.competitors > 0 && (
+                                <motion.div 
+                                    initial={{ x: -20, opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    className="bg-purple-500/90 text-white px-3 py-1.5 rounded-md shadow-lg backdrop-blur-md flex items-center gap-2 text-xs font-mono border border-purple-400/50"
+                                >
+                                    <Zap className="h-3 w-3" />
+                                    <span>Competitors Found: <span className="font-bold">{stats.competitors}</span></span>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
 
                 {/* Terminal Overlay (Bottom) */}
