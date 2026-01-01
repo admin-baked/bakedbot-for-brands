@@ -24,7 +24,7 @@ interface DispensaryResult {
     city?: string;
     state?: string;
     zip?: string;
-    source: 'cannmenus' | 'leafly' | 'manual';
+    source: 'cannmenus' | 'leafly' | 'scraper' | 'manual';
     productCount?: number;
 }
 
