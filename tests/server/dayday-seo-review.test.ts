@@ -1,9 +1,9 @@
 /**
- * Unit tests for Deebo SEO Review Server Action
+ * Unit tests for Day Day SEO Review Server Action
  * Tests the SEO scoring logic and review functions
  */
 
-import { calculateSEOScore, reviewSEOPage } from '@/server/actions/deebo-seo-review';
+import { calculateSEOScore, reviewSEOPage } from '@/server/actions/dayday-seo-review';
 
 // Mock the Firebase client
 jest.mock('@/firebase/server-client', () => ({
@@ -18,7 +18,7 @@ jest.mock('@/firebase/server-client', () => ({
     }))
 }));
 
-describe('Deebo SEO Review', () => {
+describe('Day Day SEO Review', () => {
     describe('calculateSEOScore', () => {
         it('should return max score (10) for perfect SEO', () => {
             const criteria = {

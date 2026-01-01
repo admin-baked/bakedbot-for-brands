@@ -106,8 +106,10 @@ export async function searchDispensariesAction(
                         results.push({
                             id: id,
                             name: result.title || query,
-                            // Address extractions would require scraping, so we leave blank for now
-                            // user can fill in or we might get snippet info
+                            address: '', // scraped data limitation
+                            city: '',
+                            state: '',
+                            zip: zip || '', // Use search ZIP if available
                             source: source,
                             menuUrl: result.url,
                             url: result.url

@@ -108,11 +108,26 @@ export function DispensaryPlaybooksList() {
         });
     };
 
-    const runPlaybook = (id: string) => {
+    const runPlaybook = (id: string, category: string) => {
         toast({
-            title: "Playbook Started",
-            description: `Executing ${id}...`
+            title: "Accessing Playbook",
+            description: `Opening ${id}...`
         });
+        
+        // Wire up playbooks to actual tools
+        const routes: Record<string, string> = {
+            'menu-health': '/dashboard/menu',
+            'compliance-preflight': '/dashboard/compliance', // Assuming this exists or settings
+            'slow-mover': '/dashboard/inventory',
+            'oos-alert': '/dashboard/inventory',
+            'vip-nudge': '/dashboard/marketing', // or loyalty
+            'competitor-watch': '/dashboard/intelligence',
+            'ops-digest': '/dashboard/dispensary'
+        };
+
+        if (routes[id]) {
+            setTimeout(() => window.location.href = routes[id], 500);
+        }
     };
 
     const filtered = playbooks.filter(pb => {
@@ -189,7 +204,7 @@ export function DispensaryPlaybooksList() {
                                             {pb.runsToday} runs today
                                         </span>
                                     )}
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => runPlaybook(pb.id)}>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => runPlaybook(pb.id, pb.category)}>
                                         <Play className="h-3 w-3" />
                                     </Button>
                                 </div>

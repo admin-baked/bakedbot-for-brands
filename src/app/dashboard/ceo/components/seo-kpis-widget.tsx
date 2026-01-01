@@ -287,11 +287,11 @@ export default function SeoKpisWidget({
                 <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
                         <Target className="h-4 w-4 text-emerald-500" />
-                        Deebo SEO Review
+                        Day Day SEO Review
                         <Badge variant="outline" className="text-xs">AI Powered</Badge>
                     </CardTitle>
                     <CardDescription>
-                        AI-generated SEO scores for each page (1-10)
+                        Day Day's AI-generated SEO ranking scores (1-10)
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -348,10 +348,10 @@ export default function SeoKpisWidget({
                         <div className="text-center py-6">
                             <Target className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                             <p className="text-sm text-muted-foreground mb-3">
-                                No pages reviewed yet. Run Deebo to analyze SEO pages.
+                                No pages reviewed yet. Run Day Day to analyze SEO pages.
                             </p>
                             <Button variant="outline" size="sm" disabled>
-                                Run Deebo Review
+                                Run Day Day Review
                             </Button>
                         </div>
                     )}
