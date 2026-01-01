@@ -56,6 +56,9 @@ jest.mock('@/components/ui/collapsible', () => ({
 }));
 
 // Mock useToast
+jest.mock('@/hooks/use-toast', () => ({
+    useToast: jest.fn(),
+}));
 
 // Mock InviteUserDialog
 jest.mock('@/components/invitations/invite-user-dialog', () => ({
@@ -84,18 +87,18 @@ describe('SuperAdminSidebar', () => {
     beforeEach(() => {
         (useSearchParams as jest.Mock).mockReturnValue({ get: jest.fn() });
         (usePathname as jest.Mock).mockReturnValue('/dashboard/ceo');
-        (useAgentChatStore as jest.Mock).mockReturnValue({ 
-            sessions: [], 
-            activeSessionId: null, 
-            clearCurrentSession: jest.fn(), 
-            setActiveSession: jest.fn() 
+        (useAgentChatStore as jest.Mock).mockReturnValue({
+            sessions: [],
+            activeSessionId: null,
+            clearCurrentSession: jest.fn(),
+            setActiveSession: jest.fn()
         });
         (useToast as jest.Mock).mockReturnValue({ toast: jest.fn() });
     });
 
     it('renders the Invite Team Member button', () => {
         render(<SuperAdminSidebar />);
-        
+
         // Check for the text
         const inviteButton = screen.getByText('Invite Team Member');
         expect(inviteButton).toBeInTheDocument();
