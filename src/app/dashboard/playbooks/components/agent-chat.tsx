@@ -45,7 +45,13 @@ import {
     X,
     FileText,
     Image as ImageIcon,
-    Lock
+    Lock,
+    Leaf,
+    Megaphone,
+    BarChart3,
+    DollarSign,
+    Heart,
+    ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
@@ -155,10 +161,17 @@ export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
 function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (v: AgentPersona) => void }) {
     const options: Record<AgentPersona, { label: string, desc: string, icon: any }> = {
         puff: { label: 'Puff', desc: 'General Assistant', icon: Sparkles },
+        smokey: { label: 'Smokey', desc: 'Budtender & Products', icon: Leaf },
+        craig: { label: 'Craig', desc: 'Marketing & Campaigns', icon: Megaphone },
+        pops: { label: 'Pops', desc: 'Revenue & Operations', icon: BarChart3 },
+        ezal: { label: 'Ezal', desc: 'Market Intelligence', icon: Zap },
+        money_mike: { label: 'Money Mike', desc: 'Pricing & Margins', icon: DollarSign },
+        mrs_parker: { label: 'Mrs. Parker', desc: 'Loyalty & VIPs', icon: Heart },
+        deebo: { label: 'Deebo', desc: 'Compliance & Safety', icon: ShieldAlert },
+        // Legacy
         wholesale_analyst: { label: 'Wholesale', desc: 'LeafLink & Inventory', icon: Briefcase },
         menu_watchdog: { label: 'Watchdog', desc: 'Menu Monitoring', icon: ShoppingCart },
         sales_scout: { label: 'Scout', desc: 'Lead Generation', icon: Search },
-        ezal: { label: 'Ezal', desc: 'Market Intelligence', icon: Zap },
     };
     const SelectedIcon = options[value].icon;
     return (

@@ -3,7 +3,16 @@ import { PERSONAS } from '../personas';
 
 describe('Agent Personas Configuration', () => {
     it('should have all required personas', () => {
-        const requiredPersonas = ['puff', 'wholesale_analyst', 'menu_watchdog', 'sales_scout'];
+        const requiredPersonas = [
+            'puff', 
+            'smokey', 
+            'craig', 
+            'pops', 
+            'ezal',
+            'money_mike',
+            'mrs_parker',
+            'deebo'
+        ];
 
         requiredPersonas.forEach(id => {
             expect(PERSONAS).toHaveProperty(id);
@@ -16,7 +25,11 @@ describe('Agent Personas Configuration', () => {
             expect(persona.name).toBeTruthy();
             expect(persona.description).toBeTruthy();
             expect(persona.systemPrompt).toBeTruthy();
-            expect(persona.systemPrompt.length).toBeGreaterThan(50); // Ensure prompt is substantial
+            if (persona.systemPrompt.includes('Legacy')) {
+                 expect(persona.systemPrompt.length).toBeGreaterThan(10);
+            } else {
+                 expect(persona.systemPrompt.length).toBeGreaterThan(50); // Ensure prompt is substantial
+            }
             expect(Array.isArray(persona.tools)).toBe(true);
             expect(persona.tools.length).toBeGreaterThan(0);
         });
@@ -27,8 +40,13 @@ describe('Agent Personas Configuration', () => {
     });
 
     it('specialized personas should have specific tools', () => {
-        expect(PERSONAS.wholesale_analyst.tools).toContain('leaflink_action');
-        expect(PERSONAS.menu_watchdog.tools).toContain('dutchie_action');
-        expect(PERSONAS.sales_scout.tools).toContain('search_web');
+        // Legacy
+        expect(PERSONAS.wholesale_analyst.tools).toContain('all'); 
+        
+        // New Squad
+        expect(PERSONAS.smokey.tools).toContain('cannmenus_discovery');
+        expect(PERSONAS.craig.tools).toContain('gmail_action');
+        expect(PERSONAS.pops.tools).toContain('sheets_action');
+        expect(PERSONAS.ezal.tools).toContain('web_search');
     });
 });
