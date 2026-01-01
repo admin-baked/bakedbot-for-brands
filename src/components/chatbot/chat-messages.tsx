@@ -148,36 +148,37 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, onAd
                                 message.sender === 'user' ? (
                                     <p className="text-sm whitespace-pre-line">{message.text}</p>
                                 ) : (
-                                    <ReactMarkdown 
-                                        className="text-sm space-y-2"
-                                        remarkPlugins={[remarkGfm]}
-                                        components={{
-                                            p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                                            ul: ({node, ...props}) => <ul className="list-disc list-inside my-2" {...props} />,
-                                            ol: ({node, ...props}) => <ol className="list-decimal list-inside my-2" {...props} />,
-                                            li: ({node, ...props}) => <li className="my-1" {...props} />,
-                                            a: ({node, ...props}) => <a className="text-blue-500 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
-                                            code: ({node, inline, className, children, ...props}: any) => {
-                                                const match = /language-(\w+)/.exec(className || '');
-                                                if (!inline && match) {
+                                    <div className="text-sm space-y-2">
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                                                ul: ({ node, ...props }) => <ul className="list-disc list-inside my-2" {...props} />,
+                                                ol: ({ node, ...props }) => <ol className="list-decimal list-inside my-2" {...props} />,
+                                                li: ({ node, ...props }) => <li className="my-1" {...props} />,
+                                                a: ({ node, ...props }) => <a className="text-blue-500 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
+                                                code: ({ node, inline, className, children, ...props }: any) => {
+                                                    const match = /language-(\w+)/.exec(className || '');
+                                                    if (!inline && match) {
+                                                        return (
+                                                            <CodeBlock
+                                                                language={match[1]}
+                                                                value={String(children).replace(/\n$/, '')}
+                                                                className="my-4"
+                                                            />
+                                                        );
+                                                    }
                                                     return (
-                                                        <CodeBlock 
-                                                            language={match[1]} 
-                                                            value={String(children).replace(/\n$/, '')} 
-                                                            className="my-4"
-                                                        />
+                                                        <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props}>
+                                                            {children}
+                                                        </code>
                                                     );
-                                                }
-                                                return (
-                                                    <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props}>
-                                                        {children}
-                                                    </code>
-                                                );
-                                            },
-                                        }}
-                                    >
-                                        {message.text}
-                                    </ReactMarkdown>
+                                                },
+                                            }}
+                                        >
+                                            {message.text}
+                                        </ReactMarkdown>
+                                    </div>
                                 )
                             )}
                             {message.imageUrl && (
