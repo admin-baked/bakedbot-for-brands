@@ -1,3 +1,21 @@
+## Session: 2026-01-01 (Dashboard Prompt Routing & Squad Unification)
+### Task ID
+dashboard_prompt_routing_and_squad
+
+### Summary
+Implemented "Hybrid Intelligence Protocol" routing in the Dashboard Chat (`runAgentChat`) to intelligent switch between specialized agents based on user intent.
+- **Unified Squad**: Updated `personas.ts` to include the full Agent Squad (Money Mike, Smokey, Craig, Pops, Ezal, Deebo) with specific system prompts and capabilities.
+- **Smart Routing**: Integrated `analyzeQuery` to route financial queries to Money Mike, marketing to Craig, compliance to Deebo, etc., overriding the default "Puff" persona.
+
+### Key Changes
+*   **UPDATE**: `src/app/dashboard/ceo/agents/personas.ts` - Added full Squad definitions and legacy aliases.
+*   **UPDATE**: `src/app/dashboard/ceo/agents/actions.ts` - Implemented `analyzeQuery` routing logic in `runAgentChat`.
+
+### Result: ✅ Implemented
+Dashboard Chat now supports the full Agent Squad and auto-routes based on intent.
+
+---
+
 ## Session: 2025-12-31 (White Screen Crash Fix)
 ### Task ID
 white_screen_crash_fix
