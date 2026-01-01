@@ -115,29 +115,7 @@ export default function OnboardingPage() {
     }
   }, [formState, role]);
 
-  return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50/50 p-4 relative">
-      <AnimatePresence>
-        {showWiring && (
-             <WiringScreen 
-                dispensaryName={role === 'brand' ? (manualBrandName || selectedCannMenusEntity?.name || 'Your Brand') : (manualDispensaryName || selectedCannMenusEntity?.name || 'Your Dispensary')}
-                role={role === 'brand' ? 'brand' : 'dispensary'}
-                checkStatus={checkOnboardingStatus}
-                onComplete={() => {
-                     // Force token refresh and redirect
-                     if (auth?.currentUser) {
-                        auth.currentUser.getIdToken(true).then(() => {
-                             window.location.assign('/dashboard');
-                        });
-                     } else {
-                         window.location.assign('/dashboard');
-                     }
-                }}
-             />
-        )}
-      </AnimatePresence>
-      
-      <div className="w-full max-w-lg space-y-8 bg-background p-8 rounded-2xl shadow-xl border">
+
 
   // Handle Session Recovery (for established users)
   const [showReloginModal, setShowReloginModal] = useState(false);
@@ -644,7 +622,27 @@ export default function OnboardingPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50/50 p-4">
+    <main className="min-h-screen flex items-center justify-center bg-gray-50/50 p-4 relative">
+      <AnimatePresence>
+        {showWiring && (
+             <WiringScreen 
+                dispensaryName={role === 'brand' ? (manualBrandName || selectedCannMenusEntity?.name || 'Your Brand') : (manualDispensaryName || selectedCannMenusEntity?.name || 'Your Dispensary')}
+                role={role === 'brand' ? 'brand' : 'dispensary'}
+                checkStatus={checkOnboardingStatus}
+                onComplete={() => {
+                     // Force token refresh and redirect
+                     if (auth?.currentUser) {
+                        auth.currentUser.getIdToken(true).then(() => {
+                             window.location.assign('/dashboard');
+                        });
+                     } else {
+                         window.location.assign('/dashboard');
+                     }
+                }}
+             />
+        )}
+      </AnimatePresence>
+
       <div className="w-full max-w-lg space-y-8 bg-background p-8 rounded-2xl shadow-xl border">
         {step === 'role' && (
           <div className="text-center pb-4">
