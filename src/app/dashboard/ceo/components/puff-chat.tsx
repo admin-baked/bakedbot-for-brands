@@ -616,8 +616,23 @@ export function PuffChat({
                 { name: 'Analyzing Request', desc: 'Parsing intent and context...' },
                 { name: 'Agent Routing', desc: `Routing task to ${currentPersona}...` },
                 { name: 'Knowledge Lookup', desc: 'Searching database for matches...' },
+                { name: 'Knowledge Lookup', desc: 'Searching database for matches...' },
+                // Standard step, but will be dynamically replaced if creative intent detected
                 { name: 'Formulating Response', desc: 'Generating final answer...' }
             ];
+
+            // DETECT CREATIVE INTENT from userInput for better simulation steps
+            const isImageGen = userInput.toLowerCase().includes('image') || userInput.toLowerCase().includes('photo') || userInput.toLowerCase().includes('generate');
+            const isVideoGen = userInput.toLowerCase().includes('video');
+
+            if (isImageGen || isVideoGen) {
+                // Replace final step with creative specific one
+                stepsSequence.pop(); 
+                stepsSequence.push({ 
+                    name: 'Creative Engine', 
+                    desc: isVideoGen ? 'Generating your video...' : 'Generating your image...' 
+                });
+            }
 
             let currentSteps: ToolCallStep[] = [];
 
@@ -1094,6 +1109,13 @@ export function PuffChat({
                                             isComplete={!message.isThinking}
                                         />
                                     )}
+
+                                    {/* CREATIVE LOADER - Shows when "Creative Engine" step is active */}
+                                    {message.isThinking && message.steps && message.steps.some(s => s.toolName === 'Creative Engine' && s.status === 'in-progress') && (
+                                        <CreativeLoader 
+                                            label={message.steps.find(s => s.toolName === 'Creative Engine')?.description || 'Generating...'} 
+                                        />
+                                    )}
                                     
                                     {/* Fallback Thinking Indicator if no steps but still thinking */}
                                     {message.isThinking && (!message.steps || message.steps.length === 0) && (
@@ -1269,6 +1291,34 @@ function StepsList({ steps }: { steps: ToolCallStep[] }) {
                     <div className="ml-5 text-[10px] text-muted-foreground">{step.description}</div>
                 </div>
             ))}
+        </div>
+    );
+}
+
+function CreativeLoader({ label }: { label: string }) {
+    return (
+        <div className="flex flex-col items-center justify-center p-6 bg-white rounded-xl border border-dashed border-primary/30 space-y-4 animate-in fade-in zoom-in duration-300">
+            <div className="relative">
+                {/* Spinning Ring */}
+                <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                <div className="absolute -inset-1 rounded-full border border-purple-200 animate-pulse" />
+                
+                {/* Smokey Icon Center */}
+                <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-emerald-100 to-purple-100 flex items-center justify-center overflow-hidden p-1">
+                     <img 
+                        src="/assets/agents/smokey-main.png" 
+                        alt="Smokey" 
+                        className="h-full w-full object-contain animate-bounce" 
+                        style={{ animationDuration: '2s' }}
+                    />
+                </div>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+                <span className="text-sm font-medium bg-gradient-to-r from-emerald-600 to-purple-600 bg-clip-text text-transparent animate-pulse">
+                    {label}
+                </span>
+                <span className="text-[10px] text-muted-foreground">This may take a few seconds</span>
+            </div>
         </div>
     );
 }

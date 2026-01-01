@@ -198,6 +198,24 @@ When a user requests a "Competitive Snapshot" or "Market Analysis", use the stru
 
 ---
 
+## 7. Hybrid Intelligence Protocol (Discovery & Search)
+**"Structure First, Vision Second"**
+We do NOT scrape everything at onboarding. We use **Just-in-Time (JIT) Hydration** to heal the map as users query it.
+
+### Layer 1: Structural (CannMenus/Leafly)
+*   **Trigger**: "Who has Stiiizy?", "Find dispensaries near me."
+*   **Action**: 1. Check DB (Hot Cache). 2. If stale/empty -> Call API. 3. Write to DB.
+*   **Why**: Fast, cheap, best for inventory/location.
+
+### Layer 2: Visual (Firecrawl/Ezal)
+*   **Trigger**: "What are the deals?", "Competitive snapshot", "New homepage banner?"
+*   **Action**: Agent browses the live site to extract unstructured data (banners, popups).
+*   **Why**: APIs miss marketing context. Visual scraping captures the "human" view.
+
+**Rule**: Always try Layer 1 first. Only escalate to Layer 2 for deals, visual validation, or if Layer 1 fails.
+
+---
+
 ## 🧩 Front-End Composability (2026 Philosophy)
 > "Front-end engineering is dead. Long live front-end composability."
 

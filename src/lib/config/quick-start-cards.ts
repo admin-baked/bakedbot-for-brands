@@ -181,7 +181,8 @@ export const PROMPT_CHIPS = {
         "Research competitor pricing models for 'Claim Pro'",
         "Compare Springbig loyalty features vs Mrs. Parker",
         "Analyze Dutchie's market share in Illinois",
-        "Generate a report on Terpli's recommendation accuracy"
+        "Generate a report on Terpli's recommendation accuracy",
+        "Explain the pricing model"
     ]
 };
 

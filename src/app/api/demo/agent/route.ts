@@ -88,22 +88,37 @@ const DEMO_RESPONSES: Record<string, {
         ],
         totalCount: 5
     },
+    moneymike: {
+        items: [
+            {
+                title: "National Discovery Pricing",
+                description: "1. Unclaimed Listing ($0/mo): Basic SEO presence.\n2. Claim Pro ($99/mo): Verified Badge, Lead Capture, Full Editing.\n3. Founders Claim ($79/mo): Locked for life (First 250).\n4. Coverage Packs: +$49/mo for +100 ZIPs.",
+                meta: "Strategy: Land & Expand | Focus: MRR Volume"
+            },
+            {
+                title: "ROI Calculation",
+                description: "One captured wholesale lead or a few loyal customers pays for the Claim Pro subscription. Upsell path to Growth ($350/mo) and Scale ($700/mo) tiers available.",
+                meta: "Break-even: < 1 month"
+            }
+        ],
+        totalCount: 4
+    },
     hq: {
         items: [
             {
-                title: "How BakedBot Works",
-                description: "BakedBot is an AI-powered platform that helps cannabis brands and dispensaries automate marketing, product recommendations, compliance, and analytics. Our specialized agents handle everything from customer engagement to competitive intelligence.",
-                meta: "AI-Powered | Cannabis-Native | 24/7"
+                title: "Agentic Commerce OS",
+                description: "BakedBot is not just a chatbot—it's a team of specialized AI employees. Core Philosophy: 'Chat is the Interface. Tools are the Muscles.' You talk, they execute tasks safely.",
+                meta: "Philosophy: Employees-as-Software"
             },
             {
-                title: "Meet the Agent Squad",
-                description: "Smokey handles product recommendations. Craig runs your marketing campaigns. Pops crunches your analytics. Ezal monitors competitors. Deebo keeps you compliant. Money Mike optimizes pricing.",
-                meta: "6 AI Agents | 24/7 Automation"
+                title: "Meet Your Squad",
+                description: "🐻 Smokey (Budtender): Product search & menus.\n📱 Craig (Marketer): Campaigns & automation.\n👁️ Ezal (Lookout): Competitor intel & discovery.\n🧠 Pops (Analyst): Revenue & KPIs.\n🔒 Deebo (Compliance): Regulation safety.\n💸 Money Mike (Banker): Pricing & margins.",
+                meta: "6 Specialized Agents | 24/7 Ops"
             },
             {
-                title: "Get Started Today",
-                description: "Sign up for a free trial and see how BakedBot can transform your cannabis business. No credit card required. Full access to all agents for 14 days.",
-                meta: "Free Trial Available"
+                title: "Current Mission: National Discovery",
+                description: "We are rolling out SEO-ready pages for every legal ZIP code to drive traffic. Our goal is to convert operators to 'Claim Pro' for verified control and lead capture.",
+                meta: "Strategy: Land & Expand"
             }
         ],
         totalCount: 3
@@ -131,7 +146,9 @@ export async function POST(request: NextRequest) {
 
         // 2. Intelligent Routing based on Analysis (override if specific intent detected)
         // Check platform/HQ questions FIRST (before product search fallback)
-        if (requestedAgent === 'hq' || prompt.toLowerCase().includes('bakedbot') || prompt.toLowerCase().includes('how does') || prompt.toLowerCase().includes('pricing')) {
+        if (requestedAgent === 'moneymike' || prompt.toLowerCase().includes('pricing model') || prompt.toLowerCase().includes('cost') || prompt.toLowerCase().includes('price')) {
+             targetAgent = 'moneymike';
+        } else if (requestedAgent === 'hq' || prompt.toLowerCase().includes('bakedbot') || prompt.toLowerCase().includes('how does') || prompt.toLowerCase().includes('work')) {
             // General questions about the platform
             targetAgent = 'hq';
         } else if (analysis.searchType === 'marketing') {
@@ -151,7 +168,23 @@ export async function POST(request: NextRequest) {
         // If the user explicitly asks for creation, we run the generators regardless of agent
         let generatedMediaResult = null;
         
-        if (analysis.marketingParams?.action === 'create_video') {
+        // PRIORITIZE IMAGE GENERATION if explicitly requested
+        if (prompt.toLowerCase().includes('image') || (analysis.marketingParams?.action === 'create_campaign' && !prompt.toLowerCase().includes('video'))) {
+             try {
+                const brandName = context?.brands?.[0]?.name || 'BakedBot';
+                const location = context?.location?.city ? ` in ${context.location.city}` : '';
+                const enhancedPrompt = `${prompt}${location}`;
+
+                const imageUrl = await generateImageFromPrompt(enhancedPrompt, {
+                    brandName
+                });
+                 generatedMediaResult = { type: 'image', url: imageUrl };
+            } catch (error) {
+                console.error('Image generation failed:', error);
+            }
+        } 
+        // THEN CHECK FOR VIDEO
+        else if (analysis.marketingParams?.action === 'create_video' || prompt.toLowerCase().includes('video')) {
              try {
                 const brandName = context?.brands?.[0]?.name || 'BakedBot';
                 const videoUrl = await generateVideoFromPrompt(prompt, {
@@ -161,22 +194,6 @@ export async function POST(request: NextRequest) {
                 generatedMediaResult = { type: 'video', url: videoUrl };
             } catch (error) {
                 console.error('Video generation failed:', error);
-            }
-        } else if (analysis.marketingParams?.action === 'create_campaign' || prompt.toLowerCase().includes('image')) {
-            // Simplified check: If intention is marketing campaign OR explicit image request
-            if (prompt.toLowerCase().includes('image') || analysis.marketingParams?.topic) {
-                try {
-                    const brandName = context?.brands?.[0]?.name || 'BakedBot';
-                    const location = context?.location?.city ? ` in ${context.location.city}` : '';
-                    const enhancedPrompt = `${prompt}${location}`;
-
-                    const imageUrl = await generateImageFromPrompt(enhancedPrompt, {
-                        brandName
-                    });
-                     generatedMediaResult = { type: 'image', url: imageUrl };
-                } catch (error) {
-                    console.error('Image generation failed:', error);
-                }
             }
         }
 
