@@ -88,11 +88,20 @@ const BRAND_CHECKLIST: ChecklistItem[] = [
 // Dispensary checklist items
 const DISPENSARY_CHECKLIST: ChecklistItem[] = [
     {
+        id: 'link-dispensary',
+        title: 'Link your dispensary',
+        description: 'Search CannMenus or Dutchie to connect your data',
+        estimatedTime: '2 min',
+        href: '/dashboard/settings/link',
+        icon: <Store className="h-4 w-4" />,
+        status: 'todo'
+    },
+    {
         id: 'connect-pos',
         title: 'Connect POS or upload inventory',
         description: 'Sync your menu from Dutchie, Jane, or upload CSV',
         estimatedTime: '5 min',
-        href: '/dashboard/integrations/pos',
+        href: '/dashboard/apps',
         icon: <Package className="h-4 w-4" />,
         status: 'todo'
     },
