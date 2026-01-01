@@ -25,6 +25,7 @@ export function DispensaryChatWidget() {
                 <PuffChat
                     initialTitle="Ops Assistant"
                     promptSuggestions={DISPENSARY_PROMPTS}
+                    className="h-full border-none shadow-none rounded-none"
                 />
             </div>
         </div>
