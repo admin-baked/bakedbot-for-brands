@@ -906,6 +906,21 @@
             "owner": "antigravity",
             "dependencies": [],
             "area": "full_stack"
+        },
+        {
+            "id": "feat_super_user_performance_tool",
+            "title": "Super User: Frontend Performance Audit Tool",
+            "status": "backlog",
+            "priority": "medium",
+            "description": "Expose the 'audit-performance.ts' script in the CEO Dashboard. Allow Super Users to trigger a Lighthouse audit for any product or brand page directly from the UI and view results in real-time.",
+            "acceptance_tests": [
+                "test_performance_tool_ui_exists",
+                "test_trigger_audit_from_dashboard",
+                "test_results_display_in_ui"
+            ],
+            "owner": "ai_builder_swarm",
+            "area": "frontend",
+            "created_at": "2026-01-01T09:00:00Z"
         }
     ]
 }

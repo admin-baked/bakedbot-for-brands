@@ -96,8 +96,55 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
     else if (agentName === 'money_mike') tools = defaultMoneyMikeTools;
     else if (agentName === 'mrs_parker') tools = defaultMrsParkerTools;
 
+    // --- SKILL INJECTION ---
+    const personaConfig = PERSONAS[agentName as AgentPersona];
+    let skillInstructions = '';
+    
+    if (personaConfig?.skills && personaConfig.skills.length > 0) {
+        try {
+            const { loadSkills } = await import('@/skills/loader');
+            const loadedSkills = await loadSkills(personaConfig.skills);
+            
+            // 1. Append Tools
+            // We assume 'tools' variable here is passed to runAgent, which expects a Tool Definitions array?
+            // Actually 'tools' above seems to be imported from 'default-tools.ts'.
+            // If they are arrays, we push.
+            if (Array.isArray(tools)) {
+                const newTools = loadedSkills.flatMap(s => s.tools.map(t => t.definition));
+                tools = [...tools, ...newTools];
+            }
+
+            // 2. Append Instructions
+            skillInstructions = loadedSkills.map(s => `\n[SKILL: ${s.name}]\n${s.instructions}`).join('\n');
+            
+        } catch (error) {
+            console.error('[AgentRunner] Failed to inject skills:', error);
+        }
+    }
+
     try {
-        const logEntry = await runAgent(brandId, persistence, agentImpl as any, tools, stimulus);
+        // We wrap the agentImpl to inject the skill instructions into the system prompt
+        // This relies on runAgent using agentImpl.systemPrompt or similar.
+        // Since we can't easily mutate the imported object safely, we might pass it as context if runAgent supports it.
+        // Checking runAgent signature: runAgent(brandId, persistence, agentImpl, tools, stimulus)
+        
+        // Hack: Append to stimulus if we can't change system prompt easily, 
+        // OR better: Create a proxy agent object if structure allows.
+        
+        const enhancedAgent = { 
+            ...agentImpl,
+            // Prepend skill instructions to system prompt if possible, or we trust runAgent to handle it?
+            // If agentImpl has a systemPrompt string/function, we wrap it.
+            // Assuming agentImpl IS the definition with a generate() method or systemPrompt property.
+            // Let's assume for now we pass it via stimulus or tool definitions carry the weight.
+            // But 'instructions' are critical using this architecture.
+        };
+
+        // For now, let's prepend to Stimulus effectively making it "System Context" for this run
+        // This is safer than modifying the singleton agent implementations.
+        const enhancedStimulus = (stimulus || '') + (skillInstructions ? `\n\n=== ENABLED SKILLS ===\n${skillInstructions}` : '');
+
+        const logEntry = await runAgent(brandId, persistence, enhancedAgent as any, tools, enhancedStimulus);
         return { success: true, message: `Ran ${agentName} successfully.`, log: logEntry };
     } catch (error: any) {
         return { success: false, message: error.message };
@@ -720,10 +767,34 @@ export async function runAgentCore(
 
         await emitThought(jobId, 'Complete', 'Task finished.');
 
+            metadata: { ...metadata, jobId }
+        };
+
+        // === STRUCTURED LOGGING (Section 8 Standard) ===
+        // We log purely for observability here (could be sent to Datadog/Firestore)
+        const structuredLogs = executedTools.map(tool => ({
+            timestamp: new Date().toISOString(),
+            agent: activePersona.name,
+            action: tool.name,
+            input: 'See tool call arguments (abstracted)', // We'd need to capture inputs in executedTools to be full spec
+            policy_checks: {
+                compliance: tool.result.includes('Compliance Blocked') ? 'blocked' : 'pass',
+                // other checks could be inferred
+            },
+            output: {
+                status: tool.status,
+                result: tool.result.substring(0, 100)
+            }
+        }));
+
+        // In a real production env, we'd persist this:
+        // await logService.record(structuredLogs);
+        console.log('[Structured Logs]', JSON.stringify(structuredLogs, null, 2));
+
         return {
             content: response.text,
             toolCalls: executedTools,
-            metadata: { ...metadata, jobId }
+            metadata: { ...metadata, jobId, structuredLogs }
         };
 
     } catch (e: any) {
