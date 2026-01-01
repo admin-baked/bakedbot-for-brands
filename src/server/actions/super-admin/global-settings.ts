@@ -18,7 +18,7 @@ async function verifySuperAdmin() {
         const email = decoded.email?.toLowerCase() || '';
         const role = decoded.role || '';
         
-        const isSuper = SUPER_ADMINS.includes(email) || role === 'owner' || role === 'super-admin';
+        const isSuper = SUPER_ADMINS.includes(email) || role === 'owner' || role === 'super_admin';
         if (!isSuper) throw new Error('Forbidden');
         return decoded;
     } catch (e) {

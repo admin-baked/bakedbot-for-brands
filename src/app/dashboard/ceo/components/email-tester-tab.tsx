@@ -133,7 +133,7 @@ export default function EmailTesterTab() {
                              <ul className="list-disc pl-4 space-y-1">
                                 <li>Provider: <code>src/lib/email/dispatcher.ts</code></li>
                                 <li>Action: <code>testEmailDispatch</code></li>
-                                <li>Role Required: <code>super-admin</code></li>
+                                <li>Role Required: <code>super_admin</code></li>
                              </ul>
                         </div>
                     </CardContent>

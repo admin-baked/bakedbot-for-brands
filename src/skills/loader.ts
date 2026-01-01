@@ -34,7 +34,7 @@ export async function loadSkill(skillPath: string): Promise<Skill> {
         // A safer way for now might be a registry map if dynamic imports fail, 
         // but let's try the dynamic import first.
         // @ts-ignore - Dynamic import of local module
-        manifest = await import(`@/skills/${skillPath}`);
+        manifest = await import(`@/skills/${skillPath}/index`);
     } catch (error: any) {
         throw new Error(`[SkillLoader] Failed to import tools for ${skillPath}: ${error.message}`);
     }

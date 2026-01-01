@@ -228,16 +228,20 @@ export function SystemKnowledgeBase() {
 
 
     // Delete KB
-    const handleDeleteKb = async () => {
-        if (!selectedKb) return;
-        if (!confirm(`Are you sure you want to delete "${selectedKb.name}"? This will delete ${selectedKb.documentCount} documents. This cannot be undone.`)) return;
+    const handleDeleteKb = async (kbToDelete?: KnowledgeBase) => {
+        const kb = kbToDelete || selectedKb;
+        if (!kb) return;
+        
+        if (!confirm(`Are you sure you want to delete "${kb.name}"? This will delete ${kb.documentCount} documents. This cannot be undone.`)) return;
 
         setIsSaving(true);
         try {
-            const result = await deleteKnowledgeBaseAction(selectedKb.id);
+            const result = await deleteKnowledgeBaseAction(kb.id);
             if (result.success) {
                 toast({ title: 'Deleted', description: 'Knowledge Base deleted.' });
-                setSelectedKb(null);
+                if (selectedKb?.id === kb.id) {
+                    setSelectedKb(null);
+                }
                 loadKnowledgeBases();
             } else {
                 toast({ title: 'Error', description: result.message, variant: 'destructive' });
@@ -355,9 +359,23 @@ export function SystemKnowledgeBase() {
                                                         {kb.documentCount} docs • {formatBytes(kb.totalBytes || 0)}
                                                     </p>
                                                 </div>
-                                                <Badge variant={kb.enabled ? 'default' : 'secondary'} className="text-xs">
-                                                    {kb.enabled ? 'Active' : 'Disabled'}
-                                                </Badge>
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <Badge variant={kb.enabled ? 'default' : 'secondary'} className="text-xs">
+                                                        {kb.enabled ? 'Active' : 'Disabled'}
+                                                    </Badge>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteKb(kb);
+                                                        }}
+                                                        disabled={isSaving}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -562,7 +580,7 @@ export function SystemKnowledgeBase() {
                                         <div className="flex justify-between items-center pt-8 border-t">
                                             <Button 
                                                 variant="destructive"
-                                                onClick={handleDeleteKb}
+                                                onClick={() => handleDeleteKb()}
                                                 disabled={isSaving}
                                             >
                                                 <Trash2 className="h-4 w-4 mr-2" />

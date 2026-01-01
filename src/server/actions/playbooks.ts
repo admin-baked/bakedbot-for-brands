@@ -53,7 +53,7 @@ function formatPlaybook(id: string, data: any): Playbook {
  */
 async function canEditPlaybook(userId: string, userRole: string, playbook: Playbook): Promise<boolean> {
     // Admins can edit any playbook
-    if (userRole === 'super_user' || userRole === 'admin' || userRole === 'super_admin') {
+    if (userRole === 'super_user' || userRole === 'super_admin') {
         return true;
     }
     // Otherwise, must be owner

@@ -376,6 +376,7 @@ export async function findPriceGaps(
     ourPrice: number;
     competitorPrice: number;
     competitorName: string;
+    category?: string;
     gapPercent: number;
     gapAbsolute: number;
 }[]> {
@@ -438,6 +439,7 @@ export async function findPriceGaps(
                 ourPrice: ourProduct.price,
                 competitorPrice: comp.priceCurrent,
                 competitorName: comp.competitorId, // Would be resolved to name
+                category: comp.category,
                 gapPercent,
                 gapAbsolute: ourProduct.price - comp.priceCurrent,
             });

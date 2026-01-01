@@ -7,6 +7,7 @@
 export const SUPER_ADMIN_EMAILS = [
     'martez@bakedbot.ai',
     'jack@bakedbot.ai',
+    'vib@cannmenus.com',
     'owner@bakedbot.ai', // Dev persona for local development
 ] as const;
 

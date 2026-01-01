@@ -285,8 +285,8 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   const effectiveEntityName = entityName || pageContext.entityName;
 
   // HIDE ON DASHBOARD
-  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-  if (pathname.startsWith('/dashboard')) return null;
+  const pathname = usePathname();
+  if (pathname?.startsWith('/dashboard')) return null;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
