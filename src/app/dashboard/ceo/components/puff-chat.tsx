@@ -403,6 +403,10 @@ export function PuffChat({
     const [activeJob, setActiveJob] = useState<{ jobId: string, messageId: string } | null>(null);
     // Typewriter Streaming
     const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+    // Scrolling Refs
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+
     const { job, thoughts, isComplete, error: jobError } = useJobPoller(activeJob?.jobId);
 
     // Sync Async Job to UI Store
@@ -561,8 +565,37 @@ export function PuffChat({
     }, [currentMessages, user]); // Trigger save when messages change
 
 
-    // Effect to scroll to bottom on new messages
-    // ... (omitted for brevity, scroll logic is usually handled by ScrollArea or separate ref)
+    // --- Scrolling Logic ---
+    const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+        }
+    }, []);
+
+    // Scroll on message change or thinking state change
+    useEffect(() => {
+        // Only scroll if we have messages
+        if (currentMessages.length > 0) {
+            // If it's the first message or a new message, scroll
+            scrollToBottom();
+        }
+    }, [currentMessages.length, isProcessing, scrollToBottom]);
+
+    // Constant scroll during typewriter effect
+    useEffect(() => {
+        let intervalId: NodeJS.Timeout;
+        if (streamingMessageId) {
+            intervalId = setInterval(() => {
+                scrollToBottom('auto'); // Use 'auto' for frequent updates to avoid jitter
+            }, 100);
+        }
+        return () => clearInterval(intervalId);
+    }, [streamingMessageId, scrollToBottom]);
+
+    // Initial scroll on mount/session switch
+    useEffect(() => {
+        scrollToBottom('auto');
+    }, [useAgentChatStore.getState().activeSessionId, scrollToBottom]);
 
     // Map store messages to PuffMessage structure
     const displayMessages: PuffMessage[] = currentMessages.map(m => ({
@@ -1064,8 +1097,11 @@ export function PuffChat({
             )}
 
             {/* Content Area - Auto-expands with content */}
-            <div className="flex-1 w-full bg-slate-50/30">
-                <div className="p-4 space-y-4 min-h-full">
+            <div 
+                ref={scrollAreaRef}
+                className="flex-1 w-full bg-slate-50/30 overflow-y-auto min-h-0"
+            >
+                <div className="p-4 space-y-4 min-h-full pb-8">
                     {/* Empty State */}
                     {!hasMessages && (
                         <div className="flex flex-col items-center justify-center text-center space-y-4 py-8">
@@ -1290,7 +1326,7 @@ export function PuffChat({
                     )}
                     
                     {/* Spacer for bottom input */}
-                    <div className="h-4" />
+                    <div ref={messagesEndRef} className="h-4" />
                 </div>
             </div>
 

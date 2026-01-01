@@ -1986,4 +1986,27 @@ Implemented and verified a standardized `CodeBlock` component for all chat inter
 *   `ChatMessages` unit tests: **Passed** ✅
 
 ### Status: ✅ Verified
-Copy/paste functionality and code block rendering are now standardized and verified with unit tests.
+
+---
+
+## Session Log: Chat Scrolling & Intelligence Formatting
+**Date**: 2026-01-01
+**Task IDs**: 5, 6, 7
+
+### Objective
+Enhance chat experience by fixing auto-scroll during typewriter effects and standardizing competitive intelligence snapshot formatting.
+
+### Changes
+*   **Auto-Scroll**:
+    *   `src/app/dashboard/ceo/components/puff-chat.tsx`: Added `messagesEndRef` and `scrollAreaRef`. Implemented `scrollToBottom` logic triggered by message updates and typewriter streaming.
+*   **Snapshot Formatting**:
+    *   `src/server/agents/agent-runner.ts`: Added `synthesizeSnapshot` helper using Gemini to post-process raw data into a high-impact Markdown format.
+    *   `src/server/agents/ezal.ts`: Updated system instructions to reinforce formatting rules.
+
+### Tests Run
+*   `ChatMessages` and `CodeBlock` UI tests passed.
+*   Manual verification of scroll ref integration in `puff-chat.tsx`.
+*   Manual code verification of `agent-runner.ts` synthesis logic.
+
+### Status: ✅ Verified
+Auto-scroll is now active in the CEO Dashboard chat, and competitive snapshots are synthesized into the mandatory standardized format.
