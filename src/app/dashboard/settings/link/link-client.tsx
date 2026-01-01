@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, Store, MapPin, Package, Loader2, CheckCircle, Plus, ExternalLink } from 'lucide-react';
 import { searchDispensariesAction, linkDispensaryAction, createManualDispensaryAction } from '@/server/actions/link-dispensary';
+import { WiringScreen } from './components/wiring-screen';
 
 interface DispensaryResult {
     id: string;
@@ -41,6 +42,8 @@ export default function LinkDispensaryPageClient() {
 
     // Linking state
     const [isLinking, setIsLinking] = useState(false);
+    const [wiringStatus, setWiringStatus] = useState<'idle' | 'active'>('idle');
+    const [linkedDispensaryName, setLinkedDispensaryName] = useState('');
 
     // Manual entry state
     const [showManualForm, setShowManualForm] = useState(false);
@@ -82,14 +85,15 @@ export default function LinkDispensaryPageClient() {
         try {
             const result = await linkDispensaryAction(dispensary.id, dispensary.name, dispensary);
             if (result.success) {
-                toast({ title: 'Dispensary linked!', description: result.message });
-                router.push('/dashboard');
+                // Trigger Wiring Animation instead of immediate redirect
+                setLinkedDispensaryName(dispensary.name);
+                setWiringStatus('active');
             } else {
                 toast({ variant: 'destructive', title: 'Failed to link', description: result.message });
+                setIsLinking(false);
             }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Link error' });
-        } finally {
             setIsLinking(false);
         }
     };
@@ -111,14 +115,15 @@ export default function LinkDispensaryPageClient() {
                 manualZip
             );
             if (result.success) {
-                toast({ title: 'Dispensary created!', description: result.message });
-                router.push('/dashboard');
+                 // Trigger Wiring Animation
+                setLinkedDispensaryName(manualName);
+                setWiringStatus('active');
             } else {
                 toast({ variant: 'destructive', title: 'Failed to create', description: result.message });
+                setIsLinking(false);
             }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Create error' });
-        } finally {
             setIsLinking(false);
         }
     };
@@ -334,6 +339,13 @@ export default function LinkDispensaryPageClient() {
                     </a>
                 </Button>
             </div>
+            {/* Wiring Animation Overlay */}
+            {wiringStatus === 'active' && (
+                <WiringScreen 
+                    dispensaryName={linkedDispensaryName}
+                    onComplete={() => router.push('/dashboard')}
+                />
+            )}
         </div>
     );
 }
