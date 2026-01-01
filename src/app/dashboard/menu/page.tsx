@@ -11,86 +11,53 @@ import { Loader2, Search, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
 
 import { logger } from '@/lib/logger';
-type Product = {
-    cann_sku_id: string;
-    brand_name: string | null;
-    brand_id: number;
-    url: string;
-    image_url: string;
-    product_name: string;
-    display_weight: string;
-    category: string;
-    percentage_thc: number | null;
-    percentage_cbd: number | null;
-    latest_price: number;
-    original_price: number;
-    medical: boolean;
-    recreational: boolean;
-};
+// Product type is now dynamic or imported from actions/domain if needed
 
-type ApiResponse = {
-    data: Array<{
-        retailer_id: string;
-        sku: string;
-        products: Product[];
-    }>;
-    pagination: {
-        total_records: number;
-        current_page: number;
-        total_pages: number;
-        next_page: number | null;
-        prev_page: number | null;
-    };
-};
+import { getMenuData } from './actions';
 
 export default function MenuPage() {
-    const [products, setProducts] = useState<Product[]>([]);
+    const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
-    const [brandId] = useState('10982'); // CRONJA brand
-    const [state] = useState('Illinois');
+    const [source, setSource] = useState<string>('none');
+    const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
     const loadProducts = useCallback(async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams({
-                states: state,
-                brands: brandId,
-            });
+            const data = await getMenuData();
+            
+            // Normalize product format if needed
+            const normalized = data.products.map(p => ({
+                id: p.id || p.cann_sku_id,
+                name: p.name || p.product_name,
+                brand: p.brandName || p.brand_name || 'Unknown',
+                category: p.category || 'Other',
+                price: p.price || p.latest_price || 0,
+                originalPrice: p.originalPrice || p.original_price || p.price || p.latest_price || 0,
+                imageUrl: p.imageUrl || p.image_url,
+                thc: p.thcPercent || p.percentage_thc,
+                cbd: p.cbdPercent || p.percentage_cbd,
+                url: p.url
+            }));
 
-            const response = await fetch(`/api/cannmenus/products?${params}`);
-            const result = await response.json();
-
-            if (result.data?.data) {
-                // Flatten the nested structure: each retailer has products array
-                const allProducts: Product[] = [];
-                result.data.data.forEach((item: any) => {
-                    if (item.products && Array.isArray(item.products)) {
-                        allProducts.push(...item.products);
-                    }
-                });
-
-                // Deduplicate by cann_sku_id
-                const uniqueProducts = Array.from(
-                    new Map(allProducts.map(p => [p.cann_sku_id, p])).values()
-                );
-
-                setProducts(uniqueProducts);
-            }
+            setProducts(normalized);
+            setSource(data.source);
+            setLastSyncedAt(data.lastSyncedAt);
         } catch (error) {
             logger.error('Failed to load products:', error instanceof Error ? error : new Error(String(error)));
         } finally {
             setLoading(false);
         }
-    }, [brandId, state]);
+    }, []);
 
     useEffect(() => {
         loadProducts();
     }, [loadProducts]);
 
     const filteredProducts = products.filter(product => {
-        const matchesSearch = product.product_name
+        const matchesSearch = product.name
             .toLowerCase()
             .includes(searchQuery.toLowerCase());
         const matchesCategory =
@@ -102,11 +69,17 @@ export default function MenuPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Headless Menu</h1>
-                <p className="text-muted-foreground">
-                    Manage and preview your product catalog powered by CannMenus
-                </p>
+            <div className="flex justify-between items-end">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Main Menu</h1>
+                    <p className="text-muted-foreground">
+                        Source: <span className="capitalize font-medium text-foreground">{source}</span> 
+                        {lastSyncedAt && ` • Last sync: ${lastSyncedAt}`}
+                    </p>
+                </div>
+                <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                    SOT: POS &gt; CannMenus &gt; Scrape
+                </div>
             </div>
 
             {/* Filters */}
@@ -172,12 +145,12 @@ export default function MenuPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filteredProducts.map((product) => (
-                            <Card key={product.cann_sku_id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                                 <div className="aspect-square relative bg-muted">
-                                    {product.image_url ? (
+                                    {product.imageUrl ? (
                                         <Image
-                                            src={product.image_url}
-                                            alt={product.product_name}
+                                            src={product.imageUrl}
+                                            alt={product.name}
                                             fill
                                             className="object-cover"
                                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -192,44 +165,46 @@ export default function MenuPage() {
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="flex-1 min-w-0">
                                             <CardTitle className="text-base line-clamp-2">
-                                                {product.product_name}
+                                                {product.name}
                                             </CardTitle>
                                             <CardDescription className="text-xs mt-1">
-                                                {product.category} • {product.display_weight}
+                                                {product.category} • {product.brand}
                                             </CardDescription>
                                         </div>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0 space-y-2">
-                                    {product.percentage_thc && (
+                                    {product.thc && (
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="text-muted-foreground">THC</span>
-                                            <span className="font-medium">{product.percentage_thc}%</span>
+                                            <span className="font-medium">{product.thc}%</span>
                                         </div>
                                     )}
-                                    {product.percentage_cbd && (
+                                    {product.cbd && (
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="text-muted-foreground">CBD</span>
-                                            <span className="font-medium">{product.percentage_cbd}%</span>
+                                            <span className="font-medium">{product.cbd}%</span>
                                         </div>
                                     )}
                                     <div className="flex items-center justify-between pt-2 border-t">
                                         <div>
-                                            {product.original_price !== product.latest_price && (
+                                            {product.originalPrice > product.price && (
                                                 <span className="text-xs text-muted-foreground line-through mr-2">
-                                                    ${product.original_price.toFixed(2)}
+                                                    ${product.originalPrice.toFixed(2)}
                                                 </span>
                                             )}
                                             <span className="text-lg font-bold">
-                                                ${product.latest_price.toFixed(2)}
+                                                ${product.price ? product.price.toFixed(2) : '0.00'}
                                             </span>
                                         </div>
                                     </div>
-                                    <Button variant="outline" size="sm" className="w-full" asChild>
-                                        <a href={product.url} target="_blank" rel="noopener noreferrer">
-                                            View on Menu
-                                        </a>
-                                    </Button>
+                                    {product.url && (
+                                        <Button variant="outline" size="sm" className="w-full" asChild>
+                                            <a href={product.url} target="_blank" rel="noopener noreferrer">
+                                                View on Source
+                                            </a>
+                                        </Button>
+                                    )}
                                 </CardContent>
                             </Card>
                         ))}

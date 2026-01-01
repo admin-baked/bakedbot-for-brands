@@ -22,7 +22,8 @@ const uploadFileDef: ToolDefinition = {
 
 const uploadFileImpl = async (ctx: any, inputs: any) => {
     const user = await requireUser();
-    return await uploadFile(user.uid, inputs.filename, inputs.content);
+    const result = await uploadFile(user.uid, inputs.filename, inputs.content);
+    return { status: 'success', ...result };
 };
 
 export const uploadFileTool: SkillTool = {

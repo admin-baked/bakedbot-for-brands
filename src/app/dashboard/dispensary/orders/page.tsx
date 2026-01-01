@@ -37,18 +37,27 @@ export default function DispensaryOrdersPage() {
 
         const setupListener = async () => {
             try {
-                const token = await user.getIdTokenResult();
-                // In a real app, we'd get the dispensaryId from the user profile or claims
-                // For now, we'll listen to all orders to ensure it works for the demo
-                // const dispensaryId = token.claims.dispensaryId as string;
+                const idTokenResult = await user.getIdTokenResult();
+                const locationId = (idTokenResult.claims.locationId as string) || (user as any).locationId;
 
-                const ordersQuery = query(
-                    collection(firestore, 'orders'),
-                    // where('dispensaryId', '==', dispensaryId), // Uncomment when dispensaryId is fully wired
-                    where('status', 'in', ['confirmed', 'preparing', 'ready']),
-                    orderBy('createdAt', 'desc'),
-                    limit(50)
-                );
+                if (!locationId) {
+                    logger.warn("No locationId found for dispensary user. Scanning all orders (Demo Mode fallback).");
+                }
+
+                const ordersQuery = locationId 
+                    ? query(
+                        collection(firestore, 'orders'),
+                        where('dispensaryId', '==', locationId),
+                        where('status', 'in', ['confirmed', 'preparing', 'ready']),
+                        orderBy('createdAt', 'desc'),
+                        limit(50)
+                      )
+                    : query(
+                        collection(firestore, 'orders'),
+                        where('status', 'in', ['confirmed', 'preparing', 'ready']),
+                        orderBy('createdAt', 'desc'),
+                        limit(50)
+                      );
 
                 unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
                     const newOrders = snapshot.docs.map(doc => ({

@@ -1,9 +1,9 @@
-
 import { SkillManifest, SkillTool } from '../../types';
 import { ToolDefinition } from '@/types/agent-toolkit';
 import { exec } from 'child_process';
-import { promisify } from 'util';
+import * as util from 'util';
 
+const promisify = util.promisify;
 const execAsync = promisify(exec);
 
 // --- Tool 1: Execute Command ---

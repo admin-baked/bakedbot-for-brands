@@ -71,6 +71,18 @@ export function makeProductRepo(db: Firestore) {
     },
 
     /**
+     * Retrieves all products for a given locationId (Dispensary).
+     */
+    async getAllByLocation(locationId: string): Promise<Product[]> {
+      const snapshot = await productCollection.where('dispensaryId', '==', locationId).get();
+      if (snapshot.empty) {
+        logger.info(`No products found for locationId: ${locationId}`);
+        return [];
+      }
+      return snapshot.docs.map(doc => doc.data() as Product);
+    },
+
+    /**
      * Retrieves all products across all brands.
      */
     async getAll(): Promise<Product[]> {

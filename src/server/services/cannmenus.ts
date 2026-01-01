@@ -674,5 +674,44 @@ export class CannMenusService {
         const lastSync = snapshot.docs[0].data();
         return lastSync.endTime?.toDate() || null;
     }
+
+    /**
+     * Get a retailer's inventory directly from CannMenus (Live Path)
+     */
+    public async getRetailerInventory(retailerId: string): Promise<any[]> {
+        if (!CANNMENUS_API_KEY) {
+            throw new Error('CANNMENUS_API_KEY is not configured');
+        }
+
+        const params = new URLSearchParams({
+            retailers: retailerId,
+            limit: '100'
+        });
+
+        const response = await fetch(`${CANNMENUS_BASE_URL}/v2/products?${params}`, {
+            headers: {
+                'X-Token': CANNMENUS_API_KEY,
+                'Accept': 'application/json',
+                'User-Agent': 'BakedBot/1.0',
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`CannMenus API error: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        const products: any[] = [];
+
+        if (result.data?.data) {
+            result.data.data.forEach((item: any) => {
+                if (item.products && Array.isArray(item.products)) {
+                    products.push(...item.products);
+                }
+            });
+        }
+
+        return products;
+    }
 }
 

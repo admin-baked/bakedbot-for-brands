@@ -18,20 +18,27 @@ jest.mock('@/server/tools/codebase', () => ({
     readCodebase: jest.fn().mockResolvedValue({ type: 'file', content: 'Mock code' })
 }));
 
-jest.mock('@/lib/email/dispatcher', () => ({
-    sendGenericEmail: jest.fn().mockResolvedValue(true)
+jest.mock('@/lib/email/dispatcher', () => {
+    return {
+        sendGenericEmail: jest.fn().mockResolvedValue(true)
+    };
+}, { virtual: true });
+
+jest.mock('@/server/tools/gmail', () => ({
+    gmailAction: jest.fn().mockResolvedValue({ success: true, data: [] })
 }));
 
 jest.mock('@/server/agents/deebo/policy-gate', () => ({
     checkContent: jest.fn().mockResolvedValue({ allowed: true })
 }));
 
+jest.mock('util', () => ({
+    promisify: jest.fn((fn) => fn) // Simple pass-through for mocks
+}));
+
 // Mock child_process for Terminal skill
 jest.mock('child_process', () => ({
-    exec: jest.fn((cmd, opts, cb) => {
-        if (typeof cb === 'function') cb(null, { stdout: 'Mock stdout', stderr: '' });
-        else if (typeof opts === 'function') opts(null, { stdout: 'Mock stdout', stderr: '' });
-    })
+    exec: jest.fn().mockResolvedValue({ stdout: 'Mock stdout', stderr: '' })
 }));
 
 // --- Skills to Test ---
@@ -56,7 +63,7 @@ describe('Agent Skills Implementation', () => {
 
             const result = await postMessageTool.implementation(ctx, inputs);
 
-            expect(postMessage).toHaveBeenCalledWith('user-1', 'general', 'Hello');
+            expect(postMessage).toHaveBeenCalledWith('test-user', 'general', 'Hello');
             expect(result.status).toBe('success');
         });
     });
@@ -69,7 +76,7 @@ describe('Agent Skills Implementation', () => {
 
             const result = await uploadFileTool.implementation(ctx, inputs);
 
-            expect(uploadFile).toHaveBeenCalledWith('user-1', 'test.txt', 'test content', 'text/plain');
+            expect(uploadFile).toHaveBeenCalledWith('test-user', 'test.txt', 'test content', 'text/plain');
             expect(result.status).toBe('success');
             expect(result.fileId).toBe('drive-id-123');
         });
@@ -89,7 +96,8 @@ describe('Agent Skills Implementation', () => {
 
     describe('core/terminal', () => {
         it('should execute shell commands', async () => {
-            const result = await terminalExecuteTool.implementation({}, { command: 'ls -la' });
+            const { executeTool } = await import('@/skills/core/terminal');
+            const result = await executeTool.implementation({}, { command: 'ls -la' });
             expect(result.status).toBe('success');
             expect(result.stdout).toBe('Mock stdout');
         });

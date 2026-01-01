@@ -133,22 +133,40 @@ async function processProductSync(job: any, firestore: any) {
     const { entityId, entityType, orgId } = job;
     const metadata = job.metadata || {};
 
-    // Only process if entity is from CannMenus
-    if (!metadata.isCannMenus) {
+    // 1. Try POS Sync if provider is present (Dispensary Focus)
+    if (metadata.provider && metadata.provider !== 'none') {
+        try {
+            const { syncPOSProducts } = await import('@/server/actions/pos-sync');
+            // For dispensaries, entityId is the locationId
+            const count = await syncPOSProducts(entityId, orgId);
+            return {
+                message: `Synced ${count} products from ${metadata.provider}`,
+                data: { productCount: count, provider: metadata.provider }
+            };
+        } catch (error) {
+            console.error('[JOB_PROCESS] POS sync failed:', error);
+            // Fallback to CannMenus if it's also a CannMenus entity
+            if (!metadata.isCannMenus) throw error;
+        }
+    }
+
+    // 2. Fallback to CannMenus (Original Logic)
+    if (metadata.isCannMenus) {
+        const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
+        const count = await syncCannMenusProducts(entityId, entityType, orgId);
+
         return {
-            message: 'Non-CannMenus products require manual import',
-            data: { skipped: true }
+            message: `Synced ${count} products from CannMenus`,
+            data: { productCount: count, source: 'cannmenus' }
         };
     }
 
-    const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
-    const count = await syncCannMenusProducts(entityId, entityType, orgId);
-
     return {
-        message: `Synced ${count} products`,
-        data: { productCount: count }
+        message: 'Non-POS and non-CannMenus products require manual import',
+        data: { skipped: true }
     };
 }
+
 
 async function processDispensaryImport(job: any, firestore: any) {
     const { entityId, entityName, orgId } = job;

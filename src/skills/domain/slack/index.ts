@@ -22,7 +22,8 @@ const postMessageDef: ToolDefinition = {
 
 const postMessageImpl = async (ctx: any, inputs: any) => {
     const user = await requireUser();
-    return await postMessage(user.uid, inputs.channel, inputs.text);
+    const result = await postMessage(user.uid, inputs.channel, inputs.text);
+    return { status: 'success', ...result };
 };
 
 export const postMessageTool: SkillTool = {
