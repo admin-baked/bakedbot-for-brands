@@ -838,7 +838,12 @@ export async function runAgentCore(
         return {
             content: response.text,
             toolCalls: executedTools,
-            metadata: { ...metadata, jobId, structuredLogs }
+            metadata: { 
+                ...metadata, 
+                jobId,
+                // We could also store structuredLogs here if we added it to metadata type, 
+                // but since it's not in the interface, we'll keep it as a local log for now.
+            }
         };
 
     } catch (e: any) {

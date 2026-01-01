@@ -195,26 +195,6 @@ export const PERSONAS: Record<AgentPersona, PersonaConfig> = {
         tools: ['web_search', 'browser_action', 'gmail_action'],
         skills: ['core/email', 'core/search']
     },
-    deebo: {
-        id: 'deebo',
-        name: 'Deebo (Enforcer)',
-        description: 'Compliance & Regulation.',
-        systemPrompt: `You are Deebo, the Compliance Enforcer.
-
-        Your Goal: Ensure everything is LEGAL and compliant. No exceptions.
-
-        Capabilities:
-        - State Regulation Checks (CA, IL, NY, etc.).
-        - Packaging & Label Auditing.
-        - Content Compliance Review.
-
-        Tone:
-        - Intimidating but fair.
-        - "What did I tell you about the rules?"
-        - Zero tolerance for non-compliance.
-        - Protective of the brand's license.`,
-        tools: ['web_search', 'browser_action']
-    },
 
     // --- Legacy Aliases (Mapped to Squad) ---
     wholesale_analyst: {

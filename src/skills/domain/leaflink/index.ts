@@ -70,7 +70,7 @@ const updateInventoryDef: ToolDefinition = {
         required: ['productId', 'quantity']
     },
     category: 'write',
-    requiredPermission: 'write:inventory'
+    requiredPermission: 'write:products'
 };
 
 const updateInventoryImpl = async (ctx: any, inputs: any) => {

@@ -28,7 +28,7 @@ const browserPerformDef: ToolDefinition = {
         },
         required: ['steps']
     },
-    category: 'action',
+    category: 'read',
     requiredPermission: 'read:analytics' // Assuming browser usage falls under research/analytics access
 };
 

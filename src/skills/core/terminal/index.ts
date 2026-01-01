@@ -18,8 +18,8 @@ const executeDef: ToolDefinition = {
         },
         required: ['command']
     },
-    category: 'action',
-    requiredPermission: 'admin:terminal' // Highly restricted
+    category: 'side-effect',
+    requiredPermission: 'admin:all' // Highly restricted
 };
 
 const executeImpl = async (ctx: any, inputs: any) => {

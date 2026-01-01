@@ -16,8 +16,8 @@ const postMessageDef: ToolDefinition = {
         },
         required: ['channel', 'text']
     },
-    category: 'communication',
-    requiredPermission: 'write:communication'
+    category: 'side-effect',
+    requiredPermission: 'manage:campaigns'
 };
 
 const postMessageImpl = async (ctx: any, inputs: any) => {
