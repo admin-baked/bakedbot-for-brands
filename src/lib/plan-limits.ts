@@ -5,6 +5,11 @@ interface CannMenusLimit {
     maxProducts: number;
 }
 
+interface EzalLimit {
+    frequencyMinutes: number; // How often to refresh competitor data
+    maxCompetitors: number;
+}
+
 export const CANNMENUS_LIMITS: Record<PlanId, CannMenusLimit> = {
     free: {
         maxRetailers: 1,
@@ -36,10 +41,28 @@ export const CANNMENUS_LIMITS: Record<PlanId, CannMenusLimit> = {
     }
 };
 
+// Ezal Lite: Free = weekly (10080 mins), Paid = daily (1440 mins)
+export const EZAL_LIMITS: Record<PlanId, EzalLimit> = {
+    free: { frequencyMinutes: 60 * 24 * 7, maxCompetitors: 3 }, // Weekly, 3 competitors
+    claim_pro: { frequencyMinutes: 60 * 24, maxCompetitors: 10 }, // Daily
+    founders_claim: { frequencyMinutes: 60 * 24, maxCompetitors: 10 },
+    growth_5: { frequencyMinutes: 60 * 24, maxCompetitors: 20 },
+    scale_10: { frequencyMinutes: 60 * 12, maxCompetitors: 50 }, // Twice daily
+    pro_25: { frequencyMinutes: 60 * 6, maxCompetitors: 100 }, // Every 6 hours
+    enterprise: { frequencyMinutes: 60, maxCompetitors: 500 } // Hourly
+};
+
 export function getPlanLimits(planId: string): CannMenusLimit {
     const limits = CANNMENUS_LIMITS[planId as PlanId];
     if (limits) return limits;
 
     // Default fallback (safe/restrictive)
     return CANNMENUS_LIMITS.free;
+}
+
+export function getEzalLimits(planId: string): EzalLimit {
+    const limits = EZAL_LIMITS[planId as PlanId];
+    if (limits) return limits;
+
+    return EZAL_LIMITS.free;
 }

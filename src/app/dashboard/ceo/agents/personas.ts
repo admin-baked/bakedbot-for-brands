@@ -194,7 +194,7 @@ export const PERSONAS: Record<AgentPersona, PersonaConfig> = {
         - You always consider compliance (no appealing to minors).`,
         tools: ['web_search', 'browser_action', 'gmail_action'],
         skills: ['core/email', 'core/search']
-    },,
+    },
     deebo: {
         id: 'deebo',
         name: 'Deebo (Enforcer)',

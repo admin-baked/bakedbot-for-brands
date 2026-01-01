@@ -814,9 +814,6 @@ export async function runAgentCore(
 
         await emitThought(jobId, 'Complete', 'Task finished.');
 
-            metadata: { ...metadata, jobId }
-        };
-
         // === STRUCTURED LOGGING (Section 8 Standard) ===
         // We log purely for observability here (could be sent to Datadog/Firestore)
         const structuredLogs = executedTools.map(tool => ({
