@@ -11,13 +11,14 @@
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { CannMenusService } from '@/server/services/cannmenus';
+import { firecrawl } from '@/server/services/firecrawl';
+
 // ActionResult type for server actions
 interface ActionResult<T = undefined> {
     success: boolean;
     message?: string;
     data?: T;
 }
-
 interface DispensarySearchResult {
     id: string;
     name: string;
@@ -25,13 +26,15 @@ interface DispensarySearchResult {
     city?: string;
     state?: string;
     zip?: string;
-    source: 'cannmenus' | 'leafly' | 'manual';
+    source: 'cannmenus' | 'leafly' | 'scraper' | 'manual';
     productCount?: number;
     menuUrl?: string;
+    url?: string;
 }
 
 /**
  * Search for dispensaries by name or location
+ * Fallback Pattern: CannMenus -> Leafly (via Firecrawl) -> Scraper (Firecrawl)
  */
 export async function searchDispensariesAction(
     query: string,
@@ -47,24 +50,14 @@ export async function searchDispensariesAction(
         const cannMenus = new CannMenusService();
         const results: DispensarySearchResult[] = [];
 
-        // If ZIP provided, search by location
-        if (zip) {
-            // Convert ZIP to lat/lng (simplified - in production use geocoding)
-            // For now, we'll use the findRetailers method if we have coordinates
-            // or fall back to name search
-        }
-
-        // Search by name in CannMenus
+        // 1. Try CannMenus First (Best Data)
         if (query) {
             try {
-                // Use existing CannMenus product search to find retailers
-                // Ideally we'd have a dedicated retailer search endpoint
                 const searchResult = await cannMenus.searchProducts({
                     search: query,
-                    limit: 20
+                    limit: 10
                 });
 
-                // Extract unique retailers from products
                 const seenRetailers = new Set<string>();
                 searchResult.products.forEach((product: any) => {
                     const retailer = product.retailer;
@@ -85,13 +78,50 @@ export async function searchDispensariesAction(
                 });
             } catch (error) {
                 console.error('[LinkDispensary] CannMenus search failed:', error);
-                // Continue without CannMenus results
+            }
+        }
+
+        // 2. Fallback to Firecrawl Search (if few/no results)
+        if (results.length < 3 && firecrawl.isConfigured()) {
+            try {
+                const searchQuery = `${query} dispensary ${zip || ''}`.trim();
+                const searchResults = await firecrawl.search(searchQuery);
+                
+                // Process Firecrawl results
+                if (Array.isArray(searchResults)) {
+                    for (const result of searchResults) {
+                        // Skip if we already found this via CannMenus (fuzzy match check omitted for speed)
+                        
+                        const isLeafly = result.url?.includes('leafly.com');
+                        const isWeedmaps = result.url?.includes('weedmaps.com');
+                        const isDutchie = result.url?.includes('dutchie.com');
+                        const isJane = result.url?.includes('iheartjane.com');
+                        
+                        let source: 'leafly' | 'scraper' = 'scraper';
+                        if (isLeafly) source = 'leafly';
+                        
+                        // ID creation from URL or random
+                        const id = result.url ? btoa(result.url).slice(0, 20) : `fc-${Date.now()}`;
+                        
+                        results.push({
+                            id: id,
+                            name: result.title || query,
+                            // Address extractions would require scraping, so we leave blank for now
+                            // user can fill in or we might get snippet info
+                            source: source,
+                            menuUrl: result.url,
+                            url: result.url
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('[LinkDispensary] Firecrawl search failed:', error);
             }
         }
 
         return {
             success: true,
-            data: { dispensaries: results }
+            data: { dispensaries: results.slice(0, 20) }
         };
     } catch (error: any) {
         console.error('[LinkDispensary] Search error:', error);
@@ -100,11 +130,10 @@ export async function searchDispensariesAction(
 }
 
 /**
- * Link a CannMenus dispensary to the current user's account
- * After linking, triggers: menu sync, competitor discovery, page generation
+ * Link a dispensary results (CannMenus, Leafly, or Scraper)
  */
 export async function linkDispensaryAction(
-    cannmenusId: string,
+    id: string,
     dispensaryName: string,
     dispensaryData?: Partial<DispensarySearchResult>
 ): Promise<ActionResult> {
@@ -113,43 +142,57 @@ export async function linkDispensaryAction(
         const { firestore } = await createServerClient();
 
         const zip = dispensaryData?.zip || '';
+        const source = dispensaryData?.source || 'manual';
+        const url = dispensaryData?.url || '';
+        const menuUrl = dispensaryData?.menuUrl || '';
 
-        // Create/update dispensary document
-        const dispensaryRef = firestore.collection('dispensaries').doc(user.uid);
-        
-        await dispensaryRef.set({
+        // Data to save
+        const dispensaryUpdate: any = {
             name: dispensaryName,
-            cannmenusId: cannmenusId,
             address: dispensaryData?.address || '',
             city: dispensaryData?.city || '',
             state: dispensaryData?.state || '',
             zip: zip,
-            source: 'cannmenus',
+            source: source,
             linkedAt: new Date(),
             ownerId: user.uid,
             status: 'active'
-        }, { merge: true });
+        };
+
+        // Source-specific fields
+        if (source === 'cannmenus') dispensaryUpdate.cannmenusId = id;
+        if (source === 'leafly') dispensaryUpdate.leaflyUrl = url;
+        if (source === 'scraper') dispensaryUpdate.websiteUrl = url;
+
+        // Create/update dispensary document
+        await firestore.collection('dispensaries').doc(user.uid).set(dispensaryUpdate, { merge: true });
 
         // Update user profile with linked dispensary
         await firestore.collection('users').doc(user.uid).set({
             linkedDispensary: {
-                id: cannmenusId,
+                id: id,
                 name: dispensaryName,
-                source: 'cannmenus',
+                source: source,
                 linkedAt: new Date()
             }
         }, { merge: true });
 
         // ========== POST-LINK SERVICE ACTIVATION ==========
         
-        // 1. Trigger menu sync from CannMenus (async, don't wait)
-        triggerMenuSync(cannmenusId, user.uid).catch(err => 
-            console.error('[LinkDispensary] Menu sync failed:', err)
-        );
+        // 1. Trigger source-specific menu sync
+        if (source === 'cannmenus') {
+            triggerMenuSync(id, user.uid).catch(err => 
+                console.error('[LinkDispensary] CannMenus sync failed:', err)
+            );
+        } else if (source === 'leafly' && url) {
+            triggerLeaflySync(url, user.uid).catch(err =>
+                console.error('[LinkDispensary] Leafly sync failed:', err)
+            );
+        }
 
         // 2. Auto-discover competitors using ZIP (async, don't wait)
         if (zip) {
-            triggerCompetitorDiscovery(user.uid, zip, cannmenusId).catch(err =>
+            triggerCompetitorDiscovery(user.uid, zip, id).catch(err =>
                 console.error('[LinkDispensary] Competitor discovery failed:', err)
             );
         }
@@ -161,7 +204,7 @@ export async function linkDispensaryAction(
 
         return {
             success: true,
-            message: `Successfully linked ${dispensaryName}. Menu sync and competitor discovery starting...`
+            message: `Successfully linked ${dispensaryName}. Data sync starting...`
         };
     } catch (error: any) {
         console.error('[LinkDispensary] Link error:', error);
@@ -200,6 +243,23 @@ async function triggerMenuSync(cannmenusId: string, userId: string) {
         }
     } catch (error) {
         console.error('[LinkDispensary] Menu sync error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Trigger Leafly scan in background
+ */
+async function triggerLeaflySync(url: string, userId: string) {
+    const { triggerSingleStoreScan } = await import('@/server/services/leafly-connector');
+    try {
+        console.log(`[LinkDispensary] Triggering Leafly scan for: ${url}`);
+        // This triggers an Apify run. The actual data ingestion happens via webhook later.
+        // We might want to store the runId associated with the user for tracking.
+        const run = await triggerSingleStoreScan(url);
+        console.log(`[LinkDispensary] Leafly scan triggered. Run ID: ${run.apifyRunId}`);
+    } catch (error) {
+        console.error('[LinkDispensary] Leafly trigger error:', error);
         throw error;
     }
 }
