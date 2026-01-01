@@ -26,6 +26,11 @@
 - Tools improve via feedback loops (learning agents).
 - **Core Metric**: Speed of learning = durability of moat.
 
+### 🗺️ Technical Roadmap
+- **V1 (Current)**: Firecrawl (Public Data) + Official APIs (Dutchie/Leafly).
+- **V2 (Future)**: **Browser Agents (RTRVR/Puppeteer)** — "Special Ops" local automation for non-API portals (Metrc, Admin Dashboards).
+- **V3**: Autonomous multi-user collaboration.
+
 ### The Rebel-Sage Synthesis
 We are applying **Tasklet.ai Principles** to cannabis. Every agent action (recommendation, campaign, compliance check) is a measurable product. We do not ship static features; we ship learning systems.
 
@@ -41,6 +46,8 @@ The platform logic is personified by specialized AI agents.
 | **Pops** | Analyst | Revenue & Funnel | Transaction Analysis, Demand Forecasting (needs real-time adaptation) |
 | **Ezal** | Lookout | Competitive Intel | Agent Discovery (Firecrawl), Price Monitoring, Lead Discovery |
 | **Money Mike** | Banker | Pricing & Margins | Elasticity Models, Billing, ROI Calc (needs forecast integration) |
+| **Day Day** | Growth | SEO & Traffic | Site Audits, Backlinks, Local Search Dominance |
+| **Felisha** | Ops | Coordination | Meeting Notes, Error Triage, Scheduling |
 | **Mrs. Parker** | Hostess | Loyalty & VIP | Segmentation (needs ML clustering), Win-back flows |
 | **Deebo** | Enforcer | Compliance & Regs | CTIA/State Rule Engine (needs proactive risk scoring) |
 

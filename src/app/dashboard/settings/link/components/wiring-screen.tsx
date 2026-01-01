@@ -22,12 +22,14 @@ import { cn } from '@/lib/utils';
 
 interface WiringScreenProps {
     dispensaryName: string;
+    role?: 'brand' | 'dispensary';
     onComplete: () => void;
+    checkStatus?: () => Promise<{ ready: boolean; percent: number }>;
 }
 
 type WiringPhase = 'init' | 'smokey_crawl' | 'ezal_crawl' | 'building' | 'complete';
 
-const LOG_LINES = [
+const DISPENSARY_LOGS = [
     "Initializing secure environment...",
     "Connecting to CannMenus API...",
     "Verifying dispensary credentials...",
@@ -51,24 +53,49 @@ const LOG_LINES = [
     "Wiring complete."
 ];
 
-export function WiringScreen({ dispensaryName, onComplete }: WiringScreenProps) {
+const BRAND_LOGS = [
+    "Initializing brand workspace...",
+    "Connecting to product catalog...",
+    "Verifying GTIN/UPC codes...",
+    "Indexing product metadata...",
+    "Found 12 active SKUs.",
+    "Syncing high-res assets from cloud...",
+    " optimizing images for web...",
+    "Catalog import complete.",
+    "Starting Market Scanner agent...",
+    "Scanning retailers for brand presence...",
+    "Checking Weedmaps/Leafly listings...",
+    "Found 28 retailer matches.",
+    "Analyzing shelf placement...",
+    "Calculating share of voice...",
+    "Market intelligence index built.",
+    "Generating brand portal...",
+    "Configuring wholesale dashboard...",
+    "Deploying analytics suite...",
+    "Wiring complete."
+];
+
+export function WiringScreen({ dispensaryName, role = 'dispensary', onComplete, checkStatus }: WiringScreenProps) {
     const [phase, setPhase] = useState<WiringPhase>('init');
     const [progress, setProgress] = useState(0);
     const [logs, setLogs] = useState<string[]>([]);
+    const [isReady, setIsReady] = useState(false);
     
-    // Auto-advance phases
+    // Auto-advance phases (Visual only fallback)
     useEffect(() => {
-        // Init -> Smokey (1s)
-        const t1 = setTimeout(() => setPhase('smokey_crawl'), 1500);
+        if (checkStatus) return; // If polling, don't use timer-based phases for completion
+
+        // Init -> Smokey (2s)
+        const t1 = setTimeout(() => setPhase('smokey_crawl'), 2000);
         
-        // Smokey -> Ezal (4s)
-        const t2 = setTimeout(() => setPhase('ezal_crawl'), 5000);
+        // Smokey -> Ezal (8s)
+        const t2 = setTimeout(() => setPhase('ezal_crawl'), 8000);
         
-        // Ezal -> Building (7s)
-        const t3 = setTimeout(() => setPhase('building'), 8500);
+        // Ezal -> Building (15s)
+        const t3 = setTimeout(() => setPhase('building'), 15000);
         
-        // Building -> Complete (10s)
-        const t4 = setTimeout(() => setPhase('complete'), 11500);
+        // Building -> Complete (22s)
+        const t4 = setTimeout(() => setPhase('complete'), 22000);
 
         return () => {
             clearTimeout(t1);
@@ -76,35 +103,79 @@ export function WiringScreen({ dispensaryName, onComplete }: WiringScreenProps) 
             clearTimeout(t3);
             clearTimeout(t4);
         };
-    }, []);
+    }, [checkStatus]);
 
-    // Progress bar simulation
+    // Polling Logic
     useEffect(() => {
+        if (!checkStatus) return;
+
+        const interval = setInterval(async () => {
+            try {
+                const status = await checkStatus();
+                // Map percent to phases roughly
+                if (status.percent < 20) setPhase('init');
+                else if (status.percent < 50) setPhase('smokey_crawl');
+                else if (status.percent < 80) setPhase('ezal_crawl');
+                else if (status.percent < 100) setPhase('building');
+                else {
+                    setPhase('complete');
+                    setIsReady(true);
+                    clearInterval(interval);
+                }
+                
+                // Ensure visual progress matches at least the real progress
+                setProgress(p => Math.max(p, status.percent));
+
+            } catch (e) {
+                console.error("Wiring status check failed", e);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [checkStatus]);
+
+    // Progress bar simulation (Visual smoothing)
+    useEffect(() => {
+        if (checkStatus && isReady) return; 
+
         const interval = setInterval(() => {
             setProgress(p => {
                 if (p >= 100) {
-                    clearInterval(interval);
+                    if (!checkStatus) clearInterval(interval); // Only stop if not polling
                     return 100;
                 }
-                // Vary speed based on phase
-                const increment = Math.random() * (phase === 'complete' ? 20 : 2);
-                return Math.min(100, p + increment);
+                // Vary speed based on phase (slower now)
+                const increment = Math.random() * (phase === 'complete' ? 20 : 0.8);
+                // If polling, cap simulated progress at 95% until actually ready
+                const limit = checkStatus ? 95 : 100;
+                return Math.min(limit, p + increment);
             });
         }, 100);
         return () => clearInterval(interval);
-    }, [phase]);
+    }, [phase, checkStatus, isReady]);
 
     // Log scrolling simulation
     useEffect(() => {
         let lineIndex = 0;
+        const targetLogs = role === 'brand' ? BRAND_LOGS : DISPENSARY_LOGS;
+        
         const interval = setInterval(() => {
-            if (lineIndex < LOG_LINES.length) {
-                setLogs(prev => [...prev.slice(-6), LOG_LINES[lineIndex]]); // Keep last 7 lines
+            if (lineIndex < targetLogs.length) {
+                setLogs(prev => {
+                    const newLogs = [...prev, targetLogs[lineIndex]];
+                    if (newLogs.length > 7) newLogs.shift();
+                    return newLogs;
+                });
                 lineIndex++;
+            } else {
+                // Determine if we should clear
+                clearInterval(interval);
             }
-        }, 500); // New log every 500ms
+        }, 1200); // Slower logs
+
         return () => clearInterval(interval);
-    }, []);
+    }, [role]);
+
 
     // --- RENDER HELPERS ---
 

@@ -1,6 +1,6 @@
-// src/server/actions/deebo-seo-review.ts
+// src/server/actions/dayday-seo-review.ts
 /**
- * Deebo SEO Review Server Action
+ * Day Day SEO Review Server Action
  * Takes screenshots of SEO pages and generates ranking scores
  * 
  * Features:

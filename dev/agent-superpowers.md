@@ -66,7 +66,7 @@ Every action should have a deterministic key and a stored state machine.
 1. **Chat Orchestrator**
 
 * Receives user message + context (role, tenant, channel)
-* Selects agent persona (Smokey/Craig/Pops/Ezal/Money Mike/Mrs. Parker/Deebo)
+* Selects agent persona (Smokey/Craig/Pops/Ezal/Money Mike/Day Day/Felisha/Mrs. Parker/Deebo)
 * Produces a *plan* + tool calls
 * Returns final response + “what happened” summary
 
@@ -110,7 +110,7 @@ Key linking:
 All tools must write:
 
 * `tenants/{tenantId}/events/{eventId}` (observed behavior: clicks, recs shown, conversions)
-* `tenants/{tenantId}/audit/actions/{actionId}` (agent actions + tool calls + policy checks)
+* `tenants/{tenantId}/audit/actions/{actionId}` (agent actions + tool calls + policy                              checks)
 * Storage pointers for big payloads/traces
 
 ---
@@ -351,11 +351,30 @@ Below is the minimum set that gives “ChatGPT/Claude magic” **plus** real exe
 
 * creates claim, verifies, links tenant, triggers onboarding
 
+---
+
+### 5.9 SEO & Growth Tools (Day Day)
+
 31. `seo.auditPage`
 
 * scores Findability/Fit/Fidelity inputs, stores improvement tasks
 
+32. `seo.generateMetaTags`
+
+* generates title/description for pages
+
 ---
+
+### 5.10 Ops & Coordination (Felisha)
+
+33. `ops.processMeeting`
+
+* takes transcript -> structured notes/action items
+
+34. `ops.triageError`
+
+* classifies system error and routes to team
+
 
 ## 6) Approvals: how we avoid disasters
 
@@ -506,4 +525,10 @@ If the user asks “what’s selling”:
 * batch generation tool
 * entity/page views materialization
 * claim workflow integration
+
+### Phase 5 — "Special Ops" Browser Agents (V2)
+
+* **Local-first Automation**: "RTRVR" style integration for non-API portals (Metrc, legacy POS).
+* **Secure Admin Actions**: Running scripts in the user's authenticated browser session.
+* **Gap Filling**: Handling tasks where Firecrawl/APIs cannot reach.
 

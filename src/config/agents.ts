@@ -1,7 +1,7 @@
 
-import { LucideIcon, Bot, MessageCircle, LineChart, ShieldCheck, DollarSign, Radar } from 'lucide-react';
+import { LucideIcon, Bot, MessageCircle, LineChart, ShieldCheck, DollarSign, Radar, TrendingUp, Video } from 'lucide-react';
 
-export type AgentId = 'smokey' | 'craig' | 'pops' | 'deebo' | 'money-mike' | 'ezal';
+export type AgentId = 'smokey' | 'craig' | 'pops' | 'deebo' | 'money-mike' | 'ezal' | 'day-day' | 'felisha';
 
 export type AgentStatus = 'online' | 'training' | 'paused';
 
@@ -59,13 +59,37 @@ export const agents: AgentDefinition[] = [
     id: 'deebo',
     name: 'Deebo',
     title: 'Regulation OS',
-    description: 'Pre-flight checks every campaign, menu, and chat response for multi-state compliance.',
+    description: 'Pre-flight checks, compliance audits, and state rule enforcement.',
     status: 'online',
     primaryMetricLabel: 'Checks last 24h',
     primaryMetricValue: '412',
     href: '/dashboard/agents/deebo',
     icon: ShieldCheck,
     tag: 'Compliance'
+  },
+  {
+    id: 'day-day',
+    name: 'Day Day',
+    title: 'SEO & Growth Manager',
+    description: 'Audits pages, builds backlinks, and ensures you dominate local search results.',
+    status: 'training',
+    primaryMetricLabel: 'Pages Optimized',
+    primaryMetricValue: '85',
+    href: '/dashboard/agents/day-day',
+    icon: TrendingUp,
+    tag: 'Growth'
+  },
+  {
+    id: 'felisha',
+    name: 'Felisha',
+    title: 'Meeting Coordinator',
+    description: 'Joins calls, takes notes, and handles error triage across the agent swarm.',
+    status: 'training',
+    primaryMetricLabel: 'Meetings Joined',
+    primaryMetricValue: '0',
+    href: '/dashboard/agents/felisha',
+    icon: Video,
+    tag: 'Operations'
   },
   {
     id: 'money-mike',

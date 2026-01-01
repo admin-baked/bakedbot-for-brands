@@ -12,6 +12,9 @@ import { completeOnboarding } from './actions';
 import { SubmitButton } from './components/submit-button';
 import { logger } from '@/lib/logger';
 import { searchCannMenusRetailers } from '@/server/actions/cannmenus';
+import { WiringScreen } from '@/app/dashboard/settings/link/components/wiring-screen';
+import { checkOnboardingStatus } from './status-action';
+import { AnimatePresence } from 'framer-motion';
 import { useFirebase } from '@/firebase/provider';
 import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, User } from 'firebase/auth';
 import {
@@ -39,6 +42,7 @@ export default function OnboardingPage() {
   const { auth } = useFirebase();
   const [step, setStep] = useState<Step>('role');
   const [role, setRole] = useState<'brand' | 'dispensary' | 'customer' | 'skip' | null>(null);
+  const [showWiring, setShowWiring] = useState(false);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<BrandResult[]>([]);
@@ -102,21 +106,38 @@ export default function OnboardingPage() {
   // Handle successful onboarding redirect
   useEffect(() => {
     if (!formState.error && (formState.message.includes('Onboarding complete') || formState.message.includes('Welcome!'))) {
-      // Use a slight delay to allow the success toast to be seen logic if we wanted, but immediate redirect is usually better for "flow"
-      // Also ensuring we force refresh tokens so the new claims (role) are respected
-      const redirect = async () => {
-        if (auth?.currentUser) {
-          try {
-            await auth.currentUser.getIdToken(true);
-          } catch (e) { console.error("Token refresh failed", e); }
-        }
-        // Onboarding v2: Brand/Dispensary → /dashboard, Customer → /dashboard
-        // SuperUser uses separate /super-admin flow
-        window.location.assign('/dashboard');
-      };
-      redirect();
+      if (role === 'skip') {
+          window.location.assign('/dashboard');
+      } else {
+          // Trigger the visual wiring
+          setShowWiring(true);
+      }
     }
-  }, [formState, auth, role]);
+  }, [formState, role]);
+
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-gray-50/50 p-4 relative">
+      <AnimatePresence>
+        {showWiring && (
+             <WiringScreen 
+                dispensaryName={role === 'brand' ? (manualBrandName || selectedCannMenusEntity?.name || 'Your Brand') : (manualDispensaryName || selectedCannMenusEntity?.name || 'Your Dispensary')}
+                role={role === 'brand' ? 'brand' : 'dispensary'}
+                checkStatus={checkOnboardingStatus}
+                onComplete={() => {
+                     // Force token refresh and redirect
+                     if (auth?.currentUser) {
+                        auth.currentUser.getIdToken(true).then(() => {
+                             window.location.assign('/dashboard');
+                        });
+                     } else {
+                         window.location.assign('/dashboard');
+                     }
+                }}
+             />
+        )}
+      </AnimatePresence>
+      
+      <div className="w-full max-w-lg space-y-8 bg-background p-8 rounded-2xl shadow-xl border">
 
   // Handle Session Recovery (for established users)
   const [showReloginModal, setShowReloginModal] = useState(false);
