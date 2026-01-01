@@ -416,8 +416,14 @@ export async function quickSetupCompetitor(
         parserProfileId: string;
         brandsFocus?: string[];
         frequencyMinutes?: number;
+        planId?: string; // Determines update frequency
     }
 ): Promise<{ competitor: Competitor; dataSource: DataSource }> {
+    // Get frequency from plan limits if not explicitly provided
+    const { getEzalLimits } = await import('@/lib/plan-limits');
+    const ezalLimits = getEzalLimits(params.planId || 'free');
+    const frequency = params.frequencyMinutes ?? ezalLimits.frequencyMinutes;
+
     const competitor = await createCompetitor(tenantId, {
         name: params.name,
         type: params.type,
@@ -434,7 +440,7 @@ export async function quickSetupCompetitor(
         kind: 'menu',
         sourceType: 'html',
         baseUrl: params.menuUrl,
-        frequencyMinutes: params.frequencyMinutes || 60,
+        frequencyMinutes: frequency,
         robotsAllowed: true, // Would be verified in production
         parserProfileId: params.parserProfileId,
         timezone: 'America/New_York',
