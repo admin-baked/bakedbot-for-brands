@@ -43,6 +43,8 @@ import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { InviteUserDialog } from "@/components/invitations/invite-user-dialog";
+import { SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
 
 export function SuperAdminSidebar() {
     const searchParams = useSearchParams();
@@ -353,8 +355,4 @@ export function SuperAdminSidebar() {
     );
 }
 
-// Helper components for SubMenu (assuming they might not be exported from ui/sidebar or standard shadcn)
-// If they are missing, I'll use standard list items.
-// Based on typical shadcn sidebar, we need:
-import { SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
-import { InviteUserDialog } from "@/components/invitations/invite-user-dialog";
+

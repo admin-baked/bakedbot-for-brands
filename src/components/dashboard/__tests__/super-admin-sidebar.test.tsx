@@ -11,13 +11,51 @@ jest.mock('next/navigation', () => ({
     usePathname: jest.fn(),
 }));
 
+jest.mock('next/link', () => {
+    return ({ children, href }: any) => <a href={href}>{children}</a>;
+});
+
 jest.mock('@/lib/store/agent-chat-store', () => ({
     useAgentChatStore: jest.fn(),
 }));
 
-jest.mock('@/hooks/use-toast', () => ({
-    useToast: jest.fn(),
+// Mock lucide-react
+jest.mock('lucide-react', () => ({
+    Bot: () => <div data-testid="icon-bot" />,
+    Briefcase: () => <div data-testid="icon-briefcase" />,
+    LayoutDashboard: () => <div data-testid="icon-layout" />,
+    BarChart3: () => <div data-testid="icon-bar-chart" />,
+    Footprints: () => <div data-testid="icon-footprints" />,
+    Ticket: () => <div data-testid="icon-ticket" />,
+    Database: () => <div data-testid="icon-database" />,
+    Search: () => <div data-testid="icon-search" />,
+    Code: () => <div data-testid="icon-code" />,
+    Utensils: () => <div data-testid="icon-utensils" />,
+    Tag: () => <div data-testid="icon-tag" />,
+    Activity: () => <div data-testid="icon-activity" />,
+    Users: () => <div data-testid="icon-users" />,
+    Factory: () => <div data-testid="icon-factory" />,
+    UserMinus: () => <div data-testid="icon-user-minus" />,
+    BookOpen: () => <div data-testid="icon-book-open" />,
+    MessageSquarePlus: () => <div data-testid="icon-msg-plus" />,
+    History: () => <div data-testid="icon-history" />,
+    Trash2: () => <div data-testid="icon-trash" />,
+    ChevronRight: () => <div data-testid="icon-chevron-right" />,
+    MoreHorizontal: () => <div data-testid="icon-more" />,
+    Settings: () => <div data-testid="icon-settings" />,
+    Globe: () => <div data-testid="icon-globe" />,
+    Wallet: () => <div data-testid="icon-wallet" />,
+    FolderKanban: () => <div data-testid="icon-folder" />,
+    Compass: () => <div data-testid="icon-compass" />,
 }));
+
+jest.mock('@/components/ui/collapsible', () => ({
+    Collapsible: ({ children }: any) => <div>{children}</div>,
+    CollapsibleContent: ({ children }: any) => <div>{children}</div>,
+    CollapsibleTrigger: ({ children }: any) => <button>{children}</button>,
+}));
+
+// Mock useToast
 
 // Mock InviteUserDialog
 jest.mock('@/components/invitations/invite-user-dialog', () => ({
@@ -36,6 +74,10 @@ jest.mock('@/components/ui/sidebar', () => ({
     SidebarMenuSub: ({ children }: any) => <div>{children}</div>,
     SidebarMenuSubItem: ({ children }: any) => <div>{children}</div>,
     SidebarMenuSubButton: ({ children }: any) => <div>{children}</div>,
+}));
+
+jest.mock('@/components/ui/button', () => ({
+    Button: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
 }));
 
 describe('SuperAdminSidebar', () => {
