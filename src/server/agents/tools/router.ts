@@ -298,7 +298,26 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
     }
 
     // Sandbox & Experimental Tools
+    // Sandbox & Experimental Tools
     if (def.name === 'web.search') {
+        try {
+            // PROOF OF CONCEPT: Dispatch to Modular Skill
+            const { loadSkill } = await import('@/skills/loader');
+            const skill = await loadSkill('core/search');
+            const tool = skill.tools.find(t => t.definition.name === def.name);
+            
+            if (tool && tool.implementation) {
+                const results = await tool.implementation(request, inputs);
+                return {
+                    status: 'success',
+                    data: results
+                };
+            }
+        } catch (error) {
+           console.warn('[Router] Skill dispatch failed, falling back to legacy:', error);
+        }
+
+        // Legacy Fallback
         const { searchWeb } = await import('@/server/tools/web-search');
         const results = await searchWeb(inputs.query, 5);
         return {

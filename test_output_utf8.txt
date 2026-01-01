@@ -1,10 +1,10 @@
 ﻿
 > nextn@0.1.0 test
-> jest tests/server/geo-discovery.test.ts
+> jest email-tool.test.ts
 
-node.exe : FAIL tests
-/server/geo-discovery
-.test.ts
+node.exe : PASS tests
+/server/tools/email-t
+ool.test.ts
 At line:1 char:1
 + & "C:\Program Files
 \nodejs/node.exe" 
@@ -16,357 +16,229 @@ Files\nodejs/node_mo
 ~~~~~~~~~~~~~~~~~~~~~
 ~~~~~~~~
     + CategoryInfo   
-           : 
-NotSpecified: (F    
-AIL 
-tests/server/geo-    
-discovery.test.ts:Str
-    ing) [], 
-RemoteExcept    ion
-    + 
-FullyQualifiedError  
-  Id : 
-NativeCommandErr    
-or
+           : NotSpe  
+  cified: (PASS te   
+ sts/serv...il-to    
+ol.test.ts:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
  
-  Geo Discovery 
-Service
-    discoverNearbyPro
-ducts
-      ΓêÜ should 
-discover products 
-near a location (7 
-ms)
-      ΓêÜ should 
-return empty result 
-when no retailers 
-found (4 ms)
-      ΓêÜ should 
-filter retailers by 
-radius (1 ms)
-      ΓêÜ should 
-apply price filters 
-(1 ms)
-      ΓêÜ should 
-sort products by 
-distance (1 ms)
-      ΓêÜ should 
-sort products by 
-price (1 ms)
-      ΓêÜ should 
-limit results (1 ms)
-      ΓêÜ should 
-calculate foot 
-traffic score 
-correctly (1 ms)
+FAIL src/app/dashboar
+d/ceo/__tests__/email
+-tool.test.ts
+  ΓùÅ Test suite 
+failed to run
+
+    Jest encountered 
+an unexpected token
+
+    Jest failed to 
+parse a file. This 
+happens e.g. when 
+your code or its 
+dependencies use 
+non-standard 
+JavaScript syntax, 
+or when Jest is not 
+configured to 
+support such syntax.
+
+    Out of the box 
+Jest supports Babel, 
+which will be used 
+to transform your 
+files into valid JS 
+based on your Babel 
+configuration.
+
+    By default 
+"node_modules" 
+folder is ignored by 
+transformers.
+
+    Here's what you 
+can do:
+     ΓÇó If you are 
+trying to use 
+ECMAScript Modules, 
+see https://jestjs.io
+/docs/ecmascript-modu
+les for how to 
+enable it.
+     ΓÇó If you are 
+trying to use 
+TypeScript, see https
+://jestjs.io/docs/get
+ting-started#using-ty
+pescript
+     ΓÇó To have 
+some of your 
+"node_modules" files 
+transformed, you can 
+specify a custom "tra
+nsformIgnorePatterns"
+ in your config.
+     ΓÇó If you need 
+a custom 
+transformation 
+specify a 
+"transform" option 
+in your config.
+     ΓÇó If you 
+simply want to mock 
+your non-JS modules 
+(e.g. binary assets) 
+you can stub them 
+out with the 
+"moduleNameMapper" 
+config option.
+
+    You'll find more 
+details and examples 
+of these config 
+options in the docs:
+    https://jestjs.io
+/docs/configuration
+    For information 
+about custom 
+transformations, see:
+    https://jestjs.io
+/docs/code-transforma
+tion
+
+    Details:
+
     
-getRetailersByZipCode
-      ├ù should get 
-retailers by ZIP 
-code (1 ms)
-      ├ù should 
-return empty array 
-if geocoding fails
-    ZIP Code Caching
-      ΓêÜ should 
-cache ZIP code 
-coordinates (1 ms)
-      ΓêÜ should 
-return null if 
-geocoding fails (1 
-ms)
-      ├ù should get 
-coordinates from 
-cache if valid (5 ms)
-      ├ù should 
-refresh cache if 
-expired (1 ms)
-    Geo Zone 
-Management
-      ΓêÜ should get 
-all geo zones
-      ΓêÜ should get 
-single geo zone by ID
-      ΓêÜ should 
-return null if zone 
-not found
-      ΓêÜ should 
-create a new geo 
-zone (1 ms)
-      ΓêÜ should 
-update a geo zone (2 
-ms)
-      ΓêÜ should 
-return null when 
-updating 
-non-existent zone
-      ΓêÜ should 
-delete a geo zone (1 
-ms)
-      ΓêÜ should 
-find zones for ZIP 
-code (1 ms)
+C:\Users\marte\Baked 
+for Brands\bakedbot-f
+or-brands\node_module
+s\jose\dist\browser\i
+ndex.js:1
+    ({"Object.<anonym
+ous>":function(module
+,exports,require,__di
+rname,__filename,jest
+){export { 
+compactDecrypt } 
+from './jwe/compact/d
+ecrypt.js';
+                     
+                     
+                     
+                     
+  ^^^^^^
 
-  ΓùÅ Geo Discovery 
-Service ΓÇ║ getRetail
-ersByZipCode ΓÇ║ 
-should get retailers 
-by ZIP code
+    SyntaxError: 
+Unexpected token 
+'export'
 
-    TypeError: 
-Cannot read 
-properties of 
-undefined (reading 
-'exists')
-
-    [0m [90m 325 
-|[39m     
-[36mconst[39m 
-cached [33m=[39m 
-[36mawait[39m fires
-tore[33m.[39mcollec
-tion([32m'zip_code_c
-ache'[39m)[33m.[39
-mdoc(zipCode)[33m.[
-39m[36mget[39m()[3
-3m;[39m
-     [90m 326 |[39m
+    [0m [90m 20 
+|[39m         } 
+[36mcatch[39m 
+(decodeError) {
+     [90m 21 |[39m 
+            console[
+33m.[39merror([32m"
+Failed to parse 
+service account key 
+from Base64 or JSON."
+[39m[33m,[39m deco
+deError)[33m;[39m
     [31m[1m>[22m[
-39m[90m 327 |[39m  
-   [36mif[39m (cach
-ed[33m.[39mexists) 
-{
-     [90m     
-|[39m               
- [31m[1m^[22m[39m
-     [90m 328 
-|[39m         
-[36mconst[39m data 
-[33m=[39m cached[3
-3m.[39mdata() 
-[36mas[39m [33mZip
-CodeCache[39m[33m;
-[39m
-     [90m 329 
-|[39m         
-[90m// Cache valid 
-for 30 days[39m
-     [90m 330 
-|[39m         
-[36mconst[39m 
-cacheAge [33m=[39m 
-[33mDate[39m[33m.
-[39mnow() 
-[33m-[39m (data[33
-m.[39mcachedAt 
-[36mas[39m any)[33
-m.[39mtoMillis()[33
-m;[39m[0m
-
-      at exists (src/
-server/services/geo-d
-iscovery.ts:327:16)
-      at getRetailers
-ByZipCode (src/server
-/services/geo-discove
-ry.ts:258:20)
-      at 
-Object.<anonymous> (t
-ests/server/geo-disco
-very.test.ts:469:22)
-
-  ΓùÅ Geo Discovery 
-Service ΓÇ║ getRetail
-ersByZipCode ΓÇ║ 
-should return empty 
-array if geocoding 
-fails
-
-    TypeError: 
-Cannot read 
-properties of 
-undefined (reading 
-'exists')
-
-    [0m [90m 325 
-|[39m     
-[36mconst[39m 
-cached [33m=[39m 
-[36mawait[39m fires
-tore[33m.[39mcollec
-tion([32m'zip_code_c
-ache'[39m)[33m.[39
-mdoc(zipCode)[33m.[
-39m[36mget[39m()[3
-3m;[39m
-     [90m 326 |[39m
-    [31m[1m>[22m[
-39m[90m 327 |[39m  
-   [36mif[39m (cach
-ed[33m.[39mexists) 
-{
-     [90m     
-|[39m               
- [31m[1m^[22m[39m
-     [90m 328 
-|[39m         
-[36mconst[39m data 
-[33m=[39m cached[3
-3m.[39mdata() 
-[36mas[39m [33mZip
-CodeCache[39m[33m;
-[39m
-     [90m 329 
-|[39m         
-[90m// Cache valid 
-for 30 days[39m
-     [90m 330 
-|[39m         
-[36mconst[39m 
-cacheAge [33m=[39m 
-[33mDate[39m[33m.
-[39mnow() 
-[33m-[39m (data[33
-m.[39mcachedAt 
-[36mas[39m any)[33
-m.[39mtoMillis()[33
-m;[39m[0m
-
-      at exists (src/
-server/services/geo-d
-iscovery.ts:327:16)
-      at getRetailers
-ByZipCode (src/server
-/services/geo-discove
-ry.ts:258:20)
-      at 
-Object.<anonymous> (t
-ests/server/geo-disco
-very.test.ts:479:22)
-
-  ΓùÅ Geo Discovery 
-Service ΓÇ║ ZIP Code 
-Caching ΓÇ║ should 
-get coordinates from 
-cache if valid
-
-    expect(received).
-toEqual(expected) // 
-deep equality
-
-    - Expected  - 0
-    + Received  + 2
-
-      Object {
-    +   "city": "",
-        "lat": 
-41.8781,
-        "lng": 
--87.6298,
-    +   "state": "",
-      }
-
-    [0m [90m 524 
-|[39m       
-[36mconst[39m 
-result [33m=[39m 
-[36mawait[39m getZi
-pCodeCoordinates([32
-m'60601'[39m)[33m;
-[39m
-     [90m 525 |[39m
-    [31m[1m>[22m[
-39m[90m 526 |[39m  
-     expect(result)[
-33m.[39mtoEqual({ 
-lat[33m:[39m [35m4
-1.8781[39m[33m,[39
-m lng[33m:[39m [33
-m-[39m[35m87.6298[
-39m })[33m;[39m
-     [90m     
-|[39m               
-       
+39m[90m 22 |[39m   
+          
+[36mreturn[39m [36
+mnull[39m[33m;[39m
+     [90m    |[39m 
+              
 [31m[1m^[22m[39m
-     [90m 527 
-|[39m       expect(g
-eocodeZipCode)[33m.
-[39mnot[33m.[39mtoH
-aveBeenCalled()[33m;
-[39m
-     [90m 528 
-|[39m     
-})[33m;[39m
-     [90m 529 
+     [90m 23 |[39m 
+        }
+     [90m 24 |[39m 
+    }
+     [90m 25 
 |[39m[0m
 
+      at Runtime.crea
+teScriptFromCode (nod
+e_modules/jest-runtim
+e/build/index.js:1505
+:14)
       at 
-Object.toEqual (tests
-/server/geo-discovery
-.test.ts:526:22)
-
-  ΓùÅ Geo Discovery 
-Service ΓÇ║ ZIP Code 
-Caching ΓÇ║ should 
-refresh cache if 
-expired
-
-    expect(received).
-toEqual(expected) // 
-deep equality
-
-    Expected: 
-{"lat": 41.88, 
-"lng": -87.64}
-    Received: null
-
-    [0m [90m 548 
-|[39m       
-[36mconst[39m 
-result [33m=[39m 
-[36mawait[39m getZi
-pCodeCoordinates([32
-m'60601'[39m)[33m;
-[39m
-     [90m 549 |[39m
-    [31m[1m>[22m[
-39m[90m 550 |[39m  
-     expect(result)[
-33m.[39mtoEqual({ 
-lat[33m:[39m [35m4
-1.8800[39m[33m,[39
-m lng[33m:[39m [33
-m-[39m[35m87.6400[
-39m })[33m;[39m
-     [90m     
-|[39m               
-       
-[31m[1m^[22m[39m
-     [90m 551 
-|[39m       expect(g
-eocodeZipCode)[33m.
-[39mtoHaveBeenCalled(
-)[33m;[39m
-     [90m 552 
-|[39m     
-})[33m;[39m
-     [90m 553 
-|[39m   
-})[33m;[39m[0m
-
+Object.<anonymous> (n
+ode_modules/jwks-rsa/
+src/utils.js:1:116)
       at 
-Object.toEqual (tests
-/server/geo-discovery
-.test.ts:550:22)
+Object.<anonymous> (n
+ode_modules/jwks-rsa/
+src/JwksClient.js:2:3
+3)
+      at 
+Object.<anonymous> (n
+ode_modules/jwks-rsa/
+src/index.js:1:126)
+      at 
+Object.<anonymous> (n
+ode_modules/firebase-
+admin/lib/utils/jwt.j
+s:24:14)
+      at 
+Object.<anonymous> (n
+ode_modules/firebase-
+admin/lib/auth/token-
+verifier.js:26:15)
+      at 
+Object.<anonymous> (n
+ode_modules/firebase-
+admin/lib/auth/base-a
+uth.js:26:26)
+      at 
+Object.<anonymous> (n
+ode_modules/firebase-
+admin/lib/auth/tenant
+-manager.js:23:21)
+      at 
+Object.<anonymous> (n
+ode_modules/firebase-
+admin/lib/auth/auth.j
+s:22:26)
+      at 
+Object.<anonymous> (n
+ode_modules/firebase-
+admin/lib/auth/index.
+js:27:16)
+      at 
+Object.<anonymous> (s
+rc/firebase/admin.ts:
+22:15)
+      at 
+Object.<anonymous> (s
+rc/server/services/ma
+ss-scraper.ts:12:16)
+      at 
+Object.<anonymous> (s
+rc/server/jobs/seo-ge
+nerator.ts:11:22)
+      at 
+Object.<anonymous> (s
+rc/app/dashboard/ceo/
+actions.ts:152:23)
+      at 
+Object.<anonymous> (s
+rc/app/dashboard/ceo/
+__tests__/email-tool.
+test.ts:13:18)
 
 Test Suites: 1 
-failed, 1 total
-Tests:       4 
-failed, 18 passed, 
-22 total
+failed, 1 passed, 2 
+total
+Tests:       19 
+passed, 19 total
 Snapshots:   0 total
-Time:        2.281 s
+Time:        8.606 s
 Ran all test suites 
-matching /tests\\serv
-er\\geo-discovery.tes
-t.ts/i.
+matching /email-tool.
+test.ts/i.
