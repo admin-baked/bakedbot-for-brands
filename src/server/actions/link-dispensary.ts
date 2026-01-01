@@ -101,6 +101,7 @@ export async function searchDispensariesAction(
 
 /**
  * Link a CannMenus dispensary to the current user's account
+ * After linking, triggers: menu sync, competitor discovery, page generation
  */
 export async function linkDispensaryAction(
     cannmenusId: string,
@@ -111,6 +112,8 @@ export async function linkDispensaryAction(
         const user = await requireUser(['dispensary', 'owner', 'super_admin']);
         const { firestore } = await createServerClient();
 
+        const zip = dispensaryData?.zip || '';
+
         // Create/update dispensary document
         const dispensaryRef = firestore.collection('dispensaries').doc(user.uid);
         
@@ -120,7 +123,7 @@ export async function linkDispensaryAction(
             address: dispensaryData?.address || '',
             city: dispensaryData?.city || '',
             state: dispensaryData?.state || '',
-            zip: dispensaryData?.zip || '',
+            zip: zip,
             source: 'cannmenus',
             linkedAt: new Date(),
             ownerId: user.uid,
@@ -137,14 +140,100 @@ export async function linkDispensaryAction(
             }
         }, { merge: true });
 
+        // ========== POST-LINK SERVICE ACTIVATION ==========
+        
+        // 1. Trigger menu sync from CannMenus (async, don't wait)
+        triggerMenuSync(cannmenusId, user.uid).catch(err => 
+            console.error('[LinkDispensary] Menu sync failed:', err)
+        );
+
+        // 2. Auto-discover competitors using ZIP (async, don't wait)
+        if (zip) {
+            triggerCompetitorDiscovery(user.uid, zip, cannmenusId).catch(err =>
+                console.error('[LinkDispensary] Competitor discovery failed:', err)
+            );
+        }
+
+        // 3. Create initial headless menu page (async, don't wait)
+        triggerPageGeneration(user.uid, dispensaryName).catch(err =>
+            console.error('[LinkDispensary] Page generation failed:', err)
+        );
+
         return {
             success: true,
-            message: `Successfully linked ${dispensaryName}. Menu sync will begin shortly.`
+            message: `Successfully linked ${dispensaryName}. Menu sync and competitor discovery starting...`
         };
     } catch (error: any) {
         console.error('[LinkDispensary] Link error:', error);
         return { success: false, message: error.message || 'Failed to link dispensary' };
     }
+}
+
+/**
+ * Trigger CannMenus menu sync in background
+ */
+async function triggerMenuSync(cannmenusId: string, userId: string) {
+    const cannMenus = new CannMenusService();
+    try {
+        // Fetch menu from CannMenus and store products
+        const products = await cannMenus.getRetailerInventory(cannmenusId);
+        
+        if (products && products.length > 0) {
+            const { firestore } = await createServerClient();
+            const batch = firestore.batch();
+            
+            // Store products under the dispensary's menu
+            const menuRef = firestore.collection('dispensaries').doc(userId).collection('menu');
+            
+            for (const product of products.slice(0, 200)) { // Limit to 200 for initial sync
+                const docId = product.id || `${product.name?.replace(/\s+/g, '-')}-${Date.now()}`;
+                const docRef = menuRef.doc(docId);
+                batch.set(docRef, {
+                    ...product,
+                    syncedAt: new Date(),
+                    source: 'cannmenus'
+                }, { merge: true });
+            }
+            
+            await batch.commit();
+            console.log(`[LinkDispensary] Synced ${Math.min(products.length, 200)} products for ${userId}`);
+        }
+    } catch (error) {
+        console.error('[LinkDispensary] Menu sync error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Trigger Ezal competitor discovery in background  
+ */
+async function triggerCompetitorDiscovery(tenantId: string, zip: string, ownId?: string) {
+    const { autoSetupCompetitors } = await import('@/server/services/auto-competitor');
+    const result = await autoSetupCompetitors(tenantId, zip, ownId);
+    console.log(`[LinkDispensary] Discovered ${result.competitors.length} competitors for ${tenantId}`);
+    return result;
+}
+
+/**
+ * Trigger headless menu page generation in background
+ */
+async function triggerPageGeneration(userId: string, dispensaryName: string) {
+    // Create a basic menu page record for the dispensary
+    const { firestore } = await createServerClient();
+    
+    const slug = dispensaryName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50);
+    
+    await firestore.collection('pages').doc(`menu-${userId}`).set({
+        type: 'menu',
+        ownerId: userId,
+        title: `${dispensaryName} Menu`,
+        slug: slug,
+        status: 'draft',
+        createdAt: new Date(),
+        updatedAt: new Date()
+    }, { merge: true });
+    
+    console.log(`[LinkDispensary] Created menu page for ${dispensaryName}`);
 }
 
 /**
@@ -185,10 +274,25 @@ export async function createManualDispensaryAction(
             }
         }, { merge: true });
 
+        // ========== POST-CREATION SERVICE ACTIVATION ==========
+
+        // 1. Auto-discover competitors using ZIP (async, don't wait)
+        if (zip) {
+            triggerCompetitorDiscovery(user.uid, zip, user.uid).catch(err =>
+                console.error('[ManualCreate] Competitor discovery failed:', err)
+            );
+        }
+
+        // 2. Create initial headless menu page (async, don't wait)
+        triggerPageGeneration(user.uid, dispensaryName).catch(err =>
+            console.error('[ManualCreate] Page generation failed:', err)
+        );
+
         return {
             success: true,
             message: `Created ${dispensaryName}. You can now add products manually or connect a POS.`
         };
+
     } catch (error: any) {
         console.error('[LinkDispensary] Create error:', error);
         return { success: false, message: error.message || 'Failed to create dispensary' };
