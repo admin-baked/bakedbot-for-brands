@@ -213,7 +213,8 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     const updatedClaims = {
       role: finalRole,
       orgId: orgId,
-      brandId: finalRole === 'brand' ? orgId : null
+      brandId: finalRole === 'brand' ? orgId : null,
+      locationId: newLocationId
     };
 
     const finalClaims = Object.fromEntries(Object.entries(updatedClaims).filter(([_, v]) => v !== null && v !== undefined));
@@ -292,6 +293,24 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         }
       });
       logger.info('Queued dispensary sync job', { jobId: syncJobRef.id, locationId });
+
+      // Queue competitor discovery
+      await firestore.collection('data_jobs').add({
+        type: 'competitor_discovery',
+        entityId: locationId,
+        entityName: manualDispensaryName || 'Dispensary',
+        orgId: orgId,
+        userId: uid,
+        status: 'pending',
+        message: `Queued competitor discovery for ${manualDispensaryName || 'dispensary'}`,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        metadata: {
+            locationId: locationId,
+            marketState: marketState
+        }
+      });
+      logger.info('Queued competitor discovery job', { locationId });
     }
 
     // --- QUEUE SEO PAGE GENERATION (NON-BLOCKING) ---

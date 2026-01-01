@@ -52,11 +52,18 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
     }
 
     const { firestore } = await createServerClient();
+    const locationId = user.locationId;
 
     // 1. Get customers from orders
-    const ordersSnap = await firestore.collection('orders')
-        .where('brandId', '==', brandId)
-        .get();
+    let ordersQuery = firestore.collection('orders') as FirebaseFirestore.Query;
+    
+    if (locationId) {
+        ordersQuery = ordersQuery.where('dispensaryId', '==', locationId);
+    } else {
+        ordersQuery = ordersQuery.where('brandId', '==', brandId);
+    }
+
+    const ordersSnap = await ordersQuery.get();
 
     const orders = ordersSnap.docs.map((doc: any) => {
         const data = doc.data();

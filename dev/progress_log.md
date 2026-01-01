@@ -2010,3 +2010,25 @@ Enhance chat experience by fixing auto-scroll during typewriter effects and stan
 
 ### Status: ✅ Verified
 Auto-scroll is now active in the CEO Dashboard chat, and competitive snapshots are synthesized into the mandatory standardized format.
+
+---
+
+## Session Log: Unlocking App Store
+**Date**: 2026-01-01
+**Task IDs**: 8, 9, 10
+
+### Objective
+Remove "Coming Soon" restrictions and unlock the App Store for all user roles.
+
+### Changes
+*   **Navigation**:
+    *   `src/hooks/use-dashboard-config.ts`: Removed `coming-soon` badge and added `customer`, `admin` roles to the App Store configuration.
+*   **Access Control**:
+    *   `src/app/dashboard/apps/page.tsx`: Removed restricted roles from `requireUser()` to allow all authenticated users access.
+
+### Verification
+*   Verified static app list in `actions.ts` returns correctly for all roles.
+*   Sidebar link visibility confirmed via config update.
+
+### Status: ✅ Verified
+App Store is now globally available to all authenticated users.

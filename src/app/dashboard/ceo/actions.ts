@@ -286,6 +286,60 @@ export async function getBrands(): Promise<Brand[]> {
   }
 }
 
+export async function createDispensaryAction(data: { 
+  name: string; 
+  address: string; 
+  city: string; 
+  state: string; 
+  zip: string;
+  ownerEmail?: string;
+}): Promise<ActionResult> {
+  await requireUser(['owner']);
+  
+  try {
+    const firestore = getAdminFirestore();
+    const orgId = `disp_${data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}_${Math.random().toString(36).substring(2, 5)}`;
+    
+    const newOrg = {
+      id: orgId,
+      name: data.name,
+      slug: data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      zip: data.zip,
+      type: 'dispensary',
+      status: 'active',
+      claimStatus: 'claimed', // Manually created is treated as claimed
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    await firestore.collection('organizations').doc(orgId).set(newOrg);
+
+    // Create a default location
+    const locationId = `loc_${orgId.substring(5)}`;
+    await firestore.collection('locations').doc(locationId).set({
+      id: locationId,
+      orgId: orgId,
+      name: 'Main Location',
+      address: {
+        street: data.address,
+        city: data.city,
+        state: data.state,
+        zip: data.zip
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    return { message: `Successfully created dispensary ${data.name}` };
+  } catch (error: any) {
+    console.error('Error creating dispensary:', error);
+    return { message: `Failed to create dispensary: ${error.message}`, error: true };
+  }
+}
+
 export async function getDispensaries(): Promise<{ id: string; name: string }[]> {
   try {
     const firestore = getAdminFirestore();
