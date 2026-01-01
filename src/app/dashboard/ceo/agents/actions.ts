@@ -28,6 +28,7 @@ import { z } from 'zod';
 import { PERSONAS, AgentPersona } from './personas';
 import { CannMenusService } from '@/server/services/cannmenus';
 import { getCustomerMemory } from '@/server/intuition/customer-memory';
+import { analyzeQuery } from '@/ai/chat-query-handler';
 
 const AGENT_MAP = {
     craig: craigAgent,
@@ -213,6 +214,36 @@ interface ChatExtraOptions {
 export async function runAgentChat(userMessage: string, personaId?: string, extraOptions?: ChatExtraOptions): Promise<AgentResult> {
     console.log('[runAgentChat] Dispatching Async Job:', userMessage.substring(0, 50));
     
+    // 0. Intelligent Routing (Overriding Persona)
+    let finalPersonaId = personaId;
+    
+    // Only route if no specific persona was forced (or if it's the default 'puff')
+    // We allow explicit persona selection to stick, but 'puff' implies "General Assistant" who delegates.
+    if (!personaId || personaId === 'puff') {
+        try {
+            const analysis = await analyzeQuery(userMessage);
+            console.log('[runAgentChat] Routing Analysis:', analysis);
+
+            if (analysis.searchType === 'marketing') {
+                finalPersonaId = 'craig';
+            } else if (analysis.searchType === 'competitive') {
+                finalPersonaId = 'ezal';
+            } else if (analysis.searchType === 'compliance') {
+                finalPersonaId = 'deebo';
+            } else if (analysis.searchType === 'analytics') {
+                finalPersonaId = 'pops';
+            } else if (analysis.searchType === 'semantic' || analysis.searchType === 'keyword' || analysis.searchType === 'filtered') {
+                // Product search -> Smokey
+                finalPersonaId = 'smokey';
+            } else if (userMessage.toLowerCase().includes('price') || userMessage.toLowerCase().includes('cost') || userMessage.toLowerCase().includes('margin') || userMessage.toLowerCase().includes('billing')) {
+                 // Money Mike fallback for financial terms not caught by complex analysis
+                 finalPersonaId = 'money_mike';
+            }
+        } catch (e) {
+            console.warn('[runAgentChat] Routing failed, defaulting to Puff:', e);
+        }
+    }
+
     // 1. Get User
     const { requireUser } = await import('@/server/auth/auth');
     const user = await requireUser();
@@ -229,7 +260,7 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
         userInput: userMessage,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-        persona: personaId || 'puff',
+        persona: finalPersonaId || 'puff',
         brandId: user.brandId || null,
         thoughts: [] // Initialize empty thoughts
     });
@@ -239,7 +270,7 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
     const payload = {
         userId: user.uid,
         userInput: userMessage,
-        persona: (personaId as AgentPersona) || 'puff',
+        persona: (finalPersonaId as AgentPersona) || 'puff',
         options: {
             modelLevel: (extraOptions?.modelLevel as any) || 'standard',
             audioInput: extraOptions?.audioInput,
@@ -273,7 +304,7 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
         toolCalls: [],
         metadata: {
             jobId,
-            agentName: personaId || 'BakedBot',
+            agentName: finalPersonaId || 'BakedBot',
             type: 'session_context',
             brandId: user.brandId
         }
