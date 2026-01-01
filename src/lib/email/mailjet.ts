@@ -127,10 +127,10 @@ export type GenericEmailData = {
     textBody?: string;
 };
 
-export async function sendGenericEmail(data: GenericEmailData): Promise<boolean> {
+export async function sendGenericEmail(data: GenericEmailData): Promise<{ success: boolean; error?: string }> {
     if (!mailjetClient) {
         logger.warn('Mailjet client not initialized');
-        return false;
+        return { success: false, error: 'Mailjet API keys are missing in server environment.' };
     }
 
     try {
@@ -157,9 +157,9 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<boolean>
             });
 
         logger.info('Generic email sent (Mailjet)', { to: data.to, subject: data.subject });
-        return true;
+        return { success: true };
     } catch (error: any) {
         logger.error('Failed to send generic email (Mailjet)', { error: error.message, statusCode: error.statusCode });
-        return false;
+        return { success: false, error: error.message || 'Unknown Mailjet Error' };
     }
 }

@@ -2339,17 +2339,17 @@ export async function testEmailDispatch(data: { to: string, subject: string, bod
     const htmlBody = data.body || '<p>This is a test email sent from the Super Admin Dashboard.</p>';
 
     // Use dispatcher to send via configured provider (Mailjet)
-    const success = await sendGenericEmail({
+    const result = await sendGenericEmail({
         to: data.to,
         subject: data.subject,
         htmlBody: htmlBody,
         textBody: htmlBody.replace(/<[^>]*>?/gm, '')
     });
 
-    if (success) {
+    if (result.success) {
         return { message: `Email sent successfully to ${data.to}` };
     } else {
-        return { message: 'Failed to dispatch email. Check logs.', error: true };
+        return { message: `Failed to dispatch email: ${result.error || 'Check logs.'}`, error: true };
     }
   } catch (error: any) {
     console.error('Test email dispatch error:', error);

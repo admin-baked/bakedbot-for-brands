@@ -85,7 +85,7 @@ describe('Super User Email Tool', () => {
     it('should send email successfully if authorized', async () => {
         (requireUser as jest.Mock).mockResolvedValue({ uid: 'admin-user' });
         (isSuperUser as jest.Mock).mockResolvedValue(true);
-        (sendGenericEmail as jest.Mock).mockResolvedValue(true);
+        (sendGenericEmail as jest.Mock).mockResolvedValue({ success: true });
 
         const result = await testEmailDispatch({
             to: 'test@example.com',
@@ -106,7 +106,7 @@ describe('Super User Email Tool', () => {
     it('should handle dispatcher failure', async () => {
         (requireUser as jest.Mock).mockResolvedValue({ uid: 'admin-user' });
         (isSuperUser as jest.Mock).mockResolvedValue(true);
-        (sendGenericEmail as jest.Mock).mockResolvedValue(false);
+        (sendGenericEmail as jest.Mock).mockResolvedValue({ success: false, error: 'Mocked Failure' });
 
         const result = await testEmailDispatch({
             to: 'test@example.com',
