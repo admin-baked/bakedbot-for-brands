@@ -2232,7 +2232,7 @@ export type CoverageStatus = {
 };
 
 export async function getCoverageStatusAction(): Promise<CoverageStatus> {
-  const user = await requireUser(['owner', 'admin']);
+  const user = await requireUser(['owner', 'super_admin']);
   // Use organization ID from user session or metadata
   // Assuming user.orgId exists, or we use user.uid as proxy for now if single-tenant per user
   // In `requireUser`, it returns the user object.

@@ -24,7 +24,7 @@ async function logJobStart(type: 'dispensaries' | 'brands' | 'states' | 'cities'
         status: 'running',
         startedAt: FieldValue.serverTimestamp(),
         options,
-        createdBy: 'admin', // TODO: Get actual user ID
+        createdBy: 'super_admin', // TODO: Get actual user ID
     });
 
     return jobId;
@@ -46,7 +46,7 @@ async function logJobComplete(jobId: string, result: any) {
 export async function runDispensaryScan(limit: number, dryRun: boolean, filters?: ScanFilters) {
     let jobId;
     try {
-        const user = await requireUser(['owner', 'admin']);
+        const user = await requireUser(['owner', 'super_admin']);
         jobId = await logJobStart('dispensaries', { limit, dryRun, filters });
 
         const service = new PageGeneratorService();
@@ -78,7 +78,7 @@ export async function runDispensaryScan(limit: number, dryRun: boolean, filters?
 export async function runBrandScan(limit: number, dryRun: boolean, filters?: ScanFilters) {
     let jobId;
     try {
-        const user = await requireUser(['owner', 'admin']);
+        const user = await requireUser(['owner', 'super_admin']);
         jobId = await logJobStart('brands', { limit, dryRun, filters });
 
         const service = new PageGeneratorService();
@@ -119,7 +119,7 @@ export async function runStateScan(dryRun: boolean, filters?: ScanFilters) {
 export async function runCityScan(limit: number, dryRun: boolean, filters?: ScanFilters) {
     let jobId;
     try {
-        const user = await requireUser(['owner', 'admin']);
+        const user = await requireUser(['owner', 'super_admin']);
         jobId = await logJobStart('cities', { limit, dryRun, filters });
 
         const service = new PageGeneratorService();

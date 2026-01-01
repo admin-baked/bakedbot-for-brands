@@ -296,7 +296,7 @@ export async function runAgentCore(
         let effectiveModelLevel = extraOptions?.modelLevel || 'lite';
         
         // Super User Bypass
-        const isSuperUser = role === 'super_admin' || role === 'admin'; // Simplify super user check
+        const isSuperUser = role === 'super_admin' || role === 'owner'; // Simplify super user check
         const isFreeUser = !isSuperUser && role === 'guest'; // Assuming 'guest' is free, 'brand' is paid? logic needs to closely match plan
         // Actually, user object might have 'plan'
         // Let's assume role check for now: 'guest' = free, 'brand'/'dispensary' = paid, 'super_admin' = super.

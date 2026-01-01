@@ -9,7 +9,7 @@ import { devPersonas } from '@/lib/dev-personas';
 import { SUPER_ADMIN_EMAILS } from '@/lib/super-admin-config';
 
 // Define the roles used in the application for type safety.
-export type Role = 'brand' | 'dispensary' | 'customer' | 'owner' | 'admin';
+export type Role = 'brand' | 'dispensary' | 'customer' | 'owner' | 'super_admin';
 
 /**
  * A server-side utility to require an authenticated user and optionally enforce roles.
@@ -69,7 +69,7 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
 
   // --- ROLE SIMULATION LOGIC ---
   // Only allow simulation if the REAL user has the 'owner' or admin role.
-  if (['owner', 'admin', 'super-admin'].includes(decodedToken.role)) {
+  if (['owner', 'super_admin'].includes(decodedToken.role)) {
     const simulatedRole = cookieStore.get('x-simulated-role')?.value as Role | undefined;
     if (simulatedRole && ['brand', 'dispensary', 'customer'].includes(simulatedRole)) {
       // Override the role in the returned token
@@ -100,7 +100,7 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
 
 /**
  * Check if the current user is a Super Admin
- * @returns true if the user has owner/admin/super-admin role OR is in the super admin email whitelist
+ * @returns true if the user has owner/super_admin role OR is in the super admin email whitelist
  */
 export async function isSuperUser(): Promise<boolean> {
   try {
@@ -109,7 +109,7 @@ export async function isSuperUser(): Promise<boolean> {
     const email = (user.email as string)?.toLowerCase() || '';
     
     // Check 1: Role-based access
-    if (['owner', 'admin', 'super-admin'].includes(role)) {
+    if (['owner', 'super_admin'].includes(role)) {
       return true;
     }
     

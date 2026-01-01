@@ -86,15 +86,15 @@ export async function generateCompetitorReport(tenantId: string): Promise<string
 
     // --- Category Performance (Simplified) ---
     md += `### :clipboard: Category Insights:\n`;
-    const brands = new Set(priceGaps.map(g => g.brandName || 'General'));
-    brands.forEach(brand => {
-         const brandGaps = priceGaps.filter(g => (g.brandName || 'General') === brand);
-         const ourAvg = brandGaps.reduce((sum, g) => sum + g.ourPrice, 0) / (brandGaps.length || 1);
-         const themAvg = brandGaps.reduce((sum, g) => sum + g.competitorPrice, 0) / (brandGaps.length || 1);
+    const categories = new Set(priceGaps.map(g => g.category || 'General'));
+    categories.forEach(category => {
+         const catGaps = priceGaps.filter(g => (g.category || 'General') === category);
+         const ourAvg = catGaps.reduce((sum, g) => sum + g.ourPrice, 0) / (catGaps.length || 1);
+         const themAvg = catGaps.reduce((sum, g) => sum + g.competitorPrice, 0) / (catGaps.length || 1);
          const winning = ourAvg < themAvg ? "We are competitive" : "Competitor leading on price";
-         md += `- **${brand}**: ${winning} (Avg Gap: $${Math.abs(ourAvg - themAvg).toFixed(2)})\n`;
+         md += `- **${category}**: ${winning} (Avg Gap: $${Math.abs(ourAvg - themAvg).toFixed(2)})\n`;
     });
-    if (brands.size === 0) md += `- Insufficient data for category analysis.\n`;
+    if (categories.size === 0) md += `- Insufficient data for category analysis.\n`;
 
     md += `\n### :link: Next Steps:\n`;
     md += `- [View Full Report on Dashboard](/dashboard/intelligence)\n`;
