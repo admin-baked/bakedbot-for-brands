@@ -9,6 +9,8 @@ import WordPressPluginTab from './components/wordpress-tab';
 import BrandSetupTab from './components/brand-setup-tab';
 import { InvitationsList } from '@/components/invitations/invitations-list';
 import { CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { BillingForm } from './components/billing-form';
+import { CreditCard } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
@@ -76,10 +78,16 @@ export default function SettingsPage() {
             WordPress Plugin
           </TabsTrigger>
           {(role === 'brand' || role === 'dispensary' || role === 'owner') && (
-             <TabsTrigger value="team">
-                <Users className="mr-2 h-4 w-4" />
-                Team
-             </TabsTrigger>
+            <TabsTrigger value="team">
+              <Users className="mr-2 h-4 w-4" />
+              Team
+            </TabsTrigger>
+          )}
+          {(role === 'brand' || role === 'dispensary' || role === 'owner') && (
+            <TabsTrigger value="billing">
+              <CreditCard className="mr-2 h-4 w-4" />
+              Billing
+            </TabsTrigger>
           )}
         </TabsList>
 
@@ -100,19 +108,28 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Team Management</CardTitle>
-                    <CardDescription>Invite team members to your organization.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {/* Pass role context dynamically. For now assuming active org context is set in invite dialog or server action */}
-                    <InvitationsList 
-                        orgId={(user as any)?.brandId || (user as any)?.locationId} // Simplified context passing
-                        allowedRoles={role === 'brand' ? ['brand'] : ['dispensary']} 
-                    />
-                </CardContent>
-            </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Management</CardTitle>
+              <CardDescription>Invite team members to your organization.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Pass role context dynamically. For now assuming active org context is set in invite dialog or server action */}
+              <InvitationsList
+                orgId={(user as any)?.brandId || (user as any)?.locationId} // Simplified context passing
+                allowedRoles={role === 'brand' ? ['brand'] : ['dispensary']}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="billing" className="space-y-4">
+          <BillingForm
+            organizationId={(user as any)?.brandId || (user as any)?.locationId || user?.uid}
+            locationCount={1} // Defaulting to 1 for now, should ideally be fetched from data
+            customerEmail={user?.email || undefined}
+            customerName={user?.displayName || undefined}
+          />
         </TabsContent>
       </Tabs>
     </div>

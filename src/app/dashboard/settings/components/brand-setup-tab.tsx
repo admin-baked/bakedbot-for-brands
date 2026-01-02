@@ -8,8 +8,10 @@ import { setupBrandAndCompetitors } from '@/server/actions/brand-setup';
 import { getBrandStatus } from '@/app/dashboard/products/actions';
 import { Loader2, Store, Target, MapPin, CheckCircle2, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useUserRole } from '@/hooks/use-user-role';
 
 export default function BrandSetupTab() {
+    const { role } = useUserRole();
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [status, setStatus] = useState<any>(null);
@@ -31,8 +33,8 @@ export default function BrandSetupTab() {
             if (response.success) {
                 setResult(response);
                 toast({
-                    title: "Brand Setup Complete",
-                    description: `Added brand and auto-discovered ${response.competitors?.length || 0} competitors.`,
+                    title: `${role === 'dispensary' ? 'Dispensary' : 'Brand'} Setup Complete`,
+                    description: `Added ${role === 'dispensary' ? 'dispensary' : 'brand'} and auto-discovered ${response.competitors?.length || 0} competitors.`,
                 });
             } else {
                 toast({
@@ -61,13 +63,13 @@ export default function BrandSetupTab() {
                         <CardTitle>Setup Complete</CardTitle>
                     </div>
                     <CardDescription>
-                        Your brand is now linked and competitive intel is populating.
+                        Your {role === 'dispensary' ? 'dispensary' : 'brand'} is now linked and competitive intel is populating.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="p-4 bg-white border border-emerald-100 rounded-lg space-y-3">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">Brand ID:</span>
+                            <span className="text-sm font-medium">{role === 'dispensary' ? 'Dispensary' : 'Brand'} ID:</span>
                             <Badge variant="outline" className="font-mono">{result.brandId}</Badge>
                         </div>
                         <div className="space-y-2">
@@ -98,10 +100,10 @@ export default function BrandSetupTab() {
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <Store className="h-5 w-5 text-primary" />
-                    <CardTitle>Brand Identity & Intel</CardTitle>
+                    <CardTitle>{role === 'dispensary' ? 'Dispensary' : 'Brand'} Identity & Intel</CardTitle>
                 </div>
                 <CardDescription>
-                    Manually link your brand and automatically discover top competitors based on your primary market.
+                    Manually link your {role === 'dispensary' ? 'dispensary' : 'brand'} and automatically discover top competitors based on your primary market.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -109,7 +111,7 @@ export default function BrandSetupTab() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="brandName">Brand Name</Label>
+                                <Label htmlFor="brandName">{role === 'dispensary' ? 'Dispensary' : 'Brand'} Name</Label>
                                 {status?.nameLocked && (
                                     <Badge variant="secondary" className="h-5 text-[10px] gap-1 bg-amber-50 text-amber-700 hover:bg-amber-50">
                                         <Lock className="h-3 w-3" />
@@ -123,12 +125,12 @@ export default function BrandSetupTab() {
                                 placeholder="e.g. Wyld, Kiva, Cresco"
                                 required
                                 disabled={status?.nameLocked}
-                                defaultValue={status?.brandName} 
+                                defaultValue={status?.brandName}
                             />
                             <p className="text-[10px] text-muted-foreground">
-                                {status?.nameLocked 
-                                    ? "Brand name is locked because products have been linked. Contact Admin to change." 
-                                    : "Use your official brand name as it appears in retailer menus."}
+                                {status?.nameLocked
+                                    ? `${role === 'dispensary' ? 'Dispensary' : 'Brand'} name is locked because products have been linked. Contact Admin to change.`
+                                    : `Use your official ${role === 'dispensary' ? 'dispensary' : 'brand'} name as it appears in retailer menus.`}
                             </p>
                         </div>
                         <div className="space-y-2">

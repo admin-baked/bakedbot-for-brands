@@ -236,8 +236,8 @@ export default function CompetitiveIntelPage() {
                     ) : (
                         <div className="text-center py-8">
                             <p className="text-muted-foreground mb-4">
-                                {(snapshot?.competitors.length || 0) > 0 
-                                    ? "Report generating... Check back after the next scheduled scan." 
+                                {(snapshot?.competitors.length || 0) > 0
+                                    ? "Report generating... Check back after the next scheduled scan."
                                     : "Configure competitors to generate your first strategic report."}
                             </p>
                             {(snapshot?.competitors.length || 0) === 0 && <CompetitorSetupWizard hasCompetitors={false} />}
@@ -359,7 +359,7 @@ export default function CompetitiveIntelPage() {
                             {snapshot?.competitors.length ? (
                                 `You're tracking ${snapshot.competitors.length} competitors. ${snapshot.canRefresh ? 'Click refresh to get the latest data.' : `Next auto-update on ${formatDate(snapshot.nextUpdate)}.`}`
                             ) : (
-                                "Set your market location in Brand Page settings to auto-discover competitors in your area."
+                                `Set your market location in ${role === 'dispensary' ? 'Dispensary Identity' : 'Brand Page'} settings to auto-discover competitors in your area.`
                             )}
                         </CardContent>
                     </Card>
