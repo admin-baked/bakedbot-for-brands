@@ -256,6 +256,40 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'read',
         requiredPermission: 'read:analytics'
     },
+    'agent.delegate': {
+        name: 'agent.delegate',
+        description: 'Delegates a specialized task to another agent. Use this to spawn sub-tasks or cross-delegate to specialists.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                personaId: { 
+                    type: 'string', 
+                    enum: ['smokey', 'craig', 'pops', 'ezal', 'money_mike', 'mrs_parker', 'deebo', 'leo', 'jack', 'linus', 'glenda', 'mike_exec'],
+                    description: 'The ID of the agent to delegate to.' 
+                },
+                task: { type: 'string', description: 'Detailed instructions for the sub-agent.' },
+                context: { type: 'object', description: 'Optional structured data context for the task.' }
+            },
+            required: ['personaId', 'task']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics'
+    },
+    'agent.broadcast': {
+        name: 'agent.broadcast',
+        description: 'Broadcasts a status update or critical finding across multiple channels (Slack, Email).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                message: { type: 'string', description: 'The stylized update message.' },
+                channels: { type: 'array', items: { type: 'string', enum: ['slack', 'email'] } },
+                recipients: { type: 'array', items: { type: 'string' }, description: 'Target emails or slack channels.' }
+            },
+            required: ['message', 'channels']
+        },
+        category: 'side-effect',
+        requiredPermission: 'manage:campaigns'
+    },
     'agent.executePlaybook': {
         name: 'agent.executePlaybook',
         description: 'Executes a predefined playbook for an agent.',

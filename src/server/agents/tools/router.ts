@@ -423,6 +423,36 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         }
     }
 
+    // --- Agent Orchestration Tools ---
+    if (def.name === 'agent.delegate') {
+        try {
+            const { loadSkill } = await import('@/skills/loader');
+            const skill = await loadSkill('core/agent');
+            const tool = skill.tools.find(t => t.definition.name === def.name);
+            if (tool && tool.implementation) {
+                // We pass the personaId from the request as context to the skill
+                const result = await tool.implementation({ agentName: request.actor.userId }, inputs);
+                return { status: 'success', data: result };
+            }
+        } catch (e: any) {
+            return { status: 'failed', error: `Delegation failed: ${e.message}` };
+        }
+    }
+
+    if (def.name === 'agent.broadcast') {
+        try {
+            const { loadSkill } = await import('@/skills/loader');
+            const skill = await loadSkill('core/agent');
+            const tool = skill.tools.find(t => t.definition.name === def.name);
+            if (tool && tool.implementation) {
+                const result = await tool.implementation({ agentName: request.actor.userId }, inputs);
+                return { status: 'success', data: result };
+            }
+        } catch (e: any) {
+            return { status: 'failed', error: `Broadcast failed: ${e.message}` };
+        }
+    }
+
     // Owl - Deep Research Tool
     if (def.name === 'research.deep') {
         if (!request.tenantId) throw new Error('Tool requires tenant context.');
