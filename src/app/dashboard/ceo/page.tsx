@@ -35,6 +35,7 @@ const CeoSettingsTab = dynamic(() => import("./components/ceo-settings-tab"), { 
 const AgentSandbox = dynamic(() => import("./components/agent-sandbox").then(mod => mod.AgentSandbox), { loading: TabLoader, ssr: false });
 const ResearchTab = dynamic(() => import("./components/research-tab"), { loading: TabLoader });
 const EmailTesterTab = dynamic(() => import("./components/email-tester-tab"), { loading: TabLoader });
+const BoardroomTab = dynamic(() => import("./components/boardroom-tab"), { loading: TabLoader });
 
 
 import { useSuperAdmin } from '@/hooks/use-super-admin';
@@ -54,7 +55,7 @@ function CeoDashboardContent() {
     const { isSuperAdmin, isLoading, superAdminEmail, logout } = useSuperAdmin();
 
     // Sync tabs with URL ?tab=...
-    const currentTab = searchParams?.get('tab') || 'playbooks'; // Default to Playbooks tab
+    const currentTab = searchParams?.get('tab') || 'boardroom'; // Default to Boardroom
 
 
 
@@ -106,6 +107,7 @@ function CeoDashboardContent() {
             case 'research': return <ResearchTab />;
             case 'sandbox': return <AgentSandbox />;
             case 'email': return <EmailTesterTab />;
+            case 'boardroom': return <BoardroomTab />;
             case 'invites': return (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">

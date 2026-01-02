@@ -1,0 +1,282 @@
+﻿jest-haste-map: Haste module naming collision: nextn
+  The following files share their name; please adjust your hasteImpl:
+    * <rootDir>\package.json
+    * <rootDir>\.firebase\studio-567050101-bc6e8\functions\package.json
+
+node.exe : FAIL src/a
+pp/dashboard/ceo/__te
+sts__/boardroom.test.
+tsx
+At line:1 char:1
++ & "C:\Program Files
+\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (FAIL sr   
+ c/app/da...rdroo    
+m.test.tsx:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+  BoardroomTab
+    ├ù should render 
+the boardroom header 
+and executive team 
+(2 ms)
+    ├ù should render 
+KPI widgets
+    ├ù should switch 
+agents when clicking 
+on their cards
+    ├ù should 
+default to Leo as 
+the current speaker
+
+  ΓùÅ BoardroomTab 
+ΓÇ║ should render 
+the boardroom header 
+and executive team
+
+    Cannot find 
+module 
+'../boardroom-tab' 
+from 'src/app/dashboa
+rd/ceo/__tests__/boar
+droom.test.tsx'
+
+    [0m [90m 44 
+|[39m
+     [90m 45 |[39m 
+    beforeAll([36mas
+ync[39m () 
+[33m=>[39m {
+    [31m[1m>[22m[
+39m[90m 46 |[39m   
+      
+[36mconst[39m 
+module [33m=[39m 
+[36mawait[39m [36m
+import[39m([32m'../
+boardroom-tab'[39m)
+[33m;[39m
+     [90m    |[39m 
+                     
+        
+[31m[1m^[22m[39m
+     [90m 47 |[39m 
+        [33mBoardroo
+mTab[39m 
+[33m=[39m module[3
+3m.[39m[36mdefault
+[39m[33m;[39m
+     [90m 48 |[39m 
+    })[33m;[39m
+     [90m 49 
+|[39m[0m
+
+      at Resolver._th
+rowModNotFoundError (
+node_modules/jest-res
+olve/build/resolver.j
+s:427:11)
+      at src/app/dash
+board/ceo/__tests__/b
+oardroom.test.tsx:46:
+30
+      at 
+Object.<anonymous> (s
+rc/app/dashboard/ceo/
+__tests__/boardroom.t
+est.tsx:46:24)
+
+  ΓùÅ BoardroomTab 
+ΓÇ║ should render 
+KPI widgets
+
+    Cannot find 
+module 
+'../boardroom-tab' 
+from 'src/app/dashboa
+rd/ceo/__tests__/boar
+droom.test.tsx'
+
+    [0m [90m 44 
+|[39m
+     [90m 45 |[39m 
+    beforeAll([36mas
+ync[39m () 
+[33m=>[39m {
+    [31m[1m>[22m[
+39m[90m 46 |[39m   
+      
+[36mconst[39m 
+module [33m=[39m 
+[36mawait[39m [36m
+import[39m([32m'../
+boardroom-tab'[39m)
+[33m;[39m
+     [90m    |[39m 
+                     
+        
+[31m[1m^[22m[39m
+     [90m 47 |[39m 
+        [33mBoardroo
+mTab[39m 
+[33m=[39m module[3
+3m.[39m[36mdefault
+[39m[33m;[39m
+     [90m 48 |[39m 
+    })[33m;[39m
+     [90m 49 
+|[39m[0m
+
+      at Resolver._th
+rowModNotFoundError (
+node_modules/jest-res
+olve/build/resolver.j
+s:427:11)
+      at src/app/dash
+board/ceo/__tests__/b
+oardroom.test.tsx:46:
+30
+      at 
+Object.<anonymous> (s
+rc/app/dashboard/ceo/
+__tests__/boardroom.t
+est.tsx:46:24)
+
+  ΓùÅ BoardroomTab 
+ΓÇ║ should switch 
+agents when clicking 
+on their cards
+
+    Cannot find 
+module 
+'../boardroom-tab' 
+from 'src/app/dashboa
+rd/ceo/__tests__/boar
+droom.test.tsx'
+
+    [0m [90m 44 
+|[39m
+     [90m 45 |[39m 
+    beforeAll([36mas
+ync[39m () 
+[33m=>[39m {
+    [31m[1m>[22m[
+39m[90m 46 |[39m   
+      
+[36mconst[39m 
+module [33m=[39m 
+[36mawait[39m [36m
+import[39m([32m'../
+boardroom-tab'[39m)
+[33m;[39m
+     [90m    |[39m 
+                     
+        
+[31m[1m^[22m[39m
+     [90m 47 |[39m 
+        [33mBoardroo
+mTab[39m 
+[33m=[39m module[3
+3m.[39m[36mdefault
+[39m[33m;[39m
+     [90m 48 |[39m 
+    })[33m;[39m
+     [90m 49 
+|[39m[0m
+
+      at Resolver._th
+rowModNotFoundError (
+node_modules/jest-res
+olve/build/resolver.j
+s:427:11)
+      at src/app/dash
+board/ceo/__tests__/b
+oardroom.test.tsx:46:
+30
+      at 
+Object.<anonymous> (s
+rc/app/dashboard/ceo/
+__tests__/boardroom.t
+est.tsx:46:24)
+
+  ΓùÅ BoardroomTab 
+ΓÇ║ should default 
+to Leo as the 
+current speaker
+
+    Cannot find 
+module 
+'../boardroom-tab' 
+from 'src/app/dashboa
+rd/ceo/__tests__/boar
+droom.test.tsx'
+
+    [0m [90m 44 
+|[39m
+     [90m 45 |[39m 
+    beforeAll([36mas
+ync[39m () 
+[33m=>[39m {
+    [31m[1m>[22m[
+39m[90m 46 |[39m   
+      
+[36mconst[39m 
+module [33m=[39m 
+[36mawait[39m [36m
+import[39m([32m'../
+boardroom-tab'[39m)
+[33m;[39m
+     [90m    |[39m 
+                     
+        
+[31m[1m^[22m[39m
+     [90m 47 |[39m 
+        [33mBoardroo
+mTab[39m 
+[33m=[39m module[3
+3m.[39m[36mdefault
+[39m[33m;[39m
+     [90m 48 |[39m 
+    })[33m;[39m
+     [90m 49 
+|[39m[0m
+
+      at Resolver._th
+rowModNotFoundError (
+node_modules/jest-res
+olve/build/resolver.j
+s:427:11)
+      at src/app/dash
+board/ceo/__tests__/b
+oardroom.test.tsx:46:
+30
+      at 
+Object.<anonymous> (s
+rc/app/dashboard/ceo/
+__tests__/boardroom.t
+est.tsx:46:24)
+
+Test Suites: 1 
+failed, 1 total
+Tests:       4 
+failed, 4 total
+Snapshots:   0 total
+Time:        3.121 s
+Ran all test suites 
+matching /src\\app\\d
+ashboard\\ceo\\__test
+s__\\boardroom.test.t
+sx/i.

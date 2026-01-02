@@ -361,6 +361,7 @@ export interface PuffChatProps {
     className?: string;
     isAuthenticated?: boolean; // For public demos
     isSuperUser?: boolean; // Super User unlock
+    persona?: AgentPersona; // External persona override
 }
 
 export function PuffChat({
@@ -371,7 +372,8 @@ export function PuffChat({
     hideHeader = false,
     className = '',
     isAuthenticated = true, // Default to true for backward compatibility
-    isSuperUser = false
+    isSuperUser = false,
+    persona: externalPersona
 }: PuffChatProps) {
     // Global Store State
     const { currentMessages, addMessage, updateMessage, createSession } = useAgentChatStore();
@@ -392,7 +394,14 @@ export function PuffChat({
     const [showPermissions, setShowPermissions] = useState(true);
     const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
     const searchParams = useSearchParams();
-    const [persona, setPersona] = useState<AgentPersona>('puff');
+    const [persona, setPersona] = useState<AgentPersona>(externalPersona || 'puff');
+
+    // Sync external persona if provided
+    useEffect(() => {
+        if (externalPersona) {
+            setPersona(externalPersona);
+        }
+    }, [externalPersona]);
 
     // Tool Selection State
     const [toolMode, setToolMode] = useState<ToolMode>('auto');
