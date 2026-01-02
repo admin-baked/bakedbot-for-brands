@@ -99,3 +99,38 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
     return false;
   }
 }
+
+export type GenericEmailData = {
+  to: string;
+  name?: string;
+  subject: string;
+  htmlBody: string;
+  textBody?: string;
+};
+
+export async function sendGenericEmail(data: GenericEmailData): Promise<{ success: boolean; error?: string }> {
+  if (!API_KEY) {
+    logger.warn('SendGrid API key not configured');
+    return { success: false, error: 'SendGrid API key is missing in server environment.' };
+  }
+
+  const msg = {
+    to: data.to,
+    from: {
+      email: FROM_EMAIL,
+      name: FROM_NAME,
+    },
+    subject: data.subject,
+    html: data.htmlBody,
+    text: data.textBody || data.htmlBody.replace(/<[^>]*>?/gm, ''),
+  };
+
+  try {
+    await sgMail.send(msg);
+    logger.info('Generic email sent (SendGrid)', { to: data.to, subject: data.subject });
+    return { success: true };
+  } catch (error: any) {
+    logger.error('Failed to send generic email (SendGrid)', { error: error.message, response: error.response?.body });
+    return { success: false, error: error.message || 'Unknown SendGrid Error' };
+  }
+}

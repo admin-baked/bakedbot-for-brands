@@ -42,7 +42,7 @@ export default function EmailTesterTab() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Email Dispatch Tester</h2>
-                    <p className="text-muted-foreground">Verify transactional email configuration (Mailjet).</p>
+                    <p className="text-muted-foreground">Verify transactional email configuration (SendGrid/Mailjet).</p>
                 </div>
             </div>
 
@@ -96,7 +96,7 @@ export default function EmailTesterTab() {
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Sending via Mailjet...
+                                    Sending...
                                 </>
                             ) : (
                                 <>
