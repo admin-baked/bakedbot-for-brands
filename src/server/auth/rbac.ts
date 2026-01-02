@@ -15,7 +15,7 @@ export type Permission =
     | 'sync:menus'
     | 'admin:all';
 
-export type UserRole = 'brand' | 'dispensary' | 'customer' | 'owner' | 'super_admin';
+export type UserRole = 'brand' | 'dispensary' | 'customer' | 'owner' | 'super_admin' | 'super_user';
 
 /**
  * Role-based permission matrix
@@ -23,6 +23,7 @@ export type UserRole = 'brand' | 'dispensary' | 'customer' | 'owner' | 'super_ad
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     owner: ['admin:all'],
     super_admin: ['admin:all'],
+    super_user: ['admin:all'],
     brand: [
         'read:products',
         'write:products',
