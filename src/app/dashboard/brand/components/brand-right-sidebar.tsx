@@ -15,7 +15,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { EzalSnapshotCard } from '@/components/dashboard/ezal-snapshot-card';
 
-export function BrandRightRail() {
+interface BrandRightRailProps {
+    userState?: string;
+}
+
+export function BrandRightRail({ userState = 'Michigan' }: BrandRightRailProps) {
     const { toast } = useToast();
 
     const handleAction = (action: string) => {
@@ -133,7 +137,7 @@ export function BrandRightRail() {
             </Card>
 
             {/* E) Ezal Lite - Competitive Intel */}
-            <EzalSnapshotCard userState="Michigan" compact />
+            <EzalSnapshotCard userState={userState} compact />
         </div>
     );
 }

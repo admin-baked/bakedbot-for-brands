@@ -11,19 +11,42 @@ export async function getBrandDashboardData(brandId: string) {
         const user = await requireUser();
 
         // Fetch Brand Data for Location
-        const brandDoc = await firestore.collection('brands').doc(brandId).get();
-        const brandData = brandDoc.data() || {};
-        const state = brandData.state || 'IL'; // Default to IL if not set
-        const city = brandData.city;
-
-        // Fetch Competitive Intel (Leafly)
-        const activeIntel = await import('@/server/services/leafly-connector').then(m => m.getLocalCompetition(state, city));
-
-        // 1. Retail Coverage
+        // Fetch Brand Data (Organization vs Legacy Brand)
+        let brandName = brandId;
+        let brandState = 'IL'; // Default
         
-        // Fetch products for other metrics (Velocity, Price Index)
+        const orgDoc = await firestore.collection('organizations').doc(brandId).get();
+        if (orgDoc.exists) {
+            const org = orgDoc.data();
+            brandName = org?.name || brandName;
+            brandState = org?.marketState || org?.state || brandState;
+        } else {
+             // Fallback to legacy brands collection
+             const brandDoc = await firestore.collection('brands').doc(brandId).get();
+             if (brandDoc.exists) {
+                 const b = brandDoc.data();
+                 brandName = b?.name || brandName;
+                 brandState = b?.state || brandState;
+             }
+        }
+        
+        // Fetch Competitive Intel (Leafly)
+        // Note: 'brandData' variable was removed, so we fallback to city=undefined which is safe
+        const activeIntel = await import('@/server/services/leafly-connector').then(m => m.getLocalCompetition(brandState, undefined));
+
+        // 1. Retail Coverage & Sync Stats
         const productRepo = makeProductRepo(firestore);
         const products = await productRepo.getAllByBrand(brandId);
+        
+        // Count competitors (granular)
+        let competitorsCount = 0;
+        try {
+             // Try org-level competitors first
+             const compSnap = await firestore.collection('organizations').doc(brandId).collection('competitors').count().get();
+             competitorsCount = compSnap.data().count;
+        } catch {
+             // ignore
+        }
 
         // Retailer count: Use the same logic as the Dispensaries page so the numbers match
         const { getBrandDispensaries } = await import('@/app/dashboard/dispensaries/actions');
@@ -64,6 +87,15 @@ export async function getBrandDashboardData(brandId: string) {
         const activeCampaigns = campaignSnap.size;
 
         return {
+            meta: {
+                name: brandName,
+                state: brandState
+            },
+            sync: {
+                products: products.length,
+                competitors: competitorsCount,
+                lastSynced: new Date().toISOString()
+            },
             coverage: {
                 value: coverageCount,
                 trend: coverageCount > 0 ? '+1' : '0',

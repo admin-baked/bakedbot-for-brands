@@ -7,6 +7,7 @@ import { LayoutDashboard, Grip, Activity, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
+import {
     DropdownMenu,
     DropdownMenuTrigger,
     DropdownMenuContent,
@@ -14,12 +15,19 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Server } from 'lucide-react';
 import { DataImportDropdown } from '@/components/dashboard/data-import-dropdown';
 import { SetupHealth } from '@/components/dashboard/setup-health';
 import { QuickStartCards } from '@/components/dashboard/quick-start-cards';
 import { TaskFeed } from '@/components/dashboard/task-feed';
 import { SetupChecklist } from '@/components/dashboard/setup-checklist';
 import { getBrandDashboardData } from './actions';
+import { BrandRightRail } from './components/brand-right-sidebar';
 
 export default function BrandDashboardClient({ brandId }: { brandId: string }) {
     const [view, setView] = useState<'hq' | 'classic' | 'customize'>('hq');
@@ -50,6 +58,10 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
         loadData();
     }, [brandId]);
 
+    const brandName = liveData?.meta?.name || brandId;
+    const productsCount = liveData?.sync?.products || 0;
+    const competitorsCount = liveData?.sync?.competitors || 0;
+
     return (
         <div className="space-y-6" data-testid="brand-dashboard-client">
             {/* Unified Header */}
@@ -60,7 +72,11 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
                             BRAND CONSOLE
                         </h1>
                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold">
-                            {brandId.toUpperCase()}
+                             {liveData?.meta?.name ? (
+                                <span className="uppercase">{liveData.meta.name}</span>
+                             ) : (
+                                `${brandId.toUpperCase().slice(0, 12)}...`
+                             )}
                         </Badge>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground font-medium">
@@ -94,10 +110,37 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-background border-2 rounded-md shadow-sm">
-                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-[11px] font-black uppercase tracking-wider">Live Data ON</span>
-                    </div>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-background border-2 rounded-md shadow-sm cursor-pointer hover:bg-muted/50 transition-colors">
+                                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                <span className="text-[11px] font-black uppercase tracking-wider">Live Data ON</span>
+                            </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-0" align="end">
+                            <div className="p-3 bg-slate-950 text-white rounded-t-lg border-b border-slate-800">
+                                <div className="text-xs font-mono text-slate-400 mb-1">DATA STREAM</div>
+                                <div className="text-sm font-semibold flex items-center gap-2">
+                                    <Server className="h-4 w-4 text-emerald-400" />
+                                    Active Sync
+                                </div>
+                            </div>
+                            <div className="p-3 space-y-3">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Products Indexed</span>
+                                    <span className="font-mono font-bold">{productsCount}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Competitors Found</span>
+                                    <span className="font-mono font-bold">{competitorsCount}</span>
+                                </div>
+                                <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
+                                    <span>Last Sync:</span>
+                                    <span>{liveData?.sync?.lastSynced ? new Date(liveData.sync.lastSynced).toLocaleTimeString() : 'Just now'}</span>
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                 </div>
             </div>
 
