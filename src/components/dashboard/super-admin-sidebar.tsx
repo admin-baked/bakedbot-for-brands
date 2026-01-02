@@ -135,6 +135,14 @@ export function SuperAdminSidebar() {
                 <SidebarGroupLabel>Operations</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
+                         <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={!currentTabParam && pathname === '/dashboard/ceo'}>
+                                <Link href="/dashboard/ceo">
+                                    <LayoutDashboard />
+                                    <span>Overview</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("projects")}>
                                 <Link href="/dashboard/projects">
