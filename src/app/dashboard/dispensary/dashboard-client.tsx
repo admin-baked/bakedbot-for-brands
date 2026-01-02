@@ -8,7 +8,8 @@ import { DispensaryPlaybooksList } from './components/dispensary-playbooks-list'
 import { Button } from '@/components/ui/button';
 import { MapPin, Power, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu,
+import {
+    DropdownMenu,
     DropdownMenuTrigger,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -16,9 +17,9 @@ import { DropdownMenu,
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
 } from '@/components/ui/popover';
 import { Server } from 'lucide-react';
 
@@ -40,9 +41,9 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
     }, [brandId]);
 
     // Use live data or fallback
-    const locationName = liveData?.location?.name || brandId;
-    const displayName = liveData?.location?.name || brandId;
-    
+    const locationName = liveData?.location?.name || brandId || 'Dispensary';
+    const displayName = liveData?.location?.name || brandId || 'Dispensary';
+
     // Calculate sync stats
     const productsCount = liveData?.sync?.products || 0;
     const competitorsCount = liveData?.sync?.competitors || 0;
@@ -55,11 +56,11 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl font-bold tracking-tight">Dispensary Console</h1>
                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                             {liveData?.location?.name ? (
+                            {liveData?.location?.name ? (
                                 <span className="font-semibold">{liveData.location.name}</span>
-                             ) : (
+                            ) : (
                                 `Dispensary Mode • ${brandId.slice(0, 8)}...`
-                             )}
+                            )}
                         </Badge>
                     </div>
                     <p className="text-muted-foreground">Run daily ops, menu, marketing, and compliance.</p>
@@ -108,7 +109,7 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
                                 </div>
                                 <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
                                     <span>Last Sync:</span>
-                                    <span>{liveData?.sync?.lastSynced ? new Date(liveData.sync.lastSynced).toLocaleTimeString() : 'Just now'}</span>
+                                    <span>{liveData?.sync?.lastSynced ? new Date(liveData.sync.lastSynced).toLocaleTimeString() : 'N/A'}</span>
                                 </div>
                             </div>
                         </PopoverContent>

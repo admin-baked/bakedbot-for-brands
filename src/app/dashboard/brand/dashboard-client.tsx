@@ -16,9 +16,9 @@ import {
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
 } from '@/components/ui/popover';
 import { Server } from 'lucide-react';
 import { DataImportDropdown } from '@/components/dashboard/data-import-dropdown';
@@ -58,7 +58,7 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
         loadData();
     }, [brandId]);
 
-    const brandName = liveData?.meta?.name || brandId;
+    const brandName = liveData?.meta?.name || brandId || 'Brand';
     const productsCount = liveData?.sync?.products || 0;
     const competitorsCount = liveData?.sync?.competitors || 0;
 
@@ -72,11 +72,11 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
                             BRAND CONSOLE
                         </h1>
                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold">
-                             {liveData?.meta?.name ? (
+                            {liveData?.meta?.name ? (
                                 <span className="uppercase">{liveData.meta.name}</span>
-                             ) : (
+                            ) : (
                                 `${brandId.toUpperCase().slice(0, 12)}...`
-                             )}
+                            )}
                         </Badge>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground font-medium">
@@ -136,7 +136,7 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
                                 </div>
                                 <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
                                     <span>Last Sync:</span>
-                                    <span>{liveData?.sync?.lastSynced ? new Date(liveData.sync.lastSynced).toLocaleTimeString() : 'Just now'}</span>
+                                    <span>{liveData?.sync?.lastSynced ? new Date(liveData.sync.lastSynced).toLocaleTimeString() : 'N/A'}</span>
                                 </div>
                             </div>
                         </PopoverContent>
