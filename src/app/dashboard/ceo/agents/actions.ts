@@ -282,7 +282,7 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
         userInput: userMessage,
         persona: (finalPersonaId as AgentPersona) || 'puff',
         options: {
-            modelLevel: (extraOptions?.modelLevel as any) || 'standard',
+            modelLevel: (['leo', 'jack', 'linus', 'glenda', 'mike_exec'].includes(finalPersonaId || '') ? 'genius' : (extraOptions?.modelLevel as any)) || 'standard',
             audioInput: extraOptions?.audioInput,
             attachments: extraOptions?.attachments,
             brandId: user.brandId,
