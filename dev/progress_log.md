@@ -25,6 +25,7 @@ Executive Boardroom is live and production-ready.
 
 - **UPDATE**: `src/lib/email/dispatcher.ts` - Added automatic failover to SendGrid on Mailjet 401 error.
 - **TEST**: `src/lib/email/__tests__/dispatcher.test.ts` - Verified failover logic.
+- **FIX**: Refactored `dispatcher.ts` to use static imports to resolve "Server Components render" error (4c6aef23).
 
 ---
 
