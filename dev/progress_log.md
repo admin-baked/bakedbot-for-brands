@@ -23,6 +23,9 @@ Implemented the "Executive Boardroom" (The Roundtable) in the CEO dashboard, pro
 ### Result: ✅ Deployed
 Executive Boardroom is live and production-ready.
 
+- **UPDATE**: `src/lib/email/dispatcher.ts` - Added automatic failover to SendGrid on Mailjet 401 error.
+- **TEST**: `src/lib/email/__tests__/dispatcher.test.ts` - Verified failover logic.
+
 ---
 
 ## Session: 2026-01-01 (Build Fix: Customer Growth Strategy Stabilization)

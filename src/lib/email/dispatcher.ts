@@ -42,11 +42,33 @@ export async function sendOrderConfirmationEmail(data: any): Promise<boolean> {
 export async function sendGenericEmail(data: { to: string, name?: string, subject: string, htmlBody: string, textBody?: string }): Promise<{ success: boolean; error?: string }> {
     const provider = await getProvider();
     
+    // Fallback Helper
+    const trySendGrid = async () => {
+        try {
+            const { sendGenericEmail: sendSGGeneric } = await import('./sendgrid');
+            return sendSGGeneric(data);
+        } catch (e: any) {
+             return { success: false, error: 'SendGrid Failover Failed: ' + e.message };
+        }
+    };
+
     if (provider === 'sendgrid') {
-        const { sendGenericEmail: sendSGGeneric } = await import('./sendgrid');
-        return sendSGGeneric(data);
+        const result = await trySendGrid();
+        return result;
     } else {
         const { sendGenericEmail: sendMJGeneric } = await import('./mailjet');
-        return sendMJGeneric(data);
+        const mjResult = await sendMJGeneric(data);
+        if (!mjResult.success) {
+            console.warn(`Mailjet attempt failed: ${mjResult.error}. Failing over to SendGrid...`);
+            const sgResult = await trySendGrid();
+            if (!sgResult.success) {
+                return { 
+                    success: false, 
+                    error: `Mailjet Failed: ${mjResult.error} | SendGrid Failed: ${sgResult.error}` 
+                };
+            }
+            return sgResult;
+        }
+        return mjResult;
     }
 }
