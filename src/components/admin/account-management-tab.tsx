@@ -292,7 +292,7 @@ export function AccountManagementTab() {
                                                                                 toast({ title: "Success", description: "User promoted to Super User" });
                                                                                 loadUsers();
                                                                             } else {
-                                                                                toast({ title: "Error", description: res.error, variant: "destructive" });
+                                                                                toast({ title: "Error", description: res.message, variant: "destructive" });
                                                                             }
                                                                         } catch (e) {
                                                                              toast({ title: "Error", description: "Failed to promote", variant: "destructive" });

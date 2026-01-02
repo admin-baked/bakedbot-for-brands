@@ -7,6 +7,17 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Generates a random ID.
+ * Uses crypto.randomUUID if available, otherwise falls back to Math.random.
+ */
+export function generateId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+/**
  * Calculates the Haversine distance between two points on the Earth.
  * @param coords1 - The coordinates of the first point { lat, lon }.
  * @param coords2 - The coordinates of the second point { lat, lon }.

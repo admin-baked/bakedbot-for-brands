@@ -166,14 +166,7 @@ export async function promoteToSuperUser(uid: string) {
     return { success: false, message: error.message };
   }
 }
-      message: `Successfully processed ${results.length} products.`,
-      processed: results.length,
-      results
-    };
-  } catch (error: any) {
-    return { message: `Initialization failed: ${error.message}`, error: true };
-  }
-}
+
 
 export async function createCoupon(prevState: ActionResult, formData: FormData): Promise<ActionResult> {
   await requireUser(['owner']);
