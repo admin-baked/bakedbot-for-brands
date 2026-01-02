@@ -4,7 +4,7 @@
  * Tailored prompts and suggestions for each user role.
  */
 
-export type UserRoleForChat = 'owner' | 'admin' | 'brand' | 'dispensary' | 'editor' | 'customer' | 'super_admin';
+export type UserRoleForChat = 'owner' | 'admin' | 'brand' | 'dispensary' | 'editor' | 'customer' | 'super_admin' | 'concierge';
 
 export interface RoleChatConfig {
     role: UserRoleForChat;
@@ -198,6 +198,32 @@ export const SUPER_ADMIN_CHAT_CONFIG: RoleChatConfig = {
 };
 
 /**
+ * Concierge role configuration (Agentic Shopping)
+ */
+export const CONCIERGE_CHAT_CONFIG: RoleChatConfig = {
+    role: 'concierge',
+    title: 'BakedBot Concierge',
+    subtitle: 'Autonomous shopping and fulfillment',
+    welcomeMessage: "Hi! I'm your cannabis concierge. I can browse every menu in your area and prepare a multi-cart for you. How can I help?",
+    placeholder: 'Ask me to find products, compare prices, or build a cart...',
+    iconName: 'sparkles',
+    themeColor: 'blue',
+    agentPersona: 'smokey',
+    promptSuggestions: [
+        'Find the cheapest vape near me',
+        'I need flower for sleep under $40',
+        'Who has Blue Dream in stock?',
+        'Build me a diverse $100 sampler'
+    ],
+    enabledFeatures: {
+        modelSelector: false,
+        personaSelector: false,
+        triggers: false,
+        permissions: false
+    }
+};
+
+/**
  * Get chat configuration for a role
  */
 export function getChatConfigForRole(role: UserRoleForChat): RoleChatConfig {
@@ -212,6 +238,8 @@ export function getChatConfigForRole(role: UserRoleForChat): RoleChatConfig {
             return DISPENSARY_CHAT_CONFIG;
         case 'super_admin':
             return SUPER_ADMIN_CHAT_CONFIG;
+        case 'concierge':
+            return CONCIERGE_CHAT_CONFIG;
         case 'owner':
         case 'admin':
         default:
@@ -230,6 +258,7 @@ export function getAllChatConfigs(): Record<UserRoleForChat, RoleChatConfig> {
         dispensary: DISPENSARY_CHAT_CONFIG,
         editor: EDITOR_CHAT_CONFIG,
         customer: CUSTOMER_CHAT_CONFIG,
-        super_admin: SUPER_ADMIN_CHAT_CONFIG
+        super_admin: SUPER_ADMIN_CHAT_CONFIG,
+        concierge: CONCIERGE_CHAT_CONFIG
     };
 }
