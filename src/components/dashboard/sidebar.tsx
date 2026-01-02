@@ -30,6 +30,7 @@ import { InviteUserDialog } from '@/components/invitations/invite-user-dialog';
 import { SuperAdminSidebar } from '@/components/dashboard/super-admin-sidebar';
 import { SharedSidebarHistory } from '@/components/dashboard/shared-sidebar-history';
 import { logger } from '@/lib/logger';
+import { useSuperAdmin } from '@/hooks/use-super-admin';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
@@ -39,9 +40,13 @@ export function DashboardSidebar() {
   const { toast } = useToast();
   const { loginRoute } = useUserRole();
   const { planName, planId, isScale, isEnterprise, isGrowthOrHigher, isPaid } = usePlanInfo();
+  const { isSuperAdmin } = useSuperAdmin();
 
-  // Hide nav links on CEO dashboard (Super Admin has access via tabs)
-  const isCeoDashboard = pathname?.startsWith('/dashboard/ceo');
+  // Show Super Admin Sidebar if explicitly on CEO path OR if authenticated as Super Admin (and not impersonating/shopping)
+  // We exclude 'brand'/'dispensary' roles to allow impersonation (where role would be 'brand')
+  // We exclude /dashboard/shop to allow testing the customer flow
+  const isCeoDashboard = pathname?.startsWith('/dashboard/ceo') || 
+                         (isSuperAdmin && role !== 'brand' && role !== 'dispensary' && !pathname?.startsWith('/dashboard/shop'));
 
   const handleSignOut = async () => {
     if (!auth) return;
