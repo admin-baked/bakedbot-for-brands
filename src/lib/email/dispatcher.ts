@@ -39,36 +39,51 @@ export async function sendOrderConfirmationEmail(data: any): Promise<boolean> {
     }
 }
 
+// Static imports to avoid bundling issues in server actions
+import { sendGenericEmail as sendSGGeneric } from './sendgrid';
+import { sendGenericEmail as sendMJGeneric } from './mailjet';
+
 export async function sendGenericEmail(data: { to: string, name?: string, subject: string, htmlBody: string, textBody?: string }): Promise<{ success: boolean; error?: string }> {
     const provider = await getProvider();
     
-    // Fallback Helper
-    const trySendGrid = async () => {
+    // Helper to attempt SendGrid
+    const attemptSendGrid = async () => {
         try {
-            const { sendGenericEmail: sendSGGeneric } = await import('./sendgrid');
-            return sendSGGeneric(data);
+            return await sendSGGeneric(data);
         } catch (e: any) {
-             return { success: false, error: 'SendGrid Failover Failed: ' + e.message };
+            return { success: false, error: 'SendGrid Execution Failed: ' + e.message };
         }
     };
 
     if (provider === 'sendgrid') {
-        const result = await trySendGrid();
-        return result;
+        return attemptSendGrid();
     } else {
-        const { sendGenericEmail: sendMJGeneric } = await import('./mailjet');
-        const mjResult = await sendMJGeneric(data);
-        if (!mjResult.success) {
-            console.warn(`Mailjet attempt failed: ${mjResult.error}. Failing over to SendGrid...`);
-            const sgResult = await trySendGrid();
-            if (!sgResult.success) {
+        // Try Mailjet
+        try {
+            const mjResult = await sendMJGeneric(data);
+            if (!mjResult.success) {
+                console.warn(`Mailjet attempt failed: ${mjResult.error}. Failing over to SendGrid...`);
+                
+                const sgResult = await attemptSendGrid();
+                if (!sgResult.success) {
+                    return { 
+                        success: false, 
+                        error: `Mailjet Failed: ${mjResult.error} | SendGrid Failed: ${sgResult.error}` 
+                    };
+                }
+                return sgResult;
+            }
+            return mjResult;
+        } catch (mjError: any) {
+             console.warn(`Mailjet Exception: ${mjError.message}. Failing over to SendGrid...`);
+             const sgResult = await attemptSendGrid();
+             if (!sgResult.success) {
                 return { 
                     success: false, 
-                    error: `Mailjet Failed: ${mjResult.error} | SendGrid Failed: ${sgResult.error}` 
+                    error: `Mailjet Exception: ${mjError.message} | SendGrid Failed: ${sgResult.error}` 
                 };
-            }
-            return sgResult;
+             }
+             return sgResult;
         }
-        return mjResult;
     }
 }
