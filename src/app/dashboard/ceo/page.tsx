@@ -21,8 +21,8 @@ const CannMenusTestTab = dynamic(() => import("./components/cannmenus-test-tab")
 const PlatformAnalyticsTab = dynamic(() => import("./components/platform-analytics-tab"), { loading: TabLoader });
 const TicketsTab = dynamic(() => import("./components/tickets-tab"), { loading: TabLoader });
 const FootTrafficTab = dynamic(() => import("./components/foot-traffic-tab"), { loading: TabLoader });
-const SuperAdminAgentChat = dynamic(() => import("./components/super-admin-agent-chat"), { loading: TabLoader });
-const SuperAdminPlaybooksTab = dynamic(() => import("./components/super-admin-playbooks-tab"), { loading: TabLoader });
+const SuperAdminAgentChat = dynamic(() => import("./components/super-admin-agent-chat"), { loading: TabLoader, ssr: false });
+const SuperAdminPlaybooksTab = dynamic(() => import("./components/super-admin-playbooks-tab"), { loading: TabLoader, ssr: false });
 const UsageTab = dynamic(() => import("./components/usage-tab"), { loading: TabLoader });
 const EzalTab = dynamic(() => import("./components/ezal-tab"), { loading: TabLoader });
 const SuperAdminInsightsTab = dynamic(() => import("./components/super-admin-insights-tab").then(mod => mod.SuperAdminInsightsTab), { loading: TabLoader });
@@ -35,7 +35,7 @@ const CeoSettingsTab = dynamic(() => import("./components/ceo-settings-tab"), { 
 const AgentSandbox = dynamic(() => import("./components/agent-sandbox").then(mod => mod.AgentSandbox), { loading: TabLoader, ssr: false });
 const ResearchTab = dynamic(() => import("./components/research-tab"), { loading: TabLoader });
 const EmailTesterTab = dynamic(() => import("./components/email-tester-tab"), { loading: TabLoader });
-const BoardroomTab = dynamic(() => import("./components/boardroom-tab"), { loading: TabLoader });
+const BoardroomTab = dynamic(() => import("./components/boardroom-tab"), { loading: TabLoader, ssr: false });
 
 
 import { useSuperAdmin } from '@/hooks/use-super-admin';

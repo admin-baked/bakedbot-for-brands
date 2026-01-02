@@ -114,7 +114,14 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
 
         return true;
     } catch (error: any) {
-        logger.error('Failed to send email (Mailjet)', { error: error.message, statusCode: error.statusCode });
+        const maskedKey = API_KEY ? `${API_KEY.substring(0, 4)}...${API_KEY.substring(API_KEY.length - 4)}` : 'MISSING';
+        logger.error('Failed to send email (Mailjet)', { 
+            error: error.message, 
+            statusCode: error.statusCode,
+            response: error.response?.text,
+            usedKey: maskedKey,
+            keyLength: API_KEY?.length 
+        });
         return false;
     }
 }
@@ -159,7 +166,16 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
         logger.info('Generic email sent (Mailjet)', { to: data.to, subject: data.subject });
         return { success: true };
     } catch (error: any) {
-        logger.error('Failed to send generic email (Mailjet)', { error: error.message, statusCode: error.statusCode });
-        return { success: false, error: error.message || 'Unknown Mailjet Error' };
+        const maskedKey = API_KEY ? `${API_KEY.substring(0, 4)}...${API_KEY.substring(API_KEY.length - 4)}` : 'MISSING';
+        logger.error('Failed to send generic email (Mailjet)', { 
+             error: error.message, 
+             statusCode: error.statusCode,
+             usedKey: maskedKey 
+        });
+        
+        return { 
+            success: false, 
+            error: `Mailjet Error ${error.statusCode}: ${error.message} (Key: ${maskedKey})` 
+        };
     }
 }
