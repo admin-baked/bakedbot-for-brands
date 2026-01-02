@@ -1,6 +1,19 @@
 {
     "features": [
         {
+            "id": "task_test_receipt_scanner",
+            "title": "Unit Test: Receipt Scanner Service",
+            "status": "pending",
+            "priority": "normal",
+            "description": "Implement unit tests for src/server/services/vision/receipt-scanner.ts. Currently failing to run in Jest due to ESM issues with Genkit/Gemini dependencies and server-only imports. Logic verified manually and via Passport/Membership integration tests.",
+            "acceptance_tests": [
+                "tests/server/services/receipt-scanner.test.ts passes"
+            ],
+            "owner": "ai_builder_swarm",
+            "area": "testing",
+            "created_at": "2026-01-01T22:00:00Z"
+        },
+        {
             "id": "task_test_super_admin_sidebar_invite",
             "title": "Unit Test: Super Admin Sidebar Invitation",
             "status": "pending",
