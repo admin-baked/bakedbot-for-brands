@@ -19,12 +19,12 @@ async function getProvider(): Promise<'sendgrid' | 'mailjet'> {
         const doc = await firestore.collection('settings').doc('system').get();
         const provider = doc.data()?.emailProvider as 'sendgrid' | 'mailjet';
         
-        cachedProvider = provider === 'sendgrid' ? 'sendgrid' : 'mailjet'; // Default to mailjet
+        cachedProvider = provider === 'mailjet' ? 'mailjet' : 'sendgrid'; // Default to sendgrid
         lastFetch = now;
         return cachedProvider;
     } catch (e) {
-        console.error('Failed to fetch email provider setting, defaulting to Mailjet', e);
-        return 'mailjet';
+        console.error('Failed to fetch email provider setting, defaulting to SendGrid', e);
+        return 'sendgrid';
     }
 }
 
@@ -42,15 +42,10 @@ export async function sendOrderConfirmationEmail(data: any): Promise<boolean> {
 export async function sendGenericEmail(data: { to: string, name?: string, subject: string, htmlBody: string, textBody?: string }): Promise<{ success: boolean; error?: string }> {
     const provider = await getProvider();
     
-    // For now, only Mailjet supports generic email in this codebase based on my previous step.
-    // SendGrid implementation would be similar but we stick to Mailjet as requested.
-    
-    if (provider === 'mailjet') {
-        const { sendGenericEmail: sendMJGeneric } = await import('./mailjet');
-        return sendMJGeneric(data);
+    if (provider === 'sendgrid') {
+        const { sendGenericEmail: sendSGGeneric } = await import('./sendgrid');
+        return sendSGGeneric(data);
     } else {
-        // Fallback or implementation for SendGrid if needed later
-        console.warn('Generic email not implemented for SendGrid yet, falling back to Mailjet');
         const { sendGenericEmail: sendMJGeneric } = await import('./mailjet');
         return sendMJGeneric(data);
     }
