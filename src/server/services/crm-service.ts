@@ -15,6 +15,8 @@ export interface CRMBrand {
     discoveredFrom?: string[]; // Array of dispensary IDs where found
     states: string[];
     isNational: boolean;
+    city?: string | null;
+    state?: string | null;
     seoPageId?: string | null;
     claimedOrgId?: string | null;
     claimStatus: 'unclaimed' | 'invited' | 'pending' | 'claimed';
@@ -35,6 +37,7 @@ export interface CRMDispensary {
     zip: string;
     website?: string | null;
     phone?: string | null;
+    description?: string | null;
     source: 'discovery' | 'claim' | 'import' | 'system';
     seoPageId?: string | null;
     claimedOrgId?: string | null;

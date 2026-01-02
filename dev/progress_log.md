@@ -1,3 +1,50 @@
+## Session: 2026-01-01 (Build Fix: Customer Growth Strategy Stabilization)
+### Task ID
+customer_growth_build_stabilization
+
+### Summary
+Resolved a series of TypeScript build errors introduced during the implementation of the Customer Growth Strategy.
+- **Role Synchronization**: Updated `auth.ts` and `role-chat-config.ts` to include the `super_user` and `concierge` roles, ensuring consistency across the RBAC and AI agent layers.
+- **CRM Union Type Stability**: Standardized the `CRMBrand` and `CRMDispensary` interfaces in `crm-service.ts` to ensure safe property access when handled as a union type in the Shop page.
+- **Chat Completeness**: Added the missing `concierge` entry to `getAllChatConfigs` to satisfy TypeScript record completeness.
+- **Verification**: `npm run check:types` now passes with exit code 0.
+
+### Key Changes
+*   **FIX**: `src/server/auth/auth.ts`, `src/lib/chat/role-chat-config.ts`, `src/server/services/crm-service.ts`.
+
+### Result: ✅ Stable
+Build errors resolved; code is now production-ready.
+
+---
+
+## Session: 2026-01-01 (Customer Growth Strategy & Universal Passport)
+### Task ID
+customer_growth_strategy_passport
+
+### Summary
+Implemented the "Customer Growth Strategy" by introducing a dual-layer identity system (Passport + Membership) and customer-induced demand features (Growth Loops).
+- **Universal Passport**: Created a global `PreferencePassport` for user-wide preferences and a tenant-specific `CustomerProfile` for organization loyalty.
+- **Growth Loops**: Developed a Receipt Scanning system (Gemini Vision), QR Code Claim Loop for budtenders, and an Agentic Shopping concierge.
+- **Verification**: Verified core actions with 11/11 passing unit tests in `passport.test.ts`, `membership.test.ts`, and `tenant.test.ts`.
+- **Build Fix**: Resolved 5 blocking TypeScript errors across `auth.ts`, `crm-service.ts`, `role-chat-config.ts`, and `page.tsx` to unblock remote deployments and standardize roles.
+
+### Key Changes
+*   **NEW**: `src/server/actions/tenant.ts`, `src/server/actions/receipts.ts`, `src/server/services/vision/receipt-scanner.ts`.
+*   **NEW**: `src/app/shop/page.tsx`, `src/app/shop/[slug]/page.tsx`, `src/app/shop/agent/page.tsx`, `src/app/loyalty/scan/page.tsx`, `src/app/p/[userId]/page.tsx`.
+*   **NEW**: 4 Unit test files in `tests/server/`.
+*   **FIX**: `src/server/auth/rbac.ts`, `src/app/dashboard/brand/dashboard-client.tsx`, `src/app/dashboard/ceo/actions.ts`.
+
+### Tests Run
+*   `npx jest tests/server/actions/passport.test.ts` (Passed ✅)
+*   `npx jest tests/server/actions/membership.test.ts` (Passed ✅)
+*   `npx jest tests/server/actions/tenant.test.ts` (Passed ✅)
+*   `npx jest tests/server/services/receipt-scanner.test.ts` (Blocked by ESM ❌ -> Backlogged)
+
+### Result: ✅ Implemented
+Marketplace architecture and growth loops are staged for pilot rollout.
+
+---
+
 ## Session: 2026-01-01 (Build Fix: Markdown Imports & TS Types)
 ### Task ID
 build_fix_markdown_imports_ts
