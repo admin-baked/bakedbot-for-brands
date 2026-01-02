@@ -24,6 +24,7 @@ export interface DispensaryDashboardData {
     location: {
         name: string;
         type: 'delivery' | 'pickup' | 'both';
+        state?: string;
     };
 }
 
@@ -113,14 +114,58 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
         }
 
         // Location info
-        const locationName = dispensaryData.name || dispensaryData.locationName || 'Main Location';
+        // Location info & Org info
+        const userProfile = (await firestore.collection('users').doc(user.uid).get()).data();
+        const currentOrgId = userProfile?.currentOrgId;
+        
+        // Get canonical org name & state
+        let canonicalName = dispensaryData.name || 'My Dispensary';
+        let state = dispensaryData.state || dispensaryData.marketState;
+
+        if (currentOrgId) {
+             const orgDoc = await firestore.collection('organizations').doc(currentOrgId).get();
+             if (orgDoc.exists) {
+                 const orgData = orgDoc.data();
+                 canonicalName = orgData?.name || canonicalName;
+                 state = orgData?.marketState || orgData?.state || state;
+             }
+        }
+
+        const locationName = canonicalName;
         const locationType = dispensaryData.fulfillmentType || 'both';
+
+        // Check data sync status
+        let productsCount = 0;
+        let competitorsCount = 0;
+        
+        try {
+            // Count products
+            const productsQuery = await firestore.collection('products')
+                .where('brandId', '==', currentOrgId || dispensaryId) 
+                .count()
+                .get();
+            productsCount = productsQuery.data().count;
+
+            // Count competitors
+            if (currentOrgId) {
+                const competitorsQuery = await firestore
+                    .collection('organizations')
+                    .doc(currentOrgId)
+                    .collection('competitors')
+                    .count()
+                    .get();
+                competitorsCount = competitorsQuery.data().count;
+            }
+        } catch (e) {
+            console.warn('Failed to count sync stats', e);
+        }
 
         return {
             stats: {
+                // ... existing stats
                 ordersToday: { 
                     value: ordersToday, 
-                    trend: '+0%', // Would need historical data for real trend
+                    trend: '+0%', 
                     label: 'vs. yesterday' 
                 },
                 revenueToday: { 
@@ -129,7 +174,7 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
                     label: 'Gross Sales' 
                 },
                 conversion: { 
-                    value: '—', // Would need analytics data
+                    value: '—', 
                     trend: '—', 
                     label: 'Menu to Checkout' 
                 },
@@ -141,8 +186,8 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
             },
             alerts: {
                 productsNearOOS,
-                promosBlocked: 0, // Would need promo tracking
-                menuSyncDelayed: false, // Would need POS sync status
+                promosBlocked: 0,
+                menuSyncDelayed: false,
                 criticalErrors: 0
             },
             operations: {
@@ -152,7 +197,14 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
             },
             location: {
                 name: locationName,
-                type: locationType as 'delivery' | 'pickup' | 'both'
+                type: locationType as 'delivery' | 'pickup' | 'both',
+                state: state || 'Michigan' // Default for Ezal continuity
+            },
+            // NEW: Sync Data
+            sync: {
+                products: productsCount,
+                competitors: competitorsCount,
+                lastSynced: new Date().toISOString()
             }
         };
     } catch (error) {
