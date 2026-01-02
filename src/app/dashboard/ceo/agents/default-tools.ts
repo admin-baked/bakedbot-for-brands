@@ -149,3 +149,20 @@ export const defaultMrsParkerTools = {
         }
     }
 };
+
+export const defaultExecutiveTools = {
+    generateSnapshot: async (query: string, context: any) => {
+        try {
+            const response = await ai.generate({
+                prompt: `Generate a strategic snapshot for: ${query}. Context: ${JSON.stringify(context)}. Return JSON with 'snapshot' and 'next_steps'.`,
+            });
+            return response.text;
+        } catch (e) {
+            return "Could not generate snapshot.";
+        }
+    },
+    delegateTask: async (personaId: string, task: string, context?: any) => {
+        const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
+        return await runAgentChat(`DELEGATED TASK: ${task}`, personaId as any, { modelLevel: 'advanced' });
+    }
+};

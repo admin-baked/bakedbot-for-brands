@@ -264,6 +264,19 @@ export const MrsParkerMemorySchema = AgentMemorySchema.extend({
 
 export type MrsParkerMemory = z.infer<typeof MrsParkerMemorySchema>;
 
+// --- Executive Suite Schemas ---
+
+export const ExecutiveMemorySchema = AgentMemorySchema.extend({
+    objectives: z.array(BrandObjectiveSchema),
+    snapshot_history: z.array(z.object({
+        timestamp: TimestampSchema,
+        content: z.string(),
+        metric_values: z.record(z.number()).optional(),
+    })),
+});
+
+export type ExecutiveMemory = z.infer<typeof ExecutiveMemorySchema>;
+
 // --- Agent Log Schema ---
 
 

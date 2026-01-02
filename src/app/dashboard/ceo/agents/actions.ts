@@ -12,6 +12,7 @@ import { popsAgent } from '@/server/agents/pops';
 import { ezalAgent } from '@/server/agents/ezal';
 import { moneyMikeAgent } from '@/server/agents/moneyMike';
 import { mrsParkerAgent } from '@/server/agents/mrsParker';
+import { executiveAgent } from '@/server/agents/executive';
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { httpRequest, HttpRequestOptions } from '@/server/tools/http-client';
 import { browserAction, BrowserActionParams } from '@/server/tools/browser';
@@ -37,6 +38,11 @@ const AGENT_MAP = {
     ezal: ezalAgent,
     money_mike: moneyMikeAgent,
     mrs_parker: mrsParkerAgent,
+    leo: executiveAgent,
+    jack: executiveAgent,
+    linus: executiveAgent,
+    glenda: executiveAgent,
+    mike_exec: executiveAgent,
 };
 
 import { 
@@ -62,6 +68,10 @@ export async function triggerAgentRun(agentName: string, stimulus?: string, bran
     else if (agentName === 'ezal') tools = defaultEzalTools;
     else if (agentName === 'money_mike') tools = defaultMoneyMikeTools;
     else if (agentName === 'mrs_parker') tools = defaultMrsParkerTools;
+    else if (['leo', 'jack', 'linus', 'glenda', 'mike_exec'].includes(agentName)) {
+        const { defaultExecutiveTools } = await import('./default-tools');
+        tools = defaultExecutiveTools;
+    }
 
     try {
         const logEntry = await runAgent(brandId, persistence, agentImpl as any, tools, stimulus);
