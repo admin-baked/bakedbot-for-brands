@@ -121,13 +121,19 @@ export async function getAllUsers() {
 
     const usersSnap = await firestore.collection('users').orderBy('createdAt', 'desc').limit(100).get();
     
-    const users = usersSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      // Format dates for client
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null,
-      lastLogin: doc.data().lastLogin?.toDate?.()?.toISOString() || null,
-    }));
+    const users = usersSnap.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        email: data.email || null,
+        displayName: data.displayName || data.name || null,
+        role: data.role || null,
+        roles: data.roles || [],
+        customClaims: data.customClaims || null, // Ensure this is serializable JSON
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
+        lastLogin: data.lastLogin?.toDate?.()?.toISOString() || null,
+      };
+    });
 
     return users;
   } catch (error) {

@@ -17,6 +17,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Trash2, AlertTriangle } from 'lucide-react';
 import {
     getAllUsers,
+    promoteToSuperUser,
+} from '@/app/dashboard/ceo/actions';
+import {
     deleteUserAccount,
 } from '@/server/actions/delete-account';
 import {
@@ -27,10 +30,12 @@ import {
 } from '@/server/actions/delete-organization';
 
 interface User {
-    uid: string;
+    id: string; // Changed from uid to match new action
     email: string | null;
     displayName: string | null;
     role: string | null;
+    roles?: string[]; // Added
+    customClaims?: any; // Added
     createdAt: string | null;
 }
 
@@ -248,16 +253,25 @@ export function AccountManagementTab() {
                                                 <TableHead>Name</TableHead>
                                                 <TableHead>Role</TableHead>
                                                 <TableHead>Created</TableHead>
-                                                <TableHead className="w-[100px]">Actions</TableHead>
+                                                <TableHead className="w-[150px]">Actions</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {filteredUsers.map((user) => (
-                                                <TableRow key={user.uid}>
+                                                <TableRow key={user.id}>
                                                     <TableCell className="font-medium">{user.email || 'N/A'}</TableCell>
                                                     <TableCell>{user.displayName || 'N/A'}</TableCell>
                                                     <TableCell>
-                                                        <Badge variant="outline">{user.role || 'none'}</Badge>
+                                                        <div className="flex flex-col gap-1">
+                                                            <Badge variant="outline">{user.role || 'none'}</Badge>
+                                                            {user.roles && user.roles.length > 0 && (
+                                                                <span className="text-xs text-muted-foreground">{user.roles.join(', ')}</span>
+                                                            )}
+                                                            {/* Show Super User Badge if applicable */}
+                                                            {(user.role === 'super_user' || user.role === 'owner' || user.customClaims?.super_user) && (
+                                                                <Badge className="w-fit bg-green-100 text-green-700 border-green-200">Super User</Badge>
+                                                            )}
+                                                        </div>
                                                     </TableCell>
                                                     <TableCell suppressHydrationWarning>
                                                         {user.createdAt
@@ -265,20 +279,46 @@ export function AccountManagementTab() {
                                                             : 'N/A'}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                setDeleteDialog({
-                                                                    open: true,
-                                                                    type: 'user',
-                                                                    id: user.uid,
-                                                                    name: user.email || user.displayName || user.uid,
-                                                                })
-                                                            }
-                                                        >
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                                        </Button>
+                                                        <div className="flex items-center gap-2">
+                                                            {/* Promote Button */}
+                                                            {user.role !== 'owner' && user.role !== 'super_user' && !user.customClaims?.super_user && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            const res = await promoteToSuperUser(user.id);
+                                                                            if (res.success) {
+                                                                                toast({ title: "Success", description: "User promoted to Super User" });
+                                                                                loadUsers();
+                                                                            } else {
+                                                                                toast({ title: "Error", description: res.error, variant: "destructive" });
+                                                                            }
+                                                                        } catch (e) {
+                                                                             toast({ title: "Error", description: "Failed to promote", variant: "destructive" });
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <Loader2 className="mr-2 h-3 w-3" /> 
+                                                                    Promote
+                                                                </Button>
+                                                            )}
+
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() =>
+                                                                    setDeleteDialog({
+                                                                        open: true,
+                                                                        type: 'user',
+                                                                        id: user.id,
+                                                                        name: user.email || user.displayName || user.id,
+                                                                    })
+                                                                }
+                                                            >
+                                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                                            </Button>
+                                                        </div>
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
