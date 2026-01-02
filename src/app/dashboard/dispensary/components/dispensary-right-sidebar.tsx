@@ -20,7 +20,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { EzalSnapshotCard } from '@/components/dashboard/ezal-snapshot-card';
 
-export function DispensaryRightRail() {
+interface DispensaryRightRailProps {
+    userState?: string;
+}
+
+export function DispensaryRightRail({ userState = 'Michigan' }: DispensaryRightRailProps) {
     const { toast } = useToast();
 
     const handleAction = (action: string) => {
@@ -138,7 +142,7 @@ export function DispensaryRightRail() {
             </Card>
 
             {/* E) Ezal Lite - Competitive Intel */}
-            <EzalSnapshotCard userState="Michigan" compact />
+            <EzalSnapshotCard userState={userState} compact />
         </div>
     );
 }

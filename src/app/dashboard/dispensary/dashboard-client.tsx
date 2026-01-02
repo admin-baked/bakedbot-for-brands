@@ -15,6 +15,12 @@ import { DropdownMenu,
     DropdownMenuLabel,
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Server } from 'lucide-react';
 
 import { ManagedPagesList } from '@/components/dashboard/managed-pages-list';
 import { SetupChecklist } from '@/components/dashboard/setup-checklist';
@@ -33,27 +39,13 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
         loadData();
     }, [brandId]);
 
-    // Fetch linked dispensary name
-    useEffect(() => {
-        async function loadDispensaryName() {
-            try {
-                const response = await fetch('/api/user/linked-dispensary');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.linkedDispensary?.name) {
-                        setDispensaryName(data.linkedDispensary.name);
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to load dispensary name:', error);
-            }
-        }
-        loadDispensaryName();
-    }, []);
-
     // Use live data or fallback
-    const locationName = liveData?.location?.name || dispensaryName || "Loading...";
-    const displayName = dispensaryName || brandId;
+    const locationName = liveData?.location?.name || brandId;
+    const displayName = liveData?.location?.name || brandId;
+    
+    // Calculate sync stats
+    const productsCount = liveData?.sync?.products || 0;
+    const competitorsCount = liveData?.sync?.competitors || 0;
 
     return (
         <div className="space-y-6 pb-20"> {/* pb-20 availability for sticky footer */}
@@ -63,7 +55,11 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl font-bold tracking-tight">Dispensary Console</h1>
                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                            {dispensaryName ? dispensaryName : `Dispensary Mode • ${brandId.slice(0, 8)}...`}
+                             {liveData?.location?.name ? (
+                                <span className="font-semibold">{liveData.location.name}</span>
+                             ) : (
+                                `Dispensary Mode • ${brandId.slice(0, 8)}...`
+                             )}
                         </Badge>
                     </div>
                     <p className="text-muted-foreground">Run daily ops, menu, marketing, and compliance.</p>
@@ -86,10 +82,37 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md text-xs font-medium">
-                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-[11px] font-black uppercase tracking-wider">Live Data ON</span>
-                    </div>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md text-xs font-medium cursor-pointer hover:bg-muted/80 transition-colors">
+                                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                <span className="text-[11px] font-black uppercase tracking-wider">Live Data ON</span>
+                            </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-0" align="end">
+                            <div className="p-3 bg-slate-950 text-white rounded-t-lg border-b border-slate-800">
+                                <div className="text-xs font-mono text-slate-400 mb-1">DATA STREAM</div>
+                                <div className="text-sm font-semibold flex items-center gap-2">
+                                    <Server className="h-4 w-4 text-emerald-400" />
+                                    Active Sync
+                                </div>
+                            </div>
+                            <div className="p-3 space-y-3">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Products Indexed</span>
+                                    <span className="font-mono font-bold">{productsCount}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Competitors Found</span>
+                                    <span className="font-mono font-bold">{competitorsCount}</span>
+                                </div>
+                                <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
+                                    <span>Last Sync:</span>
+                                    <span>{liveData?.sync?.lastSynced ? new Date(liveData.sync.lastSynced).toLocaleTimeString() : 'Just now'}</span>
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                 </div>
             </div>
 
@@ -119,7 +142,7 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
 
                 {/* Right Rail */}
                 <div className="lg:col-span-2">
-                    <DispensaryRightRail />
+                    <DispensaryRightRail userState={liveData?.location?.state} />
                 </div>
             </div>
 
