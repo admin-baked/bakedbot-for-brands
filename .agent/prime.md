@@ -9,9 +9,9 @@
 ## 🏥 Codebase Health Status (Live)
 | Metric | Status | Last Verified | Notes |
 |--------|--------|---------------|-------|
-| **Build** | 🟢 Passing | 2025-12-31 | `npm run check:types` passing locally. |
-| **Tests** | 🟡 Partial | 2025-12-31 | Core logic passing. JSDOM async issues skipping some UI integration tests. |
-| **Deploy** | 🟢 Stable | 2025-12-31 | Production successfully deployed via `git push`. |
+| **Build** | 🟢 Passing | 2026-01-02 | `npm run check:types` passing. |
+| **Tests** | 🟢 Passing | 2026-01-02 | Unit tests for Executive Squad and Delegation passing. |
+| **Deploy** | 🟢 Stable | 2026-01-02 | Production deployed with Executive Squad features. |
 
 ### Critical Watchlist
 - **Firestore**: `ignoreUndefinedProperties: true` enabled globally (watch for silent data loss).
@@ -27,9 +27,9 @@
 - **Core Metric**: Speed of learning = durability of moat.
 
 ### 🗺️ Technical Roadmap
-- **V1 (Current)**: Firecrawl (Public Data) + Official APIs (Dutchie/Leafly).
+- **V1 (Current)**: **Executive Squad & Delegation** — Agents autonomously orchestrate via `agent.delegate`.
 - **V2 (Future)**: **Browser Agents (RTRVR/Puppeteer)** — "Special Ops" local automation for non-API portals (Metrc, Admin Dashboards).
-- **V3**: Autonomous multi-user collaboration.
+- **V3**: Full autonomous revenue management ($100k MRR).
 
 ### The Rebel-Sage Synthesis
 We are applying **Tasklet.ai Principles** to cannabis. Every agent action (recommendation, campaign, compliance check) is a measurable product. We do not ship static features; we ship learning systems.
@@ -48,8 +48,13 @@ The platform logic is personified by specialized AI agents.
 | **Money Mike** | Banker | Pricing & Margins | Elasticity Models, Billing, ROI Calc (needs forecast integration) |
 | **Day Day** | Growth | SEO & Traffic | Site Audits, Backlinks, Local Search Dominance |
 | **Felisha** | Ops | Coordination | Meeting Notes, Error Triage, Scheduling |
-| **Mrs. Parker** | Hostess | Loyalty & VIP | Segmentation (needs ML clustering), Win-back flows |
-| **Deebo** | Enforcer | Compliance & Regs | CTIA/State Rule Engine (needs proactive risk scoring) |
+| **Mrs. Parker** | Hostess | Loyalty & VIP | Segmentation, Win-back flows |
+| **Deebo** | Enforcer | Compliance & Regs | CTIA/State Rule Engine |
+| **Leo** | COO | Operations | **Orchestrator**: Full Work OS & Squad Delegation |
+| **Jack** | CRO | Revenue | **Growth Engine**: $100k MRR Mandate, Claim Model |
+| **Linus** | CTO | Technology | **Architect**: Codebase access, AI Autonomy logic |
+| **Glenda** | CMO | Marketing | **Funnel**: National Discovery Layer, SEO Content |
+| **Mike** | CFO | Finance | **Banker**: Unit Economics, Billing, Stripe |
 
 ---
 
@@ -96,6 +101,8 @@ We systematically improve tools in 5 layers. **"Measure. Version. Learn."**
 | **Multimodal Inputs** | Native Genkit (`agent-runner.ts` handles PDF/Images) |
 | **Knowledge Base** | Vector RAG (Firestore `findNearest`) |
 | **Deep Research** | Owl Sidecar (`research.deep` tool) |
+| **Universal Delegation** | `agent.delegate` (All core agents can spawn sub-tasks) |
+| **Broadcasting** | `agent.broadcast` (Multi-channel Slack/Email updates) |
 
 ---
 
