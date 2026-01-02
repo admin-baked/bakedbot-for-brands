@@ -370,35 +370,13 @@ export function NextBestActionsWidget({ onRemove }: { onRemove?: () => void }) {
     );
 }
 
-export function CompetitiveIntelWidget({ onRemove }: { onRemove?: () => void }) {
+import { EzalSnapshotCard } from '@/components/dashboard/ezal-snapshot-card';
+
+export function CompetitiveIntelWidget({ onRemove, data }: { onRemove?: () => void, data?: any }) {
+    const userState = data?.meta?.state || 'Michigan';
     return (
         <WidgetWrapper title="Competitive Intel (Ezal)" icon={<Search className="h-4 w-4" />} onRemove={onRemove}>
-            <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                        <div className="text-3xl font-bold">6+</div>
-                        <div className="text-xs text-muted-foreground">COMPETITORS</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-3xl font-bold text-emerald-600">+6%</div>
-                        <div className="text-xs text-muted-foreground">PRICE INDEX</div>
-                    </div>
-                </div>
-                <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                        <span>Undercutters this week</span>
-                        <span className="font-medium">3 Retailers</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>Promo Gap detected</span>
-                        <span className="font-medium">5 vs 1</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>Shelf Share Trend</span>
-                        <span className="font-medium text-emerald-600">+1 stores</span>
-                    </div>
-                </div>
-            </div>
+             <EzalSnapshotCard userState={userState} compact />
         </WidgetWrapper>
     );
 }

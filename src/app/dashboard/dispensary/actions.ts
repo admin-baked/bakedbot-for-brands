@@ -26,6 +26,11 @@ export interface DispensaryDashboardData {
         type: 'delivery' | 'pickup' | 'both';
         state?: string;
     };
+    sync?: {
+        products: number;
+        competitors: number;
+        lastSynced: string;
+    };
 }
 
 export async function getDispensaryDashboardData(dispensaryId: string): Promise<DispensaryDashboardData | null> {

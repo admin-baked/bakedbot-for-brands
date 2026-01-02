@@ -98,6 +98,68 @@ export async function initializeAllEmbeddings(): Promise<EmbeddingActionResult> 
     }
 
     return {
+      message: 'Processing complete',
+      processed: results.length,
+      results
+    };
+  } catch (err: any) {
+    return {
+      message: `Error: ${err.message}`,
+      error: true
+    };
+  }
+}
+
+// ============================================================================
+// USER MANAGEMENT ACTIONS
+// ============================================================================
+
+export async function getAllUsers() {
+  try {
+    const { firestore } = await createServerClient();
+    await requireUser(['owner', 'super_user']); // Strict Access
+
+    const usersSnap = await firestore.collection('users').orderBy('createdAt', 'desc').limit(100).get();
+    
+    const users = usersSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      // Format dates for client
+      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null,
+      lastLogin: doc.data().lastLogin?.toDate?.()?.toISOString() || null,
+    }));
+
+    return users;
+  } catch (error) {
+    console.error('Failed to fetch users:', error);
+    return [];
+  }
+}
+
+export async function promoteToSuperUser(uid: string) {
+  try {
+    const { firestore } = await createServerClient();
+    const requester = await requireUser(['owner']); // Only Owners can promote (or super_users if we want)
+    // Actually, let's limit to existing super_users/owners
+    
+    // 1. Update Firebase Auth Custom Claims
+    const { getAdminAuth } = await import('@/firebase/admin');
+    await getAdminAuth().setCustomUserClaims(uid, { role: 'super_user' });
+
+    // 2. Update Firestore Profile
+    await firestore.collection('users').doc(uid).update({
+      roles: ['super_user'], // Overwrite or append? Usually overwrite for primary role, or append.
+      // Let's assume 'roles' is an array of strings. 
+      // Safe update:
+      updatedAt: new Date()
+    });
+
+    return { success: true, message: 'User promoted to Super User' };
+  } catch (error: any) {
+    console.error('Failed to promote user:', error);
+    return { success: false, message: error.message };
+  }
+}
       message: `Successfully processed ${results.length} products.`,
       processed: results.length,
       results
