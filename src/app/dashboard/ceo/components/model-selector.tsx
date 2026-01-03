@@ -39,12 +39,12 @@ export function ModelSelector({ value, onChange, userPlan = 'free', unlockResear
     const isPaid = userPlan !== 'free' || isSuperUser;
 
     const options: Record<ThinkingLevel, { label: string, desc: string, icon: any, locked?: boolean }> = {
-        lite: { label: 'Lite', desc: 'Ultra-efficient (2.5 Flash Lite)', icon: Leaf },
-        standard: { label: 'Standard', desc: 'Fast & capable (Gemini 3 Flash)', icon: Zap, locked: !isPaid },
-        advanced: { label: 'Advanced', desc: 'Complex logic (Gemini 3 Pro)', icon: Brain, locked: !isPaid },
-        expert: { label: 'Reasoning', desc: 'Deep thought (Pro + Thinking)', icon: Sparkles, locked: !isSuperUser },
-        genius: { label: 'Genius', desc: 'Maximum intelligence (Pro + Max Thinking)', icon: Rocket, locked: !isSuperUser },
-        deep_research: { label: 'Deep Research', desc: 'Comprehensive web analysis (Owl)', icon: Globe, locked: !isSuperUser && !unlockResearch },
+        lite: { label: 'Lite', desc: 'Ultra-fast responses', icon: Leaf },
+        standard: { label: 'Standard', desc: 'Balanced speed & quality', icon: Zap, locked: !isPaid },
+        advanced: { label: 'Advanced', desc: 'Complex reasoning', icon: Brain, locked: !isPaid },
+        expert: { label: 'Reasoning', desc: 'Step-by-step analysis', icon: Sparkles, locked: !isSuperUser },
+        genius: { label: 'Genius', desc: 'Maximum intelligence', icon: Rocket, locked: !isSuperUser },
+        deep_research: { label: 'Deep Research', desc: 'Comprehensive web analysis', icon: Globe, locked: !isSuperUser && !unlockResearch },
     };
 
     const SelectedIcon = options[value].icon;
