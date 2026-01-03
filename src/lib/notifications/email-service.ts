@@ -15,6 +15,7 @@ export interface EmailOptions {
     html: string;
 }
 
+export class EmailService {
     private async sendEmail({ to, subject, html }: EmailOptions): Promise<boolean> {
         try {
             const { sendGenericEmail } = await import('@/lib/email/dispatcher');
