@@ -8,6 +8,7 @@ import DashboardPageComponent from '../page-client';
 import DispensaryDashboardClient from '../dispensary/dashboard-client';
 import BrandDashboardClient from '../brand/dashboard-client';
 import CustomerDashboardClient from '../customer/dashboard-client';
+import SpecialistDashboardClient from '../specialist/dashboard-client';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
@@ -50,23 +51,28 @@ export default function DashboardSwitcher() {
         );
     }
 
-    // 2. Brand / Owner View
+    // 2. Specialist / Empire View (Agentic Mode)
+    if (role === 'specialist' || role === 'empire') {
+        return <SpecialistDashboardClient />;
+    }
+
+    // 3. Brand / Owner View
     if (role === 'brand' || role === 'owner') {
         const brandId = (user as any)?.brandId || user?.uid || 'unknown-brand';
         return <BrandDashboardClient brandId={brandId} />;
     }
 
-    // 3. Dispensary View
+    // 4. Dispensary View
     if (role === 'dispensary') {
         const brandId = (user as any)?.brandId || user?.uid || 'unknown-dispensary';
         return <DispensaryDashboardClient brandId={brandId} />;
     }
 
-    // 4. Customer View
+    // 5. Customer View
     if (role === 'customer') {
         return <CustomerDashboardClient />;
     }
 
-    // 5. Default Fallback
+    // 6. Default Fallback
     return <DashboardPageComponent brandId={(user as any)?.brandId || user?.uid || 'guest'} />;
 }

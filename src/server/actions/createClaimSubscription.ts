@@ -264,6 +264,11 @@ export async function createClaimWithSubscription(
                 error: error.message || 'Payment processing failed.'
             };
         }
+    } catch (error: any) {
+        logger.error('Claim creation failed:', error);
+        return { success: false, error: error.message || 'An unknown error occurred.' };
+    }
+}
 
 /**
  * Fetch organization details to pre-fill claim form
