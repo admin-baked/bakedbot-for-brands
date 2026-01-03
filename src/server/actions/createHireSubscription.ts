@@ -105,7 +105,7 @@ export async function createHireSubscription(input: HireSubscriptionInput) {
             });
             logger.info(`Updated custom claims for user ${input.userId} to role ${input.planId}`);
         } catch (claimError) {
-            logger.error('Failed to update custom claims:', claimError);
+            logger.error('Failed to update custom claims:', claimError as Record<string, any>);
             // Non-fatal, but frontend might lag until token refresh
         }
 
@@ -114,7 +114,7 @@ export async function createHireSubscription(input: HireSubscriptionInput) {
         return { success: true, subscriptionId: sub.subscriptionId };
 
     } catch (error: any) {
-        logger.error('Hire Subscription Failed:', error);
+        logger.error('Hire Subscription Failed:', error as Record<string, any>);
         return { success: false, error: error.message || 'Subscription failed.' };
     }
 }

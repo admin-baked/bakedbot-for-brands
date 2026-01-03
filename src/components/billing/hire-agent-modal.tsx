@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { createHireSubscription } from '@/server/actions/createHireSubscription';
 import { useUser } from '@/firebase/auth/use-user';
 import { Loader2, CheckCircle, ShieldCheck } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 // Load Accept.js script dynamically or assume it's loaded in layout?
 // For robust implementation, we'll assume it's available or load it.

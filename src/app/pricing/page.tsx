@@ -1,6 +1,6 @@
 import { PricingSection } from '@/components/landing/pricing-section';
 import { Navbar } from '@/components/landing/navbar';
-import { Footer } from '@/components/landing/footer';
+import { LandingFooter } from '@/components/landing/footer';
 
 export default function PricingPage() {
     return (
@@ -33,7 +33,7 @@ export default function PricingPage() {
                 </div>
             </main>
 
-            <Footer />
+            <LandingFooter />
         </div>
     );
 }

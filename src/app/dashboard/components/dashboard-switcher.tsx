@@ -14,7 +14,8 @@ import { Loader2 } from 'lucide-react';
 
 export default function DashboardSwitcher() {
     const router = useRouter(); // Initialize router
-    const { role, user, isLoading: isRoleLoading } = useUserRole();
+    const { role: rawRole, user, isLoading: isRoleLoading } = useUserRole();
+    const role = rawRole as string;
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [checkComplete, setCheckComplete] = useState(false);
 
