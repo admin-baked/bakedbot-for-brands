@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
+import { DiscoveryBrowserStatus } from '@/app/dashboard/ceo/components/discovery-browser-status';
 import { useUser } from '@/firebase/auth/use-user';
 
 // Mock KPI Widgets
@@ -123,13 +124,15 @@ export default function BoardroomTab() {
                         icon={ShieldAlert} 
                         color="bg-emerald-100 text-emerald-700"
                     />
-                     <BoardroomWidget 
+                    <BoardroomWidget 
                         title="Marketing Funnel" 
                         value="1.2k Leads" 
                         subtext="Claim Pro conversion at 12%" 
                         icon={Sparkles} 
                         color="bg-purple-100 text-purple-700"
                     />
+                    {/* Discovery Browser Status */}
+                    <DiscoveryBrowserStatus />
                 </div>
 
                 {/* Main: Unified Chat */}

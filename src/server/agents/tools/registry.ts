@@ -502,6 +502,86 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         },
         category: 'write',
         requiredPermission: undefined
+    },
+
+    // ===================================
+    // 12. Discovery Browser Tools (Executive Only)
+    // ===================================
+    'discovery.browserAutomate': {
+        name: 'discovery.browserAutomate',
+        description: 'Execute a browser automation task. Can navigate pages, fill forms, click buttons, and extract data. (Executive Boardroom + Super Users only)',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                input: { type: 'string', description: 'Detailed instruction for the browser agent' },
+                urls: { type: 'array', items: { type: 'string' }, description: 'URLs to open' },
+                verbosity: { type: 'string', enum: ['final', 'steps', 'debug'], default: 'final' }
+            },
+            required: ['input']
+        },
+        category: 'side-effect',
+        requiredPermission: 'admin:all',
+    },
+    'discovery.summarizePage': {
+        name: 'discovery.summarizePage',
+        description: 'Summarize the main content of a webpage in bullet points. (Executive Boardroom + Super Users only)',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                url: { type: 'string', description: 'URL to summarize' }
+            },
+            required: ['url']
+        },
+        category: 'read',
+        requiredPermission: 'admin:all',
+    },
+    'discovery.extractData': {
+        name: 'discovery.extractData',
+        description: 'Extract structured data from a webpage based on instructions. (Executive Boardroom + Super Users only)',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                url: { type: 'string', description: 'URL to extract from' },
+                instruction: { type: 'string', description: 'What data to extract' },
+                schema: { type: 'object', description: 'Expected JSON schema for output' }
+            },
+            required: ['url', 'instruction']
+        },
+        category: 'read',
+        requiredPermission: 'admin:all',
+    },
+    'discovery.fillForm': {
+        name: 'discovery.fillForm',
+        description: 'Fill a form on a webpage and optionally submit it. (Executive Boardroom + Super Users only)',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                url: { type: 'string', description: 'URL of the form' },
+                formData: { type: 'object', description: 'Field name to value mapping' },
+                submitButtonText: { type: 'string', description: 'Text of submit button to click' }
+            },
+            required: ['url', 'formData']
+        },
+        category: 'side-effect',
+        requiredPermission: 'admin:all',
+    },
+    'discovery.createRedditAd': {
+        name: 'discovery.createRedditAd',
+        description: 'Create a Reddit advertising campaign targeting specific subreddits. (Executive Boardroom + Super Users only)',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                name: { type: 'string', description: 'Campaign name' },
+                objective: { type: 'string', enum: ['traffic', 'conversions', 'awareness'] },
+                targetSubreddits: { type: 'array', items: { type: 'string' }, description: 'Subreddits to target' },
+                budget: { type: 'number', description: 'Daily budget in USD' },
+                headline: { type: 'string', description: 'Ad headline' },
+                body: { type: 'string', description: 'Ad body text' }
+            },
+            required: ['name', 'objective', 'targetSubreddits', 'budget']
+        },
+        category: 'side-effect',
+        requiredPermission: 'admin:all',
     }
 };
 

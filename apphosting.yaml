@@ -164,6 +164,11 @@ env:
     value: "true"
   - variable: FIRECRAWL_API_KEY
     secret: FIRECRAWL_API_KEY
+  # RTRVR - Browser Automation
+  - variable: RTRVR_API_KEY
+    secret: RTRVR_API_KEY
+    availability:
+      - RUNTIME
 
 build:
   installCommand: npm install --legacy-peer-deps

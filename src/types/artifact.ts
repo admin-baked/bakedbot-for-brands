@@ -180,8 +180,9 @@ export function parseArtifactsFromContent(content: string): { artifacts: Partial
     while ((match = ARTIFACT_CODE_PATTERN.exec(content)) !== null) {
         const [fullMatch, type, language, innerContent] = match;
         if (ARTIFACT_TYPES.some(t => t.type === type)) {
+            const id = createArtifactId();
             artifacts.push({
-                id: createArtifactId(),
+                id,
                 type: type as ArtifactType,
                 title: `Generated ${getArtifactLabel(type as ArtifactType)}`,
                 content: innerContent.trim(),
@@ -189,7 +190,7 @@ export function parseArtifactsFromContent(content: string): { artifacts: Partial
                 createdAt: new Date(),
                 updatedAt: new Date(),
             });
-            cleanedContent = cleanedContent.replace(fullMatch, `[${getArtifactLabel(type as ArtifactType)}: Click to view]`);
+            cleanedContent = cleanedContent.replace(fullMatch, `[View ${getArtifactLabel(type as ArtifactType)}](artifact://${id})`);
         }
     }
     
@@ -197,15 +198,16 @@ export function parseArtifactsFromContent(content: string): { artifacts: Partial
     while ((match = ARTIFACT_BLOCK_PATTERN.exec(content)) !== null) {
         const [fullMatch, type, title, innerContent] = match;
         if (ARTIFACT_TYPES.some(t => t.type === type)) {
+            const id = createArtifactId();
             artifacts.push({
-                id: createArtifactId(),
+                id,
                 type: type as ArtifactType,
                 title: title.trim(),
                 content: innerContent.trim(),
                 createdAt: new Date(),
                 updatedAt: new Date(),
             });
-            cleanedContent = cleanedContent.replace(fullMatch, `[${title.trim()}: Click to view]`);
+            cleanedContent = cleanedContent.replace(fullMatch, `[View Artifact: ${title.trim()}](artifact://${id})`);
         }
     }
     

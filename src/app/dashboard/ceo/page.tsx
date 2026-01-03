@@ -36,6 +36,7 @@ const AgentSandbox = dynamic(() => import("./components/agent-sandbox").then(mod
 const ResearchTab = dynamic(() => import("./components/research-tab"), { loading: TabLoader });
 const EmailTesterTab = dynamic(() => import("./components/email-tester-tab"), { loading: TabLoader });
 const BoardroomTab = dynamic(() => import("./components/boardroom-tab"), { loading: TabLoader, ssr: false });
+const CodeEvalsTab = dynamic(() => import("./components/code-evals-tab"), { loading: TabLoader, ssr: false });
 
 
 import { useSuperAdmin } from '@/hooks/use-super-admin';
@@ -108,6 +109,7 @@ function CeoDashboardContent() {
             case 'sandbox': return <AgentSandbox />;
             case 'email': return <EmailTesterTab />;
             case 'boardroom': return <BoardroomTab />;
+            case 'code-evals': return <CodeEvalsTab />;
             case 'invites': return (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
