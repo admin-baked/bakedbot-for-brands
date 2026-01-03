@@ -37,6 +37,7 @@ Executive Boardroom is live and production-ready.
 - **UI**: Updated `EmailTesterTab` to switch between `hello@bakedbot.ai` and `team@bakedbot.ai`.
 - **UPDATE**: Configured Signup Autoresponder to explicitly use `hello@bakedbot.ai`.
 - **FEAT**: Refactored `EmailService` and Agent Tools (`router.ts`) to use central Email Dispatcher, enabling Mailjet support for Invites and AI Agents.
+- **FIX**: Optimized Agent Runner to prevent accidental web searches on keywords like "Search Console". Agents now incorporate search results into their persona context.
 
 ---
 
