@@ -3,7 +3,7 @@ import sgMail from '@sendgrid/mail';
 import { logger } from '@/lib/monitoring';
 import { UsageService } from '@/server/services/usage';
 
-const API_KEY = process.env.SENDGRID_API_KEY;
+const API_KEY = process.env.SENDGRID_API_KEY?.trim();
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'orders@bakedbot.ai';
 const FROM_NAME = process.env.SENDGRID_FROM_NAME || 'BakedBot Orders';
 
