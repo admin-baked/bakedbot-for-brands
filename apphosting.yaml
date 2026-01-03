@@ -52,24 +52,20 @@ env:
     availability:
       - RUNTIME
   # Authorize.Net
-  # - variable: AUTHNET_API_LOGIN_ID
-  #   secret: AUTHNET_API_LOGIN_ID
-  #   availability:
-  #     - RUNTIME
-  # - variable: AUTHNET_TRANSACTION_KEY
-  #   secret: AUTHNET_TRANSACTION_KEY
-  #   availability:
-  #     - RUNTIME
+  - variable: AUTHNET_API_LOGIN_ID
+    secret: AUTHNET_API_LOGIN_ID
+    availability:
+      - RUNTIME
+  - variable: AUTHNET_TRANSACTION_KEY
+    secret: AUTHNET_TRANSACTION_KEY
+    availability:
+      - RUNTIME
   - variable: AUTHNET_ENV
     value: "sandbox"
-  # - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
-  #   secret: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
-  #   availability:
-  #     - RUNTIME
-  # - variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
-  #   secret: AUTHNET_API_LOGIN_ID
-  #   availability:
-  #     - RUNTIME
+  - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
+    value: "9K42597r7YGCrMfdxPTd3Zy59fKe9rvWLbmKBK4bWr7Rn5ghdEmT9Fz8CZNLcT2G"
+    availability:
+      - RUNTIME
   # AI/Tools
   # - variable: CLAUDE_API_KEY
   #   secret: CLAUDE_API_KEY
