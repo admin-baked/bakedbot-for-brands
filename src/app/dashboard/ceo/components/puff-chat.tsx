@@ -18,6 +18,7 @@ import {
     DropdownMenuTrigger,
     DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
+import { ThinkingWindow } from '@/components/chat/thinking-window';
 import {
     ArrowLeft,
     Upload,
@@ -1167,11 +1168,12 @@ export function PuffChat({
                                 </div>
                             ) : (
                                 <div className="space-y-2 max-w-[90%]">
-                                    {/* Router / Thinking Process Visualization */}
-                                    {message.steps && message.steps.length > 0 && (
-                                        <AgentRouterVisualization 
-                                            steps={message.steps} 
-                                            isComplete={!message.isThinking}
+                                    {/* Thinking Window - Replaces old visualization */}
+                                    {((message.steps && message.steps.length > 0) || message.isThinking) && (
+                                        <ThinkingWindow 
+                                            steps={message.steps || []} 
+                                            isThinking={message.isThinking || false}
+                                            agentName={message.metadata?.agentName || 'smokey'}
                                         />
                                     )}
 
