@@ -2,7 +2,7 @@
 import { createServerClient } from '@/firebase/server-client';
 import { searchWeb } from '@/server/tools/web-search';
 
-export interface CompetitorScanResult {
+export interface CompetitorDiscoveryResult {
     competitorName: string;
     url: string;
     priceCheck: {
@@ -13,11 +13,11 @@ export interface CompetitorScanResult {
     }[];
     promotions: string[];
     rawSnippets?: string[]; // Added to store search evidence
-    lastScanned: number;
+    lastDiscoveredAt: number;
 }
 
 /**
- * Scans competitor websites (via Serper) to gather intel.
+ * Discovers competitor pricing (via Serper) to gather intel.
  * Uses Google Search to find recent pricing and promotions.
  */
 export async function scanCompetitors(
@@ -25,7 +25,7 @@ export async function scanCompetitors(
     params: {
         competitors?: string[]; // optionally override stored competitors
     }
-): Promise<CompetitorScanResult[]> {
+): Promise<CompetitorDiscoveryResult[]> {
     const { firestore } = await createServerClient();
 
     // Retrieve configured competitors from tenant settings or knowledge base
@@ -79,7 +79,7 @@ export async function scanCompetitors(
                 priceCheck: priceChecks.slice(0, 3), // Top 3 findings
                 promotions: promotions.slice(0, 3),
                 rawSnippets: snippets.slice(0, 5),
-                lastScanned: Date.now()
+                lastDiscoveredAt: Date.now()
             });
 
         } catch (error) {
@@ -89,7 +89,7 @@ export async function scanCompetitors(
                 url: '',
                 priceCheck: [],
                 promotions: ['Scan failed'],
-                lastScanned: Date.now()
+                lastDiscoveredAt: Date.now()
             });
         }
     }

@@ -177,11 +177,11 @@ async function checkWeedmaps(
             inStock,
             price,
             lastVerified: new Date(),
-            confidence: 0.7, // Lower confidence for scraped data
+            confidence: 0.7, // Lower confidence for discovered data
         };
 
     } catch (error) {
-        logger.warn('[Availability] Weedmaps scrape failed:', {
+        logger.warn('[Availability] Weedmaps discovery failed:', {
             productId: request.productId,
             error: error instanceof Error ? error.message : String(error)
         });
@@ -267,7 +267,7 @@ async function checkLeafly(
         };
 
     } catch (error) {
-        logger.warn('[Availability] Leafly scrape failed:', {
+        logger.warn('[Availability] Leafly discovery failed:', {
             productId: request.productId,
             error: error instanceof Error ? error.message : String(error)
         });
@@ -345,7 +345,7 @@ async function checkWebsite(
         };
 
     } catch (error) {
-        logger.warn('[Availability] Website scrape failed:', {
+        logger.warn('[Availability] Website discovery failed:', {
             url: request.websiteUrl,
             error: error instanceof Error ? error.message : String(error)
         });

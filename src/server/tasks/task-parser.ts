@@ -177,7 +177,7 @@ Analyze the request and create a detailed task plan. Return your response in the
 
 **Research & Outreach:**
 1. Ezal: web_search to find targets
-2. Ezal: web_scraper to get contacts
+2. Ezal: web_discovery to get contacts
 3. Craig: generate personalized content
 4. Deebo: compliance review
 5. Craig: gmail_send to send emails

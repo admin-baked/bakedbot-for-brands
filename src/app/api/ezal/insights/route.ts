@@ -13,7 +13,7 @@ import {
     markInsightConsumed,
 } from '@/server/services/ezal';
 import { logger } from '@/lib/logger';
-import { InsightType, InsightSeverity } from '@/types/ezal-scraper';
+import { InsightType, InsightSeverity } from '@/types/ezal-discovery';
 
 export async function GET(request: NextRequest) {
     try {

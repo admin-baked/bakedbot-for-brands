@@ -183,20 +183,20 @@ export interface WebSearchOutput {
     totalResults: number;
 }
 
-// Web Scraper
-export interface WebScraperInput {
+// Web Discovery
+export interface WebDiscoveryInput {
     url: string;
     selector?: string;
     extract?: 'text' | 'html' | 'links' | 'images' | 'emails';
     waitFor?: number; // milliseconds
 }
 
-export interface WebScraperOutput {
+export interface WebDiscoveryOutput {
     content: string | string[];
     metadata: {
         title?: string;
         description?: string;
-        scrapedAt: Date;
+        discoveredAt: Date;
     };
 }
 

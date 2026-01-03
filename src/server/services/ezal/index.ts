@@ -1,6 +1,5 @@
 // src/server/services/ezal/index.ts
 
-// src/server/services/ezal/index.ts
 /**
  * Ezal Competitive Intelligence - Main Orchestrator
  * Combines all Ezal services into a single entry point
@@ -10,15 +9,15 @@ import { logger } from '@/lib/logger';
 import {
     DataSource,
     Competitor,
-    ScrapeJob,
+    DiscoveryJob,
     CompetitorSearchRequest,
     EzalInsight,
-} from '@/types/ezal-scraper';
+} from '@/types/ezal-discovery';
 
 // Re-export all services
 export * from './competitor-manager';
-export * from './scrape-scheduler';
-export * from './scraper-fetcher';
+export * from './discovery-scheduler';
+export * from './discovery-fetcher';
 export * from './parser-engine';
 export * from './diff-engine';
 
@@ -29,14 +28,14 @@ import {
     searchCompetitors,
 } from './competitor-manager';
 import {
-    createScrapeJob,
+    createDiscoveryJob,
     runScheduler,
     getPendingJobs,
-} from './scrape-scheduler';
+} from './discovery-scheduler';
 import {
-    executeScrape,
-    scrapeNow,
-} from './scraper-fetcher';
+    executeDiscovery,
+    discoverNow,
+} from './discovery-fetcher';
 import {
     parseContent,
     ParseResult,
@@ -49,10 +48,10 @@ import {
 } from './diff-engine';
 
 // =============================================================================
-// FULL SCRAPE PIPELINE
+// FULL DISCOVERY PIPELINE
 // =============================================================================
 
-export interface FullScrapeResult {
+export interface FullDiscoveryResult {
     success: boolean;
     runId: string;
     fetchDurationMs: number;
@@ -63,12 +62,12 @@ export interface FullScrapeResult {
 }
 
 /**
- * Execute a full scrape pipeline: fetch -> parse -> diff
+ * Execute a full discovery pipeline: fetch -> parse -> diff
  */
-export async function executeFullScrape(
+export async function executeFullDiscovery(
     tenantId: string,
     sourceId: string
-): Promise<FullScrapeResult> {
+): Promise<FullDiscoveryResult> {
     const startTime = Date.now();
 
     try {
@@ -79,25 +78,25 @@ export async function executeFullScrape(
         }
 
         // Step 1: Fetch
-        const scrapeResult = await scrapeNow(tenantId, sourceId);
+        const discoveryResult = await discoverNow(tenantId, sourceId);
         const fetchDuration = Date.now() - startTime;
 
-        if (!scrapeResult.success || !scrapeResult.content) {
+        if (!discoveryResult.success || !discoveryResult.content) {
             return {
                 success: false,
-                runId: scrapeResult.runId,
+                runId: discoveryResult.runId,
                 fetchDurationMs: fetchDuration,
                 parseDurationMs: 0,
                 diffResult: null,
                 parseResult: null,
-                error: scrapeResult.error,
+                error: discoveryResult.error,
             };
         }
 
         // Step 2: Parse
         const parseStart = Date.now();
         const parseResult = await parseContent(
-            scrapeResult.content,
+            discoveryResult.content,
             source.sourceType,
             source.parserProfileId
         );
@@ -106,7 +105,7 @@ export async function executeFullScrape(
         if (!parseResult.success || parseResult.products.length === 0) {
             return {
                 success: false,
-                runId: scrapeResult.runId,
+                runId: discoveryResult.runId,
                 fetchDurationMs: fetchDuration,
                 parseDurationMs: parseDuration,
                 diffResult: null,
@@ -119,11 +118,11 @@ export async function executeFullScrape(
         const diffResult = await processParsedProducts(
             tenantId,
             source.competitorId,
-            scrapeResult.runId,
+            discoveryResult.runId,
             parseResult.products
         );
 
-        logger.info('[Ezal] Full scrape completed:', {
+        logger.info('[Ezal] Full discovery completed:', {
             tenantId,
             sourceId,
             totalDuration: Date.now() - startTime,
@@ -134,7 +133,7 @@ export async function executeFullScrape(
 
         return {
             success: true,
-            runId: scrapeResult.runId,
+            runId: discoveryResult.runId,
             fetchDurationMs: fetchDuration,
             parseDurationMs: parseDuration,
             diffResult,
@@ -142,7 +141,7 @@ export async function executeFullScrape(
         };
 
     } catch (error) {
-        logger.error('[Ezal] Full scrape failed:', {
+        logger.error('[Ezal] Full discovery failed:', {
             tenantId,
             sourceId,
             error: error instanceof Error ? error.message : String(error),
@@ -161,7 +160,7 @@ export async function executeFullScrape(
 }
 
 /**
- * Process all pending scrape jobs for a tenant
+ * Process all pending discovery jobs for a tenant
  */
 export async function processAllPendingJobs(
     tenantId: string,
@@ -182,7 +181,7 @@ export async function processAllPendingJobs(
             const source = await getDataSource(tenantId, job.sourceId);
             if (!source) continue;
 
-            const result = await executeFullScrape(tenantId, job.sourceId);
+            const result = await executeFullDiscovery(tenantId, job.sourceId);
             processed++;
 
             if (result.success) {
@@ -209,7 +208,7 @@ export async function processAllPendingJobs(
 // =============================================================================
 
 /**
- * Interface for Ezal agent to interact with scraper
+ * Interface for Ezal agent to interact with discovery services
  */
 export const EzalAgent = {
     /**
@@ -328,10 +327,10 @@ export const EzalAgent = {
     },
 
     /**
-     * Trigger immediate scrape
+     * Trigger immediate discovery
      */
-    async scrapeNow(tenantId: string, sourceId: string) {
-        const result = await executeFullScrape(tenantId, sourceId);
+    async discoverNow(tenantId: string, sourceId: string) {
+        const result = await executeFullDiscovery(tenantId, sourceId);
 
         return {
             success: result.success,

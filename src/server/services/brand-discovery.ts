@@ -1,4 +1,4 @@
-import { FirecrawlService } from './firecrawl';
+import { DiscoveryService } from './firecrawl';
 import { getAdminFirestore } from '@/firebase/admin';
 import { BrandSEOPage } from '@/types/foot-traffic';
 import { z } from 'zod';
@@ -18,10 +18,10 @@ const BrandDataSchema = z.object({
  */
 export class BrandDiscoveryService {
     private static instance: BrandDiscoveryService;
-    private firecrawl: FirecrawlService;
+    private discovery: DiscoveryService;
 
     private constructor() {
-        this.firecrawl = FirecrawlService.getInstance();
+        this.discovery = DiscoveryService.getInstance();
     }
 
     public static getInstance(): BrandDiscoveryService {
@@ -45,7 +45,7 @@ export class BrandDiscoveryService {
         
         try {
             // 1. Search for dispensary brand pages
-            const results = await this.firecrawl.search(query);
+            const results = await this.discovery.search(query);
             const typedResults = results as any[];
             
             // Filter for likely brand menu pages
@@ -73,9 +73,9 @@ export class BrandDiscoveryService {
             });
 
             for (const url of menuPages) {
-                console.log(`[BrandDiscovery] Scaping brands from ${url}...`);
+                console.log(`[BrandDiscovery] Discovering brands from ${url}...`);
                 try {
-                    const data = await this.firecrawl.extractData(url, extractionSchema);
+                    const data = await this.discovery.extractData(url, extractionSchema);
                     if (data && data.brands && Array.isArray(data.brands)) {
                         data.brands.forEach((brand: any) => {
                             // Filter out navigation links or generic terms
@@ -145,7 +145,7 @@ export class BrandDiscoveryService {
                     logo: z.string().optional().describe("URL of the brand's logo image")
                 });
 
-                const extractResult = await this.firecrawl.extractData(url, extractSchema);
+                const extractResult = await this.discovery.extractData(url, extractSchema);
                 
                 if (extractResult) {
                     description = extractResult.about || '';
@@ -155,13 +155,12 @@ export class BrandDiscoveryService {
                 console.log(`[BrandDiscovery] Extraction failed for ${url}, falling back to defaults`, e);
             }
 
-            // Fallback: If extraction failed or returned nothing, try basic scrape
+            // Fallback: If extraction failed or returned nothing, try basic discovery
             if (!description) {
                 try {
-                     const scrapeResult = await this.firecrawl.scrapeUrl(url, ['markdown']);
-                     const resultData = scrapeResult as any;
-                     if (resultData.markdown) {
-                         description = resultData.markdown.substring(0, 500); // Truncate
+                     const discoverResult = await this.discovery.discoverUrl(url, ['markdown']);
+                     if (discoverResult.markdown) {
+                         description = discoverResult.markdown.substring(0, 500); // Truncate
                      }
                 } catch(e) {}
             }

@@ -1,7 +1,7 @@
 import { createServerClient } from '@/firebase/server-client';
 import { getRecentInsights, findPriceGaps } from './diff-engine';
 import { listCompetitors } from './competitor-manager';
-import { EzalInsight } from '@/types/ezal-scraper';
+import { EzalInsight } from '@/types/ezal-discovery';
 
 /**
  * Generates a Markdown-formatted Competitive Intelligence Report

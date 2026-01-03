@@ -15,7 +15,7 @@ import {
     CompetitorType,
     SourceKind,
     SourceType
-} from '@/types/ezal-scraper';
+} from '@/types/ezal-discovery';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const COLLECTION_COMPETITORS = 'competitors';
@@ -174,15 +174,14 @@ export async function deactivateCompetitor(
  */
 export async function createDataSource(
     tenantId: string,
-    data: Omit<DataSource, 'id' | 'tenantId' | 'createdAt' | 'updatedAt' | 'lastScrapeAt' | 'nextDueAt'>
+    data: Omit<DataSource, 'id' | 'tenantId' | 'createdAt' | 'updatedAt' | 'lastDiscoveryAt' | 'nextDueAt'>
 ): Promise<DataSource> {
     const { firestore } = await createServerClient();
 
-    const now = new Date();
     const sourceData = {
         ...data,
         tenantId,
-        lastScrapeAt: null,
+        lastDiscoveryAt: null,
         nextDueAt: now, // Due immediately
         createdAt: now,
         updatedAt: now,
@@ -229,7 +228,7 @@ export async function getDataSource(
     return {
         id: doc.id,
         ...data,
-        lastScrapeAt: data.lastScrapeAt?.toDate?.() || null,
+        lastDiscoveryAt: data.lastDiscoveryAt?.toDate?.() || null,
         nextDueAt: data.nextDueAt?.toDate?.() || null,
         createdAt: data.createdAt?.toDate?.() || new Date(),
         updatedAt: data.updatedAt?.toDate?.() || new Date(),
@@ -271,7 +270,7 @@ export async function listDataSources(
         return {
             id: doc.id,
             ...data,
-            lastScrapeAt: data.lastScrapeAt?.toDate?.() || null,
+            lastDiscoveryAt: data.lastDiscoveryAt?.toDate?.() || null,
             nextDueAt: data.nextDueAt?.toDate?.() || null,
             createdAt: data.createdAt?.toDate?.() || new Date(),
             updatedAt: data.updatedAt?.toDate?.() || new Date(),
@@ -301,9 +300,9 @@ export async function updateDataSource(
 }
 
 /**
- * Mark a data source as scraped and calculate next due time
+ * Mark a data source as discovered and calculate next due time
  */
-export async function markSourceScraped(
+export async function markSourceDiscovered(
     tenantId: string,
     sourceId: string,
     frequencyMinutes: number
@@ -312,7 +311,7 @@ export async function markSourceScraped(
     const nextDue = new Date(now.getTime() + frequencyMinutes * 60 * 1000);
 
     await updateDataSource(tenantId, sourceId, {
-        lastScrapeAt: now,
+        lastDiscoveryAt: now,
         nextDueAt: nextDue,
     });
 }
@@ -368,7 +367,7 @@ export async function searchCompetitors(
 }
 
 /**
- * Get sources due for scraping
+ * Get sources due for discovery
  */
 export async function getSourcesDue(
     tenantId: string,
@@ -393,7 +392,7 @@ export async function getSourcesDue(
         return {
             id: doc.id,
             ...data,
-            lastScrapeAt: data.lastScrapeAt?.toDate?.() || null,
+            lastDiscoveryAt: data.lastDiscoveryAt?.toDate?.() || null,
             nextDueAt: data.nextDueAt?.toDate?.() || null,
             createdAt: data.createdAt?.toDate?.() || new Date(),
             updatedAt: data.updatedAt?.toDate?.() || new Date(),

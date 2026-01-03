@@ -8,14 +8,14 @@ import { Activity, Database, Globe } from 'lucide-react';
 import { useMockData } from '@/hooks/use-mock-data';
 import { useState, useEffect } from 'react';
 import { getEzalCompetitors, getEzalInsights } from '../actions';
-import type { Competitor, EzalInsight } from "@/types/ezal-scraper";
+import type { Competitor, EzalInsight } from "@/types/ezal-discovery";
 
 export default function EzalTab() {
     const defaultTenantId = 'admin-baked'; // Default for Super Admin view
     const { isMock, isLoading: isMockLoading } = useMockData();
     const [stats, setStats] = useState({
-        scrapers: 12,
-        scrapersTrend: 2,
+        activeSources: 12,
+        sourcesTrend: 2,
         products: 1429,
         productsCompetitors: 5,
         insights: 24,
@@ -26,8 +26,8 @@ export default function EzalTab() {
         const fetchStats = async () => {
             if (isMock) {
                 setStats({
-                    scrapers: 12,
-                    scrapersTrend: 2,
+                    activeSources: 12,
+                    sourcesTrend: 2,
                     products: 1429,
                     productsCompetitors: 5,
                     insights: 24,
@@ -45,11 +45,11 @@ export default function EzalTab() {
 
                 // Calculate simple stats
                 const totalInsights = insights.length;
-                const activeScrapers = competitors.filter((c: any) => c.active).length;
+                const activeSources = competitors.filter((c: any) => c.active).length;
 
                 setStats({
-                    scrapers: activeScrapers,
-                    scrapersTrend: 0,
+                    activeSources: activeSources,
+                    sourcesTrend: 0,
                     products: 0, // Placeholder
                     productsCompetitors: competitors.length,
                     insights: totalInsights,
@@ -75,7 +75,7 @@ export default function EzalTab() {
                         <Activity className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.scrapers}</div>
+                        <div className="text-2xl font-bold">{stats.activeSources}</div>
                         <p className="text-xs text-muted-foreground">
                             {isMock ? '+2 from last month' : `${stats.productsCompetitors} total competitors`}
                         </p>

@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { MapPin, Clock, ExternalLink } from 'lucide-react';
-import { fetchScrapedDispensaryPages } from '@/lib/dispensary-data';
+import { fetchDiscoveredDispensaryPages } from '@/lib/dispensary-data';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60; // Revalidate every minute
 
-export default async function ScrapedDispensariesPage() {
-    const pages = await fetchScrapedDispensaryPages(50);
+export default async function DiscoveredDispensariesPage() {
+    const pages = await fetchDiscoveredDispensaryPages(50);
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -68,7 +68,7 @@ export default async function ScrapedDispensariesPage() {
                     </div>
                 ) : (
                     <div className="text-center py-20 bg-slate-50 rounded-2xl">
-                        <p className="text-slate-500 mb-4">No scraped dispensaries yet.</p>
+                        <p className="text-slate-500 mb-4">No discovered dispensaries yet.</p>
                         <p className="text-sm text-slate-400">
                             Run the SEO pilot to discover dispensaries.
                         </p>

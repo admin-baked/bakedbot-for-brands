@@ -130,9 +130,9 @@ export async function fetchBrandPageData(brandParam: string) {
 }
 
 /**
- * Fetch all scraped Brand SEO pages for listing/index pages
+ * Fetch all discovered Brand SEO pages for listing/index pages
  */
-export async function fetchScrapedBrandPages(limit = 50) {
+export async function fetchDiscoveredBrandPages(limit = 50) {
     try {
         const { firestore } = await createServerClient();
         
@@ -144,7 +144,7 @@ export async function fetchScrapedBrandPages(limit = 50) {
         
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
     } catch (error) {
-        console.error('[fetchScrapedBrandPages] Error:', error);
+        console.error('[fetchDiscoveredBrandPages] Error:', error);
         return [];
     }
 }

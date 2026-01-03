@@ -68,24 +68,24 @@ export const defaultPopsTools = {
 };
 
 export const defaultEzalTools = {
-    scrapeMenu: async (url: string, context?: any) => {
+    discoverMenu: async (url: string, context?: any) => {
         try {
-            const { firecrawl } = await import('@/server/services/firecrawl');
+            const { discovery } = await import('@/server/services/firecrawl');
             
-            // Check if Firecrawl is configured
-            if (firecrawl.isConfigured()) {
-                const result = await firecrawl.scrapeUrl(url, ['markdown']);
+            // Check if BakedBot Discovery is configured
+            if (discovery.isConfigured()) {
+                const result = await discovery.discoverUrl(url, ['markdown']);
                 return { 
                     success: true, 
                     data: result.data || result, 
-                    message: "Successfully scraped menu data." 
+                    message: "Successfully discovered menu data." 
                 };
             }
             
-            return { message: "Scraping service unavailable. Please check configuration." };
+            return { message: "Discovery service unavailable. Please check configuration." };
         } catch (e: any) {
-            console.error('Scrape failed:', e);
-            return { message: `Scraping failed: ${e.message}` };
+            console.error('Discovery failed:', e);
+            return { message: `Discovery failed: ${e.message}` };
         }
     },
     comparePricing: async (myProducts: any[], competitorProducts: any[]) => {
@@ -110,14 +110,14 @@ export const defaultEzalTools = {
         }
     },
     searchWeb: async (query: string) => {
-        // Use Firecrawl for search if available for Ezal (Advanced agent)
+        // Use BakedBot Discovery for search if available for Ezal (Advanced agent)
         try {
-            const { firecrawl } = await import('@/server/services/firecrawl');
-            if (firecrawl.isConfigured()) {
-                const results = await firecrawl.search(query);
+            const { discovery } = await import('@/server/services/firecrawl');
+            if (discovery.isConfigured()) {
+                const results = await discovery.search(query);
                 return results;
             }
-        } catch (e) { console.warn('Firecrawl search failed, falling back to Serper'); }
+        } catch (e) { console.warn('BakedBot Discovery search failed, falling back to Serper'); }
 
         const results = await searchWeb(query);
         return formatSearchResults(results);

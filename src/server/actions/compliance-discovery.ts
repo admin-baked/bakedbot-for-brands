@@ -117,7 +117,7 @@ export async function approveDiscovery(
             title: discovery.title,
             content: discovery.content,
             type: 'text',
-            source: 'scrape', // Use 'scrape' as it matches allowed types and semantic meaning
+            source: 'discovery', // Align with BakedBot Discovery methodology
             sourceUrl: discovery.sourceUrl,
         });
         

@@ -11,7 +11,7 @@ import type {
 } from '@/types/gmaps';
 
 const APIFY_API_BASE = 'https://api.apify.com/v2';
-const GMAPS_TASK_ID = 'Kb9uh4qmh4s76kDan';  // bakedbot-ai~google-maps-scraper-task
+const GMAPS_TASK_ID = 'Kb9uh4qmh4s76kDan';  // bakedbot-ai~google-maps-discovery-task
 
 /**
  * Get Apify API token from environment
@@ -83,7 +83,7 @@ export async function triggerDispensarySearch(
     };
 
     await runRef.set(ingestionRun);
-    logger.info(`Started Google Maps scan for ${location}`, { runId: run.id, searchTerms });
+    logger.info(`Started Google Maps discovery for ${location}`, { runId: run.id, searchTerms });
 
     return ingestionRun;
 }
@@ -134,7 +134,7 @@ export async function triggerGeoSearch(
     };
 
     await runRef.set(ingestionRun);
-    logger.info(`Started Google Maps geo scan`, { runId: run.id, searchTerms });
+    logger.info(`Started Google Maps geo discovery`, { runId: run.id, searchTerms });
 
     return ingestionRun;
 }
@@ -236,7 +236,7 @@ async function upsertGMapsPlace(data: GMapsPlace): Promise<void> {
         priceLevel: data.price,
         permanentlyClosed: data.permanentlyClosed,
         temporarilyClosed: data.temporarilyClosed,
-        lastScrapedAt: new Date(),
+        lastDiscoveredAt: new Date(),
         source: 'gmaps',
     };
 
@@ -268,7 +268,7 @@ export async function getGMapsPlacesByState(state: string, limit: number = 50): 
         const data = doc.data();
         return {
             ...data,
-            lastScrapedAt: data.lastScrapedAt?.toDate?.() || new Date(),
+            lastDiscoveredAt: data.lastDiscoveredAt?.toDate?.() || new Date(),
         } as GMapsDispensaryDoc;
     });
 }
@@ -302,7 +302,7 @@ export async function getGMapsPlacesNear(
             const data = doc.data();
             return {
                 ...data,
-                lastScrapedAt: data.lastScrapedAt?.toDate?.() || new Date(),
+                lastDiscoveredAt: data.lastDiscoveredAt?.toDate?.() || new Date(),
             } as GMapsDispensaryDoc;
         })
         .filter(p => {

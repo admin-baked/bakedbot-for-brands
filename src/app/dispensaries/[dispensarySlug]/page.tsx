@@ -48,7 +48,7 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
         notFound();
     }
     
-    // Use scraped logo or fallback
+    // Use discovered logo or fallback
     const logoUrl = seoPage?.logoUrl;
     const aboutText = seoPage?.about || seoPage?.seoTags?.metaDescription;
     // Freshness date

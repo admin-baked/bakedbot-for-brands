@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Search, Book, Trash2, Link as LinkIcon, FileText, Database, Upload, Globe, RefreshCw, CheckCircle } from 'lucide-react';
 
-import { createKnowledgeBaseAction, getKnowledgeBasesAction, addDocumentAction, getDocumentsAction, deleteDocumentAction, scrapeUrlAction } from '@/server/actions/knowledge-base';
+import { createKnowledgeBaseAction, getKnowledgeBasesAction, addDocumentAction, getDocumentsAction, deleteDocumentAction, discoverUrlAction } from '@/server/actions/knowledge-base';
 import { searchComplianceData, queueComplianceDiscovery } from '@/server/actions/compliance-discovery';
 import { AGENT_CAPABILITIES } from '@/server/agents/agent-definitions';
 import { KnowledgeBase, KnowledgeDocument } from '@/types/knowledge-base';
@@ -73,7 +73,7 @@ export default function AgentKnowledgePage() {
         try {
             const queueResult = await queueComplianceDiscovery({
                 title: result.title,
-                content: result.snippet, // Initially just the snippet, full scrape would happen on approval or via button
+                content: result.snippet, // Initially just the snippet, full discovery would happen on approval or via button
                 summary: result.snippet,
                 source: result.source,
                 sourceUrl: result.url,
@@ -227,20 +227,20 @@ export default function AgentKnowledgePage() {
         }
     };
 
-    // Scrape URL handler for compliance websites
-    const handleScrapeUrl = async () => {
+    // Discover URL handler for compliance websites
+    const handleDiscoverUrl = async () => {
         if (!selectedKb || !newDocContent) return;
         
         setLoading(true);
         try {
-            const result = await scrapeUrlAction({
+            const result = await discoverUrlAction({
                 knowledgeBaseId: selectedKb,
                 url: newDocContent,
-                title: newDocTitle || 'Scraped Content'
+                title: newDocTitle || 'Discovered Content'
             });
             
             if (result.success) {
-                toast({ title: 'Success', description: 'URL scraped and indexed.' });
+                toast({ title: 'Success', description: 'URL discovered and indexed.' });
                 setIsAddDocOpen(false);
                 setNewDocTitle('');
                 setNewDocContent('');
@@ -249,7 +249,7 @@ export default function AgentKnowledgePage() {
                 toast({ title: 'Error', description: result.message, variant: 'destructive' });
             }
         } catch (error) {
-            toast({ title: 'Error', description: 'Failed to scrape URL', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Failed to discover URL', variant: 'destructive' });
         } finally {
             setLoading(false);
         }
@@ -363,7 +363,7 @@ export default function AgentKnowledgePage() {
                                         <DialogHeader>
                                             <DialogTitle>Add Training Data</DialogTitle>
                                             <DialogDescription>
-                                                Add text, upload files, or scrape URLs. Content will be vectorized for semantic search.
+                                                Add text, upload files, or discover URLs. Content will be vectorized for semantic search.
                                             </DialogDescription>
                                         </DialogHeader>
                                         <div className="space-y-4 py-4">
@@ -376,7 +376,7 @@ export default function AgentKnowledgePage() {
                                                         <Upload className="w-4 h-4" /> Upload File
                                                     </TabsTrigger>
                                                     <TabsTrigger value="link" className="flex items-center gap-2">
-                                                        <Globe className="w-4 h-4" /> Scrape URL
+                                                        <Globe className="w-4 h-4" /> Discover URL
                                                     </TabsTrigger>
                                                 </TabsList>
 
@@ -441,7 +441,7 @@ export default function AgentKnowledgePage() {
                                                     <TabsContent value="link" className="mt-0">
                                                         <div className="space-y-4">
                                                             <div className="space-y-2">
-                                                                <Label>URL to Scrape</Label>
+                                                                <Label>URL to Discover</Label>
                                                                 <Input
                                                                     value={newDocContent}
                                                                     onChange={e => setNewDocContent(e.target.value)}
@@ -466,10 +466,10 @@ export default function AgentKnowledgePage() {
                                         </div>
                                         <DialogFooter className="flex gap-2">
                                             {newDocType === 'link' ? (
-                                                <Button onClick={handleScrapeUrl} disabled={loading || !newDocContent}>
+                                                <Button onClick={handleDiscoverUrl} disabled={loading || !newDocContent}>
                                                     {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                                                     <Globe className="w-4 h-4 mr-2" />
-                                                    Scrape & Index
+                                                    Discover & Index
                                                 </Button>
                                             ) : (
                                                 <Button onClick={handleAddDocument} disabled={loading || !newDocContent}>

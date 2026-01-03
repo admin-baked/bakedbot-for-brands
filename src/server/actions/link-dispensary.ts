@@ -11,7 +11,7 @@
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { CannMenusService } from '@/server/services/cannmenus';
-import { firecrawl } from '@/server/services/firecrawl';
+import { discovery } from '@/server/services/firecrawl';
 
 // ActionResult type for server actions
 interface ActionResult<T = undefined> {
@@ -26,7 +26,7 @@ interface DispensarySearchResult {
     city?: string;
     state?: string;
     zip?: string;
-    source: 'cannmenus' | 'leafly' | 'scraper' | 'manual';
+    source: 'cannmenus' | 'leafly' | 'discovery' | 'manual';
     productCount?: number;
     menuUrl?: string;
     url?: string;
@@ -34,7 +34,7 @@ interface DispensarySearchResult {
 
 /**
  * Search for dispensaries by name or location
- * Fallback Pattern: CannMenus -> Leafly (via Firecrawl) -> Scraper (Firecrawl)
+ * Fallback Pattern: CannMenus -> Leafly -> BakedBot Discovery
  */
 export async function searchDispensariesAction(
     query: string,
@@ -81,13 +81,13 @@ export async function searchDispensariesAction(
             }
         }
 
-        // 2. Fallback to Firecrawl Search (if few/no results)
-        if (results.length < 3 && firecrawl.isConfigured()) {
+        // 2. Fallback to BakedBot Discovery Search (if few/no results)
+        if (results.length < 3 && discovery.isConfigured()) {
             try {
                 const searchQuery = `${query} dispensary ${zip || ''}`.trim();
-                const searchResults = await firecrawl.search(searchQuery);
+                const searchResults = await discovery.search(searchQuery);
                 
-                // Process Firecrawl results
+                // Process BakedBot Discovery results
                 if (Array.isArray(searchResults)) {
                     for (const result of searchResults) {
                         // Skip if we already found this via CannMenus (fuzzy match check omitted for speed)
@@ -97,7 +97,7 @@ export async function searchDispensariesAction(
                         const isDutchie = result.url?.includes('dutchie.com');
                         const isJane = result.url?.includes('iheartjane.com');
                         
-                        let source: 'leafly' | 'scraper' = 'scraper';
+                        let source: 'leafly' | 'discovery' = 'discovery';
                         if (isLeafly) source = 'leafly';
                         
                         // ID creation from URL or random
@@ -106,7 +106,7 @@ export async function searchDispensariesAction(
                         results.push({
                             id: id,
                             name: result.title || query,
-                            address: '', // scraped data limitation
+                            address: '', // discovery data limitation
                             city: '',
                             state: '',
                             zip: zip || '', // Use search ZIP if available
@@ -117,7 +117,7 @@ export async function searchDispensariesAction(
                     }
                 }
             } catch (error) {
-                console.error('[LinkDispensary] Firecrawl search failed:', error);
+                console.error('[LinkDispensary] BakedBot Discovery search failed:', error);
             }
         }
 
@@ -132,7 +132,7 @@ export async function searchDispensariesAction(
 }
 
 /**
- * Link a dispensary results (CannMenus, Leafly, or Scraper)
+ * Link a dispensary results (CannMenus, Leafly, or Discovery)
  */
 export async function linkDispensaryAction(
     id: string,
@@ -164,7 +164,7 @@ export async function linkDispensaryAction(
         // Source-specific fields
         if (source === 'cannmenus') dispensaryUpdate.cannmenusId = id;
         if (source === 'leafly') dispensaryUpdate.leaflyUrl = url;
-        if (source === 'scraper') dispensaryUpdate.websiteUrl = url;
+        if (source === 'discovery') dispensaryUpdate.websiteUrl = url;
 
         // Create/update dispensary document
         await firestore.collection('dispensaries').doc(user.uid).set(dispensaryUpdate, { merge: true });
@@ -253,12 +253,12 @@ async function triggerMenuSync(cannmenusId: string, userId: string) {
  * Trigger Leafly scan in background
  */
 async function triggerLeaflySync(url: string, userId: string) {
-    const { triggerSingleStoreScan } = await import('@/server/services/leafly-connector');
+    const { triggerSingleStoreDiscovery } = await import('@/server/services/leafly-connector');
     try {
         console.log(`[LinkDispensary] Triggering Leafly scan for: ${url}`);
         // This triggers an Apify run. The actual data ingestion happens via webhook later.
         // We might want to store the runId associated with the user for tracking.
-        const run = await triggerSingleStoreScan(url);
+        const run = await triggerSingleStoreDiscovery(url);
         console.log(`[LinkDispensary] Leafly scan triggered. Run ID: ${run.apifyRunId}`);
     } catch (error) {
         console.error('[LinkDispensary] Leafly trigger error:', error);

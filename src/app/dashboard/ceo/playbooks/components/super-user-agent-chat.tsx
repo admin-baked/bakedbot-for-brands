@@ -76,11 +76,11 @@ steps:
         }
         // Competitor Research
         else if (lowerInput.includes('competitor') || lowerInput.includes('aiq') || lowerInput.includes('research')) {
-            plan = ['Access AIQ Portal', 'Scrape Pricing Data', 'Analyze Competitor Features', 'Generate Report'];
+            plan = ['Access AIQ Portal', 'Discover Pricing Data', 'Analyze Competitor Features', 'Generate Report'];
             steps = [
                 { id: 't1', toolName: 'vault.getCredential', description: 'Retrieving AIQ login credentials...', status: 'completed', durationMs: 150 },
                 { id: 't2', toolName: 'computer_use.login', description: 'Logging into AIQ portal...', status: 'completed', durationMs: 3500, isComputerUse: true },
-                { id: 't3', toolName: 'computer_use.scrape', description: 'Extracting pricing information...', status: 'completed', durationMs: 4200, isComputerUse: true },
+                { id: 't3', toolName: 'computer_use.discover', description: 'Extracting pricing information...', status: 'completed', durationMs: 4200, isComputerUse: true },
                 { id: 't4', toolName: 'pops.analyzeData', description: 'Analyzing competitive landscape...', status: 'completed', durationMs: 2800, subagentId: 'Pops' },
             ];
             responseText = "📊 **Competitor Analysis Complete**\n\nI've analyzed AIQ's current pricing and features.\n\n**Key Findings:**\n- AIQ Starter: $299/mo (vs BakedBot $199/mo) ✅ 33% cheaper\n- AIQ lacks AI agents\n- BakedBot has superior compliance features";

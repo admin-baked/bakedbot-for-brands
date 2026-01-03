@@ -136,7 +136,7 @@ const PLAYBOOK_REGISTRY: Record<string, () => Promise<PlaybookResult>> = {
         const logs: string[] = [];
         logs.push("Starting 'Competitor Price Scan' Playbook...");
 
-        logs.push("Triggering Ezal for market scrape...");
+        logs.push("Triggering Ezal for market discovery...");
         const result = await triggerAgentRun('ezal');
         logs.push(`Ezal Result: ${result.message}`);
 

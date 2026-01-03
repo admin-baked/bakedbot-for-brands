@@ -6,7 +6,7 @@ import { browserAction, BrowserStep } from '@/server/tools/browser';
 // --- Tool 1: Perform Browser Steps ---
 const browserPerformDef: ToolDefinition = {
     name: 'browser.perform',
-    description: 'Execute a sequence of browser actions (e.g. goto, click, scrape).',
+    description: 'Execute a sequence of browser actions (e.g. goto, click, discover).',
     inputSchema: {
         type: 'object',
         properties: {
@@ -15,7 +15,7 @@ const browserPerformDef: ToolDefinition = {
                 items: {
                     type: 'object',
                     properties: {
-                        action: { type: 'string', enum: ['goto', 'type', 'click', 'wait', 'scrape', 'screenshot', 'evaluate'] },
+                        action: { type: 'string', enum: ['goto', 'type', 'click', 'wait', 'discover', 'screenshot', 'evaluate'] },
                         url: { type: 'string' },
                         selector: { type: 'string' },
                         text: { type: 'string' },
@@ -44,7 +44,7 @@ export const browserPerformTool: SkillTool = {
 // --- Tool 2: Simple Navigate (Convenience) ---
 const browserNavigateDef: ToolDefinition = {
     name: 'browser.navigate',
-    description: 'Go to a URL and scrape the text content.',
+    description: 'Go to a URL and discover the text content.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -60,7 +60,7 @@ const browserNavigateImpl = async (ctx: any, inputs: any) => {
     return await browserAction({
         steps: [
             { action: 'goto', url: inputs.url },
-            { action: 'scrape' }
+            { action: 'discover' }
         ]
     });
 };

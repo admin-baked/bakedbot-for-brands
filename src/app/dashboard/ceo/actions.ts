@@ -509,7 +509,7 @@ export async function getMrrLadder(currentMrr: number) {
   return calculateMrrLadder(currentMrr);
 }
 
-import type { EzalInsight, Competitor } from '@/types/ezal-scraper';
+import type { EzalInsight, Competitor } from '@/types/ezal-discovery';
 
 export async function getEzalInsights(tenantId: string, limitVal: number = 20): Promise<EzalInsight[]> {
   try {

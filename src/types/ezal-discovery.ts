@@ -1,7 +1,7 @@
-// src/types/ezal-scraper.ts
+// src/types/ezal-discovery.ts
 /**
- * Ezal Competitive Menu Scraper Types
- * Multi-tenant scraper architecture for competitive intelligence
+ * Ezal Competitive Menu Discovery Types
+ * Multi-tenant discovery architecture for competitive intelligence
  */
 
 // =============================================================================
@@ -44,7 +44,7 @@ export interface DataSource {
     parserProfileId: string;
     timezone: string;
     priority: number; // 1-10, higher = more important
-    lastScrapeAt: Date | null;
+    lastDiscoveryAt: Date | null;
     nextDueAt: Date | null;
     active: boolean;
     metadata?: Record<string, any>;
@@ -53,13 +53,13 @@ export interface DataSource {
 }
 
 // =============================================================================
-// SCRAPE JOBS & RUNS
+// DISCOVERY JOBS & RUNS
 // =============================================================================
 
 export type JobStatus = 'queued' | 'running' | 'done' | 'error' | 'cancelled';
 export type RunStatus = 'success' | 'partial' | 'error' | 'timeout';
 
-export interface ScrapeJob {
+export interface DiscoveryJob {
     id: string;
     tenantId: string;
     sourceId: string;
@@ -74,7 +74,7 @@ export interface ScrapeJob {
     errorMessage: string | null;
 }
 
-export interface ScrapeRun {
+export interface DiscoveryRun {
     id: string;
     tenantId: string;
     sourceId: string;
@@ -284,7 +284,7 @@ export interface WatchRule {
 // API REQUEST/RESPONSE TYPES
 // =============================================================================
 
-export interface ScrapeRequest {
+export interface DiscoveryRequest {
     sourceId: string;
     priority?: number;
     triggeredBy?: 'manual' | 'scheduler' | 'ezal';

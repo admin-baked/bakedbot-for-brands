@@ -38,7 +38,7 @@ const DISPENSARY_LOGS = [
     "Mapping categories to standard taxonomy...",
     "Syncing product images...",
     "Inventory sync complete.",
-    "Starting Firecrawl discovery agent...",
+    "Starting BakedBot Discovery agent...",
     "Scanning radius: 5 miles",
     "Identified 4 competitor locations.",
     "Crawling https://leafly.com/dispensaries/...",
@@ -214,7 +214,7 @@ export function WiringScreen({ dispensaryName, role = 'dispensary', onComplete, 
                             <span className="truncate">
                                 {phase === 'init' && "system://initializing..."}
                                 {phase === 'smokey_crawl' && `https://cannmenus.com/menus/${dispensaryName.toLowerCase().replace(/\s/g, '-')}`}
-                                {phase === 'ezal_crawl' && "https://firecrawl.dev/scanning?radius=5mi"}
+                                {phase === 'ezal_crawl' && "https://bakedbot.ai/discovery?radius=5mi"}
                                 {phase === 'building' && "localhost:3000/deploying..."}
                                 {phase === 'complete' && "BakedBot Dashboard"}
                             </span>
@@ -384,7 +384,7 @@ function EzalView() {
              </div>
              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-full shadow-lg">
                 <Zap className="h-4 w-4 animate-pulse" />
-                <span className="text-sm font-bold">Firecrawl Active</span>
+                <span className="text-sm font-bold">BakedBot Discovery Active</span>
              </div>
         </div>
     );

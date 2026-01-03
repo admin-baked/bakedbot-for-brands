@@ -242,29 +242,29 @@ export async function POST(request: NextRequest) {
         if (targetAgent === 'ezal') {
             const urlMatch = prompt.match(/https?:\/\/[^\s]+/);
             
-            // 1. Live Firecrawl Demo (if URL present)
+            // 1. Live BakedBot Discovery Demo (if URL present)
             if (urlMatch) {
                 try {
-                    const { firecrawl } = await import('@/server/services/firecrawl');
-                    if (firecrawl.isConfigured()) {
-                         const scrapeResult = await firecrawl.scrapeUrl(urlMatch[0], ['markdown']);
-                         const resultData = (scrapeResult as any);
+                    const { discovery } = await import('@/server/services/firecrawl');
+                    if (discovery.isConfigured()) {
+                         const discoveryResult = await discovery.discoverUrl(urlMatch[0], ['markdown']);
+                         const resultData = (discoveryResult as any);
                          if (resultData.success) {
                              items = [{
-                                 title: resultData.metadata?.title || 'Scraped Content',
+                                 title: resultData.metadata?.title || 'Discovered Content',
                                  description: (resultData.markdown || '').substring(0, 300) + '...',
-                                 meta: '🔥 Live Firecrawl Extraction'
+                                 meta: '🔥 Live BakedBot Discovery'
                              }];
                              // Add a second item for stats if available
                              items.push({
-                                 title: 'Extraction Stats',
+                                 title: 'Discovery Stats',
                                  description: `Status: ${resultData.success ? 'Success' : 'Failed'} | Format: Markdown`,
                                  meta: 'CONFIDENTIAL INTEL'
                              });
                          }
                     }
                 } catch (e) {
-                    console.error('Demo scrape failed', e);
+                    console.error('Demo discovery failed', e);
                 }
             } 
             // 2. Mock Context Injection (fallback)

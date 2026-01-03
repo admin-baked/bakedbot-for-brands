@@ -844,13 +844,14 @@ steps:
     version: 1
   },
 
-  // 11. Daily Price Tracker (40 Tons Pattern)
+  // 11. Daily Brand Price Tracker (Agent Discovery)
   {
-    name: 'Daily Price Tracker',
-    description: 'Track product prices across multiple dispensaries. Scrapes Weedmaps menus and logs to Google Sheets for trend analysis.',
-    status: 'draft',
-    yaml: `name: Daily Price Tracker
-description: Scrape dispensary menus and track prices in Google Sheets
+    name: 'Daily Brand Price Tracker',
+    description: 'Discover competitor pricing for your brand across multiple dispensaries and log to Google Sheets.',
+    status: 'active',
+    yaml: `name: Daily Brand Price Tracker
+description: Discover competitor pricing and log to Google Sheets
+icon: trending-up
 
 triggers:
   - type: schedule
@@ -862,15 +863,15 @@ config:
   # Configure these when activating the playbook
   spreadsheetId: ""  # Google Sheet ID for logging
   brand: ""  # Brand name to filter (e.g., "40-tons")
-  dispensaryUrls:  # List of Weedmaps URLs to scrape
+  dispensaryUrls:  # List of Weedmaps URLs to discover
     - "https://weedmaps.com/dispensaries/example?filter[brandSlugs][]=brand-name"
 
 steps:
-  # Step 1: Scrape All Dispensaries
+  # Step 1: Discover All Dispensaries
   - action: tool
-    tool: weedmaps.scrape
+    tool: weedmaps.discover
     agent: ezal
-    task: Scrape product prices from all configured dispensary URLs
+    task: Discover product prices from all configured dispensary URLs
     params:
       urls: "{{config.dispensaryUrls}}"
       brand: "{{config.brand}}"
@@ -878,8 +879,8 @@ steps:
   # Step 2: Format Data for Sheets
   - action: transform
     agent: ezal
-    input: "{{scrape_results}}"
-    task: Format scraped data into rows for Google Sheets
+    input: "{{discovery_results}}"
+    task: Format discovered data into rows for Google Sheets
     output:
       columns:
         - Date
@@ -901,7 +902,7 @@ steps:
   # Step 4: Generate Summary
   - action: delegate
     agent: pops
-    input: "{{scrape_results}}"
+    input: "{{discovery_results}}"
     task: |
       Analyze price data and generate insights:
       1. Average price by product
@@ -918,8 +919,8 @@ steps:
     body: |
       Price tracking completed for {{config.brand}}:
       
-      ✅ {{ezal.products_found}} products scraped
-      📍 {{ezal.dispensaries_scanned}} dispensaries checked
+      ✅ {{ezal.products_found}} products discovered
+      📍 {{ezal.dispensaries_discovered}} dispensaries checked
       📉 {{pops.price_drops}} price drops detected
       📈 {{pops.price_increases}} price increases detected
       
@@ -930,7 +931,7 @@ steps:
       { id: 'trigger-2', type: 'manual', name: 'Manual Run', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'tool', params: { tool: 'weedmaps.scrape', agent: 'ezal' } },
+      { action: 'tool', params: { tool: 'weedmaps.discover', agent: 'ezal' } },
       { action: 'transform', params: { agent: 'ezal' } },
       { action: 'tool', params: { tool: 'sheets.append' } },
       { action: 'delegate', params: { agent: 'pops' } },

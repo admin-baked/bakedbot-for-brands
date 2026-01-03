@@ -1,12 +1,12 @@
-// src/app/api/ezal/scrape/route.ts
+// src/app/api/ezal/discovery/route.ts
 /**
- * Ezal Scrape API
- * POST - Trigger a scrape for a data source
- * GET - Get scrape status/history
+ * Ezal Discovery API
+ * POST - Trigger a discovery for a data source
+ * GET - Get discovery status/history
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { executeFullScrape, getRecentRuns } from '@/server/services/ezal';
+import { executeFullDiscovery, getRecentRuns } from '@/server/services/ezal';
 import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const result = await executeFullScrape(tenantId, sourceId);
+        const result = await executeFullDiscovery(tenantId, sourceId);
 
         return NextResponse.json({
             success: result.success,
@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        logger.error('[Ezal API] Scrape failed:', error instanceof Error ? error : new Error(String(error)));
+        logger.error('[Ezal API] Discovery failed:', error instanceof Error ? error : new Error(String(error)));
         return NextResponse.json(
-            { error: 'Failed to execute scrape' },
+            { error: 'Failed to execute discovery' },
             { status: 500 }
         );
     }
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         logger.error('[Ezal API] Get runs failed:', error instanceof Error ? error : new Error(String(error)));
         return NextResponse.json(
-            { error: 'Failed to get scrape history' },
+            { error: 'Failed to get discovery history' },
             { status: 500 }
         );
     }

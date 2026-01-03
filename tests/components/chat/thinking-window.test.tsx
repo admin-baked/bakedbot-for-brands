@@ -44,7 +44,7 @@ describe('ThinkingWindow', () => {
     it('renders agent-specific headers and icons', () => {
         const { rerender } = render(<ThinkingWindow steps={[]} isThinking={true} agentName="ezal" />);
         // EZAL custom visual
-        expect(screen.getByText(/Firecrawl Protocol Active/i)).toBeInTheDocument();
+        expect(screen.getByText(/BakedBot Discovery Active/i)).toBeInTheDocument();
         expect(screen.getAllByTestId('icon-zap').length).toBeGreaterThan(0);
 
         rerender(<ThinkingWindow steps={[]} isThinking={true} agentName="smokey" />);

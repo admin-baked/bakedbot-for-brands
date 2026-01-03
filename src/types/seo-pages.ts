@@ -19,11 +19,11 @@ export interface DispensarySEOPage {
         clicks: number;
         lastViewedAt: Date | null;
     };
-    source: 'cannmenus_scan' | 'leafly_scan' | 'manual';
+    source: 'cannmenus_discovery' | 'leafly_discovery' | 'manual';
     enrichment?: {
         googlePlaces?: boolean;
         leafly?: boolean;
-        websiteScrape?: boolean;
+        websiteDiscovery?: boolean;
         qrCode?: string; // Data URL
     };
     // Deebo SEO Review

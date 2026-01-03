@@ -9,11 +9,11 @@ import { FREE_ACCOUNT_LIMITS } from '@/lib/config/limits';
 
 // Mock fallback results for demo
 const MOCK_PRODUCTS = [
-  { id: 'mock-1', name: 'Jeeter Juice Liquid Diamonds', category: 'Vape', price: 45.00, brand: 'Jeeter', image: '', description: 'Premium liquid diamonds vape cartridge', effects: ['Euphoric', 'Relaxed'], source: 'scrape' },
-  { id: 'mock-2', name: 'Baby Jeeter Infused - Watermelon Zkittlez', category: 'Pre-roll', price: 35.00, brand: 'Jeeter', image: '', description: 'Infused pre-roll pack', effects: ['Happy', 'Creative'], source: 'scrape' },
-  { id: 'mock-3', name: 'Stiiizy Premium Jack Herer', category: 'Vape', price: 40.00, brand: 'Stiiizy', image: '', description: 'Sativa pod', effects: ['Energetic', 'Focused'], source: 'scrape' },
-  { id: 'mock-4', name: 'Wyld Huckleberry Gummies', category: 'Edible', price: 20.00, brand: 'Wyld', image: '', description: 'Hybrid enhanced gummies', effects: ['Balanced'], source: 'scrape' },
-  { id: 'mock-5', name: 'Camino Midnight Blueberry', category: 'Edible', price: 22.00, brand: 'Kiva', image: '', description: 'Sleep inducing gummies', effects: ['Sleepy'], source: 'scrape' }
+  { id: 'mock-1', name: 'Jeeter Juice Liquid Diamonds', category: 'Vape', price: 45.00, brand: 'Jeeter', image: '', description: 'Premium liquid diamonds vape cartridge', effects: ['Euphoric', 'Relaxed'], source: 'discovery' },
+  { id: 'mock-2', name: 'Baby Jeeter Infused - Watermelon Zkittlez', category: 'Pre-roll', price: 35.00, brand: 'Jeeter', image: '', description: 'Infused pre-roll pack', effects: ['Happy', 'Creative'], source: 'discovery' },
+  { id: 'mock-3', name: 'Stiiizy Premium Jack Herer', category: 'Vape', price: 40.00, brand: 'Stiiizy', image: '', description: 'Sativa pod', effects: ['Energetic', 'Focused'], source: 'discovery' },
+  { id: 'mock-4', name: 'Wyld Huckleberry Gummies', category: 'Edible', price: 20.00, brand: 'Wyld', image: '', description: 'Hybrid enhanced gummies', effects: ['Balanced'], source: 'discovery' },
+  { id: 'mock-5', name: 'Camino Midnight Blueberry', category: 'Edible', price: 22.00, brand: 'Kiva', image: '', description: 'Sleep inducing gummies', effects: ['Sleepy'], source: 'discovery' }
 ];
 
 export type ImportCandidate = {
@@ -25,7 +25,7 @@ export type ImportCandidate = {
   image: string;
   description: string;
   effects: string[];
-  source: 'cannmenus' | 'scrape';
+  source: 'cannmenus' | 'discovery';
   // Checkboxes for user verification
   retailerName?: string;
   retailerId?: string;

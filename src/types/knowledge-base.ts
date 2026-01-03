@@ -5,7 +5,7 @@ import { z } from 'zod';
 export type KnowledgeBaseOwnerType = 'system' | 'brand' | 'dispensary' | 'customer';
 
 // --- Document Source Types ---
-export type KnowledgeDocumentSource = 'paste' | 'upload' | 'drive' | 'scrape';
+export type KnowledgeDocumentSource = 'paste' | 'upload' | 'drive' | 'discovery';
 export type KnowledgeDocumentType = 'text' | 'link' | 'pdf' | 'file';
 
 // --- Google Drive Metadata ---
@@ -22,7 +22,7 @@ export interface KnowledgeUsageLimits {
     maxTotalBytes: number;
     allowUpload: boolean;
     allowDrive: boolean;
-    allowScrape: boolean;
+    allowDiscovery: boolean;
 }
 
 // --- Plan-Based Limits ---
@@ -32,49 +32,49 @@ export const KNOWLEDGE_LIMITS: Record<string, KnowledgeUsageLimits> = {
         maxTotalBytes: 10 * 1024, // 10 KB
         allowUpload: false,
         allowDrive: false,
-        allowScrape: false,
+        allowDiscovery: false,
     },
     claim_pro: {
         maxDocuments: 50,
         maxTotalBytes: 1 * 1024 * 1024, // 1 MB
         allowUpload: true,
         allowDrive: false,
-        allowScrape: true,
+        allowDiscovery: true,
     },
     starter: {
         maxDocuments: 500,
         maxTotalBytes: 10 * 1024 * 1024, // 10 MB
         allowUpload: true,
         allowDrive: true,
-        allowScrape: true,
+        allowDiscovery: true,
     },
     growth: {
         maxDocuments: 2000,
         maxTotalBytes: 50 * 1024 * 1024, // 50 MB
         allowUpload: true,
         allowDrive: true,
-        allowScrape: true,
+        allowDiscovery: true,
     },
     scale: {
         maxDocuments: 10000,
         maxTotalBytes: 100 * 1024 * 1024, // 100 MB
         allowUpload: true,
         allowDrive: true,
-        allowScrape: true,
+        allowDiscovery: true,
     },
     enterprise: {
         maxDocuments: Infinity,
         maxTotalBytes: Infinity,
         allowUpload: true,
         allowDrive: true,
-        allowScrape: true,
+        allowDiscovery: true,
     },
     system: {
         maxDocuments: Infinity,
         maxTotalBytes: Infinity,
         allowUpload: true,
         allowDrive: true,
-        allowScrape: true,
+        allowDiscovery: true,
     },
 };
 
@@ -137,7 +137,7 @@ export const CreateKnowledgeBaseSchema = z.object({
 export const AddDocumentSchema = z.object({
     knowledgeBaseId: z.string(),
     type: z.enum(['text', 'link', 'pdf', 'file']),
-    source: z.enum(['paste', 'upload', 'drive', 'scrape']),
+    source: z.enum(['paste', 'upload', 'drive', 'discovery']),
     title: z.string().min(1),
     content: z.string().min(10), // Minimum content to worth embedding
     sourceUrl: z.string().optional(),
@@ -156,7 +156,7 @@ export const UploadDocumentSchema = z.object({
     base64Content: z.string(), // Base64 encoded file content
 });
 
-export const ScrapeUrlSchema = z.object({
+export const DiscoverUrlSchema = z.object({
     knowledgeBaseId: z.string(),
     url: z.string().url(),
     title: z.string().optional(),

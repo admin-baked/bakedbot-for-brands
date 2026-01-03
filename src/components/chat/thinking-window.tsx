@@ -198,7 +198,7 @@ function EzalVisual({ isThinking }: { isThinking: boolean }) {
             <div className="absolute bottom-0 right-0">
                 <div className="flex items-center gap-2 bg-purple-950/50 border border-purple-500/30 text-purple-200 px-2 py-1 rounded text-[10px]">
                     <Globe className="h-3 w-3" />
-                    <span>Firecrawl Protocol Active</span>
+                    <span>BakedBot Discovery Active</span>
                 </div>
             </div>
         </div>

@@ -1,40 +1,40 @@
 
-import { FirecrawlService } from './firecrawl';
+import { DiscoveryService } from './firecrawl';
 import { getAdminFirestore } from '@/firebase/admin'; // Firebase admin SDK for background jobs
 import { DispensarySEOPage } from '../../types/foot-traffic';
 import { z } from 'zod';
 import { upsertDispensary, upsertBrand } from './crm-service';
 
 /**
- * Service to discover and scrape dispensaries for SEO page generation.
+ * Service to discover and research dispensaries for SEO page generation.
  * "Chicago Pilot" optimized.
  */
-export class MassScraperService {
-    private static instance: MassScraperService;
-    private firecrawl: FirecrawlService;
+export class MassDiscoveryService {
+    private static instance: MassDiscoveryService;
+    private discovery: DiscoveryService;
 
     private constructor() {
-        this.firecrawl = FirecrawlService.getInstance();
+        this.discovery = DiscoveryService.getInstance();
     }
 
-    public static getInstance(): MassScraperService {
-        if (!MassScraperService.instance) {
-            MassScraperService.instance = new MassScraperService();
+    public static getInstance(): MassDiscoveryService {
+        if (!MassDiscoveryService.instance) {
+            MassDiscoveryService.instance = new MassDiscoveryService();
         }
-        return MassScraperService.instance;
+        return MassDiscoveryService.instance;
     }
 
     /**
-     * Discover dispensaries in a specific ZIP code or City using Firecrawl Search.
+     * Discover dispensaries in a specific ZIP code or City using BakedBot Discovery Search.
      */
-    async discoverDispensaries(location: string): Promise<Array<{ name: string; url: string }>> {
-        console.log(`[MassScraper] Discovering dispensaries in ${location}...`);
+    async findDispensaries(location: string): Promise<Array<{ name: string; url: string }>> {
+        console.log(`[MassDiscovery] Discovering dispensaries in ${location}...`);
         
         // Search query optimized for finding dispensary listings
         const query = `recreational cannabis dispensaries in ${location} site:.com`;
         
         try {
-            const results = await this.firecrawl.search(query);
+            const results = await this.discovery.search(query);
             
             // Filter and map results to potential candidates
             // This is a naive implementation; in production we'd use stronger filtering
@@ -48,16 +48,16 @@ export class MassScraperService {
                 }))
                 .slice(0, 5); // Limit for pilot
         } catch (error) {
-            console.error('[MassScraper] Discovery failed:', error);
+            console.error('[MassDiscovery] Discovery failed:', error);
             throw error; // Propagate error to caller
         }
     }
 
     /**
-     * Scrape a dispensary website to extract structured SEO data.
+     * Research a dispensary website to extract structured SEO data.
      */
-    async scrapeDispensary(url: string, zipCode: string): Promise<Partial<DispensarySEOPage> & { extra?: any } | null> {
-        console.log(`[MassScraper] Scraping ${url}...`);
+    async discoverDispensary(url: string, zipCode: string): Promise<Partial<DispensarySEOPage> & { extra?: any } | null> {
+        console.log(`[MassDiscovery] Researching ${url}...`);
 
         // Schema for LLM extraction
         const schema = z.object({
@@ -77,7 +77,7 @@ export class MassScraperService {
         });
 
         try {
-            const data = await this.firecrawl.extractData(url, schema);
+            const data = await this.discovery.extractData(url, schema);
             
             if (!data) return null;
 
@@ -103,7 +103,7 @@ export class MassScraperService {
                 },
                 createdAt: new Date(),
                 updatedAt: new Date(),
-                createdBy: 'system:mass-scraper',
+                createdBy: 'system:mass-discovery',
                 metrics: {
                     pageViews: 0,
                     ctaClicks: 0
@@ -115,7 +115,7 @@ export class MassScraperService {
                 }
             } as any;
         } catch (error: any) {
-            console.error(`[MassScraper] Failed to scrape ${url}:`, error);
+            console.error(`[MassDiscovery] Failed to research ${url}:`, error);
             // Return error object so we can debug via API
             return { error: error.message || String(error) } as any; 
         }
@@ -132,7 +132,7 @@ export class MassScraperService {
         const { extra, ...seoData } = page;
         
         await db.collection('seo_pages_dispensary').doc(page.id).set(seoData, { merge: true });
-        console.log(`[MassScraper] Saved page ${page.id} for ${page.dispensaryName}`);
+        console.log(`[MassDiscovery] Saved page ${page.id} for ${page.dispensaryName}`);
 
         // Sync to CRM
         try {
@@ -148,7 +148,7 @@ export class MassScraperService {
                     seoPageId: page.id
                 }
             );
-            console.log(`[MassScraper] Synced ${page.dispensaryName} to CRM (ID: ${dispId})`);
+            console.log(`[MassDiscovery] Synced ${page.dispensaryName} to CRM (ID: ${dispId})`);
 
             // Sync found brands to CRM
             if (extra?.brands && Array.isArray(extra.brands)) {
@@ -162,10 +162,10 @@ export class MassScraperService {
                         }
                     );
                 }
-                console.log(`[MassScraper] Synced ${extra.brands.length} brands from ${page.dispensaryName} to CRM`);
+                console.log(`[MassDiscovery] Synced ${extra.brands.length} brands from ${page.dispensaryName} to CRM`);
             }
         } catch (crmError) {
-            console.error(`[MassScraper] CRM Sync failed for ${page.dispensaryName}:`, crmError);
+            console.error(`[MassDiscovery] CRM Sync failed for ${page.dispensaryName}:`, crmError);
         }
     }
 }

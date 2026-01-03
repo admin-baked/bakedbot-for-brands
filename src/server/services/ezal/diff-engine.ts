@@ -14,7 +14,7 @@ import {
     EzalInsight,
     InsightType,
     InsightSeverity
-} from '@/types/ezal-scraper';
+} from '@/types/ezal-discovery';
 import { ParsedProduct } from './parser-engine';
 import { FieldValue } from 'firebase-admin/firestore';
 

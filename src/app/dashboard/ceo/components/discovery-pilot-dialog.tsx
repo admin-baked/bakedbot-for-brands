@@ -134,7 +134,7 @@ export function DiscoveryPilotDialog({
                                 placeholder="60601, 60611 (Leave empty to search entire city)"
                                 className="h-20"
                             />
-                            <p className="text-xs text-muted-foreground">Comma-separated. If empty, scrapes "Dispensaries in {city}, {state}".</p>
+                            <p className="text-xs text-muted-foreground">Comma-separated. If empty, discovers "Dispensaries in {city}, {state}".</p>
                         </div>
                     )}
                 </div>

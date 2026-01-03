@@ -14,7 +14,7 @@ import type {
 } from '@/types/leafly';
 
 const APIFY_API_BASE = 'https://api.apify.com/v2';
-const LEAFLY_ACTOR_ID = '5BLF5SzgsgQjg1AES';  // paradox-analytics/leafly-scraper
+const LEAFLY_ACTOR_ID = '5BLF5SzgsgQjg1AES';  // paradox-analytics/leafly-discovery
 const APIFY_TASK_ID = 'bOaF6v0erob02Q8wI';  // Your saved task
 
 /**
@@ -51,12 +51,12 @@ function createOfferKey(dispensarySlug: string, title: string): string {
 }
 
 /**
- * Trigger a single dispensary scan
+ * Trigger a single dispensary discovery run
  */
-export async function triggerSingleStoreScan(leaflyUrl: string): Promise<LeaflyIngestionRun> {
+export async function triggerSingleStoreDiscovery(leaflyUrl: string): Promise<LeaflyIngestionRun> {
     const token = getApifyToken();
     if (!token) {
-        throw new Error('Competitive scanning requires APIFY_API_TOKEN. Please configure this in your environment settings or contact support.');
+        throw new Error('Competitive discovery requires APIFY_API_TOKEN. Please configure this in your environment settings or contact support.');
     }
 
     const firestore = getAdminFirestore();
@@ -100,18 +100,18 @@ export async function triggerSingleStoreScan(leaflyUrl: string): Promise<LeaflyI
     };
 
     await runRef.set(ingestionRun);
-    logger.info(`Started Leafly scan for ${leaflyUrl}`, { runId: runData.id });
+    logger.info(`Started Leafly discovery for ${leaflyUrl}`, { runId: runData.id });
 
     return ingestionRun;
 }
 
 /**
- * Trigger a state-wide scan
+ * Trigger a state-wide discovery run
  */
-export async function triggerStateScan(state: string, maxStores: number = 50): Promise<LeaflyIngestionRun> {
+export async function triggerStateDiscovery(state: string, maxStores: number = 50): Promise<LeaflyIngestionRun> {
     const token = getApifyToken();
     if (!token) {
-        throw new Error('State scanning requires APIFY_API_TOKEN. Please configure this in your environment settings or contact support.');
+        throw new Error('State discovery requires APIFY_API_TOKEN. Please configure this in your environment settings or contact support.');
     }
 
     const firestore = getAdminFirestore();
@@ -156,7 +156,7 @@ export async function triggerStateScan(state: string, maxStores: number = 50): P
     };
 
     await runRef.set(ingestionRun);
-    logger.info(`Started Leafly state scan for ${state}`, { runId: runData.id, maxStores });
+    logger.info(`Started Leafly state discovery for ${state}`, { runId: runData.id, maxStores });
 
     return ingestionRun;
 }
@@ -260,7 +260,7 @@ async function upsertDispensary(data: any): Promise<void> {
         reviewCount: data.review_count,
         isOpen: data.is_open,
         leaflyUrl: data.leafly_url || data.url || '',
-        lastScrapedAt: new Date(),
+        lastDiscoveredAt: new Date(),
     };
 
     await firestore
@@ -396,9 +396,9 @@ export async function getWatchlist(): Promise<CompetitorWatchlistEntry[]> {
             leaflyUrl: data.leaflyUrl,
             state: data.state,
             city: data.city,
-            scanFrequency: data.scanFrequency || 'weekly',
-            lastScannedAt: data.lastScannedAt?.toDate?.(),
-            nextScanAt: data.nextScanAt?.toDate?.(),
+            discoveryFrequency: data.discoveryFrequency || 'weekly',
+            lastDiscoveredAt: data.lastDiscoveredAt?.toDate?.(),
+            nextDiscoveryAt: data.nextDiscoveryAt?.toDate?.(),
             enabled: data.enabled !== false,
             createdAt: data.createdAt?.toDate?.() || new Date(),
         } as CompetitorWatchlistEntry;
@@ -563,7 +563,8 @@ export async function getLocalCompetition(state: string, city?: string): Promise
             city: data.city,
             rating: data.rating,
             leaflyUrl: data.leaflyUrl,
-            lastScrapedAt: data.lastScrapedAt?.toDate?.(),
+            leaflyUrl: data.leaflyUrl,
+            lastDiscoveredAt: data.lastDiscoveredAt?.toDate?.(),
         };
     });
 
@@ -581,7 +582,7 @@ export async function getLocalCompetition(state: string, city?: string): Promise
                     city: data.city,
                     rating: data.rating,
                     leaflyUrl: data.leaflyUrl,
-                    lastScrapedAt: data.lastScrapedAt?.toDate?.(),
+                    lastDiscoveredAt: data.lastDiscoveredAt?.toDate?.(),
                 };
             });
         }
@@ -610,10 +611,10 @@ export async function getLocalCompetition(state: string, city?: string): Promise
     // Get active promos
     const promos = await getActivePromos(normalizedState);
 
-    // Find latest scrape date
-    const latestScrape = competitors.reduce((latest, c) => {
-        if (c.lastScrapedAt && (!latest || c.lastScrapedAt > latest)) {
-            return c.lastScrapedAt;
+    // Find latest discovery date
+    const latestDiscovery = competitors.reduce((latest, c) => {
+        if (c.lastDiscoveredAt && (!latest || c.lastDiscoveredAt > latest)) {
+            return c.lastDiscoveredAt;
         }
         return latest;
     }, null as Date | null);
@@ -634,7 +635,7 @@ export async function getLocalCompetition(state: string, city?: string): Promise
             title: p.title,
             discountPercent: p.discountPercent,
         })),
-        dataFreshness: latestScrape,
+        dataFreshness: latestDiscovery,
     };
 }
 

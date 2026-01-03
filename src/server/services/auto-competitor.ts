@@ -8,7 +8,7 @@
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/monitoring';
 import { getRetailersByZipCode } from '@/server/services/geo-discovery';
-import type { CompetitorType } from '@/types/ezal-scraper';
+import type { CompetitorType } from '@/types/ezal-discovery';
 
 export interface DiscoveredCompetitor {
     id: string;
