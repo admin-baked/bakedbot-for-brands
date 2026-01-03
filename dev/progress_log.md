@@ -40,6 +40,9 @@ Executive Boardroom is live and production-ready.
 - **FIX**: Optimized Agent Runner to prevent accidental web searches on keywords like "Search Console". Agents now incorporate search results into their persona context.
 - **FEAT**: Added Internal CRM tools (`getInternalLeads`, `getInternalBrands`) for Agent access.
 - **FEAT**: Implemented "Inline Connection Links" for agents to guide users to Stripe, GitHub, and SEO settings.
+- **FIX**: Added input validation to Search API to prevent 400 Errors.
+- **OPS**: Generated and Sent "Dutchie Competitive Snapshot" via Ezal (Manual Override).
+- **ARCH**: Implemented `IntentCommit` JSON Schema (Intention OS V2).
 
 ---
 

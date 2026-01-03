@@ -252,6 +252,60 @@ export async function runAgentCore(
     
     let finalMessage = userMessage;
 
+    // --- INTENTION OS (V2) ---
+    // Pre-flight check: specific vs ambiguous?
+    // We only run this for complex requests, but for now we run it for everything to test the loop.
+    if (!extraOptions?.attachments?.length) { // Skip if attachments are present (often implies context)
+        try {
+            const { analyzeIntent } = await import('@/server/agents/intention/analyzer');
+            await emitThought(jobId, 'Analyzing Intent', 'Determining semantic intent and ambiguity...');
+            const analysis = await analyzeIntent(userMessage);
+
+            if (analysis.isAmbiguous && analysis.clarification?.clarificationQuestion) {
+                // STOP: Ask Clarification
+                await emitThought(jobId, 'Ambiguity Detected', 'Requesting user clarification...');
+                return {
+                    content: `**Clarification Needed:** ${analysis.clarification.clarificationQuestion}\n\n*Possible Interpretations:*\n${analysis.clarification.possibleIntents.map(i => `- ${i}`).join('\n')}`,
+                    metadata: {
+                        type: 'session_context', // Or new 'clarification' type
+                        data: {
+                            isClarification: true,
+                            options: analysis.clarification.possibleIntents
+                        }
+                    },
+                    logs: ['Intention Analyzer: Ambiguity Detected', `Question: ${analysis.clarification.clarificationQuestion}`]
+                };
+            } else if (analysis.commit) {
+                // GO: Commit & Execute
+                await emitThought(jobId, 'Intent Committed', `Goal: ${analysis.commit.goal}`);
+                
+                // Save the commit to DB (Fire & Forget)
+                const { saveIntentCommit } = await import('@/server/agents/intention/storage');
+                const { requireUser } = await import('@/server/auth/auth');
+                const user = await requireUser().catch(() => ({ uid: 'system' })); // Fallback
+                
+                // Hydrate the commit with runtime IDs
+                const commit = {
+                    ...analysis.commit,
+                    id: crypto.randomUUID(),
+                    agentId: personaId || 'puff',
+                    timestamp: Date.now(),
+                    userQuery: userMessage,
+                    status: 'committed' as const
+                };
+                saveIntentCommit(injectedUser?.uid || user.uid, commit as any).catch(e => console.error('Failed to save commit', e));
+
+                // Inject Commit into Context
+                finalMessage = `[SEMANTIC COMMIT]\nGoal: ${commit.goal}\nPlan: ${JSON.stringify(commit.plan)}\nAssumptions: ${JSON.stringify(commit.assumptions)}\n\n[USER REQUEST]\n${userMessage}`;
+            }
+
+        } catch (e) {
+            console.warn('[runAgentCore] Intention Analyzer failed (Shadow Mode):', e);
+            // Fallback to normal execution
+        }
+    }
+    // -------------------------
+
     // Handle Attachments
     if (extraOptions?.attachments?.length) {
         finalMessage += `\n\n[ATTACHMENTS]\nThe user has uploaded ${extraOptions.attachments.length} files.`;

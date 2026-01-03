@@ -463,6 +463,45 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'read', // Just generating a link
         requiredPermission: 'read:analytics'
     }
+    // ===================================
+    // 11. Intention OS (Architecture V2)
+    // ===================================
+    'intention.askClarification': {
+        name: 'intention.askClarification',
+        description: 'Asks the user a clarifying question when intent is ambiguous. STOPS execution until answered.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                question: { type: 'string', description: 'The question to ask the user.' },
+                context: { type: 'array', items: { type: 'string' }, description: 'Why this is ambiguous.' }
+            },
+            required: ['question']
+        },
+        category: 'read',
+        requiredPermission: undefined // System tool, available to all agents
+    },
+    'intention.createCommit': {
+        name: 'intention.createCommit',
+        description: 'Commits to a structured plan before taking action. Required for high-stakes tasks.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                goal: { type: 'string' },
+                assumptions: { type: 'array', items: { type: 'string' } },
+                constraints: { type: 'array', items: { type: 'string' } },
+                plan: { 
+                    type: 'array', 
+                    items: { 
+                        type: 'object', 
+                        properties: { tool: { type: 'string' }, reason: { type: 'string' } } 
+                    } 
+                }
+            },
+            required: ['goal', 'plan']
+        },
+        category: 'write',
+        requiredPermission: undefined
+    }
 };
 
 /**

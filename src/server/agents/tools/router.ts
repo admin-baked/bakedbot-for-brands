@@ -705,6 +705,24 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         } catch (error: any) {
             return { status: 'failed', error: error.message };
         }
+    // --- Intention OS Tools ---
+    if (def.name === 'intention.askClarification') {
+        const { askClarification } = await import('./intention/tools');
+        const result = await askClarification(inputs.question, inputs.context);
+        return {
+            status: 'success', // Tool executed successfully (it generated the signal)
+            data: result
+        };
+    }
+
+    if (def.name === 'intention.createCommit') {
+        const { createCommit } = await import('./intention/tools');
+        if (!request.tenantId) throw new Error('Tenant ID required for Intent Commit');
+        const result = await createCommit(request.tenantId, request.actor.userId, inputs);
+        return {
+            status: 'success',
+            data: result
+        };
     }
 
     // --- Internal CRM Tools (Jack/Admin) ---
