@@ -38,7 +38,7 @@ export type ThinkingLevel = 'lite' | 'standard' | 'advanced' | 'expert' | 'geniu
 
 export interface ModelConfig {
     model: string;
-    thinkingLevel?: 'off' | 'low' | 'medium' | 'high' | 'max';
+    thinkingLevel?: 'off' | 'low' | 'medium' | 'high';
     description: string;
     tier: 'free' | 'paid' | 'super'; // Minimum tier required
 }
@@ -82,13 +82,13 @@ export const MODEL_CONFIGS: Record<ThinkingLevel, ModelConfig> = {
     },
     genius: {
         model: 'googleai/gemini-3-pro-preview',
-        thinkingLevel: 'max',
+        thinkingLevel: 'high',
         description: 'Maximum intelligence (Gemini 3 Pro + Max Thinking)',
         tier: 'super',
     },
     deep_research: {
         model: 'googleai/gemini-3-pro-preview',
-        thinkingLevel: 'max',
+        thinkingLevel: 'high',
         description: 'Comprehensive web research (Deep Research Agent)',
         tier: 'super',
     },
