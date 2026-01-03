@@ -344,7 +344,7 @@ export function DiscoverySummary({
     durationSec: number;
     onExpand?: () => void;
 }) {
-    const agentNames = [...new Set(steps.map(s => s.agentName))];
+    const agentNames = Array.from(new Set(steps.map(s => s.agentName)));
     
     return (
         <button

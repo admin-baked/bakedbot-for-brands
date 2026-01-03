@@ -168,6 +168,8 @@ function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (
         money_mike: { label: 'Money Mike', desc: 'Pricing & Margins', icon: DollarSign },
         mrs_parker: { label: 'Mrs. Parker', desc: 'Loyalty & VIPs', icon: Heart },
         deebo: { label: 'Deebo', desc: 'Compliance & Safety', icon: ShieldAlert },
+        day_day: { label: 'Day Day', desc: 'SEO & Growth', icon: Globe },
+        felisha: { label: 'Felisha', desc: 'Ops & Meetings', icon: Calendar },
         // Executive Suite
         leo: { label: 'Leo', desc: 'COO & Orchestrator', icon: Briefcase },
         jack: { label: 'Jack', desc: 'CRO & Revenue', icon: Rocket },
