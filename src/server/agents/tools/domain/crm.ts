@@ -285,6 +285,44 @@ export async function getCustomerInsight(
 }
 
 /**
+ * Internal CRM Tools (For Jack/Executives)
+ */
+import { getPlatformLeads, getBrands } from '@/server/services/crm-service';
+
+export async function getInternalLeads(
+    limit: number = 20,
+    search?: string
+) {
+    const leads = await getPlatformLeads({ limit, search });
+    return {
+        leads: leads.map(l => ({
+            company: l.company,
+            email: l.email,
+            status: l.status,
+            source: l.source,
+            created: l.createdAt
+        })),
+        count: leads.length
+    };
+}
+
+export async function getInternalBrands(
+    state?: string,
+    status?: 'unclaimed' | 'claimed' | 'invited'
+) {
+    const brands = await getBrands({ state, claimStatus: status, limit: 20 });
+    return {
+        brands: brands.map(b => ({
+            name: b.name,
+            state: b.states.join(', '),
+            status: b.claimStatus,
+            isNational: b.isNational
+        })),
+        count: brands.length
+    };
+}
+
+/**
  * All CRM tools exported for agent registration
  */
 export const crmTools = {
@@ -293,6 +331,9 @@ export const crmTools = {
     'crm.getTopCustomers': getTopCustomers,
     'crm.getAtRiskCustomers': getAtRiskCustomers,
     'crm.getCustomerInsight': getCustomerInsight,
+    // Internal Tools
+    'crm.getInternalLeads': getInternalLeads,
+    'crm.getInternalBrands': getInternalBrands,
 };
 
 export default crmTools;

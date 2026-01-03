@@ -413,6 +413,56 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'write',
         requiredPermission: 'manage:campaigns',
     }
+    // ===================================
+    // 9. Internal CRM Tools (Jack/Admin)
+    // ===================================
+    'crm.getInternalLeads': {
+        name: 'crm.getInternalLeads',
+        description: 'Retrieves raw platform leads (B2B) for sales outreach. (Internal Use Only).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                limit: { type: 'number', default: 20 },
+                search: { type: 'string', description: 'Search by company or email' }
+            }
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics' // Assuming Executives have this
+    },
+    'crm.getInternalBrands': {
+        name: 'crm.getInternalBrands',
+        description: 'Retrieves platform brand organizations and their statuses.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                state: { type: 'string', description: 'Filter by state (e.g. "MI")' },
+                status: { type: 'string', enum: ['unclaimed', 'claimed', 'invited'] }
+            }
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    
+    // ===================================
+    // 10. System Navigation (Inline Connections)
+    // ===================================
+    'system.generateConnectionLink': {
+        name: 'system.generateConnectionLink',
+        description: 'Generates a deep link to connect a third-party tool (Stripe, GitHub, etc).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                tool: { 
+                    type: 'string', 
+                    enum: ['stripe', 'github', 'salesforce', 'hubspot', 'linear', 'jira', 'google_analytics', 'search_console'],
+                    description: 'The tool to connect.'
+                }
+            },
+            required: ['tool']
+        },
+        category: 'read', // Just generating a link
+        requiredPermission: 'read:analytics'
+    }
 };
 
 /**

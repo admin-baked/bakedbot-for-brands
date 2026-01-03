@@ -707,6 +707,59 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         }
     }
 
+    // --- Internal CRM Tools (Jack/Admin) ---
+    if (def.name === 'crm.getInternalLeads') {
+        const { getInternalLeads } = await import('./domain/crm');
+        // Ensure inputs are provided or allow defaults
+        return {
+            status: 'success',
+            data: await getInternalLeads(inputs.limit || 20, inputs.search)
+        };
+    }
+
+    if (def.name === 'crm.getInternalBrands') {
+        const { getInternalBrands } = await import('./domain/crm');
+        return {
+            status: 'success',
+            data: await getInternalBrands(inputs.state, inputs.status)
+        };
+    }
+
+    // --- System Navigation (Inline Connections) ---
+    if (def.name === 'system.generateConnectionLink') {
+        // Map tools to their dashboard settings URLs
+        const toolMap: Record<string, string> = {
+            'stripe': '/dashboard/settings/billing', // Better than general settings
+            'github': '/dashboard/settings/integrations?connect=github',
+            'salesforce': '/dashboard/settings/integrations?connect=salesforce',
+            'hubspot': '/dashboard/settings/integrations?connect=hubspot',
+            'linear': '/dashboard/settings/integrations?connect=linear',
+            'jira': '/dashboard/settings/integrations?connect=jira',
+            'google_analytics': '/dashboard/settings/analytics?enable=true', // Direct to analytics tab
+            'search_console': '/dashboard/settings/seo?enable=true'  // Direct to SEO tab
+        };
+
+        const targetUrl = toolMap[inputs.tool];
+        
+        if (!targetUrl) {
+           return {
+               status: 'failed',
+               error: `Unknown tool identifier: ${inputs.tool}`
+           };
+        }
+
+        // Return a structured response that the UI (or Agent) can parse into a clickable link
+        return {
+            status: 'success',
+            data: {
+                tool: inputs.tool,
+                url: targetUrl,
+                action: 'navigate',
+                markdown: `[Connect ${inputs.tool} Now](${targetUrl})`
+            }
+        };
+    }
+
     return {
         status: 'success',
         data: { message: `Executed tool: ${def.name}`, inputs }
