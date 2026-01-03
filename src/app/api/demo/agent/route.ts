@@ -141,14 +141,41 @@ export async function POST(request: NextRequest) {
         }
 
         // 1. Analyze Intent using Real Logic
+        // 1. Analyze Intent using Real Logic
+        
+        // --- INTENTION OS (V2) ---
+        // Demo Chat Integration
+        try {
+            const { analyzeIntent } = await import('@/server/agents/intention/analyzer');
+            // Simplified context for demo
+            const intentAnalysis = await analyzeIntent(prompt, '');
+
+            if (intentAnalysis.isAmbiguous && intentAnalysis.clarification?.clarificationQuestion) {
+                 return NextResponse.json({
+                    agent: 'hq', // System level clarification
+                    prompt,
+                    items: [{
+                        title: 'Clarification Needed',
+                        description: intentAnalysis.clarification.clarificationQuestion + '\n\n' + intentAnalysis.clarification.possibleIntents.map(i => '- ' + i).join('\n'),
+                        meta: 'Intention OS: Ambiguity Detected'
+                    }],
+                    totalCount: 1,
+                    generatedMedia: null
+                });
+            }
+        } catch (e) {
+            console.warn('[Demo/Chat] Intention Analyzer failed (Shadow Mode)', e);
+        }
+        // -------------------------
+
         const analysis = await analyzeQuery(prompt);
         let targetAgent = requestedAgent || 'smokey'; // Use requested agent as default
 
         // 2. Intelligent Routing based on Analysis (override if specific intent detected)
         // Check platform/HQ questions FIRST (before product search fallback)
-        if (requestedAgent === 'moneymike' || prompt.toLowerCase().includes('pricing model') || prompt.toLowerCase().includes('cost') || prompt.toLowerCase().includes('price')) {
+        if (requestedAgent === 'moneymike') {
              targetAgent = 'moneymike';
-        } else if (requestedAgent === 'hq' || prompt.toLowerCase().includes('bakedbot') || prompt.toLowerCase().includes('how does') || prompt.toLowerCase().includes('work')) {
+        } else if (requestedAgent === 'hq' || prompt.toLowerCase().includes('bakedbot') || prompt.toLowerCase().includes('how does') || (prompt.toLowerCase().includes('work') && prompt.toLowerCase().includes('bakedbot'))) {
             // General questions about the platform
             targetAgent = 'hq';
         } else if (analysis.searchType === 'marketing') {
