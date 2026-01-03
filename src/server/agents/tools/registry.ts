@@ -243,6 +243,21 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'write',
         requiredPermission: 'read:analytics'
     },
+    'communications.sendNotification': {
+        name: 'communications.sendNotification',
+        description: 'Sends an internal notification or report email (e.g. Competitive Snapshot) from the BakedBot Team.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                to: { type: 'string', description: 'Recipient email address' },
+                subject: { type: 'string', description: 'Email subject' },
+                content: { type: 'string', description: 'Email body content (supports HTML)' }
+            },
+            required: ['to', 'subject', 'content']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics' // Accessible to Dispensary/Brand/Admin
+    },
     'os.simulator': {
         name: 'os.simulator',
         description: 'Simulates computer interaction (placeholder for Computer Use API).',

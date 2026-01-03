@@ -249,16 +249,40 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
     // Marketing Email - Direct dispatch via Mailjet/SendGrid
     if (def.name === 'marketing.sendEmail') {
         const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+        // Default to "Team BakedBot" if no specific brand context is provided
+        // This allows playbooks to run even if the agent doesn't explicitly self-identify as a brand yet
+        const fromName = inputs.brandName || 'BakedBot Team';
+        const fromEmail = inputs.brandName ? undefined : 'team@bakedbot.ai'; 
+
         const result = await sendGenericEmail({
             to: inputs.to,
             subject: inputs.subject,
             htmlBody: inputs.content,
             textBody: inputs.content.replace(/<[^>]*>/g, ''), // Strip tags for text version
             name: inputs.recipientName,
-            fromName: inputs.brandName, // Allow brand name override if provided
-            // fromEmail will default unless specified in future update
+            fromName: fromName,
+            fromEmail: fromEmail
         });
         
+        return {
+            status: result.success ? 'success' : 'failed',
+            data: { sent: result.success, provider: 'dynamic', to: inputs.to, error: result.error }
+        };
+    }
+
+    // Communications - Internal Notifications (Reports, Alerts)
+    if (def.name === 'communications.sendNotification') {
+        const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+        
+        const result = await sendGenericEmail({
+            to: inputs.to,
+            subject: inputs.subject,
+            htmlBody: inputs.content, // HTML assumed
+            textBody: inputs.content.replace(/<[^>]*>/g, ''),
+            fromName: 'BakedBot Team',
+            fromEmail: 'team@bakedbot.ai' // Enforced for internal/system notifications
+        });
+
         return {
             status: result.success ? 'success' : 'failed',
             data: { sent: result.success, provider: 'dynamic', to: inputs.to, error: result.error }
