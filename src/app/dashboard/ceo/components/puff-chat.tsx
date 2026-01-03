@@ -147,7 +147,7 @@ export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
 // ModelSelector is imported
 
 
-function PersonaSelector({ value, onChange, isSuperUser = false }: { value: AgentPersona, onChange: (v: AgentPersona) => void, isSuperUser?: boolean }) {
+function PersonaSelector({ value, onChange, isSuperUser = false, isAuthenticated = true }: { value: AgentPersona, onChange: (v: AgentPersona) => void, isSuperUser?: boolean, isAuthenticated?: boolean }) {
     // Core agents visible to all
     const coreAgents: Record<string, { label: string, desc: string, icon: any }> = {
         puff: { label: 'Puff', desc: 'General Assistant', icon: Sparkles },
@@ -170,12 +170,17 @@ function PersonaSelector({ value, onChange, isSuperUser = false }: { value: Agen
     const options = isSuperUser ? { ...coreAgents, ...executiveAgents } : coreAgents;
     const currentOpt = (options as any)[value] || coreAgents.puff;
     const SelectedIcon = currentOpt.icon;
+    
+    // Determine if "Interviewing"
+    const isInterviewing = !isAuthenticated && value !== 'puff';
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs font-medium border border-transparent hover:border-border hover:bg-background">
                     <SelectedIcon className="h-3 w-3 text-primary" />
                     {currentOpt.label}
+                    {isInterviewing && <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Interviewing</Badge>}
                     <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
             </DropdownMenuTrigger>
@@ -186,7 +191,10 @@ function PersonaSelector({ value, onChange, isSuperUser = false }: { value: Agen
                     <DropdownMenuItem key={key} onClick={() => onChange(key as AgentPersona)} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
                         <div className="flex items-center gap-2 w-full">
                             <opt.icon className="h-4 w-4 text-primary" />
-                            <span className="font-medium flex-1">{opt.label}</span>
+                            <span className="font-medium flex-1">
+                                {opt.label}
+                                {!isAuthenticated && key !== 'puff' && <span className="ml-2 text-[10px] text-yellow-600 font-normal bg-yellow-50 px-1 rounded">(Interviewing)</span>}
+                            </span>
                             {value === key && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
                         </div>
                         <span className="text-xs text-muted-foreground ml-6">{opt.desc}</span>
@@ -1164,7 +1172,7 @@ export function PuffChat({
                         <div className="h-4 w-[1px] bg-border mx-1" />
 
                         <div className="flex items-center gap-1">
-                            <PersonaSelector value={persona} onChange={setPersona} />
+                            <PersonaSelector value={persona} onChange={setPersona} isSuperUser={isSuperUser} isAuthenticated={isAuthenticated} />
                             <ModelSelector 
                                 value={thinkingLevel} 
                                 onChange={setThinkingLevel} 

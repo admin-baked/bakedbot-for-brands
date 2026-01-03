@@ -24,7 +24,7 @@ export function HeroSection() {
           <Badge variant="secondary" className="px-4 py-2 text-sm border-primary/20 backdrop-blur-sm bg-background/50 animate-fade-in-up">
             <Bot className="w-4 h-4 mr-2 text-primary" />
             Hire Your First Scout for Free — No Credit Card
-            </span>
+
           </Badge>
 
           <h1 className="text-4xl font-bold tracking-tight sm:text-6xl font-teko uppercase animate-fade-in-up animation-delay-100">
