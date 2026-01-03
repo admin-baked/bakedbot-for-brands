@@ -39,13 +39,13 @@ describe('Model Selector', () => {
 
         it('should have thinking levels configured for expert and genius', () => {
             expect(MODEL_CONFIGS.expert.thinkingLevel).toBe('high');
-            expect(MODEL_CONFIGS.genius.thinkingLevel).toBe('max');
+            expect(MODEL_CONFIGS.genius.thinkingLevel).toBe('high');
         });
 
         it('should have deep_research configured as super tier with max thinking', () => {
             expect(MODEL_CONFIGS.deep_research).toBeDefined();
             expect(MODEL_CONFIGS.deep_research.tier).toBe('super');
-            expect(MODEL_CONFIGS.deep_research.thinkingLevel).toBe('max');
+            expect(MODEL_CONFIGS.deep_research.thinkingLevel).toBe('high');
             expect(MODEL_CONFIGS.deep_research.model).toBe('googleai/gemini-3-pro-preview');
         });
 
@@ -140,14 +140,14 @@ describe('Model Selector', () => {
             const options = getGenerateOptions('genius');
             expect(options.model).toBe('googleai/gemini-3-pro-preview');
             expect(options.config).toBeDefined();
-            expect(options.config?.thinkingConfig?.thinkingLevel).toBe('max');
+            expect(options.config?.thinkingConfig?.thinkingLevel).toBe('high');
         });
 
         it('should include max thinking config for deep_research', () => {
             const options = getGenerateOptions('deep_research');
             expect(options.model).toBe('googleai/gemini-3-pro-preview');
             expect(options.config).toBeDefined();
-            expect(options.config?.thinkingConfig?.thinkingLevel).toBe('max');
+            expect(options.config?.thinkingConfig?.thinkingLevel).toBe('high');
         });
     });
 });
