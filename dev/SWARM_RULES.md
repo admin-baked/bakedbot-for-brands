@@ -91,6 +91,8 @@ firebase apphosting:secrets:grantaccess MAILJET_SECRET_KEY --backend bakedbot-pr
 firebase apphosting:secrets:grantaccess CANNMENUS_API_KEY --backend bakedbot-prod --project studio-567050101-bc6e8
 firebase apphosting:secrets:grantaccess SERPER_API_KEY --backend bakedbot-prod --project studio-567050101-bc6e8
 firebase apphosting:secrets:grantaccess STRIPE_SECRET_KEY --backend bakedbot-prod --project studio-567050101-bc6e8
+firebase apphosting:secrets:grantaccess AUTHNET_API_LOGIN_ID --backend bakedbot-prod --project studio-567050101-bc6e8
+firebase apphosting:secrets:grantaccess AUTHNET_TRANSACTION_KEY --backend bakedbot-prod --project studio-567050101-bc6e8
 ```
 
 ### Warning Signs:
