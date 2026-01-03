@@ -248,20 +248,20 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
 
     // Marketing Email - Direct dispatch via Mailjet/SendGrid
     if (def.name === 'marketing.sendEmail') {
-        const { sendOrderConfirmationEmail } = await import('@/lib/email/dispatcher');
-        const emailData = {
-            orderId: `MARKETING-${Date.now()}`,
-            customerName: inputs.recipientName || 'Valued Customer',
-            customerEmail: inputs.to,
-            total: 0,
-            items: [{ name: inputs.subject || 'Marketing Email', qty: 1, price: 0 }],
-            retailerName: inputs.brandName || 'BakedBot',
-            pickupAddress: inputs.content || ''
-        };
-        const result = await sendOrderConfirmationEmail(emailData);
+        const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+        const result = await sendGenericEmail({
+            to: inputs.to,
+            subject: inputs.subject,
+            htmlBody: inputs.content,
+            textBody: inputs.content.replace(/<[^>]*>/g, ''), // Strip tags for text version
+            name: inputs.recipientName,
+            fromName: inputs.brandName, // Allow brand name override if provided
+            // fromEmail will default unless specified in future update
+        });
+        
         return {
-            status: result ? 'success' : 'failed',
-            data: { sent: result, provider: 'dynamic', to: inputs.to }
+            status: result.success ? 'success' : 'failed',
+            data: { sent: result.success, provider: 'dynamic', to: inputs.to, error: result.error }
         };
     }
 
@@ -327,21 +327,24 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
     }
 
     if (def.name === 'communications.sendTestEmail') {
-        const { sendOrderConfirmationEmail } = await import('@/lib/email/dispatcher');
-        // Construct dummy order data for the test
-        const dummyOrder = {
-            orderId: `TEST-${Date.now()}`,
-            customerName: 'Test User',
-            customerEmail: inputs.to,
-            total: 42.00,
-            items: [{ name: 'Test Product', qty: 1, price: 42.00 }],
-            retailerName: 'Agent Sandbox',
-            pickupAddress: 'Virtual Sandbox Environment'
-        };
-        const result = await sendOrderConfirmationEmail(dummyOrder);
+        const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+        
+        const result = await sendGenericEmail({
+            to: inputs.to,
+            subject: 'BakedBot Test Email',
+            htmlBody: `
+                <h1>System Test</h1>
+                <p>This is a test email sent from the Agent Tooling System.</p>
+                <p>Time: ${new Date().toISOString()}</p>
+                <p>Provider: Dynamic Dispatcher</p>
+            `,
+            textBody: `System Test. Time: ${new Date().toISOString()}`,
+            fromName: 'BakedBot System'
+        });
+
         return {
-            status: result ? 'success' : 'failed',
-            data: { sent: result, provider: 'dynamic' }
+            status: result.success ? 'success' : 'failed',
+            data: { sent: result.success, provider: 'dynamic', error: result.error }
         };
     }
 

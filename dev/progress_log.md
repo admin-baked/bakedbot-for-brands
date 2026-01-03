@@ -36,6 +36,7 @@ Executive Boardroom is live and production-ready.
 - **FEAT**: Enhanced Email Dispatcher to support dynamic `From` addresses.
 - **UI**: Updated `EmailTesterTab` to switch between `hello@bakedbot.ai` and `team@bakedbot.ai`.
 - **UPDATE**: Configured Signup Autoresponder to explicitly use `hello@bakedbot.ai`.
+- **FEAT**: Refactored `EmailService` and Agent Tools (`router.ts`) to use central Email Dispatcher, enabling Mailjet support for Invites and AI Agents.
 
 ---
 
