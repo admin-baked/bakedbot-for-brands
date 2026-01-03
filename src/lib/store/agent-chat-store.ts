@@ -50,6 +50,7 @@ interface AgentChatState {
     currentProjectId: string | null; // Active project context
 
     // Artifact State
+    currentArtifacts: Artifact[];
     activeArtifactId: string | null;
     isArtifactPanelOpen: boolean;
 
@@ -88,7 +89,6 @@ export const useAgentChatStore = create<AgentChatState>()(
 
             // Artifact Actions
             addArtifact: (artifact: Artifact) => {
-                // @ts-ignore
                 set((state: AgentChatState) => {
                     const current = state.currentArtifacts || [];
                     return {
