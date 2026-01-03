@@ -31,8 +31,8 @@ describe('AgentPlayground', () => {
 
   it('renders default suggestions', () => {
     render(<AgentPlayground />);
-    expect(screen.getByText('How does BakedBot work?')).toBeInTheDocument();
     expect(screen.getByText('Hire a Market Scout (audit my competition)')).toBeInTheDocument();
+    expect(screen.getByText('Send Deebo (compliance check)')).toBeInTheDocument();
   });
 
   it('renders the chat input and send button', () => {
