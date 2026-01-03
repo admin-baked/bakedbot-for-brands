@@ -261,3 +261,25 @@ We are shifting from **static, hand-coded UIs** to **agent-composed, workflow-dr
 5. **Auditability by default**: Log composed views and agent actions.
 
 ---
+
+## 8. Intention OS (Architecture V2)
+**Core Philosophy**: "Interpretation First, Execution Second."
+
+To solve the "confidently wrong" problem, we separate **Perception** from **Action**.
+
+### The 3 Laws of Intention:
+1.  **The Semantic Commit**: Agents must generate a JSON `IntentCommit` artifact *before* taking any significant action. This artifact explicitly states the Goal, Assumptions, and Perceived Constraints.
+2.  **The "Ask First" Protocol**: If an intent is ambiguous (confidence < 0.8), the agent MUST ask a clarification question. It is forbidden to guess.
+    *   *Bad*: User says "Fix menu" -> Agent deletes 50 items.
+    *   *Good*: User says "Fix menu" -> Agent asks "Do you want to sync prices or update descriptions?"
+3.  **Artifact Permanence**: Intent is not ephemeral. We store `IntentCommit` objects in Firestore to audit "What the agent *thought* it was doing" vs "What it actually did."
+
+### Implementation (The Loop):
+1.  **Input**: User Query
+2.  **Analyzer**: `intention.analyze(query)` -> Returns `Ambiguous` or `Clear`.
+3.  **Branch**:
+    *   **Ambiguous**: Trigger `intention.askClarification` (Bayesian Question).
+    *   **Clear**: Generate `IntentCommit` -> Execute.
+
+
+---
