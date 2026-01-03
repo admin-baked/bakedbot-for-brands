@@ -52,6 +52,7 @@ export interface AgentResult {
         agentName?: string;
         role?: string;
         jobId?: string; // Added to metadata
+        evalResults?: any[]; // Compliance eval results
         media?: {
             type: string;
             url: string;
@@ -267,7 +268,13 @@ export async function runAgentCore(
         try {
             const { analyzeIntent } = await import('@/server/agents/intention/analyzer');
             await emitThought(jobId, 'Analyzing Intent', 'Determining semantic intent and ambiguity...');
-            const analysis = await analyzeIntent(userMessage);
+            
+            // Gather basic context for the analyzer
+            const { requireUser } = await import('@/server/auth/auth');
+            const user = injectedUser || await requireUser().catch(() => null);
+            const contextStr = user ? `User Role: ${user.role}, Brand: ${user.brandId || 'none'}` : 'Guest User';
+            
+            const analysis = await analyzeIntent(userMessage, contextStr);
 
             if (analysis.isAmbiguous && analysis.clarification?.clarificationQuestion) {
                 // STOP: Ask Clarification

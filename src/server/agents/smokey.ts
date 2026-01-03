@@ -68,7 +68,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 updatedMemory: agentMemory,
                 logEntry: {
                     action: 'chat_response',
-                    result: `I'm Smokey, your budtender AI! I can help you with product recommendations, menu optimization, and customer experience. What would you like to know about?`,
+                    result: `I'm Smokey, your Budtender & Product Intelligence engine! 🌿💨\n\nI can help you with:\n1. **Product Discovery**: Finding specific strains, effects, or price points.\n2. **Inventory Optimization**: Identifying match confidence and stock levels.\n3. **Education**: Deep dives into cannabinoids and terpenes.\n\nWhat are you looking to discover today?`,
                     next_step: 'await_user_input',
                     metadata: { stimulus }
                 }

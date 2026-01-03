@@ -69,7 +69,8 @@ export interface LeaflyIngestionRun {
     status: 'running' | 'completed' | 'failed';
     startedAt: Date;
     completedAt?: Date;
-    storesDiscovered: number;
+    storesDiscovered?: number;
+    storesScanned?: number;  // Legacy alias for storesDiscovered
     productsIngested: number;
     offersIngested: number;
     errors: string[];

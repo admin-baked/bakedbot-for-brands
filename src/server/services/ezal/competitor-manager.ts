@@ -178,6 +178,7 @@ export async function createDataSource(
 ): Promise<DataSource> {
     const { firestore } = await createServerClient();
 
+    const now = new Date();
     const sourceData = {
         ...data,
         tenantId,

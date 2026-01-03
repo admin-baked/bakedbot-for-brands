@@ -1,0 +1,9 @@
+﻿.next/types/validator.ts(1727,39): error TS2307: Cannot find module '../../src/app/api/ezal/scrape/route.js' or its corresponding type declarations.
+src/server/agents/agent-runner.ts(936,17): error TS2353: Object literal may only specify known properties, and 'evalResults' does not exist in type '{ type?: "compliance_report" | "product_rec" | "elasticity_analysis" | "session_context" | undefined; data?: any; brandId?: string | undefined; brandName?: string | undefined; agentName?: string | undefined; role?: string | undefined; jobId?: string | undefined; media?: { ...; } | undefined; }'.
+src/server/agents/tools/domain/intel.ts(37,20): error TS2304: Cannot find name 'CompetitorScanResult'.
+src/server/services/ezal/competitor-manager.ts(185,20): error TS2304: Cannot find name 'now'.
+src/server/services/ezal/competitor-manager.ts(186,20): error TS2304: Cannot find name 'now'.
+src/server/services/ezal/competitor-manager.ts(187,20): error TS2304: Cannot find name 'now'.
+src/server/services/leafly-connector.ts(96,9): error TS2353: Object literal may only specify known properties, and 'storesScanned' does not exist in type 'LeaflyIngestionRun'.
+src/server/services/leafly-connector.ts(152,9): error TS2353: Object literal may only specify known properties, and 'storesScanned' does not exist in type 'LeaflyIngestionRun'.
+src/server/services/leafly-connector.ts(566,13): error TS1117: An object literal cannot have multiple properties with the same name.
