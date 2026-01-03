@@ -590,21 +590,28 @@ export async function runAgentCore(
             } catch (e) {}
         }
 
-        // 3. Web Search
-        if (lowerMessage.includes('search') || lowerMessage.includes('google')) {
+        // 3. Web Search (Explicit Triggers Only)
+        // Prevent aggressive matching on words like "Search Console"
+        const isExplicitSearch = /^(?:please\s+)?(?:web\s+)?search\s+(?:for\s+)?|google\s+/i.test(userMessage) && !userMessage.toLowerCase().includes('console');
+        
+        let searchContext = '';
+
+        if (isExplicitSearch) {
              await emitThought(jobId, 'Web Search', 'Searching the internet for real-time data...');
              executedTools.push({ id: `search-${Date.now()}`, name: 'Web Search', status: 'running', result: 'Searching...' });
-             const searchRes = await searchWeb(userMessage.replace(/search|google/gi, ''));
-             const formatted = formatSearchResults(searchRes);
-             executedTools[executedTools.length-1].status = 'success';
-             executedTools[executedTools.length-1].result = 'Found results.';
              
-             // Synthesis
-             await emitThought(jobId, 'Synthesizing', 'Summarizing search results...');
-             const synthesis = await ai.generate({
-                 prompt: `User asked: ${userMessage}. Search Results: ${JSON.stringify(searchRes.results)}. Summarize.`
-             });
-             return { content: synthesis.text, toolCalls: executedTools };
+             try {
+                const searchRes = await searchWeb(userMessage.replace(/search|google/gi, ''));
+                const formatted = formatSearchResults(searchRes);
+                executedTools[executedTools.length-1].status = 'success';
+                executedTools[executedTools.length-1].result = `Found ${searchRes.results.length} results.`;
+                
+                // INSTEAD of returning early, we add to context and let the Persona answer
+                searchContext = `\n\n[ALL WEB SEARCH RESULTS]\n${JSON.stringify(searchRes.results)}\n`;
+             } catch (e: any) {
+                executedTools[executedTools.length-1].status = 'error';
+                executedTools[executedTools.length-1].result = e.message;
+             }
         }
 
         // 5. Ezal Intelligence Detection
@@ -777,7 +784,7 @@ export async function runAgentCore(
         
         // Construct Multimodal Prompt
         let promptParts: any[] = [
-            { text: `${activePersona.systemPrompt}\nUser: ${userMessage}\nContext: ${knowledgeContext}` }
+            { text: `${activePersona.systemPrompt}\nUser: ${userMessage}\nContext: ${knowledgeContext}${searchContext}` }
         ];
 
         // 1. Audio Input
