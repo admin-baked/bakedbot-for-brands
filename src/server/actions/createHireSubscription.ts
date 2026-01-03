@@ -78,11 +78,7 @@ export async function createHireSubscription(input: HireSubscriptionInput) {
 
         // 5. Upgrade User Role
         await userRef.update({
-            role: input.planId, // 'specialist' or 'empire' works as role? Or just 'subscriber'? 
-            // Assuming 'specialist' and 'empire' are valid roles or we map to 'pro'/'enterprise'
-            // For now, mapping to existing roles logic:
-            // If plan is specialist -> role: 'pro' (maybe?)
-            // Let's stick to the planId as the source of truth for features.
+            role: input.planId, 
             planId: input.planId,
             subscriptionId: sub.subscriptionId,
             customerProfileId: profile.customerProfileId,
@@ -90,6 +86,24 @@ export async function createHireSubscription(input: HireSubscriptionInput) {
             subscriptionStatus: 'active',
             updatedAt: FieldValue.serverTimestamp()
         });
+
+        // 5b. Update Custom Claims (Crucial for instant Frontend update)
+        try {
+            const { getAuth } = await import('firebase-admin/auth');
+            const auth = getAuth();
+            const currentClaims = (await auth.getUser(input.userId)).customClaims || {};
+            
+            await auth.setCustomUserClaims(input.userId, {
+                ...currentClaims,
+                role: input.planId, // 'specialist' or 'empire'
+                planId: input.planId,
+                subscriptionId: sub.subscriptionId
+            });
+            logger.info(`Updated custom claims for user ${input.userId} to role ${input.planId}`);
+        } catch (claimError) {
+            logger.error('Failed to update custom claims:', claimError);
+            // Non-fatal, but frontend might lag until token refresh
+        }
 
         logger.info(`User ${input.userId} hired agent(s) on plan ${input.planId}`);
 
