@@ -2268,3 +2268,20 @@ Permissions now match the working Mailjet secret exactly. Deployment is expected
 
 <!-- Force Deploy Trigger: 01/03/2026 16:59:59 -->
 
+
+## Session: 2026-01-03 (Fixing Deployment Secrets - Part 4)
+### Task ID
+fix_deployment_secrets_part_4
+
+### Summary
+Retrying deployment with strict role mirroring to MAILJET_API_KEY.
+- **Reason**: Previous attempt failed with permission denied on ersions/latest.
+- **Fix**: Added oles/secretmanager.viewer and oles/secretmanager.secretVersionManager to the service accounts.
+    - irebase-app-hosting-compute -> Viewer
+    - pp-hosting-pipeline -> Viewer
+    - service-1016399212569@gcp-sa-firebaseapphosting -> SecretVersionManager
+    - 1016399212569-compute -> SecretAccessor (already had it)
+
+### Result:  Mirror Complete
+Permissions are now byte-for-byte compatible with working secrets.
+
