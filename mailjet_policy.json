@@ -1,0 +1,27 @@
+﻿{
+  "bindings": [
+    {
+      "members": [
+        "serviceAccount:1016399212569-compute@developer.gserviceaccount.com",
+        "serviceAccount:app-hosting-pipeline@studio-567050101-bc6e8.iam.gserviceaccount.com",
+        "serviceAccount:firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com",
+        "serviceAccount:service-1016399212569@gcp-sa-cloudbuild.iam.gserviceaccount.com"
+      ],
+      "role": "roles/secretmanager.secretAccessor"
+    },
+    {
+      "members": [
+        "serviceAccount:service-1016399212569@gcp-sa-firebaseapphosting.iam.gserviceaccount.com"
+      ],
+      "role": "roles/secretmanager.secretVersionManager"
+    },
+    {
+      "members": [
+        "serviceAccount:firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com"
+      ],
+      "role": "roles/secretmanager.viewer"
+    }
+  ],
+  "etag": "BwZGrGR7SD0=",
+  "version": 1
+}

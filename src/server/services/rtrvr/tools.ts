@@ -189,6 +189,10 @@ export const DISCOVERY_BROWSER_ALLOWED_AGENTS = [
     'glenda',   // CMO - Marketing automation
     'mike_exec', // CFO - Financial automation
     'jack',     // CRO - Growth automation
+    'ezal',     // Market Scout (Freemium)
+    'deebo',    // Compliance (Freemium)
+    'puff',     // General Assistant (Dispatcher)
+    'smokey',   // Budtender (Freemium)
 ];
 
 /**
@@ -203,5 +207,6 @@ export function canAgentUseDiscoveryBrowser(agentId: string): boolean {
  * Only Super Users have access in Phase 1.
  */
 export function canRoleUseDiscoveryBrowser(role: string): boolean {
-    return role === 'super_admin' || role === 'admin';
+    // Phase 2: Allow public/scout access (restricted to Discovery-only tools)
+    return role === 'super_admin' || role === 'admin' || role === 'public' || role === 'scout';
 }
