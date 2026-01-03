@@ -274,12 +274,234 @@ To solve the "confidently wrong" problem, we separate **Perception** from **Acti
     *   *Good*: User says "Fix menu" -> Agent asks "Do you want to sync prices or update descriptions?"
 3.  **Artifact Permanence**: Intent is not ephemeral. We store `IntentCommit` objects in Firestore to audit "What the agent *thought* it was doing" vs "What it actually did."
 
-### Implementation (The Loop):
-1.  **Input**: User Query
-2.  **Analyzer**: `intention.analyze(query)` -> Returns `Ambiguous` or `Clear`.
-3.  **Branch**:
-    *   **Ambiguous**: Trigger `intention.askClarification` (Bayesian Question).
-    *   **Clear**: Generate `IntentCommit` -> Execute.
+### Discovery-First Protocol (Tasklet Pattern)
+For complex tasks, agents generate a **Configuration Checklist** before execution:
 
+```typescript
+interface TaskConfiguration {
+  required: string[];      // MUST ask before proceeding
+  optional: string[];      // Can assume defaults
+  assumptions: string[];   // State explicitly
+}
+```
+
+**Example Output:**
+```
+🎯 **To set up this task, I need to understand:**
+
+1. Which competitors should I monitor?
+2. What products/services should I track?
+3. Where do I find their pricing? (websites/APIs)
+4. How often should I check? (hourly/daily/weekly)
+5. How should I alert you? (email/Slack/SMS)
+
+Please provide these details, or I can start with defaults.
+```
+
+---
+
+## 9. Intuition OS (Proactive Intelligence)
+**Core Philosophy**: "Anticipate, Don't Just React."
+
+While Intention OS handles **user-initiated** queries, Intuition OS handles **system-initiated** insights.
+
+### Proactive Inference Triggers
+| Trigger | Example |
+|---------|---------|
+| **Anomaly Detection** | Sales dropped 40% mid-day → Alert + investigate |
+| **Pattern Recognition** | Mondays underperform → Suggest promotion |
+| **Churn Prediction** | High-LTV customers inactive 14+ days → Win-back |
+| **Opportunity Detection** | Shelf space doesn't match sales → Request reallocation |
+| **Context Inference** | Minimal query + role → Infer most likely intent |
+
+### Interface
+```typescript
+interface IntuitionInsight {
+  contextInferred: string[];     // What we observed
+  proactiveInsight: string;      // What we think user needs
+  confidenceLevel: 'high' | 'medium' | 'low';
+  triggerCondition: string;      // When this triggers
+}
+```
+
+### Output Pattern
+```
+💡 **[Intuition OS: Insight Detected]**
+
+I noticed you're looking at [X] data. Based on patterns:
+
+**What I'm seeing:**
+📉 [Observation 1]
+📊 [Observation 2]
+
+**What I think you might be wondering:**
+"[Anticipated question]"
+
+**Proactive Suggestion:**
+[Actionable recommendation]
+
+Would you like me to [specific action]?
+```
+
+---
+
+## 10. Intelligence Levels (Model Tiers)
+Users can select the intelligence tier for cost vs quality tradeoff.
+
+| Level | Model | Quota Cost | Use Case |
+|-------|-------|------------|----------|
+| **Standard** | gemini-2.0-flash | 1x | Fast, routine tasks |
+| **Advanced** | gemini-2.5-flash | 2x | Balanced performance |
+| **Expert** | gemini-2.5-pro | 5x | Complex reasoning |
+| **Genius** | gemini-2.5-pro-extended | 10x | Maximum capacity |
+
+### Selection Method
+```typescript
+type IntelligenceLevel = 'standard' | 'advanced' | 'expert' | 'genius';
+
+// Per-agent or per-request
+await runAgent({ 
+  agentId: 'ezal',
+  prompt: '...',
+  intelligenceLevel: 'expert'
+});
+```
+
+---
+
+## 11. Execution Transparency ("Worked for Xs")
+Every agent execution exposes a step-by-step trace.
+
+### Interface
+```typescript
+interface ExecutionStep {
+  step: number;
+  action: string;
+  status: 'pending' | 'running' | 'done' | 'failed';
+  durationMs?: number;
+  result?: string;
+}
+
+interface ExecutionTrace {
+  agentId: string;
+  startedAt: Date;
+  totalDurationMs: number;
+  steps: ExecutionStep[];
+}
+```
+
+### UI Pattern
+```
+⏳ **Working... (12s)**
+
+Step 1: Connect to competitor API ✅
+Step 2: Fetch current prices ✅
+Step 3: Compare to baseline ⏳
+Step 4: Generate alert ⏱️
+Step 5: Send notification ⏱️
+
+[Expand to see details]
+```
+
+---
+
+## 12. Global Connections Hub
+Centralized management of all integrations in Settings.
+
+| Category | Services |
+|----------|----------|
+| **Google Workspace** | Gmail, Drive, Calendar, Analytics |
+| **Communication** | Slack, SMS (Twilio) |
+| **POS** | Dutchie, Flowhub, Jane |
+| **CRM** | SpringBig, AlpineIQ |
+| **Wholesale** | LeafLink |
+| **Payments** | Stripe, Authorize.net |
+
+### Connection States
+```typescript
+interface Connection {
+  id: string;
+  service: string;
+  status: 'connected' | 'disconnected' | 'expired' | 'error';
+  lastSynced?: Date;
+  usedByAgents: string[];   // Which agents use this
+  scope: string[];          // Permissions granted
+}
+```
+
+---
+
+## 13. Natural Language Triggers
+Users can set up automation triggers via natural language.
+
+| User Says | System Creates |
+|-----------|----------------|
+| "Run this every Monday at 9am" | Cron: `0 9 * * 1` |
+| "Alert me when stock drops below 10" | Event trigger on inventory change |
+| "Check competitors daily at 3pm" | Scheduled scan |
+| "Send report every Friday" | Weekly automation |
+
+### Implementation
+```typescript
+function parseNaturalLanguageTrigger(input: string): PlaybookTrigger {
+  // Use AI to extract schedule or event trigger
+  return {
+    type: 'schedule' | 'event',
+    schedule?: string,   // ISO or cron
+    eventName?: string,  // 'inventory.low', 'competitor.priceChange'
+    threshold?: number,  // For numeric triggers
+  };
+}
+```
+
+---
+
+## 14. Response Feedback Loop
+Every agent response includes feedback buttons to improve over time.
+
+### UI Pattern
+```
+[Agent Response Content]
+
+**Was this response helpful?**
+👍 Good  |  👎 Could be better  |  💬 Comment
+
+[Set up a recurring trigger]
+```
+
+### Data Collected
+```typescript
+interface ResponseFeedback {
+  messageId: string;
+  responseId: string;
+  agentId: string;
+  rating: 'positive' | 'negative';
+  comment?: string;
+  timestamp: Date;
+  userId: string;
+}
+```
+
+---
+
+## 15. Service Icons on Agent Cards
+Display integration icons on agent/playbook cards for at-a-glance understanding.
+
+### Agent Definition Extension
+```typescript
+interface AgentCapability {
+  // ... existing fields
+  integrations?: string[];  // ['gmail', 'slack', 'sheets']
+}
+```
+
+### Rendering
+Each agent card shows small icons for connected services:
+- 📧 Gmail
+- 📊 Sheets
+- 💬 Slack
+- 📅 Calendar
+- 🛒 POS
+- 📦 LeafLink
 
 ---
