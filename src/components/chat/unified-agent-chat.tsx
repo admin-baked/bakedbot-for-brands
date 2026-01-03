@@ -102,9 +102,9 @@ const PUBLIC_CONFIG: RoleChatConfig = {
     themeColor: 'emerald',
     agentPersona: 'smokey',
     promptSuggestions: [
-        'How does BakedBot work?',
-        'Find dispensaries near me',
-        'Explain the pricing model',
+        'Hire a Market Scout (audit my competition)',
+        'Send Deebo (compliance check)',
+        'See my Digital Budtender in action',
     ],
     enabledFeatures: {
         modelSelector: false,

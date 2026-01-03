@@ -49,10 +49,10 @@ export function AgentPlayground() {
                 role="public"
                 locationInfo={locationInfo}
                 promptSuggestions={[
-                    "How does BakedBot work?",
-                    "Find dispensaries near me",
-                    "Explain the pricing model",
-                    "Create an image of a futuristic dispensary"
+                    "Hire a Market Scout (audit my competition)",
+                    "Send Deebo (compliance check)",
+                    "See my Digital Budtender in action",
+                    "What are the pricing plans?"
                 ]}
                 className="border-emerald-500/20 shadow-xl"
             />

@@ -148,7 +148,7 @@ export default function BoardroomTab() {
                             <div>
                                 <CardTitle className="text-base">Roundtable Discussion</CardTitle>
                                 <CardDescription className="text-[11px] font-medium text-primary">
-                                    Current Speaker: {EXECUTIVE_TEAM.find(a => a.id === selectedAgent)?.name} ({EXECUTIVE_TEAM.find(a => a.id === selectedAgent)?.role}) • Gemini 3 Intelligence
+                                    Current Speaker: {EXECUTIVE_TEAM.find(a => a.id === selectedAgent)?.name} ({EXECUTIVE_TEAM.find(a => a.id === selectedAgent)?.role})
                                 </CardDescription>
                             </div>
                         </div>

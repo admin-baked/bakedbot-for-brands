@@ -32,7 +32,7 @@ describe('AgentPlayground', () => {
   it('renders default suggestions', () => {
     render(<AgentPlayground />);
     expect(screen.getByText('How does BakedBot work?')).toBeInTheDocument();
-    expect(screen.getByText('Explain the pricing model')).toBeInTheDocument();
+    expect(screen.getByText('Hire a Market Scout (audit my competition)')).toBeInTheDocument();
   });
 
   it('renders the chat input and send button', () => {

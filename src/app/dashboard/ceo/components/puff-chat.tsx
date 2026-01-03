@@ -147,42 +147,43 @@ export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
 // ModelSelector is imported
 
 
-function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (v: AgentPersona) => void }) {
-    const options: Record<AgentPersona, { label: string, desc: string, icon: any }> = {
+function PersonaSelector({ value, onChange, isSuperUser = false }: { value: AgentPersona, onChange: (v: AgentPersona) => void, isSuperUser?: boolean }) {
+    // Core agents visible to all
+    const coreAgents: Record<string, { label: string, desc: string, icon: any }> = {
         puff: { label: 'Puff', desc: 'General Assistant', icon: Sparkles },
-        smokey: { label: 'Smokey', desc: 'Budtender & Products', icon: Leaf },
-        craig: { label: 'Craig', desc: 'Marketing & Campaigns', icon: Megaphone },
-        pops: { label: 'Pops', desc: 'Revenue & Operations', icon: BarChart3 },
-        ezal: { label: 'Ezal', desc: 'Market Intelligence', icon: Zap },
-        money_mike: { label: 'Money Mike', desc: 'Pricing & Margins', icon: DollarSign },
+        smokey: { label: 'Smokey', desc: 'Digital Budtender', icon: Leaf },
+        craig: { label: 'Craig', desc: 'Marketing Automation', icon: Megaphone },
+        pops: { label: 'Pops', desc: 'Analytics & Insights', icon: BarChart3 },
+        ezal: { label: 'Ezal', desc: 'Market Scout', icon: Zap },
+        money_mike: { label: 'Money Mike', desc: 'Pricing Strategy', icon: DollarSign },
         mrs_parker: { label: 'Mrs. Parker', desc: 'Loyalty & VIPs', icon: Heart },
-        deebo: { label: 'Deebo', desc: 'Compliance & Safety', icon: ShieldAlert },
-        // Executive Suite
+        deebo: { label: 'Deebo', desc: 'Compliance Guard', icon: ShieldAlert },
+    };
+    // Executive Suite - Super Users only
+    const executiveAgents: Record<string, { label: string, desc: string, icon: any }> = {
         leo: { label: 'Leo', desc: 'COO & Orchestrator', icon: Briefcase },
         jack: { label: 'Jack', desc: 'CRO & Revenue', icon: Rocket },
         linus: { label: 'Linus', desc: 'CTO & Technology', icon: Wrench },
         glenda: { label: 'Glenda', desc: 'CMO & Marketing', icon: Sparkles },
         mike_exec: { label: 'Mike', desc: 'CFO & Finance', icon: DollarSign },
-        // Legacy
-        wholesale_analyst: { label: 'Wholesale', desc: 'LeafLink & Inventory', icon: Briefcase },
-        menu_watchdog: { label: 'Watchdog', desc: 'Menu Monitoring', icon: ShoppingCart },
-        sales_scout: { label: 'Scout', desc: 'Lead Generation', icon: Search },
     };
-    const SelectedIcon = options[value].icon;
+    const options = isSuperUser ? { ...coreAgents, ...executiveAgents } : coreAgents;
+    const currentOpt = (options as any)[value] || coreAgents.puff;
+    const SelectedIcon = currentOpt.icon;
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 gap-2 text-xs font-medium border border-transparent hover:border-border hover:bg-background">
                     <SelectedIcon className="h-3 w-3 text-primary" />
-                    {options[value].label}
+                    {currentOpt.label}
                     <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-[280px]">
-                <DropdownMenuLabel>Agent Persona</DropdownMenuLabel>
+                <DropdownMenuLabel>Digital Workers</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {(Object.entries(options) as [AgentPersona, typeof options['puff']][]).map(([key, opt]) => (
-                    <DropdownMenuItem key={key} onClick={() => onChange(key)} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
+                {Object.entries(coreAgents).map(([key, opt]) => (
+                    <DropdownMenuItem key={key} onClick={() => onChange(key as AgentPersona)} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
                         <div className="flex items-center gap-2 w-full">
                             <opt.icon className="h-4 w-4 text-primary" />
                             <span className="font-medium flex-1">{opt.label}</span>
@@ -191,6 +192,22 @@ function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (
                         <span className="text-xs text-muted-foreground ml-6">{opt.desc}</span>
                     </DropdownMenuItem>
                 ))}
+                {isSuperUser && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel className="text-xs text-muted-foreground">Executive Boardroom</DropdownMenuLabel>
+                        {Object.entries(executiveAgents).map(([key, opt]) => (
+                            <DropdownMenuItem key={key} onClick={() => onChange(key as AgentPersona)} className="flex flex-col items-start gap-1 py-3 cursor-pointer">
+                                <div className="flex items-center gap-2 w-full">
+                                    <opt.icon className="h-4 w-4 text-purple-500" />
+                                    <span className="font-medium flex-1">{opt.label}</span>
+                                    {value === key && <CheckCircle2 className="h-3.5 w-3.5 text-purple-500" />}
+                                </div>
+                                <span className="text-xs text-muted-foreground ml-6">{opt.desc}</span>
+                            </DropdownMenuItem>
+                        ))}
+                    </>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );
@@ -1172,9 +1189,9 @@ export function PuffChat({
                                 <Sparkles className="h-8 w-8 text-primary" />
                             </div>
                             <div className="space-y-2">
-                                <h3 className="text-xl font-semibold tracking-tight">How can I help you?</h3>
+                                <h3 className="text-xl font-semibold tracking-tight">Meet Your Digital Workforce</h3>
                                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                                    I can help you analyze data, draft content, or manage your operations.
+                                    Give me a URL and I'll put my team to work—no login needed.
                                 </p>
                             </div>
                             
