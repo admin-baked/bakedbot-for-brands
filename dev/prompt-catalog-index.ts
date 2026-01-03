@@ -17,6 +17,7 @@ export * from './prompt-catalog-contextual';
 export * from './prompt-catalog-spawn';
 export * from './prompt-catalog-integrations';
 export * from './prompt-catalog-multimodal';
+export * from './prompt-catalog-playbooks';
 
 // =============================================================================
 // AGGREGATED STATISTICS
