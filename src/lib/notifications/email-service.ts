@@ -15,37 +15,23 @@ export interface EmailOptions {
     html: string;
 }
 
-export class EmailService {
     private async sendEmail({ to, subject, html }: EmailOptions): Promise<boolean> {
-        if (!SENDGRID_API_KEY) {
-            logger.warn('SENDGRID_API_KEY is missing. Mocking email send:', { to, subject });
-            return true;
-        }
-
         try {
-            const response = await fetch(SENDGRID_BASE_URL, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${SENDGRID_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    personalizations: [{ to: [{ email: to }] }],
-                    from: { email: FROM_EMAIL, name: 'BakedBot Orders' },
-                    subject,
-                    content: [{ type: 'text/html', value: html }],
-                }),
+            const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+            const result = await sendGenericEmail({
+                to,
+                subject,
+                htmlBody: html,
+                textBody: html.replace(/<[^>]*>/g, ''), // Basic strip tags
             });
 
-            if (!response.ok) {
-                const error = await response.json();
-                logger.error('SendGrid Error:', error);
+            if (!result.success) {
+                logger.error('Dispatcher failed to send email', { error: result.error });
                 return false;
             }
-
-            return true;
+            return true; 
         } catch (error) {
-            logger.error('Email Send Error:', error instanceof Error ? error : new Error(String(error)));
+            logger.error('Email Dispatch Error:', error instanceof Error ? error : new Error(String(error)));
             return false;
         }
     }
@@ -95,15 +81,46 @@ export class EmailService {
      * Send an invitation email to a new user
      */
     async sendInvitationEmail(to: string, link: string, role: string, businessName?: string) {
-        // Use Mailjet for Invites
+        // Construct standard invite HTML
+        const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #2e7d32;">You've been invited!</h1>
+        <p>You have been invited to join <strong>${businessName || 'BakedBot'}</strong> as a <strong>${role}</strong>.</p>
+        
+        <p style="margin: 20px 0;">
+          <a href="${link}" style="background-color: #2e7d32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Accept Invitation</a>
+        </p>
+
+        <p>Or copy this link:</p>
+        <p style="background-color: #f5f5f5; padding: 10px; font-family: monospace;">${link}</p>
+        
+        <p style="font-size: 12px; color: #666; margin-top: 30px;">
+          This link expires in 7 days. If you didn't expect this invitation, you can ignore this email.
+        </p>
+      </div>
+    `;
+
         try {
-            // Dynamically import to separate server vs client concerns if needed, though this file logic seems shared
-            const mailjet = await import('@/lib/email/mailjet') as any;
-            return await mailjet.sendInvitationEmail({ to, link, role, businessName });
+            // Use central dispatcher to route via active provider (Mailjet/SendGrid)
+            const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+            const result = await sendGenericEmail({
+                to,
+                subject: `Invitation to join ${businessName || 'BakedBot'}`,
+                htmlBody: html,
+                textBody: `You've been invited to join ${businessName || 'BakedBot'}. Click here to accept: ${link}`,
+                fromEmail: 'hello@bakedbot.ai', // Use hello@ for invites as requested
+                fromName: 'BakedBot Team'
+            });
+
+            if (!result.success) {
+                logger.error('Failed to send invitation email via dispatcher', { error: result.error });
+                return false;
+            }
+            
+            return true;
         } catch (error) {
-            logger.error('Failed to route invitation via Mailjet, falling back to legacy/log', { error });
-             // Fallback logic or just return false
-             return false;
+            logger.error('Failed to route invitation email', { error });
+            return false;
         }
     }
 }
