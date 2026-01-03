@@ -29,6 +29,15 @@ export async function searchWeb(query: string, numResults: number = 5): Promise<
     // Read API key fresh at runtime (not cached at module load)
     const apiKey = process.env.SERPER_API_KEY;
 
+    if (!query || query.trim().length === 0) {
+        return {
+             success: false,
+             query,
+             results: [],
+             error: 'Query cannot be empty'
+        };
+    }
+
     // Debug logging for production troubleshooting
     console.log('[searchWeb] API Key status:', apiKey ? `SET (${apiKey.length} chars, starts with ${apiKey.substring(0, 4)})` : 'NOT SET');
 
