@@ -43,6 +43,8 @@ Executive Boardroom is live and production-ready.
 - **FIX**: Added input validation to Search API to prevent 400 Errors.
 - **OPS**: Generated and Sent "Dutchie Competitive Snapshot" via Ezal (Manual Override).
 - **ARCH**: Implemented `IntentCommit` JSON Schema (Intention OS V2).
+- **FEAT**: Integrated "Intention Analyzer" Loop into Agent Runner (Pre-flight checks).
+- **FEAT**: Added "Semantic Commit" storage to Firestore (`intents` collection).
 
 ---
 
