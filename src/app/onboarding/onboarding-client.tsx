@@ -5,18 +5,18 @@ import { useState, useRef, useEffect } from 'react';
 import { useFormState } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, LogIn, Mail, CheckCircle, Sparkles } from 'lucide-react';
+import { Search, LogIn, Sparkles, CheckCircle } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/hooks/use-toast';
 import { completeOnboarding } from './actions';
-import { SubmitButton } from './components/submit-button';
-import { logger } from '@/lib/logger';
+import { Label } from '@/components/ui/label';
+import { MarketSelector } from '@/components/ui/market-selector';
 import { searchCannMenusRetailers } from '@/server/actions/cannmenus';
 import { WiringScreen } from '@/app/dashboard/settings/link/components/wiring-screen';
 import { checkOnboardingStatus } from './status-action';
 import { AnimatePresence } from 'framer-motion';
 import { useFirebase } from '@/firebase/provider';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, User } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -26,8 +26,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { MarketSelector } from '@/components/ui/market-selector';
 
 type BrandResult = {
   id: string;
@@ -35,7 +33,8 @@ type BrandResult = {
   market: string | null;
 };
 
-type Step = 'role' | 'market' | 'brand-search' | 'manual' | 'integrations' | 'competitors' | 'features' | 'review';
+// V2 Optimization: Removed 'integrations' | 'competitors' | 'features'
+type Step = 'role' | 'market' | 'brand-search' | 'manual' | 'review';
 
 export default function OnboardingPage() {
   const { toast } = useToast();
@@ -48,23 +47,19 @@ export default function OnboardingPage() {
   const [results, setResults] = useState<BrandResult[]>([]);
   const [selectedCannMenusEntity, setSelectedCannMenusEntity] = useState<{ id: string, name: string } | null>(null);
 
-  const [features, setFeatures] = useState<{ headless: boolean; budtender: boolean }>({ headless: true, budtender: true });
-
   const [manualBrandName, setManualBrandName] = useState('');
   const [manualProductName, setManualProductName] = useState('');
   const [manualDispensaryName, setManualDispensaryName] = useState('');
 
-  const [posConfig, setPosConfig] = useState<{ provider: 'dutchie' | 'jane' | 'none', apiKey: string, id: string }>({ provider: 'none', apiKey: '', id: '' });
-
+  // Form State
   const [formState, formAction] = useFormState(completeOnboarding, { message: '', error: false });
   const formRef = useRef<HTMLFormElement>(null);
 
+  // Auth State
   const [showSignUpModal, setShowSignUpModal] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
-  const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([]);
-  const [nearbyCompetitors, setNearbyCompetitors] = useState<BrandResult[]>([]);
   const [marketState, setMarketState] = useState<string>('');
 
   // Handle URL params for pre-filling (e.g. coming from Claim Page)
@@ -114,8 +109,6 @@ export default function OnboardingPage() {
       }
     }
   }, [formState, role]);
-
-
 
   // Handle Session Recovery (for established users)
   const [showReloginModal, setShowReloginModal] = useState(false);
@@ -205,8 +198,7 @@ export default function OnboardingPage() {
       }
     }
 
-    // V2: Skip integrations/competitors/features - move to Setup Checklist
-    // Go directly to review for both Brand and Dispensary
+    // V2 Optimization: Skip integrations/competitors/features
     setStep('review');
   }
 
@@ -216,7 +208,7 @@ export default function OnboardingPage() {
   }
 
   function handleManualContinue() {
-    // V2: Go directly to review for all roles
+    // V2 Optimization: Go directly to review
     setStep('review');
   }
 
@@ -422,136 +414,6 @@ export default function OnboardingPage() {
     </section>
   );
 
-  const renderIntegrationsStep = () => (
-    <section className="space-y-4">
-      <div className="space-y-2">
-        <h2 className="font-semibold text-xl">Connect your POS</h2>
-        <p className="text-sm text-muted-foreground">Select your Point of Sale system to sync inventory in real-time.</p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div
-          className={`p-6 border rounded-xl cursor-pointer transition-all ${posConfig.provider === 'dutchie' ? 'border-primary bg-primary/5 ring-1 ring-primary shadow-sm' : 'hover:border-primary/50'}`}
-          onClick={() => setPosConfig({ ...posConfig, provider: 'dutchie' })}
-        >
-          <div className="flex items-center gap-3">
-            <div className="h-2 w-2 rounded-full bg-green-500" />
-            <span className="font-bold">Dutchie</span>
-          </div>
-        </div>
-
-        <div
-          className={`p-6 border rounded-xl cursor-pointer transition-all ${posConfig.provider === 'jane' ? 'border-primary bg-primary/5 ring-1 ring-primary shadow-sm' : 'hover:border-primary/50'}`}
-          onClick={() => setPosConfig({ ...posConfig, provider: 'jane' })}
-        >
-          <div className="flex items-center gap-3">
-            <div className="h-2 w-2 rounded-full bg-blue-500" />
-            <span className="font-bold">iHeartJane</span>
-          </div>
-        </div>
-
-        <div
-          className={`p-6 border rounded-xl cursor-pointer transition-all col-span-2 ${posConfig.provider === 'none' ? 'border-primary bg-primary/5 ring-1 ring-primary shadow-sm' : 'hover:border-primary/50'}`}
-          onClick={() => setPosConfig({ ...posConfig, provider: 'none' })}
-        >
-          <span className="font-medium text-center block">Skip / No POS</span>
-        </div>
-      </div>
-
-      {posConfig.provider === 'dutchie' && (
-        <div className="space-y-3 p-4 bg-muted/50 rounded-lg border animate-in fade-in slide-in-from-top-2">
-          <Label>API Key</Label>
-          <Input placeholder="Enter Dutchie API Key" value={posConfig.apiKey} onChange={e => setPosConfig({ ...posConfig, apiKey: e.target.value })} type="password" />
-        </div>
-      )}
-      {posConfig.provider === 'jane' && (
-        <div className="space-y-3 p-4 bg-muted/50 rounded-lg border animate-in fade-in slide-in-from-top-2">
-          <Label>Shop ID</Label>
-          <Input placeholder="Enter Jane Shop ID" value={posConfig.id} onChange={e => setPosConfig({ ...posConfig, id: e.target.value })} />
-        </div>
-      )}
-
-      <div className="flex gap-2 justify-between pt-4">
-        <Button variant="ghost" onClick={() => setStep('brand-search')}>Back</Button>
-        <Button onClick={() => setStep('competitors')}>Continue</Button>
-      </div>
-    </section>
-  );
-
-  const renderCompetitorsStep = () => (
-    <section className="space-y-4">
-      <div className="space-y-2">
-        <h2 className="font-semibold text-xl">Select your competitors</h2>
-        <p className="text-sm text-muted-foreground">Select up to 5 nearby dispensaries you&apos;d like to track.</p>
-      </div>
-
-      <div className="grid gap-3">
-        {nearbyCompetitors.map((comp) => (
-          <div
-            key={comp.id}
-            className={`p-4 border rounded-xl cursor-pointer transition-all flex items-center justify-between ${selectedCompetitors.includes(comp.id) ? 'bg-primary/5 border-primary shadow-sm' : 'hover:bg-muted/50'}`}
-            onClick={() => {
-              if (selectedCompetitors.includes(comp.id)) {
-                setSelectedCompetitors(prev => prev.filter(id => id !== comp.id));
-              } else if (selectedCompetitors.length < 5) {
-                setSelectedCompetitors(prev => [...prev, comp.id]);
-              }
-            }}
-          >
-            <div>
-              <h3 className="font-semibold">{comp.name}</h3>
-              <p className="text-xs text-muted-foreground">{comp.market}</p>
-            </div>
-            {selectedCompetitors.includes(comp.id) && <CheckCircle className="h-5 w-5 text-primary" />}
-          </div>
-        ))}
-      </div>
-
-      <div className="flex gap-2 justify-between pt-4">
-        <Button variant="ghost" onClick={() => setStep('integrations')}>Back</Button>
-        <Button onClick={() => setStep('features')}>Continue</Button>
-      </div>
-    </section>
-  );
-
-  const renderFeaturesStep = () => (
-    <section className="space-y-6">
-      <div className="space-y-2">
-        <h2 className="font-semibold text-xl">Choose your features</h2>
-        <p className="text-sm text-muted-foreground">Customize your BakedBot experience.</p>
-      </div>
-
-      <div className="grid gap-4">
-        <div
-          className={`p-4 border rounded-xl cursor-pointer transition-all flex items-center justify-between ${features.headless ? 'bg-primary/5 border-primary shadow-sm' : 'hover:bg-muted/50'}`}
-          onClick={() => setFeatures(prev => ({ ...prev, headless: !prev.headless }))}
-        >
-          <div>
-            <h3 className="font-semibold">Headless Menu</h3>
-            <p className="text-xs text-muted-foreground mt-1">SEO-optimized menu for your website.</p>
-          </div>
-          {features.headless && <CheckCircle className="h-5 w-5 text-primary" />}
-        </div>
-
-        <div
-          className={`p-4 border rounded-xl cursor-pointer transition-all flex items-center justify-between ${features.budtender ? 'bg-primary/5 border-primary shadow-sm' : 'hover:bg-muted/50'}`}
-          onClick={() => setFeatures(prev => ({ ...prev, budtender: !prev.budtender }))}
-        >
-          <div>
-            <h3 className="font-semibold">AI Budtender</h3>
-            <p className="text-xs text-muted-foreground mt-1">24/7 automated customer support.</p>
-          </div>
-          {features.budtender && <CheckCircle className="h-5 w-5 text-primary" />}
-        </div>
-      </div>
-
-      <div className="flex gap-2 justify-between pt-4">
-        <Button variant="ghost" onClick={() => (role === 'dispensary' ? setStep('integrations') : setStep('manual'))}>Back</Button>
-        <Button onClick={() => setStep('review')}>Review</Button>
-      </div>
-    </section>
-  );
-
   const renderReviewStep = () => {
     const selectedName =
       (role === 'brand' && manualBrandName) ? manualBrandName :
@@ -578,13 +440,6 @@ export default function OnboardingPage() {
               <span className="font-semibold">{selectedName}</span>
             </div>
           )}
-          <div className="flex justify-between items-center py-2 border-t border-dashed">
-            <span className="text-muted-foreground">Features</span>
-            <div className="text-right text-sm font-medium">
-              {features.headless && 'Headless Menu, '}
-              {features.budtender && 'AI Budtender'}
-            </div>
-          </div>
         </div>
 
         <form action={formAction} ref={formRef} className="flex flex-col gap-4">
@@ -595,11 +450,6 @@ export default function OnboardingPage() {
           <input type="hidden" name="manualBrandName" value={manualBrandName} />
           <input type="hidden" name="manualProductName" value={manualProductName} />
           <input type="hidden" name="manualDispensaryName" value={manualDispensaryName} />
-          <input type="hidden" name="features" value={JSON.stringify(features)} />
-          <input type="hidden" name="posProvider" value={posConfig.provider} />
-          <input type="hidden" name="posApiKey" value={posConfig.apiKey} />
-          <input type="hidden" name="posDispensaryId" value={posConfig.id} />
-          <input type="hidden" name="competitors" value={selectedCompetitors.join(',')} />
           <input type="hidden" name="marketState" value={marketState} />
 
           {/* Intercepted Submit Button */}
@@ -658,9 +508,6 @@ export default function OnboardingPage() {
         {step === 'market' && renderMarketSelection()}
         {step === 'brand-search' && renderSearchStep()}
         {step === 'manual' && renderManualStep()}
-        {step === 'integrations' && renderIntegrationsStep()}
-        {step === 'competitors' && renderCompetitorsStep()}
-        {step === 'features' && renderFeaturesStep()}
         {step === 'review' && renderReviewStep()}
 
         {/* Existing Relogin Modal */}
@@ -749,5 +596,3 @@ export default function OnboardingPage() {
     </main>
   );
 }
-
-

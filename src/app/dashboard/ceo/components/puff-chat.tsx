@@ -392,6 +392,7 @@ export interface PuffChatProps {
     className?: string;
     isAuthenticated?: boolean; // For public demos
     isSuperUser?: boolean; // Super User unlock
+    isHired?: boolean; // If true, hides hire buttons/modals
     persona?: AgentPersona; // External persona override
 }
 
@@ -404,6 +405,7 @@ export function PuffChat({
     className = '',
     isAuthenticated = true, // Default to true for backward compatibility
     isSuperUser = false,
+    isHired = false, // New prop to suppress hiring flows
     persona: externalPersona
 }: PuffChatProps) {
     // Global Store State
@@ -525,8 +527,8 @@ export function PuffChat({
                 finalContent = cleanedContent;
             }
 
-            // AUTO-OPEN HIRE MODAL
-            if (result.metadata?.type === 'hire_modal') {
+            // AUTO-OPEN HIRE MODAL (Only if not already hired)
+            if (result.metadata?.type === 'hire_modal' && !isHired) {
                 const plan = result.metadata.data?.plan === 'empire' ? 'empire' : 'specialist';
                 openHireModal(plan);
             }
