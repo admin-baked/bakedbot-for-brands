@@ -11,6 +11,9 @@ export * from './prompt-catalog-extended';
 export * from './prompt-catalog-greetings';
 export * from './prompt-catalog-permissions';
 export * from './prompt-catalog-industry';
+export * from './prompt-catalog-tools';
+export * from './prompt-catalog-advanced';
+export * from './prompt-catalog-contextual';
 
 // =============================================================================
 // AGGREGATED STATISTICS
