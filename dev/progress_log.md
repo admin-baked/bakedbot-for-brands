@@ -2265,3 +2265,6 @@ Addressed persistent 'Misconfigured Secret' build error.
 ### Result:  Full Parity
 Permissions now match the working Mailjet secret exactly. Deployment is expected to pass.
 
+
+<!-- Force Deploy Trigger: 01/03/2026 16:59:59 -->
+
