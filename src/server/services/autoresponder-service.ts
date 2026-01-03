@@ -25,7 +25,9 @@ async function sendEmail(to: string, subject: string, htmlContent: string): Prom
             total: 0,
             items: [{ name: subject, qty: 1, price: 0 }],
             retailerName: 'BakedBot',
-            pickupAddress: htmlContent // Using this field to carry HTML content
+            pickupAddress: htmlContent, // Using this field to carry HTML content
+            fromEmail: 'hello@bakedbot.ai',
+            fromName: 'BakedBot'
         });
 
         return result;
