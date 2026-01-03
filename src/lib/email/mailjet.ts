@@ -3,8 +3,8 @@ import Mailjet from 'node-mailjet';
 import { logger } from '@/lib/monitoring';
 import { UsageService } from '@/server/services/usage';
 
-const API_KEY = process.env.MAILJET_API_KEY;
-const SECRET_KEY = process.env.MAILJET_SECRET_KEY;
+const API_KEY = process.env.MAILJET_API_KEY?.trim();
+const SECRET_KEY = process.env.MAILJET_SECRET_KEY?.trim();
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'orders@bakedbot.ai'; // Reuse config for now or add new env
 const FROM_NAME = process.env.SENDGRID_FROM_NAME || 'BakedBot Orders';
 
