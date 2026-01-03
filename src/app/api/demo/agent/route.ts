@@ -61,17 +61,22 @@ const DEMO_RESPONSES: Record<string, {
     ezal: {
         items: [
             {
-                title: "Competitor #1: Green Leaf Dispensary",
-                description: "Running 25% off flower sale this week. Avg prices 8% below yours on concentrates. Strong Google presence (4.7 stars, 423 reviews).",
-                meta: "Threat level: Medium | Distance: 2.3 miles"
+                title: "Competitive Intelligence: Setup Required",
+                description: "To get real competitor insights for your area, I need you to configure your watchlist. Go to Settings → Competitive Intel → Add Competitors by name or URL.",
+                meta: "Status: Awaiting configuration"
             },
             {
-                title: "Market Gap Identified",
-                description: "No local competitors offer subscription/membership programs. First-mover advantage opportunity for loyalty differentiation.",
-                meta: "Opportunity score: 8.5/10"
+                title: "What I Can Do",
+                description: "Once configured, I'll monitor competitor pricing, promotions, menu changes, and identify market gaps. I use Discovery to scrape and analyze real-time data.",
+                meta: "Capabilities: Price tracking, Gap analysis, Alert system"
+            },
+            {
+                title: "Quick Start",
+                description: "Tell me a competitor URL like 'analyze https://competitor.com/menu' and I'll discover their current offerings using BakedBot Discovery.",
+                meta: "Tip: Provide a URL to get started"
             }
         ],
-        totalCount: 13
+        totalCount: 3
     },
     deebo: {
         items: [
