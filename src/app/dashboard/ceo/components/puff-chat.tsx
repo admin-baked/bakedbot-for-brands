@@ -73,6 +73,7 @@ import { useJobPoller } from '@/hooks/use-job-poller';
 import { TypewriterText } from '@/components/landing/typewriter-text';
 import { AgentRouterVisualization } from '@/components/chat/agent-router-visualization';
 import { ProjectSelector } from '@/components/chat/project-selector';
+import { HireAgentModal } from '@/components/billing/hire-agent-modal';
 
 // ============ Types ============
 
@@ -441,6 +442,15 @@ export function PuffChat({
     const [toolMode, setToolMode] = useState<ToolMode>('auto');
     const [selectedTools, setSelectedTools] = useState<AvailableTool[]>([]);
     
+    // Hiring State
+    const [isHireModalOpen, setIsHireModalOpen] = useState(false);
+    const [selectedHirePlan, setSelectedHirePlan] = useState<'specialist' | 'empire'>('specialist');
+
+    const openHireModal = (plan: 'specialist' | 'empire') => {
+        setSelectedHirePlan(plan);
+        setIsHireModalOpen(true);
+    };
+    
     // Project Context State
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
@@ -513,6 +523,12 @@ export function PuffChat({
                     saveArtifact(a as any).catch(err => console.error('Failed to save artifact:', err));
                 });
                 finalContent = cleanedContent;
+            }
+
+            // AUTO-OPEN HIRE MODAL
+            if (result.metadata?.type === 'hire_modal') {
+                const plan = result.metadata.data?.plan === 'empire' ? 'empire' : 'specialist';
+                openHireModal(plan);
             }
 
             updateMessage(activeJob.messageId, {
@@ -1244,29 +1260,62 @@ export function PuffChat({
     );
 
     return (
-        <div className={cn("flex flex-col bg-background border rounded-lg", className)}>
+        <div className={cn("flex flex-col h-full bg-background", className)}>
+             {/* Hire Modal */}
+             <HireAgentModal 
+                isOpen={isHireModalOpen} 
+                onClose={() => setIsHireModalOpen(false)} 
+                planId={selectedHirePlan}
+             />
+
             {/* Header */}
             {!hideHeader && (
-                <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-violet-50 to-purple-50 shrink-0">
-                    <div className="flex items-center gap-3">
-                        {onBack && (
-                            <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
+                <div className="flex-none border-b p-3 flex items-center justify-between gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2">
+                             {onBack && <Button variant="ghost" size="icon" className="h-8 w-8 -ml-1 md:hidden" onClick={onBack}>
                                 <ArrowLeft className="h-4 w-4" />
+                            </Button>}
+                            <span className="font-semibold text-sm truncate">{state.title}</span>
+                        </div>
+                        
+                        {/* HIRE BUTTON for Demo/Scout Users */}
+                         {!isAuthenticated && (
+                            <Button 
+                                variant="default" 
+                                size="sm" 
+                                className="bg-gradient-to-r from-emerald-500 to-green-600 border-0 hover:opacity-90 ml-2"
+                                onClick={() => openHireModal('specialist')}
+                            >
+                                Hire Agent
                             </Button>
                         )}
-                        <h2 className="font-semibold">{state.title}</h2>
                     </div>
-                    <div className="flex items-center gap-2">
-                        {state.isConnected && (
-                            <Badge variant="outline" className="bg-white">
-                                <span className="text-xs">Connected</span>
-                                <span className="ml-1">🎨🌿</span>
-                            </Badge>
-                        )}
+                    
+                    <div className="flex items-center gap-1">
+                        <PersonaSelector 
+                            value={persona} 
+                            onChange={setPersona} 
+                            isSuperUser={isSuperUser} 
+                            isAuthenticated={isAuthenticated} 
+                        />
+                        
+                        {/* Intelligence Selector */}
+                        <ModelSelector 
+                            level={thinkingLevel} 
+                            onLevelChange={setThinkingLevel}
+                        />
+
+                        {/* Tool Selector */}
+                        <ToolSelector 
+                            mode={toolMode}
+                            selectedTools={selectedTools}
+                            onModeChange={setToolMode}
+                            onToggleTool={handleToggleTool}
+                        />
                     </div>
                 </div>
             )}
-
             <div className="flex flex-1 min-h-0 overflow-hidden relative">
                 <div className="flex-1 flex flex-col min-w-0">
                     {/* Content Area - Auto-expands with content */}

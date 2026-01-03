@@ -202,7 +202,7 @@ export interface AgentResult {
     content: string;
     toolCalls?: { id: string; name: string; status: 'success' | 'error' | 'running'; result: string }[];
     metadata?: {
-        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context';
+        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context' | 'hire_modal';
         data?: any;
         brandId?: string;
         brandName?: string;
@@ -227,6 +227,20 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
     // 0. Intelligent Routing (Overriding Persona)
     let finalPersonaId = personaId;
     
+    // INTENT CHECK: Hire / Upgrade
+    const lowerMsg = userMessage.toLowerCase();
+    if (lowerMsg.includes('hire') || lowerMsg.includes('upgrade') || lowerMsg.includes('subscribe')) {
+        // Return immediate "Hire" trigger
+        return {
+            content: "I can help you build your digital workforce. Let's get you upgraded.",
+            toolCalls: [],
+            metadata: {
+                type: 'hire_modal',
+                data: { plan: lowerMsg.includes('team') || lowerMsg.includes('empire') ? 'empire' : 'specialist' }
+            }
+        };
+    }
+
     // Only route if no specific persona was forced (or if it's the default 'puff')
     // We allow explicit persona selection to stick, but 'puff' implies "General Assistant" who delegates.
     if (!personaId || personaId === 'puff') {
