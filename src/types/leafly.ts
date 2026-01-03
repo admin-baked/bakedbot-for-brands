@@ -1,6 +1,6 @@
 /**
  * Leafly Data Types
- * Types for data ingested from Apify's Leafly scraper
+ * Types for data ingested from Apify's Leafly discovery tool
  */
 
 export interface LeaflyDispensary {
@@ -20,7 +20,7 @@ export interface LeaflyDispensary {
     reviewCount?: number;
     isOpen?: boolean;
     leaflyUrl: string;
-    lastScrapedAt: Date;
+    lastDiscoveredAt: Date;
 }
 
 export interface LeaflyProduct {
@@ -69,7 +69,7 @@ export interface LeaflyIngestionRun {
     status: 'running' | 'completed' | 'failed';
     startedAt: Date;
     completedAt?: Date;
-    storesScanned: number;
+    storesDiscovered: number;
     productsIngested: number;
     offersIngested: number;
     errors: string[];
@@ -106,9 +106,9 @@ export interface CompetitorWatchlistEntry {
     leaflyUrl: string;
     state: string;
     city: string;
-    scanFrequency: 'daily' | 'weekly' | 'monthly';
-    lastScannedAt?: Date;
-    nextScanAt?: Date;
+    discoveryFrequency: 'daily' | 'weekly' | 'monthly';
+    lastDiscoveredAt?: Date;
+    nextDiscoveryAt?: Date;
     enabled: boolean;
     createdAt: Date;
 }

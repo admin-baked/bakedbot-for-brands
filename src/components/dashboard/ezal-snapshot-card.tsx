@@ -94,7 +94,7 @@ export function EzalSnapshotCard({
             );
             setSnapshot(result);
             toast({
-                title: 'Snapshot Complete',
+                title: 'Discovery Complete',
                 description: `Found ${result.priceRange.count} prices, ${result.promoCount} promos`,
             });
         } catch (e: any) {
@@ -150,7 +150,7 @@ export function EzalSnapshotCard({
                 <CardTitle className="flex items-center gap-2">
                     <Zap className="h-5 w-5 text-yellow-500" />
                     Ezal Lite
-                    <Badge variant="secondary" className="text-xs">~$0.10/scan</Badge>
+                    <Badge variant="secondary" className="text-xs">~$0.10/discovery</Badge>
                 </CardTitle>
                 <CardDescription>
                     Competitive intelligence snapshot
@@ -217,9 +217,9 @@ export function EzalSnapshotCard({
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                                 <Clock className="h-4 w-4" />
-                                Scraped {(() => {
+                                Discovered {(() => {
                                     try {
-                                        const date = new Date(snapshot.scrapedAt);
+                                        const date = new Date(snapshot.discoveredAt);
                                         return isNaN(date.getTime()) ? 'Recently' : date.toLocaleDateString();
                                     } catch (e) {
                                         return 'Recently';

@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { Package, TrendingUp, ExternalLink } from 'lucide-react';
-import { fetchScrapedBrandPages } from '@/lib/brand-data';
+import { fetchDiscoveredBrandPages } from '@/lib/brand-data';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60; // Revalidate every minute
 
-export default async function ScrapedBrandsPage() {
-    const pages = await fetchScrapedBrandPages(50);
+export default async function DiscoveredBrandsPage() {
+    const pages = await fetchDiscoveredBrandPages(50);
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">

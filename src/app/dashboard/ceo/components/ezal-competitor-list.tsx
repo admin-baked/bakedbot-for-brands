@@ -24,7 +24,7 @@ import {
     DialogTrigger
 } from "@/components/ui/dialog";
 import { Loader2, Plus, RefreshCw, Trash2, ExternalLink, Search } from 'lucide-react';
-import { Competitor } from '@/types/ezal-scraper';
+import { Competitor } from '@/types/ezal-discovery';
 import { useToast } from "@/hooks/use-toast";
 import { getEzalCompetitors, createEzalCompetitor } from '../actions';
 

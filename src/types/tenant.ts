@@ -79,7 +79,7 @@ export type DataSourceType =
     | 'metrc'
     | 'csv'
     | 'manual'
-    | 'scrape';
+    | 'discovery';
 
 /**
  * Data Source Configuration

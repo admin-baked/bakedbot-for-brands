@@ -3,41 +3,41 @@ import FirecrawlApp from '@mendable/firecrawl-js';
 import { z } from 'zod';
 
 /**
- * Firecrawl Service (Singleton)
+ * BakedBot Discovery Service (Singleton)
  * 
  * Capabilities:
- * - Scrape: Get markdown/HTML from a URL
+ * - Discovery: Get markdown/HTML from a URL
  * - Search: Find pages matching a query
  * - Map: Crawl a site to find links
  * - Extract: LLM-based structured data extraction
  * 
  * Note: Uses FIRECRAWL_API_KEY from env (set via Firebase Secrets)
  */
-export class FirecrawlService {
+export class DiscoveryService {
     private app: FirecrawlApp | null = null;
-    private static instance: FirecrawlService;
+    private static instance: DiscoveryService;
 
     private constructor() {
         // DEBUG: Logging to see if env is loaded
         const apiKey = process.env.FIRECRAWL_API_KEY;
-        console.log('[FirecrawlService] Initializing...');
-        console.log('[FirecrawlService] Env Key Exists:', !!apiKey);
-        if (apiKey) console.log('[FirecrawlService] Key Length:', apiKey.length);
+        console.log('[DiscoveryService] Initializing...');
+        console.log('[DiscoveryService] Env Key Exists:', !!apiKey);
+        if (apiKey) console.log('[DiscoveryService] Key Length:', apiKey.length);
         
         if (apiKey) {
             this.app = new FirecrawlApp({ apiKey });
-            console.log('[FirecrawlService] App Initialized Successfully');
+            console.log('[DiscoveryService] App Initialized Successfully');
         } else {
-            console.warn('[Firecrawl] API Key not found. Service will be disabled.');
-            console.warn('[Firecrawl] Checked process.env.FIRECRAWL_API_KEY');
+            console.warn('[Discovery] API Key not found. BakedBot Discovery service will be disabled.');
+            console.warn('[Discovery] Checked process.env.FIRECRAWL_API_KEY');
         }
     }
 
-    public static getInstance(): FirecrawlService {
-        if (!FirecrawlService.instance) {
-            FirecrawlService.instance = new FirecrawlService();
+    public static getInstance(): DiscoveryService {
+        if (!DiscoveryService.instance) {
+            DiscoveryService.instance = new DiscoveryService();
         }
-        return FirecrawlService.instance;
+        return DiscoveryService.instance;
     }
 
     public isConfigured(): boolean {
@@ -45,10 +45,10 @@ export class FirecrawlService {
     }
 
     /**
-     * Basic Scrape: Get content from a URL
+     * Basic Discovery: Get content from a URL
      */
-    public async scrapeUrl(url: string, formats: ('markdown' | 'html' | 'rawHtml' | 'screenshot')[] = ['markdown']) {
-        if (!this.app) throw new Error('Firecrawl not configured');
+    public async discoverUrl(url: string, formats: ('markdown' | 'html' | 'rawHtml' | 'screenshot')[] = ['markdown']) {
+        if (!this.app) throw new Error('Discovery not configured');
 
         try {
             const response = await this.app.scrape(url, {
@@ -56,22 +56,22 @@ export class FirecrawlService {
             }) as any;
 
             if (!response.success) {
-                throw new Error(`Firecrawl scrape failed: ${response.error}`);
+                throw new Error(`Discovery failed: ${response.error}`);
             }
 
             return response;
         } catch (error: any) {
-            console.error('[Firecrawl] Scrape error:', error);
+            console.error('[Discovery] Retrieval error:', error);
             throw error;
         }
     }
 
     /**
-     * Advanced Scrape with Actions (Reference: Cloud-only feature)
+     * Advanced Discovery with Actions (Reference: Cloud-only feature)
      * useful for age gates, clicking buttons, etc.
      */
-    public async scrapeWithActions(url: string, actions: any[]) {
-        if (!this.app) throw new Error('Firecrawl not configured');
+    public async discoverWithActions(url: string, actions: any[]) {
+        if (!this.app) throw new Error('Discovery not configured');
         
         try {
             // @ts-ignore - Actions are supported in API but strictly typed in some SDK versions
@@ -81,37 +81,37 @@ export class FirecrawlService {
             }) as any;
             
              if (!response.success) {
-                throw new Error(`Firecrawl action scrape failed: ${response.error}`);
+                throw new Error(`Discovery action failed: ${response.error}`);
             }
 
             return response;
         } catch (error: any) {
-             console.error('[Firecrawl] Action scrape error:', error);
+             console.error('[Discovery] Action retrieval error:', error);
              throw error;
         }
     }
 
     /**
-     * Search the web (Firecrawl Search)
+     * Search the web (Discovery Search)
      */
     public async search(query: string) {
-        if (!this.app) throw new Error('Firecrawl not configured');
+        if (!this.app) throw new Error('Discovery not configured');
 
         try {
             const response = await this.app.search(query) as any;
-            console.log('[FirecrawlService] Search Raw Response:', JSON.stringify(response, null, 2));
+            console.log('[DiscoveryService] Search Raw Response:', JSON.stringify(response, null, 2));
             
             // Handle different SDK response shapes
             const data = response.data || response.web || (response.success ? response : null);
 
             if (!data && !response.success) {
                  const errMsg = response.error || JSON.stringify(response);
-                 throw new Error(`Firecrawl search failed: ${errMsg}`);
+                 throw new Error(`Discovery search failed: ${errMsg}`);
             }
 
             return data || [];
         } catch (error: any) {
-            console.error('[Firecrawl] Search error:', error);
+            console.error('[Discovery] Search error:', error);
             throw error;
         }
     }
@@ -120,19 +120,19 @@ export class FirecrawlService {
      * Map a website (Discovery)
      */
     public async mapSite(url: string) {
-        if (!this.app) throw new Error('Firecrawl not configured');
+        if (!this.app) throw new Error('Discovery not configured');
 
         try {
             // @ts-ignore - mapUrl exists in API but may not be in SDK types
             const response = await this.app.mapUrl(url) as any;
             
             if (!response.success) {
-                 throw new Error(`Firecrawl map failed: ${response.error}`);
+                 throw new Error(`Discovery map failed: ${response.error}`);
             }
 
             return response;
         } catch (error: any) {
-            console.error('[Firecrawl] Map error:', error);
+            console.error('[Discovery] Map error:', error);
             throw error;
         }
     }
@@ -141,12 +141,12 @@ export class FirecrawlService {
      * Extract structured data from a URL using LLM
      */
     public async extractData(url: string, schema: z.ZodSchema<any>) {
-        if (!this.app) throw new Error('Firecrawl not configured');
+        if (!this.app) throw new Error('Discovery not configured');
 
         try {
             // Updated to use the correct object format for JSON extraction
             // Reference: debug-json-obj.ts success
-            console.log('[Firecrawl] Extracting with schema:', JSON.stringify(schema));
+            console.log('[Discovery] Extracting with schema:', JSON.stringify(schema));
             const response = await this.app.scrape(url, {
                 formats: [
                     {
@@ -156,7 +156,7 @@ export class FirecrawlService {
                     }
                 ]
             }) as any;
-            console.log('[Firecrawl] Extract raw response:', JSON.stringify(response, null, 2));
+            console.log('[Discovery] Extract raw response:', JSON.stringify(response, null, 2));
 
             // If response has json property, it's successful (SDK behavior verify)
             if ((response as any).json || response.data?.json) {
@@ -165,16 +165,16 @@ export class FirecrawlService {
 
             if (!response.success) {
                  const errMsg = response.error || JSON.stringify(response);
-                 throw new Error(`Firecrawl extraction failed: ${errMsg}`);
+                 throw new Error(`Discovery extraction failed: ${errMsg}`);
             }
 
             // Return the parsed JSON from the response
             return response.json || response.data?.json || response.data;
         } catch (error: any) {
-            console.error('[Firecrawl] Extract error:', error);
+            console.error('[Discovery] Extract error:', error);
             throw error; 
         }
     }
 }
 
-export const firecrawl = FirecrawlService.getInstance();
+export const discovery = DiscoveryService.getInstance();

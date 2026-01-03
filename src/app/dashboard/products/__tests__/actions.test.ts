@@ -59,7 +59,7 @@ describe('Products Actions', () => {
             expect(results[0].name).toBe('Test Product');
         });
 
-        it('falls back to mock/scrape data when CannMenus returns empty', async () => {
+        it('falls back to mock/discovery data when CannMenus returns empty', async () => {
             (CannMenusService as unknown as jest.Mock).mockImplementation(() => ({
                 searchProducts: jest.fn().mockResolvedValue({ products: [] })
             }));
@@ -68,8 +68,8 @@ describe('Products Actions', () => {
             // Should return mock data for Jeeter
             expect(results.length).toBeGreaterThan(0);
             expect(results[0].brand).toBe('Jeeter');
-            // Our mock data has 'scrape' as source (or we added it to mock data in implementation)
-            expect(results[0].source).toBe('scrape');
+            // Our mock data has 'discovery' as source (or we added it to mock data in implementation)
+            expect(results[0].source).toBe('discovery');
         });
     });
 
@@ -77,7 +77,7 @@ describe('Products Actions', () => {
         it('imports products with the correct source', async () => {
             const productsToImport = [
                 { name: 'P1', category: 'Vape', source: 'cannmenus' },
-                { name: 'P2', category: 'Edible', source: 'scrape' }
+                { name: 'P2', category: 'Edible', source: 'discovery' }
             ];
 
             const result = await importProducts(productsToImport);
@@ -94,7 +94,7 @@ describe('Products Actions', () => {
             expect(firstCall.source).toBe('cannmenus');
 
             const secondCall = batchSet.mock.calls[1][1];
-            expect(secondCall.source).toBe('scrape');
+            expect(secondCall.source).toBe('discovery');
         });
 
         it('defaults source to cannmenus if missing', async () => {

@@ -25,7 +25,7 @@ export async function fetchDispensaryPageData(slug: string) {
         retailer = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Retailer;
     }
 
-    // 2. Fallback: Check seo_pages_dispensary for scraped pages
+    // 2. Fallback: Check seo_pages_dispensary for discovered pages
     if (!retailer) {
         const seoQuery = firestore.collection('seo_pages_dispensary').where('dispensarySlug', '==', slug).limit(1);
         const seoSnapshot = await seoQuery.get();
@@ -40,7 +40,7 @@ export async function fetchDispensaryPageData(slug: string) {
                 city: seoPage.city,
                 state: seoPage.state,
                 zip: seoPage.zipCode,
-                address: '', // Scraped pages may not have full address
+                address: '', // Discovered pages may not have full address
                 updatedAt: seoPage.updatedAt
             } as unknown as Retailer;
         }
@@ -50,7 +50,7 @@ export async function fetchDispensaryPageData(slug: string) {
         return { retailer: null, products: [], seoPage: null };
     }
 
-    // 3. Fetch Products (only if this is a CannMenus retailer, not a scraped page)
+    // 3. Fetch Products (only if this is a CannMenus retailer, not a discovered page)
     if (!seoPage && retailer.id) {
         try {
             const productsQuery = await firestore
@@ -70,9 +70,9 @@ export async function fetchDispensaryPageData(slug: string) {
 }
 
 /**
- * Fetch all scraped SEO pages for listing/index pages
+ * Fetch all discovered SEO pages for listing/index pages
  */
-export async function fetchScrapedDispensaryPages(limit = 50) {
+export async function fetchDiscoveredDispensaryPages(limit = 50) {
     try {
         const { firestore } = await createServerClient();
         
@@ -84,7 +84,7 @@ export async function fetchScrapedDispensaryPages(limit = 50) {
         
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DispensarySEOPage));
     } catch (error) {
-        console.error('[fetchScrapedDispensaryPages] Error:', error);
+        console.error('[fetchDiscoveredDispensaryPages] Error:', error);
         // Return empty array if Firestore fails (e.g., auth issues locally)
         return [];
     }

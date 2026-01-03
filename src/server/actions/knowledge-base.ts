@@ -11,7 +11,7 @@ import {
     CreateKnowledgeBaseSchema,
     AddDocumentSchema,
     UploadDocumentSchema,
-    ScrapeUrlSchema,
+    DiscoverUrlSchema,
     KnowledgeBaseOwnerType,
     KnowledgeUsageLimits,
     KnowledgeUsageStatus,
@@ -333,8 +333,8 @@ export async function addDocumentAction(input: z.infer<typeof AddDocumentSchema>
             if (input.source === 'drive' && !usage.limits.allowDrive) {
                 return { success: false, message: 'Google Drive import not available on your plan.' };
             }
-            if (input.source === 'scrape' && !usage.limits.allowScrape) {
-                return { success: false, message: 'URL scraping not available on your plan.' };
+            if (input.source === 'discovery' && !usage.limits.allowDiscovery) {
+                return { success: false, message: 'URL discovery not available on your plan.' };
             }
         }
 
@@ -540,9 +540,9 @@ export async function searchSystemKnowledgeAction(query: string, limit: number =
 }
 
 /**
- * Scrape URL and add as document
+ * Discover URL and add as document
  */
-export async function scrapeUrlAction(input: z.infer<typeof ScrapeUrlSchema>) {
+export async function discoverUrlAction(input: z.infer<typeof DiscoverUrlSchema>) {
     await requireUser();
 
     try {
@@ -578,15 +578,15 @@ export async function scrapeUrlAction(input: z.infer<typeof ScrapeUrlSchema>) {
         return addDocumentAction({
             knowledgeBaseId: input.knowledgeBaseId,
             type: 'link',
-            source: 'scrape',
+            source: 'discovery',
             title: title,
             content: textContent,
             sourceUrl: input.url
         });
 
     } catch (error: any) {
-        console.error('[scrapeUrlAction] Error:', error);
-        return { success: false, message: `Failed to scrape URL: ${error.message}` };
+        console.error('[discoverUrlAction] Error:', error);
+        return { success: false, message: `Failed to discover URL: ${error.message}` };
     }
 }
 

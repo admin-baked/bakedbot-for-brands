@@ -609,15 +609,15 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         }
     }
 
-    // Weedmaps - Scrape Dispensary Menu (for Price Tracker)
-    if (def.name === 'weedmaps.scrape') {
+    // Weedmaps - Discover Dispensary Menu (for Price Tracker)
+    if (def.name === 'weedmaps.discover') {
         try {
-            const { scrapeMultipleDispensaries, formatProductsForSheets } = await import('@/server/tools/scrapers/weedmaps');
+            const { discoverMultipleDispensaries, formatProductsForSheets } = await import('@/server/tools/discovery/weedmaps');
             
             // Handle single URL or array of URLs
             const urls = Array.isArray(inputs.urls) ? inputs.urls : [inputs.url];
             
-            const result = await scrapeMultipleDispensaries(urls);
+            const result = await discoverMultipleDispensaries(urls);
             
             // Optionally format for sheets if requested
             const allProducts = result.results.flatMap(r => r.products);
@@ -627,7 +627,7 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
                 status: result.success ? 'success' : 'failed',
                 data: {
                     totalProducts: result.totalProducts,
-                    dispensariesScanned: result.results.length,
+                    dispensariesDiscovered: result.results.length,
                     products: allProducts,
                     sheetsFormatted: sheetsData,
                     results: result.results

@@ -56,7 +56,7 @@ import {
     addDocumentAction,
     getDocumentsAction,
     deleteDocumentAction,
-    scrapeUrlAction,
+    discoverUrlAction,
     updateKnowledgeBaseAction,
     deleteKnowledgeBaseAction,
 } from '@/server/actions/knowledge-base';
@@ -76,10 +76,10 @@ export function SystemKnowledgeBase() {
 
     // Add Document Dialog
     const [isAddDocOpen, setIsAddDocOpen] = useState(false);
-    const [inputMethod, setInputMethod] = useState<'paste' | 'scrape'>('paste');
+    const [inputMethod, setInputMethod] = useState<'paste' | 'discovery'>('paste');
     const [docTitle, setDocTitle] = useState('');
     const [docContent, setDocContent] = useState('');
-    const [scrapeUrl, setScrapeUrl] = useState('');
+    const [discoveryUrl, setDiscoveryUrl] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
     // Load KBs
@@ -161,15 +161,15 @@ export function SystemKnowledgeBase() {
         try {
             let result;
 
-            if (inputMethod === 'scrape') {
-                if (!scrapeUrl.trim()) {
+            if (inputMethod === 'discovery') {
+                if (!discoveryUrl.trim()) {
                     toast({ title: 'Error', description: 'URL is required', variant: 'destructive' });
                     setIsSaving(false);
                     return;
                 }
-                result = await scrapeUrlAction({
+                result = await discoverUrlAction({
                     knowledgeBaseId: selectedKb.id,
-                    url: scrapeUrl.trim(),
+                    url: discoveryUrl.trim(),
                     title: docTitle.trim() || undefined,
                 });
             } else {
@@ -195,7 +195,7 @@ export function SystemKnowledgeBase() {
                 setIsAddDocOpen(false);
                 setDocTitle('');
                 setDocContent('');
-                setScrapeUrl('');
+                setDiscoveryUrl('');
                 loadDocuments();
                 loadKnowledgeBases(); // Refresh counts
             } else {
@@ -420,12 +420,12 @@ export function SystemKnowledgeBase() {
                                                         <FileText className="h-4 w-4 mr-2" />
                                                         Copy/Paste
                                                     </TabsTrigger>
-                                                    <TabsTrigger value="scrape">
+                                                    <TabsTrigger value="discovery">
                                                         <Globe className="h-4 w-4 mr-2" />
                                                         From URL
                                                     </TabsTrigger>
                                                 </TabsList>
-
+                                                
                                                 <TabsContent value="paste" className="space-y-4 mt-4">
                                                     <div className="space-y-2">
                                                         <Label>Title</Label>
@@ -449,13 +449,13 @@ export function SystemKnowledgeBase() {
                                                     </div>
                                                 </TabsContent>
 
-                                                <TabsContent value="scrape" className="space-y-4 mt-4">
+                                                <TabsContent value="discovery" className="space-y-4 mt-4">
                                                     <div className="space-y-2">
-                                                        <Label>URL to Scrape</Label>
+                                                        <Label>URL to Discover</Label>
                                                         <Input
                                                             placeholder="https://example.com/article"
-                                                            value={scrapeUrl}
-                                                            onChange={(e) => setScrapeUrl(e.target.value)}
+                                                            value={discoveryUrl}
+                                                            onChange={(e) => setDiscoveryUrl(e.target.value)}
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
@@ -529,7 +529,7 @@ export function SystemKnowledgeBase() {
                                                             <TableCell>
                                                                 <Badge variant="outline" className="text-xs">
                                                                     {doc.source === 'paste' && <FileText className="h-3 w-3 mr-1" />}
-                                                                    {doc.source === 'scrape' && <Globe className="h-3 w-3 mr-1" />}
+                                                                    {doc.source === 'discovery' && <Globe className="h-3 w-3 mr-1" />}
                                                                     {doc.source === 'upload' && <Upload className="h-3 w-3 mr-1" />}
                                                                     {doc.source}
                                                                 </Badge>

@@ -33,8 +33,8 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import {
-    triggerSingleStoreScan,
-    triggerStateScan,
+    triggerSingleStoreDiscovery,
+    triggerStateDiscovery,
     getWatchlist,
     addToWatchlist,
     removeFromWatchlist,
@@ -77,7 +77,7 @@ export default function CompetitorIntelTab() {
     // Watchlist state
     const [watchlist, setWatchlist] = useState<CompetitorWatchlistEntry[]>([]);
     const [loading, setLoading] = useState(true);
-    const [scanning, setScanning] = useState<string | null>(null);
+    const [discovering, setDiscovering] = useState<string | null>(null);
 
     // Add competitor dialog
     const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -176,7 +176,7 @@ export default function CompetitorIntelTab() {
                 leaflyUrl: newUrl,
                 state: newState,
                 city: newCity,
-                scanFrequency: newFrequency,
+                discoveryFrequency: newFrequency,
                 enabled: true,
             });
 
@@ -194,18 +194,18 @@ export default function CompetitorIntelTab() {
         }
     };
 
-    const handleScanCompetitor = async (entry: CompetitorWatchlistEntry) => {
-        setScanning(entry.id);
+    const handleDiscoverCompetitor = async (entry: CompetitorWatchlistEntry) => {
+        setDiscovering(entry.id);
         try {
-            const run = await triggerSingleStoreScan(entry.leaflyUrl);
+            const run = await triggerSingleStoreDiscovery(entry.leaflyUrl);
             toast({
-                title: 'Scan Started',
-                description: `Scanning ${entry.name}. Run ID: ${run.id}. Check back in 2-5 minutes.`
+                title: 'Discovery Started',
+                description: `Discovering ${entry.name}. Run ID: ${run.id}. Check back in 2-5 minutes.`
             });
         } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Scan Failed', description: e.message });
+            toast({ variant: 'destructive', title: 'Discovery Failed', description: e.message });
         } finally {
-            setScanning(null);
+            setDiscovering(null);
         }
     };
 
@@ -219,22 +219,22 @@ export default function CompetitorIntelTab() {
         }
     };
 
-    const handleStateScan = async () => {
+    const handleStateDiscovery = async () => {
         if (!scanState) {
-            toast({ variant: 'destructive', title: 'Missing state', description: 'Select a state to scan' });
+            toast({ variant: 'destructive', title: 'Missing state', description: 'Select a state to discover' });
             return;
         }
 
         setRunningStateScan(true);
         try {
-            const run = await triggerStateScan(scanState, parseInt(scanMaxStores) || 25);
+            const run = await triggerStateDiscovery(scanState, parseInt(scanMaxStores) || 25);
             toast({
-                title: 'State Scan Started',
+                title: 'State Discovery Started',
                 description: `Discovering up to ${scanMaxStores} dispensaries in ${scanState}. Run ID: ${run.id}`
             });
             setStateScanOpen(false);
         } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Scan Failed', description: e.message });
+            toast({ variant: 'destructive', title: 'Discovery Failed', description: e.message });
         } finally {
             setRunningStateScan(false);
         }
@@ -262,7 +262,7 @@ export default function CompetitorIntelTab() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold">Competitive Intel</h2>
-                    <p className="text-muted-foreground">Monitor competitor menus via Leafly scraping</p>
+                    <p className="text-muted-foreground">Monitor competitor menus via BakedBot Discovery</p>
                 </div>
                 <div className="flex gap-2">
                     <Dialog open={stateScanOpen} onOpenChange={setStateScanOpen}>
@@ -308,7 +308,7 @@ export default function CompetitorIntelTab() {
                             </div>
                             <DialogFooter>
                                 <Button variant="outline" onClick={() => setStateScanOpen(false)}>Cancel</Button>
-                                <Button onClick={handleStateScan} disabled={runningStateScan}>
+                                <Button onClick={handleStateDiscovery} disabled={runningStateScan}>
                                     {runningStateScan && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                                     Start Discovery
                                 </Button>
@@ -371,7 +371,7 @@ export default function CompetitorIntelTab() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Scan Frequency</Label>
+                                    <Label>Discovery Frequency</Label>
                                     <Select value={newFrequency} onValueChange={(v) => setNewFrequency(v as any)}>
                                         <SelectTrigger>
                                             <SelectValue />
@@ -435,17 +435,17 @@ export default function CompetitorIntelTab() {
                                                 {entry.city && `${entry.city}, `}{entry.state}
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="secondary">{entry.scanFrequency}</Badge>
+                                                <Badge variant="secondary">{entry.discoveryFrequency}</Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-1">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        onClick={() => handleScanCompetitor(entry)}
-                                                        disabled={scanning === entry.id}
+                                                        onClick={() => handleDiscoverCompetitor(entry)}
+                                                        disabled={discovering === entry.id}
                                                     >
-                                                        {scanning === entry.id ? (
+                                                        {discovering === entry.id ? (
                                                             <Loader2 className="h-4 w-4 animate-spin" />
                                                         ) : (
                                                             <Play className="h-4 w-4" />

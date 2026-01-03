@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { EzalInsight } from '@/types/ezal-scraper';
+import { EzalInsight } from '@/types/ezal-discovery';
 import { Loader2, TrendingUp, TrendingDown, AlertCircle, ShoppingBag, CheckCircle, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

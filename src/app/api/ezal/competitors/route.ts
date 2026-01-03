@@ -14,7 +14,7 @@ import {
 } from '@/server/services/ezal';
 import { logger } from '@/lib/logger';
 import { verifySuperAdmin } from '@/server/utils/auth-check';
-import { CompetitorType } from '@/types/ezal-scraper';
+import { CompetitorType } from '@/types/ezal-discovery';
 
 import { withProtection } from '@/server/middleware/with-protection';
 import { ezalCreateCompetitorSchema, type EzalCreateCompetitorRequest } from '@/app/api/schemas';

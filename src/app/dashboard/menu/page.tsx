@@ -78,7 +78,7 @@ export default function MenuPage() {
                     </p>
                 </div>
                 <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                    SOT: POS &gt; CannMenus &gt; Scrape
+                    SOT: POS &gt; CannMenus &gt; Discovery
                 </div>
             </div>
 

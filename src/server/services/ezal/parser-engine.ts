@@ -14,7 +14,7 @@ import {
     ProductCategory,
     StrainType,
     PricePoint
-} from '@/types/ezal-scraper';
+} from '@/types/ezal-discovery';
 import { getParserProfile, mapCategory } from '@/config/ezal-parser-profiles';
 import { load } from 'cheerio'; // Import cheerio
 

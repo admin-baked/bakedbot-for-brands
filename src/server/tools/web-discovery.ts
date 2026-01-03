@@ -1,21 +1,21 @@
 import { Tool } from '@/types/tool';
 import { z } from 'zod';
 import * as cheerio from 'cheerio';
-import { firecrawl } from '@/server/services/firecrawl';
+import { discovery } from '@/server/services/firecrawl';
 
 // Input Schema
-const ScrapeInputSchema = z.object({
+const DiscoveryInputSchema = z.object({
     url: z.string().url(),
     mode: z.enum(['basic', 'markdown', 'html']).optional().default('markdown'),
 });
 
-type ScrapeInput = z.infer<typeof ScrapeInputSchema>;
+type DiscoveryInput = z.infer<typeof DiscoveryInputSchema>;
 
-export const getWebScraperTool = (): any => {
+export const getWebDiscoveryTool = (): any => {
     return {
-        id: 'web.scrape',
-        name: 'Web Scraper',
-        description: 'Scrape content from a URL. Uses advanced scraping for paid tiers.',
+        id: 'web.discover',
+        name: 'Web Discovery',
+        description: 'Discover and extract content from a URL. Uses advanced discovery for paid tiers.',
         category: 'research',
         version: '1.0.0',
         enabled: true,
@@ -24,15 +24,15 @@ export const getWebScraperTool = (): any => {
         requiresAuth: true, // Requires user context to determine tier
         authType: 'none',
         capabilities: [{
-            name: 'web_scraping',
+            name: 'web_discovery',
             description: 'Extract content from web pages',
-            examples: ['Scrape product page', 'Get page text']
+            examples: ['Discover product page', 'Get page text']
         }],
         supportedFormats: ['text', 'html', 'markdown'],
         inputSchema: {
             type: 'object',
             properties: {
-                url: { type: 'string', description: 'URL to scrape' },
+                url: { type: 'string', description: 'URL to discover' },
                 mode: { type: 'string', description: 'Output format', enum: ['basic', 'markdown', 'html'] }
             },
             required: ['url']
@@ -40,13 +40,13 @@ export const getWebScraperTool = (): any => {
         outputSchema: {
             type: 'object',
             properties: {
-                success: { type: 'boolean', description: 'Whether scrape succeeded' },
-                data: { type: 'object', description: 'Scraped content' }
+                success: { type: 'boolean', description: 'Whether discovery succeeded' },
+                data: { type: 'object', description: 'Discovered content' }
             }
         },
         estimatedDuration: 5000,
         
-        execute: async (input: ScrapeInput, context: any) => {
+        execute: async (input: DiscoveryInput, context: any) => {
             const { url, mode } = input;
             const userRole = context?.user?.role || 'guest';
             const isSuperUser = userRole === 'super_admin' || userRole === 'owner'; // Assuming owner is high tier
@@ -55,25 +55,25 @@ export const getWebScraperTool = (): any => {
             // Super Users / Paid -> Firecrawl
             // Free / Guest -> Basic Cheerio
             
-            if (isSuperUser && firecrawl.isConfigured()) {
-                console.log(`[WebScraper] Using Firecrawl for ${userRole} at ${url}`);
+            if (isSuperUser && discovery.isConfigured()) {
+                console.log(`[WebDiscovery] Using BakedBot Discovery for ${userRole} at ${url}`);
                 try {
                     const formats = mode === 'html' ? ['html'] : ['markdown'];
-                    const result = await firecrawl.scrapeUrl(url, formats as any);
+                    const result = await discovery.discoverUrl(url, formats as any);
                     const resultData = result as any;
                     return {
                         success: true,
-                        source: 'firecrawl',
+                        source: 'bakedbot_discovery',
                         data: resultData.data || resultData // Handle SDK response variations
                     };
                 } catch (error: any) {
-                    console.error('[WebScraper] Firecrawl failed, falling back to basic:', error);
-                    // Fallback to basic if Firecrawl fails
+                    console.error('[WebDiscovery] Discovery failed, falling back to basic:', error);
+                    // Fallback to basic if Discovery fails
                 }
             }
 
-            // Basic Scraper (Cheerio)
-            console.log(`[WebScraper] Using Basic Scraper for ${userRole} at ${url}`);
+            // Basic Discovery (Cheerio)
+            console.log(`[WebDiscovery] Using Basic Discovery for ${userRole} at ${url}`);
             try {
                 const response = await fetch(url, {
                     headers: {
@@ -104,7 +104,7 @@ export const getWebScraperTool = (): any => {
                 
                 // Get body text
                 const text = $('body').text().replace(/\s+/g, ' ').trim();
-                const markdown = `# ${title}\n\n${description}\n\n${text.substring(0, 10000)}...`; // Truncate basic scraper
+                const markdown = `# ${title}\n\n${description}\n\n${text.substring(0, 10000)}...`; // Truncate basic discovery
 
                 return {
                     success: true,

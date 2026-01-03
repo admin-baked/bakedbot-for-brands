@@ -1,21 +1,21 @@
 'use server';
 
-// src/server/services/ezal/scraper-fetcher.ts
+// src/server/services/ezal/discovery-fetcher.ts
 /**
- * Scraper Fetcher
+ * Discovery Fetcher
  * Fetches URLs while respecting robots.txt and rate limits
  */
 
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
-import { ScrapeRun, DataSource, ScrapeJob } from '@/types/ezal-scraper';
-import { updateJobStatus, getScrapeJob } from './scrape-scheduler';
-import { getDataSource, markSourceScraped } from './competitor-manager';
+import { DiscoveryRun, DataSource, DiscoveryJob } from '@/types/ezal-discovery';
+import { updateJobStatus, getDiscoveryJob } from './discovery-scheduler';
+import { getDataSource, markSourceDiscovered } from './competitor-manager';
 import * as crypto from 'crypto';
 
-const COLLECTION_SCRAPE_RUNS = 'scrape_runs';
+const COLLECTION_DISCOVERY_RUNS = 'discovery_runs';
 
-// User agent string for polite scraping
+// User agent string for polite discovery
 const USER_AGENT = 'BakedBot-Ezal/1.0 (Competitive Intelligence; +https://bakedbot.ai)';
 
 // Default timeout in milliseconds
@@ -182,13 +182,13 @@ export async function fetchUrl(
 }
 
 // =============================================================================
-// SCRAPE RUN MANAGEMENT
+// DISCOVERY RUN MANAGEMENT
 // =============================================================================
 
 /**
- * Create a scrape run record
+ * Create a discovery run record
  */
-async function createScrapeRun(
+async function createDiscoveryRun(
     tenantId: string,
     sourceId: string,
     competitorId: string,
@@ -218,26 +218,26 @@ async function createScrapeRun(
     const docRef = await firestore
         .collection('tenants')
         .doc(tenantId)
-        .collection(COLLECTION_SCRAPE_RUNS)
+        .collection(COLLECTION_DISCOVERY_RUNS)
         .add(runData);
 
     return docRef.id;
 }
 
 /**
- * Update scrape run with results
+ * Update discovery run with results
  */
-async function updateScrapeRun(
+async function updateDiscoveryRun(
     tenantId: string,
     runId: string,
-    updates: Partial<ScrapeRun>
+    updates: Partial<DiscoveryRun>
 ): Promise<void> {
     const { firestore } = await createServerClient();
 
     await firestore
         .collection('tenants')
         .doc(tenantId)
-        .collection(COLLECTION_SCRAPE_RUNS)
+        .collection(COLLECTION_DISCOVERY_RUNS)
         .doc(runId)
         .update(updates);
 }
@@ -250,10 +250,10 @@ function hashContent(content: string): string {
 }
 
 // =============================================================================
-// MAIN SCRAPE EXECUTION
+// MAIN DISCOVERY EXECUTION
 // =============================================================================
 
-export interface ScrapeResult {
+export interface DiscoveryResult {
     success: boolean;
     runId: string;
     content?: string;
@@ -263,16 +263,16 @@ export interface ScrapeResult {
 }
 
 /**
- * Execute a scrape job - fetch, store, and prepare for parsing
+ * Execute a discovery job - fetch, store, and prepare for parsing
  */
-export async function executeScrape(
+export async function executeDiscovery(
     tenantId: string,
     jobId: string
-): Promise<ScrapeResult> {
+): Promise<DiscoveryResult> {
     const startTime = Date.now();
 
     // Get the job
-    const job = await getScrapeJob(tenantId, jobId);
+    const job = await getDiscoveryJob(tenantId, jobId);
     if (!job) {
         throw new Error(`Job not found: ${jobId}`);
     }
@@ -286,8 +286,8 @@ export async function executeScrape(
     // Mark job as running
     await updateJobStatus(tenantId, jobId, 'running');
 
-    // Create scrape run record
-    const runId = await createScrapeRun(
+    // Create discovery run record
+    const runId = await createDiscoveryRun(
         tenantId,
         source.id,
         job.competitorId,
@@ -320,7 +320,7 @@ export async function executeScrape(
 
         // Update run with fetch results
         const durationMs = Date.now() - startTime;
-        await updateScrapeRun(tenantId, runId, {
+        await updateDiscoveryRun(tenantId, runId, {
             finishedAt: new Date(),
             status: 'success',
             httpStatus: fetchResult.httpStatus,
@@ -334,10 +334,10 @@ export async function executeScrape(
         // Mark job as done
         await updateJobStatus(tenantId, jobId, 'done');
 
-        // Update source last scrape time
-        await markSourceScraped(tenantId, source.id, source.frequencyMinutes);
+        // Update source last discovery time
+        await markSourceDiscovered(tenantId, source.id, source.frequencyMinutes);
 
-        logger.info('[Ezal] Scrape completed:', {
+        logger.info('[Ezal] Discovery completed:', {
             tenantId,
             jobId,
             runId,
@@ -357,7 +357,7 @@ export async function executeScrape(
         const errorMessage = error instanceof Error ? error.message : String(error);
 
         // Update run with error
-        await updateScrapeRun(tenantId, runId, {
+        await updateDiscoveryRun(tenantId, runId, {
             finishedAt: new Date(),
             status: 'error',
             errorMessage,
@@ -370,7 +370,7 @@ export async function executeScrape(
             errorMessage
         });
 
-        logger.error('[Ezal] Scrape failed:', {
+        logger.error('[Ezal] Discovery failed:', {
             tenantId,
             jobId,
             runId,
@@ -386,12 +386,12 @@ export async function executeScrape(
 }
 
 /**
- * Execute a manual/immediate scrape for a source (skips scheduler)
+ * Execute a manual/immediate discovery for a source (skips scheduler)
  */
-export async function scrapeNow(
+export async function discoverNow(
     tenantId: string,
     sourceId: string
-): Promise<ScrapeResult> {
+): Promise<DiscoveryResult> {
     const source = await getDataSource(tenantId, sourceId);
     if (!source) {
         throw new Error(`Data source not found: ${sourceId}`);
@@ -416,27 +416,27 @@ export async function scrapeNow(
     const jobRef = await firestore
         .collection('tenants')
         .doc(tenantId)
-        .collection('scrape_jobs')
+        .collection('discovery_jobs')
         .add(jobData);
 
     // Execute immediately
-    return executeScrape(tenantId, jobRef.id);
+    return executeDiscovery(tenantId, jobRef.id);
 }
 
 /**
- * Get recent scrape runs for a source
+ * Get recent discovery runs for a source
  */
 export async function getRecentRuns(
     tenantId: string,
     sourceId: string,
     limit: number = 10
-): Promise<ScrapeRun[]> {
+): Promise<DiscoveryRun[]> {
     const { firestore } = await createServerClient();
 
     const snapshot = await firestore
         .collection('tenants')
         .doc(tenantId)
-        .collection(COLLECTION_SCRAPE_RUNS)
+        .collection(COLLECTION_DISCOVERY_RUNS)
         .where('sourceId', '==', sourceId)
         .orderBy('startedAt', 'desc')
         .limit(limit)
@@ -449,6 +449,6 @@ export async function getRecentRuns(
             ...data,
             startedAt: data.startedAt?.toDate?.() || new Date(),
             finishedAt: data.finishedAt?.toDate?.() || null,
-        } as ScrapeRun;
+        } as DiscoveryRun;
     });
 }

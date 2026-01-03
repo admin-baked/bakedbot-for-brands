@@ -1,6 +1,6 @@
 
 /**
- * Weedmaps Scraper Tool
+ * Weedmaps Discovery Tool
  * 
  * Extracts product data from Weedmaps dispensary menu pages.
  * Supports brand-filtered URLs like:
@@ -20,10 +20,10 @@ export interface WeedmapsProduct {
     brand: string;
     dispensary: string;
     url: string;
-    scrapedAt: Date;
+    discoveredAt: Date;
 }
 
-export interface WeedmapsScrapeResult {
+export interface WeedmapsDiscoveryResult {
     success: boolean;
     dispensary: string;
     brand: string;
@@ -32,9 +32,9 @@ export interface WeedmapsScrapeResult {
 }
 
 /**
- * Scrape products from a Weedmaps dispensary page
+ * Discover products from a Weedmaps dispensary page
  */
-export async function scrapeWeedmapsMenu(url: string): Promise<WeedmapsScrapeResult> {
+export async function discoverWeedmapsMenu(url: string): Promise<WeedmapsDiscoveryResult> {
     try {
         // Extract dispensary slug and brand from URL
         const urlObj = new URL(url);
@@ -44,7 +44,7 @@ export async function scrapeWeedmapsMenu(url: string): Promise<WeedmapsScrapeRes
                            urlObj.searchParams.get('filter%5BbrandSlugs%5D%5B%5D') || 
                            'all';
 
-        console.log(`[Weedmaps] Scraping ${dispensarySlug} for brand: ${brandFilter}`);
+        console.log(`[Weedmaps] Discovering ${dispensarySlug} for brand: ${brandFilter}`);
 
         // Fetch page
         const response = await fetch(url, {
@@ -112,7 +112,7 @@ export async function scrapeWeedmapsMenu(url: string): Promise<WeedmapsScrapeRes
                 brand: brandFilter,
                 dispensary: dispensarySlug,
                 url,
-                scrapedAt: new Date()
+                discoveredAt: new Date()
             });
         });
 
@@ -132,7 +132,7 @@ export async function scrapeWeedmapsMenu(url: string): Promise<WeedmapsScrapeRes
                             brand: brandFilter,
                             dispensary: dispensarySlug,
                             url,
-                            scrapedAt: new Date()
+                            discoveredAt: new Date()
                         });
                     }
                 } catch (e) { /* ignore parse errors */ }
@@ -149,7 +149,7 @@ export async function scrapeWeedmapsMenu(url: string): Promise<WeedmapsScrapeRes
         };
 
     } catch (error: any) {
-        console.error('[Weedmaps] Scrape error:', error);
+        console.error('[Weedmaps] Discovery error:', error);
         return {
             success: false,
             dispensary: 'unknown',
@@ -161,17 +161,17 @@ export async function scrapeWeedmapsMenu(url: string): Promise<WeedmapsScrapeRes
 }
 
 /**
- * Scrape multiple dispensaries and return combined results
+ * Discover multiple dispensaries and return combined results
  */
-export async function scrapeMultipleDispensaries(urls: string[]): Promise<{
+export async function discoverMultipleDispensaries(urls: string[]): Promise<{
     success: boolean;
     totalProducts: number;
-    results: WeedmapsScrapeResult[];
+    results: WeedmapsDiscoveryResult[];
 }> {
-    const results: WeedmapsScrapeResult[] = [];
+    const results: WeedmapsDiscoveryResult[] = [];
     
     for (const url of urls) {
-        const result = await scrapeWeedmapsMenu(url);
+        const result = await discoverWeedmapsMenu(url);
         results.push(result);
         
         // Rate limiting - 1 second between requests

@@ -1,7 +1,4 @@
-/**
- * TypeScript types for Ezal Lite Snapshots
- * Cheap competitive intelligence using Website Content Crawler
- */
+ * Cheap competitive intelligence using Website Discovery
 
 // ============== Snapshot Types ==============
 
@@ -10,8 +7,8 @@ export interface EzalSnapshot {
     competitorId: string;
     competitorName: string;
     url: string;
-    scrapedAt: Date;
-    expiresAt: Date;  // scrapedAt + 30 days
+    discoveredAt: Date;
+    expiresAt: Date;  // discoveredAt + 30 days
 
     // Extracted data (regex-based, no LLM)
     priceRange: {
@@ -46,9 +43,9 @@ export interface EzalCompetitor {
     state: string;
     city?: string;
 
-    // Crawl history
+    // Discovery history
     needsResidentialProxy: boolean;
-    lastCrawlAt?: Date;
+    lastDiscoveryAt?: Date;
     lastSuccessAt?: Date;
     consecutiveFailures: number;
 
@@ -59,14 +56,14 @@ export interface EzalCompetitor {
     createdAt: Date;
 }
 
-// ============== Crawl Input Types ==============
+// ============== Discovery Input Types ==============
 
-export interface WebsiteContentCrawlerInput {
+export interface WebsiteDiscoveryInput {
     startUrls: { url: string }[];
 
     // HARD LIMITS (cost governors)
-    maxCrawlPages: number;  // 1 for Lite
-    maxCrawlDepth: number;  // 0 for Lite
+    maxPages: number;  // 1 for Lite
+    maxDepth: number;  // 0 for Lite
     maxResults: number;     // 1 for Lite
 
     // SPEED + COST CONTROLS
@@ -78,7 +75,7 @@ export interface WebsiteContentCrawlerInput {
     htmlTransformer: 'readableText' | 'none';
 
     // RELIABILITY
-    crawlerType: 'playwright:adaptive' | 'cheerio' | 'playwright:firefox';
+    discoveryType: 'playwright:adaptive' | 'cheerio' | 'playwright:firefox';
     dynamicContentWaitSecs: number;
     requestTimeoutSecs: number;
     maxRequestRetries: number;
@@ -97,16 +94,16 @@ export interface WebsiteContentCrawlerInput {
     };
 }
 
-// ============== Crawl Output Types ==============
+// ============== Discovery Output Types ==============
 
-export interface WebsiteCrawlerResult {
+export interface WebsiteDiscoveryResult {
     url: string;
     loadedUrl?: string;
     text?: string;
     markdown?: string;
     html?: string;
     screenshotUrl?: string;
-    crawledAt: string;
+    discoveredAt: string;
     metadata?: {
         title?: string;
         description?: string;

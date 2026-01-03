@@ -20,7 +20,7 @@ export interface ScanResult {
     headless_detected: boolean;
     signals: string[];
     tech_stack: string[];
-    scraped_at: string;
+    discovered_at: string;
 }
 
 /**
@@ -134,7 +134,7 @@ export async function scanForAiSignals(url: string): Promise<ScanResult> {
             headless_detected,
             signals,
             tech_stack: Array.from(tech_stack),
-            scraped_at: new Date().toISOString()
+            discovered_at: new Date().toISOString()
         };
 
     } catch (error: any) {
@@ -146,7 +146,7 @@ export async function scanForAiSignals(url: string): Promise<ScanResult> {
             headless_detected: false,
             signals: [`error:${error.message}`],
             tech_stack: [],
-            scraped_at: new Date().toISOString()
+            discovered_at: new Date().toISOString()
         };
     }
 }

@@ -4,7 +4,7 @@
  * Headless Browser Tool using Puppeteer Core (Serverless Compatible)
  * 
  * Allows agents to execute a sequence of browser actions in a single session.
- * Useful for scraping, form submission, and navigating complex flows.
+ * Useful for discovery, form submission, and navigating complex flows.
  * 
  * Note: Uses puppeteer-core and @sparticuz/chromium for production (Firebase/Cloud Functions).
  * Locally requires a Chrome installation.
@@ -19,7 +19,7 @@ export type BrowserStep =
     | { action: 'type', selector: string, text: string }
     | { action: 'click', selector: string }
     | { action: 'wait', selector: string, timeout?: number }
-    | { action: 'scrape', selector?: string } // default: body text
+    | { action: 'discover', selector?: string } // default: body text
     | { action: 'screenshot' }
     | { action: 'evaluate', script: string }; // simple eval
 
@@ -31,7 +31,7 @@ export interface BrowserActionParams {
 export interface BrowserActionResult {
     success: boolean;
     logs: string[];
-    data?: any; // Scraped data or generic result
+    data?: any; // Discovered data or generic result
     screenshot?: string; // Base64
     error?: string;
     durationMs: number;
@@ -102,12 +102,12 @@ export async function browserAction(params: BrowserActionParams): Promise<Browse
                         logs.push(`Waited for ${step.selector}`);
                         break;
 
-                    case 'scrape':
+                    case 'discover':
                         const selector = step.selector || 'body';
                         // Puppeteer specific: use $eval to get text content
                         const text = await page.$eval(selector, (el) => el.textContent);
                         lastResult = text?.trim() || '';
-                        logs.push(`Scraped content from ${selector}`);
+                        logs.push(`Discovered content from ${selector}`);
                         break;
 
                     case 'evaluate':

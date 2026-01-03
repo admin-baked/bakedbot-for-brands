@@ -176,7 +176,7 @@ export const CompetitorSchema = z.object({
     id: z.string(),
     name: z.string(),
     jurisdiction: z.string(),
-    last_scrape: TimestampSchema.optional(),
+    last_discovery: TimestampSchema.optional(),
 });
 
 export const MenuSnapshotSchema = z.object({

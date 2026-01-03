@@ -1,5 +1,5 @@
 
-import { MassScraperService } from '../services/mass-scraper';
+import { MassDiscoveryService } from '../services/mass-discovery';
 
 // Target ZIPs for Chicago Pilot (Downtown/River North)
 const CHICAGO_PILOT_ZIPS = [
@@ -10,7 +10,7 @@ const CHICAGO_PILOT_ZIPS = [
 ];
 
 /**
- * Job to run the mass scraping pilot for dispensaries.
+ * Job to run the mass discovery pilot for dispensaries.
  * Can be triggered via a server action or API route.
  */
 export async function runChicagoPilotJob(
@@ -19,7 +19,7 @@ export async function runChicagoPilotJob(
     zipCodes = CHICAGO_PILOT_ZIPS
 ) {
     console.log(`[SeoPageGenerator] Starting Pilot for ${city}, ${state}...`);
-    const scraper = MassScraperService.getInstance();
+    const discovery = MassDiscoveryService.getInstance();
     
     const results: any[] = [];
 
@@ -33,20 +33,20 @@ export async function runChicagoPilotJob(
         // 1. Discover
         // Refined query for better precision
         const locationQuery = zip ? `${zip} ${city}, ${state}` : `dispensaries in ${city}, ${state}`;
-        const candidates = await scraper.discoverDispensaries(locationQuery);
+        const candidates = await discovery.findDispensaries(locationQuery);
         
         console.log(`[SeoPageGenerator] Found ${candidates.length} candidates in ${zip}`);
 
         for (const candidate of candidates) {
-            // 2. Scrape & Generate Page
-            // Added delay to be polite to Firecrawl/target sites
+            // 2. Discover & Generate Page
+            // Added delay to be polite to target sites
             // await new Promise(r => setTimeout(r, 2000));
             
-            const page = await scraper.scrapeDispensary(candidate.url, zip);
+            const page = await discovery.discoverDispensary(candidate.url, zip);
             
             if (page && !('error' in page)) {
-                // 3. Save (Currently DRY RUN in service)
-                await scraper.savePage(page);
+                // 3. Save
+                await discovery.savePage(page);
                 results.push({ zip, name: page.dispensaryName, status: 'success' });
             } else {
                 results.push({ 

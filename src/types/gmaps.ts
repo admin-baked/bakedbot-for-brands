@@ -1,5 +1,5 @@
 /**
- * TypeScript types for Google Maps Scraper (Apify) data
+ * TypeScript types for Google Maps Discovery (Apify) data
  */
 
 // ============== Input Types ==============
@@ -38,9 +38,9 @@ export interface GMapsSearchInput {
 
     // Enrichment add-ons
     skipClosedPlaces?: boolean;
-    scrapeContacts?: boolean;  // Paid add-on
-    scrapeLeads?: boolean;     // Paid add-on
-    scrapeSocialProfiles?: boolean;  // Paid add-on
+    discoverContacts?: boolean;  // Paid add-on
+    discoverLeads?: boolean;     // Paid add-on
+    discoverSocialProfiles?: boolean;  // Paid add-on
 }
 
 // ============== Output Types ==============
@@ -125,7 +125,7 @@ export interface GMapsPlace {
     }[];
 
     // Metadata
-    scrapedAt: string;
+    discoveredAt: string;
     searchString?: string;
     rank?: number;
     isAdvertisement?: boolean;
@@ -252,6 +252,6 @@ export interface GMapsDispensaryDoc {
     priceLevel?: string;
     permanentlyClosed?: boolean;
     temporarilyClosed?: boolean;
-    lastScrapedAt: Date;
+    lastDiscoveredAt: Date;
     source: 'gmaps';
 }

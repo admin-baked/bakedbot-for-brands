@@ -28,7 +28,7 @@ export interface CompetitorPricePoint {
     price: number;
     inStock: boolean;
     lastUpdated: Date;
-    source: 'cannmenus' | 'agent_scrape' | 'manual';
+    source: 'cannmenus' | 'agent_discovery' | 'manual';
 }
 
 export interface ProductPricingRule {
@@ -134,7 +134,7 @@ export interface DynamicPricingConfig {
 
     // Competitor sources
     useCannMenus: boolean;
-    useAgentScraping: boolean;
+    useAgentDiscovery: boolean;
     competitorRadius: number;
 
     // Automation

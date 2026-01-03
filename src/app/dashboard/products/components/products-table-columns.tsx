@@ -118,7 +118,7 @@ export const columns: ColumnDef<Product>[] = [
     cell: ({ row }) => {
       const source = (row.getValue('source') as string) || 'manual';
       const isLive = source === 'pos';
-      const isDelayed = ['cannmenus', 'leafly', 'scrape'].includes(source);
+      const isDelayed = ['cannmenus', 'leafly', 'discovery'].includes(source);
 
       return (
         <div className="flex items-center">

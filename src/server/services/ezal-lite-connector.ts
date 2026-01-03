@@ -7,8 +7,8 @@ import type {
     EzalSnapshot,
     EzalCompetitor,
     EzalLiteRun,
-    WebsiteContentCrawlerInput,
-    WebsiteCrawlerResult,
+    WebsiteDiscoveryInput,
+    WebsiteDiscoveryResult,
 } from '@/types/ezal-snapshot';
 import { EZAL_LITE_CONFIG, EXTRACTION_PATTERNS } from '@/types/ezal-snapshot';
 
@@ -38,13 +38,13 @@ function hashContent(text: string): string {
 function buildLiteInput(
     url: string,
     proxyType: 'none' | 'datacenter' | 'residential' = 'none'
-): WebsiteContentCrawlerInput {
-    const input: WebsiteContentCrawlerInput = {
+): WebsiteDiscoveryInput {
+    const input: WebsiteDiscoveryInput = {
         startUrls: [{ url }],
 
         // HARD LIMITS (cost governors)
-        maxCrawlPages: 1,
-        maxCrawlDepth: 0,
+        maxPages: 1,
+        maxDepth: 0,
         maxResults: 1,
 
         // SPEED + COST CONTROLS
@@ -56,7 +56,7 @@ function buildLiteInput(
         htmlTransformer: 'readableText',
 
         // RELIABILITY (but keep it cheap)
-        crawlerType: 'playwright:adaptive',
+        discoveryType: 'playwright:adaptive',
         dynamicContentWaitSecs: 2,
         requestTimeoutSecs: 30,
         maxRequestRetries: 2,
@@ -157,7 +157,7 @@ export async function getCachedSnapshot(competitorId: string): Promise<EzalSnaps
         competitorId: data.competitorId,
         competitorName: data.competitorName,
         url: data.url,
-        scrapedAt: data.scrapedAt?.toDate?.() || (data.scrapedAt ? new Date(data.scrapedAt) : new Date()),
+        discoveredAt: data.discoveredAt?.toDate?.() || (data.discoveredAt ? new Date(data.discoveredAt) : new Date()),
         expiresAt: data.expiresAt?.toDate?.() || (data.expiresAt ? new Date(data.expiresAt) : new Date()),
         priceRange: data.priceRange,
         promoCount: data.promoCount || 0,
@@ -175,7 +175,7 @@ export async function getCachedSnapshot(competitorId: string): Promise<EzalSnaps
 }
 
 /**
- * Run a Lite snapshot for a competitor (with proxy ladder)
+ * Run a Lite discovery snapshot for a competitor (with proxy ladder)
  */
 export async function runLiteSnapshot(
     competitorId: string,
@@ -244,7 +244,7 @@ export async function runLiteSnapshot(
         competitorId,
         competitorName,
         url,
-        scrapedAt: new Date(),
+        discoveredAt: new Date(),
         expiresAt: new Date(), // Immediate expiry
         priceRange: { min: 0, max: 0, median: 0, count: 0 },
         promoCount: 0,
@@ -261,14 +261,14 @@ export async function runLiteSnapshot(
     // Record failure
     await firestore.collection('ezal_competitors').doc(competitorId).set({
         consecutiveFailures: (competitorData?.consecutiveFailures || 0) + 1,
-        lastCrawlAt: new Date(),
+        lastDiscoveryAt: new Date(),
     }, { merge: true });
 
     return failedSnapshot;
 }
 
 /**
- * Trigger Apify crawl and wait for result
+ * Trigger Apify discovery and wait for result
  */
 async function triggerAndWaitForSnapshot(
     competitorId: string,
@@ -295,17 +295,17 @@ async function triggerAndWaitForSnapshot(
         throw new Error(`Apify API error: ${error}`);
     }
 
-    const results: WebsiteCrawlerResult[] = await response.json();
+    const results: WebsiteDiscoveryResult[] = await response.json();
 
     if (!results || results.length === 0) {
-        throw new Error('No results returned from crawler');
+        throw new Error('No results returned from discovery');
     }
 
     const result = results[0];
     const text = result.text || result.markdown || '';
 
     if (!text || text.length < 100) {
-        throw new Error('Insufficient content scraped');
+        throw new Error('Insufficient content discovered');
     }
 
     // Extract snapshot data
@@ -326,7 +326,7 @@ async function triggerAndWaitForSnapshot(
         competitorId,
         competitorName,
         url,
-        scrapedAt: now,
+        discoveredAt: now,
         expiresAt,
         priceRange: extracted.priceRange,
         promoCount: extracted.promoCount,
@@ -342,7 +342,7 @@ async function triggerAndWaitForSnapshot(
     // Save to Firestore
     await firestore.collection('ezal_snapshots').doc(competitorId).set({
         ...snapshot,
-        scrapedAt: now,
+        discoveredAt: now,
         expiresAt,
     });
 
@@ -414,7 +414,7 @@ export async function getEzalCompetitors(limit: number = 50): Promise<EzalCompet
             state: data.state,
             city: data.city,
             needsResidentialProxy: data.needsResidentialProxy || false,
-            lastCrawlAt: data.lastCrawlAt?.toDate?.(),
+            lastDiscoveryAt: data.lastDiscoveryAt?.toDate?.(),
             lastSuccessAt: data.lastSuccessAt?.toDate?.(),
             consecutiveFailures: data.consecutiveFailures || 0,
             addedBy: data.addedBy,

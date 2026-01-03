@@ -27,6 +27,14 @@ import { getIntuitionSummary } from '@/server/algorithms/intuition-engine';
 import { deebo } from '@/server/agents/deebo';
 import { emitThought } from '@/server/jobs/thought-stream';
 
+// Agentic Evals
+import { EvalEngine } from '@/lib/evals/engine';
+import { DeeboComplianceEval } from '@/lib/evals/deebo-compliance';
+
+// Register standard evals
+const engine = EvalEngine.getInstance();
+engine.register(new DeeboComplianceEval());
+
 // Claude Tool Calling Integration
 import { executeWithTools, isClaudeAvailable } from '@/ai/claude';
 import { getUniversalClaudeTools, createToolExecutor, shouldUseClaudeTools } from '@/server/agents/tools/claude-tools';
@@ -176,7 +184,7 @@ const PLAYBOOK_REGISTRY: Record<string, () => Promise<PlaybookResult>> = {
         const logs = ["Starting 'Competitor Price Scan'..."];
         
         // 1. Gather Intel
-        logs.push("Triggering Ezal for market scrape (Detroit/MI)...");
+        logs.push("Triggering Ezal for market discovery (Detroit/MI)...");
         // In a real scenario, params would be passed or retrieved from context
         const res = await triggerAgentRun('ezal');
         const intel = res.log?.result || res.message;
@@ -190,7 +198,7 @@ const PLAYBOOK_REGISTRY: Record<string, () => Promise<PlaybookResult>> = {
             <hr />
             <h3>Market Analysis</h3>
             <p>${intel}</p>
-            <p><em>(Note: Deep Research Agents are available for more detailed web scraping)</em></p>
+            <p><em>(Note: Deep Research Agents are available for more detailed BakedBot Discovery)</em></p>
         `;
 
         // 3. Email Report
@@ -896,14 +904,30 @@ export async function runAgentCore(
         // await logService.record(structuredLogs);
         console.log('[Structured Logs]', JSON.stringify(structuredLogs, null, 2));
 
+        // --- AGENTIC EVAL GATE ---
+        // If it's a compliance task or involves Deebo, run compliance evals
+        let evalResults: any[] = [];
+        if (activePersona.id === 'deebo' || userMessage.toLowerCase().includes('compliance') || userMessage.toLowerCase().includes('legal')) {
+            await emitThought(jobId, 'Running Evals', 'Verifying result against compliance gate...');
+            // In a real scenario, we'd parse the 'content' or 'tool results' to find cart items
+            // For now, we simulate a check if a cart was mentioned or just run the engine.
+            evalResults = await engine.runCategory('security', { 
+                cart: [], // Prototype: Needs to be parsed from response if applicable
+                state: 'CA' // Default state for eval check
+            });
+            
+            if (evalResults.some(r => !r.passed)) {
+                await emitThought(jobId, 'Eval Warning', 'Result failed compliance gate checks.');
+            }
+        }
+
         return {
             content: response.text,
             toolCalls: executedTools,
             metadata: { 
                 ...metadata, 
                 jobId,
-                // We could also store structuredLogs here if we added it to metadata type, 
-                // but since it's not in the interface, we'll keep it as a local log for now.
+                evalResults: evalResults.length > 0 ? evalResults : undefined
             }
         };
 

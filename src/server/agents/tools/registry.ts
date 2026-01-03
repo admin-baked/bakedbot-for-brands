@@ -173,7 +173,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     },
     'intel.scanCompetitors': {
         name: 'intel.scanCompetitors',
-        description: 'Scans configured competitors for pricing and promotions.',
+        description: 'Discovers configured competitors for pricing and promotions.',
         inputSchema: {
             type: 'object',
             properties: {

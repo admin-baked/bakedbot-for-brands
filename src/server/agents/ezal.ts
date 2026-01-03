@@ -7,8 +7,8 @@ import { getCompetitiveIntelForAgent, getLocalCompetition } from '../services/le
 // --- Tool Definitions ---
 
 export interface EzalTools {
-  // Scrape a competitor menu (Mock for now, or fetch HTML)
-  scrapeMenu(url: string): Promise<{ products: any[] }>;
+  // Discover a competitor menu (Mock for now, or fetch HTML)
+  discoverMenu(url: string): Promise<{ products: any[] }>;
   // Compare my prices vs competitor prices
   comparePricing(myProducts: any[], competitorProducts: any[]): Promise<{ price_index: number }>;
   // NEW: Get competitive intel from Leafly data
@@ -42,16 +42,16 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
     // 1. Check for stale competitor data (> 7 days old)
     const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 
-    // Find a competitor who hasn't been scraped recently
+    // Find a competitor who hasn't been discovered recently
     const staleCompetitor = agentMemory.competitor_watchlist.find(c => {
-      if (!c.last_scrape) return true;
-      const last = typeof c.last_scrape === 'string' ? new Date(c.last_scrape).getTime() :
-        c.last_scrape instanceof Date ? c.last_scrape.getTime() : 0;
+      if (!c.last_discovery) return true;
+      const last = typeof c.last_discovery === 'string' ? new Date(c.last_discovery).getTime() :
+        c.last_discovery instanceof Date ? c.last_discovery.getTime() : 0;
       return last < sevenDaysAgo;
     });
 
     if (staleCompetitor) {
-      return `scrape:${staleCompetitor.id}`;
+      return `discovery:${staleCompetitor.id}`;
     }
 
     // 2. Fallback to general competitive research if no specific stale items
@@ -61,7 +61,7 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
   async act(brandMemory, agentMemory, targetId, tools: EzalTools, stimulus?: any) {
     let resultMessage = '';
 
-    if (targetId.startsWith('scrape:')) {
+    if (targetId.startsWith('discovery:')) {
       const competitorId = targetId.split(':')[1];
       const competitor = agentMemory.competitor_watchlist.find(c => c.id === competitorId);
 
@@ -70,18 +70,18 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
       // Mock URL logic (in real implementation, stored in competitor metadata)
       const mockUrl = `https://${competitor.name.toLowerCase().replace(/\s/g, '')}.com/menu`;
 
-      // Use Tool: Scrape Menu
-      const menuData = await tools.scrapeMenu(mockUrl);
+      // Use Tool: Discover Menu
+      const menuData = await tools.discoverMenu(mockUrl);
 
       // Update timestamp
-      competitor.last_scrape = new Date();
+      competitor.last_discovery = new Date();
 
       // Use Tool: Compare Pricing (Mocking "My Products" for now)
       // In reality, we'd fetch our own inventory from Brand Memory or a tool
       const myMockProducts = [{ name: 'Live Rosin 1g', price: 60 }];
       const comparison = await tools.comparePricing(myMockProducts, menuData.products);
 
-      resultMessage = `Scraped ${competitor.name}. Found ${menuData.products.length} items. Price Index: ${comparison.price_index.toFixed(2)}.`;
+      resultMessage = `Discovered ${competitor.name}. Found ${menuData.products.length} items. Price Index: ${comparison.price_index.toFixed(2)}.`;
 
       // Logic to find gaps based on comparison
       if (comparison.price_index < 0.9) {
@@ -112,9 +112,9 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
       return {
         updatedMemory: agentMemory,
         logEntry: {
-          action: 'scrape_competitor',
+          action: 'discovery_competitor',
           result: resultMessage,
-          metadata: { competitor_id: competitorId, items_scraped: menuData.products.length }
+          metadata: { competitor_id: competitorId, items_discovered: menuData.products.length }
         }
       };
     }

@@ -17,17 +17,23 @@ export async function analyzeIntent(
     
     // Construct the prompt for the intention analysis
     const prompt = `
-    You are the Intention Engine for BakedBot AI.
-    Your specific job is to DETECT AMBIGUITY in the user's request.
+    You are the Intention Engine for BakedBot AI, an "Agentic Commerce OS" for the cannabis industry.
+    Your specific job is to DETECT AMBIGUITY and form SEMANTIC COMMITS for user requests.
     
     User Query: "${userQuery}"
     Context: "${context || 'No prior context'}"
     
+    Domain Knowledge:
+    - We are a CANNABIS commerce platform.
+    - "Dispensaries" ALWAYs refers to cannabis dispensaries. Do not ask for clarification if they want pharmacies.
+    - Queries for "products", "flower", "edibles", "concentrates" are always cannabis-related.
+    - If a user provides a city (e.g., "Chicago"), assume they want city-wide results unless "near me" or a specific address is provided.
+    
     Rules:
-    1. If the query is vague (e.g., "Fix it", "Optimize revenue", "Check competitors"), you MUST flag it as ambiguous (isAmbiguous: true).
-    2. If the query is specific (e.g., "Sync Dutchie menu prices", "Email martez@bakedbot.ai about the Q3 report"), you should form a 'commit' (isAmbiguous: false).
-    3. If ambiguous, provide 'possibleIntents' and a single 'clarificationQuestion' to resolve the ambiguity.
-    4. If clear, provide the 'goal', 'assumptions', 'constraints', and a high-level 'plan'.
+    1. BE DECISIVE. If the intent is clearly cannabis-related, DO NOT ask "Is this for cannabis?".
+    2. If the query is vague (e.g., "Fix it", "Optimize revenue"), flag it as ambiguous.
+    3. If the query is specific enough to start a task, form a 'commit' (isAmbiguous: false).
+    4. Provide a high-level 'plan' and list any 'assumptions' you are making.
     
     Output JSON fully matching the schema.
     `;

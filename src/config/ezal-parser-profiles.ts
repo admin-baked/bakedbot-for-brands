@@ -1,10 +1,10 @@
 // src/config/ezal-parser-profiles.ts
 /**
- * Parser Profiles for Competitive Menu Scraping
+ * Parser Profiles for Competitive Menu Discovery
  * Config-driven extractors for different menu platforms
  */
 
-import { ParserProfile, ProductCategory } from '@/types/ezal-scraper';
+import { ParserProfile, ProductCategory } from '@/types/ezal-discovery';
 
 // Category mapping from common platform terms to our standard categories
 const STANDARD_CATEGORY_MAPPING: Record<string, ProductCategory> = {

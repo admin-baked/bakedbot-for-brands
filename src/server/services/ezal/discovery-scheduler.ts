@@ -1,27 +1,27 @@
 'use server';
 
-// src/server/services/ezal/scrape-scheduler.ts
+// src/server/services/ezal/discovery-scheduler.ts
 /**
- * Scrape Scheduler
- * Creates and manages scrape jobs for data sources
+ * Discovery Scheduler
+ * Creates and manages discovery jobs for data sources
  */
 
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
-import { ScrapeJob, DataSource, JobStatus } from '@/types/ezal-scraper';
-import { getSourcesDue, markSourceScraped } from './competitor-manager';
+import { DiscoveryJob, DataSource, JobStatus } from '@/types/ezal-discovery';
+import { getSourcesDue, markSourceDiscovered } from './competitor-manager';
 import { FieldValue } from 'firebase-admin/firestore';
 
-const COLLECTION_SCRAPE_JOBS = 'scrape_jobs';
+const COLLECTION_DISCOVERY_JOBS = 'discovery_jobs';
 
 // =============================================================================
 // JOB CREATION
 // =============================================================================
 
 /**
- * Create a scrape job for a data source
+ * Create a discovery job for a data source
  */
-export async function createScrapeJob(
+export async function createDiscoveryJob(
     tenantId: string,
     sourceId: string,
     competitorId: string,
@@ -30,7 +30,7 @@ export async function createScrapeJob(
         createdBy?: 'scheduler' | 'manual' | 'ezal';
         priority?: number;
     }
-): Promise<ScrapeJob> {
+): Promise<DiscoveryJob> {
     const { firestore } = await createServerClient();
 
     const now = new Date();
@@ -51,10 +51,10 @@ export async function createScrapeJob(
     const docRef = await firestore
         .collection('tenants')
         .doc(tenantId)
-        .collection(COLLECTION_SCRAPE_JOBS)
+        .collection(COLLECTION_DISCOVERY_JOBS)
         .add(jobData);
 
-    logger.info('[Ezal] Created scrape job:', {
+    logger.info('[Ezal] Created discovery job:', {
         jobId: docRef.id,
         tenantId,
         sourceId,
@@ -67,18 +67,18 @@ export async function createScrapeJob(
 }
 
 /**
- * Get a scrape job by ID
+ * Get a discovery job by ID
  */
-export async function getScrapeJob(
+export async function getDiscoveryJob(
     tenantId: string,
     jobId: string
-): Promise<ScrapeJob | null> {
+): Promise<DiscoveryJob | null> {
     const { firestore } = await createServerClient();
 
     const doc = await firestore
         .collection('tenants')
         .doc(tenantId)
-        .collection(COLLECTION_SCRAPE_JOBS)
+        .collection(COLLECTION_DISCOVERY_JOBS)
         .doc(jobId)
         .get();
 
@@ -92,7 +92,7 @@ export async function getScrapeJob(
         createdAt: data.createdAt?.toDate?.() || new Date(),
         startedAt: data.startedAt?.toDate?.() || null,
         completedAt: data.completedAt?.toDate?.() || null,
-    } as ScrapeJob;
+    } as DiscoveryJob;
 }
 
 /**
@@ -127,7 +127,7 @@ export async function updateJobStatus(
     await firestore
         .collection('tenants')
         .doc(tenantId)
-        .collection(COLLECTION_SCRAPE_JOBS)
+        .collection(COLLECTION_DISCOVERY_JOBS)
         .doc(jobId)
         .update(updateData);
 }
@@ -146,11 +146,11 @@ export async function runScheduler(tenantId: string): Promise<{
 }> {
     logger.info('[Ezal] Running scheduler for tenant:', { tenantId });
 
-    // Get sources that are due for scraping
+    // Get sources that are due for discovery
     const dueSource = await getSourcesDue(tenantId, 20);
 
     if (dueSource.length === 0) {
-        logger.info('[Ezal] No sources due for scraping');
+        logger.info('[Ezal] No sources due for discovery');
         return { jobsCreated: 0, sources: [] };
     }
 
@@ -159,7 +159,7 @@ export async function runScheduler(tenantId: string): Promise<{
     for (const source of dueSource) {
         try {
             // Create a job for this source
-            const job = await createScrapeJob(
+            const job = await createDiscoveryJob(
                 tenantId,
                 source.id,
                 source.competitorId,
@@ -196,13 +196,13 @@ export async function runScheduler(tenantId: string): Promise<{
 export async function getPendingJobs(
     tenantId: string,
     limit: number = 10
-): Promise<ScrapeJob[]> {
+): Promise<DiscoveryJob[]> {
     const { firestore } = await createServerClient();
 
     const snapshot = await firestore
         .collection('tenants')
         .doc(tenantId)
-        .collection(COLLECTION_SCRAPE_JOBS)
+        .collection(COLLECTION_DISCOVERY_JOBS)
         .where('status', '==', 'queued')
         .where('scheduledFor', '<=', new Date())
         .orderBy('scheduledFor')
@@ -218,7 +218,7 @@ export async function getPendingJobs(
             createdAt: data.createdAt?.toDate?.() || new Date(),
             startedAt: data.startedAt?.toDate?.() || null,
             completedAt: data.completedAt?.toDate?.() || null,
-        } as ScrapeJob;
+        } as DiscoveryJob;
     });
 }
 
@@ -229,13 +229,13 @@ export async function getJobHistory(
     tenantId: string,
     sourceId: string,
     limit: number = 10
-): Promise<ScrapeJob[]> {
+): Promise<DiscoveryJob[]> {
     const { firestore } = await createServerClient();
 
     const snapshot = await firestore
         .collection('tenants')
         .doc(tenantId)
-        .collection(COLLECTION_SCRAPE_JOBS)
+        .collection(COLLECTION_DISCOVERY_JOBS)
         .where('sourceId', '==', sourceId)
         .orderBy('createdAt', 'desc')
         .limit(limit)
@@ -250,7 +250,7 @@ export async function getJobHistory(
             createdAt: data.createdAt?.toDate?.() || new Date(),
             startedAt: data.startedAt?.toDate?.() || null,
             completedAt: data.completedAt?.toDate?.() || null,
-        } as ScrapeJob;
+        } as DiscoveryJob;
     });
 }
 
@@ -271,15 +271,15 @@ export async function cancelJob(
 export async function retryJob(
     tenantId: string,
     jobId: string
-): Promise<ScrapeJob> {
+): Promise<DiscoveryJob> {
     // Get the original job
-    const originalJob = await getScrapeJob(tenantId, jobId);
+    const originalJob = await getDiscoveryJob(tenantId, jobId);
     if (!originalJob) {
         throw new Error(`Job not found: ${jobId}`);
     }
 
     // Create a new job with same parameters
-    return createScrapeJob(
+    return createDiscoveryJob(
         tenantId,
         originalJob.sourceId,
         originalJob.competitorId,
@@ -307,7 +307,7 @@ export async function getSchedulerStats(tenantId: string): Promise<{
     const allJobsSnapshot = await firestore
         .collection('tenants')
         .doc(tenantId)
-        .collection(COLLECTION_SCRAPE_JOBS)
+        .collection(COLLECTION_DISCOVERY_JOBS)
         .limit(1000)
         .get();
 

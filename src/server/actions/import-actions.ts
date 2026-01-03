@@ -586,7 +586,7 @@ export interface LeaflyImportOptions {
 }
 
 /**
- * Fetch products from Leafly (via stored scraper data) and transform to RawProductData
+ * Fetch products from Leafly (via stored discovery data) and transform to RawProductData
  */
 export async function fetchLeaflyProducts(
     options: LeaflyImportOptions
@@ -595,7 +595,7 @@ export async function fetchLeaflyProducts(
     const { firestore } = await createServerClient();
 
     try {
-        // Leafly data is stored from the scraper in sources/leafly/dispensaries/{slug}/products
+        // Leafly data is stored from discovery in sources/leafly/dispensaries/{slug}/products
         let productsQuery = firestore
             .collection('sources')
             .doc('leafly')
