@@ -23,8 +23,7 @@ export function HeroSection() {
         <div className="flex flex-col items-center text-center space-y-6 max-w-4xl mx-auto z-10 mb-12">
           <Badge variant="secondary" className="px-4 py-2 text-sm border-primary/20 backdrop-blur-sm bg-background/50 animate-fade-in-up">
             <Bot className="w-4 h-4 mr-2 text-primary" />
-            <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent font-medium">
-              Try it right now — no signup required
+            Hire Your First Scout for Free — No Credit Card
             </span>
           </Badge>
 
@@ -49,7 +48,7 @@ export function HeroSection() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12 animate-fade-in-up animation-delay-400">
           <Link href="/brand-login">
             <Button size="lg" className="h-14 px-8 text-lg w-full sm:w-auto shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-shadow">
-              Deploy Your Agents
+              Start Your Free Audit
               <Sparkles className="ml-2 h-5 w-5" />
             </Button>
           </Link>

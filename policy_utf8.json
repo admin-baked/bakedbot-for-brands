@@ -1,0 +1,15 @@
+﻿{
+  "bindings": [
+    {
+      "members": [
+        "serviceAccount:1016399212569-compute@developer.gserviceaccount.com",
+        "serviceAccount:1016399212569@cloudbuild.gserviceaccount.com",
+        "serviceAccount:firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com",
+        "serviceAccount:service-1016399212569@gcp-sa-firebaseapphosting.iam.gserviceaccount.com"
+      ],
+      "role": "roles/secretmanager.secretAccessor"
+    }
+  ],
+  "etag": "BwZHf63RkEE=",
+  "version": 1
+}

@@ -737,10 +737,95 @@ export function PuffChat({
 
         // Helper for simulated steps
         const simulateDemoSteps = async (msgId: string, currentPersona: string) => {
+            // DETECT URL INTENT: If input is a URL, switch to Discovery Mode
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const hasUrl = userInput.match(urlRegex);
+
+            if (hasUrl) {
+                // DISCOVERY MODE: Trigger Scout Simulation
+                const url = hasUrl[0];
+                const stepsSequence = [
+                   { name: 'Discovery Intake', desc: `Ingesting public data from ${new URL(url).hostname}...` },
+                   { name: 'Ezal Market Scout', desc: 'Analyzing local competitors and pricing...' },
+                   { name: 'Deebo Compliance', desc: 'Scanning metadata for risk factors...' },
+                   { name: 'Smokey Menu Sync', desc: 'Learning product inventory...' },
+                   { name: 'Generating Brief', desc: 'Compiling Digital Worker Report...' }
+                ];
+
+                let currentSteps: ToolCallStep[] = [];
+                for (const step of stepsSequence) {
+                    const currentMsg = useAgentChatStore.getState().currentMessages.find(m => m.id === msgId);
+                    if (!currentMsg || !currentMsg.thinking?.isThinking) break;
+
+                    const stepId = Math.random().toString(36).substr(2, 9);
+                    const newStep: ToolCallStep = {
+                        id: stepId,
+                        toolName: step.name,
+                        description: step.desc,
+                        status: 'in-progress',
+                        durationMs: 0
+                    };
+                    currentSteps.push(newStep);
+
+                    updateMessage(msgId, {
+                        thinking: {
+                            isThinking: true,
+                            steps: [...currentSteps],
+                            plan: []
+                        }
+                    });
+
+                    await new Promise(r => setTimeout(r, 1500)); // 1.5s per step for dramatic effect
+
+                    // Mark complete
+                    currentSteps = currentSteps.map(s => s.id === stepId ? { ...s, status: 'completed' } : s);
+                     updateMessage(msgId, {
+                        thinking: {
+                            isThinking: true,
+                            steps: [...currentSteps],
+                            plan: []
+                        }
+                    });
+                }
+                
+                // --- TRIGGER REAL AGENT JOB ---
+                try {
+                    // Only dispatch real job if not just visual demo
+                    // We need to import the action first. Assuming dynamic import for now or adding to top.
+                    // For this sprint, we'll use dynamic import to avoid breaking build if file not found yet.
+                    if (!isAuthenticated) {
+                        const { runPublicDiscoveryAgent } = await import('../agents/public-actions');
+                        const result = await runPublicDiscoveryAgent(url, userInput);
+                        if (result.success && result.jobId) {
+                            setActiveJob({ jobId: result.jobId, messageId: msgId });
+                            setIsProcessing(true);
+                            // Visual simulation continues until real data overrides
+                        }
+                    } else {
+                        // Authenticated User: Run Standard Agent
+                        const { runAgentChat } = await import('../agents/actions');
+                        const result = await runAgentChat(
+                            `PERFORM DISCOVERY AUDIT ON: ${url}. ${userInput}`, 
+                            'puff',
+                            { projectId: 'discovery-audit' }
+                        );
+                         if (result.metadata?.jobId) {
+                            setActiveJob({ jobId: result.metadata.jobId, messageId: msgId });
+                            setIsProcessing(true);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to dispatch discovery agent:', e);
+                }
+
+                // Final Discovery Report Output
+                return currentSteps;
+            }
+
+            // STANDARD DEMO MODE
             const stepsSequence = [
                 { name: 'Analyzing Request', desc: 'Parsing intent and context...' },
                 { name: 'Agent Routing', desc: `Routing task to ${currentPersona}...` },
-                { name: 'Knowledge Lookup', desc: 'Searching database for matches...' },
                 { name: 'Knowledge Lookup', desc: 'Searching database for matches...' },
                 // Standard step, but will be dynamically replaced if creative intent detected
                 { name: 'Formulating Response', desc: 'Generating final answer...' }
