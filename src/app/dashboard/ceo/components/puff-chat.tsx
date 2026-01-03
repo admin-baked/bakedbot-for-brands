@@ -468,7 +468,7 @@ export function PuffChat({
                 agentName: t.agentName || 'Puff',
                 action: t.title,
                 status: isComplete ? 'done' : 'running',
-                startedAt: t.timestamp ? new Date(t.timestamp) : undefined,
+                startedAt: t.timestamp?.toDate ? t.timestamp.toDate() : new Date(t.timestamp as any),
                 durationMs: t.durationMs || 0
             }));
             setDiscoverySteps(newSteps);

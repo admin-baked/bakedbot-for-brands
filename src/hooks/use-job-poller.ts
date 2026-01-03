@@ -10,6 +10,9 @@ export interface Thought {
     timestamp: Timestamp;
     order: number;
     metadata?: any;
+    agentId?: string;
+    agentName?: string;
+    durationMs?: number;
 }
 
 export interface AgentJob {
