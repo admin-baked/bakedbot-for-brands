@@ -57,6 +57,10 @@ export async function createHireSubscription(input: HireSubscriptionInput) {
             `Hire: ${selectedPlan.name}`
         );
 
+        if (!profile.customerPaymentProfileId) {
+            throw new Error('Failed to create payment profile.');
+        }
+
         // 4. Create Subscription
         // Start tomorrow
         const today = new Date();

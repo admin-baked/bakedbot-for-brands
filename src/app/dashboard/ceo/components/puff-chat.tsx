@@ -1304,8 +1304,8 @@ export function PuffChat({
                         
                         {/* Intelligence Selector */}
                         <ModelSelector 
-                            level={thinkingLevel} 
-                            onLevelChange={setThinkingLevel}
+                            value={thinkingLevel} 
+                            onChange={setThinkingLevel}
                         />
 
                         {/* Tool Selector */}

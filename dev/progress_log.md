@@ -2206,3 +2206,32 @@ Remove "Coming Soon" restrictions and unlock the App Store for all user roles.
 
 ### Status: ✅ Verified
 App Store is now globally available to all authenticated users.
+
+## Session: 2026-01-03 (Fixing Deployment Secrets & Health Check)
+### Task ID
+fix_deployment_secrets_and_health_check
+
+### Summary
+Addressed deployment failure due to missing secret permissions and verified codebase health.
+- **Codebase Health**: 
+    - Build: Initially Failing (TS2322 in puff-chat.tsx, undefined check in createHireSubscription.ts). Fixed.
+    - Tests: Passing (claim-flow.test.ts).
+    - Deploy: Initially Failing (Misconfigured Secret AUTHNET_API_LOGIN_ID).
+- **Secret Fixes**: Granted roles/secretmanager.secretAccessor to Cloud Build service account (1016399212569@cloudbuild.gserviceaccount.com) for AUTHNET_API_LOGIN_ID and AUTHNET_TRANSACTION_KEY.
+- **Type Fixes**: 
+    - Resolved props mismatch in puff-chat.tsx.
+    - Added existence check for payment profile in createHireSubscription.ts.
+
+### Key Changes
+*   **FIX**: src/app/dashboard/ceo/components/puff-chat.tsx - Corrected properties.
+*   **FIX**: src/server/actions/createHireSubscription.ts - Added null check.
+*   **OPS**: Updated dev/SWARM_RULES.md with Authorize.net secrets.
+*   **OPS**: Applied IAM policy bindings for Cloud Build service account.
+
+### Tests Run
+*   npm test tests/server/actions/claim-flow.test.ts (Passed )
+*   npm run check:types (Passed )
+
+### Result:  Ready for Deploy
+Secrets are configured and build errors are resolved.
+
