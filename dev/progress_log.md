@@ -25,7 +25,14 @@ Executive Boardroom is live and production-ready.
 
 - **UPDATE**: `src/lib/email/dispatcher.ts` - Added automatic failover to SendGrid on Mailjet 401 error.
 - **TEST**: `src/lib/email/__tests__/dispatcher.test.ts` - Verified failover logic.
-- **FIX**: Refactored `dispatcher.ts` to use static imports to resolve "Server Components render" error (4c6aef23).
+- **FIX**: Resolved Sidebar Navigation issues:
+  - Restored missing "Overview" link in `SuperAdminSidebar`.
+- **FIX**: Resolved Sidebar Navigation issues:
+  - Restored missing "Overview" link in `SuperAdminSidebar`.
+  - Fixed role bleeding on `/dashboard/projects` by enforcing Super Admin context via `useSuperAdmin` hook.
+- **FIX**: Resolved `INVALID_ARGUMENT` for Gemini thinking level `max`. Downgraded to `high` in `model-selector.ts` to match API requirements.
+- **FIX**: Sanitized Email API keys in `sendgrid.ts` and `mailjet.ts` to prevent "Invalid character in header" crashes (accidental whitespace).
+- **UPDATE**: Automatically rotated `MAILJET_API_KEY` and `MAILJET_SECRET_KEY` in Google Secret Manager to match valid credentials provided by user.
 
 ---
 
