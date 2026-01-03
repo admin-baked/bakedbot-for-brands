@@ -18,6 +18,8 @@ export * from './prompt-catalog-spawn';
 export * from './prompt-catalog-integrations';
 export * from './prompt-catalog-multimodal';
 export * from './prompt-catalog-playbooks';
+export * from './prompt-catalog-tasklet';
+export * from './prompt-catalog-errors';
 
 // =============================================================================
 // AGGREGATED STATISTICS
