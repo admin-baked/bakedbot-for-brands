@@ -33,6 +33,9 @@ Executive Boardroom is live and production-ready.
 - **FIX**: Resolved `INVALID_ARGUMENT` for Gemini thinking level `max`. Downgraded to `high` in `model-selector.ts` to match API requirements.
 - **FIX**: Sanitized Email API keys in `sendgrid.ts` and `mailjet.ts` to prevent "Invalid character in header" crashes (accidental whitespace).
 - **UPDATE**: Automatically rotated `MAILJET_API_KEY` and `MAILJET_SECRET_KEY` in Google Secret Manager to match valid credentials provided by user.
+- **FEAT**: Enhanced Email Dispatcher to support dynamic `From` addresses.
+- **UI**: Updated `EmailTesterTab` to switch between `hello@bakedbot.ai` and `team@bakedbot.ai`.
+- **UPDATE**: Configured Signup Autoresponder to explicitly use `hello@bakedbot.ai`.
 
 ---
 

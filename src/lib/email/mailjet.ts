@@ -32,6 +32,8 @@ type OrderEmailData = {
     retailerName: string;
     pickupAddress: string;
     retailerId?: string;
+    fromEmail?: string;
+    fromName?: string;
 };
 
 export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<boolean> {
@@ -90,8 +92,8 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
                 "Messages": [
                     {
                         "From": {
-                            "Email": FROM_EMAIL,
-                            "Name": FROM_NAME
+                            "Email": data.fromEmail || FROM_EMAIL,
+                            "Name": data.fromName || FROM_NAME
                         },
                         "To": [
                             {
@@ -129,6 +131,8 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
 export type GenericEmailData = {
     to: string;
     name?: string;
+    fromEmail?: string;
+    fromName?: string;
     subject: string;
     htmlBody: string;
     textBody?: string;
@@ -147,8 +151,8 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
                 "Messages": [
                     {
                         "From": {
-                            "Email": FROM_EMAIL,
-                            "Name": FROM_NAME
+                            "Email": data.fromEmail || FROM_EMAIL,
+                            "Name": data.fromName || FROM_NAME
                         },
                         "To": [
                             {

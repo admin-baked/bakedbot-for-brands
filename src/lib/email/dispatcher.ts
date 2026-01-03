@@ -43,7 +43,7 @@ export async function sendOrderConfirmationEmail(data: any): Promise<boolean> {
 import { sendGenericEmail as sendSGGeneric } from './sendgrid';
 import { sendGenericEmail as sendMJGeneric } from './mailjet';
 
-export async function sendGenericEmail(data: { to: string, name?: string, subject: string, htmlBody: string, textBody?: string }): Promise<{ success: boolean; error?: string }> {
+export async function sendGenericEmail(data: { to: string, name?: string, fromEmail?: string, fromName?: string, subject: string, htmlBody: string, textBody?: string }): Promise<{ success: boolean; error?: string }> {
     const provider = await getProvider();
     
     // Helper to attempt SendGrid

@@ -26,6 +26,8 @@ type OrderEmailData = {
   retailerName: string;
   pickupAddress: string;
   retailerId?: string;
+  fromEmail?: string;
+  fromName?: string;
 };
 
 export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<boolean> {
@@ -42,8 +44,8 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
   const msg = {
     to: data.customerEmail,
     from: {
-      email: FROM_EMAIL,
-      name: FROM_NAME,
+      email: data.fromEmail || FROM_EMAIL,
+      name: data.fromName || FROM_NAME,
     },
     subject: `Order Confirmation #${data.orderId.substring(0, 7)}`,
     html: `
@@ -103,6 +105,8 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
 export type GenericEmailData = {
   to: string;
   name?: string;
+  fromEmail?: string;
+  fromName?: string;
   subject: string;
   htmlBody: string;
   textBody?: string;
@@ -117,8 +121,8 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
   const msg = {
     to: data.to,
     from: {
-      email: FROM_EMAIL,
-      name: FROM_NAME,
+      email: data.fromEmail || FROM_EMAIL,
+      name: data.fromName || FROM_NAME,
     },
     subject: data.subject,
     html: data.htmlBody,

@@ -2388,7 +2388,7 @@ export async function getCoverageStatusAction(): Promise<CoverageStatus> {
   }
 }
 
-export async function testEmailDispatch(data: { to: string, subject: string, body: string }): Promise<ActionResult> {
+export async function testEmailDispatch(data: { to: string, subject: string, body: string, fromEmail?: string, fromName?: string }): Promise<ActionResult> {
   try {
     const user = await requireUser();
     const isSuper = await isSuperUser();
@@ -2402,6 +2402,8 @@ export async function testEmailDispatch(data: { to: string, subject: string, bod
     // Use dispatcher to send via configured provider (Mailjet)
     const result = await sendGenericEmail({
         to: data.to,
+        fromEmail: data.fromEmail,
+        fromName: data.fromName,
         subject: data.subject,
         htmlBody: htmlBody,
         textBody: htmlBody.replace(/<[^>]*>?/gm, '')

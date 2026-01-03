@@ -15,6 +15,7 @@ export default function EmailTesterTab() {
     const [to, setTo] = useState('');
     const [subject, setSubject] = useState('BakedBot AI Test');
     const [body, setBody] = useState('<p>Hello from the <strong>Super Admin Console</strong>.</p>');
+    const [fromEmail, setFromEmail] = useState('hello@bakedbot.ai');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<{ message: string; error?: boolean } | null>(null);
 
@@ -28,7 +29,7 @@ export default function EmailTesterTab() {
         setResult(null);
 
         try {
-            const res = await testEmailDispatch({ to, subject, body });
+            const res = await testEmailDispatch({ to, subject, body, fromEmail });
             setResult(res);
         } catch (error: any) {
             setResult({ message: error.message || 'Unknown error occurred', error: true });
@@ -58,6 +59,18 @@ export default function EmailTesterTab() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="sender">From Address</Label>
+                            <select 
+                                id="sender" 
+                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={fromEmail}
+                                onChange={(e) => setFromEmail(e.target.value)}
+                            >
+                                <option value="hello@bakedbot.ai">hello@bakedbot.ai (General)</option>
+                                <option value="team@bakedbot.ai">team@bakedbot.ai (Team)</option>
+                            </select>
+                        </div>
                         <div className="space-y-2">
                             <Label htmlFor="to">To Address</Label>
                             <Input 
