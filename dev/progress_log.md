@@ -2235,3 +2235,33 @@ Addressed deployment failure due to missing secret permissions and verified code
 ### Result:  Ready for Deploy
 Secrets are configured and build errors are resolved.
 
+
+## Session: 2026-01-03 (Fixing Deployment Secrets - Part 2)
+### Task ID
+fix_deployment_secrets_part_2
+
+### Summary
+Addressed persistent build failure due to 'Misconfigured Secret' error.
+- **Root Cause**: The pp-hosting-pipeline service account was missing secretAccessor permissions. Check of MAILJET_API_KEY revealed it was present there but missing on AUTHNET_API_LOGIN_ID.
+- **Fix**: Granted oles/secretmanager.secretAccessor to:
+    1.  pp-hosting-pipeline@studio-567050101-bc6e8.iam.gserviceaccount.com (CRITICAL)
+    2.  irebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com (Runtime)
+    3.  service-1016399212569@gcp-sa-cloudbuild.iam.gserviceaccount.com (Cloud Build)
+
+### Result:  Permissions Updated
+Secrets are now accessible to the build pipeline.
+
+
+## Session: 2026-01-03 (Fixing Deployment Secrets - Part 3)
+### Task ID
+fix_deployment_secrets_part_3
+
+### Summary
+Addressed persistent 'Misconfigured Secret' build error.
+- **Investigation**: Checked AUTHNET_API_LOGIN_ID versions (Version 1 exists).
+- **Root Cause**: The 'Default Compute Service Account' (1016399212569-compute@developer.gserviceaccount.com) was missing permissions. This account is often used as the identity for Google Cloud build steps (Buildpacks).
+- **Fix**: Granted oles/secretmanager.secretAccessor to 1016399212569-compute@developer.gserviceaccount.com for both Authorize.Net secrets. This matches the known working configuration of MAILJET_API_KEY.
+
+### Result:  Full Parity
+Permissions now match the working Mailjet secret exactly. Deployment is expected to pass.
+
