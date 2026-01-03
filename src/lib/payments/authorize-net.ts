@@ -67,7 +67,7 @@ async function executeAuthNetRequest(requestBody: any) {
         // Handle "BOM" or other JSON parsing artifacts if any (rare in fetch, common in axios)
         return data; 
     } catch (error) {
-        logger.error('[AuthNet] Network Error:', error);
+        logger.error('[AuthNet] Network Error:', error as Record<string, any>);
         throw error;
     }
 }

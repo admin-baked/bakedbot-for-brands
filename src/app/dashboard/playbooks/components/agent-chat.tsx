@@ -119,7 +119,7 @@ export interface PuffMessage {
     workDuration?: number; // seconds
     steps?: ToolCallStep[];
     metadata?: {
-        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context';
+        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context' | 'hire_modal';
         data?: any;
         brandId?: string;
         brandName?: string;
