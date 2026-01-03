@@ -16,6 +16,9 @@ export interface CompetitorDiscoveryResult {
     lastDiscoveredAt: number;
 }
 
+// Type alias for backward compatibility
+export type CompetitorScanResult = CompetitorDiscoveryResult;
+
 /**
  * Discovers competitor pricing (via Serper) to gather intel.
  * Uses Google Search to find recent pricing and promotions.

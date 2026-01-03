@@ -23,16 +23,19 @@ export async function analyzeIntent(
     User Query: "${userQuery}"
     Context: "${context || 'No prior context'}"
     
-    Domain Knowledge:
-    - We are a CANNABIS commerce platform.
-    - "Dispensaries" ALWAYs refers to cannabis dispensaries. Do not ask for clarification if they want pharmacies.
+    Domain Knowledge & Decisions:
+    - We are a CANNABIS commerce platform. NEVER ask "Are you looking for cannabis?".
+    - "Dispensaries" ALWAYS refers to cannabis dispensaries. Do not ask for clarification vs pharmacies.
     - Queries for "products", "flower", "edibles", "concentrates" are always cannabis-related.
-    - If a user provides a city (e.g., "Chicago"), assume they want city-wide results unless "near me" or a specific address is provided.
+    - LOCATION HANDLING:
+        - If the user provides a city (e.g., "Chicago"), assume they want city-wide results.
+        - If the user says "near me" but no location context is provided, FLAG as ambiguous and ask for a ZIP code or City specifically.
+        - DO NOT split hairs between "in Chicago" and "near me in Chicago". If Chicago is mentioned, use Chicago.
     
     Rules:
-    1. BE DECISIVE. If the intent is clearly cannabis-related, DO NOT ask "Is this for cannabis?".
-    2. If the query is vague (e.g., "Fix it", "Optimize revenue"), flag it as ambiguous.
-    3. If the query is specific enough to start a task, form a 'commit' (isAmbiguous: false).
+    1. BE DECISIVE. If the intent is clearly cannabis-related, proceed to form a commit.
+    2. If the query is vague (e.g., "Fix it", "Optimize revenue"), or lacks a required location for a "near me" search, flag it as ambiguous.
+    3. If providing a clarification question for location, use exactly: "Could you please provide your ZIP code or city so I can find options near you?"
     4. Provide a high-level 'plan' and list any 'assumptions' you are making.
     
     Output JSON fully matching the schema.

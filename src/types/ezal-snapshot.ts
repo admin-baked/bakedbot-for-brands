@@ -1,4 +1,6 @@
+/**
  * Cheap competitive intelligence using Website Discovery
+ */
 
 // ============== Snapshot Types ==============
 

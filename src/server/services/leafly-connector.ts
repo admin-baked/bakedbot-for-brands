@@ -563,7 +563,6 @@ export async function getLocalCompetition(state: string, city?: string): Promise
             city: data.city,
             rating: data.rating,
             leaflyUrl: data.leaflyUrl,
-            leaflyUrl: data.leaflyUrl,
             lastDiscoveredAt: data.lastDiscoveredAt?.toDate?.(),
         };
     });
