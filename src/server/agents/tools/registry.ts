@@ -412,7 +412,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         },
         category: 'write',
         requiredPermission: 'manage:campaigns',
-    }
+    },
     // ===================================
     // 9. Internal CRM Tools (Jack/Admin)
     // ===================================
@@ -462,7 +462,8 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         },
         category: 'read', // Just generating a link
         requiredPermission: 'read:analytics'
-    }
+    },
+
     // ===================================
     // 11. Intention OS (Architecture V2)
     // ===================================

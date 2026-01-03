@@ -705,6 +705,8 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         } catch (error: any) {
             return { status: 'failed', error: error.message };
         }
+        }
+
     // --- Intention OS Tools ---
     if (def.name === 'intention.askClarification') {
         const { askClarification } = await import('./intention/tools');
