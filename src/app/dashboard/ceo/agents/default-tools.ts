@@ -166,3 +166,41 @@ export const defaultExecutiveTools = {
         return await runAgentChat(`DELEGATED TASK: ${task}`, personaId as any, { modelLevel: 'advanced' });
     }
 };
+
+export const defaultDayDayTools = {
+    auditPage: async (url: string, pageType: 'dispensary' | 'brand' | 'city' | 'zip') => {
+        try {
+            const { dayday } = await import('@/server/agents/dayday');
+            return await dayday.auditPage(url, pageType);
+        } catch (e: any) {
+            return { error: e.message, score: 0, issues: ['Failed to audit'] };
+        }
+    },
+    generateMetaTags: async (contentSample: string) => {
+        try {
+            const { dayday } = await import('@/server/agents/dayday');
+            return await dayday.generateMetaTags(contentSample);
+        } catch (e: any) {
+            return { title: 'Error', description: 'Could not generate tags' };
+        }
+    }
+};
+
+export const defaultFelishaTools = {
+    processMeetingTranscript: async (transcript: string) => {
+        try {
+            const { felisha } = await import('@/server/agents/felisha');
+            return await felisha.processMeetingTranscript(transcript);
+        } catch (e: any) {
+            return { summary: 'Processing failed', actionItems: [] };
+        }
+    },
+    triageError: async (errorLog: any) => {
+        try {
+            const { felisha } = await import('@/server/agents/felisha');
+            return await felisha.triageError(errorLog);
+        } catch (e: any) {
+            return { severity: 'unknown', team: 'engineering' };
+        }
+    }
+};

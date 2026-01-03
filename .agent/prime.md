@@ -52,9 +52,31 @@ The platform logic is personified by specialized AI agents.
 | **Deebo** | Enforcer | Compliance & Regs | CTIA/State Rule Engine |
 | **Leo** | COO | Operations | **Orchestrator**: Full Work OS & Squad Delegation |
 | **Jack** | CRO | Revenue | **Growth Engine**: $100k MRR Mandate, Claim Model |
-| **Linus** | CTO | Technology | **Architect**: Codebase access, AI Autonomy logic |
+| **Linus** | CTO | Technology | **AI CTO**: Code Evals, Claude API, Push Code, Boardroom Bridge |
 | **Glenda** | CMO | Marketing | **Funnel**: National Discovery Layer, SEO Content |
 | **Mike** | CFO | Finance | **Banker**: Unit Economics, Billing, Stripe |
+
+---
+
+## 🔬 Linus: 7-Layer Code Evaluation Framework
+**Bridge between codebase and Executive Boardroom. Uses Claude API exclusively.**
+
+| Layer | Agent | Focus | KPI |
+|-------|-------|-------|----- |
+| 1 | Architect | Structural Integrity | Zero drift |
+| 2 | Orchestrator | Cross-Agent Flow | Clean dependencies |
+| 3 | Sentry | Security (ISO/SOC2) | Pass security scan |
+| 4 | Money Mike | Token Efficiency | API overhead reduction |
+| 5 | Deebo | Regulatory | 100% compliance |
+| 6 | Chaos Monkey | Resilience | Uptime under stress |
+| 7 | **Linus** | Deployment Decision | Zero post-release bugs |
+
+**Decisions**: `MISSION_READY` | `NEEDS_REVIEW` | `BLOCKED`
+
+**Prompt Linus**:
+```
+Linus, run a code eval and give me the deployment scorecard.
+```
 
 ---
 

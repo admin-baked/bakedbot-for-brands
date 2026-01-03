@@ -21,6 +21,8 @@ Load .agent/prime.md and give me the codebase health status.
 | `/deploy` | Deploy workflow |
 | `/optimize` | Improve workflows |
 | `/backlog` | Manage tasks |
+| `/code-eval` | Run 7-layer code evaluation |
+| `/linus` | Prompt Linus (AI CTO) |
 
 ---
 
@@ -62,6 +64,8 @@ Using .agent/orchestrator.md, coordinate fixing all issues then deploy.
 | Self-Healing | `.agent/protocols/self-healing.md` |
 | Autonomy | `.agent/protocols/autonomous-mode.md` |
 | Metrics | `.agent/learning/metrics.json` |
+| **Code Evals** | `dev/evals/code-eval-framework.md` |
+| **Linus Agent** | `src/server/agents/linus.ts` |
 
 ---
 

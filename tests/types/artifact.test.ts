@@ -167,7 +167,7 @@ That was the code.`;
             expect(artifacts[0].type).toBe('code');
             expect(artifacts[0].language).toBe('typescript');
             expect(artifacts[0].content).toBe('const greeting = "Hello World";');
-            expect(cleanedContent).toContain('[Code: Click to view]');
+            expect(cleanedContent).toContain('[View Code](artifact://');
         });
 
         it('parses block-style artifacts', () => {
@@ -186,7 +186,7 @@ End of report.`;
             expect(artifacts.length).toBe(1);
             expect(artifacts[0].type).toBe('research');
             expect(artifacts[0].title).toBe('Market Analysis Report');
-            expect(cleanedContent).toContain('[Market Analysis Report: Click to view]');
+            expect(cleanedContent).toContain('[View Artifact: Market Analysis Report](artifact://');
         });
 
         it('parses multiple artifacts', () => {

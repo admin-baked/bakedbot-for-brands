@@ -3,7 +3,7 @@
  * Shared configuration used by both Client and Server code.
  */
 
-export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mrs_parker' | 'general' | 'puff' | 'deebo' | 'leo' | 'linus';
+export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mrs_parker' | 'day_day' | 'felisha' | 'general' | 'puff' | 'deebo' | 'leo' | 'linus';
 
 export interface AgentCapability {
     id: AgentId;
@@ -68,7 +68,25 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         keywords: ['customer', 'loyalty', 'churn', 'segment', 'journey', 'retention', 'engagement', 'welcome', 'at-risk', 'springbig', 'alpine iq', 'alpineiq', 'vip', 'win-back'],
         description: 'Manages customer segments, predicts churn, and orchestrates loyalty programs.',
         responseFormat: 'Segment customers by value/risk. Provide specific counts. Suggest actionable next steps.',
-        roleRestrictions: ['guest', 'customer']
+        roleRestrictions: ['guest']
+    },
+    {
+        id: 'day_day',
+        name: 'Day Day',
+        specialty: 'SEO & Growth',
+        keywords: ['seo', 'growth', 'traffic', 'rank', 'keywords', 'audit', 'meta', 'title', 'description', 'google', 'search', 'organic', 'visibility', 'index'],
+        description: 'Audits pages for SEO, generates meta tags, and monitors search rankings.',
+        responseFormat: 'SEO Score: [X/100]. List Critical/Warning/Info issues. Provide optimized meta tags in code blocks.',
+        roleRestrictions: ['guest']
+    },
+    {
+        id: 'felisha',
+        name: 'Felisha',
+        specialty: 'Meetings & Operations',
+        keywords: ['meeting', 'calendar', 'schedule', 'notes', 'transcript', 'summary', 'action items', 'triage', 'error', 'ticket', 'support', 'ops', 'operations'],
+        description: 'Coordinates meetings, takes structured notes, and triages operational issues.',
+        responseFormat: 'Structured Meeting Notes: Attendees, Summary, Action Items (Assignee/Deadline). Sentiment analysis.',
+        roleRestrictions: ['guest']
     },
     {
         id: 'general',
@@ -109,11 +127,17 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
     {
         id: 'linus',
         name: 'Linus',
-        specialty: 'Technical & Infrastructure',
-        keywords: ['health check', 'integration', 'api', 'debug', 'system', 'infrastructure', 'codebase'],
-        description: 'CTO-level technical oversight for platform health and integrations.',
-        responseFormat: 'Use ✅/⚠️/❌ for status. Show latency metrics. List actionable issues.',
-        roleRestrictions: ['guest', 'customer', 'dispensary', 'brand']
+        specialty: 'Technical & Infrastructure (AI CTO)',
+        keywords: [
+            'health check', 'integration', 'api', 'debug', 'system', 'infrastructure', 'codebase',
+            'code eval', 'deployment', 'build', 'test', 'architecture', 'mission ready',
+            'layer 1', 'layer 7', 'deploy approval', 'push code', 'git', 'commit'
+        ],
+        description: 'AI CTO with exclusive Claude API access. Synthesizes 7-layer code evaluations, makes deployment decisions, and can push code updates. Bridge between codebase and Executive Boardroom.',
+        responseFormat: 'Use ✅/⚠️/❌ for status. MISSION_READY/NEEDS_REVIEW/BLOCKED for deployment decisions. Include layer-by-layer scorecard.',
+        roleRestrictions: ['guest', 'customer', 'dispensary', 'brand'],
+        // Special config: Uses Claude API exclusively for agentic coding tasks
+        // See: src/server/agents/linus.ts for implementation
     },
 ];
 

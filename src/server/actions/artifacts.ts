@@ -19,26 +19,33 @@ const SHARED_ARTIFACTS_COLLECTION = 'shared_artifacts';
 /**
  * Save an artifact to Firestore
  */
-export async function saveArtifact(artifact: Omit<Artifact, 'id' | 'createdAt' | 'updatedAt'>) {
+export async function saveArtifact(artifact: Omit<Artifact, 'createdAt' | 'updatedAt'> | Partial<Artifact> & { title: string, content: string, type: string }) {
     const user = await requireUser();
     const db = getAdminFirestore();
     
-    const artifactRef = db.collection(ARTIFACTS_COLLECTION).doc();
+    const artifactRef = artifact.id 
+        ? db.collection(ARTIFACTS_COLLECTION).doc(artifact.id)
+        : db.collection(ARTIFACTS_COLLECTION).doc();
+    
     const now = Timestamp.now();
     
     const artifactData = {
         ...artifact,
         ownerId: user.uid,
-        createdAt: now,
         updatedAt: now,
     };
     
-    await artifactRef.set(artifactData);
+    // Only set createdAt if it's a new document or not provided
+    if (!artifact.id) {
+        (artifactData as any).createdAt = now;
+    }
+    
+    await artifactRef.set(artifactData, { merge: true });
     
     return {
         id: artifactRef.id,
         ...artifact,
-        createdAt: now.toDate(),
+        createdAt: (artifactData as any).createdAt?.toDate() || now.toDate(),
         updatedAt: now.toDate(),
     } as Artifact;
 }

@@ -9,6 +9,8 @@ import { popsAgent } from '@/server/agents/pops';
 import { ezalAgent } from '@/server/agents/ezal';
 import { moneyMikeAgent } from '@/server/agents/moneyMike';
 import { mrsParkerAgent } from '@/server/agents/mrsParker';
+import { dayday } from '@/server/agents/dayday';
+import { felisha } from '@/server/agents/felisha';
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { httpRequest, HttpRequestOptions } from '@/server/tools/http-client';
 import { browserAction, BrowserActionParams } from '@/server/tools/browser';
@@ -76,6 +78,8 @@ const AGENT_MAP = {
     ezal: ezalAgent,
     money_mike: moneyMikeAgent,
     mrs_parker: mrsParkerAgent,
+    day_day: dayday,
+    felisha: felisha,
 };
 
 // Tools Mocks (Simplified for Runner - ideally these would be in a shared 'tools-registry' file)
@@ -88,7 +92,9 @@ import {
     defaultPopsTools, 
     defaultEzalTools, 
     defaultMoneyMikeTools, 
-    defaultMrsParkerTools 
+    defaultMrsParkerTools,
+    defaultDayDayTools,
+    defaultFelishaTools
 } from '@/app/dashboard/ceo/agents/default-tools';
 
 async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOverride?: string) {
@@ -104,6 +110,8 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
     else if (agentName === 'ezal') tools = defaultEzalTools;
     else if (agentName === 'money_mike') tools = defaultMoneyMikeTools;
     else if (agentName === 'mrs_parker') tools = defaultMrsParkerTools;
+    else if (agentName === 'day_day') tools = defaultDayDayTools;
+    else if (agentName === 'felisha') tools = defaultFelishaTools;
 
     // --- SKILL INJECTION ---
     const personaConfig = PERSONAS[agentName as AgentPersona];

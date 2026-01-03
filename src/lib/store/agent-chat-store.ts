@@ -48,7 +48,10 @@ interface AgentChatState {
     currentMessages: ChatMessage[];
     currentRole: string | null;
     currentProjectId: string | null; // Active project context
-    currentArtifacts: Artifact[]; // Artifacts in current session
+
+    // Artifact State
+    activeArtifactId: string | null;
+    isArtifactPanelOpen: boolean;
 
     // Actions
     setCurrentRole: (role: string) => void;
@@ -64,6 +67,8 @@ interface AgentChatState {
     addArtifact: (artifact: Artifact) => void;
     updateArtifact: (id: string, updates: Partial<Artifact>) => void;
     removeArtifact: (id: string) => void;
+    setActiveArtifact: (id: string | null) => void;
+    setArtifactPanelOpen: (isOpen: boolean) => void;
 }
 
 export const useAgentChatStore = create<AgentChatState>()(
@@ -74,16 +79,24 @@ export const useAgentChatStore = create<AgentChatState>()(
             currentMessages: [],
             currentRole: null,
             currentProjectId: null,
-            currentArtifacts: [],
+            currentArtifacts: [] as Artifact[],
+            activeArtifactId: null,
+            isArtifactPanelOpen: false,
 
             setCurrentRole: (role) => set({ currentRole: role }),
             setCurrentProject: (projectId) => set({ currentProjectId: projectId }),
 
             // Artifact Actions
-            addArtifact: (artifact) => {
-                set((state) => ({
-                    currentArtifacts: [...state.currentArtifacts, artifact]
-                }));
+            addArtifact: (artifact: Artifact) => {
+                // @ts-ignore
+                set((state: AgentChatState) => {
+                    const current = state.currentArtifacts || [];
+                    return {
+                        currentArtifacts: [...current, artifact],
+                        activeArtifactId: artifact.id,
+                        isArtifactPanelOpen: true
+                    };
+                });
             },
 
             updateArtifact: (id, updates) => {
@@ -96,8 +109,20 @@ export const useAgentChatStore = create<AgentChatState>()(
 
             removeArtifact: (id) => {
                 set((state) => ({
-                    currentArtifacts: state.currentArtifacts.filter(a => a.id !== id)
+                    currentArtifacts: state.currentArtifacts.filter(a => a.id !== id),
+                    activeArtifactId: state.activeArtifactId === id ? null : state.activeArtifactId
                 }));
+            },
+
+            setActiveArtifact: (id) => {
+                set({ 
+                    activeArtifactId: id,
+                    isArtifactPanelOpen: !!id // Auto-open if ID is provided
+                });
+            },
+
+            setArtifactPanelOpen: (isOpen) => {
+                set({ isArtifactPanelOpen: isOpen });
             },
 
             addMessage: (message) => {
@@ -156,7 +181,10 @@ export const useAgentChatStore = create<AgentChatState>()(
                     if (session) {
                         set({
                             activeSessionId: sessionId,
-                            currentMessages: session.messages
+                            currentMessages: session.messages,
+                            currentArtifacts: session.artifacts || [],
+                            activeArtifactId: null,
+                            isArtifactPanelOpen: false
                         });
                     }
                     return;
@@ -166,7 +194,10 @@ export const useAgentChatStore = create<AgentChatState>()(
                 if (session) {
                     set({
                         activeSessionId: sessionId,
-                        currentMessages: session.messages
+                        currentMessages: session.messages,
+                        currentArtifacts: session.artifacts || [],
+                        activeArtifactId: null,
+                        isArtifactPanelOpen: false
                     });
                 }
             },
@@ -180,11 +211,17 @@ export const useAgentChatStore = create<AgentChatState>()(
                     }
                 }
 
-                set({ activeSessionId: null, currentMessages: [] });
+                set({ 
+                    activeSessionId: null, 
+                    currentMessages: [],
+                    currentArtifacts: [],
+                    activeArtifactId: null,
+                    isArtifactPanelOpen: false
+                });
             },
 
             createSession: (firstMessage, role) => {
-                const { currentMessages, currentRole } = get();
+                const { currentMessages, currentRole, currentArtifacts } = get();
                 // If there are messages in the current view that need saving
                 const messagesToSave = currentMessages.length > 0 ? currentMessages : (firstMessage ? [firstMessage] : []);
 
@@ -196,7 +233,8 @@ export const useAgentChatStore = create<AgentChatState>()(
                         preview: firstMsg?.content.slice(0, 50) || '',
                         timestamp: new Date(),
                         messages: messagesToSave,
-                        role: role || currentRole || undefined
+                        role: role || currentRole || undefined,
+                        artifacts: currentArtifacts
                     };
 
                     set((state) => ({
@@ -208,7 +246,9 @@ export const useAgentChatStore = create<AgentChatState>()(
                 set({
                     activeSessionId: null,
                     currentMessages: [],
-                    currentArtifacts: []
+                    currentArtifacts: [],
+                    activeArtifactId: null,
+                    isArtifactPanelOpen: false
                 });
             },
 
@@ -225,6 +265,7 @@ export const useAgentChatStore = create<AgentChatState>()(
                 currentRole: state.currentRole,
                 currentProjectId: state.currentProjectId,
                 currentArtifacts: state.currentArtifacts,
+                // Do not persist open state
             }),
         }
     )

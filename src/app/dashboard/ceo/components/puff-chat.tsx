@@ -19,6 +19,9 @@ import {
     DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
 import { ThinkingWindow } from '@/components/chat/thinking-window';
+import { DiscoveryBar, DiscoverySummary, type DiscoveryStep } from '@/components/chat/discovery-bar';
+import { ArtifactPanel } from '@/components/artifacts/artifact-panel';
+import { parseArtifactsFromContent, Artifact } from '@/types/artifact';
 import {
     ArrowLeft,
     Upload,
@@ -60,6 +63,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { runAgentChat, cancelAgentJob } from '../agents/actions';
 import { saveChatSession, getChatSessions } from '@/server/actions/chat-persistence'; // Import server actions
+import { saveArtifact } from '@/server/actions/artifacts';
 import { AgentPersona } from '../agents/personas';
 import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useUser } from '@/firebase/auth/use-user';
@@ -377,7 +381,11 @@ export function PuffChat({
     persona: externalPersona
 }: PuffChatProps) {
     // Global Store State
-    const { currentMessages, addMessage, updateMessage, createSession } = useAgentChatStore();
+    const { 
+        currentMessages, addMessage, updateMessage, createSession,
+        currentArtifacts, activeArtifactId, isArtifactPanelOpen,
+        addArtifact, setActiveArtifact, setArtifactPanelOpen 
+    } = useAgentChatStore();
     const { user } = useUser(); // Get authenticated user for dynamic email
 
     const [state, setState] = useState<PuffState>({
@@ -417,6 +425,11 @@ export function PuffChat({
 
     // Async Job Polling
     const [activeJob, setActiveJob] = useState<{ jobId: string, messageId: string } | null>(null);
+    // Unified Discovery Bar State
+    const [discoverySteps, setDiscoverySteps] = useState<DiscoveryStep[]>([]);
+    const [isDiscoveryActive, setIsDiscoveryActive] = useState(false);
+    const [isFirstDiscovery, setIsFirstDiscovery] = useState(true);
+    const [showDiscoveryBar, setShowDiscoveryBar] = useState(false);
     // Typewriter Streaming
     const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
     // Scrolling Refs
@@ -429,8 +442,23 @@ export function PuffChat({
     useEffect(() => {
         if (!activeJob) return;
 
-        // 1. Update Thinking Steps from Thoughts
+        // 1. Update Thinking Steps from Thoughts - sync to unified discovery bar
         if (thoughts.length > 0) {
+            // Sync to discovery bar
+            const newSteps: DiscoveryStep[] = thoughts.map(t => ({
+                id: t.id,
+                agentId: t.agentId || 'puff',
+                agentName: t.agentName || 'Puff',
+                action: t.title,
+                status: isComplete ? 'done' : 'running',
+                startedAt: t.timestamp ? new Date(t.timestamp) : undefined,
+                durationMs: t.durationMs || 0
+            }));
+            setDiscoverySteps(newSteps);
+            setIsDiscoveryActive(!isComplete);
+            setShowDiscoveryBar(true);
+            
+            // Also update message for persistence (but not for live display)
             updateMessage(activeJob.messageId, {
                 thinking: {
                     isThinking: !isComplete,
@@ -449,8 +477,21 @@ export function PuffChat({
         // 2. Handle Completion
         if (isComplete && job?.result) {
             const result = job.result; // AgentResult object
+            let finalContent = (typeof result.content === 'string' ? result.content : JSON.stringify(result.content, null, 2)) || '**Task Completed** (No content returned)';
+            
+            // Check for artifacts
+            const { artifacts: newArtifacts, cleanedContent } = parseArtifactsFromContent(finalContent);
+            if (newArtifacts.length > 0) {
+                newArtifacts.forEach(a => {
+                    addArtifact(a as Artifact);
+                    // Persist to server (fire and forget)
+                    saveArtifact(a as any).catch(err => console.error('Failed to save artifact:', err));
+                });
+                finalContent = cleanedContent;
+            }
+
             updateMessage(activeJob.messageId, {
-                content: (typeof result.content === 'string' ? result.content : JSON.stringify(result.content, null, 2)) || '**Task Completed** (No content returned)',
+                content: finalContent,
                 metadata: result.metadata,
                 thinking: {
                     isThinking: false,
@@ -466,6 +507,10 @@ export function PuffChat({
             setActiveJob(null); // Stop polling
             setIsProcessing(false);
             setStreamingMessageId(activeJob.messageId); // Trigger typewriter
+            // Mark discovery as complete but keep bar visible briefly
+            setIsDiscoveryActive(false);
+            setIsFirstDiscovery(false); // Next discovery won't auto-expand
+            setTimeout(() => setShowDiscoveryBar(false), 5000); // Auto-hide after 5s
         }
 
         // 3. Handle Failure
@@ -1112,11 +1157,13 @@ export function PuffChat({
                 </div>
             )}
 
-            {/* Content Area - Auto-expands with content */}
-            <div 
-                ref={scrollAreaRef}
-                className="flex-1 w-full bg-slate-50/30 overflow-y-auto min-h-0"
-            >
+            <div className="flex flex-1 min-h-0 overflow-hidden relative">
+                <div className="flex-1 flex flex-col min-w-0">
+                    {/* Content Area - Auto-expands with content */}
+                    <div 
+                        ref={scrollAreaRef}
+                        className="flex-1 w-full bg-slate-50/30 overflow-y-auto min-h-0"
+                    >
                 <div className="p-4 space-y-4 min-h-full pb-8">
                     {/* Empty State */}
                     {!hasMessages && (
@@ -1168,12 +1215,18 @@ export function PuffChat({
                                 </div>
                             ) : (
                                 <div className="space-y-2 max-w-[90%]">
-                                    {/* Thinking Window - Replaces old visualization */}
-                                    {((message.steps && message.steps.length > 0) || message.isThinking) && (
-                                        <ThinkingWindow 
-                                            steps={message.steps || []} 
-                                            isThinking={message.isThinking || false}
-                                            agentName={message.metadata?.agentName || 'smokey'}
+                                    {/* Compact Discovery Summary - for past completed messages */}
+                                    {message.steps && message.steps.length > 0 && !message.isThinking && (
+                                        <DiscoverySummary 
+                                            steps={message.steps.map((s: ToolCallStep) => ({
+                                                id: s.id,
+                                                agentId: s.subagentId || 'puff',
+                                                agentName: s.toolName.split(':')[0] || 'Puff',
+                                                action: s.description || s.toolName,
+                                                status: s.status === 'completed' ? 'done' : (s.status === 'in-progress' ? 'running' : s.status as any),
+                                                durationMs: s.durationMs
+                                            }))}
+                                            durationSec={Math.round((message.steps.reduce((sum: number, s: ToolCallStep) => sum + (s.durationMs || 0), 0)) / 1000)}
                                         />
                                     )}
 
@@ -1267,6 +1320,31 @@ export function PuffChat({
                                                             h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
                                                             h3: ({node, ...props}) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
                                                             blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
+                                                            a: ({node, href, children, ...props}: any) => {
+                                                                if (href?.startsWith('artifact://')) {
+                                                                    const artifactId = href.replace('artifact://', '');
+                                                                    return (
+                                                                        <Button 
+                                                                            variant="outline" 
+                                                                            className="my-2 gap-2 h-auto py-2 px-3 bg-white hover:bg-slate-50 border-emerald-200 text-emerald-800 w-full justify-start"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                setActiveArtifact(artifactId);
+                                                                                setArtifactPanelOpen(true);
+                                                                            }}
+                                                                        >
+                                                                            <div className="bg-emerald-100 p-1.5 rounded-md">
+                                                                               <FileText className="h-4 w-4 text-emerald-600" />
+                                                                            </div>
+                                                                            <div className="flex flex-col items-start text-xs">
+                                                                                <span className="font-semibold">{children}</span>
+                                                                                <span className="text-emerald-600/80">Click to open artifact</span>
+                                                                            </div>
+                                                                        </Button>
+                                                                    );
+                                                                }
+                                                                return <a href={href} className="text-primary underline underline-offset-4" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+                                                            },
                                                             code: ({node, inline, className, children, ...props}: any) => {
                                                                 const match = /language-(\w+)/.exec(className || '');
                                                                 if (!inline && match) {
@@ -1348,10 +1426,33 @@ export function PuffChat({
             </div>
 
             {/* Input at BOTTOM */}
-            <div className="shrink-0 z-10 bg-background/80 backdrop-blur-sm pt-2">
+            <div className="shrink-0 z-10 bg-background/80 backdrop-blur-sm pt-2 space-y-2">
+                {/* Unified Discovery Bar - shows above input during processing */}
+                {showDiscoveryBar && (
+                    <div className="px-4">
+                        <DiscoveryBar 
+                            isActive={isDiscoveryActive}
+                            steps={discoverySteps}
+                            isFirstDiscovery={isFirstDiscovery}
+                            onClose={() => setShowDiscoveryBar(false)}
+                        />
+                    </div>
+                )}
                 {InputArea}
             </div>
+          </div>
+
+            {/* Artifact Panel */}
+            <ArtifactPanel 
+                artifacts={currentArtifacts}
+                selectedArtifact={currentArtifacts.find(a => a.id === activeArtifactId) || null}
+                isOpen={isArtifactPanelOpen}
+                onSelect={(a) => setActiveArtifact(a?.id || null)}
+                onClose={() => setArtifactPanelOpen(false)}
+                onShare={(a) => console.log('Share', a)}
+            />
         </div>
+    </div>
     );
 }
 
