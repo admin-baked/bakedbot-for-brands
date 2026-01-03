@@ -26,20 +26,34 @@ export async function POST(req: NextRequest) {
     try {
         console.log(`[Job:${jobId}] Starting Agent Execution for User: ${userId}`);
 
-        // 3. Reconstruct User Context
+        // 3. User Context Strategy
+        let userData: any = {};
         const { firestore } = await createServerClient();
-        const userDoc = await firestore.collection('users').doc(userId).get();
 
-        if (!userDoc.exists) {
-            console.error(`[Job:${jobId}] User not found: ${userId}`);
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
-
-        const userData = userDoc.data();
+        // CHECK FOR GUEST/SCOUT USER
+        const isGuest = userId.startsWith('guest-');
         
-        // 3a. Fetch Project Context (if projectId provided)
+        if (isGuest) {
+            console.log(`[Job:${jobId}] Guest User detected. Using Scout Context.`);
+            userData = {
+                role: 'scout',
+                email: 'scout@bakedbot.ai',
+                brandId: 'guest-brand',
+                brandName: 'Guest Discovery'
+            };
+        } else {
+            // STANDARD USER LOOKUP
+            const userDoc = await firestore.collection('users').doc(userId).get();
+            if (!userDoc.exists) {
+                console.error(`[Job:${jobId}] User not found: ${userId}`);
+                return NextResponse.json({ error: 'User not found' }, { status: 404 });
+            }
+            userData = userDoc.data();
+        }
+        
+        // 3a. Fetch Project Context (if projectId provided AND not guest)
         let projectContext = '';
-        if (options?.projectId) {
+        if (options?.projectId && !isGuest) {
             const projectDoc = await firestore.collection('users').doc(userId).collection('projects').doc(options.projectId).get();
             if (projectDoc.exists) {
                 const projectData = projectDoc.data();
