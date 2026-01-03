@@ -20,6 +20,7 @@ export * from './prompt-catalog-multimodal';
 export * from './prompt-catalog-playbooks';
 export * from './prompt-catalog-tasklet';
 export * from './prompt-catalog-errors';
+export * from './prompt-catalog-conversation';
 
 // =============================================================================
 // AGGREGATED STATISTICS
