@@ -1314,6 +1314,451 @@ const DEFAULT_TRACKS: TalkTrack[] = [
                 message: "✅ **Daily Summary Activated!**\n\n**Schedule**: Every day at 9:00 PM\n**Recipients**: You\n\n**Report Includes:**\n*   💰 Total revenue & orders\n*   🏆 Top 5 sellers\n*   📈 vs yesterday comparison\n*   ⚠️ Any alerts (low stock, issues)\n\nYour first report arrives tonight!"
             }
         ]
+    },
+    // ==========================================
+    // BRAND TALK TRACKS
+    // ==========================================
+    
+    // --- Distribution & Retail Expansion ---
+    {
+        id: 'brand-find-dispensaries',
+        name: 'Find Retail Partners',
+        role: 'brand',
+        triggerKeywords: ['find dispensaries', 'find retailers', 'expand distribution', 'new retail partners', 'where to sell'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-market-search',
+                order: 1,
+                type: 'question',
+                thought: "Preparing retail discovery... Loading market data...",
+                message: "🏪 **Retail Partner Discovery**\n\nI'll help you find dispensaries to carry your products!\n\n**What market are you targeting?**\n1.  Specific city/state (e.g., \"Denver, CO\")\n2.  Radius from location (e.g., \"50 miles from LA\")\n3.  Specific chain (e.g., \"all Cookies locations\")\n\nAnd what **product category** are you pitching? (Flower, Concentrates, Edibles, etc.)"
+            },
+            {
+                id: 'step-show-results',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['denver', 'los angeles', 'california', 'colorado', 'flower', 'edibles', 'concentrates'],
+                thought: "Searching retail database... Scoring by fit... Ranking opportunities...",
+                steps: [
+                    "Searching: 2,400 dispensaries in market...",
+                    "Filtering: By category alignment...",
+                    "Scoring: By revenue & brand fit...",
+                    "Ranking: Top opportunities..."
+                ],
+                dataView: 'lead_list',
+                message: "📍 **Top Retail Opportunities in Your Market**\n\n| Dispensary | Revenue Tier | Current Brands | Match Score |\n|------------|--------------|----------------|-------------|\n| Green Thumb Denver | $$$$ | Stiiizy, Cookies | 95% 🔥 |\n| The Green Solution | $$$ | Local only | 88% |\n| Native Roots | $$$$ | Premium focus | 85% |\n| Lightshade | $$$ | Diverse | 82% |\n| Medicine Man | $$$ | Value-focused | 75% |\n\n**Insights:**\n*   Green Thumb has gap in your category\n*   Native Roots actively seeking new brands\n*   3 stores have upcoming buyer meetings\n\nWant me to **draft outreach emails** or **export this list**?"
+            },
+            {
+                id: 'step-outreach',
+                order: 3,
+                type: 'action',
+                triggerKeywords: ['draft', 'email', 'outreach', 'contact'],
+                thought: "Generating personalized outreach... Pulling buyer contacts...",
+                message: "📧 **Outreach Drafts Ready**\n\nI've prepared personalized emails for each prospect:\n\n**Green Thumb Denver**\n> Subject: [Your Brand] x Green Thumb Partnership\n> \n> Hi [Buyer Name],\n> \n> I noticed Green Thumb is the #1 store for premium concentrates in Denver...\n\n*5 emails drafted and ready to send*\n\n✅ **Send all** or **review individually**?"
+            }
+        ]
+    },
+    {
+        id: 'brand-retail-map',
+        name: 'Retail Distribution Map',
+        role: 'brand',
+        triggerKeywords: ['where am i sold', 'distribution map', 'retail locations', 'my retailers', 'store map'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-show-map',
+                order: 1,
+                type: 'action',
+                thought: "Loading distribution data... Mapping retail partners... Calculating coverage...",
+                steps: [
+                    "Loading: Distribution records...",
+                    "Mapping: Active retail partners...",
+                    "Calculating: Market coverage..."
+                ],
+                dataView: 'competitor_map',
+                message: "🗺️ **Your Distribution Map**\n\n**Active Retail Partners**: 47 stores\n**States**: CA, CO, NV, AZ\n**Market Coverage**: 12% of legal dispensaries\n\n**By State:**\n| State | Stores | % Coverage | Top Performer |\n|-------|--------|------------|---------------|\n| CA | 28 | 8% | MedMen LA |\n| CO | 12 | 15% | Green Thumb |\n| NV | 5 | 18% | Planet 13 |\n| AZ | 2 | 3% | Harvest |\n\n**Gaps Identified:**\n*   🔴 San Diego: 0 stores (high demand market)\n*   🟡 Phoenix: Only 2 stores (underserved)\n\nWant to **target gap markets** or **see retailer performance**?"
+            }
+        ]
+    },
+    
+    // --- Sales Analytics ---
+    {
+        id: 'brand-sell-through',
+        name: 'Sell-Through Analytics',
+        role: 'brand',
+        triggerKeywords: ['sell-through', 'sellthrough', 'how are we selling', 'retail performance', 'product velocity'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-analyze-velocity',
+                order: 1,
+                type: 'action',
+                thought: "Pulling POS data... Calculating velocity... Comparing to category...",
+                steps: [
+                    "Pulling: Retail POS data...",
+                    "Calculating: Units/week velocity...",
+                    "Comparing: To category benchmarks..."
+                ],
+                dataView: 'price_chart',
+                message: "📈 **Sell-Through Report**\n\n**Overall Velocity**: 4.2 units/store/week\n**Category Avg**: 3.8 units (you're +11% above avg!)\n\n**By Product:**\n| SKU | Velocity | vs Category | Trend |\n|-----|----------|-------------|-------|\n| OG Kush 1g | 8.5/wk | +45% | 📈 |\n| Blue Dream 3.5g | 6.2/wk | +22% | 📈 |\n| Wedding Cake 1g | 2.1/wk | -15% | 📉 |\n| Gelato Cart 0.5g | 5.8/wk | +8% | → |\n\n**By Retailer:**\n| Store | Velocity | Reorder Rate |\n|-------|----------|---------------|\n| Green Thumb | 12.4/wk | Weekly |\n| Planet 13 | 9.2/wk | Bi-weekly |\n| MedMen | 3.1/wk | Monthly ⚠️ |\n\n**Alert**: Wedding Cake underperforming. Consider promo or discontinue?\n\nWant **deeper analysis** or **retailer-specific reports**?"
+            }
+        ]
+    },
+    {
+        id: 'brand-market-share',
+        name: 'Market Share Analysis',
+        role: 'brand',
+        triggerKeywords: ['market share', 'category share', 'share of shelf', 'brand ranking', 'how do we compare'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-share-analysis',
+                order: 1,
+                type: 'action',
+                thought: "Aggregating market data... Calculating share... Comparing competitors...",
+                steps: [
+                    "Aggregating: Category sales data...",
+                    "Calculating: Market share %...",
+                    "Comparing: To top competitors..."
+                ],
+                message: "📊 **Market Share Analysis**\n\n**Your Category**: Concentrates\n**Your Share**: 8.2% (#4 in market)\n\n**Competitive Landscape:**\n| Rank | Brand | Share | Trend |\n|------|-------|-------|-------|\n| 1 | Raw Garden | 18.5% | → |\n| 2 | Stiiizy | 15.2% | 📈 +2% |\n| 3 | Select | 12.1% | 📉 -1% |\n| 4 | **You** | 8.2% | 📈 +0.5% |\n| 5 | Cresco | 7.8% | → |\n\n**Insights:**\n*   You're gaining on Select (they're declining)\n*   Stiiizy's growth is from distro expansion\n*   Gap to #3: ~$2M annual sales\n\n**To move up:**\n1.  Add 15 retail partners (+1.5% share)\n2.  Launch promo with top 10 retailers\n3.  Expand to NV (underrepresented)\n\nWant a **growth roadmap** or **competitor deep-dive**?"
+            }
+        ]
+    },
+    
+    // --- Competitive Intelligence ---
+    {
+        id: 'brand-competitor-watch',
+        name: 'Competitor Brand Watch',
+        role: 'brand',
+        triggerKeywords: ['competitor brands', 'watch competitors', 'competitor products', 'new launches', 'what are competitors doing'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-competitor-intel',
+                order: 1,
+                type: 'action',
+                thought: "Scanning competitor activity... Tracking new products... Monitoring pricing...",
+                steps: [
+                    "Scanning: Competitor websites...",
+                    "Tracking: New product launches...",
+                    "Monitoring: Pricing changes..."
+                ],
+                message: "🕵️ **Competitor Intelligence Report**\n\n**New Product Launches (Last 30 Days):**\n| Brand | Product | Category | Price Point |\n|-------|---------|----------|-------------|\n| Raw Garden | Crushed Diamonds 2g | Concentrates | $80 (premium) |\n| Stiiizy | Live Resin Pods | Vapes | $45 (mid) |\n| Select | Cliq Pods | Vapes | $35 (value) |\n\n**Pricing Movements:**\n*   📉 Cresco dropped flower prices 12% (aggressive push)\n*   📈 Raw Garden raised concentrates 8% (premium positioning)\n\n**Distribution Changes:**\n*   Stiiizy added 45 new retailers in CA\n*   Select exiting AZ market (opportunity!)\n\n**Social Buzz:**\n*   Raw Garden trending on r/Cannabis\n*   Cresco getting criticism for quality\n\nWant **alerts on competitor moves** or **deeper brand analysis**?"
+            }
+        ]
+    },
+    {
+        id: 'brand-pricing-intel',
+        name: 'Competitive Pricing Intel',
+        role: 'brand',
+        triggerKeywords: ['competitor pricing', 'price benchmarks', 'how are we priced', 'pricing strategy', 'price positioning'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-price-comparison',
+                order: 1,
+                type: 'action',
+                thought: "Gathering retail prices... Comparing SKUs... Analyzing positioning...",
+                steps: [
+                    "Gathering: Retail price data...",
+                    "Comparing: Similar SKUs...",
+                    "Analyzing: Price positioning..."
+                ],
+                message: "💰 **Pricing Intelligence Report**\n\n**Your Category**: Concentrates (1g)\n**Your Avg Retail**: $42\n**Market Avg**: $40\n**Your Position**: Premium (+5%)\n\n**SKU-Level Comparison:**\n| Your Product | Price | Competitor | Their Price | Gap |\n|--------------|-------|------------|-------------|-----|\n| OG Kush 1g | $45 | Raw Garden | $48 | -$3 ✅ |\n| Blue Dream 1g | $42 | Stiiizy | $40 | +$2 |\n| Gelato 1g | $40 | Select | $35 | +$5 ⚠️ |\n\n**Insights:**\n*   OG Kush: Well-priced vs premium competitor\n*   Gelato: 14% premium vs Select (may hurt velocity)\n\n**Recommendation:**\n*   Consider $38 promo on Gelato to compete with Select\n*   OG Kush can support price increase\n\nWant to **adjust pricing** or **set up price alerts**?"
+            }
+        ]
+    },
+    
+    // --- Wholesale & LeafLink ---
+    {
+        id: 'brand-wholesale-orders',
+        name: 'Wholesale Order Management',
+        role: 'brand',
+        triggerKeywords: ['wholesale orders', 'leaflink orders', 'pending orders', 'retailer orders', 'order status'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-order-status',
+                order: 1,
+                type: 'action',
+                thought: "Fetching LeafLink orders... Categorizing by status... Calculating revenue...",
+                steps: [
+                    "Connecting: LeafLink API...",
+                    "Fetching: Active orders...",
+                    "Categorizing: By status..."
+                ],
+                message: "📦 **Wholesale Orders Dashboard**\n\n**This Week**: $48,500 in orders (23 orders)\n\n**Pending Fulfillment (8):**\n| Retailer | Amount | Items | Due Date |\n|----------|--------|-------|----------|\n| Green Thumb | $8,200 | 120 units | Tomorrow ⚠️ |\n| Planet 13 | $12,400 | 200 units | Thu |\n| MedMen | $5,600 | 80 units | Fri |\n\n**Awaiting Payment (4):**\n*   Native Roots: $6,200 (Net 30 - Day 22)\n*   Harvest: $4,100 (Net 30 - Day 28) ⚠️\n\n**Shipped This Week (11):**\n*   Total: $17,800\n*   On-time rate: 100% ✅\n\nWant to **process fulfillment** or **send payment reminders**?"
+            }
+        ]
+    },
+    {
+        id: 'brand-reorder-forecast',
+        name: 'Retailer Reorder Forecast',
+        role: 'brand',
+        triggerKeywords: ['reorder forecast', 'who will reorder', 'upcoming orders', 'predict orders', 'next orders'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-forecast',
+                order: 1,
+                type: 'action',
+                thought: "Analyzing order patterns... Predicting reorder timing... Estimating volume...",
+                steps: [
+                    "Analyzing: Historical order patterns...",
+                    "Predicting: Reorder timing...",
+                    "Estimating: Order volumes..."
+                ],
+                message: "🔮 **Reorder Forecast (Next 14 Days)**\n\n**Expected Orders**: $62,000 from 12 retailers\n\n| Retailer | Est. Date | Est. Amount | Confidence |\n|----------|-----------|-------------|------------|\n| Green Thumb | 3 days | $8,500 | 95% |\n| Planet 13 | 5 days | $11,200 | 90% |\n| MedMen | 7 days | $6,800 | 85% |\n| Native Roots | 8 days | $5,400 | 80% |\n| Harvest | 10 days | $4,200 | 75% |\n\n**At Risk (Overdue):**\n*   🔴 The Green Solution: Usually orders every 2 weeks, now 3 weeks since last order\n*   🟡 Lightshade: Velocity down 30%, may reduce order\n\n**Recommended Actions:**\n1.  Reach out to Green Solution\n2.  Offer Lightshade a promo to boost velocity\n\nWant me to **draft outreach** for at-risk accounts?"
+            }
+        ]
+    },
+    
+    // --- Marketing & Brand Building ---
+    {
+        id: 'brand-retailer-promo',
+        name: 'Retailer Promotion Campaign',
+        role: 'brand',
+        triggerKeywords: ['retailer promo', 'trade promotion', 'retailer discount', 'push promo', 'incentivize retailers'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-promo-setup',
+                order: 1,
+                type: 'question',
+                thought: "Loading retailer data... Preparing promo builder...",
+                message: "🎯 **Retailer Promo Builder**\n\n**What type of promotion?**\n1.  Volume discount (buy X get Y% off)\n2.  Co-op marketing (fund their ads)\n3.  Display/placement incentive\n4.  New product intro deal\n5.  Velocity bonus (hit targets = rebate)\n\n**Which retailers?**\n*   All partners (47)\n*   Top performers (12)\n*   Underperformers (8)\n*   Custom list"
+            },
+            {
+                id: 'step-configure-promo',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['volume', 'co-op', 'display', 'new product', 'velocity', 'all', 'top', 'under'],
+                thought: "Configuring promotion... Calculating margin impact... Preparing materials...",
+                steps: [
+                    "Configuring: Promo terms...",
+                    "Calculating: Margin impact...",
+                    "Preparing: Retailer materials..."
+                ],
+                message: "📊 **Promo Configuration**\n\n**Volume Discount Promo:**\n*   Buy 50+ units: 10% off\n*   Buy 100+ units: 15% off\n*   Buy 200+ units: 20% off\n\n**Target**: Top 12 performers\n**Duration**: 2 weeks\n**Est. Lift**: +35% volume\n**Margin Impact**: -8% (offset by volume)\n\n**Materials Ready:**\n*   📧 Announcement email\n*   📄 Sell sheet with promo pricing\n*   📊 ROI calculator for buyers\n\n✅ **Launch this promo**?"
+            },
+            {
+                id: 'step-launch-promo',
+                order: 3,
+                type: 'action',
+                triggerKeywords: ['launch', 'yes', 'send', 'confirm'],
+                thought: "Sending to retailers... Updating LeafLink pricing... Tracking...",
+                message: "🚀 **Promo Launched!**\n\n*   📧 12 retailers notified\n*   💰 LeafLink pricing updated\n*   📊 Tracking dashboard active\n\nI'll send you daily updates on promo performance!"
+            }
+        ]
+    },
+    {
+        id: 'brand-budtender-training',
+        name: 'Budtender Training Materials',
+        role: 'brand',
+        triggerKeywords: ['budtender training', 'train budtenders', 'staff training', 'product education', 'brand training'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-training-setup',
+                order: 1,
+                type: 'question',
+                thought: "Loading product catalog... Preparing training content generator...",
+                message: "📚 **Budtender Training Builder**\n\n**What would you like to create?**\n1.  Product knowledge guide (all SKUs)\n2.  New product launch training\n3.  Strain/effects education\n4.  Brand story & talking points\n5.  Competitive positioning guide\n\n**Format?**\n*   PDF guide\n*   Video script\n*   Quiz/certification\n*   One-pager per product"
+            },
+            {
+                id: 'step-generate-training',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['product knowledge', 'new product', 'strain', 'brand story', 'competitive', 'pdf', 'video', 'quiz'],
+                thought: "Generating training content... Pulling product data... Creating materials...",
+                steps: [
+                    "Generating: Training content...",
+                    "Pulling: Product specs...",
+                    "Creating: Formatted materials..."
+                ],
+                message: "📄 **Training Materials Generated**\n\n**Product Knowledge Guide**\n*   12 products covered\n*   Effects, terpenes, pricing for each\n*   Recommended customer profiles\n*   Competitive comparisons\n\n**Included Sections:**\n1.  Brand Story (why we exist)\n2.  Product Lineup (specs & effects)\n3.  Who to Recommend (customer profiles)\n4.  vs Competitors (positioning)\n5.  FAQ (common questions)\n\n**Formats Available:**\n*   📄 PDF Guide (24 pages)\n*   🎥 Video Script (8 min)\n*   ✅ Knowledge Quiz (20 questions)\n\n✅ **Download** or **send to retailers**?"
+            }
+        ]
+    },
+    {
+        id: 'brand-social-content',
+        name: 'Social Media Content',
+        role: 'brand',
+        triggerKeywords: ['social media', 'instagram post', 'social content', 'create post', 'content calendar'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-content-brief',
+                order: 1,
+                type: 'question',
+                thought: "Loading brand guidelines... Preparing content generator...",
+                message: "📱 **Social Content Creator**\n\n**What do you need?**\n1.  Single post (Instagram/Twitter)\n2.  Week of content (7 posts)\n3.  Product launch campaign\n4.  User-generated content ideas\n5.  Story/Reel concepts\n\n**What's the focus?**\n*   New product\n*   Brand awareness\n*   Retailer shoutout\n*   Education/effects\n*   Behind the scenes"
+            },
+            {
+                id: 'step-generate-content',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['single', 'week', 'launch', 'ugc', 'story', 'product', 'awareness', 'education'],
+                thought: "Generating content... Applying brand voice... Creating captions...",
+                steps: [
+                    "Generating: Content concepts...",
+                    "Applying: Brand voice...",
+                    "Creating: Captions & hashtags..."
+                ],
+                message: "📸 **Content Ready**\n\n**Week of Instagram Posts:**\n\n**Monday** - Product Spotlight\n> 🔥 Meet our new Live Resin OG.\n> Cured for 21 days. Extracted at peak freshness.\n> Available at 47 retailers near you.\n> #LiveResin #Cannabis #[YourBrand]\n\n**Wednesday** - Education\n> 💡 Did you know? Live resin preserves 40% more terpenes than distillate.\n> That's why the flavor hits different.\n> #CannabisFacts #Terpenes\n\n**Friday** - Retailer Shoutout\n> 🙌 Big love to @GreenThumb for always keeping us stocked!\n> Visit them for [YourBrand] this weekend.\n> #RetailPartner #ShopLocal\n\n*4 more posts in content calendar*\n\n✅ **Download all** or **edit individual posts**?"
+            }
+        ]
+    },
+    
+    // --- Product & Catalog ---
+    {
+        id: 'brand-product-performance',
+        name: 'Product Performance Report',
+        role: 'brand',
+        triggerKeywords: ['product performance', 'sku performance', 'which products selling', 'product analytics', 'sku analytics'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-performance-report',
+                order: 1,
+                type: 'action',
+                thought: "Pulling SKU data... Analyzing performance... Identifying trends...",
+                steps: [
+                    "Pulling: Sales by SKU...",
+                    "Analyzing: Velocity & margin...",
+                    "Identifying: Winners & losers..."
+                ],
+                dataView: 'price_chart',
+                message: "📊 **Product Performance Report**\n\n**Your Catalog**: 12 SKUs across 47 retailers\n\n**🏆 Top Performers:**\n| SKU | Units/Mo | Revenue | Margin | Trend |\n|-----|----------|---------|--------|-------|\n| OG Kush 1g | 2,450 | $98K | 42% | 📈 +15% |\n| Blue Dream 3.5g | 1,820 | $72K | 38% | 📈 +8% |\n| Gelato Cart | 1,540 | $61K | 45% | → |\n\n**⚠️ Underperformers:**\n| SKU | Units/Mo | Revenue | Margin | Issue |\n|-----|----------|---------|--------|-------|\n| Wedding Cake 1g | 340 | $13K | 35% | Low velocity |\n| Sour Diesel 3.5g | 280 | $11K | 32% | Margin squeeze |\n\n**Recommendations:**\n1.  🚀 Double down on OG Kush (expanding distribution)\n2.  💰 Raise price on Gelato (room for margin)\n3.  ❌ Consider discontinuing Sour Diesel\n\nWant **SKU-level deep dive** or **retailer breakdown**?"
+            }
+        ]
+    },
+    {
+        id: 'brand-new-product-launch',
+        name: 'New Product Launch Planner',
+        role: 'brand',
+        triggerKeywords: ['new product launch', 'launch product', 'product launch plan', 'introduce new sku', 'go to market'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-launch-brief',
+                order: 1,
+                type: 'question',
+                thought: "Preparing launch planner... Loading market data...",
+                message: "🚀 **New Product Launch Planner**\n\n**Tell me about your new product:**\n1.  Product name & category\n2.  Target price point\n3.  Unique selling proposition\n4.  Launch timeline\n\n**I'll create:**\n*   Competitive positioning analysis\n*   Retailer pitch deck\n*   Launch timeline & milestones\n*   Marketing assets & messaging"
+            },
+            {
+                id: 'step-create-plan',
+                order: 2,
+                type: 'action',
+                thought: "Analyzing market... Building launch plan... Creating timeline...",
+                steps: [
+                    "Analyzing: Competitive landscape...",
+                    "Building: Launch strategy...",
+                    "Creating: Timeline & milestones..."
+                ],
+                message: "📋 **Launch Plan Created**\n\n**Product**: [New Product Name]\n**Category**: Concentrates\n**Target Launch**: 6 weeks from now\n\n**Phase 1: Prep (Weeks 1-2)**\n*   ✅ Finalize packaging & compliance\n*   📄 Create sell sheets & training\n*   📊 Competitive positioning doc\n\n**Phase 2: Soft Launch (Weeks 3-4)**\n*   🎯 Pitch to top 10 retailers\n*   📦 Initial orders & fulfillment\n*   👨‍🏫 Budtender training delivery\n\n**Phase 3: Full Launch (Weeks 5-6)**\n*   📣 Marketing campaign live\n*   📱 Social media blitz\n*   📊 Track early velocity\n\n**Assets I'll Generate:**\n*   Retailer pitch deck\n*   Product one-pagers\n*   Social content calendar\n*   Budtender training guide\n\n✅ **Start generating assets**?"
+            }
+        ]
+    },
+    
+    // --- Reporting & Analytics ---
+    {
+        id: 'brand-weekly-report',
+        name: 'Weekly Brand Report',
+        role: 'brand',
+        triggerKeywords: ['weekly report', 'brand report', 'weekly summary', 'performance report', 'send me a report'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-generate-report',
+                order: 1,
+                type: 'action',
+                thought: "Compiling weekly metrics... Analyzing trends... Generating insights...",
+                steps: [
+                    "Compiling: Sales & orders...",
+                    "Analyzing: Week-over-week...",
+                    "Generating: Insights..."
+                ],
+                message: "📊 **Weekly Brand Report**\n\n**Week of Jan 1-7, 2026**\n\n**📈 Revenue**: $48,200 (+12% vs last week)\n**📦 Orders**: 23 wholesale orders\n**🏪 Active Retailers**: 47\n**📊 Avg Velocity**: 4.2 units/store/week\n\n**Top Story:**\n🔥 OG Kush had best week ever (+23% velocity)\n\n**Wins:**\n*   ✅ 2 new retailers onboarded\n*   ✅ Planet 13 increased order size 40%\n*   ✅ Social engagement up 18%\n\n**Watch List:**\n*   ⚠️ Wedding Cake velocity declining\n*   ⚠️ 1 retailer (Harvest) payment overdue\n\n**This Week's Priorities:**\n1.  Follow up with Harvest on payment\n2.  Push OG Kush promo to more retailers\n3.  Decision on Wedding Cake SKU\n\nWant this **delivered weekly** via email?"
+            },
+            {
+                id: 'step-schedule-report',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['yes', 'deliver', 'schedule', 'email', 'weekly'],
+                thought: "Scheduling weekly report... Configuring delivery...",
+                message: "✅ **Weekly Report Scheduled!**\n\n**Delivery**: Every Monday at 8:00 AM\n**Recipients**: You\n\n**Report Includes:**\n*   Revenue & orders summary\n*   Top/bottom performers\n*   Retailer activity\n*   Week's priorities\n\nYour first automated report arrives next Monday!"
+            }
+        ]
+    },
+    {
+        id: 'brand-revenue-dashboard',
+        name: 'Revenue Dashboard',
+        role: 'brand',
+        triggerKeywords: ['revenue', 'total sales', 'how much sold', 'mtd revenue', 'ytd revenue'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-show-revenue',
+                order: 1,
+                type: 'action',
+                thought: "Calculating revenue... Breaking down by period... Comparing targets...",
+                steps: [
+                    "Calculating: Total revenue...",
+                    "Breaking down: By period...",
+                    "Comparing: To targets..."
+                ],
+                message: "💰 **Revenue Dashboard**\n\n**This Month (Jan 2026)**\n*   Revenue: $142,400\n*   Target: $150,000\n*   Progress: 95% (on track! ✅)\n\n**This Quarter (Q1)**\n*   Revenue: $142,400\n*   Target: $450,000\n*   Progress: 32% (ahead of pace 📈)\n\n**Year-to-Date**\n*   Revenue: $142,400\n*   Target: $1,800,000\n*   Progress: 8%\n\n**By Channel:**\n| Channel | Revenue | % of Total |\n|---------|---------|------------|\n| Wholesale | $128,160 | 90% |\n| Direct (D2C) | $14,240 | 10% |\n\n**By Region:**\n| Region | Revenue | Growth |\n|--------|---------|--------|\n| California | $85,440 | +15% |\n| Colorado | $42,720 | +8% |\n| Nevada | $14,240 | +22% |\n\nWant a **detailed breakdown** or **export for finance**?"
+            }
+        ]
     }
 ];
 
