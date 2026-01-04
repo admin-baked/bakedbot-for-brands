@@ -148,10 +148,7 @@ export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
 // ModelSelector is imported
 
 const PRESET_RESPONSES: Record<string, { content: string, steps?: { toolName: string, description: string }[] }> = {
-    "Hire a Market Scout (audit my competition)": {
-        content: "I'm deploying a Market Scout now. I'll scan public menus, pricing data, and social signals for dispensaries in your area. This usually takes about 2 minutes to generate a full report.",
-        steps: [{ toolName: "Active Recon", description: "Scanning local dispensary menus and pricing..." }]
-    },
+    // Market Scout is handled dynamically below
     "Send Deebo (compliance check)": {
         content: "Deebo is on it. I'm scanning your latest campaign assets against state regulations. I'm checking for prohibited terms (e.g., 'candy', 'kids'), age-gating compliance, and required health warnings.",
         steps: [{ toolName: "Compliance Scan", description: "Analyzing content against state regulations..." }]
@@ -413,6 +410,11 @@ export interface PuffChatProps {
     isSuperUser?: boolean; // Super User unlock
     isHired?: boolean; // If true, hides hire buttons/modals
     persona?: AgentPersona; // External persona override
+    locationInfo?: {
+        dispensaryCount: number;
+        brandCount: number;
+        city: string;
+    } | null;
 }
 
 export function PuffChat({
@@ -425,7 +427,8 @@ export function PuffChat({
     isAuthenticated = true, // Default to true for backward compatibility
     isSuperUser = false,
     isHired = false, // New prop to suppress hiring flows
-    persona: externalPersona
+    persona: externalPersona,
+    locationInfo
 }: PuffChatProps) {
     // Global Store State
     const { 
@@ -757,9 +760,100 @@ export function PuffChat({
         const displayContent = audioBase64 ? '🎤 Voice Message' : (userInput || (attachments.length > 0 ? `Sent ${attachments.length} attachment(s)` : ''));
 
         // Detect Preset / Intercept Logic (Client-Side Demo Optimization)
-        const demoIntercept = PRESET_RESPONSES[textInput.trim()];
+        const trimmedInput = textInput.trim();
+        const demoIntercept = PRESET_RESPONSES[trimmedInput];
         
+        // SPECIAL CASE: Market Scout needs location context
+        // SPECIAL CASE: Market Scout needs location context
+        if (trimmedInput.includes("Hire a Market Scout")) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `thinking-${Date.now()}`;
+             addMessage({
+                id: thinkingId,
+                type: 'agent',
+                content: '',
+                timestamp: new Date(),
+                thinking: { isThinking: true, steps: [], plan: [] }
+             });
+             setStreamingMessageId(null);
+
+             if (locationInfo?.city) {
+                 // CASE A: We know the location -> Deliver Report
+                 setTimeout(async () => {
+                    // Update Thinking
+                    const stepId = Math.random().toString(36).substr(2,9);
+                    updateMessage(thinkingId, {
+                        thinking: { isThinking: true, steps: [{ id: stepId, toolName: "Active Recon", description: `Scanning dispensaries near ${locationInfo.city}...`, status: 'in-progress', durationMs: 0 }], plan: [] }
+                    });
+                    await new Promise(r => setTimeout(r, 1500));
+
+                    const reportContent = `**Market Intelligence Report: ${locationInfo.city}**\n\nI've identified **${locationInfo.dispensaryCount} dispensaries** in your immediate vicinity. Here's a snapshot of the competitive landscape:\n\n| Competitor | Pricing Strategy | Menu Size | Risk Score |\n| :--- | :--- | :--- | :--- |\n| **Green Leaf** | Premium (+15%) | 450 SKUs | 🟢 Low |\n| **The Herbalist** | Discount (-10%) | 220 SKUs | 🟡 Med |\n| **Urban Canna** | Balanced | 310 SKUs | 🟢 Low |\n\n**Actionable Insight**: *The Herbalist* is undercutting on flower pricing. Consider a "Bundle & Save" campaign to retain value-conscious shoppers.`;
+                    
+                    updateMessage(thinkingId, {
+                        content: reportContent,
+                        thinking: { isThinking: false, steps: [{ id: stepId, toolName: "Active Recon", description: `Scanned ${locationInfo.dispensaryCount} locations`, status: 'completed' }], plan: [] }
+                    });
+                    setIsProcessing(false);
+                    setStreamingMessageId(thinkingId);
+                 }, 800);
+             } else {
+                 // CASE B: Unknown Location -> Ask for Zip
+                  setTimeout(() => {
+                    updateMessage(thinkingId, {
+                        content: "I'm ready to audit your local market. **What City or Zip Code should I scan?**",
+                        thinking: { isThinking: false, steps: [], plan: [] }
+                    });
+                    setIsProcessing(false);
+                    setStreamingMessageId(thinkingId);
+                 }, 800);
+             }
+             return;
+        }
+
+        // DETECT ZIP CODE / LOCATION RESPONSE
+        const zipRegex = /^\d{5}$/;
+        const isZipOrCity = zipRegex.test(trimmedInput) || (trimmedInput.length > 3 && trimmedInput.length < 20 && !trimmedInput.includes(' ')); // Simple city heuristic
+        
+        // If last message asked for location (We can check if last bot message contains "What City or Zip")
+        const lastBotMsg = currentMessages[currentMessages.length - 1];
+        const askedForLocation = lastBotMsg?.type === 'agent' && lastBotMsg.content.includes("What City or Zip Code");
+
+        if (askedForLocation && isZipOrCity) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `thinking-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+             setStreamingMessageId(null);
+             
+             // Simulate Report for the provided location
+             const locationName = trimmedInput;
+             
+             setTimeout(async () => {
+                const stepId = Math.random().toString(36).substr(2,9);
+                updateMessage(thinkingId, {
+                    thinking: { isThinking: true, steps: [{ id: stepId, toolName: "Active Recon", description: `Scanning dispensaries near ${locationName}...`, status: 'in-progress', durationMs: 0 }], plan: [] }
+                });
+                await new Promise(r => setTimeout(r, 1500));
+
+                const reportContent = `**Market Intelligence Report: ${locationName}**\n\nI've identified **12 dispensaries** in ${locationName}. Here's a snapshot of the competitive landscape:\n\n| Competitor | Pricing Strategy | Menu Size | Risk Score |\n| :--- | :--- | :--- | :--- |\n| **Green Leaf ${locationName}** | Premium (+15%) | 450 SKUs | 🟢 Low |\n| **The Herbalist** | Discount (-10%) | 220 SKUs | 🟡 Med |\n| **Urban Canna** | Balanced | 310 SKUs | 🟢 Low |\n\n**Actionable Insight**: *The Herbalist* is undercutting on flower pricing.`;
+                
+                updateMessage(thinkingId, {
+                    content: reportContent,
+                    thinking: { isThinking: false, steps: [{ id: stepId, toolName: "Active Recon", description: `Scanned ${locationName}`, status: 'completed' }], plan: [] }
+                });
+                setIsProcessing(false);
+                setStreamingMessageId(thinkingId);
+             }, 800);
+             return;
+        }
+
         if (demoIntercept) {
+            // ... (Existing logic for other presets)
             // 1. Add User Message
             const userMsgId = `user-${Date.now()}`;
             addMessage({
