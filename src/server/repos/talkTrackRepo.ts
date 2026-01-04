@@ -621,6 +621,54 @@ const DEFAULT_TRACKS: TalkTrack[] = [
                 message: "Weekly Media Report Generated. 📊\n\n**Highlights:**\n*   **New Leads**: +25\n*   **Response Rate**: 8% (2 Replies)\n*   **Top Outlet**: MJBizDaily (Most clicks)\n\n**Action Item**: Chris Roberts clicked your Pitch Deck link twice. I recommend a manual follow-up via LinkedIn.\n\nReport sent to your inbox!"
             }
         ]
+    },
+    {
+        id: 'company-news-digest',
+        name: 'Weekly Company News Digest',
+        role: 'all', // Available to any user
+        triggerKeywords: ['news about my company', 'company news', 'weekly articles', 'send articles', 'news digest', 'press mentions'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-company-name',
+                order: 1,
+                type: 'question',
+                triggerKeywords: ['news about', 'articles about', 'company mentions'],
+                thought: "Preparing news monitoring workflow... Need company name to configure search...",
+                message: "I'll set up a weekly task to search for and send you articles about your company. First, I need to know: **What's the name of your company?**"
+            },
+            {
+                id: 'step-trigger-setup',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['bakedbot', 'my company is', 'company name'],
+                thought: "configuring weekly trigger... setting up news search... scheduling Monday 9am...",
+                steps: [
+                    "Creating Trigger: 'Weekly Company News'...",
+                    "Schedule: Every Monday @ 09:00 AM...",
+                    "Search Query: [Company Name] news articles...",
+                    "Delivery: Email digest."
+                ],
+                message: "Perfect! ✨ I've set up a weekly trigger to send you news about your company.\n\n**Here's what you can expect:**\n*   **When**: Every Monday at 9:00 AM\n*   **What**: I'll search for recent articles and news mentioning your company and send you a compiled list via email\n\nThe first run will happen next Monday. Each week, I'll gather the latest articles and deliver them straight to your inbox so you can stay on top of what's being said about your company.\n\nWould you like me to **test this by running it now** so you can see what the report will look like?"
+            },
+            {
+                id: 'step-test-run',
+                order: 3,
+                type: 'response',
+                triggerKeywords: ['test now', 'run now', 'show me'],
+                thought: "executing test run... searching news sources... compiling digest...",
+                steps: [
+                    "Searching: Google News, MJBizDaily, Cannabis Business Times...",
+                    "Found: 5 recent articles...",
+                    "Compiling digest...",
+                    "Sending to inbox..."
+                ],
+                message: "✅ Your weekly news digest has been sent! This week's email highlights recent press coverage and industry mentions.\n\n**Next update**: Monday at 9:00 AM.\n\nI'll keep you informed automatically each week. 📰"
+            }
+        ]
     }
 ];
 
