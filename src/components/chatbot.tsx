@@ -25,13 +25,13 @@ import { logger } from '@/lib/logger';
 
 const PRESET_WIDGET_RESPONSES: Record<string, { content: string }> = {
     "How does BakedBot work?": {
-        content: "I'm the AI engine behind the platform. \n\nI connect brands, dispensaries, and customers to automate growth. I can:\n\n1.  **Sync Inventories**: Real-time menus across 40 Tons and other partners.\n2.  **Recommend Products**: I know terpenes, effects, and lab data.\n3.  **Automate Compliance**: I check marketing content against state laws.\n\nWant to see me check a competitor's menu?"
+        content: "**Think of me as your AI workforce.** 🤖\n\nI connect brands, dispensaries, and customers to automate growth. My squad can:\n\n1.  **Sync Inventories**: Real-time menus across 40 Tons & retail partners.\n2.  **Recommend Products**: I know terpenes, effects, and lab data.\n3.  **Automate Compliance**: I audit marketing content against state laws.\n\nWant to see me in action? Try asking for a **Market Audit**."
     },
     "Explain the pricing models": {
-        content: "Here's the breakdown:\n\n*   **Claim Pro ($99/mo)**: Claim your brand page and get discovered.\n*   **Specialist ($499/mo)**: Hire one AI agent (like me, or Ezal for scouting).\n*   **Empire ($1,499/mo)**: Full automation suite.\n\nCheck the **Pricing** page for details!"
+        content: "**Simple Plans. Massive Growth.** 🚀\n\n*   **Claim Pro ($99/mo)**: Claim your page & capture organic traffic.\n*   **The Specialist ($499/mo)**: Hire one AI agent (like me, or Ezal).\n*   **The Empire ($1,499/mo)**: Full 7-agent automation suite.\n\nCheck the **Pricing** page for the deep dive!"
     },
      "Try the Product Demo": { // Button click text
-        content: "**Welcome to the 40 Tons Demo!** 🌿\n\nI'm connected to the 40 Tons live inventory. Ask me anything, like:\n\n*   _\"Do you have anything for sleep?\"_\n*   _\"Show me your pre-rolls.\"_\n*   _\"What's fresh today?\"_"
+        content: "**Welcome to the 40 Tons Experience!** 🌿\n\nI'm connected to the 40 Tons live inventory. Ask me anything, like:\n\n*   _\"Do you have anything for sleep?\"_\n*   _\"Show me your pre-rolls.\"_\n*   _\"What's fresh today?\"_"
     }
 };
 
