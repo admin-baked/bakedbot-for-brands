@@ -171,7 +171,7 @@ export class ExecutionTracker {
         };
 
         return {
-            title: `Working... (${this.getElapsedSeconds()}s)`,
+            title: `Episodic Thinking (${this.getElapsedSeconds()}s)`,
             elapsed: `${this.getElapsedSeconds()}s`,
             steps: this.trace.steps.map(step => ({
                 icon: statusIcons[step.status],
