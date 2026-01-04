@@ -57,8 +57,19 @@ export default function DashboardSwitcher() {
         return <SpecialistDashboardClient />;
     }
 
-    // 3. Brand / Owner View
-    if (role === 'brand' || role === 'owner') {
+    // 3. Owner View - Redirect to CEO Dashboard
+    if (role === 'owner') {
+        router.replace('/dashboard/ceo');
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Redirecting to HQ...</span>
+            </div>
+        );
+    }
+
+    // 4. Brand View
+    if (role === 'brand') {
         const brandId = (user as any)?.brandId || user?.uid || 'unknown-brand';
         return <BrandDashboardClient brandId={brandId} />;
     }
