@@ -767,13 +767,14 @@ export function PuffChat({
              addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
              setInput(''); setAttachments([]); setIsProcessing(true);
 
-             const thinkingId = `thinking-${Date.now()}`;
+             const thinkingId = `agent-${Date.now()}`;
              addMessage({
                 id: thinkingId,
                 type: 'agent',
                 content: '',
                 timestamp: new Date(),
-                thinking: { isThinking: true, steps: [], plan: [] }
+                // Start with isThinking: false for presets to keep it "Simple"
+                thinking: { isThinking: false, steps: [], plan: [] }
              });
              setStreamingMessageId(null);
 
@@ -874,8 +875,8 @@ export function PuffChat({
              addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
              setInput(''); setAttachments([]); setIsProcessing(true);
 
-             const thinkingId = `thinking-${Date.now()}`;
-             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+             const thinkingId = `agent-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: false, steps: [], plan: [] } });
              setStreamingMessageId(null);
              
              setTimeout(() => {

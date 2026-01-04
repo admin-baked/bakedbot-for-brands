@@ -2386,3 +2386,17 @@ pm run check:types (Passed).
 - Logic implemented and reviewed.
 - TSC build verified.
 
+
+## Task: Security Hardening & Session Isolation
+**Date**: 2026-01-04
+**Owner**: ai_builder_swarm
+**Status**: Completed
+
+### Changes
+- Implemented chat session clearing in CeoDashboardContent (HQ) to prevent public conversation leakage.
+- Modified DashboardSwitcher to enforce 'owner' role redirect to /dashboard/ceo.
+- Updated walkthrough and task artifacts.
+
+### Verification
+- Clean TypeScript build (tsc --noEmit).
+
