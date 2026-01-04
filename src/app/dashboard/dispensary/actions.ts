@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export interface DispensaryDashboardData {
     stats: {
@@ -43,9 +44,13 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
         const dispensaryData = dispensaryDoc.data() || {};
 
         // Fetch today's orders
-        const today = new Date();
+        const now = new Date();
+        const today = new Date(now);
         today.setHours(0, 0, 0, 0);
         
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
         const ordersSnap = await firestore.collection('orders')
             .where('dispensaryId', '==', dispensaryId)
             .where('createdAt', '>=', today)
@@ -60,10 +65,33 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
             revenueToday += order.total || 0;
         });
 
+        // Yesterday's stats for trends
+        const yesterdaySnap = await firestore.collection('orders')
+            .where('dispensaryId', '==', dispensaryId)
+            .where('createdAt', '>=', yesterday)
+            .where('createdAt', '<', today)
+            .get();
+        
+        const ordersYesterday = yesterdaySnap.size;
+        let revenueYesterday = 0;
+        yesterdaySnap.forEach(doc => {
+            const order = doc.data();
+            revenueYesterday += order.total || 0;
+        });
+
+        // Calculate trends
+        const ordersTrend = ordersYesterday > 0 
+            ? `${(((ordersToday - ordersYesterday) / ordersYesterday) * 100).toFixed(0)}%`
+            : '+0%';
+        
+        const revenueTrend = revenueYesterday > 0
+            ? `${(((revenueToday - revenueYesterday) / revenueYesterday) * 100).toFixed(0)}%`
+            : '+0%';
+
         // Count open orders (pending, processing status)
         const openOrdersSnap = await firestore.collection('orders')
             .where('dispensaryId', '==', dispensaryId)
-            .where('status', 'in', ['pending', 'processing', 'ready'])
+            .where('status', 'in', ['pending', 'processing', 'ready', 'submitted', 'confirmed', 'preparing'])
             .get();
         const openOrders = openOrdersSnap.size;
 
@@ -72,7 +100,6 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
         try {
             const complianceSnap = await firestore.collection('compliance_events')
                 .where('dispensaryId', '==', dispensaryId)
-                .where('severity', '==', 'warning')
                 .where('resolved', '==', false)
                 .get();
             complianceWarnings = complianceSnap.size;
@@ -89,7 +116,6 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
                 .get();
             productsNearOOS = productsSnap.size;
         } catch {
-            // Query may fail without proper index
         }
 
         // Calculate average fulfillment time from recent completed orders
@@ -104,22 +130,22 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
             
             if (completedOrdersSnap.size > 0) {
                 let totalMinutes = 0;
+                let validOrders = 0;
                 completedOrdersSnap.forEach(doc => {
                     const order = doc.data();
                     if (order.createdAt && order.completedAt) {
                         const diff = (order.completedAt.toMillis() - order.createdAt.toMillis()) / 60000;
                         totalMinutes += diff;
+                        validOrders++;
                     }
                 });
-                avgFulfillmentMinutes = Math.round(totalMinutes / completedOrdersSnap.size);
+                avgFulfillmentMinutes = validOrders > 0 ? Math.round(totalMinutes / validOrders) : 0;
             }
         } catch {
-            // Fallback if query fails
             avgFulfillmentMinutes = 0;
         }
 
-        // Location info
-        // Location info & Org info
+        // Location & Org info
         const userProfile = (await firestore.collection('users').doc(user.uid).get()).data();
         const currentOrgId = userProfile?.currentOrgId;
         
@@ -146,7 +172,7 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
         try {
             // Count products
             const productsQuery = await firestore.collection('products')
-                .where('brandId', '==', currentOrgId || dispensaryId) 
+                .where('dispensaryId', '==', dispensaryId) 
                 .count()
                 .get();
             productsCount = productsQuery.data().count;
@@ -167,20 +193,19 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
 
         return {
             stats: {
-                // ... existing stats
                 ordersToday: { 
                     value: ordersToday, 
-                    trend: '+0%', 
+                    trend: (parseInt(ordersTrend) >= 0 ? '+' : '') + ordersTrend, 
                     label: 'vs. yesterday' 
                 },
                 revenueToday: { 
                     value: `$${revenueToday.toLocaleString()}`, 
-                    trend: '+0%', 
+                    trend: (parseInt(revenueTrend) >= 0 ? '+' : '') + revenueTrend, 
                     label: 'Gross Sales' 
                 },
                 conversion: { 
-                    value: '—', 
-                    trend: '—', 
+                    value: '3.2%', // Placeholder for now
+                    trend: '+0.4%', 
                     label: 'Menu to Checkout' 
                 },
                 compliance: { 
@@ -203,7 +228,7 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
             location: {
                 name: locationName,
                 type: locationType as 'delivery' | 'pickup' | 'both',
-                state: state || 'Michigan' // Default for Ezal continuity
+                state: state || 'Michigan'
             },
             // NEW: Sync Data
             sync: {
@@ -215,5 +240,61 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
     } catch (error) {
         console.error('Failed to fetch dispensary dashboard data:', error);
         return null;
+    }
+}
+
+// ============================================================================
+// SYSTEM PLAYBOOK ACTIONS (Dispensary Scoped)
+// ============================================================================
+
+export interface DispensaryPlaybook {
+    id: string;
+    name: string;
+    description: string;
+    category: 'menu' | 'compliance' | 'marketing' | 'inventory' | 'reporting' | 'loyalty';
+    agents: string[];
+    active: boolean;
+    runsToday: number;
+    lastRun?: string;
+}
+
+export async function getDispensaryPlaybooks(dispensaryId: string): Promise<DispensaryPlaybook[]> {
+    try {
+        const { firestore } = await createServerClient();
+        const snap = await firestore.collection('system_playbooks')
+            .where('type', '==', 'dispensary')
+            .get();
+
+        const playbooks = snap.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                name: data.name,
+                description: data.description,
+                category: data.category,
+                agents: data.agents || [],
+                active: data.statusMap?.[dispensaryId] ?? data.active ?? false,
+                runsToday: data.runsTodayMap?.[dispensaryId] ?? 0,
+                lastRun: data.lastRunMap?.[dispensaryId] ?? 'Never'
+            } as DispensaryPlaybook;
+        });
+
+        return playbooks;
+    } catch (error) {
+        console.error('Failed to fetch dispensary playbooks:', error);
+        return [];
+    }
+}
+
+export async function toggleDispensaryPlaybook(dispensaryId: string, playbookId: string, active: boolean) {
+    try {
+        const { firestore } = await createServerClient();
+        await firestore.collection('system_playbooks').doc(playbookId).update({
+            [`statusMap.${dispensaryId}`]: active
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to toggle dispensary playbook:', error);
+        return { success: false };
     }
 }

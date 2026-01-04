@@ -25,6 +25,7 @@ import { leaflinkAction, LeafLinkParams } from '@/server/tools/leaflink';
 import { dutchieAction, DutchieParams } from '@/server/tools/dutchie';
 import { revalidatePath } from 'next/cache';
 import { blackleafService } from '@/lib/notifications/blackleaf-service';
+import { createServerClient } from '@/firebase/server-client';
 import { z } from 'zod';
 import { PERSONAS, AgentPersona } from './personas';
 import { CannMenusService } from '@/server/services/cannmenus';
@@ -185,8 +186,41 @@ export async function executePlaybook(playbookId: string): Promise<PlaybookResul
     }
 
     try {
-        return await runner();
+        const { firestore } = await createServerClient();
+        const { FieldValue } = await import('firebase-admin/firestore');
+        
+        // 1. Check if playbook is active in Firestore
+        const pbRef = firestore.collection('system_playbooks').doc(playbookId);
+        const pbDoc = await pbRef.get();
+        
+        if (pbDoc.exists && !pbDoc.data()?.active) {
+            return {
+                success: false,
+                message: `Playbook '${playbookId}' is currently disabled.`,
+                logs: [`Execution skipped: Playbook is inactive.`]
+            };
+        }
+
+        // 2. Execute
+        const result = await runner();
+        
+        // 3. Log run to subcollection
+        const runRef = pbRef.collection('runs').doc();
+        await runRef.set({
+            ...result,
+            timestamp: FieldValue.serverTimestamp(),
+        });
+
+        // 4. Update playbook summary
+        await pbRef.set({
+            lastRun: FieldValue.serverTimestamp(),
+            runsToday: FieldValue.increment(1),
+            updatedAt: FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        return result;
     } catch (error: any) {
+        console.error(`Playbook ${playbookId} execution failed:`, error);
         return {
             success: false,
             message: `Playbook execution failed: ${error.message}`,

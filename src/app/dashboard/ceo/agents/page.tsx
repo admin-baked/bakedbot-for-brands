@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { AgentsGrid } from '@/components/dashboard/agent-grid';
 import { listBrandAgents } from '@/server/actions/agents';
 

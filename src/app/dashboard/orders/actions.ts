@@ -122,3 +122,31 @@ export async function updateOrderStatus(
     return { message: `Update failed: ${errorMessage}`, error: true };
   }
 }
+
+/**
+ * Fetch orders for a brand or dispensary
+ */
+export async function getOrders(orgId: string): Promise<OrderDoc[]> {
+    try {
+        const { firestore } = await createServerClient();
+        const user = await requireUser();
+
+        let query = firestore.collection('orders') as FirebaseFirestore.Query;
+
+        if (user.role === 'dispensary' || user.locationId) {
+            query = query.where('retailerId', '==', user.locationId || orgId);
+        } else {
+            query = query.where('brandId', '==', orgId);
+        }
+
+        const snap = await query.orderBy('createdAt', 'desc').limit(100).get();
+
+        return snap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        })) as OrderDoc[];
+    } catch (error) {
+        logger.error('[ORDERS_ACTION] Failed to fetch orders', { error });
+        return [];
+    }
+}

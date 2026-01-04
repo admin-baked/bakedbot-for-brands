@@ -1,0 +1,54 @@
+
+> nextn@0.1.0 test
+> jest src/app/dashboard/dispensary/__tests__
+
+  console.error
+    Failed to fetch dispensary dashboard data: Error: Firestore Error
+        at Object.<anonymous> (C:\Users\marte\Baked for Brands\bakedbot-for-brands\src\app\dashboard\dispensary\__tests__\actions.test.ts:95:23)
+        at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\jest-mock\build\index.js:397:39
+        at Object.<anonymous> (C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\jest-mock\build\index.js:404:13)
+        at Object.mockConstructor [as collection] (C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\jest-mock\build\index.js:148:19)
+        at collection (C:\Users\marte\Baked for Brands\bakedbot-for-brands\src\app\dashboard\dispensary\actions.ts:43:47)
+        at Object.<anonymous> (C:\Users\marte\Baked for Brands\bakedbot-for-brands\src\app\dashboard\dispensary\__tests__\actions.test.ts:98:28)
+
+    [0m [90m 239 |[39m         }[33m;[39m
+     [90m 240 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 241 |[39m         console[33m.[39merror([32m'Failed to fetch dispensary dashboard data:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 242 |[39m         [36mreturn[39m [36mnull[39m[33m;[39m
+     [90m 243 |[39m     }
+     [90m 244 |[39m }[0m
+
+      at error (src/app/dashboard/dispensary/actions.ts:241:17)
+      at Object.<anonymous> (src/app/dashboard/dispensary/__tests__/actions.test.ts:98:28)
+
+FAIL src/app/dashboard/dispensary/__tests__/actions.test.ts
+  Dispensary Dashboard Actions
+    getDispensaryDashboardData
+      × calculates trends and sync stats correctly (138 ms)
+      √ handles errors gracefully (40 ms)
+    getDispensaryPlaybooks
+      √ maps statusMap correctly to active field (1 ms)
+
+  ● Dispensary Dashboard Actions › getDispensaryDashboardData › calculates trends and sync stats correctly
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 100
+    Received: undefined
+
+    [0m [90m 87 |[39m             expect(result[33m?[39m[33m.[39moperations[33m.[39mopenOrders)[33m.[39mtoBe([35m2[39m)[33m;[39m
+     [90m 88 |[39m             expect(result[33m?[39m[33m.[39moperations[33m.[39mavgFulfillmentMinutes)[33m.[39mtoBe([35m1[39m)[33m;[39m [90m// (70-1)/60 = 1.15 -> 1[39m
+    [31m[1m>[22m[39m[90m 89 |[39m             expect(result[33m?[39m[33m.[39msync[33m.[39mproducts)[33m.[39mtoBe([35m100[39m)[33m;[39m
+     [90m    |[39m                                           [31m[1m^[22m[39m
+     [90m 90 |[39m             expect(result[33m?[39m[33m.[39msync[33m.[39mcompetitors)[33m.[39mtoBe([35m50[39m)[33m;[39m
+     [90m 91 |[39m         })[33m;[39m
+     [90m 92 |[39m[0m
+
+      at Object.toBe (src/app/dashboard/dispensary/__tests__/actions.test.ts:89:43)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 2 passed, 3 total
+Snapshots:   0 total
+Time:        2.522 s, estimated 5 s
+Ran all test suites matching /src\\app\\dashboard\\dispensary\\__tests__/i.

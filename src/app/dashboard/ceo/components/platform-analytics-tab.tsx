@@ -95,14 +95,16 @@ export default function PlatformAnalyticsTab() {
     const fetchMetrics = async () => {
         setLoading(true);
         if (isMock) {
-            // Use local mock data structure adapted to PlatformAnalyticsData
+            // Use local mock data structure
             setData({
-                ...MOCK_DATA.metrics,
+                signups: MOCK_DATA.metrics.signups,
+                activeUsers: MOCK_DATA.metrics.activeUsers,
+                retention: MOCK_DATA.metrics.retention,
+                revenue: MOCK_DATA.metrics.revenue,
                 featureAdoption: MOCK_DATA.featureAdoption,
                 recentSignups: MOCK_DATA.recentSignups,
                 agentUsage: MOCK_DATA.agentUsage
             });
-            // Set mock SEO KPIs
             setSeoKpis({
                 indexedPages: { zip: 150, dispensary: 45, brand: 22, city: 12, state: 8, total: 237 },
                 claimMetrics: { totalUnclaimed: 55, totalClaimed: 12, claimRate: 18, pendingClaims: 3 },

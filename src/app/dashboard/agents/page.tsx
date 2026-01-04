@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+export const dynamic = 'force-dynamic';
 import { AgentsGrid } from '@/components/dashboard/agent-grid';
 import { requireUser } from '@/server/auth/auth';
 import { redirect } from 'next/navigation';

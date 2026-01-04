@@ -1,0 +1,52 @@
+
+> nextn@0.1.0 test
+> jest src/app/dashboard/orders/__tests__
+
+FAIL src/app/dashboard/orders/__tests__/actions.test.ts
+  Orders Management Actions
+    getOrders
+      √ scopes by retailerId for dispensary users (3 ms)
+      √ scopes by brandId for brand users (1 ms)
+    updateOrderStatus
+      × validates status transitions (3 ms)
+      × blocks invalid transitions (2 ms)
+
+  ● Orders Management Actions › updateOrderStatus › validates status transitions
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 110 |[39m             [36mconst[39m result [33m=[39m [36mawait[39m updateOrderStatus({ message[33m:[39m [32m''[39m[33m,[39m error[33m:[39m [36mfalse[39m }[33m,[39m formData)[33m;[39m
+     [90m 111 |[39m
+    [31m[1m>[22m[39m[90m 112 |[39m             expect(result[33m.[39merror)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                  [31m[1m^[22m[39m
+     [90m 113 |[39m             expect(result[33m.[39mmessage)[33m.[39mtoContain([32m'updated to \'submitted\''[39m)[33m;[39m
+     [90m 114 |[39m         })[33m;[39m
+     [90m 115 |[39m[0m
+
+      at Object.toBe (src/app/dashboard/orders/__tests__/actions.test.ts:112:34)
+
+  ● Orders Management Actions › updateOrderStatus › blocks invalid transitions
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "Invalid status transition"
+    Received string:    "Invalid data provided."
+
+    [0m [90m 139 |[39m
+     [90m 140 |[39m             expect(result[33m.[39merror)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 141 |[39m             expect(result[33m.[39mmessage)[33m.[39mtoContain([32m'Invalid status transition'[39m)[33m;[39m
+     [90m     |[39m                                    [31m[1m^[22m[39m
+     [90m 142 |[39m         })[33m;[39m
+     [90m 143 |[39m     })[33m;[39m
+     [90m 144 |[39m })[33m;[39m[0m
+
+      at Object.toContain (src/app/dashboard/orders/__tests__/actions.test.ts:141:36)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 passed, 4 total
+Snapshots:   0 total
+Time:        3.187 s
+Ran all test suites matching /src\\app\\dashboard\\orders\\__tests__/i.
