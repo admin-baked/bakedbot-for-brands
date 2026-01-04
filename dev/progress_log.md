@@ -1,3 +1,36 @@
+## Session: Dispensary Console Live Data Migration
+### Task ID
+dispensary_live_data_migration
+
+### Summary
+Migrated the Dispensary Console from mock data to live Firestore sources, achieving production readiness for the dispensary role.
+
+### Key Changes
+*   **NEW**: `src/app/dashboard/dispensary/__tests__/actions.test.ts` - Unit tests for dispensary dashboard analytics and playbook actions.
+*   **NEW**: `src/app/dashboard/orders/__tests__/actions.test.ts` - Unit tests for order management with transaction mocking.
+*   **NEW**: `src/app/dashboard/orders/orders-client.tsx` - Client component for managing and displaying orders.
+*   **MOD**: `src/app/dashboard/orders/page.tsx` - Replaced WIP stub with functional server component.
+*   **MOD**: `src/app/dashboard/orders/actions.ts` - Added `getOrders` server action with role-based scoping (`retailerId` for dispensaries, `brandId` for brands).
+*   **MOD**: `src/app/dashboard/dispensary/actions.ts` - Added `getDispensaryPlaybooks` and `toggleDispensaryPlaybook` server actions.
+*   **MOD**: `src/app/dashboard/dispensary/components/dispensary-playbooks-list.tsx` - Migrated from mock data to live Firestore playbooks.
+*   **MOD**: `src/app/dashboard/dispensary/components/dispensary-right-sidebar.tsx` - Wired up real-time alerts (`productsNearOOS`, `promosBlocked`, `menuSyncDelayed`).
+*   **MOD**: `src/app/dashboard/dispensary/dashboard-client.tsx` - Passed live alerts to sidebar component.
+*   **MOD**: `src/app/dashboard/customers/actions.ts` - Corrected `dispensaryId` to `retailerId` for consistent scoping.
+
+### Tests Run
+*   `npm test src/app/dashboard/dispensary/__tests__` (4/4 Passed ✅)
+*   `npm test src/app/dashboard/orders/__tests__` (4/4 Passed ✅)
+*   `npm test src/app/dashboard/customers/__tests__` (12/12 Passed ✅)
+*   `npx tsc --noEmit` (Passed ✅)
+
+### Commits
+*   `4334056a`: feat: migrate dispensary console to live firestore data and add unit tests
+
+### Result: ✅ Complete
+Dispensary Console is now production-ready with live data and full unit test coverage.
+
+---
+
 ## Session: Super User Routing & Sidebar Fixes
 ### Task ID
 super_user_routing_fixes
@@ -18,6 +51,35 @@ Fixed Super User dashboard routing issues where sidebar links would lead to 404s
 
 ### Result: ✅ Fixed
 All Super User links now route correctly and maintain context.
+
+---
+
+## Session: Talk Tracks Implementation
+### Task ID
+talk_tracks_implementation
+
+### Summary
+Implemented the "Live Talk Tracks" system, enabling Super Users to manage conversational scripts for agents.
+- **Data Model**: Defined `TalkTrack` and `TalkTrackStep` types.
+- **Backend**: Created Firestore repository and server actions for CRUD operations.
+- **UI**: Added "Talk Tracks" tab to CEO Dashboard for creating and editing tracks.
+- **Agent Integration**: Updated Demo Agent API (`route.ts`) to intercept prompts and trigger Talk Tracks.
+- **Verification**: Fixed routing logic bugs and verified with new unit tests (`talkTrackRepo.test.ts`).
+
+### Key Changes
+*   **NEW**: `src/types/talk-track.ts`
+*   **NEW**: `src/server/repos/talkTrackRepo.ts`
+*   **NEW**: `src/server/actions/talk-tracks.ts`
+*   **NEW**: `src/app/dashboard/ceo/components/talk-tracks-tab.tsx`
+*   **NEW**: `src/server/repos/__tests__/talkTrackRepo.test.ts`
+*   **MOD**: `src/app/api/demo/agent/route.ts` - Integrated Talk Track interception.
+
+### Tests Run
+*   `npm test -- src/server/repos/__tests__/talkTrackRepo.test.ts` (Passed ✅)
+*   `npm run check:types` (Verified via unit tests)
+
+### Result: ✅ Implemented
+Talk Tracks system is live and verified.
 
 ---
 

@@ -9,14 +9,25 @@
 ## 🏥 Codebase Health Status (Live)
 | Metric | Status | Last Verified | Notes |
 |--------|--------|---------------|-------|
-| **Build** | 🟡 Warning | 2026-01-04 | 1 type error in `talkTrackRepo.ts` (pre-existing role type). |
-| **Tests** | 🟢 Passing | 2026-01-04 | Unit tests passing. |
-| **Deploy** | 🟢 Stable | 2026-01-04 | 6 new Talk Track Playbooks deployed. |
+| **Build** | 🟢 Passing | 2026-01-04 | `tsc --noEmit` clean. |
+| **Tests** | 🟢 Passing | 2026-01-04 | 17/17 Dispensary/Orders/CRM tests passed. |
+| **Deploy** | 🟢 Stable | 2026-01-04 | Dispensary Console production-ready. |
 
 ### Critical Watchlist
 - **Firestore**: `ignoreUndefinedProperties: true` enabled globally (watch for silent data loss).
-- **Mobile UI**: Homepage hero fixed, check other pages on mobile.
-- **Deep Research**: Polling hook stable, check for long-running task timeouts.
+- **Dispensary Console**: Live data migration complete. `retailerId` scoping verified.
+- **Orders**: Status transitions validated with Firestore transactions.
+
+---
+
+## 🆕 Recent Updates (2026-01-04)
+| Feature | Description |
+|---------|-------------|
+| **Dispensary Live Data** | Dashboard, Orders, Playbooks, and CRM now use Firestore. |
+| **Orders Page** | Replaced WIP stub with functional order management UI. |
+| **Playbook Server Actions** | `getDispensaryPlaybooks`, `toggleDispensaryPlaybook` added. |
+| **Sidebar Alerts** | Real-time OOS, compliance, and sync status displayed. |
+| **Unit Tests** | 17 new tests for dispensary, orders, and customer scoping. |
 
 ---
 
