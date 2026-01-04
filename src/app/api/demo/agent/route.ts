@@ -223,25 +223,54 @@ export async function POST(request: NextRequest) {
 
         // 1. Analyze Intent using Real Logic
         
+        // 1. Analyze Intent using Real Logic
+        
         // --- INTENTION OS (V2) ---
+        // Optimization: Only check for complex queries to speed up simple interactions and bypass preset prompts
+        const PRESET_PROMPTS = [
+            "hire a market scout",
+            "audit my local competition",
+            "show me my sales report",
+            "audit my inventory",
+            "who are my top competitors",
+            "find dispensaries near me",
+            "start a campaign"
+        ];
+
+        const isComplexQuery = (p: string) => {
+            const lowP = p.toLowerCase();
+            // Bypass if it matches a known preset prompt (even if it contains complex keywords like 'audit')
+            if (PRESET_PROMPTS.some(preset => lowP.includes(preset))) return false;
+            
+            const words = p.split(/\s+/).length;
+            const complexKeywords = ['plan', 'strategy', 'breakdown', 'compare', 'analyze', 'report', 'audit', 'why', 'how'];
+            // Trigger if long enough OR contains deep-dive keywords
+            return words > 8 || complexKeywords.some(k => lowP.includes(k));
+        };
+
+        const userRole = context?.brandId ? 'brand' : 'dispensary';
+        const isComplex = isComplexQuery(prompt);
+
         // Demo Chat Integration
         try {
-            const { analyzeIntent } = await import('@/server/agents/intention/analyzer');
-            // Simplified context for demo
-            const intentAnalysis = await analyzeIntent(prompt, '');
+            if (isComplex) {
+                const { analyzeIntent } = await import('@/server/agents/intention/analyzer');
+                // Simplified context for demo
+                const intentAnalysis = await analyzeIntent(prompt, '');
 
-            if (intentAnalysis.isAmbiguous && intentAnalysis.clarification?.clarificationQuestion) {
-                 return NextResponse.json({
-                    agent: 'hq', // System level clarification
-                    prompt,
-                    items: [{
-                        title: 'Clarification Needed',
-                        description: intentAnalysis.clarification.clarificationQuestion + '\n\n' + intentAnalysis.clarification.possibleIntents.map(i => '- ' + i).join('\n'),
-                        meta: 'Intention OS: Ambiguity Detected'
-                    }],
-                    totalCount: 1,
-                    generatedMedia: null
-                });
+                if (intentAnalysis.isAmbiguous && intentAnalysis.clarification?.clarificationQuestion) {
+                    return NextResponse.json({
+                        agent: 'hq', // System level clarification
+                        prompt,
+                        items: [{
+                            title: 'Clarification Needed',
+                            description: intentAnalysis.clarification.clarificationQuestion + '\n\n' + intentAnalysis.clarification.possibleIntents.map(i => '- ' + i).join('\n'),
+                            meta: 'Intention OS: Ambiguity Detected'
+                        }],
+                        totalCount: 1,
+                        generatedMedia: null
+                    });
+                }
             }
         } catch (e) {
             console.warn('[Demo/Chat] Intention Analyzer failed (Shadow Mode)', e);
@@ -276,25 +305,13 @@ export async function POST(request: NextRequest) {
             targetAgent = 'smokey';
         }
         
-        // ---------------------------------------------------------
-        // 2.5 Talk Track (Live Playbook) Interception
-        // Check if this prompt triggers a pre-defined Talk Track
-        // Optimization: Only check for complex queries to speed up simple interactions
-        // ---------------------------------------------------------
-        const isComplexQuery = (p: string) => {
-            const words = p.split(' ').length;
-            const complexKeywords = ['plan', 'strategy', 'breakdown', 'compare', 'analyze', 'report', 'audit', 'why', 'how'];
-            // Trigger if long enough OR contains deep-dive keywords
-            return words > 8 || complexKeywords.some(k => p.toLowerCase().includes(k));
-        };
-
         try {
             // Only engage "Intention OS" (Episodic Thinking) for complex queries or specific triggers
             // This prevents "Thinking..." overhead for simple "Hi" or "Price check" queries
             let talkTrack = null;
             
-            if (isComplexQuery(prompt)) {
-                talkTrack = await findTalkTrackByTrigger(prompt, 'dispensary'); // Defaulting to dispensary for now
+            if (isComplex) {
+                talkTrack = await findTalkTrackByTrigger(prompt, userRole);
             }
             
             if (talkTrack) {
@@ -385,6 +402,7 @@ export async function POST(request: NextRequest) {
         // Inject Real Data context if applicable (e.g. Ezal)
         if (targetAgent === 'ezal' && !actionTakenResponse) {
             const urlMatch = prompt.match(/https?:\/\/[^\s]+/);
+            const locationMatch = prompt.match(/^(\d{5}|[a-zA-Z\s]+,\s?[a-zA-Z]{2})$/);
             
             // 1. Live BakedBot Discovery Demo (if URL present)
             if (urlMatch) {
@@ -411,7 +429,36 @@ export async function POST(request: NextRequest) {
                     console.error('Demo discovery failed', e);
                 }
             } 
-            // 2. Mock Context Injection (fallback)
+            // 2. LIVE Location Search (Market Scout)
+            else if (locationMatch) {
+                try {
+                    const { searchDemoRetailers } = await import('@/app/dashboard/intelligence/actions/demo-setup');
+                    const location = locationMatch[0];
+                    const result = await searchDemoRetailers(location);
+                    
+                    if (result.success && result.daa) {
+                        const competitors = result.daa.slice(0, 3);
+                        const enriched = result.daa.find((c: any) => c.isEnriched);
+                        
+                        items = competitors.map((c: any, idx: number) => ({
+                            title: `Competitor #${idx+1}: ${c.name}`,
+                            description: `Pricing: ${c.pricingStrategy} | Menu: ${c.skuCount} SKUs. ${c.isEnriched ? 'Verified via BakedBot Discovery.' : ''}`,
+                            meta: `Distance: ${c.distance.toFixed(1)} miles | Risk: ${c.riskScore}`
+                        }));
+
+                        if (enriched) {
+                            items.unshift({
+                                title: `Deep Dive: ${enriched.name}`,
+                                description: enriched.enrichmentSummary,
+                                meta: '🔥 LIVE INTEL'
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.error('Demo location search failed', e);
+                }
+            }
+            // 3. Mock Context Injection (fallback)
             else if (context?.retailers?.length > 0) {
                  items = items.map((item, idx) => {
                     const retailer = context.retailers[idx];
