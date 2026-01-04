@@ -859,6 +859,9 @@ export function PuffChat({
                     setStreamingMessageId(thinkingId);
                  }, 800);
              }
+             return;
+        }
+
 // ... (Top of file modifications handled by removing from PRESET_RESPONSES below)
 
 // Inside submitMessage function, before PRESET_RESPONSES check:
@@ -920,7 +923,7 @@ export function PuffChat({
              // Visual pacing for "Reading"
              await new Promise(r => setTimeout(r, 1500));
              
-             if (result.success) {
+             if (result.success && result.details) {
                   updateMessage(thinkingId, {
                     thinking: { isThinking: true, steps: [
                         { id: step1Id, toolName: "Site Visitor", description: `Scraped ${targetUrl}`, status: 'completed', durationMs: 1200 },
@@ -958,6 +961,8 @@ export function PuffChat({
              setStreamingMessageId(thinkingId);
              return;
         }
+
+        const zipRegex = /^\d{5}$/;
         const isZipOrCity = zipRegex.test(trimmedInput) || (trimmedInput.length > 3 && trimmedInput.length < 20 && !trimmedInput.includes(' ')); // Simple city heuristic
         
         // If last message asked for location (We can check if last bot message contains "What City or Zip")
@@ -1939,6 +1944,8 @@ export function PuffChat({
     </div>
     );
 }
+
+
 
 // --- Helper Components ---
 
