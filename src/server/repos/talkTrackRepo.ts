@@ -722,6 +722,53 @@ const DEFAULT_TRACKS: TalkTrack[] = [
                 message: "🎉 **Daily Cannabis News Digest is now LIVE!**\n\n**Configuration:**\n*   **Schedule**: Every day at your preferred time\n*   **Content**: Top cannabis industry headlines, regulatory updates, market trends\n*   **Delivery**: Email to your inbox\n\nYou'll receive your first automated digest tomorrow. Stay informed! 🌿"
             }
         ]
+    },
+    {
+        id: 'direct-api-connection',
+        name: 'Direct API Connection Setup',
+        role: 'all',
+        triggerKeywords: ['direct api', 'api connection', 'connect api', 'custom api', 'api endpoint', 'rest api'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-service-selection',
+                order: 1,
+                type: 'question',
+                triggerKeywords: ['setup api', 'direct api connection', 'new api'],
+                thought: "Preparing API connection workflow... Need to identify target service...",
+                message: "I'd be happy to help you set up a direct API connection! 🔌\n\nTo get started, I'll need to know: **Which service or API would you like to connect to?**\n\n*Examples: Stripe, Airtable, HubSpot, a custom internal API, etc.*\n\nOnce you let me know, I'll guide you through gathering the necessary details like the API endpoint and authentication credentials."
+            },
+            {
+                id: 'step-gather-credentials',
+                order: 2,
+                type: 'question',
+                triggerKeywords: ['stripe', 'airtable', 'hubspot', 'custom', 'internal'],
+                thought: "identifying api type... preparing credential collection...",
+                steps: [
+                    "Identified: [Service Name]...",
+                    "Checking: Authentication requirements...",
+                    "Preparing: Credential collection form..."
+                ],
+                message: "Great choice! To connect to this API, I'll need:\n\n1. **API Endpoint URL** (e.g., `https://api.service.com/v1`)\n2. **Authentication Type** (API Key, OAuth, Bearer Token?)\n3. **Credentials** (API Key or Token)\n\nYou can paste these directly in the chat, or I can help you find where to get them in the service's dashboard."
+            },
+            {
+                id: 'step-test-connection',
+                order: 3,
+                type: 'action',
+                triggerKeywords: ['here is', 'my api key', 'endpoint is', 'credentials'],
+                thought: "validating credentials... testing connection... verifying permissions...",
+                steps: [
+                    "Storing: Credentials (encrypted)...",
+                    "Testing: API endpoint connectivity...",
+                    "Verifying: Authentication success...",
+                    "Checking: Available endpoints..."
+                ],
+                message: "✅ **Connection Successful!**\n\nI've verified the API connection and stored your credentials securely.\n\n**Available Actions:**\n*   Make GET/POST requests\n*   Set up scheduled data pulls\n*   Trigger actions from other workflows\n\nWhat would you like to do with this connection?"
+            }
+        ]
     }
 ];
 
