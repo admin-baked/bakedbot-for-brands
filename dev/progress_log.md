@@ -1,3 +1,32 @@
+## Session: Onboarding Waterfall Data Hydration
+### Task ID
+onboarding_waterfall_hydration
+
+### Summary
+Implemented waterfall data hydration strategy to ensure dashboard has data ready on first login.
+
+### Key Changes
+*   **MOD**: `src/app/api/jobs/process/route.ts` - Enhanced `processProductSync` with 4-level waterfall:
+    - Level 1: POS Sync (only if connected, skipped during onboarding)
+    - Level 2: CannMenus (primary cannabis data source)
+    - Level 3: Leafly via Apify (competitive intel fallback)
+    - Level 4: Website Discover via Firecrawl (last resort scraping)
+*   **NEW**: `processWebsiteDiscover` handler - Firecrawl integration for edge cases and manual entries.
+*   **MOD**: `src/app/dashboard/settings/link/components/wiring-screen.tsx` - Updated log messages to show waterfall steps.
+
+### Design Notes
+- During onboarding, **POS is not connected**, so waterfall starts at CannMenus.
+- After user connects POS from Dashboard, next sync will prioritize POS.
+- This is the correct UX - don't add friction during onboarding.
+
+### Commits
+*   `5f5b49de`: feat: implement waterfall data hydration for onboarding (CannMenus -> Leafly -> Discover)
+
+### Result: ✅ Complete
+Waterfall data hydration implemented and pushed.
+
+---
+
 ## Session: Dispensary Console Live Data Migration
 ### Task ID
 dispensary_live_data_migration
