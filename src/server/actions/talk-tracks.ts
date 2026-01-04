@@ -2,7 +2,6 @@
 
 import { getAllTalkTracks, saveTalkTrack } from '@/server/repos/talkTrackRepo';
 import { TalkTrack } from '@/types/talk-track';
-import { revalidateTag } from 'next/cache';
 
 export async function getTalkTracksAction() {
     try {
@@ -17,7 +16,6 @@ export async function getTalkTracksAction() {
 export async function saveTalkTrackAction(track: TalkTrack) {
     try {
         await saveTalkTrack(track);
-        revalidateTag('talk-tracks');
         return { success: true };
     } catch (error) {
         console.error('Failed to save talk track', error);

@@ -212,7 +212,7 @@ const DEFAULT_TRACKS: TalkTrack[] = [
     {
         id: 'cannabis-ai-tracker',
         name: 'Cannabis AI Usage Tracker',
-        role: 'tech_vendor', // Targeted at tech vendors/researchers
+        role: 'all', // Available to all roles
         triggerKeywords: ['track ai usage', 'ai adoption', 'cannabis ai tracker', 'research dispensaries'],
         isActive: true,
         createdAt: new Date(),
