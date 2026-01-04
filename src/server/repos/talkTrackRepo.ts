@@ -669,6 +669,59 @@ const DEFAULT_TRACKS: TalkTrack[] = [
                 message: "✅ Your weekly news digest has been sent! This week's email highlights recent press coverage and industry mentions.\n\n**Next update**: Monday at 9:00 AM.\n\nI'll keep you informed automatically each week. 📰"
             }
         ]
+    },
+    {
+        id: 'daily-cannabis-news-digest',
+        name: 'Daily Cannabis News Digest',
+        role: 'all',
+        triggerKeywords: ['cannabis news', 'daily news', 'industry news', 'send cannabis news', 'news to email', 'daily summary'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-check-connections',
+                order: 1,
+                type: 'action',
+                triggerKeywords: ['daily summary', 'cannabis news', 'news to email'],
+                thought: "checking available connections... verifying gmail access... preparing news search...",
+                steps: [
+                    "Checking Connections: Gmail...",
+                    "Status: Gmail (Connected) ✅",
+                    "Preparing: Cannabis News Search..."
+                ],
+                message: "I'll help you set up daily cannabis news summaries! 📰\n\nPerfect! You already have **Gmail connected**. Let me set up a daily automated task to search for cannabis news, summarize it, and send it to your email.\n\nWould you like me to **send the first one now** so you can see what it looks like?"
+            },
+            {
+                id: 'step-send-first',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['send first', 'send now', 'yes', 'do it'],
+                thought: "searching cannabis news sources... aggregating headlines... composing email digest...",
+                steps: [
+                    "Searching: MJBizDaily, Cannabis Business Times, Leafly News...",
+                    "Found: 8 articles from last 24 hours...",
+                    "Summarizing key stories...",
+                    "Sending to: your email..."
+                ],
+                message: "✅ Your first cannabis news digest has been sent!\n\n**Today's Headlines:**\n*   Regulatory updates from state markets\n*   Industry M&A activity\n*   Retail trends and consumer insights\n\nNow let's set up the daily automation. **What time would you like to receive your daily cannabis news summary?**"
+            },
+            {
+                id: 'step-schedule-setup',
+                order: 3,
+                type: 'action',
+                triggerKeywords: ['9am', '8am', 'morning', 'every day', 'daily at'],
+                thought: "configuring daily trigger... setting preferred time... activating automation...",
+                steps: [
+                    "Creating Trigger: 'Daily Cannabis News'...",
+                    "Schedule: Every day @ [Time]...",
+                    "Source: Industry news aggregation...",
+                    "Delivery: Email digest."
+                ],
+                message: "🎉 **Daily Cannabis News Digest is now LIVE!**\n\n**Configuration:**\n*   **Schedule**: Every day at your preferred time\n*   **Content**: Top cannabis industry headlines, regulatory updates, market trends\n*   **Delivery**: Email to your inbox\n\nYou'll receive your first automated digest tomorrow. Stay informed! 🌿"
+            }
+        ]
     }
 ];
 
