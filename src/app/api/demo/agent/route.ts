@@ -279,9 +279,23 @@ export async function POST(request: NextRequest) {
         // ---------------------------------------------------------
         // 2.5 Talk Track (Live Playbook) Interception
         // Check if this prompt triggers a pre-defined Talk Track
+        // Optimization: Only check for complex queries to speed up simple interactions
         // ---------------------------------------------------------
+        const isComplexQuery = (p: string) => {
+            const words = p.split(' ').length;
+            const complexKeywords = ['plan', 'strategy', 'breakdown', 'compare', 'analyze', 'report', 'audit', 'why', 'how'];
+            // Trigger if long enough OR contains deep-dive keywords
+            return words > 8 || complexKeywords.some(k => p.toLowerCase().includes(k));
+        };
+
         try {
-            const talkTrack = await findTalkTrackByTrigger(prompt, 'dispensary'); // Defaulting to dispensary for now
+            // Only engage "Intention OS" (Episodic Thinking) for complex queries or specific triggers
+            // This prevents "Thinking..." overhead for simple "Hi" or "Price check" queries
+            let talkTrack = null;
+            
+            if (isComplexQuery(prompt)) {
+                talkTrack = await findTalkTrackByTrigger(prompt, 'dispensary'); // Defaulting to dispensary for now
+            }
             
             if (talkTrack) {
                 // Found a matching talk track (or step match)! 
