@@ -1759,6 +1759,361 @@ const DEFAULT_TRACKS: TalkTrack[] = [
                 message: "💰 **Revenue Dashboard**\n\n**This Month (Jan 2026)**\n*   Revenue: $142,400\n*   Target: $150,000\n*   Progress: 95% (on track! ✅)\n\n**This Quarter (Q1)**\n*   Revenue: $142,400\n*   Target: $450,000\n*   Progress: 32% (ahead of pace 📈)\n\n**Year-to-Date**\n*   Revenue: $142,400\n*   Target: $1,800,000\n*   Progress: 8%\n\n**By Channel:**\n| Channel | Revenue | % of Total |\n|---------|---------|------------|\n| Wholesale | $128,160 | 90% |\n| Direct (D2C) | $14,240 | 10% |\n\n**By Region:**\n| Region | Revenue | Growth |\n|--------|---------|--------|\n| California | $85,440 | +15% |\n| Colorado | $42,720 | +8% |\n| Nevada | $14,240 | +22% |\n\nWant a **detailed breakdown** or **export for finance**?"
             }
         ]
+    },
+    // =========================================================================
+    // CUSTOMER TALK TRACKS
+    // Used by customers via direct login, Smokey widget on brand/dispensary
+    // websites, and Location/Brand/Dispensary SEO pages
+    // =========================================================================
+
+    // --- Product Discovery ---
+    {
+        id: 'customer-product-search',
+        name: 'Product Search',
+        role: 'customer',
+        triggerKeywords: ['find products', 'looking for', 'what strains', 'show me', 'search for', 'do you have'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-gather-preferences',
+                order: 1,
+                type: 'question',
+                thought: "Understanding what the customer is looking for...",
+                message: "🌿 I'd love to help you find the perfect product! What are you looking for today?\n\n• Flower\n• Edibles\n• Vapes\n• Concentrates\n• Tinctures\n• Something specific"
+            },
+            {
+                id: 'step-search-products',
+                order: 2,
+                type: 'action',
+                thought: "Searching catalog... Matching preferences... Ranking by relevance...",
+                steps: [
+                    "Searching: Available products...",
+                    "Matching: Your preferences...",
+                    "Ranking: Best matches..."
+                ],
+                message: "Here's what I found for you! 🔥\n\n**Top Matches:**\n1. **Blue Dream** - Sativa Hybrid, 22% THC ($45/eighth)\n   *Uplifting, creative, perfect for daytime*\n2. **Wedding Cake** - Indica Hybrid, 25% THC ($50/eighth)\n   *Relaxing, euphoric, great for evening*\n3. **Durban Poison** - Pure Sativa, 20% THC ($42/eighth)\n   *Energizing, focused, productive vibes*\n\nWant more details on any of these, or should I search for something more specific?"
+            }
+        ]
+    },
+    {
+        id: 'customer-effect-search',
+        name: 'Effect-Based Search',
+        role: 'customer',
+        triggerKeywords: ['help me relax', 'for energy', 'pain relief', 'sleep', 'anxiety', 'creative', 'focus', 'stress'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-understand-effect',
+                order: 1,
+                type: 'action',
+                thought: "Understanding desired effects... Matching to terpene profiles... Finding best strain matches...",
+                steps: [
+                    "Analyzing: Your desired effects...",
+                    "Matching: Terpene profiles...",
+                    "Finding: Best strains for you..."
+                ],
+                message: "😌 I've got some great options for what you're looking for!\n\n**Recommended for Your Needs:**\n\n🌙 **For Relaxation & Stress Relief:**\n• **Granddaddy Purple** - Indica, high myrcene\n• **Northern Lights** - Classic calming indica\n\n💤 **For Sleep:**\n• **Purple Punch** - Heavy indica, sedating\n• **9 Pound Hammer** - Knockout effects\n\n⚡ **For Energy & Focus:**\n• **Green Crack** - Sativa, motivating\n• **Jack Herer** - Clear-headed energy\n\nWant me to tell you more about any of these, or help you find a dispensary nearby?"
+            }
+        ]
+    },
+    {
+        id: 'customer-product-compare',
+        name: 'Product Comparison',
+        role: 'customer',
+        triggerKeywords: ['compare', 'vs', 'versus', 'difference between', 'which is better', 'what is the difference'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-compare-products',
+                order: 1,
+                type: 'action',
+                thought: "Analyzing products... Comparing effects, potency, price... Generating comparison...",
+                steps: [
+                    "Analyzing: Product profiles...",
+                    "Comparing: Key attributes...",
+                    "Generating: Side-by-side view..."
+                ],
+                message: "📊 **Product Comparison**\n\n| Attribute | Blue Dream | OG Kush |\n|-----------|------------|----------|\n| Type | Sativa Hybrid | Indica Hybrid |\n| THC | 22% | 24% |\n| Effects | Uplifting, Creative | Relaxing, Euphoric |\n| Terpenes | Myrcene, Pinene | Limonene, Caryophyllene |\n| Best For | Daytime use | Evening use |\n| Price | $45/eighth | $48/eighth |\n\n**My Recommendation:** If you want to stay productive, go with **Blue Dream**. If you're winding down, **OG Kush** is your friend.\n\nWant details on where to buy either of these?"
+            }
+        ]
+    },
+    {
+        id: 'customer-new-arrivals',
+        name: 'New Arrivals',
+        role: 'customer',
+        triggerKeywords: ['new products', 'just in', 'latest drops', 'new arrivals', 'whats new', 'fresh', 'recent'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-show-new',
+                order: 1,
+                type: 'action',
+                thought: "Fetching latest inventory... Checking recent additions...",
+                steps: [
+                    "Checking: Latest drops...",
+                    "Finding: New arrivals..."
+                ],
+                message: "🆕 **Fresh Drops This Week!**\n\n🔥 **Just Landed:**\n1. **Gelato 41** - Exotic hybrid, 28% THC - *Limited batch!*\n2. **Runtz Live Resin** - Premium extract, terp-heavy\n3. **Kiva Camino Gummies** - New flavors in stock\n\n📦 **Coming Soon:**\n• Connected Cannabis Co. collab\n• New Stiiizy pods\n\nInterested in any of these? I can check availability near you!"
+            }
+        ]
+    },
+
+    // --- Order & Purchase ---
+    {
+        id: 'customer-store-locator',
+        name: 'Store Locator',
+        role: 'customer',
+        triggerKeywords: ['where to buy', 'stores near me', 'closest dispensary', 'find dispensary', 'dispensaries near', 'buy near me'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-get-location',
+                order: 1,
+                type: 'question',
+                thought: "Need location to find nearby stores...",
+                message: "📍 I can help you find dispensaries nearby! What's your ZIP code or city?"
+            },
+            {
+                id: 'step-show-stores',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['90210', 'los angeles', 'chicago', 'denver'],
+                thought: "Searching dispensaries... Checking availability... Ranking by distance...",
+                steps: [
+                    "Searching: Nearby dispensaries...",
+                    "Checking: Product availability...",
+                    "Ranking: By distance..."
+                ],
+                message: "🏪 **Dispensaries Near You:**\n\n1. **Green Leaf Collective** - 0.5 mi\n   📍 123 Main St\n   ⏰ Open until 9pm\n   ⭐ 4.8 (342 reviews)\n\n2. **CannaCare Wellness** - 1.2 mi\n   📍 456 Oak Ave\n   ⏰ Open until 10pm\n   ⭐ 4.6 (218 reviews)\n\n3. **The Green Room** - 2.1 mi\n   📍 789 Elm Blvd\n   ⏰ Open until 8pm\n   ⭐ 4.9 (156 reviews)\n\nWant directions, or shall I check if a specific product is available at any of these?"
+            }
+        ]
+    },
+    {
+        id: 'customer-order-status',
+        name: 'Order Status',
+        role: 'customer',
+        triggerKeywords: ['my order', 'order status', 'track order', 'where is my order', 'order tracking'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-check-order',
+                order: 1,
+                type: 'action',
+                thought: "Looking up order status... Checking fulfillment...",
+                steps: [
+                    "Looking up: Your recent orders...",
+                    "Checking: Fulfillment status..."
+                ],
+                message: "📦 **Your Recent Order**\n\n**Order #BB-2026-1234**\n• Status: **Ready for Pickup** ✅\n• Placed: Today, 2:15 PM\n• Pickup at: Green Leaf Collective\n\n**Items:**\n• Blue Dream 1/8 oz ($45)\n• Kiva Gummies ($22)\n\n**Total:** $67.00\n\n*Your order is waiting for you! Bring your ID.*\n\nNeed help with something else?"
+            }
+        ]
+    },
+    {
+        id: 'customer-reorder',
+        name: 'Quick Reorder',
+        role: 'customer',
+        triggerKeywords: ['reorder', 'buy again', 'same as last time', 'order again', 'repeat order'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-show-past-orders',
+                order: 1,
+                type: 'action',
+                thought: "Fetching order history... Finding reorderable items...",
+                steps: [
+                    "Fetching: Your order history...",
+                    "Checking: Item availability..."
+                ],
+                message: "🔄 **Quick Reorder**\n\n**Your Favorites:**\n1. Blue Dream 1/8 oz - $45 *(In stock ✅)*\n2. Kiva Camino Gummies - $22 *(In stock ✅)*\n3. Stiiizy OG Pod - $35 *(Low stock ⚠️)*\n\nWant me to add any of these to your cart? Just let me know which ones!"
+            }
+        ]
+    },
+
+    // --- Brand/Dispensary Info ---
+    {
+        id: 'customer-brand-info',
+        name: 'Brand Info',
+        role: 'customer',
+        triggerKeywords: ['about', 'who makes', 'tell me about', 'what is', 'brand info', 'company'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-show-brand-info',
+                order: 1,
+                type: 'action',
+                thought: "Looking up brand information... Fetching product catalog...",
+                steps: [
+                    "Looking up: Brand details...",
+                    "Fetching: Product lineup..."
+                ],
+                message: "ℹ️ **About This Brand**\n\n*This information is tailored to the brand page you're on.*\n\n**Founded:** 2018 in California\n**Mission:** Craft cannabis with purpose\n**Products:** Premium flower, concentrates, edibles\n\n**Popular Products:**\n• OG Kush - Signature strain\n• Live Resin Carts - Best seller\n• Infused Pre-rolls - Fan favorite\n\n**Where to Buy:**\nAvailable at 50+ licensed dispensaries in CA, CO, NV\n\nAnything specific you'd like to know?"
+            }
+        ]
+    },
+    {
+        id: 'customer-hours-location',
+        name: 'Hours & Location',
+        role: 'customer',
+        triggerKeywords: ['hours', 'when open', 'address', 'directions', 'location', 'open now', 'closing time'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-show-hours',
+                order: 1,
+                type: 'action',
+                thought: "Looking up store hours and location...",
+                message: "🕐 **Store Hours & Location**\n\n*Showing info for this dispensary:*\n\n📍 **Address:**\n123 Cannabis Way, Los Angeles, CA 90210\n\n⏰ **Hours:**\n• Monday-Friday: 9am - 9pm\n• Saturday: 10am - 10pm\n• Sunday: 11am - 7pm\n\n**Open Now:** Yes ✅ (closes in 4 hours)\n\n📞 **Contact:** (555) 420-1234\n🌐 **Website:** www.dispensary.com\n\nNeed directions or want to place an order?"
+            }
+        ]
+    },
+    {
+        id: 'customer-deals-specials',
+        name: 'Deals & Specials',
+        role: 'customer',
+        triggerKeywords: ['deals', 'specials', 'discounts', 'sale', 'promotions', 'coupon', 'savings'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-show-deals',
+                order: 1,
+                type: 'action',
+                thought: "Fetching current deals and promotions...",
+                steps: [
+                    "Checking: Today's deals...",
+                    "Finding: Active promotions..."
+                ],
+                message: "🎉 **Today's Deals & Specials!**\n\n🔥 **Daily Deal:**\n• 20% off all edibles (Today only!)\n\n💚 **Weekly Specials:**\n• Buy 2 pre-rolls, get 1 free\n• $10 off orders over $75\n\n👑 **Member Exclusives:**\n• Double points on vape purchases\n• Early access to new drops\n\n🎂 **Birthday?** Get 25% off your order this month!\n\nWant to browse products on sale?"
+            }
+        ]
+    },
+
+    // --- Loyalty & Account ---
+    {
+        id: 'customer-loyalty-points',
+        name: 'Loyalty Points',
+        role: 'customer',
+        triggerKeywords: ['my points', 'rewards', 'loyalty balance', 'points balance', 'reward points'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-show-points',
+                order: 1,
+                type: 'action',
+                thought: "Looking up loyalty balance and tier status...",
+                message: "🏆 **Your Rewards**\n\n**Points Balance:** 2,450 points\n**Member Tier:** Gold 🥇\n\n**Points Value:** $24.50 in rewards!\n\n**Recent Activity:**\n• +150 pts - Last purchase (Jan 2)\n• -500 pts - Redeemed $5 off (Dec 28)\n• +300 pts - Bonus points promo (Dec 25)\n\n**Next Tier (Platinum):** 550 pts away\n\nWant to redeem your points on your next order?"
+            }
+        ]
+    },
+    {
+        id: 'customer-earn-points',
+        name: 'Earn Points',
+        role: 'customer',
+        triggerKeywords: ['how to earn', 'get more points', 'earn points', 'earn rewards', 'points earning'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-show-earning',
+                order: 1,
+                type: 'action',
+                thought: "Explaining loyalty program earning structure...",
+                message: "💰 **Ways to Earn Points**\n\n**Shopping:**\n• 1 point per $1 spent\n• 2x points on featured items\n\n**Bonuses:**\n• 🎂 500 pts on your birthday\n• 👥 200 pts for each referral\n• ⭐ 100 pts for product reviews\n\n**Current Promos:**\n• Double points weekends\n• 3x points on new arrivals\n\n**Your Status:** Gold (1.5x earning multiplier!)\n\nStart earning by shopping today!"
+            }
+        ]
+    },
+    {
+        id: 'customer-redeem-rewards',
+        name: 'Redeem Rewards',
+        role: 'customer',
+        triggerKeywords: ['redeem points', 'use rewards', 'claim reward', 'spend points', 'redeem'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-redeem-options',
+                order: 1,
+                type: 'action',
+                thought: "Fetching redemption options based on points balance...",
+                message: "🎁 **Redeem Your Rewards**\n\n**Your Balance:** 2,450 points\n\n**Available Rewards:**\n\n💵 **Cash Discounts:**\n• 500 pts → $5 off\n• 1,000 pts → $10 off\n• 2,000 pts → $25 off *(Best value!)*\n\n🎁 **Free Products:**\n• 800 pts → Free pre-roll\n• 1,500 pts → Free edible\n• 3,000 pts → Free eighth\n\n🌟 **Experiences:**\n• 5,000 pts → VIP dispensary tour\n\nWhich would you like to redeem?"
+            }
+        ]
+    },
+
+    // --- General ---
+    {
+        id: 'customer-get-help',
+        name: 'Get Help',
+        role: 'customer',
+        triggerKeywords: ['help', 'support', 'contact', 'question', 'problem', 'issue', 'need help'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-help-options',
+                order: 1,
+                type: 'response',
+                thought: "Providing help options...",
+                message: "🙋 **How Can I Help?**\n\nI'm here to assist with:\n\n🌿 **Product Questions**\n• Finding products, strains, effects\n\n📦 **Orders**\n• Track orders, reorder favorites\n\n📍 **Finding Stores**\n• Locate dispensaries near you\n\n🏆 **Rewards**\n• Check points, redeem rewards\n\n📞 **Contact Support:**\n• Email: support@bakedbot.ai\n• Phone: (555) 420-HELP\n\nJust ask me anything, or choose an option above!"
+            }
+        ]
+    },
+    {
+        id: 'customer-greeting',
+        name: 'Greeting',
+        role: 'customer',
+        triggerKeywords: ['hi', 'hello', 'hey', 'hey smokey', 'hi smokey', 'whats up', 'good morning'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-greet',
+                order: 1,
+                type: 'response',
+                thought: "Greeting the customer warmly...",
+                message: "👋 Hey there! I'm **Smokey**, your AI budtender.\n\nI can help you with:\n• 🌿 Finding the perfect products\n• 📍 Locating dispensaries nearby\n• 📦 Tracking your orders\n• 🏆 Checking your rewards\n\nWhat can I do for you today?"
+            }
+        ]
     }
 ];
 
